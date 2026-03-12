@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file source-language="en" datatype="plaintext" original="EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf">
+        <body>
+
+            <trans-unit id="action.cancel">
+                <source>Cancel</source>
+            </trans-unit>
+            <trans-unit id="action.editRecord">
+                <source>Edit record</source>
+            </trans-unit>
+            <trans-unit id="action.export">
+                <source>Export</source>
+            </trans-unit>
+            <trans-unit id="action.ignore">
+                <source>Ignore</source>
+            </trans-unit>
+            <trans-unit id="action.resolve">
+                <source>Mark as resolved</source>
+            </trans-unit>
+            <trans-unit id="action.scanAll">
+                <source>Scan all</source>
+            </trans-unit>
+            <trans-unit id="action.scanNow">
+                <source>Scan now</source>
+            </trans-unit>
+            <trans-unit id="action.scanning">
+                <source>Scanning...</source>
+            </trans-unit>
+            <trans-unit id="action.unignore">
+                <source>Unignore</source>
+            </trans-unit>
+            <trans-unit id="action.viewIssues">
+                <source>View issues</source>
+            </trans-unit>
+            <trans-unit id="action.back">
+                <source>Back</source>
+            </trans-unit>
+
+            <trans-unit id="ignore.modal.reason.label">
+                <source>Reason for ignoring (required)</source>
+            </trans-unit>
+            <trans-unit id="ignore.modal.reason.placeholder">
+                <source>Explain why this issue is intentional or acceptable...</source>
+            </trans-unit>
+            <trans-unit id="ignore.modal.title">
+                <source>Ignore issue</source>
+            </trans-unit>
+
+            <trans-unit id="issue.status.ignored">
+                <source>Ignored</source>
+            </trans-unit>
+            <trans-unit id="issue.status.muted">
+                <source>Muted</source>
+            </trans-unit>
+            <trans-unit id="issue.status.open">
+                <source>Open</source>
+            </trans-unit>
+            <trans-unit id="issue.status.resolved">
+                <source>Resolved</source>
+            </trans-unit>
+
+            <trans-unit id="module.overview.description">
+                <source>Review the latest scan results and open page-level issue summaries.</source>
+            </trans-unit>
+            <trans-unit id="module.overview.title">
+                <source>Accessibility Overview</source>
+            </trans-unit>
+            <trans-unit id="module.pageDetail.description">
+                <source>Review accessibility issues for this page, edit affected records, or ignore intentional exceptions.</source>
+            </trans-unit>
+            <trans-unit id="module.pageDetail.title">
+                <source>Page Issues</source>
+            </trans-unit>
+            <trans-unit id="module.title">
+                <source>Accessibility</source>
+            </trans-unit>
+
+            <trans-unit id="notification.scan.completed">
+                <source>Scan complete — %d new, %d resolved.</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.failed">
+                <source>Scan failed: %s</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.missingPageUid">
+                <source>Scan failed: missing endpoint or page UID.</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.missingRootPid">
+                <source>Scan failed: missing endpoint or root PID.</source>
+            </trans-unit>
+            <trans-unit id="notification.scanAll.completed">
+                <source>Full scan complete — %d new, %d resolved.</source>
+            </trans-unit>
+            <trans-unit id="notification.title">
+                <source>Accessibility</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.accessDenied">
+                <source>Scan failed: access denied.</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.alreadyRunning">
+                <source>A scan is already running.</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.unauthorized">
+                <source>Scan failed: unauthorized request.</source>
+            </trans-unit>
+
+            <trans-unit id="overview.lastScan.label">
+                <source>Last scan:</source>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.newIssues">
+                <source>new issues</source>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.pages">
+                <source>pages</source>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.records">
+                <source>records</source>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.resolvedIssues">
+                <source>resolved</source>
+            </trans-unit>
+            <trans-unit id="overview.noOpenIssues">
+                <source>No open accessibility issues found.</source>
+            </trans-unit>
+            <trans-unit id="overview.noScanYet">
+                <source>No scan has been run yet.</source>
+            </trans-unit>
+            <trans-unit id="overview.scanAll.hint">
+                <source>Full scan may take longer on larger sites.</source>
+            </trans-unit>
+            <trans-unit id="overview.search">
+                <source>Search page</source>
+            </trans-unit>
+            <trans-unit id="overview.search.noResults">
+                <source>No matching pages found.</source>
+            </trans-unit>
+            <trans-unit id="overview.search.placeholder">
+                <source>UID or page title</source>
+            </trans-unit>
+            <trans-unit id="overview.table.page">
+                <source>Page</source>
+            </trans-unit>
+            <trans-unit id="overview.table.total">
+                <source>Total</source>
+            </trans-unit>
+            <trans-unit id="overview.total">
+                <source>Total</source>
+            </trans-unit>
+
+            <trans-unit id="pageDetail.confirmIgnore">
+                <source>Confirm ignore</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.filter.all">
+                <source>All</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.filter.ariaLabel">
+                <source>Issue status filter</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.issueCount">
+                <source>({0} issues)</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignoredLabel">
+                <source>Ignored</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.issuesLabel">
+                <source>issues</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.languageLabel">
+                <source>lang</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.locationLabel">
+                <source>Location</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.noIssuesForFilter">
+                <source>No issues found for the selected status filter.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.noIssuesStored">
+                <source>No issues are currently stored for this page.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.noIssuesStored.rescanHint">
+                <source>Run a scan to refresh the page status.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ruleLabel">
+                <source>Rule</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.snippetLabel">
+                <source>Snippet</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.total">
+                <source>Total</source>
+            </trans-unit>
+
+            <trans-unit id="qualityGate.warn.linkText">
+                <source>View accessibility issues</source>
+            </trans-unit>
+            <trans-unit id="qualityGate.warn.message">
+                <source>This page has accessibility issues that exceed the configured thresholds. Please review them before publishing.</source>
+            </trans-unit>
+
+            <trans-unit id="scheduler.field.changedOnly">
+                <source>Changed-only mode</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.changedOnly.checkboxLabel">
+                <source>Scan only changed content</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.changedOnly.help">
+                <source>Only content with a changed stored hash will be scanned. This is faster, but unresolved issues from unchanged content are not recalculated.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.depth">
+                <source>Depth</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.languageUid">
+                <source>Language UID (-1 = all)</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.languageUid.help">
+                <source>Use -1 to scan all languages.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.pageUid">
+                <source>Single page UID (optional)</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.pageUid.help">
+                <source>Optional. If filled, the root page selection below is ignored.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.rootPid">
+                <source>Root page</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.rootPid.placeholder">
+                <source>-- Select root page --</source>
+            </trans-unit>
+            <trans-unit id="scheduler.task.description">
+                <source>Scans TYPO3 content for accessibility issues and stores results in the backend module.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.task.title">
+                <source>Accessibility Quality Gate: Site Scan</source>
+            </trans-unit>
+            <trans-unit id="scheduler.validation.depthPositive">
+                <source>Depth must be greater than 0.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.validation.pageNotFound">
+                <source>Configured page UID %d does not exist.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.validation.pageOrRootRequired">
+                <source>Please configure either a single page UID or a root page.</source>
+            </trans-unit>
+            <trans-unit id="scheduler.validation.rootNotFound">
+                <source>Configured root page UID %d does not exist.</source>
+            </trans-unit>
+
+            <trans-unit id="severity.critical">
+                <source>Critical</source>
+            </trans-unit>
+            <trans-unit id="severity.info">
+                <source>Info</source>
+            </trans-unit>
+            <trans-unit id="severity.warning">
+                <source>Warning</source>
+            </trans-unit>
+            <trans-unit id="severity.warningPlural">
+                <source>Warnings</source>
+            </trans-unit>
+
+            <trans-unit id="toolbar.error">
+                <source>Error</source>
+            </trans-unit>
+            <trans-unit id="toolbar.lastFinished">
+                <source>Last finished</source>
+            </trans-unit>
+            <trans-unit id="toolbar.lastResult">
+                <source>Last result</source>
+            </trans-unit>
+            <trans-unit id="toolbar.openModule">
+                <source>Open module</source>
+            </trans-unit>
+            <trans-unit id="toolbar.startedAt">
+                <source>Started at</source>
+            </trans-unit>
+            <trans-unit id="toolbar.status">
+                <source>Status</source>
+            </trans-unit>
+            <trans-unit id="toolbar.status.idle">
+                <source>Idle</source>
+            </trans-unit>
+            <trans-unit id="toolbar.status.running">
+                <source>Running</source>
+            </trans-unit>
+            <trans-unit id="toolbar.title">
+                <source>Accessibility scan</source>
+            </trans-unit>
+            <trans-unit id="toolbar.trigger">
+                <source>Trigger</source>
+            </trans-unit>
+            <trans-unit id="toolbar.triggeredBy">
+                <source>Triggered by</source>
+            </trans-unit>
+
+            <trans-unit id="settings.title">
+                <source>Settings</source>
+            </trans-unit>
+            <trans-unit id="settings.description">
+                <source>Choose which automatically discovered fields should be scanned in the free version.</source>
+            </trans-unit>
+            <trans-unit id="settings.backToOverview">
+                <source>Back to overview</source>
+            </trans-unit>
+            <trans-unit id="settings.discovery.title">
+                <source>Field discovery</source>
+            </trans-unit>
+            <trans-unit id="settings.discovery.description">
+                <source>Scan TCA and refresh the list of supported RTE and file fields.</source>
+            </trans-unit>
+            <trans-unit id="settings.refreshFields">
+                <source>Refresh fields</source>
+            </trans-unit>
+            <trans-unit id="settings.save">
+                <source>Save settings</source>
+            </trans-unit>
+            <trans-unit id="settings.noFields">
+                <source>No supported fields found yet. Refresh the field list first.</source>
+            </trans-unit>
+            <trans-unit id="settings.flash.saved">
+                <source>Settings were saved.</source>
+            </trans-unit>
+            <trans-unit id="settings.flash.discoveryRefreshed">
+                <source>Field list was refreshed from TCA.</source>
+            </trans-unit>
+            <trans-unit id="settings.record.title">
+                <source>Accessibility field configuration</source>
+            </trans-unit>
+            <trans-unit id="settings.field.table">
+                <source>Table</source>
+            </trans-unit>
+            <trans-unit id="settings.field.field">
+                <source>Field</source>
+            </trans-unit>
+            <trans-unit id="settings.field.type">
+                <source>Type</source>
+            </trans-unit>
+            <trans-unit id="settings.field.label">
+                <source>Label</source>
+            </trans-unit>
+            <trans-unit id="settings.field.enabled">
+                <source>Enabled</source>
+            </trans-unit>
+            <trans-unit id="settings.field.autoDetected">
+                <source>Auto detected</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

@@ -1,0 +1,133 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Priebera\A11yQualityGate\:
+    resource: '../Classes/*'
+
+  Priebera\A11yQualityGate\Scan\ScanOrchestrator:
+    public: true
+
+  Priebera\A11yQualityGate\Service\SiteResolutionService:
+    public: true
+
+  Priebera\A11yQualityGate\Hook\PublishHook:
+    public: true
+
+  Priebera\A11yQualityGate\Rule\RuleRegistry:
+    arguments:
+      $rules: !tagged_iterator a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\ImgAltMissingRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\ImgAltIsFilenameRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\EmptyHeadingRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\EmptyLinkRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\NonDescriptiveLinkRule:
+    arguments:
+      $defaultPhrases:
+        - 'click here'
+        - 'here'
+        - 'read more'
+        - 'more'
+        - 'learn more'
+        - 'continue'
+        - 'continue reading'
+        - 'details'
+        - 'link'
+        - 'this link'
+        - 'this page'
+        - 'download'
+        - 'more info'
+        - 'more information'
+        - 'see more'
+        - 'view more'
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\ButtonLabelMissingRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\TableMissingHeaderRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\TableThMissingScopeRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\TableMissingCaptionRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\DuplicateIdRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\SvgMissingTitleRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\IframeMissingTitleRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\ImageInLinkMissingAltRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\MarqueeOrBlinkRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\FileReferenceAltRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\HeaderCtypeEmptyRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\HeaderLinkNoTextRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\UploadsFileMissingDescriptionRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\TableMissingCaptionRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Backend\ToolbarItems\A11yScanToolbarItem:
+    tags:
+      - name: backend.toolbar.item
+        identifier: a11yScanToolbarItem
+
+  Priebera\A11yQualityGate\EventListener\RteConfigurationListener:
+    tags:
+      - name: event.listener
+        identifier: 'a11y-quality-gate/rte-configuration-listener'
+        event: TYPO3\CMS\RteCKEditor\Form\Element\Event\BeforePrepareConfigurationForEditorEvent
+
+  Priebera\A11yQualityGate\Command\ScanCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:scan'
+        description: 'Scan TYPO3 content for accessibility issues.'
+        schedulable: false

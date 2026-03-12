@@ -1,0 +1,16 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:be.pageRenderer
+        includeJavaScriptModules="{
+            0: '@priebera/a11y-quality-gate/toolbar/a11y-scan-toolbar-menu.js'
+        }"
+/>
+
+<f:render partial="ToolbarItems/ToolbarItem" arguments="{
+    title: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title',
+    icon: '{core:icon(identifier: \'a11y-quality-gate-module\', size: \'small\', alternativeMarkupIdentifier: \'inline\')}'
+}" />
+</html>

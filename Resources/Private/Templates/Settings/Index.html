@@ -1,0 +1,154 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <div class="a11y-settings container-fluid">
+
+        <div class="mb-4">
+            <h2 class="mb-1">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title" default="Field settings" />
+            </h2>
+            <p class="text-muted mb-0">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.description" default="Choose which content fields are included in accessibility scans." />
+            </p>
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <div class="fw-semibold mb-1">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.help.title" default="How it works" />
+            </div>
+            <div class="small mb-0">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.help.text"
+                        default="Use the checkboxes to enable or disable fields for future scans. Changes are applied only after clicking Save settings."
+                />
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <div class="fw-semibold">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.discovery.title" default="TCA field discovery" />
+                    </div>
+                    <div class="text-muted small">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.discovery.description" default="Scans all TCA tables for RTE and file reference fields. New fields are added as enabled, removed fields are preserved." />
+                    </div>
+                </div>
+
+                <form method="post" action="{refreshUrl}" class="mb-0 flex-shrink-0">
+                    <f:for each="{returnParameters}" as="value" key="name">
+                        <input type="hidden" name="{name}" value="{value}" />
+                    </f:for>
+
+                    <button type="submit" class="btn btn-default">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields" default="Re-scan TCA" />
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <form method="post" action="{saveUrl}">
+            <f:for each="{returnParameters}" as="value" key="name">
+                <input type="hidden" name="{name}" value="{value}" />
+            </f:for>
+
+            <f:if condition="{fieldGroups}">
+                <f:then>
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        <f:for each="{fieldGroups}" as="group" key="tableName">
+                            <div class="card">
+                                <details open="open" data-a11y-settings-group="true">
+                                    <summary class="a11y-field-group-header">
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="a11y-field-group-header__toggle">▶</span>
+                                            <code class="fw-bold">{tableName}</code>
+                                        </span>
+
+                                        <span
+                                                class="text-muted small"
+                                                data-a11y-settings-count="true"
+                                                data-total-count="{group.totalCount}"
+                                        >
+                                            {group.enabledCount} / {group.totalCount}
+                                            <f:translate
+                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enabledFieldsCount"
+                                                    default="enabled"
+                                            />
+                                        </span>
+                                    </summary>
+
+                                    <div class="px-3 pt-2 pb-1 small text-muted">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.group.help"
+                                                default="Tick the fields that should be included in future scans."
+                                        />
+                                    </div>
+
+                                    <div class="list-group list-group-flush">
+                                        <f:for each="{group.fields}" as="field" iteration="iterator">
+                                            <f:variable name="fieldDomId" value="a11y-field-{tableName}-{iterator.index}" />
+
+                                            <label
+                                                    for="{fieldDomId}"
+                                                    class="a11y-field-row {f:if(condition: '{field.is_enabled} == 0', then: 'is-disabled')}"
+                                                    data-a11y-settings-item="true"
+                                            >
+                                                <input
+                                                        id="{fieldDomId}"
+                                                        type="checkbox"
+                                                        name="enabledFields[{field.table_name}][]"
+                                                        value="{field.field_name}"
+                                                        class="form-check-input"
+                                                        data-a11y-settings-checkbox="true"
+                                                        {f:if(condition: field.is_enabled, then: 'checked="checked"')}
+                                                />
+
+                                                <span class="a11y-field-row__content">
+                                                    <span class="a11y-field-row__primary">
+                                                        <span class="a11y-field-row__title">{field.field_label}</span>
+
+                                                        <span class="badge a11y-field-row__type-badge {f:if(condition: '{field.field_type} == \'rte\'', then: 'badge-info', else: 'badge-secondary')}">
+                                                            {field.field_type}
+                                                        </span>
+                                                    </span>
+
+                                                    <span class="a11y-field-row__secondary">
+                                                        <code class="a11y-field-row__name">{field.field_name}</code>
+                                                    </span>
+                                                </span>
+                                            </label>
+                                        </f:for>
+                                    </div>
+                                </details>
+                            </div>
+                        </f:for>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save"
+                                    default="Save settings"
+                            />
+                        </button>
+                    </div>
+                </f:then>
+
+                <f:else>
+                    <div class="alert alert-info">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.noFields"
+                                default="No fields discovered yet. Click &quot;Re-scan TCA&quot; to start."
+                        />
+                    </div>
+                </f:else>
+            </f:if>
+        </form>
+
+    </div>
+</f:section>
+</html>

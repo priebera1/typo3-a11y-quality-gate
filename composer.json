@@ -1,0 +1,57 @@
+{
+    "name": "priebera/typo3-a11y-quality-gate",
+    "description": "Accessibility Quality Gate for TYPO3: editor-time checks, site governance and configurable quality gates.",
+    "type": "typo3-cms-extension",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://github.com/priebera1/typo3-a11y-quality-gate",
+    "keywords": [
+        "TYPO3",
+        "typo3-cms-extension",
+        "accessibility",
+        "a11y",
+        "wcag",
+        "quality-gate",
+        "ckeditor"
+    ],
+    "authors": [
+        {
+            "name": "Patrik Priebera",
+            "email": "patrik@priebera.sk",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/priebera1/typo3-a11y-quality-gate/issues",
+        "source": "https://github.com/priebera1/typo3-a11y-quality-gate"
+    },
+    "require": {
+        "php": "^8.2",
+        "typo3/cms-core": "^13.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "typo3/testing-framework": "^9.0",
+        "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Priebera\\A11yQualityGate\\": "Classes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Priebera\\A11yQualityGate\\Tests\\": "Tests/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "a11y_quality_gate"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/cms-composer-installers": true,
+            "typo3/class-alias-loader": true
+        }
+    }
+}

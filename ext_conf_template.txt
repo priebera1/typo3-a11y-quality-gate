@@ -1,0 +1,2 @@
+# cat=a11y_quality_gate/rules/10; type=text; label=Non-descriptive link phrases:Comma-separated phrases that should be treated as non-descriptive link text. Example: click here, here, read more. Custom phrases are merged with built-in English defaults.
+nonDescriptiveLinkPhrases =

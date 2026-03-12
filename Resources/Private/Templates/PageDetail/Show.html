@@ -1,0 +1,319 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <div class="a11y-page-detail container-fluid">
+
+        <div class="a11y-page-detail__header mb-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <h2 class="mb-1">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.pageDetail.title" default="Page issues" />
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.pageDetail.description" default="Review accessibility issues for this page, edit affected records, or ignore intentional exceptions." />
+                    </p>
+                </div>
+
+                <f:if condition="{canScanNow}">
+                    <div class="d-flex align-items-center gap-2">
+                        <button
+                                type="button"
+                                class="btn btn-primary"
+                                data-action="a11y-rescan"
+                                data-page-uid="{pageUid}"
+                                data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                                {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
+                        >
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow" />
+                        </button>
+                    </div>
+                </f:if>
+            </div>
+        </div>
+
+        <div class="a11y-page-detail__toolbar card mb-4">
+            <div class="card-body d-flex flex-column gap-3">
+
+                <div
+                        class="btn-group flex-wrap"
+                        role="group"
+                        aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.ariaLabel')}"
+                >
+                    <a href="{statusFilterUrls.open}"
+                       class="btn btn-default {f:if(condition: '{activeStatus} == \'open\'', then: 'active')}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.open" />
+                        <span class="badge">{statusCounts.open}</span>
+                    </a>
+                    <a href="{statusFilterUrls.ignored}"
+                       class="btn btn-default {f:if(condition: '{activeStatus} == \'ignored\'', then: 'active')}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" />
+                        <span class="badge">{statusCounts.ignored}</span>
+                    </a>
+                    <a href="{statusFilterUrls.resolved}"
+                       class="btn btn-default {f:if(condition: '{activeStatus} == \'resolved\'', then: 'active')}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" />
+                        <span class="badge">{statusCounts.resolved}</span>
+                    </a>
+                    <a href="{statusFilterUrls.all}"
+                       class="btn btn-default {f:if(condition: '{activeStatus} == \'all\'', then: 'active')}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.all" />
+                        <span class="badge">{statusCounts.all}</span>
+                    </a>
+                </div>
+
+                <f:if condition="{severityCounts.total} > 0">
+                    <div class="a11y-summary-badges d-flex flex-wrap gap-2">
+                        <a href="{severityFilterUrls.all}"
+                           class="badge badge-secondary text-decoration-none {f:if(condition: '{activeSeverity} == \'all\'', then: 'active')}">
+                            {severityCounts.total}
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.total" />
+                        </a>
+
+                        <f:if condition="{severityCounts.critical} > 0">
+                            <a href="{severityFilterUrls.critical}"
+                               class="badge badge-danger text-decoration-none {f:if(condition: '{activeSeverity} == \'critical\'', then: 'active')}">
+                                {severityCounts.critical}
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" />
+                            </a>
+                        </f:if>
+
+                        <f:if condition="{severityCounts.warning} > 0">
+                            <a href="{severityFilterUrls.warning}"
+                               class="badge badge-warning text-decoration-none {f:if(condition: '{activeSeverity} == \'warning\'', then: 'active')}">
+                                {severityCounts.warning}
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" />
+                            </a>
+                        </f:if>
+
+                        <f:if condition="{severityCounts.info} > 0">
+                            <a href="{severityFilterUrls.info}"
+                               class="badge badge-info text-decoration-none {f:if(condition: '{activeSeverity} == \'info\'', then: 'active')}">
+                                {severityCounts.info}
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" />
+                            </a>
+                        </f:if>
+                    </div>
+                </f:if>
+
+            </div>
+        </div>
+
+        <f:if condition="{severityCounts.total} == 0">
+            <f:if condition="{statusCounts.all} == 0">
+                <f:then>
+                    <div class="alert alert-info">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesStored" />
+                        <f:if condition="{rescanEndpoint}">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesStored.rescanHint" />
+                        </f:if>
+                    </div>
+                </f:then>
+                <f:else>
+                    <div class="alert alert-success">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesForFilter" />
+                    </div>
+                </f:else>
+            </f:if>
+        </f:if>
+
+        <f:for each="{grouped}" as="issueGroup" key="groupKey">
+            <f:if condition="{issueGroup}">
+                <section class="a11y-issue-group mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <f:if condition="{groupKey} == 'critical'">
+                            <span class="badge badge-danger">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" />
+                            </span>
+                        </f:if>
+                        <f:if condition="{groupKey} == 'warning'">
+                            <span class="badge badge-warning">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning" />
+                            </span>
+                        </f:if>
+                        <f:if condition="{groupKey} == 'info'">
+                            <span class="badge badge-info">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" />
+                            </span>
+                        </f:if>
+
+                        <h3 class="h5 mb-0">
+                            {issueGroup -> f:count()}
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.issuesLabel" />
+                        </h3>
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
+                        <f:for each="{issueGroup}" as="issue">
+                            <article class="card a11y-issue-card">
+                                <div class="card-body">
+                                    <div class="d-flex flex-column flex-xl-row justify-content-between gap-3 mb-3">
+                                        <div>
+                                            <h4 class="h6 mb-2">{issue.message}</h4>
+                                            <div class="text-muted small">
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" />:
+                                                <code>{issue.rule_id}</code>
+                                                <span class="mx-1">•</span>
+                                                {issue.source_table}:{issue.source_uid} / {issue.source_field}
+                                                <span class="mx-1">•</span>
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.languageLabel" />:
+                                                {issue.source_lang_uid}
+                                            </div>
+                                        </div>
+
+                                        <div class="flex-shrink-0">
+                                            <f:if condition="{issue.statusEnum.value} == 0">
+                                                <span class="badge badge-danger">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.open" />
+                                                </span>
+                                            </f:if>
+                                            <f:if condition="{issue.statusEnum.value} == 1">
+                                                <span class="badge badge-success">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" />
+                                                </span>
+                                            </f:if>
+                                            <f:if condition="{issue.statusEnum.value} == 2">
+                                                <span class="badge badge-secondary">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" />
+                                                </span>
+                                            </f:if>
+                                        </div>
+                                    </div>
+
+                                    <f:if condition="{issue.hint}">
+                                        <div class="a11y-soft-box p-3 mb-3">
+                                            <div class="small mb-0">{issue.hint}</div>
+                                        </div>
+                                    </f:if>
+
+                                    <f:if condition="{issue.context_snippet}">
+                                        <div class="mb-3">
+                                            <div class="small text-muted mb-1">
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.snippetLabel" default="Snippet" />
+                                            </div>
+                                            <div class="a11y-soft-box p-2">
+                                                <pre class="mb-0 bg-transparent border-0 p-0 text-body"><code>{issue.context_snippet}</code></pre>
+                                            </div>
+                                        </div>
+                                    </f:if>
+
+                                    <f:if condition="{issue.context_path}">
+                                        <div class="small text-muted mb-3">
+                                            <strong>
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.locationLabel" default="Location" />:
+                                            </strong>
+                                            {issue.context_path}
+                                        </div>
+                                    </f:if>
+
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <a href="{issue.editLink}" class="btn btn-default btn-sm">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.editRecord" />
+                                        </a>
+
+                                        <f:if condition="{issue.statusEnum.value} == 0">
+                                            <button
+                                                    type="button"
+                                                    class="btn btn-outline-secondary btn-sm a11y-ignore-trigger"
+                                                    data-issue-uid="{issue.uid}"
+                                            >
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.ignore" />
+                                            </button>
+                                        </f:if>
+
+                                        <f:if condition="{issue.statusEnum.value} == 2">
+                                            <form method="post" action="{unignoreUrl}" class="d-inline">
+                                                <input type="hidden" name="issueUid" value="{issue.uid}" />
+                                                <input type="hidden" name="pageUid" value="{pageUid}" />
+                                                <input type="hidden" name="siteIdentifier" value="{siteIdentifier}" />
+                                                <input type="hidden" name="status" value="{activeStatus}" />
+                                                <input type="hidden" name="severity" value="{activeSeverity}" />
+                                                <input type="hidden" name="page" value="{pagination.currentPage}" />
+                                                <button type="submit" class="btn btn-default btn-sm">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.unignore" />
+                                                </button>
+                                            </form>
+
+                                            <f:if condition="{issue.ignored_reason}">
+                                                <span class="small text-muted">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignoredLabel" />:
+                                                    {issue.ignored_reason}
+                                                </span>
+                                            </f:if>
+                                        </f:if>
+                                    </div>
+
+                                    <f:if condition="{issue.statusEnum.value} == 0">
+                                        <div
+                                                class="a11y-ignore-form mt-3"
+                                                id="ignore-form-{issue.uid}"
+                                                hidden="hidden"
+                                        >
+                                            <form method="post" action="{ignoreUrl}">
+                                                <input type="hidden" name="issueUid" value="{issue.uid}" />
+                                                <input type="hidden" name="pageUid" value="{pageUid}" />
+                                                <input type="hidden" name="siteIdentifier" value="{siteIdentifier}" />
+                                                <input type="hidden" name="status" value="{activeStatus}" />
+                                                <input type="hidden" name="severity" value="{activeSeverity}" />
+                                                <input type="hidden" name="page" value="{pagination.currentPage}" />
+
+                                                <div class="d-flex flex-column flex-md-row gap-2">
+                                                    <input
+                                                            type="text"
+                                                            name="reason"
+                                                            class="form-control"
+                                                            placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:ignore.modal.reason.placeholder')}"
+                                                            required="required"
+                                                    />
+                                                    <button type="submit" class="btn btn-warning">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.confirmIgnore" />
+                                                    </button>
+                                                    <button
+                                                            type="button"
+                                                            class="btn btn-default a11y-ignore-cancel"
+                                                            data-target="ignore-form-{issue.uid}"
+                                                    >
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel" />
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </f:if>
+                                </div>
+                            </article>
+                        </f:for>
+                    </div>
+                </section>
+            </f:if>
+        </f:for>
+
+        <f:if condition="{pagination.totalPages} > 1">
+            <nav aria-label="Issue pagination" class="mt-4">
+                <ul class="pagination mb-0">
+                    <f:if condition="{pagination.hasPrevious}">
+                        <li class="page-item">
+                            <a class="page-link" href="{pagination.previousUrl}">&laquo;</a>
+                        </li>
+                    </f:if>
+
+                    <f:for each="{pagination.pageUrls}" as="pageUrl" key="pageNumber">
+                        <li class="page-item {f:if(condition: '{pagination.currentPage} == {pageNumber}', then: 'active')}">
+                            <a class="page-link" href="{pageUrl}">{pageNumber}</a>
+                        </li>
+                    </f:for>
+
+                    <f:if condition="{pagination.hasNext}">
+                        <li class="page-item">
+                            <a class="page-link" href="{pagination.nextUrl}">&raquo;</a>
+                        </li>
+                    </f:if>
+                </ul>
+            </nav>
+        </f:if>
+
+    </div>
+</f:section>
+</html>

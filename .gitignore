@@ -1,0 +1,17 @@
+/.Build/
+/.cache/
+/Tests/Build/
+/Tests/Build/.phpunit.result.cache
+/Tests/_output/
+/.phpunit.result.cache
+/.php_cs.cache
+/.php-cs-fixer.cache
+/.DS_Store
+/.idea/
+/.fleet/
+/var/
+/.vscode/
+/node_modules/
+/composer.lock
+/composer.json.orig
+/composer.json.testing

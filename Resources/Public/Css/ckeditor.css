@@ -1,0 +1,61 @@
+.a11y-highlight {
+    background-color: transparent;
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
+    border-radius: 0;
+    padding: 0;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.a11y-highlight:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.a11y-critical {
+    border-bottom-color: #c0392b;
+}
+
+.a11y-critical:hover {
+    background-color: rgba(192, 57, 43, 0.08);
+}
+
+.a11y-warning {
+    border-bottom-color: #e67e22;
+    border-bottom-style: dashed;
+}
+
+.a11y-warning:hover {
+    background-color: rgba(230, 126, 34, 0.08);
+}
+
+.a11y-info {
+    border-bottom-color: #2980b9;
+    border-bottom-style: dotted;
+}
+
+.a11y-info:hover {
+    background-color: rgba(41, 128, 185, 0.08);
+}
+
+/* Block / element highlight fallback */
+.a11y-element-highlight {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition: box-shadow 0.15s ease, outline-color 0.15s ease;
+}
+
+.a11y-element-critical {
+    outline-color: #c0392b;
+    box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.12);
+}
+
+.a11y-element-warning {
+    outline-color: #e67e22;
+    box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.12);
+}
+
+.a11y-element-info {
+    outline-color: #2980b9;
+    box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.12);
+}

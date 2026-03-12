@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+    <file
+            source-language="en"
+            datatype="plaintext"
+            original="EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf"
+            product-name="a11y_quality_gate"
+    >
+        <header/>
+        <body>
+            <trans-unit id="tx_a11y_issue">
+                <source>Accessibility issue</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_issue.field.site_identifier">
+                <source>Site identifier</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.page_uid">
+                <source>Page UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.source_lang_uid">
+                <source>Source language UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.source_table">
+                <source>Source table</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.source_uid">
+                <source>Source UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.source_field">
+                <source>Source field</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.rule_id">
+                <source>Rule ID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.severity">
+                <source>Severity</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.message">
+                <source>Message</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.hint">
+                <source>Hint</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.context_snippet">
+                <source>Context snippet</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.context_path">
+                <source>Context path</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.fingerprint">
+                <source>Fingerprint</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.status">
+                <source>Status</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_reason">
+                <source>Ignored reason</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_by">
+                <source>Ignored by</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_at">
+                <source>Ignored at</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.resolved_by">
+                <source>Resolved by</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.resolved_at">
+                <source>Resolved at</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.first_seen_scan_uid">
+                <source>First seen scan UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.last_seen_scan_uid">
+                <source>Last seen scan UID</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_issue.severity.critical">
+                <source>Critical</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.severity.warning">
+                <source>Warning</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.severity.info">
+                <source>Info</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_issue.status.open">
+                <source>Open</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.status.resolved">
+                <source>Resolved</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.status.ignored">
+                <source>Ignored</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.status.muted">
+                <source>Muted</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_issue.tab.source">
+                <source>Source</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.tab.rule">
+                <source>Rule</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.tab.context">
+                <source>Context</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.tab.status">
+                <source>Status</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.tab.scan">
+                <source>Scan</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_ruleset">
+                <source>Accessibility ruleset</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_ruleset.field.title">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.site_identifier">
+                <source>Site identifier</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.site_identifier.description">
+                <source>Leave empty to use this ruleset as the default for all sites.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.site_identifier.placeholder">
+                <source>Leave empty to use as default for all sites</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.is_default">
+                <source>Default ruleset</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.is_default.description">
+                <source>Marks this ruleset as the default fallback when no site-specific ruleset exists.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.publish_mode">
+                <source>Publish mode</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.publish_mode.description">
+                <source>Controls how the quality gate behaves when thresholds are exceeded.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.threshold_critical">
+                <source>Critical threshold</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.threshold_critical.description">
+                <source>Maximum allowed number of open critical issues before the quality gate triggers.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.threshold_warning">
+                <source>Warning threshold</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.threshold_warning.description">
+                <source>Maximum allowed number of open warnings before the quality gate triggers. Use -1 to disable warning threshold checks.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.rules_json">
+                <source>Rules JSON</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_ruleset.publish_mode.off">
+                <source>Off — no quality gate check</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.publish_mode.warn">
+                <source>Warn — show warning, allow publish</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.publish_mode.block">
+                <source>Block — prevent publish (Pro / v1.1+)</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_ruleset.tab.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.tab.site">
+                <source>Site</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.tab.quality_gate">
+                <source>Quality gate</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.tab.rules">
+                <source>Rules</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.tab.system">
+                <source>System</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_scan">
+                <source>Accessibility scan</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_scan.field.site_identifier">
+                <source>Site identifier</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.root_pid">
+                <source>Root page UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.language_uid">
+                <source>Language UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.scope">
+                <source>Scope</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.status">
+                <source>Status</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.started_at">
+                <source>Started at</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.finished_at">
+                <source>Finished at</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.pages_scanned">
+                <source>Pages scanned</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.records_scanned">
+                <source>Records scanned</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.issues_new">
+                <source>New issues</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.issues_resolved">
+                <source>Resolved issues</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.field.issues_ignored">
+                <source>Ignored issues</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_scan.status.pending">
+                <source>Pending</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.status.running">
+                <source>Running</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.status.done">
+                <source>Done</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.status.failed">
+                <source>Failed</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_scan.tab.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.tab.timing">
+                <source>Timing</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.tab.result">
+                <source>Result</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_scan.tab.system">
+                <source>System</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_source_state">
+                <source>Accessibility source state</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_source_state.field.site_identifier">
+                <source>Site identifier</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.page_uid">
+                <source>Page UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.source_lang_uid">
+                <source>Source language UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.source_table">
+                <source>Source table</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.source_uid">
+                <source>Source UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.source_field">
+                <source>Source field</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.content_hash">
+                <source>Content hash</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.field.last_scan_uid">
+                <source>Last scan UID</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_source_state.tab.source">
+                <source>Source</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.tab.state">
+                <source>State</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_source_state.tab.system">
+                <source>System</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
