@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Controller;
 
 use GuzzleHttp\Utils;
+use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -33,6 +34,62 @@ abstract class AbstractApiController
     protected function getBackendUserUid(): int
     {
         return $this->backendUserService->getBackendUserUid();
+    }
+
+    protected function unauthorizedResponse(string $message = 'Unauthorized'): ResponseInterface
+    {
+        return $this->jsonResponse([
+            'success' => false,
+            'error' => $message,
+        ], 401);
+    }
+
+    protected function forbiddenResponse(string $message = 'Access denied'): ResponseInterface
+    {
+        return $this->jsonResponse([
+            'success' => false,
+            'error' => $message,
+        ], 403);
+    }
+
+    protected function badRequestResponse(string $message, array $extra = []): ResponseInterface
+    {
+        return $this->jsonResponse(array_merge([
+            'success' => false,
+            'error' => $message,
+        ], $extra), 400);
+    }
+
+    protected function notFoundResponse(string $message, array $extra = []): ResponseInterface
+    {
+        return $this->jsonResponse(array_merge([
+            'success' => false,
+            'error' => $message,
+        ], $extra), 404);
+    }
+
+    protected function ensureBackendUserAccess(
+        AccessControlService $accessControlService,
+        ?string $permission = null,
+    ): ?ResponseInterface {
+        if (!$this->isBackendUserLoggedIn()) {
+            return $this->unauthorizedResponse();
+        }
+
+        $backendUser = $this->getBackendUser();
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return $this->forbiddenResponse();
+        }
+
+        if ($permission === 'scanAll' && !$accessControlService->canShowScanAll($backendUser)) {
+            return $this->forbiddenResponse();
+        }
+
+        if ($permission === 'scanNow' && !$accessControlService->canShowScanNow($backendUser)) {
+            return $this->forbiddenResponse();
+        }
+
+        return null;
     }
 
     /**

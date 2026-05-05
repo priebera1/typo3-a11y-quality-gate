@@ -5,44 +5,219 @@
 >
 <span
         data-a11y-toolbar-data="true"
-        data-a11y-running="{f:if(condition: scanStatus.running, then: '1', else: '0')}"
+        data-a11y-running="{f:if(condition: localScanStatus.running, then: '1', else: '0')}"
 ></span>
 
 <p class="h3 dropdown-headline mb-3">
     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" />
 </p>
 
-<f:if condition="{toolbarInformation}">
-    <table class="dropdown-table">
-        <caption class="visually-hidden">
-            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" />
-        </caption>
+<div class="px-2 pb-1">
+    <div class="py-2">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+                <div class="fw-semibold">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.local" default="Local" />
+                </div>
+                <div class="text-muted small">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.localDescription" default="Checks TYPO3 content records." />
+                </div>
+            </div>
 
-        <f:for each="{toolbarInformation}" as="info">
-            <tr>
-                <th data-type="title">
-                    <f:if condition="{info.iconIdentifier}">
+            <div>
+                <f:if condition="{localScanStatus.running}">
+                    <f:then>
+                        <span class="badge bg-warning-subtle text-dark border d-inline-flex align-items-center gap-1">
+                            <core:icon identifier="actions-play" size="small" alternativeMarkupIdentifier="inline" />
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.running" />
+                        </span>
+                    </f:then>
+                    <f:else>
+                        <span class="badge badge-secondary d-inline-flex align-items-center gap-1">
+                            <core:icon identifier="actions-circle" size="small" alternativeMarkupIdentifier="inline" />
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.idle" />
+                        </span>
+                    </f:else>
+                </f:if>
+            </div>
+        </div>
+
+        <dl class="row g-2 mb-0 small">
+            <dt class="col-5 text-muted">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.lastFinished" />
+            </dt>
+            <dd class="col-7 mb-0">
+                <f:if condition="{localScanStatus.finishedAt}">
+                    <f:then>{localScanStatus.finishedAt -> f:format.date(format: 'd.m.Y H:i')}</f:then>
+                    <f:else>—</f:else>
+                </f:if>
+            </dd>
+
+            <dt class="col-5 text-muted">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.pages" default="Pages" />
+            </dt>
+            <dd class="col-7 mb-0">
+                <f:if condition="{localScanStatus.summary}">
+                    <f:then>{localScanStatus.summary.pagesScanned}</f:then>
+                    <f:else>—</f:else>
+                </f:if>
+            </dd>
+
+            <dt class="col-5 text-muted align-self-start">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.lastResult" />
+            </dt>
+            <dd class="col-7 mb-0">
+                <f:if condition="{localScanStatus.summary}">
+                    <f:then>
+                        <div>
+                            <span class="text-muted">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.result.new" default="New" />:
+                            </span>
+                            <strong>{localScanStatus.summary.issuesNew}</strong>
+                        </div>
+                        <div>
+                            <span class="text-muted">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.result.resolved" default="Resolved" />:
+                            </span>
+                            <strong>{localScanStatus.summary.issuesResolved}</strong>
+                        </div>
+                        <div>
+                            <span class="text-muted">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.result.ignored" default="Ignored" />:
+                            </span>
+                            <strong>{localScanStatus.summary.issuesIgnored}</strong>
+                        </div>
+                    </f:then>
+                    <f:else>—</f:else>
+                </f:if>
+            </dd>
+        </dl>
+    </div>
+
+    <f:if condition="{showRemoteSection}">
+        <hr class="my-3" />
+
+        <div class="py-2">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                    <div class="fw-semibold">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.remote" default="Remote" />
+                    </div>
+                    <div class="text-muted small">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.remoteDescription" default="Checks published frontend pages." />
+                    </div>
+                </div>
+
+                <div>
+                    <f:if condition="{remoteScanStatus.status}">
                         <f:then>
-                            <core:icon identifier="{info.iconIdentifier}" size="small" alternativeMarkupIdentifier="inline" />
+                            <f:if condition="{remoteScanStatus.status} == 'queued' || {remoteScanStatus.status} == 'running' || {remoteScanStatus.status} == 'active'">
+                                <f:then>
+                                    <span class="badge bg-warning-subtle text-dark border d-inline-flex align-items-center gap-1">
+                                        <core:icon identifier="actions-play" size="small" alternativeMarkupIdentifier="inline" />
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.{remoteScanStatus.status}" default="{remoteScanStatus.status}" />
+                                    </span>
+                                </f:then>
+                                <f:else>
+                                    <f:if condition="{remoteScanStatus.status} == 'completed'">
+                                        <f:then>
+                                            <span class="badge bg-success-subtle text-success-emphasis border d-inline-flex align-items-center gap-1">
+                                                <core:icon identifier="actions-check" size="small" alternativeMarkupIdentifier="inline" />
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.completed" default="Completed" />
+                                            </span>
+                                        </f:then>
+                                        <f:else>
+                                            <f:if condition="{remoteScanStatus.status} == 'failed'">
+                                                <f:then>
+                                                    <span class="badge bg-danger-subtle text-danger-emphasis border d-inline-flex align-items-center gap-1">
+                                                        <core:icon identifier="actions-exclamation-circle-alt" size="small" alternativeMarkupIdentifier="inline" />
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.failed" default="Failed" />
+                                                    </span>
+                                                </f:then>
+                                                <f:else>
+                                                    <span class="badge badge-secondary d-inline-flex align-items-center gap-1">
+                                                        <core:icon identifier="actions-circle" size="small" alternativeMarkupIdentifier="inline" />
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.{remoteScanStatus.status}" default="{remoteScanStatus.status}" />
+                                                    </span>
+                                                </f:else>
+                                            </f:if>
+                                        </f:else>
+                                    </f:if>
+                                </f:else>
+                            </f:if>
                         </f:then>
                         <f:else>
-                            <core:icon identifier="empty-empty" size="small" alternativeMarkupIdentifier="inline" />
+                            <span class="badge badge-secondary d-inline-flex align-items-center gap-1">
+                                <core:icon identifier="actions-circle" size="small" alternativeMarkupIdentifier="inline" />
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status.remoteIdle" default="Not run yet" />
+                            </span>
                         </f:else>
                     </f:if>
+                </div>
+            </div>
 
-                    <f:translate key="{info.title}" default="{info.title}" />
-                </th>
-                <td data-type="value">
-                    <f:translate key="{info.value}" default="{info.value}" />
-                </td>
-            </tr>
-        </f:for>
-    </table>
-</f:if>
+            <dl class="row g-2 mb-0 small">
+                <dt class="col-5 text-muted">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.lastFinished" />
+                </dt>
+                <dd class="col-7 mb-0">
+                    <f:if condition="{remoteScanStatus.finished_at}">
+                        <f:then>{remoteScanStatus.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:then>
+                        <f:else>—</f:else>
+                    </f:if>
+                </dd>
 
-<div class="mt-3 mb-1 p-2">
-    <div class="d-flex gap-2">
-        <a href="/typo3/module/web/a11y" class="btn btn-default btn-sm flex-fill text-center">
+                <dt class="col-5 text-muted">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.pages" default="Pages" />
+                </dt>
+                <dd class="col-7 mb-0">
+                    <f:if condition="{remoteScanStatus.uid}">
+                        <f:then>
+                            <f:if condition="{remoteScanStatus.pages_total}">
+                                <f:then>{remoteScanStatus.pages_scanned} / {remoteScanStatus.pages_total}</f:then>
+                                <f:else>{remoteScanStatus.pages_scanned}</f:else>
+                            </f:if>
+                        </f:then>
+                        <f:else>—</f:else>
+                    </f:if>
+                </dd>
+
+                <dt class="col-5 text-muted align-self-start">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.lastResult" />
+                </dt>
+                <dd class="col-7 mb-0">
+                    <f:if condition="{remoteScanStatus.uid}">
+                        <f:then>
+                            <div>
+                                <span class="text-muted">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.result.new" default="New" />:
+                                </span>
+                                <strong>{remoteScanStatus.issues_new}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.result.resolved" default="Resolved" />:
+                                </span>
+                                <strong>{remoteScanStatus.issues_resolved}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.result.total" default="Total found" />:
+                                </span>
+                                <strong>{remoteScanStatus.issues_total}</strong>
+                            </div>
+                        </f:then>
+                        <f:else>—</f:else>
+                    </f:if>
+                </dd>
+            </dl>
+        </div>
+    </f:if>
+</div>
+
+<div class="mt-3 pt-2 border-top">
+    <div class="px-2 pb-1">
+        <a href="/typo3/module/web/a11y" class="btn btn-primary btn-sm w-100 text-center">
             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.openModule" />
         </a>
     </div>

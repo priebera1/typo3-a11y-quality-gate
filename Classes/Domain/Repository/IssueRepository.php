@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
 use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 final class IssueRepository extends AbstractRepository
 {
@@ -207,6 +208,199 @@ final class IssueRepository extends AbstractRepository
     }
 
     /**
+     * @return array{critical:int,warning:int,info:int,total:int}
+     */
+    public function countOpenTotalsForSite(string $siteIdentifier): array
+    {
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
+
+        $rows = $qb
+            ->select('i.severity')
+            ->addSelectLiteral('COUNT(*) AS cnt')
+            ->from(Tables::ISSUE, 'i')
+            ->leftJoin(
+                'i',
+                Tables::PAGES,
+                'p',
+                $qb->expr()->eq('p.uid', 'i.page_uid')
+            )
+            ->where(
+                $qb->expr()->eq('i.site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq(
+                    'i.status',
+                    $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)
+                ),
+                $qb->expr()->eq(
+                    'i.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $qb->expr()->eq(
+                    'p.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            )
+            ->groupBy('i.severity')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $counts = [
+            'critical' => 0,
+            'warning' => 0,
+            'info' => 0,
+            'total' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $severity = Severity::fromInt((int)$row['severity']);
+            $cnt = (int)$row['cnt'];
+
+            $key = match ($severity) {
+                Severity::Critical => 'critical',
+                Severity::Warning => 'warning',
+                Severity::Info => 'info',
+            };
+
+            $counts[$key] += $cnt;
+            $counts['total'] += $cnt;
+        }
+
+        return $counts;
+    }
+
+    public function countOpenPageStatsForSite(string $siteIdentifier, string $search = ''): int
+    {
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
+
+        $qb
+            ->selectLiteral('COUNT(DISTINCT i.page_uid) AS cnt')
+            ->from(Tables::ISSUE, 'i')
+            ->leftJoin(
+                'i',
+                Tables::PAGES,
+                'p',
+                $qb->expr()->eq('p.uid', 'i.page_uid')
+            )
+            ->where(
+                $qb->expr()->eq('i.site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq(
+                    'i.status',
+                    $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)
+                ),
+                $qb->expr()->eq(
+                    'i.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $qb->expr()->eq(
+                    'p.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            );
+
+        $this->addPageStatsSearchConstraint($qb, $search);
+
+        $row = $qb
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return (int)($row['cnt'] ?? 0);
+    }
+
+    /**
+     * @return array<int, array{pageUid:int,pageTitle:string,pageDoktype:int,critical:int,warning:int,info:int,total:int}>
+     */
+    public function findOpenPageStatsForSitePaginated(
+        string $siteIdentifier,
+        int $limit,
+        int $offset,
+        string $search = ''
+    ): array {
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
+
+        $qb
+            ->select(
+                'i.page_uid',
+                'p.title AS page_title',
+                'p.doktype AS page_doktype'
+            )
+            ->addSelectLiteral(
+                'SUM(CASE WHEN i.severity = ' . (int)Severity::Critical->value . ' THEN 1 ELSE 0 END) AS critical',
+                'SUM(CASE WHEN i.severity = ' . (int)Severity::Warning->value . ' THEN 1 ELSE 0 END) AS warning',
+                'SUM(CASE WHEN i.severity = ' . (int)Severity::Info->value . ' THEN 1 ELSE 0 END) AS info',
+                'COUNT(*) AS total'
+            )
+            ->from(Tables::ISSUE, 'i')
+            ->leftJoin(
+                'i',
+                Tables::PAGES,
+                'p',
+                $qb->expr()->eq('p.uid', 'i.page_uid')
+            )
+            ->where(
+                $qb->expr()->eq('i.site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq(
+                    'i.status',
+                    $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)
+                ),
+                $qb->expr()->eq(
+                    'i.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $qb->expr()->eq(
+                    'p.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            );
+
+        $this->addPageStatsSearchConstraint($qb, $search);
+
+        $rows = $qb
+            ->groupBy('i.page_uid', 'p.title', 'p.doktype')
+            ->orderBy('critical', 'DESC')
+            ->addOrderBy('warning', 'DESC')
+            ->addOrderBy('info', 'DESC')
+            ->addOrderBy('total', 'DESC')
+            ->addOrderBy('i.page_uid', 'ASC')
+            ->setFirstResult(max(0, $offset))
+            ->setMaxResults(max(1, $limit))
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return array_map(
+            static function (array $row): array {
+                $pageUid = (int)($row['page_uid'] ?? 0);
+                $title = trim((string)($row['page_title'] ?? ''));
+
+                return [
+                    'pageUid' => $pageUid,
+                    'pageTitle' => $title !== '' ? $title : ('Page ' . $pageUid),
+                    'pageDoktype' => (int)($row['page_doktype'] ?? 0),
+                    'critical' => (int)($row['critical'] ?? 0),
+                    'warning' => (int)($row['warning'] ?? 0),
+                    'info' => (int)($row['info'] ?? 0),
+                    'total' => (int)($row['total'] ?? 0),
+                ];
+            },
+            $rows
+        );
+    }
+
+    /**
+     * @return array<int, array{pageUid:int,pageTitle:string,pageDoktype:int,critical:int,warning:int,info:int,total:int}>
+     */
+    public function findOpenPageStatsForSite(string $siteIdentifier, string $search = ''): array
+    {
+        $total = $this->countOpenPageStatsForSite($siteIdentifier, $search);
+        if ($total <= 0) {
+            return [];
+        }
+
+        return $this->findOpenPageStatsForSitePaginated($siteIdentifier, $total, 0, $search);
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function findOpenForPage(int $pageUid, string $siteIdentifier): array
@@ -233,114 +427,33 @@ final class IssueRepository extends AbstractRepository
     public function findAllForPage(string $siteIdentifier, int $pageUid): array
     {
         $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
 
-        return $qb
-            ->select('*')
-            ->from(Tables::ISSUE)
+        $qb->select('i.*')
+            ->from(Tables::ISSUE, 'i')
             ->where(
                 $qb->expr()->eq(
-                    'page_uid',
+                    'i.page_uid',
                     $qb->createNamedParameter($pageUid, Connection::PARAM_INT)
                 ),
                 $qb->expr()->eq(
-                    'site_identifier',
+                    'i.site_identifier',
                     $qb->createNamedParameter($siteIdentifier)
-                )
-            )
-            ->orderBy('status', 'ASC')
-            ->addOrderBy('severity', 'ASC')
-            ->addOrderBy('tstamp', 'DESC')
-            ->executeQuery()
-            ->fetchAllAssociative();
-    }
-
-    /**
-     * @return array<int, array{pageUid:int,pageTitle:string,critical:int,warning:int,info:int,total:int}>
-     */
-    public function findOpenPageStatsForSite(string $siteIdentifier): array
-    {
-        $qb = $this->getQueryBuilder(Tables::ISSUE);
-
-        $rows = $qb
-            ->select('page_uid', 'severity')
-            ->addSelectLiteral('COUNT(*) AS cnt')
-            ->from(Tables::ISSUE)
-            ->where(
-                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                ),
                 $qb->expr()->eq(
-                    'status',
-                    $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)
+                    'i.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
                 )
-            )
-            ->groupBy('page_uid', 'severity')
-            ->orderBy('page_uid', 'ASC')
-            ->executeQuery()
-            ->fetchAllAssociative();
-
-        $byPage = [];
-        foreach ($rows as $row) {
-            $pageUid = (int)$row['page_uid'];
-            $severity = Severity::fromInt((int)$row['severity']);
-            $cnt = (int)$row['cnt'];
-
-            if (!isset($byPage[$pageUid])) {
-                $byPage[$pageUid] = [
-                    'pageUid' => $pageUid,
-                    'critical' => 0,
-                    'warning' => 0,
-                    'info' => 0,
-                    'total' => 0,
-                ];
-            }
-
-            $key = match ($severity) {
-                Severity::Critical => 'critical',
-                Severity::Warning => 'warning',
-                Severity::Info => 'info',
-            };
-
-            $byPage[$pageUid][$key] += $cnt;
-            $byPage[$pageUid]['total'] += $cnt;
-        }
-
-        if ($byPage === []) {
-            return [];
-        }
-
-        $pageUids = array_keys($byPage);
-        $pageQb = $this->getQueryBuilder(Tables::PAGES);
-
-        $pageRows = $pageQb
-            ->select('uid', 'title', 'slug')
-            ->from(Tables::PAGES)
-            ->where(
-                $pageQb->expr()->in(
-                    'uid',
-                    $pageQb->createNamedParameter($pageUids, Connection::PARAM_INT_ARRAY)
-                )
-            )
-            ->executeQuery()
-            ->fetchAllAssociative();
-
-        $titles = [];
-        foreach ($pageRows as $pageRow) {
-            $titles[(int)$pageRow['uid']] = trim(
-                (string)$pageRow['title'] . ' (' . ((string)($pageRow['slug'] ?? '')) . ')'
             );
-        }
 
-        foreach ($byPage as $uid => &$stat) {
-            $stat['pageTitle'] = $titles[$uid] ?? ('Page ' . $uid);
-        }
-        unset($stat);
+        $this->addExistingPageJoinAndRestrictions($qb, 'i');
 
-        usort(
-            $byPage,
-            static fn(array $a, array $b): int
-            => $b['critical'] <=> $a['critical'] ?: $b['warning'] <=> $a['warning']
-        );
-
-        return array_values($byPage);
+        return $qb
+            ->orderBy('i.status', 'ASC')
+            ->addOrderBy('i.severity', 'ASC')
+            ->addOrderBy('i.tstamp', 'DESC')
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /**
@@ -377,21 +490,22 @@ final class IssueRepository extends AbstractRepository
         bool $onlyOpen = true,
     ): array {
         $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
 
         $qb->select('i.*', 'p.title AS page_title')
             ->from(Tables::ISSUE, 'i')
-            ->leftJoin(
-                'i',
-                Tables::PAGES,
-                'p',
-                $qb->expr()->eq('p.uid', 'i.page_uid')
-            )
             ->where(
                 $qb->expr()->eq(
                     'i.site_identifier',
                     $qb->createNamedParameter($siteIdentifier)
+                ),
+                $qb->expr()->eq(
+                    'i.deleted',
+                    $qb->createNamedParameter(0, Connection::PARAM_INT)
                 )
             );
+
+        $this->addExistingPageJoinAndRestrictions($qb, 'i');
 
         if ($pageUid !== null) {
             $qb->andWhere(
@@ -459,5 +573,35 @@ final class IssueRepository extends AbstractRepository
             ->fetchAssociative();
 
         return $row ?: null;
+    }
+
+    private function addExistingPageJoinAndRestrictions(QueryBuilder $qb, string $issueAlias = 'i'): void
+    {
+        $qb->leftJoin(
+            $issueAlias,
+            Tables::PAGES,
+            'p',
+            $qb->expr()->eq('p.uid', $issueAlias . '.page_uid')
+        );
+
+        $qb->andWhere(
+            $qb->expr()->eq('p.deleted', $qb->createNamedParameter(0, Connection::PARAM_INT))
+        );
+    }
+
+    private function addPageStatsSearchConstraint(QueryBuilder $qb, string $search): void
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return;
+        }
+
+        $titleLike = $qb->createNamedParameter('%' . mb_strtolower($search) . '%');
+        $uidLike = $qb->createNamedParameter('%' . $search . '%');
+
+        $qb->andWhere(
+            '(LOWER(COALESCE(p.title, \'\')) LIKE ' . $titleLike
+            . ' OR CONCAT(i.page_uid, \'\') LIKE ' . $uidLike . ')'
+        );
     }
 }

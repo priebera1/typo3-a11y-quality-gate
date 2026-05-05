@@ -142,15 +142,23 @@ final class ScanOrchestrator
 
         $seenFingerprintsForPage = [];
 
-        foreach ($records as $record) {
+        foreach ($records as $recordEnvelope) {
             $result->recordsScanned++;
 
+            $tableName = (string)$recordEnvelope['tableName'];
+            $record = is_array($recordEnvelope['record']) ? $recordEnvelope['record'] : [];
+            $rteFields = is_array($recordEnvelope['rteFields']) ? $recordEnvelope['rteFields'] : [];
+            $fileReferenceFields = is_array($recordEnvelope['fileReferenceFields']) ? $recordEnvelope['fileReferenceFields'] : [];
+            $structuredFields = is_array($recordEnvelope['structuredFields']) ? $recordEnvelope['structuredFields'] : [];
+            $languageField = (string)($recordEnvelope['languageField'] ?? '');
+            $cTypeField = (string)($recordEnvelope['cTypeField'] ?? '');
+
             $recordUid = (int)($record['uid'] ?? 0);
-            $recordLangUid = (int)($record['sys_language_uid'] ?? 0);
-            $recordCType = (string)($record['CType'] ?? '');
+            $recordLangUid = $languageField !== '' ? (int)($record[$languageField] ?? 0) : 0;
+            $recordCType = $cTypeField !== '' ? (string)($record[$cTypeField] ?? '') : '';
             $recordHadProcessedField = false;
 
-            foreach ($this->contentCollector->getRteFields() as $field) {
+            foreach ($rteFields as $field) {
                 $html = (string)($record[$field] ?? '');
                 if (trim($html) === '') {
                     continue;
@@ -162,7 +170,7 @@ final class ScanOrchestrator
                     $changedOnly
                     && $this->sourceStateRepository->isUnchanged(
                         $siteIdentifier,
-                        Tables::TT_CONTENT,
+                        $tableName,
                         $recordUid,
                         $field,
                         $recordLangUid,
@@ -178,14 +186,15 @@ final class ScanOrchestrator
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
                     sourceLangUid: $recordLangUid,
-                    sourceTable: Tables::TT_CONTENT,
+                    sourceTable: $tableName,
                     sourceUid: $recordUid,
                     sourceField: $field,
                     content: $html,
                     cType: $recordCType,
                     contextPath: sprintf(
-                        'Page:%d > tt_content:%d > %s',
+                        'Page:%d > %s:%d > %s',
                         $pageUid,
+                        $tableName,
                         $recordUid,
                         $field
                     ),
@@ -201,7 +210,7 @@ final class ScanOrchestrator
                 $this->sourceStateRepository->upsertHash(
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
-                    sourceTable: Tables::TT_CONTENT,
+                    sourceTable: $tableName,
                     sourceUid: $recordUid,
                     sourceField: $field,
                     sourceLangUid: $recordLangUid,
@@ -210,9 +219,8 @@ final class ScanOrchestrator
                 );
             }
 
-            foreach ($this->contentCollector->getStructuredFields() as $field) {
+            foreach ($structuredFields as $field) {
                 $value = $record[$field] ?? null;
-
                 $shouldProcessEmptyValue = $field === 'header' && $recordCType === 'header';
 
                 if ($value === null) {
@@ -229,7 +237,7 @@ final class ScanOrchestrator
                     $changedOnly
                     && $this->sourceStateRepository->isUnchanged(
                         $siteIdentifier,
-                        Tables::TT_CONTENT,
+                        $tableName,
                         $recordUid,
                         $field,
                         $recordLangUid,
@@ -245,14 +253,15 @@ final class ScanOrchestrator
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
                     sourceLangUid: $recordLangUid,
-                    sourceTable: Tables::TT_CONTENT,
+                    sourceTable: $tableName,
                     sourceUid: $recordUid,
                     sourceField: $field,
                     content: $value,
                     cType: $recordCType,
                     contextPath: sprintf(
-                        'Page:%d > tt_content:%d > %s',
+                        'Page:%d > %s:%d > %s',
                         $pageUid,
+                        $tableName,
                         $recordUid,
                         $field
                     ),
@@ -268,7 +277,7 @@ final class ScanOrchestrator
                 $this->sourceStateRepository->upsertHash(
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
-                    sourceTable: Tables::TT_CONTENT,
+                    sourceTable: $tableName,
                     sourceUid: $recordUid,
                     sourceField: $field,
                     sourceLangUid: $recordLangUid,
@@ -277,19 +286,20 @@ final class ScanOrchestrator
                 );
             }
 
-            foreach ($this->contentCollector->getFileReferenceFields() as $field) {
+            foreach ($fileReferenceFields as $field) {
                 $ctx = new CheckContext(
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
                     sourceLangUid: $recordLangUid,
-                    sourceTable: Tables::TT_CONTENT,
+                    sourceTable: $tableName,
                     sourceUid: $recordUid,
                     sourceField: $field,
                     content: $recordUid,
                     cType: $recordCType,
                     contextPath: sprintf(
-                        'Page:%d > tt_content:%d > %s',
+                        'Page:%d > %s:%d > %s',
                         $pageUid,
+                        $tableName,
                         $recordUid,
                         $field
                     ),
@@ -371,6 +381,7 @@ final class ScanOrchestrator
                     'ruleId' => $rule->getRuleId(),
                     'sourceUid' => $ctx->sourceUid,
                     'field' => $ctx->sourceField,
+                    'sourceTable' => $ctx->sourceTable,
                     'error' => $e->getMessage(),
                 ]);
             }

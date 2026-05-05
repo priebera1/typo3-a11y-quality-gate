@@ -1,0 +1,11 @@
+[traverse(request.getQueryParams(), 'aqgDebug') == 1]
+    page.bodyTagAdd = data-aqg-debug="1"
+
+    page.jsFooterInline.100 = TEXT
+    page.jsFooterInline.100.stdWrap.dataWrap = document.body.dataset.aqgPageId = '{TSFE:id}';
+
+    tt_content.stdWrap.dataWrap = <div class="aqg-marker" data-aqg-table="tt_content" data-aqg-uid="{field:uid}" data-aqg-pid="{field:pid}" data-aqg-cid="tt_content:{field:uid}" data-aqg-ctype="{field:CType}">|</div>
+    tt_content.stdWrap.insertData = 1
+
+    page.includeJSFooterlibs.aqgFrontendDebug = EXT:a11y_quality_gate/Resources/Public/JavaScript/frontend/debug.js
+[END]

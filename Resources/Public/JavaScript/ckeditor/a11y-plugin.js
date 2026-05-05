@@ -103,6 +103,7 @@ export default class A11yPlugin extends Plugin {
 
             const data = await response.json();
             issues = Array.isArray(data.issues) ? data.issues : [];
+            console.log(issues, 'issues')
         } catch (error) {
             console.warn('[A11Y] Issues fetch error', error);
             return;
@@ -121,6 +122,10 @@ export default class A11yPlugin extends Plugin {
             let markerIndex = 0;
 
             for (const issue of issues) {
+                if (this._supportsElementFallback(issue.ruleId ?? '')) {
+                    continue;
+                }
+
                 const text = this._plainText(issue.snippet ?? issue.contextSnippet ?? '');
 
                 if (!text) {
@@ -130,9 +135,7 @@ export default class A11yPlugin extends Plugin {
                 const ranges = this._findAll(model, text);
 
                 if (ranges.length === 0) {
-                    if (!this._supportsElementFallback(issue.ruleId ?? '')) {
-                        console.warn('[A11Y] No text range found for issue', issue);
-                    }
+                    console.warn('[A11Y] No text range found for issue', issue);
                     continue;
                 }
 

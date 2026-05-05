@@ -1,0 +1,542 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <div
+            class="a11y-page-detail container-fluid"
+            data-a11y-site-identifier="{resolvedSiteIdentifier}"
+            data-a11y-remote-page-uid="{remotePage.uid}"
+    >
+        <f:if condition="{errorMessage}">
+            <div class="alert alert-danger">
+                {errorMessage}
+            </div>
+        </f:if>
+
+        <f:if condition="{remotePage}">
+
+            <div class="a11y-page-detail__header mb-4">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
+                    <div>
+                        <h2 class="mb-1">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.title"
+                                    default="Remote page detail"
+                            />
+                        </h2>
+                        <p class="text-muted mb-2">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.description"
+                                    default="Review remote accessibility issues for this page, highlight affected content elements, or open the mapped records."
+                            />
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+                        <f:if condition="{exportCsvUrl}">
+                            <a href="{exportCsvUrl}" class="btn btn-sm btn-default d-inline-flex align-items-center gap-1">
+                                <core:icon identifier="actions-download" size="small" />
+                                <span>
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.exportCsv"
+                                            default="Export CSV"
+                                    />
+                                </span>
+                            </a>
+                        </f:if>
+
+                        <f:if condition="{exportPdfUrl} && {exportPdfAllowed}">
+                            <a href="{exportPdfUrl}" class="btn btn-sm btn-default d-inline-flex align-items-center gap-1">
+                                <core:icon identifier="actions-download" size="small" />
+                                <span>
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.exportPdf"
+                                            default="Export PDF"
+                                    />
+                                </span>
+                            </a>
+                        </f:if>
+
+                        <f:if condition="{resolvedTypo3PageUid}">
+                            <f:then>
+                                <button
+                                        type="button"
+                                        class="btn btn-sm btn-primary"
+                                        data-action="a11y-pro-scan-page"
+                                        data-page-uid="{resolvedTypo3PageUid}"
+                                        data-page-url="{remotePage.url}"
+                                        data-site-identifier="{resolvedSiteIdentifier}"
+                                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                                >
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
+                                            default="Scan now"
+                                    />
+                                </button>
+                            </f:then>
+                            <f:else>
+                                <button
+                                        type="button"
+                                        class="btn btn-sm btn-primary"
+                                        disabled="disabled"
+                                        title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanUnavailable', default: 'Scan now is unavailable because the TYPO3 page could not be resolved.')}"
+                                >
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
+                                            default="Scan now"
+                                    />
+                                </button>
+                            </f:else>
+                        </f:if>
+                    </div>
+                </div>
+            </div>
+
+            <f:render
+                    partial="Shared/RemoteScanProgress"
+                    arguments="{
+                        activeRemoteScan: activeRemoteScan
+                    }"
+            />
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-4">
+
+                        <div class="col-12 col-lg-7">
+                            <div class="small text-muted mb-1">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.page"
+                                        default="Page"
+                                />
+                            </div>
+
+                            <h3 class="h5 mb-1">
+                                <f:if condition="{remotePage.title}">
+                                    <f:then>{remotePage.title}</f:then>
+                                    <f:else>—</f:else>
+                                </f:if>
+                            </h3>
+
+                            <div class="text-break small mb-3">
+                                <a href="{remotePage.url}" target="_blank" rel="noopener noreferrer" class="text-muted text-decoration-none">
+                                    {remotePage.url}
+                                </a>
+                            </div>
+
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <span class="badge {f:if(condition: '{remotePage.http_status} == 200', then: 'bg-success', else: 'bg-danger')}">
+                                    HTTP
+                                    <f:if condition="{remotePage.http_status}">
+                                        <f:then>{remotePage.http_status}</f:then>
+                                        <f:else>—</f:else>
+                                    </f:if>
+                                </span>
+
+                                <span class="badge {f:if(condition: remotePage.issues_count, then: 'bg-danger', else: 'bg-success')}">
+                                    {remotePage.issues_count}
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.issues"
+                                            default="issues"
+                                    />
+                                </span>
+                            </div>
+
+                            <f:if condition="{remotePage.failure_reason}">
+                                <div class="small text-muted">
+                                    <strong>
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.failureReason"
+                                                default="Failure reason"
+                                        />:
+                                    </strong>
+                                    {remotePage.failure_reason}
+                                </div>
+                            </f:if>
+                        </div>
+
+                        <div class="col-12 col-lg-auto d-none d-lg-flex">
+                            <div class="vr"></div>
+                        </div>
+                        <div class="col-12 d-lg-none"><hr class="my-0"></div>
+
+                        <div class="col-12 col-lg">
+                            <div class="small text-muted mb-2">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scan"
+                                        default="Remote scan"
+                                />
+                            </div>
+
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 small">
+                                    <span class="text-muted a11y-meta-key">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status"
+                                                default="Status"
+                                        />
+                                    </span>
+                                    <span class="badge {f:if(condition: '{remoteScan.status} == completed', then: 'bg-success', else: 'bg-secondary')}">
+                                        {remoteScan.status}
+                                    </span>
+                                </div>
+
+                                <div class="d-flex gap-2 small">
+                                    <span class="text-muted a11y-meta-key">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.source"
+                                                default="Scan type"
+                                        />
+                                    </span>
+                                    <span>
+                                        <f:if condition="{remoteScan.source_type} == 'single_page'">
+                                            <f:then>
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanType.singlePage" default="Single page" />
+                                            </f:then>
+                                            <f:else>
+                                                <f:if condition="{remoteScan.source_type} == 'site'">
+                                                    <f:then>
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanType.site" default="Site scan" />
+                                                    </f:then>
+                                                    <f:else>{remoteScan.source_type}</f:else>
+                                                </f:if>
+                                            </f:else>
+                                        </f:if>
+                                    </span>
+                                </div>
+
+                                <div class="d-flex gap-2 small">
+                                    <span class="text-muted a11y-meta-key">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.startUrl"
+                                                default="Start URL"
+                                        />
+                                    </span>
+                                    <span class="text-break">
+                                        <a
+                                                href="{remoteScan.start_url}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="text-decoration-none"
+                                        >
+                                            {remoteScan.start_url}
+                                        </a>
+                                    </span>
+                                </div>
+
+                                <details class="small">
+                                    <summary class="text-muted" style="cursor: pointer;">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.technicalDetails"
+                                                default="Technical details"
+                                        />
+                                    </summary>
+                                    <div class="mt-2 text-muted text-break">
+                                        <strong>
+                                            <f:translate
+                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.jobId"
+                                                    default="Job ID"
+                                            />:
+                                        </strong>
+                                        {remoteScan.job_id}
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <f:if condition="{remotePage.screenshot_proxy_url}">
+                <div class="card mb-4">
+                    <details>
+                        <summary class="a11y-field-group-header">
+                            <span class="d-flex align-items-center gap-2">
+                                <span class="a11y-field-group-header__toggle">▶</span>
+                                <span class="fw-semibold">
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotPreview"
+                                            default="Screenshot preview"
+                                    />
+                                </span>
+                            </span>
+                        </summary>
+
+                        <div class="card-body border-top">
+                            <div class="mb-3">
+                                <button
+                                        type="button"
+                                        class="btn p-0 border-0 bg-transparent text-start"
+                                        data-action="a11y-open-screenshot-modal"
+                                        data-image-url="{remotePage.screenshot_proxy_url}"
+                                        data-image-title="{remotePage.title}"
+                                >
+                                    <img
+                                            src="{remotePage.screenshot_proxy_url}"
+                                            alt="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotPreview', default: 'Screenshot preview')}"
+                                            class="img-fluid border rounded"
+                                            style="max-height: 480px;"
+                                    />
+                                </button>
+                            </div>
+
+                            <f:if condition="{remotePage.screenshot_path}">
+                                <div class="small text-muted text-break">{remotePage.screenshot_path}</div>
+                            </f:if>
+                        </div>
+                    </details>
+                </div>
+            </f:if>
+
+            <div class="card a11y-issues-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issues"
+                                default="Remote accessibility issues"
+                        />
+                    </div>
+
+                    <span class="badge bg-secondary rounded-pill">
+                        {issues -> f:count()}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.rules"
+                                default="rules"
+                        />
+                    </span>
+                </div>
+
+                <div class="card-body p-0">
+                    <f:if condition="{issues}">
+                        <f:then>
+                            <f:for each="{issues}" as="issue" iteration="issueIterator">
+                                <div class="{f:if(condition: issueIterator.isLast, then: '', else: 'border-bottom')} p-3">
+
+                                    <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                        <div class="min-w-0">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                                <f:switch expression="{issue.impact}">
+                                                    <f:case value="critical">
+                                                        <span class="badge bg-danger">
+                                                            <f:translate
+                                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
+                                                                    default="Critical"
+                                                            />
+                                                        </span>
+                                                    </f:case>
+                                                    <f:case value="serious">
+                                                        <span class="badge badge-warning">
+                                                            <f:translate
+                                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.serious"
+                                                                    default="Serious"
+                                                            />
+                                                        </span>
+                                                    </f:case>
+                                                    <f:case value="moderate">
+                                                        <span class="badge badge-info">
+                                                            <f:translate
+                                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.moderate"
+                                                                    default="Moderate"
+                                                            />
+                                                        </span>
+                                                    </f:case>
+                                                    <f:case value="minor">
+                                                        <span class="badge bg-secondary">
+                                                            <f:translate
+                                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.minor"
+                                                                    default="Minor"
+                                                            />
+                                                        </span>
+                                                    </f:case>
+                                                    <f:defaultCase>
+                                                        <span class="badge bg-secondary">{issue.impact}</span>
+                                                    </f:defaultCase>
+                                                </f:switch>
+
+                                                <span class="text-muted small">
+                                                    {issue.count}
+                                                    <f:translate
+                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.occurrences"
+                                                            default="occurrences"
+                                                    />
+                                                </span>
+                                            </div>
+
+                                            <div class="fw-semibold">
+                                                <f:if condition="{issue.help}">
+                                                    <f:then>{issue.help}</f:then>
+                                                    <f:else>{issue.rule_id}</f:else>
+                                                </f:if>
+                                            </div>
+
+                                            <div class="small text-muted mt-1">
+                                                <f:translate
+                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel"
+                                                        default="Rule"
+                                                />:
+                                                <code>{issue.rule_id}</code>
+                                            </div>
+                                        </div>
+
+                                        <f:if condition="{issue.highlightUids}">
+                                            <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-info flex-shrink-0 d-inline-flex align-items-center gap-1"
+                                                    data-action="a11y-highlight-node"
+                                                    data-uid="{issue.highlightUids}"
+                                                    data-url="{remotePage.url}"
+                                                    title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.highlightAllForRule', default: 'Highlight all affected elements')}"
+                                            >
+                                                <core:icon identifier="actions-eye" size="small" />
+                                                <span class="d-none d-sm-inline">
+                                                    <f:translate
+                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.highlightAllForRule"
+                                                            default="Highlight all affected elements"
+                                                    />
+                                                </span>
+                                            </button>
+                                        </f:if>
+                                    </div>
+
+                                    <f:if condition="{issue.help_url}">
+                                        <div class="small mb-2">
+                                            <a href="{issue.help_url}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                                <core:icon identifier="actions-link" size="small" />
+                                                <f:translate
+                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.ruleDocs"
+                                                        default="Rule documentation"
+                                                />
+                                            </a>
+                                        </div>
+                                    </f:if>
+
+                                    <div class="d-flex flex-column gap-2 mt-3">
+                                        <f:for each="{issue.nodes}" as="node" iteration="iterator">
+                                            <div class="a11y-node-item rounded p-2">
+                                                <div class="d-flex align-items-start justify-content-between gap-2">
+                                                    <div class="flex-grow-1 min-w-0">
+                                                        <div class="small fw-semibold text-muted mb-1">
+                                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.item" default="Item" /> #{iterator.cycle}
+                                                        </div>
+
+                                                        <f:if condition="{node.failure_summary}">
+                                                            <p class="small mb-2">{node.failure_summary}</p>
+                                                        </f:if>
+
+                                                        <f:if condition="{node.hasRecordMapping}">
+                                                            <div class="small mb-2">
+                                                                <div class="text-muted mb-1">
+                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.mappedRecord" default="Mapped TYPO3 record" />
+                                                                </div>
+
+                                                                <div class="d-flex flex-wrap align-items-center gap-1">
+                                                                    <code class="a11y-code-inline">{node.mapped_table}</code>
+                                                                    <span class="text-muted">#{node.mapped_uid}</span>
+
+                                                                    <f:if condition="{node.mapped_ctype}">
+                                                                        <span class="text-muted">· {node.mapped_ctype}</span>
+                                                                    </f:if>
+
+                                                                    <f:if condition="{node.mapped_cid}">
+                                                                        <code class="a11y-code-inline text-muted">{node.mapped_cid}</code>
+                                                                    </f:if>
+                                                                </div>
+                                                            </div>
+                                                        </f:if>
+
+                                                        <f:if condition="!{node.hasRecordMapping}">
+                                                            <div class="small text-muted mb-2">
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noMappedRecord" default="No mapped TYPO3 record found." />
+                                                            </div>
+                                                        </f:if>
+
+                                                        <f:if condition="{node.hasRecordMapping} && !{node.hasEditAccess}">
+                                                            <div class="small mb-2">
+                                                                <span class="badge bg-secondary">
+                                                                    <f:translate
+                                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noEditAccess"
+                                                                            default="No edit access"
+                                                                    />
+                                                                </span>
+                                                            </div>
+                                                        </f:if>
+
+                                                        <f:if condition="{node.html_snippet}">
+                                                            <details class="small">
+                                                                <summary class="text-muted" style="cursor: pointer;">
+                                                                    <f:translate
+                                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.snippetLabel"
+                                                                            default="Snippet"
+                                                                    />
+                                                                </summary>
+                                                                <pre class="a11y-code-snippet small rounded p-2 mt-2 mb-0">{node.html_snippet}</pre>
+                                                            </details>
+                                                        </f:if>
+                                                    </div>
+
+                                                    <div class="d-flex flex-column flex-sm-row gap-1 flex-shrink-0">
+                                                        <f:if condition="{node.hasRecordMapping}">
+                                                            <button
+                                                                    type="button"
+                                                                    class="btn btn-sm btn-info d-inline-flex align-items-center gap-1"
+                                                                    data-action="a11y-highlight-node"
+                                                                    data-uid="{node.mapped_uid}"
+                                                                    data-url="{remotePage.url}"
+                                                                    title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.showOnPage', default: 'Show on page')}"
+                                                            >
+                                                                <core:icon identifier="actions-eye" size="small" />
+                                                                <span class="d-none d-md-inline">
+                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.showOnPage" default="Show on page" />
+                                                                </span>
+                                                            </button>
+
+                                                            <f:if condition="{node.hasEditAccess}">
+                                                                <a
+                                                                        href="{node.editRecordUrl}"
+                                                                        class="btn btn-sm btn-secondary d-inline-flex align-items-center gap-1"
+                                                                        title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.editRecord', default: 'Edit record')}"
+                                                                >
+                                                                    <core:icon identifier="actions-open" size="small" />
+                                                                    <span class="d-none d-md-inline">
+                                                                        <f:translate
+                                                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.editRecord"
+                                                                                default="Edit record"
+                                                                        />
+                                                                    </span>
+                                                                </a>
+                                                            </f:if>
+                                                        </f:if>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </f:for>
+                                    </div>
+
+                                </div>
+                            </f:for>
+                        </f:then>
+
+                        <f:else>
+                            <div class="p-4 text-center text-muted small">
+                                <core:icon identifier="actions-check" size="default" />
+                                <div class="mt-2">
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noIssues"
+                                            default="No remote issues stored for this page."
+                                    />
+                                </div>
+                            </div>
+                        </f:else>
+                    </f:if>
+                </div>
+            </div>
+
+        </f:if>
+    </div>
+</f:section>
+</html>

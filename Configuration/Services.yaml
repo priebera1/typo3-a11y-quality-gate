@@ -114,6 +114,22 @@ services:
     tags:
       - name: a11y_quality_gate.rule
 
+  Priebera\A11yQualityGate\Rule\Rte\HeadingHierarchyRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\LinkNewWindowNoWarningRule:
+    arguments:
+      $defaultHintPhrases:
+        - 'opens in new window'
+        - 'opens in a new window'
+        - 'opens in new tab'
+        - 'opens in a new tab'
+        - 'new window'
+        - 'new tab'
+    tags:
+      - name: a11y_quality_gate.rule
+
   Priebera\A11yQualityGate\Backend\ToolbarItems\A11yScanToolbarItem:
     tags:
       - name: backend.toolbar.item

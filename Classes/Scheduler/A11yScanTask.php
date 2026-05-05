@@ -55,26 +55,16 @@ final class A11yScanTask extends AbstractTask
                 );
             }
 
-            $this->logger?->info('A11yScanTask completed', [
+            $this->logger?->info('A11yScanTask completed', $this->buildLogContext([
                 'summary' => $result->toSummaryString(),
-                'pageUid' => $this->pageUid,
-                'rootPid' => $this->rootPid,
-                'depth' => $this->depth,
-                'languageUid' => $this->languageUid,
-                'changedOnly' => $this->changedOnly,
-            ]);
+            ]));
 
             return true;
         } catch (\Throwable $e) {
-            $this->logger?->error('A11yScanTask failed', [
-                'pageUid' => $this->pageUid,
-                'rootPid' => $this->rootPid,
-                'depth' => $this->depth,
-                'languageUid' => $this->languageUid,
-                'changedOnly' => $this->changedOnly,
+            $this->logger?->error('A11yScanTask failed', $this->buildLogContext([
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-            ]);
+            ]));
 
             throw $e;
         }
@@ -101,5 +91,20 @@ final class A11yScanTask extends AbstractTask
             $language,
             $mode
         );
+    }
+
+    /**
+     * @param array<string, mixed> $extra
+     * @return array<string, mixed>
+     */
+    private function buildLogContext(array $extra = []): array
+    {
+        return $extra + [
+                'pageUid' => $this->pageUid,
+                'rootPid' => $this->rootPid,
+                'depth' => $this->depth,
+                'languageUid' => $this->languageUid,
+                'changedOnly' => $this->changedOnly,
+            ];
     }
 }

@@ -1,0 +1,200 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div>
+    <f:if condition="{pageStats}">
+        <f:then>
+            <div class="table-responsive">
+                <table class="table table-hover a11y-overview-table mb-0">
+                    <colgroup>
+                        <col style="width: auto;" />
+                        <col style="width: 88px;" />
+                        <col style="width: 88px;" />
+                        <col style="width: 88px;" />
+                        <col style="width: 88px;" />
+                        <col style="width: 1%;" />
+                    </colgroup>
+
+                    <thead>
+                    <tr>
+                        <th scope="col">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.page"
+                                    default="Page"
+                            />
+                        </th>
+                        <th scope="col" class="text-center">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
+                                    default="Critical"
+                            />
+                        </th>
+                        <th scope="col" class="text-center">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning"
+                                    default="Warning"
+                            />
+                        </th>
+                        <th scope="col" class="text-center">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
+                                    default="Info"
+                            />
+                        </th>
+                        <th scope="col" class="text-center">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.total"
+                                    default="Total"
+                            />
+                        </th>
+                        <th scope="col" class="text-end">
+                            <span class="visually-hidden">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions"
+                                        default="Actions"
+                                />
+                            </span>
+                        </th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    <f:for each="{pageStats}" as="stat">
+                        <tr
+                                data-a11y-page-row="true"
+                                data-a11y-page-title="{stat.pageTitle}"
+                                data-a11y-page-uid="{stat.pageUid}"
+                        >
+                            <th scope="row" class="min-w-0">
+                                <div class="min-w-0">
+                                    <div class="d-flex align-items-center gap-2 min-w-0">
+                                        <div class="fw-semibold text-truncate" title="{stat.pageTitle}">
+                                            {stat.pageTitle}
+                                        </div>
+
+                                        <f:if condition="{stat.isFolder}">
+                                           <span class="badge badge-secondary">
+                                                <f:translate
+                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageType.folder"
+                                                />
+                                            </span>
+                                        </f:if>
+                                    </div>
+
+                                    <span class="text-muted small d-block">ID: {stat.pageUid}</span>
+                                </div>
+                            </th>
+
+                            <td class="text-center">
+                                <f:if condition="{stat.critical} > 0">
+                                    <f:then><span class="badge badge-danger">{stat.critical}</span></f:then>
+                                    <f:else><span class="text-muted">—</span></f:else>
+                                </f:if>
+                            </td>
+
+                            <td class="text-center">
+                                <f:if condition="{stat.warning} > 0">
+                                    <f:then><span class="badge badge-warning">{stat.warning}</span></f:then>
+                                    <f:else><span class="text-muted">—</span></f:else>
+                                </f:if>
+                            </td>
+
+                            <td class="text-center">
+                                <f:if condition="{stat.info} > 0">
+                                    <f:then><span class="badge badge-info">{stat.info}</span></f:then>
+                                    <f:else><span class="text-muted">—</span></f:else>
+                                </f:if>
+                            </td>
+
+                            <td class="text-center">
+                                <strong>{stat.total}</strong>
+                            </td>
+
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2 flex-nowrap">
+                                    <a href="{stat.detailUrl}" class="btn btn-primary btn-sm">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.viewIssues"
+                                                default="View issues"
+                                        />
+                                    </a>
+
+                                    <button
+                                            type="button"
+                                            class="btn btn-default btn-sm"
+                                            data-action="a11y-rescan"
+                                            data-page-uid="{stat.pageUid}"
+                                            data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                                    >
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
+                                                default="Scan now"
+                                        />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </f:for>
+                    </tbody>
+                </table>
+            </div>
+
+            <f:if condition="{localPagination.totalPages} > 1">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top">
+                    <div class="small text-muted">
+                        {totalLocalPages}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages"
+                                default="pages"
+                        />
+                    </div>
+
+                    <nav aria-label="Local pages pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {f:if(condition: localPagination.hasPrevious, then: '', else: 'disabled')}">
+                                <a class="page-link" href="{f:if(condition: localPagination.hasPrevious, then: localPagination.previousUrl, else: '#')}">‹</a>
+                            </li>
+
+                            <f:for each="{localPaginationItems}" as="item">
+                                <f:if condition="{item.type} == 'ellipsis'">
+                                    <f:then>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">{item.label}</span>
+                                        </li>
+                                    </f:then>
+                                    <f:else>
+                                        <li class="page-item {f:if(condition: item.active, then: 'active', else: '')}">
+                                            <a class="page-link" href="{item.url}">{item.label}</a>
+                                        </li>
+                                    </f:else>
+                                </f:if>
+                            </f:for>
+
+                            <li class="page-item {f:if(condition: localPagination.hasNext, then: '', else: 'disabled')}">
+                                <a class="page-link" href="{f:if(condition: localPagination.hasNext, then: localPagination.nextUrl, else: '#')}">›</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </f:if>
+        </f:then>
+
+        <f:else>
+            <f:if condition="{localQuery}">
+                <div class="text-center text-muted py-4">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults"
+                            default="No matching pages found."
+                    />
+                </div>
+            </f:if>
+            <f:if condition="!{localQuery}">
+                <div class="alert alert-success mb-0" role="alert">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues"
+                            default="No open accessibility issues found."
+                    />
+                </div>
+            </f:if>
+        </f:else>
+    </f:if>
+</div>
+</html>

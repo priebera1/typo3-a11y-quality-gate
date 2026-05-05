@@ -1,2 +1,11 @@
-# cat=a11y_quality_gate/rules/10; type=text; label=Non-descriptive link phrases:Comma-separated phrases that should be treated as non-descriptive link text. Example: click here, here, read more. Custom phrases are merged with built-in English defaults.
+# cat=PRO Licence/10; type=string; label=PRO licence key:Enter your AQG PRO licence key. Example: aqg_live_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+licenceKey =
+
+# cat=PRO Licence/20; type=boolean; label=Show PRO hints when licence is not active
+showProHints = 1
+
+# cat=Rules/10; type=text; label=Non-descriptive link phrases:Comma-separated phrases that should be treated as non-descriptive link text. Example: click here, here, read more. Custom phrases are merged with built-in English defaults.
 nonDescriptiveLinkPhrases =
+
+# cat=Rules/20; type=text; label=New window warning phrases:Comma-separated phrases that should be treated as valid warnings for links opening in a new window or tab. Example: opens in new window, opens in new tab. Custom phrases are merged with built-in English defaults.
+linkNewWindowHintPhrases =

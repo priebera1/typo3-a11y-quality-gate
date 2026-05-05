@@ -5,19 +5,29 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Export\IssueExporter;
+use Priebera\A11yQualityGate\Export\PdfReportBuilder;
+use Priebera\A11yQualityGate\Export\RemoteExportBuilder;
+use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\FilterValueUtility;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
-use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Site\Entity\Site;
 
 #[AsController]
 final class ExportController
 {
     public function __construct(
         private readonly IssueExporter $issueExporter,
-        private readonly SiteFinder $siteFinder,
+        private readonly PdfReportBuilder $pdfReportBuilder,
+        private readonly RemoteExportBuilder $remoteExportBuilder,
+        private readonly SiteResolutionService $siteResolutionService,
+        private readonly RequestParameterService $requestParameterService,
+        private readonly ProStatusResolverService $proStatusResolverService,
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly StreamFactoryInterface $streamFactory,
     ) {
@@ -25,74 +35,202 @@ final class ExportController
 
     public function csvAction(ServerRequestInterface $request): ResponseInterface
     {
-        [$siteIdentifier, $pageUid, $onlyOpen] = $this->parseParams($request);
+        $context = $this->parseExportContext($request);
 
-        $csv = $this->issueExporter->toCsv($siteIdentifier, $pageUid, $onlyOpen);
-        $filename = $this->buildFilename($siteIdentifier, $pageUid, 'csv');
+        if ($context['scope'] === 'remote') {
+            return $this->buildRemoteCsvResponse(
+                siteIdentifier: $context['siteIdentifier'],
+                remotePageUid: $context['remotePageUid'],
+            );
+        }
+
+        $csv = $this->issueExporter->toCsv(
+            siteIdentifier: $context['siteIdentifier'],
+            pageUid: $context['pageUid'],
+            status: $context['status'],
+            severity: $context['severity'],
+        );
 
         return $this->downloadResponse(
             content: "\xEF\xBB\xBF" . $csv,
-            filename: $filename,
+            filename: $this->buildFilename($context['siteIdentifier'], $context['pageUid'], 'csv'),
             contentType: 'text/csv; charset=UTF-8',
         );
     }
 
-    public function jsonAction(ServerRequestInterface $request): ResponseInterface
+    public function pdfAction(ServerRequestInterface $request): ResponseInterface
     {
-        [$siteIdentifier, $pageUid, $onlyOpen] = $this->parseParams($request);
+        $context = $this->parseExportContext($request);
 
-        $json = $this->issueExporter->toJson($siteIdentifier, $pageUid, $onlyOpen);
-        $filename = $this->buildFilename($siteIdentifier, $pageUid, 'json');
+        $site = $this->resolveSiteForExport(
+            request: $request,
+            siteIdentifier: $context['siteIdentifier'],
+            pageUid: $context['pageUid'],
+        );
+
+        if (!$this->canExportPdf($site, $context['siteIdentifier'])) {
+            return $this->downloadResponse(
+                content: 'PDF export is available in AQG PRO only.',
+                filename: 'aqg-pdf-export-unavailable.txt',
+                contentType: 'text/plain; charset=UTF-8',
+                statusCode: 403,
+            );
+        }
+
+        if ($context['scope'] === 'remote') {
+            return $this->buildRemotePdfResponse(
+                request: $request,
+                siteIdentifier: $context['siteIdentifier'],
+                remotePageUid: $context['remotePageUid'],
+            );
+        }
+
+        $pdf = $context['pageUid'] !== null && $context['pageUid'] > 0
+            ? $this->pdfReportBuilder->buildPagePdf(
+                siteIdentifier: $context['siteIdentifier'],
+                pageUid: $context['pageUid'],
+                status: $context['status'],
+                severity: $context['severity'],
+                request: $request,
+            )
+            : $this->pdfReportBuilder->buildOverviewPdf(
+                siteIdentifier: $context['siteIdentifier'],
+                status: $context['status'],
+                severity: $context['severity'],
+                request: $request,
+            );
 
         return $this->downloadResponse(
-            content: $json,
-            filename: $filename,
-            contentType: 'application/json; charset=UTF-8',
+            content: $pdf,
+            filename: $this->buildFilename($context['siteIdentifier'], $context['pageUid'], 'pdf'),
+            contentType: 'application/pdf',
         );
     }
 
     /**
-     * @return array{0:string,1:int|null,2:bool}
+     * @return array{
+     *   siteIdentifier:string,
+     *   pageUid:int|null,
+     *   status:string,
+     *   severity:string,
+     *   scope:string,
+     *   remotePageUid:int
+     * }
      */
-    private function parseParams(ServerRequestInterface $request): array
+    private function parseExportContext(ServerRequestInterface $request): array
     {
-        $params = $request->getQueryParams();
+        $pageUid = $this->requestParameterService->getPageUid($request);
+        $status = $this->requestParameterService->getStatus($request, '');
 
-        $pageUid = isset($params['pageUid']) && $params['pageUid'] !== ''
-            ? (int)$params['pageUid']
-            : null;
+        if (
+            !$this->requestParameterService->hasQueryParam($request, 'status')
+            && $this->requestParameterService->getString($request, 'all') === '1'
+        ) {
+            $status = 'all';
+        }
 
-        $onlyOpen = !isset($params['all']) || (string)$params['all'] !== '1';
-        $siteIdentifier = $this->resolveSiteIdentifier($request, $pageUid);
+        $status = $status === ''
+            ? FilterValueUtility::normalizeStatus('')
+            : FilterValueUtility::normalizeStatus($status);
 
-        return [$siteIdentifier, $pageUid, $onlyOpen];
+        $severity = FilterValueUtility::normalizeSeverity(
+            $this->requestParameterService->getSeverity($request, 'all')
+        );
+
+        $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierForBackendRequest(
+            $request,
+            $pageUid
+        );
+
+        $scope = trim((string)($request->getQueryParams()['scope'] ?? 'local'));
+        $remotePageUid = (int)($request->getQueryParams()['remotePageUid'] ?? 0);
+
+        return [
+            'siteIdentifier' => $siteIdentifier,
+            'pageUid' => $pageUid,
+            'status' => $status,
+            'severity' => $severity,
+            'scope' => $scope === 'remote' ? 'remote' : 'local',
+            'remotePageUid' => $remotePageUid,
+        ];
     }
 
-    private function resolveSiteIdentifier(ServerRequestInterface $request, ?int $pageUid): string
+    private function buildRemoteCsvResponse(string $siteIdentifier, int $remotePageUid): ResponseInterface
     {
-        $explicit = trim((string)($request->getQueryParams()['site'] ?? ''));
-        if ($explicit !== '') {
-            try {
-                return $this->siteFinder->getSiteByIdentifier($explicit)->getIdentifier();
-            } catch (\Throwable) {
+        $csv = $remotePageUid > 0
+            ? $this->remoteExportBuilder->buildPageCsv($remotePageUid)
+            : $this->remoteExportBuilder->buildOverviewCsv($siteIdentifier);
+
+        return $this->downloadResponse(
+            content: "\xEF\xBB\xBF" . $csv,
+            filename: $this->buildFilename(
+                $siteIdentifier !== '' ? $siteIdentifier : 'remote',
+                $remotePageUid > 0 ? $remotePageUid : null,
+                'csv',
+                'remote'
+            ),
+            contentType: 'text/csv; charset=UTF-8',
+        );
+    }
+
+    private function buildRemotePdfResponse(
+        ServerRequestInterface $request,
+        string $siteIdentifier,
+        int $remotePageUid,
+    ): ResponseInterface {
+        $pdf = $remotePageUid > 0
+            ? $this->remoteExportBuilder->buildPagePdf($remotePageUid, $request)
+            : $this->remoteExportBuilder->buildOverviewPdf($siteIdentifier, $request);
+
+        return $this->downloadResponse(
+            content: $pdf,
+            filename: $this->buildFilename(
+                $siteIdentifier !== '' ? $siteIdentifier : 'remote',
+                $remotePageUid > 0 ? $remotePageUid : null,
+                'pdf',
+                'remote'
+            ),
+            contentType: 'application/pdf',
+        );
+    }
+
+    private function canExportPdf(?Site $site, string $siteIdentifier): bool
+    {
+        $proStatus = $site !== null
+            ? $this->proStatusResolverService->resolveForSite($site)
+            : $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+
+        return $proStatus->valid
+            && !$proStatus->isTrial
+            && $proStatus->hasExportPdf;
+    }
+
+    private function resolveSiteForExport(
+        ServerRequestInterface $request,
+        string $siteIdentifier,
+        ?int $pageUid,
+    ): ?Site {
+        if ($pageUid !== null && $pageUid > 0) {
+            $site = $this->siteResolutionService->resolveSiteForBackendRequest($request, $pageUid);
+            if ($site !== null) {
+                return $site;
             }
         }
 
-        if ($pageUid !== null) {
-            try {
-                return $this->siteFinder->getSiteByPageId($pageUid)->getIdentifier();
-            } catch (\Throwable) {
-            }
+        if ($siteIdentifier !== '') {
+            return $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
         }
 
-        $sites = $this->siteFinder->getAllSites();
-
-        return $sites !== [] ? reset($sites)->getIdentifier() : '';
+        return null;
     }
 
-    private function buildFilename(string $siteIdentifier, ?int $pageUid, string $extension): string
-    {
-        $parts = ['a11y', $siteIdentifier !== '' ? $siteIdentifier : 'export'];
+    private function buildFilename(
+        string $siteIdentifier,
+        ?int $pageUid,
+        string $extension,
+        string $prefix = 'a11y',
+    ): string {
+        $parts = [$prefix, $siteIdentifier !== '' ? $siteIdentifier : 'export'];
 
         if ($pageUid !== null) {
             $parts[] = 'page' . $pageUid;
@@ -103,15 +241,19 @@ final class ExportController
         return implode('-', $parts) . '.' . $extension;
     }
 
-    private function downloadResponse(string $content, string $filename, string $contentType): ResponseInterface
-    {
+    private function downloadResponse(
+        string $content,
+        string $filename,
+        string $contentType,
+        int $statusCode = 200,
+    ): ResponseInterface {
         $stream = $this->streamFactory->createStream($content);
 
         return $this->responseFactory
-            ->createResponse(200)
+            ->createResponse($statusCode)
             ->withHeader('Content-Type', $contentType)
             ->withHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
-            ->withHeader('Content-Length', (string)strlen($content))
+            ->withHeader('Content-Length', (string)mb_strlen($content, '8bit'))
             ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->withHeader('Pragma', 'no-cache')
             ->withBody($stream);

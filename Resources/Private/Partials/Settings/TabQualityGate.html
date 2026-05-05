@@ -1,0 +1,225 @@
+<div
+        class="tab-pane fade{f:if(condition: '{activeTab} == ''gate''', then: ' show active')}"
+        id="a11y-settings-pane-gate"
+        role="tabpanel"
+        aria-labelledby="a11y-settings-tab-gate"
+        tabindex="0"
+>
+    <f:if condition="{proStatus.valid}">
+        <f:then>
+            <form method="post" action="{saveUrl}">
+                <f:for each="{returnParameters}" as="value" key="name">
+                    <input type="hidden" name="{name}" value="{value}" />
+                </f:for>
+
+                <input type="hidden" name="tab" value="gate" />
+                <input type="hidden" name="qualityGateFormSubmitted" value="1" />
+
+                <div class="card">
+                    <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                        <div>
+                            <h3 class="h5 mb-1">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.title" />
+                            </h3>
+                            <p class="text-muted small mb-0">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.description" />
+                            </p>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" />
+                        </button>
+                    </div>
+
+                    <div class="card-body pt-3">
+                        <div class="row g-4">
+                            <div class="col-12 col-lg-6">
+                                <label class="form-label fw-semibold" for="aqg-ruleset-site">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.scope" />
+                                </label>
+
+                                <select
+                                        id="aqg-ruleset-site"
+                                        name="rulesetSite"
+                                        class="form-select"
+                                >
+                                    <f:for each="{siteOptions}" as="siteOption">
+                                        <option
+                                                value="{siteOption.identifier}"
+                                                {f:if(condition: '{siteOption.identifier} == {selectedRulesetSite}', then: 'selected="selected"')}
+                                        >
+                                        {siteOption.label}
+                                        </option>
+                                    </f:for>
+                                </select>
+
+                                <div class="form-text">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.scopeHelp" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="mb-4">
+                            <div class="form-label fw-semibold mb-3">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode" />
+                            </div>
+
+                            <div class="d-flex flex-column gap-3">
+                                <div class="border rounded p-3">
+                                    <div class="form-check mb-0">
+                                        <input
+                                                class="form-check-input"
+                                                type="radio"
+                                                name="qualityGate[publish_mode]"
+                                                id="aqg-publish-mode-0"
+                                                value="0"
+                                                {f:if(condition: '{qualityGateRuleset.publish_mode} == 0', then: 'checked="checked"')}
+                                        />
+                                        <label class="form-check-label fw-semibold" for="aqg-publish-mode-0">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.disabled" />
+                                        </label>
+                                    </div>
+                                    <div class="small text-muted mt-2 ms-4">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.disabledHelp" />
+                                    </div>
+                                </div>
+
+                                <div class="border rounded p-3">
+                                    <div class="form-check mb-0">
+                                        <input
+                                                class="form-check-input"
+                                                type="radio"
+                                                name="qualityGate[publish_mode]"
+                                                id="aqg-publish-mode-1"
+                                                value="1"
+                                                {f:if(condition: '{qualityGateRuleset.publish_mode} == 1', then: 'checked="checked"')}
+                                        />
+                                        <label class="form-check-label fw-semibold" for="aqg-publish-mode-1">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.warn" />
+                                        </label>
+                                    </div>
+                                    <div class="small text-muted mt-2 ms-4">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.warnHelp" />
+                                    </div>
+                                </div>
+
+                                <div class="border rounded p-3">
+                                    <div class="form-check mb-0">
+                                        <input
+                                                class="form-check-input"
+                                                type="radio"
+                                                name="qualityGate[publish_mode]"
+                                                id="aqg-publish-mode-2"
+                                                value="2"
+                                                {f:if(condition: '{qualityGateRuleset.publish_mode} == 2', then: 'checked="checked"')}
+                                        />
+                                        <label class="form-check-label fw-semibold" for="aqg-publish-mode-2">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.block" />
+                                        </label>
+                                    </div>
+                                    <div class="small text-muted mt-2 ms-4">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.blockHelp" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-12 col-lg-6">
+                                <label class="form-label fw-semibold" for="aqg-threshold-critical">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.criticalThreshold" />
+                                </label>
+
+                                <input
+                                        type="number"
+                                        min="0"
+                                        class="form-control"
+                                        id="aqg-threshold-critical"
+                                        name="qualityGate[threshold_critical]"
+                                        value="{qualityGateRuleset.threshold_critical}"
+                                />
+
+                                <div class="form-text">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.criticalThresholdHelp" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-lg-6">
+                                <label class="form-label fw-semibold" for="aqg-threshold-warning">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold" />
+                                </label>
+
+                                <select
+                                        id="aqg-threshold-warning"
+                                        name="qualityGate[threshold_warning]"
+                                        class="form-select"
+                                >
+                                    <option value="-1" {f:if(condition: '{qualityGateRuleset.threshold_warning} == -1', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.ignore" />
+                                    </option>
+                                    <option value="0" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 0', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.0" />
+                                    </option>
+                                    <option value="1" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 1', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.1" />
+                                    </option>
+                                    <option value="2" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 2', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.2" />
+                                    </option>
+                                    <option value="3" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 3', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.3" />
+                                    </option>
+                                    <option value="5" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 5', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.5" />
+                                    </option>
+                                    <option value="10" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 10', then: 'selected="selected"')}>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.10" />
+                                    </option>
+                                </select>
+
+                                <div class="form-text">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThresholdHelp" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-light border mt-4 mb-0 small">
+                            <div class="fw-semibold mb-1">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.howItWorksTitle" />
+                            </div>
+                            <div>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.howItWorksText" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </f:then>
+
+        <f:else>
+            <div class="card">
+                <div class="card-header border-0 pb-0">
+                    <h3 class="h5 mb-1">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.title" />
+                    </h3>
+                    <p class="text-muted small mb-0">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.description" />
+                    </p>
+                </div>
+
+                <div class="card-body pt-3">
+                    <div class="alert alert-light border mb-0 small">
+                        <div class="fw-semibold mb-1">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.warningTitle" />
+                        </div>
+                        <div>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.warningText" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </f:else>
+    </f:if>
+</div>

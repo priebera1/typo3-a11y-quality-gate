@@ -37,6 +37,26 @@ final class SiteResolutionService
         }
     }
 
+    public function resolveSiteByIdentifier(string $siteIdentifier): ?Site
+    {
+        $siteIdentifier = trim($siteIdentifier);
+
+        if ($siteIdentifier === '') {
+            return null;
+        }
+
+        try {
+            return $this->siteFinder->getSiteByIdentifier($siteIdentifier);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function resolveSiteFromBackendRequest(ServerRequestInterface $request): ?Site
+    {
+        return $this->resolveSiteForBackendRequest($request);
+    }
+
     public function resolveSiteForBackendRequest(
         ServerRequestInterface $request,
         int $pageUid = 0,
@@ -56,8 +76,15 @@ final class SiteResolutionService
             }
         }
 
-        $sites = $this->siteFinder->getAllSites();
+        return null;
+    }
 
-        return $sites !== [] ? reset($sites) : null;
+    public function resolveSiteIdentifierForBackendRequest(
+        ServerRequestInterface $request,
+        ?int $pageUid = null,
+    ): string {
+        $site = $this->resolveSiteForBackendRequest($request, $pageUid ?? 0);
+
+        return $site?->getIdentifier() ?? '';
     }
 }

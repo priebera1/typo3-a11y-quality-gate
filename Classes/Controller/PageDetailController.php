@@ -9,7 +9,15 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
+use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
+use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
+use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
+use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\FilterValueUtility;
+use Priebera\A11yQualityGate\Utility\IssueFilterUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -17,77 +25,111 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\PageRenderer;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 #[AsController]
 final class PageDetailController extends AbstractBackendModuleController
 {
     private const PER_PAGE = 10;
+    private const MAX_VISIBLE_PAGINATION_ITEMS = 5;
 
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
         UriBuilder $uriBuilder,
         IconFactory $iconFactory,
-        SiteFinder $siteFinder,
         BackendContextService $backendContextService,
+        SiteResolutionService $siteResolutionService,
+        RequestParameterService $requestParameterService,
         private readonly IssueRepository $issueRepository,
         private readonly PageRenderer $pageRenderer,
         private readonly AccessControlService $accessControlService,
         private readonly ScanStatusService $scanStatusService,
+        private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
+        private readonly BackendRecordAccessService $backendRecordAccessService,
+        private readonly ProStatusResolverService $proStatusResolverService,
+        private readonly ExportUrlBuilderService $exportUrlBuilderService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
             $uriBuilder,
             $iconFactory,
-            $siteFinder,
-            $backendContextService
+            $backendContextService,
+            $siteResolutionService,
+            $requestParameterService
         );
     }
 
     public function showAction(ServerRequestInterface $request): ResponseInterface
     {
         $moduleTemplate = $this->createModuleTemplate($request);
+        $pageUid = $this->requestParameterService->getPageUidOrZero($request);
+        $site = $this->resolveSiteForPage($request, $pageUid);
 
-        $this->pageRenderer->loadJavaScriptModule(
-            '@priebera/a11y-quality-gate/backend/module.js'
+        $this->backendJavaScriptModuleService->loadBackendModule(
+            $this->pageRenderer,
+            $site
         );
 
-        $routing = $request->getAttribute('routing');
-        $pageUid = (int)($routing?->getArguments()['pageUid'] ?? 0);
-
-        if ($pageUid === 0) {
-            $queryParams = $request->getQueryParams();
-            $pageUid = (int)($queryParams['pageUid'] ?? $queryParams['id'] ?? 0);
-        }
-
-        $site = $this->resolveSiteForPage($request, $pageUid);
         $siteIdentifier = $site?->getIdentifier() ?? '';
-        $activeStatus = $this->resolveActiveStatus($request);
-        $activeSeverity = $this->resolveActiveSeverity($request);
-        $currentPage = $this->resolveCurrentPage($request);
+        $activeStatus = $this->requestParameterService->getStatus($request, 'open');
+        $activeSeverity = $this->requestParameterService->getSeverity($request, 'all');
+        $currentPage = $this->requestParameterService->getPageNumber($request, 1);
         $returnParameters = $this->getA11yModuleReturnParameters($request);
+
+        $proStatus = $this->proStatusResolverService->resolveForSite($site);
+
+        $pageRecord = $pageUid > 0
+            ? (BackendUtility::getRecord('pages', $pageUid, 'uid,title,slug,doktype') ?: [])
+            : [];
+
+        $pageTitle = trim((string)($pageRecord['title'] ?? ''));
+        $pagePath = trim((string)($pageRecord['slug'] ?? ''));
+        $pageDoktype = (int)($pageRecord['doktype'] ?? 0);
+        $isFolder = $pageDoktype === 254;
+
+        $backendUser = $this->backendContextService->getBackendUser();
+        $canScanNow = $this->accessControlService->canShowScanNow($backendUser);
+        $canShowSettings = $this->accessControlService->canShowSettings($backendUser);
 
         $allIssues = ($pageUid > 0 && $siteIdentifier !== '')
             ? $this->issueRepository->findAllForPage($siteIdentifier, $pageUid)
             : [];
 
-        $allIssues = array_map(function (array $row) use ($pageUid, $siteIdentifier, $activeStatus, $activeSeverity, $currentPage): array {
+        $allIssues = array_map(function (array $row) use (
+            $pageUid,
+            $siteIdentifier,
+            $activeStatus,
+            $activeSeverity,
+            $currentPage
+        ): array {
+            $sourceTable = (string)($row['source_table'] ?? '');
+            $sourceUid = (int)($row['source_uid'] ?? 0);
+
             $row['severityEnum'] = Severity::fromInt((int)$row['severity']);
             $row['statusEnum'] = IssueStatus::fromInt((int)$row['status']);
-            $row['editLink'] = $this->buildEditLink(
-                (string)$row['source_table'],
-                (int)$row['source_uid'],
-                $pageUid,
-                $siteIdentifier,
-                $activeStatus,
-                $activeSeverity,
-                $currentPage,
-            );
+            $row['hasEditAccess'] = false;
+            $row['editLink'] = '';
+
+            if (
+                $sourceTable !== ''
+                && $sourceUid > 0
+                && $this->backendRecordAccessService->canEditRecord($sourceTable, $sourceUid)
+            ) {
+                $row['hasEditAccess'] = true;
+                $row['editLink'] = $this->buildEditLink(
+                    $sourceTable,
+                    $sourceUid,
+                    $pageUid,
+                    $siteIdentifier,
+                    $activeStatus,
+                    $activeSeverity,
+                    $currentPage,
+                );
+            }
 
             return $row;
         }, $allIssues);
@@ -108,7 +150,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'all' => count($allIssues),
         ];
 
-        $issuesForStatus = $this->filterIssuesByStatus($allIssues, $activeStatus);
+        $issuesForStatus = IssueFilterUtility::filterByStatus($allIssues, $activeStatus);
 
         $severityCounts = [
             'critical' => count(array_filter(
@@ -126,7 +168,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'total' => count($issuesForStatus),
         ];
 
-        $visibleIssues = $this->filterIssuesBySeverity($issuesForStatus, $activeSeverity);
+        $visibleIssues = IssueFilterUtility::filterBySeverity($issuesForStatus, $activeSeverity);
 
         $pagination = $this->buildPagination(
             totalItems: count($visibleIssues),
@@ -155,17 +197,24 @@ final class PageDetailController extends AbstractBackendModuleController
             )),
         ];
 
-        $backUrl = $this->buildOverviewUrl($pageUid, $siteIdentifier);
-        $detailUrl = $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, $activeSeverity, $currentPage);
+        $backUrl = $this->buildOverviewUrl($pageUid, $siteIdentifier, $request);
 
         $ignoreUrl = $this->buildRouteUrl('web_a11y.ignore');
         $unignoreUrl = $this->buildRouteUrl('web_a11y.unignore');
-        $exportCsvUrl = $this->buildRouteUrl('web_a11y.exportCsv', [
-            'site' => $siteIdentifier,
-            'pageUid' => $pageUid,
-        ]);
 
-        $rescanEndpoint = $this->buildRescanEndpoint();
+        $exportCsvUrl = $this->exportUrlBuilderService->buildLocalPageCsvUrl(
+            $siteIdentifier,
+            $pageUid,
+            $activeStatus,
+            $activeSeverity
+        );
+
+        $exportPdfUrl = $this->exportUrlBuilderService->buildLocalPagePdfUrl(
+            $siteIdentifier,
+            $pageUid,
+            $activeStatus,
+            $activeSeverity
+        );
 
         $statusFilterUrls = [
             'open' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, 'open'),
@@ -193,42 +242,71 @@ final class PageDetailController extends AbstractBackendModuleController
         }
 
         $pagination['previousUrl'] = $pagination['hasPrevious']
-            ? $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, $activeSeverity, $pagination['currentPage'] - 1)
+            ? $this->buildPageDetailUrl(
+                $pageUid,
+                $siteIdentifier,
+                $activeStatus,
+                $activeSeverity,
+                $pagination['currentPage'] - 1
+            )
             : null;
 
         $pagination['nextUrl'] = $pagination['hasNext']
-            ? $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, $activeSeverity, $pagination['currentPage'] + 1)
+            ? $this->buildPageDetailUrl(
+                $pageUid,
+                $siteIdentifier,
+                $activeStatus,
+                $activeSeverity,
+                $pagination['currentPage'] + 1
+            )
             : null;
 
-        $this->configureDocHeader($moduleTemplate, $backUrl, $exportCsvUrl, $returnParameters);
+        $paginationItems = $this->buildPaginationItems(
+            $pagination['currentPage'],
+            $pagination['totalPages'],
+            $pagination['pageUrls']
+        );
 
-        $backendUser = $GLOBALS['BE_USER'] ?? null;
-        $canScanNow = $this->accessControlService->canShowScanNow(
-            $backendUser instanceof BackendUserAuthentication ? $backendUser : null
+        $filterSummary = $this->buildFilterSummary(
+            $activeStatus,
+            $activeSeverity,
+            count($visibleIssues)
+        );
+
+        $this->configureDocHeader(
+            $moduleTemplate,
+            $backUrl,
+            $returnParameters,
+            $canShowSettings
         );
 
         $scanStatus = $this->scanStatusService->getStatus();
 
         $moduleTemplate->assignMultiple([
             'pageUid' => $pageUid,
+            'pageTitle' => $pageTitle,
+            'pagePath' => $pagePath,
             'siteIdentifier' => $siteIdentifier,
             'activeStatus' => $activeStatus,
             'activeSeverity' => $activeSeverity,
-            'issues' => $paginatedIssues,
             'grouped' => $grouped,
             'severityCounts' => $severityCounts,
             'statusCounts' => $statusCounts,
             'statusFilterUrls' => $statusFilterUrls,
             'severityFilterUrls' => $severityFilterUrls,
+            'filterSummary' => $filterSummary,
             'backUrl' => $backUrl,
-            'detailUrl' => $detailUrl,
             'ignoreUrl' => $ignoreUrl,
             'unignoreUrl' => $unignoreUrl,
             'exportCsvUrl' => $exportCsvUrl,
-            'rescanEndpoint' => $rescanEndpoint,
+            'exportPdfUrl' => $exportPdfUrl,
             'pagination' => $pagination,
+            'paginationItems' => $paginationItems,
             'canScanNow' => $canScanNow,
             'scanStatus' => $scanStatus,
+            'pageDoktype' => $pageDoktype,
+            'isFolder' => $isFolder,
+            'proStatus' => $proStatus,
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');
@@ -241,8 +319,8 @@ final class PageDetailController extends AbstractBackendModuleController
         $reason = trim((string)($body['reason'] ?? ''));
         $pageUid = (int)($body['pageUid'] ?? 0);
         $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
-        $status = $this->normalizeStatus((string)($body['status'] ?? 'open'));
-        $severity = $this->normalizeSeverity((string)($body['severity'] ?? 'all'));
+        $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
+        $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
 
         if ($issueUid > 0 && $reason !== '') {
@@ -261,8 +339,8 @@ final class PageDetailController extends AbstractBackendModuleController
         $issueUid = (int)($body['issueUid'] ?? 0);
         $pageUid = (int)($body['pageUid'] ?? 0);
         $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
-        $status = $this->normalizeStatus((string)($body['status'] ?? 'ignored'));
-        $severity = $this->normalizeSeverity((string)($body['severity'] ?? 'all'));
+        $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'ignored'));
+        $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
 
         if ($issueUid > 0) {
@@ -278,8 +356,8 @@ final class PageDetailController extends AbstractBackendModuleController
     private function configureDocHeader(
         ModuleTemplate $moduleTemplate,
         string $backUrl,
-        string $exportCsvUrl,
         array $returnParameters,
+        bool $canShowSettings,
     ): void {
         $this->setModuleTitle(
             $moduleTemplate,
@@ -291,25 +369,20 @@ final class PageDetailController extends AbstractBackendModuleController
 
         $backButton = $buttonBar->makeLinkButton()
             ->setHref($backUrl)
-            ->setTitle($this->translate('action.back'))
+            ->setTitle($this->translate('settings.backToOverview') ?: 'Back to overview')
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-view-go-back', IconSize::SMALL));
         $buttonBar->addButton($backButton, ButtonBar::BUTTON_POSITION_LEFT, 1);
 
-        $exportButton = $buttonBar->makeLinkButton()
-            ->setHref($exportCsvUrl)
-            ->setTitle($this->translate('action.export'))
-            ->setShowLabelText(true)
-            ->setIcon($this->iconFactory->getIcon('actions-document-export-csv', IconSize::SMALL));
-        $buttonBar->addButton($exportButton, ButtonBar::BUTTON_POSITION_RIGHT, 1);
+        if ($canShowSettings) {
+            $settingsButton = $buttonBar->makeLinkButton()
+                ->setHref($this->buildRouteUrl('web_a11y.settings', $returnParameters))
+                ->setTitle($this->translate('settings.title') ?: 'Settings')
+                ->setShowLabelText(true)
+                ->setIcon($this->iconFactory->getIcon('actions-cog', IconSize::SMALL));
 
-        $settingsButton = $buttonBar->makeLinkButton()
-            ->setHref($this->buildRouteUrl('web_a11y.settings', $returnParameters))
-            ->setTitle($this->translate('settings.title'))
-            ->setShowLabelText(true)
-            ->setIcon($this->iconFactory->getIcon('actions-cog', IconSize::SMALL));
-
-        $buttonBar->addButton($settingsButton, ButtonBar::BUTTON_POSITION_RIGHT, 2);
+            $buttonBar->addButton($settingsButton, ButtonBar::BUTTON_POSITION_RIGHT, 1);
+        }
     }
 
     private function buildEditLink(
@@ -331,10 +404,16 @@ final class PageDetailController extends AbstractBackendModuleController
         ]);
     }
 
-    private function buildOverviewUrl(int $pageUid, string $siteIdentifier): string
-    {
+    private function buildOverviewUrl(
+        int $pageUid,
+        string $siteIdentifier,
+        ServerRequestInterface $request,
+    ): string {
+        $site = $this->resolveSiteForPage($request, $pageUid);
+        $rootPid = $site !== null ? (int)$site->getRootPageId() : $pageUid;
+
         return $this->buildRouteUrl('web_a11y', [
-            'id' => $pageUid,
+            'id' => $rootPid,
             'site' => $siteIdentifier,
         ]);
     }
@@ -354,57 +433,6 @@ final class PageDetailController extends AbstractBackendModuleController
             'severity' => $severity,
             'page' => $page,
         ]);
-    }
-
-    private function buildRescanEndpoint(): string
-    {
-        return (string)$this->uriBuilder->buildUriFromRoute('ajax_a11y_scan_page');
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $issues
-     * @return array<int, array<string, mixed>>
-     */
-    private function filterIssuesByStatus(array $issues, string $activeStatus): array
-    {
-        return match ($activeStatus) {
-            'ignored' => array_values(array_filter(
-                $issues,
-                static fn(array $issue): bool => (int)$issue['status'] === IssueStatus::Ignored->value
-            )),
-            'resolved' => array_values(array_filter(
-                $issues,
-                static fn(array $issue): bool => (int)$issue['status'] === IssueStatus::Resolved->value
-            )),
-            'all' => $issues,
-            default => array_values(array_filter(
-                $issues,
-                static fn(array $issue): bool => (int)$issue['status'] === IssueStatus::Open->value
-            )),
-        };
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $issues
-     * @return array<int, array<string, mixed>>
-     */
-    private function filterIssuesBySeverity(array $issues, string $activeSeverity): array
-    {
-        return match ($activeSeverity) {
-            'critical' => array_values(array_filter(
-                $issues,
-                static fn(array $issue): bool => (int)$issue['severity'] === Severity::Critical->value
-            )),
-            'warning' => array_values(array_filter(
-                $issues,
-                static fn(array $issue): bool => (int)$issue['severity'] === Severity::Warning->value
-            )),
-            'info' => array_values(array_filter(
-                $issues,
-                static fn(array $issue): bool => (int)$issue['severity'] === Severity::Info->value
-            )),
-            default => $issues,
-        };
     }
 
     /**
@@ -432,32 +460,86 @@ final class PageDetailController extends AbstractBackendModuleController
         ];
     }
 
-    private function resolveActiveStatus(ServerRequestInterface $request): string
+    /**
+     * @param array<int, string> $pageUrls
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildPaginationItems(int $currentPage, int $totalPages, array $pageUrls): array
     {
-        return $this->normalizeStatus((string)($request->getQueryParams()['status'] ?? 'open'));
+        if ($totalPages <= self::MAX_VISIBLE_PAGINATION_ITEMS) {
+            $items = [];
+
+            for ($page = 1; $page <= $totalPages; $page++) {
+                $items[] = [
+                    'type' => 'page',
+                    'label' => (string)$page,
+                    'url' => $pageUrls[$page] ?? '#',
+                    'active' => $page === $currentPage,
+                ];
+            }
+
+            return $items;
+        }
+
+        $pages = [1, $totalPages, $currentPage - 1, $currentPage, $currentPage + 1];
+        $pages = array_values(array_unique(array_filter(
+            $pages,
+            static fn(int $page): bool => $page >= 1 && $page <= $totalPages
+        )));
+        sort($pages);
+
+        $items = [];
+        $lastPage = null;
+
+        foreach ($pages as $page) {
+            if ($lastPage !== null && $page > $lastPage + 1) {
+                $items[] = [
+                    'type' => 'ellipsis',
+                    'label' => '…',
+                    'url' => '',
+                    'active' => false,
+                ];
+            }
+
+            $items[] = [
+                'type' => 'page',
+                'label' => (string)$page,
+                'url' => $pageUrls[$page] ?? '#',
+                'active' => $page === $currentPage,
+            ];
+
+            $lastPage = $page;
+        }
+
+        return $items;
     }
 
-    private function resolveActiveSeverity(ServerRequestInterface $request): string
+    private function buildFilterSummary(string $activeStatus, string $activeSeverity, int $visibleCount): string
     {
-        return $this->normalizeSeverity((string)($request->getQueryParams()['severity'] ?? 'all'));
-    }
+        $parts = [];
 
-    private function resolveCurrentPage(ServerRequestInterface $request): int
-    {
-        return max(1, (int)($request->getQueryParams()['page'] ?? 1));
-    }
+        if ($activeSeverity !== 'all') {
+            $parts[] = $activeSeverity;
+        }
 
-    private function normalizeStatus(string $status): string
-    {
-        return in_array($status, ['open', 'ignored', 'resolved', 'all'], true)
-            ? $status
-            : 'open';
-    }
+        $statusLabel = match ($activeStatus) {
+            'ignored' => 'ignored',
+            'resolved' => 'resolved',
+            'all' => null,
+            default => 'open',
+        };
 
-    private function normalizeSeverity(string $severity): string
-    {
-        return in_array($severity, ['all', 'critical', 'warning', 'info'], true)
-            ? $severity
-            : 'all';
+        if ($statusLabel !== null) {
+            $parts[] = $statusLabel;
+        }
+
+        $label = implode(' ', $parts);
+
+        return sprintf(
+            'Showing %d %sissue%s',
+            $visibleCount,
+            $label !== '' ? $label . ' ' : '',
+            $visibleCount === 1 ? '' : 's'
+        );
     }
 }

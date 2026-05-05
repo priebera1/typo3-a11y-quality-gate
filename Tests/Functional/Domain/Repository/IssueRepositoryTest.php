@@ -166,6 +166,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
         $resolved = $this->subject->resolveUnseen(
             pageUid:          self::PAGE,
             siteIdentifier:   self::SITE,
+            sourceLangUid:    0,
             seenFingerprints: [$v1->fingerprint($ctx1)],
             scanUid:          2,
         );
@@ -193,6 +194,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
         $resolved = $this->subject->resolveUnseen(
             pageUid:          self::PAGE,
             siteIdentifier:   self::SITE,
+            sourceLangUid:    0,
             seenFingerprints: [],
             scanUid:          2,
         );

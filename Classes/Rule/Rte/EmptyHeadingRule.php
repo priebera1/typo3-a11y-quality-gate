@@ -17,7 +17,7 @@ final class EmptyHeadingRule extends AbstractRteRule
 
     public function getDefaultSeverity(): Severity
     {
-        return Severity::Warning;
+        return Severity::Critical;
     }
 
     public function getMessage(): string

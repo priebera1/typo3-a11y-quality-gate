@@ -36,7 +36,17 @@ class A11yScanToolbarMenu {
         await this.showSpinnerIcon();
 
         try {
-            const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.a11y_toolbar_render).get();
+            const url = new URL(TYPO3.settings.ajaxUrls.a11y_toolbar_render, window.location.origin);
+            const currentUrl = new URL(window.location.href);
+
+            ['id', 'site', 'pageUid'].forEach((key) => {
+                const value = currentUrl.searchParams.get(key);
+                if (value) {
+                    url.searchParams.set(key, value);
+                }
+            });
+
+            const response = await new AjaxRequest(url.toString()).get();
             const html = await response.resolve();
 
             const menu = document.querySelector(A11yToolbarSelector.menu);

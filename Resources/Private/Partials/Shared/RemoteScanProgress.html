@@ -1,0 +1,30 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div
+        class="alert alert-warning d-flex align-items-start gap-3 mb-4 {f:if(condition: activeRemoteScan.job_id, then: '', else: 'd-none')}"
+        data-a11y-remote-scan-progress="true"
+        data-a11y-remote-job-id="{activeRemoteScan.job_id}"
+        data-a11y-remote-site-identifier="{activeRemoteScan.site_identifier}"
+        data-a11y-remote-scope="{activeRemoteScan.scan_scope}"
+        data-a11y-remote-page-uid="{activeRemoteScan.page_uid}"
+        data-a11y-remote-status="{activeRemoteScan.status}"
+        data-a11y-remote-pages-scanned="{activeRemoteScan.pages_scanned}"
+        data-a11y-remote-pages-total="{activeRemoteScan.pages_total}"
+>
+    <span class="spinner-border spinner-border-sm mt-1" role="status" aria-hidden="true"></span>
+
+    <div>
+        <div class="fw-semibold mb-1">
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scan"
+                    default="Remote scan"
+            />
+            <span class="ms-2 badge bg-secondary" data-a11y-remote-scan-status="true"></span>
+        </div>
+
+        <div class="small mb-0" data-a11y-remote-scan-message="true"></div>
+    </div>
+</div>
+</html>

@@ -1,0 +1,22 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="a11y-overview-search">
+    <label
+            for="{inputId}"
+            class="{f:if(condition: visuallyHidden, then: 'visually-hidden', else: 'form-label mb-1 small text-muted')}"
+    >
+        <f:translate
+                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search"
+                default="Search in pages"
+        />
+    </label>
+
+    <input
+            id="{inputId}"
+            type="search"
+            class="{inputClass}"
+            placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.placeholder', default: 'Page ID or title')}"
+            data-a11y-overview-search="true"
+            autocomplete="off"
+    />
+</div>
+</html>

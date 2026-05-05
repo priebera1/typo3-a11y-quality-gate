@@ -10,6 +10,9 @@ use TYPO3\CMS\Core\Database\Connection;
 
 final class ScanRepository extends AbstractRepository
 {
+    private const STATUS_COMPLETED = 2;
+    private const SCOPE_SUBTREE = 'subtree';
+
     public function createScanRun(
         string $siteIdentifier,
         int $rootPid,
@@ -30,7 +33,7 @@ final class ScanRepository extends AbstractRepository
             'tstamp' => $now,
         ]);
 
-        return (int)$connection->lastInsertId(Tables::SCAN);
+        return (int)$connection->lastInsertId();
     }
 
     public function finishScanRun(
@@ -44,7 +47,7 @@ final class ScanRepository extends AbstractRepository
         $now = time();
 
         $this->getConnection(Tables::SCAN)->update(Tables::SCAN, [
-            'status' => 2,
+            'status' => self::STATUS_COMPLETED,
             'finished_at' => $now,
             'tstamp' => $now,
             'pages_scanned' => $pagesScanned,
@@ -83,7 +86,34 @@ final class ScanRepository extends AbstractRepository
             ->from(Tables::SCAN)
             ->where(
                 $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
-                $qb->expr()->eq('status', $qb->createNamedParameter(2, Connection::PARAM_INT)),
+                $qb->expr()->eq('status', $qb->createNamedParameter(self::STATUS_COMPLETED, Connection::PARAM_INT)),
+            )
+            ->orderBy('finished_at', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $row ?: null;
+    }
+
+    /**
+     * Used by Overview to show only the last site-level scan,
+     * not page-level scans triggered by content changes.
+     *
+     * @return array<string, mixed>|null
+     * @throws Exception
+     */
+    public function findLastCompletedSubtreeScan(string $siteIdentifier): ?array
+    {
+        $qb = $this->getQueryBuilder(Tables::SCAN);
+
+        $row = $qb
+            ->select('*')
+            ->from(Tables::SCAN)
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq('status', $qb->createNamedParameter(self::STATUS_COMPLETED, Connection::PARAM_INT)),
+                $qb->expr()->eq('scope', $qb->createNamedParameter(self::SCOPE_SUBTREE)),
             )
             ->orderBy('finished_at', 'DESC')
             ->setMaxResults(1)

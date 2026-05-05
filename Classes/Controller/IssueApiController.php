@@ -31,7 +31,7 @@ final class IssueApiController extends AbstractApiController
     public function issuesAction(ServerRequestInterface $request): ResponseInterface
     {
         if (!$this->isBackendUserLoggedIn()) {
-            return $this->jsonResponse(['error' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
 
         $params = $request->getQueryParams();
@@ -39,7 +39,7 @@ final class IssueApiController extends AbstractApiController
         $fieldName = trim((string)($params['fieldName'] ?? 'bodytext'));
 
         if ($recordUid <= 0) {
-            return $this->jsonResponse(['error' => 'Missing recordUid'], 400);
+            return $this->badRequestResponse('Missing recordUid');
         }
 
         $issues = $this->issueRepository->findOpenForRecord(
@@ -49,6 +49,7 @@ final class IssueApiController extends AbstractApiController
         );
 
         return $this->jsonResponse([
+            'success' => true,
             'issues' => array_map(
                 fn(array $row): array => $this->formatIssue($row),
                 $issues
@@ -59,25 +60,29 @@ final class IssueApiController extends AbstractApiController
     public function ignoreAction(ServerRequestInterface $request): ResponseInterface
     {
         if (!$this->isBackendUserLoggedIn()) {
-            return $this->jsonResponse(['error' => 'Unauthorized'], 403);
+            return $this->unauthorizedResponse();
         }
 
-        if ($request->getMethod() !== 'POST') {
-            return $this->jsonResponse(['error' => 'Method not allowed'], 405);
+        if (strtoupper($request->getMethod()) !== 'POST') {
+            return $this->jsonResponse([
+                'success' => false,
+                'error' => 'Method not allowed',
+            ], 405);
         }
 
         $body = (string)$request->getBody();
+
         try {
             $data = Utils::jsonDecode($body, true) ?? [];
         } catch (\InvalidArgumentException) {
-            return $this->jsonResponse(['error' => 'Invalid JSON body'], 400);
+            return $this->badRequestResponse('Invalid JSON body');
         }
 
         $fingerprint = trim((string)($data['fingerprint'] ?? ''));
         $reason = trim((string)($data['reason'] ?? 'Ignored via editor'));
 
         if ($fingerprint === '') {
-            return $this->jsonResponse(['error' => 'Missing fingerprint'], 400);
+            return $this->badRequestResponse('Missing fingerprint');
         }
 
         if ($reason === '') {
@@ -85,14 +90,16 @@ final class IssueApiController extends AbstractApiController
         }
 
         $issue = $this->issueRepository->findByFingerprintPublic($fingerprint);
-
         if ($issue === null) {
-            return $this->jsonResponse(['error' => 'Issue not found'], 404);
+            return $this->notFoundResponse('Issue not found');
         }
 
         $status = IssueStatus::fromInt((int)$issue['status']);
         if ($status->isProtected()) {
-            return $this->jsonResponse(['error' => 'Issue is already ignored or muted'], 409);
+            return $this->jsonResponse([
+                'success' => false,
+                'error' => 'Issue is already ignored or muted',
+            ], 409);
         }
 
         $this->issueRepository->ignore(

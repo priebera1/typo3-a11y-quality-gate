@@ -1,0 +1,263 @@
+<div
+        class="tab-pane fade{f:if(condition: '{activeTab} == ''licence''', then: ' show active')}"
+        id="a11y-settings-pane-licence"
+        role="tabpanel"
+        aria-labelledby="a11y-settings-tab-licence"
+        tabindex="0"
+>
+    <form method="post" action="{saveExtConfUrl}">
+        <f:for each="{returnParameters}" as="value" key="name">
+            <input type="hidden" name="{name}" value="{value}" />
+        </f:for>
+
+        <f:if condition="{selectedRulesetSite}">
+            <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+        </f:if>
+
+        <input type="hidden" name="tab" value="licence" />
+
+        <div class="card">
+            <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                <div>
+                    <h3 class="h5 mb-1">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.title" />
+                    </h3>
+                    <p class="text-muted small mb-0">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.description" />
+                    </p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" />
+                </button>
+            </div>
+
+            <div class="card-body pt-3">
+                <div class="row g-4">
+                    <div class="col-12 col-xl-8">
+                        <label class="form-label fw-semibold" for="aqg-licence-key">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key" />
+                        </label>
+
+                        <div class="input-group">
+                            <input
+                                    type="text"
+                                    class="form-control font-monospace"
+                                    id="aqg-licence-key"
+                                    name="licenceKey"
+                                    value="{licenceKey}"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    data-a11y-licence-key-input="true"
+                                    aria-describedby="aqg-licence-key-help"
+                            />
+
+                            <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    data-action="a11y-validate-licence"
+                            >
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validate" />
+                            </button>
+                        </div>
+
+                        <div class="form-text" id="aqg-licence-key-help">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.keyHelp" />
+                        </div>
+
+                        <div class="mt-3" data-a11y-licence-validate-result="true" aria-live="polite"></div>
+
+                        <div class="form-check form-switch mt-4">
+                            <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    name="showProHints"
+                                    id="aqg-show-pro-hints"
+                                    value="1"
+                                    {f:if(condition: showProHints, then: 'checked="checked"')}
+                            />
+                            <label class="form-check-label" for="aqg-show-pro-hints">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-4">
+                        <div class="border rounded p-3 h-100">
+                            <div class="small text-muted mb-2">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusTitle" />
+                            </div>
+
+                            <f:if condition="{proStatus.valid}">
+                                <f:then>
+                                    <f:if condition="{proStatus.isTrial}">
+                                        <f:then>
+                                            <div class="alert alert-info mb-0">
+                                                <div class="fw-semibold mb-3">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusTrial" />
+                                                </div>
+
+                                                <dl class="row g-2 small mb-3">
+                                                    <dt class="col-4 text-muted">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" />
+                                                    </dt>
+                                                    <dd class="col-8 mb-0">Trial</dd>
+
+                                                    <dt class="col-4 text-muted">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" />
+                                                    </dt>
+                                                    <dd class="col-8 mb-0">
+                                                        <f:if condition="{proStatus.domain}">
+                                                            <f:then>{proStatus.domain}</f:then>
+                                                            <f:else>—</f:else>
+                                                        </f:if>
+                                                    </dd>
+
+                                                    <dt class="col-4 text-muted">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trialExpires" />
+                                                    </dt>
+                                                    <dd class="col-8 mb-0">
+                                                        <f:if condition="{proStatus.trialExpiresAt}">
+                                                            <f:then>{proStatus.trialExpiresAt -> f:format.date(format:'d.m.Y')}</f:then>
+                                                            <f:else>
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trialStartsOnFirstValidation" />
+                                                            </f:else>
+                                                        </f:if>
+                                                    </dd>
+                                                </dl>
+
+                                                <p class="small mb-3">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trial.description" />
+                                                </p>
+
+                                                <a
+                                                        href="{pricingUrl}"
+                                                        class="btn btn-info btn-sm fw-semibold text-decoration-none"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                >
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.upgradeToPro" />
+                                                </a>
+                                            </div>
+                                        </f:then>
+
+                                        <f:else>
+                                            <div class="alert alert-success mb-0">
+                                                <div class="fw-semibold mb-3">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusActive" />
+                                                </div>
+
+                                                <dl class="row g-2 small mb-3">
+                                                    <dt class="col-4 text-muted">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" />
+                                                    </dt>
+                                                    <dd class="col-8 mb-0">
+                                                        <f:switch expression="{proStatus.plan}">
+                                                            <f:case value="pro">
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.originalPlan.pro" />
+                                                            </f:case>
+                                                            <f:case value="agency">
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.originalPlan.agency" />
+                                                            </f:case>
+                                                            <f:defaultCase>
+                                                                <f:if condition="{proStatus.plan}">
+                                                                    <f:then>{proStatus.plan}</f:then>
+                                                                    <f:else>—</f:else>
+                                                                </f:if>
+                                                            </f:defaultCase>
+                                                        </f:switch>
+                                                    </dd>
+
+                                                    <dt class="col-4 text-muted">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" />
+                                                    </dt>
+                                                    <dd class="col-8 mb-0">
+                                                        <f:if condition="{proStatus.domain}">
+                                                            <f:then>{proStatus.domain}</f:then>
+                                                            <f:else>—</f:else>
+                                                        </f:if>
+                                                    </dd>
+
+                                                    <dt class="col-4 text-muted">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" />
+                                                    </dt>
+                                                    <dd class="col-8 mb-0">
+                                                        <f:if condition="{proStatus.expiresAt}">
+                                                            <f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then>
+                                                            <f:else>—</f:else>
+                                                        </f:if>
+                                                    </dd>
+                                                </dl>
+
+                                                <a
+                                                        href="{pricingUrl}"
+                                                        class="btn btn-info btn-sm fw-semibold text-decoration-none"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                >
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.getPro" />
+                                                </a>
+                                            </div>
+                                        </f:else>
+                                    </f:if>
+                                </f:then>
+
+                                <f:else>
+                                    <f:if condition="{licenceKey}">
+                                        <f:then>
+                                            <div class="alert alert-warning mb-0">
+                                                <div class="fw-semibold mb-2">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactive" />
+                                                </div>
+
+                                                <p class="small mb-3">
+                                                    <f:if condition="{proStatus.reasonLabel}">
+                                                        <f:then>{proStatus.reasonLabel}</f:then>
+                                                        <f:else>
+                                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveText" />
+                                                        </f:else>
+                                                    </f:if>
+                                                </p>
+
+                                                <a
+                                                        href="{pricingUrl}"
+                                                        class="btn btn-info btn-sm fw-semibold text-decoration-none"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                >
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.getPro" />
+                                                </a>
+                                            </div>
+                                        </f:then>
+
+                                        <f:else>
+                                            <div class="alert alert-secondary mb-0">
+                                                <div class="fw-semibold mb-2">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusNotConfigured" />
+                                                </div>
+
+                                                <p class="small mb-3">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusNotConfiguredText" />
+                                                </p>
+
+                                                <a
+                                                        href="{pricingUrl}"
+                                                        class="btn btn-info btn-sm fw-semibold text-decoration-none"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                >
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.getPro" />
+                                                </a>
+                                            </div>
+                                        </f:else>
+                                    </f:if>
+                                </f:else>
+                            </f:if>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,39 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="a11y-source-switch mb-4">
+    <button
+            type="button"
+            class="a11y-source-switch__btn active"
+            data-a11y-overview-source-trigger="local"
+            aria-pressed="true"
+    >
+        <f:translate
+                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.local"
+                default="Local scan"
+        />
+    </button>
+
+    <button
+            type="button"
+            class="a11y-source-switch__btn"
+            data-a11y-overview-source-trigger="remote"
+            aria-pressed="false"
+    >
+        <f:translate
+                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote"
+                default="Remote crawler"
+        />
+
+        <f:if condition="{remoteScan}">
+            <f:if condition="{remoteScan.issues_new} > 0">
+                <span class="badge badge-danger ms-1">
+                    {remoteScan.issues_new}
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.newIssues"
+                            default="new"
+                    />
+                </span>
+            </f:if>
+        </f:if>
+    </button>
+</div>
+</html>

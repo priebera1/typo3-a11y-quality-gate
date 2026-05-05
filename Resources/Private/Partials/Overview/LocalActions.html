@@ -1,0 +1,114 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <div class="fw-semibold">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.local"
+                        default="Content scan"
+                />
+            </div>
+            <div class="small text-muted">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localActions.description"
+                        default="Scan the configured TYPO3 content fields."
+                />
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <f:if condition="{currentPageHasIssues} && {currentPageDetailUrl}">
+                <a href="{currentPageDetailUrl}" class="btn btn-primary btn-sm">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.viewIssues"
+                            default="View issues"
+                    />
+                </a>
+            </f:if>
+
+            <f:if condition="{currentPageUid}">
+                <button
+                        type="button"
+                        class="btn btn-default btn-sm"
+                        data-action="a11y-rescan"
+                        data-page-uid="{currentPageUid}"
+                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                        {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
+                >
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
+                        default="Scan this page"
+                />
+                </button>
+            </f:if>
+
+            <f:if condition="{canScanAll}">
+                <button
+                        type="button"
+                        class="btn btn-default btn-sm"
+                        data-action="a11y-scan-all"
+                        data-root-pid="{siteRootPid}"
+                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                        {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
+                >
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanAll"
+                        default="Scan site"
+                />
+                </button>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="card-body py-2 px-3">
+        <f:if condition="{lastScan}">
+            <f:then>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="a11y-status-dot"></span>
+                    <span class="small text-muted">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label"
+                                default="Last scan"
+                        />
+                    </span>
+                    <strong class="small">
+                        {lastScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}
+                    </strong>
+                    <span class="text-muted small">·</span>
+                    <span class="small text-muted">
+                        {lastScan.pages_scanned}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.pages"
+                                default="pages"
+                        />
+                    </span>
+                    <span class="text-muted small">·</span>
+                    <span class="small text-muted">
+                        {lastScan.issues_new}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.newIssues"
+                                default="new issues"
+                        />
+                    </span>
+                    <span class="text-muted small">·</span>
+                    <span class="small text-muted">
+                        {lastScan.issues_resolved}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.resolvedIssues"
+                                default="resolved"
+                        />
+                    </span>
+                </div>
+            </f:then>
+            <f:else>
+                <span class="small text-muted">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet"
+                            default="No scan has been run yet."
+                    />
+                </span>
+            </f:else>
+        </f:if>
+    </div>
+</div>
+</html>

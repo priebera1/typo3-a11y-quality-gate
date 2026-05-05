@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\QualityGate;
 
-/**
- * Result of a quality gate check.
- */
 final class QualityGateVerdict
 {
     private function __construct(
@@ -19,12 +16,14 @@ final class QualityGateVerdict
     ) {
     }
 
-    public static function pass(): self
-    {
+    public static function pass(
+        int $mode = 0,
+        array $counts = ['critical' => 0, 'warning' => 0, 'info' => 0]
+    ): self {
         return new self(
             passed: true,
-            mode: 0,
-            counts: ['critical' => 0, 'warning' => 0, 'info' => 0],
+            mode: $mode,
+            counts: $counts,
             reasons: [],
         );
     }
@@ -53,11 +52,43 @@ final class QualityGateVerdict
         return !$this->passed;
     }
 
+    public function isDisabled(): bool
+    {
+        return $this->mode === 0;
+    }
+
+    public function isWarningOnly(): bool
+    {
+        return $this->mode === 1;
+    }
+
+    public function isBlockingMode(): bool
+    {
+        return $this->mode === 2;
+    }
+
+    public function hasAnyIssues(): bool
+    {
+        return $this->counts['critical'] > 0
+            || $this->counts['warning'] > 0
+            || $this->counts['info'] > 0;
+    }
+
     public function toFlashMessage(): string
     {
         return sprintf(
             'Accessibility quality gate: %s. Open the Accessibility module to review issues.',
             implode(', ', $this->reasons)
+        );
+    }
+
+    public function toPassedFlashMessage(): string
+    {
+        return sprintf(
+            'Quality gate passed. %d critical, %d warning, %d info issue(s) remain.',
+            $this->counts['critical'],
+            $this->counts['warning'],
+            $this->counts['info']
         );
     }
 }

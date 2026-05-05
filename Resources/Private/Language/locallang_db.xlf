@@ -290,6 +290,198 @@
             <trans-unit id="tx_a11y_source_state.tab.system">
                 <source>System</source>
             </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_scan">
+                <source>Remote accessibility scan</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_scan.field.site_identifier">
+                <source>Site identifier</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.job_id">
+                <source>Job ID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.source_type">
+                <source>Source type</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.start_url">
+                <source>Start URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.sitemap_url">
+                <source>Sitemap URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.status">
+                <source>Status</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.pages_scanned">
+                <source>Pages scanned</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.pages_failed">
+                <source>Pages failed</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.issues_total">
+                <source>Total issues</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.issues_new">
+                <source>New issues</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.issues_resolved">
+                <source>Resolved issues</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.started_at">
+                <source>Started at</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.field.finished_at">
+                <source>Finished at</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_scan.tab.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.tab.result">
+                <source>Result</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan.tab.timing">
+                <source>Timing</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_scan_page">
+                <source>Remote accessibility scan page</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_scan_page.field.remote_scan">
+                <source>Remote scan</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.source_type">
+                <source>Source type</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.url">
+                <source>URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.title">
+                <source>Title</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.http_status">
+                <source>HTTP status</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.issues_count">
+                <source>Issues count</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.screenshot_path">
+                <source>Screenshot path</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.screenshot_url">
+                <source>Screenshot URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.failure_reason">
+                <source>Failure reason</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.is_failed">
+                <source>Failed page</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_scan_page.tab.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.tab.result">
+                <source>Result</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.tab.artifacts">
+                <source>Artifacts</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_issue">
+                <source>Remote accessibility issue</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_issue.field.remote_scan">
+                <source>Remote scan</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.remote_scan_page">
+                <source>Remote scan page</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.rule_id">
+                <source>Rule ID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.impact">
+                <source>Impact</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.help">
+                <source>Help</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.help_url">
+                <source>Help URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.nodes_count">
+                <source>Nodes count</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.fingerprint">
+                <source>Fingerprint</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.status">
+                <source>Status</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_issue.tab.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.tab.rule">
+                <source>Rule</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.tab.state">
+                <source>State</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_issue_node">
+                <source>Remote accessibility issue node</source>
+            </trans-unit>
+
+            <trans-unit id="tx_a11y_remote_issue_node.field.remote_issue">
+                <source>Remote issue</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.target_json">
+                <source>Target JSON</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.html_snippet">
+                <source>HTML snippet</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.failure_summary">
+                <source>Failure summary</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.screenshot_path">
+                <source>Screenshot path</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.screenshot_url">
+                <source>Screenshot URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.tab.general">
+                <source>General</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.tab.artifacts">
+                <source>Artifacts</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.mapped_table">
+                <source>Mapped table</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.mapped_uid">
+                <source>Mapped UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.mapped_cid">
+                <source>Mapped content identifier</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.mapped_ctype">
+                <source>Mapped content type</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.tab.mapping">
+                <source>Mapping</source>
+            </trans-unit>
+
+            <trans-unit id="sys_file_reference.tx_a11y_is_decorative">
+                <source>Decorative image</source>
+            </trans-unit>
+            <trans-unit id="sys_file_reference.tx_a11y_is_decorative.description">
+                <source>Mark this image as decorative when it does not convey meaningful content and should use empty alt text.</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>

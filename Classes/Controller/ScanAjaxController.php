@@ -7,6 +7,7 @@ namespace Priebera\A11yQualityGate\Controller;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
+use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -27,25 +28,16 @@ final class ScanAjaxController extends AbstractApiController
         private readonly SiteResolutionService $siteResolutionService,
         private readonly AccessControlService $accessControlService,
         private readonly ScanStatusService $scanStatusService,
+        private readonly RemoteScanRepository $remoteScanRepository,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
 
     public function scanPageAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUser();
-        if (!$backendUser instanceof BackendUserAuthentication) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Unauthorized',
-            ], 401);
-        }
-
-        if (!$this->accessControlService->canShowScanNow($backendUser)) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Access denied',
-            ], 403);
+        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanNow');
+        if ($accessResponse !== null) {
+            return $accessResponse;
         }
 
         if ($this->scanStatusService->isRunning()) {
@@ -60,20 +52,25 @@ final class ScanAjaxController extends AbstractApiController
         $pageUid = (int)(is_array($body) ? ($body['pageUid'] ?? 0) : 0);
 
         if ($pageUid <= 0) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Missing or invalid pageUid',
-            ], 400);
+            return $this->badRequestResponse('Missing or invalid pageUid');
         }
+
+        $backendUser = $this->getBackendUser();
+        $triggeredBy = $backendUser instanceof BackendUserAuthentication
+            ? (string)($backendUser->user['username'] ?? 'unknown')
+            : 'unknown';
+
+        $scanStarted = false;
 
         try {
             $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierFromPageId($pageUid);
 
             $this->scanStatusService->markRunning(
                 trigger: 'page',
-                triggeredBy: (string)($backendUser->user['username'] ?? 'unknown'),
+                triggeredBy: $triggeredBy,
                 pageUid: $pageUid,
             );
+            $scanStarted = true;
 
             $result = $this->scanOrchestrator->scanPage(
                 siteIdentifier: $siteIdentifier,
@@ -93,7 +90,16 @@ final class ScanAjaxController extends AbstractApiController
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (\Throwable $e) {
-            $this->scanStatusService->markFailed($e->getMessage());
+            if ($this->isMissingSiteConfigurationException($e)) {
+                return $this->missingSiteConfigurationResponse(
+                    pageUid: $pageUid,
+                    scope: 'page'
+                );
+            }
+
+            if ($scanStarted) {
+                $this->scanStatusService->markFailed($e->getMessage());
+            }
 
             return $this->jsonResponse([
                 'success' => false,
@@ -105,19 +111,9 @@ final class ScanAjaxController extends AbstractApiController
 
     public function scanSiteAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUser();
-        if (!$backendUser instanceof BackendUserAuthentication) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Unauthorized',
-            ], 401);
-        }
-
-        if (!$this->accessControlService->canShowScanAll($backendUser)) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Access denied',
-            ], 403);
+        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
+        if ($accessResponse !== null) {
+            return $accessResponse;
         }
 
         if ($this->scanStatusService->isRunning()) {
@@ -132,20 +128,25 @@ final class ScanAjaxController extends AbstractApiController
         $rootPid = (int)(is_array($body) ? ($body['rootPid'] ?? 0) : 0);
 
         if ($rootPid <= 0) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Missing or invalid rootPid',
-            ], 400);
+            return $this->badRequestResponse('Missing or invalid rootPid');
         }
+
+        $backendUser = $this->getBackendUser();
+        $triggeredBy = $backendUser instanceof BackendUserAuthentication
+            ? (string)($backendUser->user['username'] ?? 'unknown')
+            : 'unknown';
+
+        $scanStarted = false;
 
         try {
             $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierFromPageId($rootPid);
 
             $this->scanStatusService->markRunning(
                 trigger: 'site',
-                triggeredBy: (string)($backendUser->user['username'] ?? 'unknown'),
+                triggeredBy: $triggeredBy,
                 rootPid: $rootPid,
             );
+            $scanStarted = true;
 
             $result = $this->scanOrchestrator->scanSubtree(
                 siteIdentifier: $siteIdentifier,
@@ -165,7 +166,16 @@ final class ScanAjaxController extends AbstractApiController
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (\Throwable $e) {
-            $this->scanStatusService->markFailed($e->getMessage());
+            if ($this->isMissingSiteConfigurationException($e)) {
+                return $this->missingSiteConfigurationResponse(
+                    pageUid: $rootPid,
+                    scope: 'site'
+                );
+            }
+
+            if ($scanStarted) {
+                $this->scanStatusService->markFailed($e->getMessage());
+            }
 
             return $this->jsonResponse([
                 'success' => false,
@@ -177,17 +187,88 @@ final class ScanAjaxController extends AbstractApiController
 
     public function scanStatusAction(ServerRequestInterface $request): ResponseInterface
     {
-        $backendUser = $this->getBackendUser();
-        if (!$backendUser instanceof BackendUserAuthentication) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => 'Unauthorized',
-            ], 401);
+        if (!$this->isBackendUserLoggedIn()) {
+            return $this->unauthorizedResponse();
         }
 
         return $this->jsonResponse([
             'success' => true,
             'status' => $this->scanStatusService->getStatus(),
+            'remoteStatus' => $this->resolveRemoteStatusForRequest($request),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveRemoteStatusForRequest(ServerRequestInterface $request): ?array
+    {
+        $queryParams = $request->getQueryParams();
+        $siteIdentifier = trim((string)($queryParams['site'] ?? ''));
+        $pageUid = (int)($queryParams['pageUid'] ?? $queryParams['id'] ?? 0);
+
+        if ($siteIdentifier === '' && $pageUid > 0) {
+            try {
+                $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierFromPageId($pageUid);
+            } catch (\Throwable) {
+                $siteIdentifier = '';
+            }
+        }
+
+        if ($siteIdentifier === '') {
+            return null;
+        }
+
+        $activeSiteScan = $this->remoteScanRepository->findLatestActiveSiteScanBySite($siteIdentifier);
+        if (is_array($activeSiteScan)) {
+            return $activeSiteScan;
+        }
+
+        if ($pageUid > 0) {
+            $activePageScan = $this->remoteScanRepository->findLatestRelevantActiveScan($siteIdentifier, $pageUid);
+            if (is_array($activePageScan)) {
+                return $activePageScan;
+            }
+        }
+
+        $activeAnyScan = $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
+        if (is_array($activeAnyScan)) {
+            return $activeAnyScan;
+        }
+
+        $lastCompletedSiteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier);
+        if (is_array($lastCompletedSiteScan)) {
+            return $lastCompletedSiteScan;
+        }
+
+        $lastCompletedScan = $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier);
+
+        return is_array($lastCompletedScan) ? $lastCompletedScan : null;
+    }
+
+    private function isMissingSiteConfigurationException(\Throwable $exception): bool
+    {
+        return $exception instanceof \RuntimeException
+            && $exception->getCode() === 1700000001;
+    }
+
+    private function missingSiteConfigurationResponse(int $pageUid, string $scope): ResponseInterface
+    {
+        $message = $scope === 'site'
+            ? sprintf(
+                'Cannot scan root page %d because no TYPO3 Site Configuration exists for this root page. Create it first in Site Management > Sites.',
+                $pageUid
+            )
+            : sprintf(
+                'Cannot scan page %d because no TYPO3 Site Configuration exists for its root page. Create it first in Site Management > Sites.',
+                $pageUid
+            );
+
+        return $this->jsonResponse([
+            'success' => false,
+            'error' => $message,
+            'code' => 'missing_site_configuration',
+            'status' => $this->scanStatusService->getStatus(),
+        ], 400);
     }
 }

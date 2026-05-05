@@ -7,14 +7,21 @@ namespace Priebera\A11yQualityGate\Rule\Rte;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
 final class LinkNewWindowNoWarningRule extends AbstractRteRule
 {
     /**
-     * @param string[] $hintPhrases
+     * @var list<string>|null
+     */
+    private ?array $resolvedHintPhrases = null;
+
+    /**
+     * @param list<string> $defaultHintPhrases
      */
     public function __construct(
-        private readonly array $hintPhrases = [],
+        private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly array $defaultHintPhrases,
     ) {
     }
 
@@ -35,7 +42,7 @@ final class LinkNewWindowNoWarningRule extends AbstractRteRule
 
     public function getHint(): string
     {
-        return 'Add a visible or accessible hint that the link opens in a new window.';
+        return 'Add a visible or accessible hint such as "opens in new window" so users know what to expect.';
     }
 
     /**
@@ -104,21 +111,90 @@ final class LinkNewWindowNoWarningRule extends AbstractRteRule
         return false;
     }
 
+    /**
+     * @return list<string>
+     */
+    private function getHintPhrases(): array
+    {
+        if ($this->resolvedHintPhrases !== null) {
+            return $this->resolvedHintPhrases;
+        }
+
+        $adminPhrases = $this->loadAdminHintPhrases();
+
+        $this->resolvedHintPhrases = array_values(array_unique(array_merge(
+            $this->normalizePhrases($this->defaultHintPhrases),
+            $adminPhrases,
+        )));
+
+        return $this->resolvedHintPhrases;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function loadAdminHintPhrases(): array
+    {
+        try {
+            $raw = (string)($this->extensionConfiguration->get(
+                'a11y_quality_gate',
+                'linkNewWindowHintPhrases'
+            ) ?? '');
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (trim($raw) === '') {
+            return [];
+        }
+
+        $normalizedRaw = str_replace(["\r\n", "\r"], "\n", $raw);
+        $parts = preg_split('/[\n,]+/', $normalizedRaw) ?: [];
+
+        return $this->normalizePhrases($parts);
+    }
+
+    /**
+     * @param array<int, string> $phrases
+     * @return list<string>
+     */
+    private function normalizePhrases(array $phrases): array
+    {
+        $result = [];
+
+        foreach ($phrases as $phrase) {
+            $normalized = $this->normalize($phrase);
+
+            if ($normalized !== '') {
+                $result[] = $normalized;
+            }
+        }
+
+        return array_values(array_unique($result));
+    }
+
     private function containsHint(string $text): bool
     {
-        $normalizedText = mb_strtolower($this->normalizedText($text));
+        $normalizedText = $this->normalize($text);
         if ($normalizedText === '') {
             return false;
         }
 
-        foreach ($this->hintPhrases as $phrase) {
-            $normalizedPhrase = mb_strtolower($this->normalizedText($phrase));
-
-            if ($normalizedPhrase !== '' && str_contains($normalizedText, $normalizedPhrase)) {
+        foreach ($this->getHintPhrases() as $phrase) {
+            if ($phrase !== '' && str_contains($normalizedText, $phrase)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function normalize(string $text): string
+    {
+        $normalized = mb_strtolower($this->normalizedText($text));
+        $normalized = (string)preg_replace('/[^\p{L}\p{N}\s]/u', '', $normalized);
+        $normalized = (string)preg_replace('/\s+/u', ' ', $normalized);
+
+        return trim($normalized);
     }
 }

@@ -1,0 +1,135 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <div class="fw-semibold">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote"
+                        default="Remote crawler"
+                />
+            </div>
+            <div class="small text-muted">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remoteActions.description"
+                        default="Scan published frontend pages with the remote crawler."
+                />
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <f:if condition="{currentPageUid}">
+                <button
+                        type="button"
+                        class="btn btn-primary btn-sm"
+                        data-action="a11y-pro-scan-page"
+                        data-page-uid="{currentPageUid}"
+                        data-page-url="{currentPageUrl}"
+                        data-site-identifier="{siteIdentifier}"
+                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                >
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanPage"
+                            default="Scan this page"
+                    />
+                </button>
+            </f:if>
+
+            <f:if condition="{canScanAll}">
+                <button
+                        type="button"
+                        class="btn btn-default btn-sm"
+                        data-action="a11y-pro-scan-site"
+                        data-root-pid="{siteRootPid}"
+                        data-max-pages="{f:if(condition: proStatus.isTrial, then: '10', else: '500')}"
+                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                >
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanSite"
+                            default="Scan site"
+                    />
+                </button>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="card-body py-2 px-3">
+        <f:if condition="{remoteScan}">
+            <f:then>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="a11y-status-dot"></span>
+
+                    <span class="small text-muted">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label"
+                                default="Last scan"
+                        />
+                    </span>
+
+                    <strong class="small">
+                        <f:if condition="{remoteScan.finished_at}">
+                            <f:then>{remoteScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:then>
+                            <f:else>—</f:else>
+                        </f:if>
+                    </strong>
+
+                    <span class="text-muted small">·</span>
+
+                    <span class="small text-muted">
+                        <f:if condition="{remoteScan.pages_total}">
+                            <f:then>{remoteScan.pages_scanned} / {remoteScan.pages_total}</f:then>
+                            <f:else>{remoteScan.pages_scanned}</f:else>
+                        </f:if>
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages"
+                                default="pages"
+                        />
+                    </span>
+
+                    <span class="text-muted small">·</span>
+
+                    <span class="small text-muted">
+                        {remoteScan.issues_total}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal"
+                                default="total issues"
+                        />
+                    </span>
+
+                    <span class="text-muted small">·</span>
+
+                    <span class="small text-muted">
+                        {remoteScan.issues_resolved}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesResolved"
+                                default="Resolved since last scan"
+                        />
+                    </span>
+                </div>
+            </f:then>
+
+            <f:else>
+                <span class="small text-muted">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.empty"
+                            default="No remote crawler scan has been run yet."
+                    />
+                </span>
+            </f:else>
+        </f:if>
+
+        <f:if condition="{proStatus.isTrial}">
+            <div class="small text-muted mt-2">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxPages"
+                        default="Max 10 pages per remote scan"
+                />
+                <span class="mx-1">·</span>
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxScans"
+                        default="Max 5 scans per day"
+                />
+            </div>
+        </f:if>
+    </div>
+</div>
+</html>

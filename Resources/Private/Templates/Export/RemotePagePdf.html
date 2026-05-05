@@ -1,0 +1,69 @@
+<f:layout name="Pdf" />
+
+<f:section name="Content">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+
+    <f:if condition="{hasPage}">
+        <f:then>
+            <div class="meta">
+                <div><strong>Generated:</strong> {generatedAt}</div>
+                <div><strong>Page:</strong> {remotePage.title}</div>
+                <div><strong>URL:</strong> {remotePage.url}</div>
+                <div><strong>HTTP status:</strong> {remotePage.http_status}</div>
+                <div><strong>Issues:</strong> {remotePage.issues_count}</div>
+            </div>
+
+            <f:if condition="{screenshotAvailable}">
+                <f:format.raw>{screenshotPlaceholder}</f:format.raw>
+            </f:if>
+
+            <f:if condition="{remotePage.failure_reason}">
+                <p><strong>Failure reason:</strong> {remotePage.failure_reason}</p>
+            </f:if>
+
+            <f:for each="{issues}" as="issue">
+                <div class="issue">
+                    <div class="issue-title">
+                        <f:if condition="{issue.help}">
+                            <f:then>{issue.help}</f:then>
+                            <f:else>{issue.rule_id}</f:else>
+                        </f:if>
+                    </div>
+
+                    <div class="issue-meta">
+                        <strong>Rule:</strong> {issue.rule_id} ·
+                        <strong>Impact:</strong> {issue.impact} ·
+                        <strong>Occurrences:</strong> {issue.nodes_count}
+                    </div>
+
+                    <f:if condition="{issue.help_url}">
+                        <div class="small"><strong>Docs:</strong> {issue.help_url}</div>
+                    </f:if>
+
+                    <f:for each="{issue.nodes}" as="node">
+                        <div class="node">
+                            <f:if condition="{node.failure_summary}">
+                                <div><strong>Summary:</strong> {node.failure_summary}</div>
+                            </f:if>
+
+                            <f:if condition="{node.mapped_table} && {node.mapped_uid}">
+                                <div>
+                                    <strong>Mapped record:</strong>
+                                    {node.mapped_table}:{node.mapped_uid}
+                                </div>
+                            </f:if>
+
+                            <f:if condition="{node.html_snippet}">
+                                <pre>{node.html_snippet}</pre>
+                            </f:if>
+                        </div>
+                    </f:for>
+                </div>
+            </f:for>
+        </f:then>
+        <f:else>
+            <p>Remote page was not found.</p>
+        </f:else>
+    </f:if>
+</f:section>

@@ -4,26 +4,19 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Rule\Structured;
 
-use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
+use Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleInterface;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 
 final class FileReferenceAltRule implements RuleInterface
 {
-    private const SUPPORTED_FIELDS = [
-        'image',
-        'assets',
-        'media',
-    ];
-
-    private const SYS_FILE_TYPE_IMAGE = 2;
+    private const GROUPING_THRESHOLD = 5;
+    private const GROUPED_CONTEXT_PREVIEW_LIMIT = 5;
 
     public function __construct(
-        private readonly ConnectionPool $connectionPool,
+        private readonly FileReferenceRepository $fileReferenceRepository,
     ) {
     }
 
@@ -44,13 +37,14 @@ final class FileReferenceAltRule implements RuleInterface
 
     public function getHint(): string
     {
-        return 'Open the content element and add a description in the "Alternative text" field for each image.';
+        return 'Open the record and add a description in the "Alternative text" field for each image.';
     }
 
     public function supports(CheckContext $context): bool
     {
-        return $context->sourceTable === Tables::TT_CONTENT
-            && in_array($context->sourceField, self::SUPPORTED_FIELDS, true);
+        return $context->sourceTable !== ''
+            && $context->sourceField !== ''
+            && $context->sourceUid > 0;
     }
 
     /**
@@ -58,160 +52,315 @@ final class FileReferenceAltRule implements RuleInterface
      */
     public function check(CheckContext $context): array
     {
-        $violations = [];
-
-        $references = $this->fetchImageReferences(
+        $references = $this->fileReferenceRepository->findVisibleImageReferencesWithMetadata(
+            $context->sourceTable,
             $context->sourceUid,
             $context->sourceField,
         );
 
+        if ($references === []) {
+            return [];
+        }
+
+        $criticalItems = [];
+        $warningItems = [];
+
         foreach ($references as $reference) {
-            $alt = trim((string)($reference['alternative'] ?? ''));
-            $title = trim((string)($reference['title'] ?? ''));
             $referenceUid = (int)($reference['uid'] ?? 0);
             $fileName = basename((string)($reference['identifier'] ?? 'unknown'));
+            $isDecorative = (bool)($reference['tx_a11y_is_decorative'] ?? false);
+
+            $rawReferenceAlt = $reference['alternative'] ?? null;
+            $rawReferenceTitle = $reference['title'] ?? null;
+            $rawMetadataAlt = $reference['metadata_alternative'] ?? null;
+            $rawMetadataTitle = $reference['metadata_title'] ?? null;
+
+            $referenceAlt = is_string($rawReferenceAlt) ? trim($rawReferenceAlt) : null;
+            $referenceTitle = is_string($rawReferenceTitle) ? trim($rawReferenceTitle) : null;
+            $metadataAlt = is_string($rawMetadataAlt) ? trim($rawMetadataAlt) : null;
+            $metadataTitle = is_string($rawMetadataTitle) ? trim($rawMetadataTitle) : null;
+
+            $effectiveAlt = $this->resolveEffectiveAlt(
+                $rawReferenceAlt,
+                $referenceAlt,
+                $metadataAlt,
+            );
+
+            $effectiveTitle = $this->resolveEffectiveTitle(
+                $referenceTitle,
+                $metadataTitle,
+            );
 
             $contextPath = sprintf(
                 '%s:%d > %s > ref:%d',
                 $context->sourceTable,
                 $context->sourceUid,
                 $context->sourceField,
-                $referenceUid
+                $referenceUid,
             );
 
-            if ($alt === '' && $title === '') {
-                $violations[] = new RuleViolation(
-                    ruleId: $this->getRuleId(),
-                    severity: Severity::Critical,
-                    message: sprintf(
-                        'Image "%s" has no alt text (file reference uid:%d).',
-                        $fileName,
-                        $referenceUid
-                    ),
-                    hint: $this->getHint(),
-                    contextSnippet: sprintf(
-                        'sys_file_reference uid:%d, file: %s',
-                        $referenceUid,
-                        $fileName
-                    ),
-                    contextPath: $contextPath,
-                );
+            if ($isDecorative) {
+                if ($effectiveAlt !== null && $effectiveAlt !== '') {
+                    $warningItems[] = [
+                        'uid' => $referenceUid,
+                        'file' => $fileName,
+                        'value' => $effectiveAlt,
+                        'contextPath' => $contextPath,
+                        'reason' => 'decorative_with_alt',
+                    ];
+                }
 
                 continue;
             }
 
-            if ($alt === '' && $title !== '') {
-                $violations[] = new RuleViolation(
-                    ruleId: $this->getRuleId(),
-                    severity: Severity::Warning,
-                    message: sprintf(
-                        'Image "%s" has no alt text and only a title is set (file reference uid:%d).',
-                        $fileName,
-                        $referenceUid
-                    ),
-                    hint: 'Provide explicit alt text in the "Alternative text" field instead of relying on the title field.',
-                    contextSnippet: sprintf(
-                        'sys_file_reference uid:%d, title: "%s"',
-                        $referenceUid,
-                        $title
-                    ),
-                    contextPath: $contextPath,
-                );
+            if ($effectiveAlt !== null && $effectiveAlt !== '') {
+                continue;
             }
+
+            if (is_string($rawReferenceAlt) && trim($rawReferenceAlt) === '') {
+                continue;
+            }
+
+            if (($effectiveAlt === null || $effectiveAlt === '') && $effectiveTitle !== null && $effectiveTitle !== '') {
+                $warningItems[] = [
+                    'uid' => $referenceUid,
+                    'file' => $fileName,
+                    'value' => $effectiveTitle,
+                    'contextPath' => $contextPath,
+                    'reason' => 'title_only',
+                ];
+
+                continue;
+            }
+
+            $criticalItems[] = [
+                'uid' => $referenceUid,
+                'file' => $fileName,
+                'contextPath' => $contextPath,
+            ];
+        }
+
+        $totalItems = count($criticalItems) + count($warningItems);
+        $fieldContextPath = sprintf(
+            '%s:%d > %s',
+            $context->sourceTable,
+            $context->sourceUid,
+            $context->sourceField,
+        );
+
+        if ($totalItems <= self::GROUPING_THRESHOLD) {
+            return $this->buildIndividualViolations($criticalItems, $warningItems);
+        }
+
+        return $this->buildGroupedViolations(
+            $criticalItems,
+            $warningItems,
+            $fieldContextPath,
+        );
+    }
+
+    private function resolveEffectiveAlt(
+        mixed $rawReferenceAlt,
+        ?string $referenceAlt,
+        ?string $metadataAlt,
+    ): ?string {
+        if (is_string($rawReferenceAlt)) {
+            return $referenceAlt;
+        }
+
+        if ($metadataAlt !== null && $metadataAlt !== '') {
+            return $metadataAlt;
+        }
+
+        return null;
+    }
+
+    private function resolveEffectiveTitle(
+        ?string $referenceTitle,
+        ?string $metadataTitle,
+    ): ?string {
+        if ($referenceTitle !== null && $referenceTitle !== '') {
+            return $referenceTitle;
+        }
+
+        if ($metadataTitle !== null && $metadataTitle !== '') {
+            return $metadataTitle;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<int, array{uid:int, file:string, contextPath:string}> $criticalItems
+     * @param array<int, array{uid:int, file:string, value:string, contextPath:string, reason:string}> $warningItems
+     * @return RuleViolation[]
+     */
+    private function buildIndividualViolations(array $criticalItems, array $warningItems): array
+    {
+        $violations = [];
+
+        foreach ($criticalItems as $item) {
+            $violations[] = new RuleViolation(
+                ruleId: $this->getRuleId(),
+                severity: Severity::Critical,
+                message: sprintf(
+                    'Image "%s" has no alt text (file reference uid:%d).',
+                    $item['file'],
+                    $item['uid'],
+                ),
+                hint: $this->getHint(),
+                contextSnippet: sprintf(
+                    'sys_file_reference uid:%d, file: %s',
+                    $item['uid'],
+                    $item['file'],
+                ),
+                contextPath: $item['contextPath'],
+            );
+        }
+
+        foreach ($warningItems as $item) {
+            $message = $item['reason'] === 'decorative_with_alt'
+                ? sprintf(
+                    'Decorative image "%s" should use an empty alt text (file reference uid:%d).',
+                    $item['file'],
+                    $item['uid'],
+                )
+                : sprintf(
+                    'Image "%s" uses title text instead of alt text (file reference uid:%d).',
+                    $item['file'],
+                    $item['uid'],
+                );
+
+            $hint = $item['reason'] === 'decorative_with_alt'
+                ? 'Decorative images should use an empty alt text. Remove the alt text or unmark the image as decorative.'
+                : 'Provide explicit alt text in the "Alternative text" field instead of relying on the title field.';
+
+            $contextSnippet = $item['reason'] === 'decorative_with_alt'
+                ? sprintf(
+                    'sys_file_reference uid:%d, file: %s, alt: "%s"',
+                    $item['uid'],
+                    $item['file'],
+                    $item['value'],
+                )
+                : sprintf(
+                    'sys_file_reference uid:%d, file: %s, effective title: "%s"',
+                    $item['uid'],
+                    $item['file'],
+                    $item['value'],
+                );
+
+            $violations[] = new RuleViolation(
+                ruleId: $this->getRuleId(),
+                severity: Severity::Warning,
+                message: $message,
+                hint: $hint,
+                contextSnippet: $contextSnippet,
+                contextPath: $item['contextPath'],
+            );
         }
 
         return $violations;
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @param array<int, array{uid:int, file:string, contextPath:string}> $criticalItems
+     * @param array<int, array{uid:int, file:string, value:string, contextPath:string, reason:string}> $warningItems
+     * @return RuleViolation[]
      */
-    private function fetchImageReferences(int $contentUid, string $fieldName): array
+    private function buildGroupedViolations(
+        array $criticalItems,
+        array $warningItems,
+        string $fieldContextPath,
+    ): array {
+        $violations = [];
+
+        if ($criticalItems !== []) {
+            $violations[] = new RuleViolation(
+                ruleId: $this->getRuleId(),
+                severity: Severity::Critical,
+                message: sprintf(
+                    '%d image(s) are missing alt text.',
+                    count($criticalItems),
+                ),
+                hint: $this->getHint(),
+                contextSnippet: $this->buildContextSnippet($criticalItems),
+                contextPath: $fieldContextPath,
+            );
+        }
+
+        if ($warningItems !== []) {
+            $titleOnlyCount = count(array_filter(
+                $warningItems,
+                static fn(array $item): bool => $item['reason'] === 'title_only',
+            ));
+
+            $decorativeWithAltCount = count(array_filter(
+                $warningItems,
+                static fn(array $item): bool => $item['reason'] === 'decorative_with_alt',
+            ));
+
+            $messageParts = [];
+
+            if ($titleOnlyCount > 0) {
+                $messageParts[] = sprintf(
+                    '%d image(s) use title text instead of alt text',
+                    $titleOnlyCount,
+                );
+            }
+
+            if ($decorativeWithAltCount > 0) {
+                $messageParts[] = sprintf(
+                    '%d decorative image(s) use non-empty alt text',
+                    $decorativeWithAltCount,
+                );
+            }
+
+            $violations[] = new RuleViolation(
+                ruleId: $this->getRuleId(),
+                severity: Severity::Warning,
+                message: implode('; ', $messageParts) . '.',
+                hint: 'Provide explicit alt text for meaningful images. Decorative images should use an empty alt text.',
+                contextSnippet: $this->buildContextSnippet($warningItems, true),
+                contextPath: $fieldContextPath,
+            );
+        }
+
+        return $violations;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
+    private function buildContextSnippet(array $items, bool $includeValue = false): string
     {
-        $referenceQueryBuilder = $this->connectionPool->getQueryBuilderForTable(Tables::SYS_FILE_REFERENCE);
+        $parts = [];
 
-        $references = $referenceQueryBuilder
-            ->select('uid', 'uid_local', 'alternative', 'title')
-            ->from(Tables::SYS_FILE_REFERENCE)
-            ->where(
-                $referenceQueryBuilder->expr()->eq(
-                    'uid_foreign',
-                    $referenceQueryBuilder->createNamedParameter($contentUid, Connection::PARAM_INT)
-                ),
-                $referenceQueryBuilder->expr()->eq(
-                    'tablenames',
-                    $referenceQueryBuilder->createNamedParameter(Tables::TT_CONTENT)
-                ),
-                $referenceQueryBuilder->expr()->eq(
-                    'fieldname',
-                    $referenceQueryBuilder->createNamedParameter($fieldName)
-                ),
-                $referenceQueryBuilder->expr()->eq(
-                    'hidden',
-                    $referenceQueryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $referenceQueryBuilder->expr()->eq(
-                    'deleted',
-                    $referenceQueryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                )
-            )
-            ->orderBy('uid', 'ASC')
-            ->executeQuery()
-            ->fetchAllAssociative();
+        foreach (array_slice($items, 0, self::GROUPED_CONTEXT_PREVIEW_LIMIT) as $item) {
+            $part = sprintf(
+                'ref:%d (%s)',
+                (int)$item['uid'],
+                (string)$item['file'],
+            );
 
-        if ($references === []) {
-            return [];
-        }
-
-        $fileUids = [];
-        foreach ($references as $reference) {
-            $uidLocal = (int)($reference['uid_local'] ?? 0);
-            if ($uidLocal > 0) {
-                $fileUids[] = $uidLocal;
-            }
-        }
-
-        $fileUids = array_values(array_unique($fileUids));
-
-        if ($fileUids === []) {
-            return [];
-        }
-
-        $fileQueryBuilder = $this->connectionPool->getQueryBuilderForTable(Tables::SYS_FILE);
-
-        $fileRows = $fileQueryBuilder
-            ->select('uid', 'identifier', 'type')
-            ->from(Tables::SYS_FILE)
-            ->where(
-                $fileQueryBuilder->expr()->in(
-                    'uid',
-                    $fileQueryBuilder->createNamedParameter($fileUids, Connection::PARAM_INT_ARRAY)
-                )
-            )
-            ->executeQuery()
-            ->fetchAllAssociative();
-
-        $filesByUid = [];
-        foreach ($fileRows as $fileRow) {
-            $filesByUid[(int)$fileRow['uid']] = [
-                'identifier' => (string)($fileRow['identifier'] ?? ''),
-                'type' => (int)($fileRow['type'] ?? 0),
-            ];
-        }
-
-        $imageReferences = [];
-        foreach ($references as $reference) {
-            $uidLocal = (int)($reference['uid_local'] ?? 0);
-            $file = $filesByUid[$uidLocal] ?? null;
-
-            if ($file === null || $file['type'] !== self::SYS_FILE_TYPE_IMAGE) {
-                continue;
+            if (
+                $includeValue
+                && isset($item['value'])
+                && is_string($item['value'])
+                && $item['value'] !== ''
+            ) {
+                $label = ($item['reason'] ?? '') === 'decorative_with_alt' ? 'alt' : 'title';
+                $part .= sprintf(' %s="%s"', $label, $item['value']);
             }
 
-            $reference['identifier'] = $file['identifier'];
-            $imageReferences[] = $reference;
+            $parts[] = $part;
         }
 
-        return $imageReferences;
+        $remainingCount = count($items) - count($parts);
+
+        if ($remainingCount > 0) {
+            $parts[] = sprintf('+ %d more', $remainingCount);
+        }
+
+        return implode(' | ', $parts);
     }
 }

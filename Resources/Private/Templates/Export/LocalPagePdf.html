@@ -1,0 +1,82 @@
+<f:layout name="Pdf" />
+
+<f:section name="Content">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+
+    <div class="meta">
+        <div><strong>Generated:</strong> {generatedAt}</div>
+        <div><strong>Site:</strong> {siteIdentifier}</div>
+        <div><strong>Page UID:</strong> {pageUid}</div>
+        <f:if condition="{pagePath}">
+            <div><strong>Path:</strong> {pagePath}</div>
+        </f:if>
+        <div><strong>Filters:</strong> status = {status}, severity = {severity}</div>
+    </div>
+
+    <table class="totals-table">
+        <tr>
+            <td class="total-card">
+                <div class="total-value">{totals.critical}</div>
+                <div class="total-label">Critical</div>
+            </td>
+            <td class="total-card">
+                <div class="total-value">{totals.warning}</div>
+                <div class="total-label">Warnings</div>
+            </td>
+            <td class="total-card">
+                <div class="total-value">{totals.info}</div>
+                <div class="total-label">Info</div>
+            </td>
+            <td class="total-card">
+                <div class="total-value">{totals.total}</div>
+                <div class="total-label">Total</div>
+            </td>
+        </tr>
+    </table>
+
+    <h2>Issues</h2>
+
+    <f:if condition="{issues}">
+        <f:then>
+            <f:for each="{issues}" as="issue">
+                <div class="issue">
+                    <div class="issue-title">{issue.message}</div>
+
+                    <div class="issue-badges">
+                        <span class="badge badge-severity-{issue.severityKey}">{issue.severityLabel}</span>
+                        <span class="badge badge-status-{issue.statusKey}">{issue.statusLabel}</span>
+                    </div>
+
+                    <f:if condition="{issue.hint}">
+                        <div class="issue-block">
+                            <div class="label">How to fix</div>
+                            <div>{issue.hint}</div>
+                        </div>
+                    </f:if>
+
+                    <div class="issue-block">
+                        <div class="label">Technical details</div>
+                        <div><strong>Rule:</strong> {issue.rule_id}</div>
+                        <div><strong>Record:</strong> {issue.source_table}:{issue.source_uid}</div>
+                        <div><strong>Field:</strong> {issue.source_field}</div>
+
+                        <f:if condition="{issue.context_path}">
+                            <div><strong>Location:</strong> {issue.context_path}</div>
+                        </f:if>
+                    </div>
+
+                    <f:if condition="{issue.context_snippet}">
+                        <div class="issue-block">
+                            <div class="label">Snippet</div>
+                            <pre>{issue.context_snippet}</pre>
+                        </div>
+                    </f:if>
+                </div>
+            </f:for>
+        </f:then>
+        <f:else>
+            <p class="muted">No matching issues found for this page.</p>
+        </f:else>
+    </f:if>
+</f:section>

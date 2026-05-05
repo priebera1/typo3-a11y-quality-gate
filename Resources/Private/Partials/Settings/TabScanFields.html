@@ -1,0 +1,140 @@
+<div
+        class="tab-pane fade{f:if(condition: '{activeTab} == ''fields''', then: ' show active')}"
+        id="a11y-settings-pane-fields"
+        role="tabpanel"
+        aria-labelledby="a11y-settings-tab-fields"
+        tabindex="0"
+>
+    <div class="card">
+        <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+                <h3 class="h5 mb-1">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scannedFields.title" />
+                </h3>
+                <p class="text-muted small mb-0">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scannedFields.description" />
+                </p>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <form method="post" action="{refreshUrl}" class="mb-0">
+                    <f:for each="{returnParameters}" as="value" key="name">
+                        <input type="hidden" name="{name}" value="{value}" />
+                    </f:for>
+
+                    <f:if condition="{selectedRulesetSite}">
+                        <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+                    </f:if>
+
+                    <input type="hidden" name="tab" value="fields" />
+
+                    <button type="submit" class="btn btn-secondary">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields" />
+                    </button>
+                </form>
+
+                <button type="submit" form="a11y-settings-fields-form" class="btn btn-primary">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" />
+                </button>
+            </div>
+        </div>
+
+        <form method="post" action="{saveUrl}" id="a11y-settings-fields-form">
+            <f:for each="{returnParameters}" as="value" key="name">
+                <input type="hidden" name="{name}" value="{value}" />
+            </f:for>
+
+            <f:if condition="{selectedRulesetSite}">
+                <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+            </f:if>
+
+            <input type="hidden" name="tab" value="fields" />
+            <input type="hidden" name="fieldsFormSubmitted" value="1" />
+
+            <div class="card-body">
+                <f:if condition="{fieldGroups}">
+                    <f:then>
+                        <div class="d-flex flex-column gap-3">
+                            <f:for each="{fieldGroups}" as="group" key="tableName">
+                                <div class="card border">
+                                    <details open="open" data-a11y-settings-group="true">
+                                        <summary class="a11y-field-group-header">
+                                            <span class="d-flex align-items-start gap-2">
+                                                <span class="a11y-field-group-header__toggle" aria-hidden="true"></span>
+                                                <span class="d-flex flex-column">
+                                                    <span class="fw-semibold">
+                                                        <f:translate
+                                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.group.{tableName}"
+                                                                default="{group.label}"
+                                                        />
+                                                    </span>
+                                                    <code class="small text-muted">{tableName}</code>
+                                                </span>
+                                            </span>
+
+                                            <span
+                                                    class="text-muted small"
+                                                    data-a11y-settings-count="true"
+                                                    data-total-count="{group.totalCount}"
+                                            >
+                                                {group.enabledCount}
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enabledFieldsCount" />
+                                                <span class="text-muted">/ {group.totalCount}</span>
+                                            </span>
+                                        </summary>
+
+                                        <div class="px-3 pt-2 pb-1 small text-muted">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.group.help" />
+                                        </div>
+
+                                        <div class="list-group list-group-flush">
+                                            <f:for each="{group.fields}" as="field" iteration="iterator">
+                                                <f:variable name="fieldDomId" value="a11y-field-{tableName}-{iterator.index}" />
+
+                                                <label
+                                                        for="{fieldDomId}"
+                                                        class="a11y-field-row {f:if(condition: '{field.is_enabled} == 0', then: 'is-unchecked')}"
+                                                        data-a11y-settings-item="true"
+                                                >
+                                                    <input
+                                                            id="{fieldDomId}"
+                                                            type="checkbox"
+                                                            name="enabledFields[{field.table_name}][]"
+                                                            value="{field.field_name}"
+                                                            class="form-check-input"
+                                                            data-a11y-settings-checkbox="true"
+                                                            {f:if(condition: field.is_enabled, then: 'checked="checked"')}
+                                                    />
+
+                                                    <span class="a11y-field-row__content">
+                                                        <span class="a11y-field-row__primary">
+                                                            <span class="a11y-field-row__title">{field.field_label}</span>
+
+                                                            <span class="badge rounded-pill a11y-pill a11y-pill--subtle a11y-field-row__type-badge">
+                                                                {field.field_type}
+                                                            </span>
+                                                        </span>
+
+                                                        <span class="a11y-field-row__secondary">
+                                                            <code class="a11y-field-row__name">{field.field_name}</code>
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                            </f:for>
+                                        </div>
+                                    </details>
+                                </div>
+                            </f:for>
+                        </div>
+                    </f:then>
+
+                    <f:else>
+                        <div class="alert alert-info mb-0">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.noFields" />
+                        </div>
+                    </f:else>
+                </f:if>
+            </div>
+        </form>
+    </div>
+</div>

@@ -277,8 +277,6 @@ final class FieldConfigRepository extends AbstractRepository
             ->fetchAllAssociative();
     }
 
-
-
     /**
      * @return string[]
      */

@@ -4,12 +4,21 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Scan;
 
+use Priebera\A11yQualityGate\Database\PageDoktypes;
 use Priebera\A11yQualityGate\Database\Tables;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
 final class PageCollector
 {
+    /**
+     * @var int[]
+     */
+    private const EXCLUDED_DOKTYPES = [
+        PageDoktypes::RECYCLER,
+        PageDoktypes::MENU_SEPARATOR,
+    ];
+
     public function __construct(
         private readonly ConnectionPool $connectionPool,
     ) {
@@ -54,6 +63,7 @@ final class PageCollector
     private function pageExists(int $pageUid): bool
     {
         $qb = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
+        $qb->getRestrictions()->removeAll();
 
         $row = $qb
             ->select('uid')
@@ -61,7 +71,10 @@ final class PageCollector
             ->where(
                 $qb->expr()->eq('uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
                 $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
-                $qb->expr()->eq('hidden', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+                $qb->expr()->notIn(
+                    'doktype',
+                    $qb->createNamedParameter(self::EXCLUDED_DOKTYPES, Connection::PARAM_INT_ARRAY)
+                ),
             )
             ->setMaxResults(1)
             ->executeQuery()
@@ -81,6 +94,7 @@ final class PageCollector
         }
 
         $qb = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
+        $qb->getRestrictions()->removeAll();
 
         $rows = $qb
             ->select('uid')
@@ -91,7 +105,10 @@ final class PageCollector
                     $qb->createNamedParameter($parentUids, Connection::PARAM_INT_ARRAY)
                 ),
                 $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
-                $qb->expr()->eq('hidden', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+                $qb->expr()->notIn(
+                    'doktype',
+                    $qb->createNamedParameter(self::EXCLUDED_DOKTYPES, Connection::PARAM_INT_ARRAY)
+                ),
             )
             ->orderBy('sorting', 'ASC')
             ->executeQuery()

@@ -29,4 +29,24 @@ final class BackendUserService
     {
         return (bool)($this->getBackendUser()?->isAdmin() ?? false);
     }
+
+    public function hasModuleAccess(string $moduleIdentifier): bool
+    {
+        $backendUser = $this->getBackendUser();
+
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return false;
+        }
+
+        if ($backendUser->isAdmin()) {
+            return true;
+        }
+
+        return $backendUser->check('modules', $moduleIdentifier);
+    }
+
+    public function canAccessAccessibilityModule(): bool
+    {
+        return $this->hasModuleAccess('web_a11y');
+    }
 }

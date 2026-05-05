@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
 final class BackendContextService
@@ -18,6 +19,11 @@ final class BackendContextService
     public function translate(string $key, string $file = 'locallang.xlf'): string
     {
         return $this->backendLanguageService->translate($key, $file);
+    }
+
+    public function getBackendUser(): ?BackendUserAuthentication
+    {
+        return $this->backendUserService->getBackendUser();
     }
 
     public function getBackendUserUid(): int

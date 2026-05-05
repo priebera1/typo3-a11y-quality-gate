@@ -1,0 +1,99 @@
+<f:layout name="Pdf" />
+
+<f:section name="Content">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+
+    <f:if condition="{hasScan}">
+        <f:then>
+            <div class="meta">
+                <div><strong>Generated:</strong> {generatedAt}</div>
+                <div><strong>Site:</strong> {siteIdentifier}</div>
+                <div><strong>Pages scanned:</strong> {scan.pages_scanned}</div>
+                <div><strong>Failed pages:</strong> {scan.pages_failed}</div>
+                <div><strong>Total issues:</strong> {scan.issues_total}</div>
+                <div><strong>New issues:</strong> {scan.issues_new}</div>
+                <div><strong>Resolved issues:</strong> {scan.issues_resolved}</div>
+            </div>
+
+            <h2>Top affected pages</h2>
+            <f:if condition="{pages}">
+                <f:then>
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Page</th>
+                            <th>URL</th>
+                            <th>HTTP</th>
+                            <th>Issues</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <f:for each="{pages}" as="page">
+                            <tr>
+                                <td>{page.title}</td>
+                                <td>{page.url}</td>
+                                <td>{page.http_status}</td>
+                                <td>{page.issues_count}</td>
+                            </tr>
+                        </f:for>
+                        </tbody>
+                    </table>
+                </f:then>
+                <f:else>
+                    <p class="muted">No remote pages found.</p>
+                </f:else>
+            </f:if>
+
+            <h2>Top rules</h2>
+            <f:if condition="{topRules}">
+                <f:then>
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Rule</th>
+                            <th>Count</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <f:for each="{topRules}" as="rule">
+                            <tr>
+                                <td>{rule.ruleId}</td>
+                                <td>{rule.count}</td>
+                            </tr>
+                        </f:for>
+                        </tbody>
+                    </table>
+                </f:then>
+                <f:else>
+                    <p class="muted">No rule data found.</p>
+                </f:else>
+            </f:if>
+
+            <f:if condition="{failedPages}">
+                <h2>Failed pages</h2>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>HTTP</th>
+                        <th>Reason</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <f:for each="{failedPages}" as="page">
+                        <tr>
+                            <td>{page.url}</td>
+                            <td>{page.http_status}</td>
+                            <td>{page.failure_reason}</td>
+                        </tr>
+                    </f:for>
+                    </tbody>
+                </table>
+            </f:if>
+        </f:then>
+        <f:else>
+            <p>No completed remote scan found.</p>
+        </f:else>
+    </f:if>
+</f:section>

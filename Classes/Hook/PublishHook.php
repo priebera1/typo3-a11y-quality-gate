@@ -7,17 +7,17 @@ namespace Priebera\A11yQualityGate\Hook;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Pro\Service\ProCapabilityService;
 use Priebera\A11yQualityGate\QualityGate\QualityGateChecker;
 use Priebera\A11yQualityGate\Scan\ContentCollector;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
+use Priebera\A11yQualityGate\Service\BackendContextService;
+use Priebera\A11yQualityGate\Service\BackendUserService;
+use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class PublishHook
 {
@@ -31,14 +31,17 @@ final class PublishHook
         private readonly ScanOrchestrator $scanOrchestrator,
         private readonly IssueRepository $issueRepository,
         private readonly SiteFinder $siteFinder,
-        private readonly FlashMessageService $flashMessageService,
         private readonly ContentCollector $contentCollector,
+        private readonly BackendUserService $backendUserService,
+        private readonly BackendContextService $backendContextService,
+        private readonly ProCapabilityService $proCapabilityService,
+        private readonly ExtensionContextService $extensionContextService,
     ) {
     }
 
     public function processDatamap_afterAllOperations(DataHandler $dataHandler): void
     {
-        if (!$this->currentUserCanAccessAccessibilityModule()) {
+        if (!$this->backendUserService->canAccessAccessibilityModule()) {
             return;
         }
 
@@ -92,16 +95,11 @@ final class PublishHook
                 continue;
             }
 
-            $this->scanAndCheckPageGate($pageUid);
+            $this->scanAndCheckPageGate($pageUid, $dataHandler);
         }
     }
 
     /**
-     * Collect only the primary edited tt_content record per page.
-     *
-     * This avoids showing duplicate feedback messages for synchronized or
-     * localization-related sibling records processed within the same request.
-     *
      * @return array<int, int>
      */
     private function collectPrimaryChangedContentByPage(DataHandler $dataHandler): array
@@ -178,9 +176,9 @@ final class PublishHook
     private function addContentElementFeedback(int $contentUid): void
     {
         $fieldsToCheck = array_values(array_unique(array_merge(
-            $this->contentCollector->getRteFields(),
-            $this->contentCollector->getStructuredFields(),
-            $this->contentCollector->getFileReferenceFields(),
+            $this->contentCollector->getRteFieldsForTable(Tables::TT_CONTENT),
+            $this->contentCollector->getStructuredFieldsForTable(),
+            $this->contentCollector->getFileReferenceFieldsForTable(Tables::TT_CONTENT),
         )));
 
         $allIssues = [];
@@ -232,7 +230,7 @@ final class PublishHook
         );
     }
 
-    private function scanAndCheckPageGate(int $pageUid): void
+    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler): void
     {
         try {
             $site = $this->siteFinder->getSiteByPageId($pageUid);
@@ -252,6 +250,52 @@ final class PublishHook
         $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier());
 
         if ($verdict->isPassed()) {
+            if (!$verdict->isDisabled() && $verdict->hasAnyIssues()) {
+                $this->addFlashMessage(
+                    message: $verdict->toPassedFlashMessage(),
+                    title: 'AQG Quality Gate',
+                    severity: ContextualFeedbackSeverity::OK,
+                    deduplicationKey: 'page-pass:' . $pageUid,
+                );
+            }
+
+            return;
+        }
+
+        if ($verdict->isWarningOnly()) {
+            $message = $verdict->toFlashMessage();
+
+            $this->addFlashMessage(
+                message: $message,
+                title: 'AQG Warning',
+                severity: ContextualFeedbackSeverity::WARNING,
+                deduplicationKey: 'page-warning:' . $pageUid . ':' . md5($message),
+            );
+
+            return;
+        }
+
+        $proStatus = $this->getProStatusForSite((string)$site->getBase());
+
+        if ($verdict->isBlockingMode() && $proStatus->valid) {
+            $dataHandler->datamap[Tables::PAGES][$pageUid]['hidden'] = 1;
+
+            $message = sprintf(
+                'Publishing blocked: %s. Open the Accessibility module to review issues.',
+                implode(', ', $verdict->reasons)
+            );
+
+            if ($proStatus->isTrial) {
+                $message .= ' Trial licence active — upgrade to PRO to keep this feature after the trial ends.';
+            }
+
+            $this->addFlashMessage(
+                message: $message,
+                title: 'AQG Quality Gate',
+                severity: ContextualFeedbackSeverity::ERROR,
+                deduplicationKey: 'page-block:' . $pageUid . ':' . md5($message),
+            );
+
             return;
         }
 
@@ -259,10 +303,18 @@ final class PublishHook
 
         $this->addFlashMessage(
             message: $message,
-            title: 'Accessibility Quality Gate',
+            title: 'AQG Warning',
             severity: ContextualFeedbackSeverity::WARNING,
-            deduplicationKey: 'page:' . $pageUid . ':' . md5($message),
+            deduplicationKey: 'page-fallback-warning:' . $pageUid . ':' . md5($message),
         );
+    }
+
+    private function getProStatusForSite(string $siteBase): object
+    {
+        $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
+        $version = $this->extensionContextService->getExtensionVersion();
+
+        return $this->proCapabilityService->getStatus($domain, $version);
     }
 
     /**
@@ -304,31 +356,11 @@ final class PublishHook
 
         $this->shownFlashMessages[$deduplicationKey] = true;
 
-        $flashMessage = GeneralUtility::makeInstance(
-            FlashMessage::class,
+        $this->backendContextService->addFlashMessage(
             $message,
-            $title,
             $severity,
+            $title,
             true,
         );
-
-        $this->flashMessageService
-            ->getMessageQueueByIdentifier()
-            ->addMessage($flashMessage);
-    }
-
-    private function currentUserCanAccessAccessibilityModule(): bool
-    {
-        $backendUser = $GLOBALS['BE_USER'] ?? null;
-
-        if (!$backendUser instanceof BackendUserAuthentication) {
-            return false;
-        }
-
-        if ($backendUser->isAdmin()) {
-            return true;
-        }
-
-        return $backendUser->check('modules', 'web_a11y');
     }
 }

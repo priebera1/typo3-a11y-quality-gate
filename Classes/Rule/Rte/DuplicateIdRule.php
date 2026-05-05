@@ -27,7 +27,9 @@ final class DuplicateIdRule extends AbstractRteRule
 
     public function getHint(): string
     {
-        return 'Make sure each id value is unique within the edited HTML content.';
+        return 'Each id attribute must be unique in the document. '
+            . 'Duplicate IDs break associations between labels, descriptions and anchors. '
+            . 'WCAG 1.3.1 Info and Relationships.';
     }
 
     /**

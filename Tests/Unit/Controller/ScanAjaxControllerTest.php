@@ -13,6 +13,7 @@ use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -28,6 +29,7 @@ final class ScanAjaxControllerTest extends TestCase
     private AccessControlService $accessControlService;
     private ScanStatusService $scanStatusService;
     private BackendUserService $backendUserService;
+    private RemoteScanRepository $remoteScanRepository;
     private ServerRequestInterface $request;
     private ResponseInterface $response;
 
@@ -38,6 +40,7 @@ final class ScanAjaxControllerTest extends TestCase
         $this->accessControlService = $this->createMock(AccessControlService::class);
         $this->scanStatusService = $this->createMock(ScanStatusService::class);
         $this->backendUserService = $this->createMock(BackendUserService::class);
+        $this->remoteScanRepository = $this->createMock(RemoteScanRepository::class);
 
         $stream = $this->createMock(StreamInterface::class);
 
@@ -59,9 +62,11 @@ final class ScanAjaxControllerTest extends TestCase
             $this->siteResolutionService,
             $this->accessControlService,
             $this->scanStatusService,
+            $this->remoteScanRepository,
         );
 
         $this->request = $this->createMock(ServerRequestInterface::class);
+        $this->request->method('getQueryParams')->willReturn([]);
     }
 
     #[Test]

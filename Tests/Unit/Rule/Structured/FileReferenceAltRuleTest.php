@@ -10,13 +10,13 @@ use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\Structured\FileReferenceAltRule;
-use TYPO3\CMS\Core\Database\ConnectionPool;
+use Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository;
 
 final class FileReferenceAltRuleTest extends TestCase
 {
     private function makeRule(): FileReferenceAltRule
     {
-        return new FileReferenceAltRule($this->createMock(ConnectionPool::class));
+        return new FileReferenceAltRule($this->createMock(FileReferenceRepository::class));
     }
 
     #[Test]
@@ -62,13 +62,13 @@ final class FileReferenceAltRuleTest extends TestCase
     }
 
     #[Test]
-    public function doesNotSupportNonImageField(): void
+    public function supportsNonImageFieldBecauseFilteringNowHappensAtRepositoryLevel(): void
     {
-        self::assertFalse($this->makeRule()->supports($this->ctx(field: 'bodytext', content: 42)));
+        self::assertTrue($this->makeRule()->supports($this->ctx(field: 'bodytext', content: 42)));
     }
 
     #[Test]
-    public function doesNotSupportNonTtContentTable(): void
+    public function supportsNonTtContentTableBecauseFilteringNowHappensAtRepositoryLevel(): void
     {
         $ctx = new CheckContext(
             siteIdentifier: 'main',
@@ -80,7 +80,7 @@ final class FileReferenceAltRuleTest extends TestCase
             content: 5,
         );
 
-        self::assertFalse($this->makeRule()->supports($ctx));
+        self::assertTrue($this->makeRule()->supports($ctx));
     }
 
     private function ctx(string $field = 'image', mixed $content = 42): CheckContext

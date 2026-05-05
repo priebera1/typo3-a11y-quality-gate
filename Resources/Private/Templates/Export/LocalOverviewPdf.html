@@ -1,0 +1,94 @@
+<f:layout name="Pdf" />
+
+<f:section name="Content">
+    <h1>{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+
+    <div class="meta">
+        <div><strong>Generated:</strong> {generatedAt}</div>
+        <div><strong>Site:</strong> {siteIdentifier}</div>
+        <div><strong>Filters:</strong> status = {status}, severity = {severity}</div>
+    </div>
+
+    <table class="totals-table">
+        <tr>
+            <td class="total-card">
+                <div class="total-value">{totals.critical}</div>
+                <div class="total-label">Critical</div>
+            </td>
+            <td class="total-card">
+                <div class="total-value">{totals.warning}</div>
+                <div class="total-label">Warnings</div>
+            </td>
+            <td class="total-card">
+                <div class="total-value">{totals.info}</div>
+                <div class="total-label">Info</div>
+            </td>
+            <td class="total-card">
+                <div class="total-value">{totals.total}</div>
+                <div class="total-label">Total</div>
+            </td>
+        </tr>
+    </table>
+
+    <h2>Top affected pages</h2>
+    <f:if condition="{topPages}">
+        <f:then>
+            <table>
+                <thead>
+                <tr>
+                    <th>Page</th>
+                    <th>Critical</th>
+                    <th>Warnings</th>
+                    <th>Info</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <f:for each="{topPages}" as="page">
+                    <tr>
+                        <td>
+                            <f:if condition="{page.pageTitle}">
+                                <f:then>{page.pageTitle}</f:then>
+                                <f:else>Page {page.pageUid}</f:else>
+                            </f:if>
+                        </td>
+                        <td>{page.critical}</td>
+                        <td>{page.warning}</td>
+                        <td>{page.info}</td>
+                        <td>{page.total}</td>
+                    </tr>
+                </f:for>
+                </tbody>
+            </table>
+        </f:then>
+        <f:else>
+            <p class="muted">No matching page data found.</p>
+        </f:else>
+    </f:if>
+
+    <h2>Top rules</h2>
+    <f:if condition="{topRules}">
+        <f:then>
+            <table>
+                <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>Count</th>
+                </tr>
+                </thead>
+                <tbody>
+                <f:for each="{topRules}" as="rule">
+                    <tr>
+                        <td>{rule.ruleId}</td>
+                        <td>{rule.count}</td>
+                    </tr>
+                </f:for>
+                </tbody>
+            </table>
+        </f:then>
+        <f:else>
+            <p class="muted">No rule data found.</p>
+        </f:else>
+    </f:if>
+</f:section>

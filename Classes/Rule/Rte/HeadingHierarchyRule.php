@@ -38,7 +38,7 @@ final class HeadingHierarchyRule extends AbstractRteRule
         $violations = [];
         $dom = $this->loadDom($context->content);
         $xpath = $this->createXPath($dom);
-        $headingNodes = $xpath->query('//h2|//h3|//h4|//h5|//h6');
+        $headingNodes = $xpath->query('//h1|//h2|//h3|//h4|//h5|//h6');
 
         if ($headingNodes === false || $headingNodes->length < 2) {
             return [];

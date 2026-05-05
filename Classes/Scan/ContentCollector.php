@@ -38,75 +38,190 @@ final class ContentCollector
     }
 
     /**
-     * @return array<array<string, mixed>>
+     * @return array<int, array{
+     *   tableName:string,
+     *   record:array<string, mixed>,
+     *   rteFields:array<int, string>,
+     *   fileReferenceFields:array<int, string>,
+     *   structuredFields:array<int, string>,
+     *   languageField:string,
+     *   cTypeField:string
+     * }>
      */
     public function collectForPage(int $pageUid, int $languageUid = -1): array
     {
-        $rteFields = $this->getRteFields();
+        $fieldMap = $this->fieldConfigRepository->findEnabledFieldMap();
+        $collected = [];
 
-        $qb = $this->connectionPool->getQueryBuilderForTable(Tables::TT_CONTENT);
+        foreach (array_keys($fieldMap) as $tableName) {
+            $records = $this->collectTableRecordsForPage($tableName, $pageUid, $languageUid);
 
-        $selectFields = array_values(array_unique([
-            'uid',
-            'pid',
-            'CType',
-            'sys_language_uid',
-            ...$rteFields,
-            ...array_keys(self::STRUCTURED_FIELDS),
-        ]));
-
-        $qb
-            ->select(...$selectFields)
-            ->from(Tables::TT_CONTENT)
-            ->where(
-                $qb->expr()->eq('pid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
-                $qb->expr()->eq('hidden', $qb->createNamedParameter(0, Connection::PARAM_INT)),
-                $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
-            )
-            ->orderBy('sorting', 'ASC');
-
-        if ($languageUid >= 0) {
-            $qb->andWhere(
-                $qb->expr()->eq(
-                    'sys_language_uid',
-                    $qb->createNamedParameter($languageUid, Connection::PARAM_INT)
-                )
-            );
+            foreach ($records as $recordEnvelope) {
+                $collected[] = $recordEnvelope;
+            }
         }
 
-        return $qb->executeQuery()->fetchAllAssociative();
+        return $collected;
     }
 
     /**
      * @return string[]
      */
-    public function getRteFields(): array
+    public function getRteFieldsForTable(string $tableName): array
     {
+        $fallbackFields = $tableName === Tables::TT_CONTENT ? self::FALLBACK_RTE_FIELDS : [];
+
         return $this->resolveFields(
-            Tables::TT_CONTENT,
+            $tableName,
             FieldScanType::Rte,
-            self::FALLBACK_RTE_FIELDS,
+            $fallbackFields,
         );
     }
 
     /**
      * @return string[]
      */
-    public function getStructuredFields(): array
+    public function getFileReferenceFieldsForTable(string $tableName): array
+    {
+        $fallbackFields = $tableName === Tables::TT_CONTENT ? self::FALLBACK_FILE_REFERENCE_FIELDS : [];
+
+        return $this->resolveFields(
+            $tableName,
+            FieldScanType::File,
+            $fallbackFields,
+        );
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getStructuredFieldsForTable(): array
     {
         return array_keys(self::STRUCTURED_FIELDS);
     }
 
     /**
+     * @return array<int, array{
+     *   tableName:string,
+     *   record:array<string, mixed>,
+     *   rteFields:array<int, string>,
+     *   fileReferenceFields:array<int, string>,
+     *   structuredFields:array<int, string>,
+     *   languageField:string,
+     *   cTypeField:string
+     * }>
+     */
+    private function collectTableRecordsForPage(string $tableName, int $pageUid, int $languageUid): array
+    {
+        $tableConfiguration = $GLOBALS['TCA'][$tableName] ?? null;
+        if (!is_array($tableConfiguration)) {
+            return [];
+        }
+
+        $columns = $tableConfiguration['columns'] ?? [];
+        if (!is_array($columns)) {
+            return [];
+        }
+
+        $rteFields = $this->getRteFieldsForTable($tableName);
+        $fileReferenceFields = $this->getFileReferenceFieldsForTable($tableName);
+        $structuredFields = $tableName === Tables::TT_CONTENT
+            ? $this->resolveStructuredFieldsForColumns($columns)
+            : [];
+
+        if ($rteFields === [] && $fileReferenceFields === [] && $structuredFields === []) {
+            return [];
+        }
+
+        $ctrl = $tableConfiguration['ctrl'] ?? [];
+        $ctrl = is_array($ctrl) ? $ctrl : [];
+
+        $languageField = (string)($ctrl['languageField'] ?? '');
+        $sortField = (string)($ctrl['sortby'] ?? 'uid');
+        $cTypeField = $tableName === Tables::TT_CONTENT && isset($columns['CType']) ? 'CType' : '';
+
+        $selectFields = [
+            'uid',
+            'pid',
+        ];
+
+        if ($languageField !== '') {
+            $selectFields[] = $languageField;
+        }
+
+        if ($cTypeField !== '') {
+            $selectFields[] = $cTypeField;
+        }
+
+        $selectFields = array_merge(
+            $selectFields,
+            $rteFields,
+            $fileReferenceFields,
+            $structuredFields
+        );
+
+        $selectFields = array_values(array_unique(array_filter(
+            array_map('trim', $selectFields),
+            static fn(string $field): bool => $field !== ''
+        )));
+
+        $qb = $this->connectionPool->getQueryBuilderForTable($tableName);
+        $qb->getRestrictions()->removeAll();
+
+        $qb->select(...$selectFields)
+            ->from($tableName)
+            ->where(
+                $qb->expr()->eq('pid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT))
+            );
+
+        $deleteField = (string)($ctrl['delete'] ?? 'deleted');
+        if ($deleteField !== '') {
+            $qb->andWhere(
+                $qb->expr()->eq($deleteField, $qb->createNamedParameter(0, Connection::PARAM_INT))
+            );
+        }
+
+        if ($languageUid >= 0 && $languageField !== '') {
+            $qb->andWhere(
+                $qb->expr()->eq($languageField, $qb->createNamedParameter($languageUid, Connection::PARAM_INT))
+            );
+        }
+
+        $qb->orderBy($sortField !== '' ? $sortField : 'uid', 'ASC');
+
+        $rows = $qb->executeQuery()->fetchAllAssociative();
+        $result = [];
+
+        foreach ($rows as $row) {
+            $result[] = [
+                'tableName' => $tableName,
+                'record' => $row,
+                'rteFields' => $rteFields,
+                'fileReferenceFields' => $fileReferenceFields,
+                'structuredFields' => $structuredFields,
+                'languageField' => $languageField,
+                'cTypeField' => $cTypeField,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $columns
      * @return string[]
      */
-    public function getFileReferenceFields(): array
+    private function resolveStructuredFieldsForColumns(array $columns): array
     {
-        return $this->resolveFields(
-            Tables::TT_CONTENT,
-            FieldScanType::File,
-            self::FALLBACK_FILE_REFERENCE_FIELDS,
-        );
+        $fields = [];
+
+        foreach (array_keys(self::STRUCTURED_FIELDS) as $fieldName) {
+            if (isset($columns[$fieldName])) {
+                $fields[] = $fieldName;
+            }
+        }
+
+        return $fields;
     }
 
     /**

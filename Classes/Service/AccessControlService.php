@@ -10,26 +10,29 @@ final class AccessControlService
 {
     public function canShowToolbarItem(?BackendUserAuthentication $backendUser = null): bool
     {
-        return $this->resolvePermission($backendUser, 'showToolbarItem');
+        return $this->resolveVisibilityFlag($backendUser, 'showToolbarItem', true);
     }
 
     public function canShowScanAll(?BackendUserAuthentication $backendUser = null): bool
     {
-        return $this->resolvePermission($backendUser, 'showScanAll');
+        return $this->resolveVisibilityFlag($backendUser, 'showScanAll', true);
     }
 
     public function canShowScanNow(?BackendUserAuthentication $backendUser = null): bool
     {
-        return $this->resolvePermission($backendUser, 'showScanNow');
+        return $this->resolveVisibilityFlag($backendUser, 'showScanNow', true);
     }
 
     public function canShowSettings(?BackendUserAuthentication $backendUser = null): bool
     {
-        return $this->resolvePermission($backendUser, 'showSettings');
+        return $this->resolveVisibilityFlag($backendUser, 'showSettings', true);
     }
 
-    private function resolvePermission(?BackendUserAuthentication $backendUser, string $key): bool
-    {
+    private function resolveVisibilityFlag(
+        ?BackendUserAuthentication $backendUser,
+        string $key,
+        bool $default = true,
+    ): bool {
         $backendUser ??= $GLOBALS['BE_USER'] ?? null;
         if (!$backendUser instanceof BackendUserAuthentication) {
             return false;
@@ -42,6 +45,10 @@ final class AccessControlService
         $userTsConfig = $backendUser->getTSConfig();
         $value = $userTsConfig['options.']['a11y_quality_gate.'][$key] ?? null;
 
-        return (bool)((int)$value);
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return (bool)(int)$value;
     }
 }

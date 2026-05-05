@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Export;
 
-use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Utility\FilterValueUtility;
+use Priebera\A11yQualityGate\Utility\IssueFilterUtility;
 
 final class IssueExporter
 {
@@ -16,9 +17,13 @@ final class IssueExporter
     ) {
     }
 
-    public function toCsv(string $siteIdentifier, ?int $pageUid = null, bool $onlyOpen = true): string
-    {
-        $issues = $this->issueRepository->findForExport($siteIdentifier, $pageUid, $onlyOpen);
+    public function toCsv(
+        string $siteIdentifier,
+        ?int $pageUid = null,
+        string $status = 'open',
+        string $severity = 'all',
+    ): string {
+        $issues = $this->getFilteredIssues($siteIdentifier, $pageUid, $status, $severity);
 
         $output = fopen('php://memory', 'r+b');
         if ($output === false) {
@@ -47,21 +52,21 @@ final class IssueExporter
 
         foreach ($issues as $issue) {
             fputcsv($output, [
-                $issue['page_uid'],
+                $issue['page_uid'] ?? 0,
                 $issue['page_title'] ?? '',
-                $issue['rule_id'],
-                Severity::fromInt((int)$issue['severity'])->label(),
-                IssueStatus::fromInt((int)$issue['status'])->label(),
-                $issue['message'],
+                $issue['rule_id'] ?? '',
+                Severity::fromInt((int)($issue['severity'] ?? 0))->label(),
+                IssueStatus::fromInt((int)($issue['status'] ?? 0))->label(),
+                $issue['message'] ?? '',
                 $issue['hint'] ?? '',
-                $issue['source_table'],
-                $issue['source_uid'],
-                $issue['source_field'],
-                $issue['source_lang_uid'],
-                $issue['context_path'],
+                $issue['source_table'] ?? '',
+                $issue['source_uid'] ?? '',
+                $issue['source_field'] ?? '',
+                $issue['source_lang_uid'] ?? '',
+                $issue['context_path'] ?? '',
                 $issue['context_snippet'] ?? '',
-                $issue['crdate'] ? date('Y-m-d H:i:s', (int)$issue['crdate']) : '',
-                $issue['tstamp'] ? date('Y-m-d H:i:s', (int)$issue['tstamp']) : '',
+                !empty($issue['crdate']) ? date('Y-m-d H:i:s', (int)$issue['crdate']) : '',
+                !empty($issue['tstamp']) ? date('Y-m-d H:i:s', (int)$issue['tstamp']) : '',
                 $issue['ignored_by'] ?: '',
                 $issue['ignored_reason'] ?? '',
             ], ';');
@@ -74,39 +79,27 @@ final class IssueExporter
         return $csv ?: '';
     }
 
-    public function toJson(string $siteIdentifier, ?int $pageUid = null, bool $onlyOpen = true): string
-    {
-        $issues = $this->issueRepository->findForExport($siteIdentifier, $pageUid, $onlyOpen);
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getFilteredIssues(
+        string $siteIdentifier,
+        ?int $pageUid,
+        string $status,
+        string $severity,
+    ): array {
+        $normalizedStatus = FilterValueUtility::normalizeStatus($status);
+        $normalizedSeverity = FilterValueUtility::normalizeSeverity($severity);
 
-        $data = array_map(static function (array $issue): array {
-            return [
-                'pageUid' => (int)$issue['page_uid'],
-                'pageTitle' => $issue['page_title'] ?? '',
-                'ruleId' => $issue['rule_id'],
-                'severity' => Severity::fromInt((int)$issue['severity'])->label(),
-                'severityCode' => (int)$issue['severity'],
-                'status' => IssueStatus::fromInt((int)$issue['status'])->label(),
-                'message' => $issue['message'],
-                'hint' => $issue['hint'] ?? '',
-                'sourceTable' => $issue['source_table'],
-                'sourceUid' => (int)$issue['source_uid'],
-                'sourceField' => $issue['source_field'],
-                'language' => (int)$issue['source_lang_uid'],
-                'contextPath' => $issue['context_path'],
-                'contextSnippet' => $issue['context_snippet'] ?? '',
-                'firstSeen' => $issue['crdate'] ? date('c', (int)$issue['crdate']) : null,
-                'lastSeen' => $issue['tstamp'] ? date('c', (int)$issue['tstamp']) : null,
-                'ignoredBy' => $issue['ignored_by'] ? (int)$issue['ignored_by'] : null,
-                'ignoredReason' => $issue['ignored_reason'] ?: null,
-            ];
-        }, $issues);
+        $issues = $this->issueRepository->findForExport(
+            siteIdentifier: $siteIdentifier,
+            pageUid: $pageUid,
+            onlyOpen: $normalizedStatus === 'open'
+        );
 
-        return Utils::jsonEncode([
-            'siteIdentifier' => $siteIdentifier,
-            'exportedAt' => date('c'),
-            'filter' => $onlyOpen ? 'open' : 'all',
-            'totalIssues' => count($data),
-            'issues' => $data,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $issues = IssueFilterUtility::filterByStatus($issues, $normalizedStatus);
+        $issues = IssueFilterUtility::filterBySeverity($issues, $normalizedSeverity);
+
+        return $issues;
     }
 }

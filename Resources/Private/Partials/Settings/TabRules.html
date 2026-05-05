@@ -1,0 +1,103 @@
+<div class="card">
+    <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
+        <div>
+            <h3 class="h5 mb-1">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.title"
+                        default="Rules"
+                />
+            </h3>
+            <p class="text-muted small mb-0">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.description"
+                        default="Configure custom phrase lists that are merged with AQG built-in defaults."
+                />
+            </p>
+        </div>
+
+        <button type="submit" form="a11y-settings-rules-form" class="btn btn-primary">
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save"
+                    default="Save changes"
+            />
+        </button>
+    </div>
+
+    <div class="card-body pt-3">
+        <form method="post" action="{saveExtConfUrl}" class="d-flex flex-column gap-4" id="a11y-settings-rules-form">
+            <f:for each="{returnParameters}" as="value" key="name">
+                <input type="hidden" name="{name}" value="{value}" />
+            </f:for>
+
+            <f:if condition="{selectedRulesetSite}">
+                <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+            </f:if>
+
+            <input type="hidden" name="tab" value="rules" />
+
+            <div>
+                <label class="form-label fw-semibold" for="aqg-non-descriptive-phrases">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveLabel"
+                            default="Non-descriptive link phrases"
+                    />
+                </label>
+
+                <textarea
+                        id="aqg-non-descriptive-phrases"
+                        name="nonDescriptiveLinkPhrases"
+                        class="form-control font-monospace"
+                        rows="6"
+                        placeholder="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.placeholder', default:'One phrase per line or comma-separated')}"
+                >{nonDescriptiveLinkPhrases}</textarea>
+
+                <div class="form-text">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveHelp"
+                            default="Custom phrases are merged with built-in defaults. One phrase per line or comma-separated."
+                    />
+                </div>
+
+                <div class="small text-muted mt-2">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveBuiltIn"
+                            default="Built-in"
+                    />:
+                    <code>{nonDescriptiveDefaultsText}</code>
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label fw-semibold" for="aqg-window-hint-phrases">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowLabel"
+                            default="New window warning phrases"
+                    />
+                </label>
+
+                <textarea
+                        id="aqg-window-hint-phrases"
+                        name="linkNewWindowHintPhrases"
+                        class="form-control font-monospace"
+                        rows="4"
+                        placeholder="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.placeholder', default:'One phrase per line or comma-separated')}"
+                >{linkNewWindowHintPhrases}</textarea>
+
+                <div class="form-text">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowHelp"
+                            default="Phrases that count as valid warnings for links opening in a new tab or window."
+                    />
+                </div>
+
+                <div class="small text-muted mt-2">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowBuiltIn"
+                            default="Built-in"
+                    />:
+                    <code>{windowHintDefaultsText}</code>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

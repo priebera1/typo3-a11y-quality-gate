@@ -1,0 +1,64 @@
+<ul class="nav nav-tabs" role="tablist" aria-label="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.ariaLabel', default:'Settings sections')}">
+    <li class="nav-item" role="presentation">
+        <a
+                class="nav-link{f:if(condition: '{activeTab} == \'licence\'', then: ' active')}"
+                href="{settingsTabUrls.licence}"
+                role="tab"
+                aria-selected="{f:if(condition: '{activeTab} == \'licence\'', then: 'true', else: 'false')}"
+                aria-current="{f:if(condition: '{activeTab} == \'licence\'', then: 'page', else: '')}"
+        >
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.licence"
+                    default="Licence"
+            />
+            <f:if condition="{licenceStatus.valid}">
+                <span class="badge bg-success ms-2">PRO</span>
+            </f:if>
+        </a>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <a
+                class="nav-link{f:if(condition: '{activeTab} == \'fields\'', then: ' active')}"
+                href="{settingsTabUrls.fields}"
+                role="tab"
+                aria-selected="{f:if(condition: '{activeTab} == \'fields\'', then: 'true', else: 'false')}"
+                aria-current="{f:if(condition: '{activeTab} == \'fields\'', then: 'page', else: '')}"
+        >
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.scanFields"
+                    default="Scan Fields"
+            />
+        </a>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <a
+                class="nav-link{f:if(condition: '{activeTab} == \'gate\'', then: ' active')}"
+                href="{settingsTabUrls.gate}"
+                role="tab"
+                aria-selected="{f:if(condition: '{activeTab} == \'gate\'', then: 'true', else: 'false')}"
+                aria-current="{f:if(condition: '{activeTab} == \'gate\'', then: 'page', else: '')}"
+        >
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.qualityGate"
+                    default="Quality Gate"
+            />
+        </a>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <a
+                class="nav-link{f:if(condition: '{activeTab} == \'rules\'', then: ' active')}"
+                href="{settingsTabUrls.rules}"
+                role="tab"
+                aria-selected="{f:if(condition: '{activeTab} == \'rules\'', then: 'true', else: 'false')}"
+                aria-current="{f:if(condition: '{activeTab} == \'rules\'', then: 'page', else: '')}"
+        >
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.rules"
+                    default="Rules"
+            />
+        </a>
+    </li>
+</ul>

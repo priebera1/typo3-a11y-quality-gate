@@ -1,0 +1,136 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div>
+    <f:render
+            partial="Overview/LocalActions"
+            arguments="{
+                lastScan: lastScan,
+                canScanAll: canScanAll,
+                siteRootPid: siteRootPid,
+                currentPageUid: currentPageUid,
+                isPageContext: isPageContext,
+                currentPageHasIssues: currentPageHasIssues,
+                currentPageDetailUrl: currentPageDetailUrl,
+                scanStatus: scanStatus
+            }"
+    />
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="fw-semibold">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.title"
+                            default="Pages with open issues"
+                    />
+                </div>
+                <div class="small text-muted d-flex align-items-center gap-2 flex-wrap">
+                    <span>
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.sortedHint"
+                                default="Sorted by severity"
+                        />
+                    </span>
+                    <span>·</span>
+                    <span>
+                        {totalLocalPages}
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages"
+                                default="pages"
+                        />
+                    </span>
+                    <f:if condition="{localPagination.totalPages} > 1">
+                        <span>·</span>
+                        <span>
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.page"
+                                    default="Page"
+                            />
+                            {localPagination.currentPage}/{localPagination.totalPages}
+                        </span>
+                    </f:if>
+                </div>
+            </div>
+
+            <div class="a11y-overview-header-tools">
+                <f:render
+                        partial="Shared/ExportButtons"
+                        arguments="{
+                            show: lastScan,
+                            csvUrl: exportLocalCsvUrl,
+                            pdfUrl: exportLocalPdfUrl,
+                            showPdf: proStatus.hasExportPdf
+                        }"
+                />
+
+                <form method="get" role="search" class="mb-0 a11y-overview-search-form">
+                    <f:if condition="{currentPageUid} > 0">
+                        <f:then>
+                            <input type="hidden" name="id" value="{currentPageUid}" />
+                        </f:then>
+                        <f:else>
+                            <input type="hidden" name="id" value="{siteRootPid}" />
+                        </f:else>
+                    </f:if>
+
+                    <f:if condition="{siteIdentifier}">
+                        <input type="hidden" name="site" value="{siteIdentifier}" />
+                    </f:if>
+
+                    <f:if condition="{remotePagination.currentPage} > 1">
+                        <input type="hidden" name="remotePage" value="{remotePagination.currentPage}" />
+                    </f:if>
+
+                    <f:if condition="{remoteFailedPagination.currentPage} > 1">
+                        <input type="hidden" name="remoteFailedPage" value="{remoteFailedPagination.currentPage}" />
+                    </f:if>
+
+                    <f:if condition="{remoteQuery}">
+                        <input type="hidden" name="remoteQuery" value="{remoteQuery}" />
+                    </f:if>
+
+                    <f:if condition="{remoteFailedQuery}">
+                        <input type="hidden" name="remoteFailedQuery" value="{remoteFailedQuery}" />
+                    </f:if>
+
+                    <label class="visually-hidden" for="a11y-overview-search-local">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.label"
+                                default="Search pages"
+                        />
+                    </label>
+
+                    <input
+                            type="search"
+                            id="a11y-overview-search-local"
+                            name="localQuery"
+                            value="{localQuery}"
+                            class="form-control form-control-sm"
+                            placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.placeholder', default: 'Search pages')}"
+                            data-a11y-overview-search="true"
+                            data-a11y-search-mode="server"
+                            autocomplete="off"
+                    />
+                </form>
+            </div>
+        </div>
+
+        <div class="card-body p-3">
+            <f:render partial="Overview/LocalStats" arguments="{totalCounts: totalCounts}" />
+            <f:render
+                    partial="Overview/LocalTable"
+                    arguments="{
+                        pageStats: pageStats,
+                        totalLocalPages: totalLocalPages,
+                        localPagination: localPagination,
+                        localPaginationItems: localPaginationItems,
+                        localQuery: localQuery
+                    }"
+            />
+        </div>
+    </div>
+</div>
+</html>

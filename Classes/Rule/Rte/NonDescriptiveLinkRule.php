@@ -128,6 +128,22 @@ final class NonDescriptiveLinkRule extends AbstractRteRule
         $normalizedRaw = str_replace(["\r\n", "\r"], "\n", $raw);
         $parts = preg_split('/[\n,]+/', $normalizedRaw) ?: [];
 
+        $parts = array_map(
+            static fn(mixed $value): string => trim((string)$value),
+            $parts
+        );
+
+        $parts = array_values(array_filter(
+            $parts,
+            static fn(string $value): bool => $value !== ''
+        ));
+
+        $parts = array_slice($parts, 0, 100);
+        $parts = array_values(array_filter(
+            $parts,
+            static fn(string $value): bool => mb_strlen($value) <= 100
+        ));
+
         return $this->normalizePhrases($parts);
     }
 

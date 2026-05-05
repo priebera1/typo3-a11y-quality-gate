@@ -111,12 +111,12 @@ CREATE TABLE tx_a11y_source_state (
 
     PRIMARY KEY (uid),
     UNIQUE KEY uniq_source (
-      site_identifier(50),
-      source_table(50),
-      source_uid,
-      source_field(50),
-      source_lang_uid
-      ),
+    site_identifier(50),
+    source_table(50),
+    source_uid,
+    source_field(50),
+    source_lang_uid
+    ),
     KEY idx_page (site_identifier(50), page_uid)
 );
 
@@ -146,4 +146,136 @@ CREATE TABLE tx_a11y_field_config (
     KEY idx_enabled (is_enabled),
     KEY idx_deleted (deleted),
     KEY idx_hidden (hidden)
+);
+
+#
+# Table structure for table 'tx_a11y_remote_scan'
+#
+CREATE TABLE tx_a11y_remote_scan (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    deleted tinyint(4) unsigned DEFAULT '0' NOT NULL,
+
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    job_id varchar(255) DEFAULT '' NOT NULL,
+    source_type varchar(50) DEFAULT '' NOT NULL,
+    scan_scope varchar(20) DEFAULT 'site' NOT NULL,
+    page_uid int(11) DEFAULT '0' NOT NULL,
+
+    start_url varchar(2048) DEFAULT '' NOT NULL,
+    sitemap_url varchar(2048) DEFAULT NULL,
+    status varchar(50) DEFAULT '' NOT NULL,
+
+    pages_scanned int(11) DEFAULT '0' NOT NULL,
+    pages_total int(11) DEFAULT '0' NOT NULL,
+    pages_failed int(11) DEFAULT '0' NOT NULL,
+    issues_total int(11) DEFAULT '0' NOT NULL,
+    issues_new int(11) DEFAULT '0' NOT NULL,
+    issues_resolved int(11) DEFAULT '0' NOT NULL,
+
+    started_at int(11) DEFAULT '0' NOT NULL,
+    finished_at int(11) DEFAULT '0' NOT NULL,
+    last_synced_at int(11) DEFAULT '0' NOT NULL,
+    persisted_at int(11) DEFAULT '0' NOT NULL,
+    sync_error text,
+
+    PRIMARY KEY (uid),
+    KEY site_identifier (site_identifier),
+    KEY job_id (job_id),
+    KEY status (status),
+    KEY scan_scope (scan_scope),
+    KEY page_uid (page_uid),
+    KEY persisted_at (persisted_at)
+);
+
+#
+# Table structure for table 'tx_a11y_remote_scan_page'
+#
+CREATE TABLE tx_a11y_remote_scan_page (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    deleted tinyint(4) unsigned DEFAULT '0' NOT NULL,
+
+    remote_scan int(11) DEFAULT '0' NOT NULL,
+    source_type varchar(50) DEFAULT '' NOT NULL,
+    url varchar(2048) DEFAULT '' NOT NULL,
+    title varchar(1024) DEFAULT '' NOT NULL,
+    http_status int(11) DEFAULT '0' NOT NULL,
+    issues_count int(11) DEFAULT '0' NOT NULL,
+    screenshot_path varchar(2048) DEFAULT '' NOT NULL,
+    screenshot_url varchar(2048) DEFAULT '' NOT NULL,
+    external_page_id varchar(36) DEFAULT '' NOT NULL,
+    failure_reason text,
+    is_failed tinyint(1) DEFAULT '0' NOT NULL,
+
+    PRIMARY KEY (uid),
+    KEY remote_scan (remote_scan),
+    KEY issues_count (issues_count),
+    KEY is_failed (is_failed)
+);
+
+#
+# Table structure for table 'tx_a11y_remote_issue'
+#
+CREATE TABLE tx_a11y_remote_issue (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    deleted tinyint(4) unsigned DEFAULT '0' NOT NULL,
+
+    remote_scan int(11) DEFAULT '0' NOT NULL,
+    remote_scan_page int(11) DEFAULT '0' NOT NULL,
+
+    rule_id varchar(255) DEFAULT '' NOT NULL,
+    impact varchar(50) DEFAULT '' NOT NULL,
+    help text,
+    help_url varchar(2048) DEFAULT '' NOT NULL,
+    nodes_count int(11) DEFAULT '0' NOT NULL,
+    fingerprint varchar(64) DEFAULT '' NOT NULL,
+    status varchar(50) DEFAULT 'open' NOT NULL,
+
+    PRIMARY KEY (uid),
+    KEY remote_scan (remote_scan),
+    KEY remote_scan_page (remote_scan_page),
+    KEY rule_id (rule_id),
+    KEY impact (impact),
+    KEY fingerprint (fingerprint)
+);
+
+#
+# Table structure for table 'tx_a11y_remote_issue_node'
+#
+CREATE TABLE tx_a11y_remote_issue_node (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    deleted tinyint(4) unsigned DEFAULT '0' NOT NULL,
+
+    remote_issue int(11) DEFAULT '0' NOT NULL,
+    target_json mediumtext,
+    html_snippet mediumtext,
+    failure_summary text,
+    screenshot_path varchar(2048) DEFAULT '' NOT NULL,
+    screenshot_url varchar(2048) DEFAULT '' NOT NULL,
+
+    mapped_table varchar(255) DEFAULT '' NOT NULL,
+    mapped_uid int(11) DEFAULT '0' NOT NULL,
+    mapped_cid varchar(255) DEFAULT '' NOT NULL,
+    mapped_ctype varchar(100) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    KEY remote_issue (remote_issue)
+);
+
+#
+# Table structure for table 'sys_file_reference'
+#
+CREATE TABLE sys_file_reference (
+    tx_a11y_is_decorative tinyint(1) unsigned DEFAULT '0' NOT NULL
 );

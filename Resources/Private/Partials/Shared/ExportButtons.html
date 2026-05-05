@@ -1,0 +1,33 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:if condition="{show}">
+    <div class="d-flex flex-wrap gap-2">
+        <f:if condition="{csvUrl}">
+            <a href="{csvUrl}" class="btn btn-default btn-sm d-inline-flex align-items-center gap-1">
+                <core:icon identifier="actions-download" size="small" />
+                <span>
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.exportCsv"
+                            default="Export CSV"
+                    />
+                </span>
+            </a>
+        </f:if>
+
+        <f:if condition="{showPdf} && {pdfUrl}">
+            <a href="{pdfUrl}" class="btn btn-default btn-sm d-inline-flex align-items-center gap-1">
+                <core:icon identifier="actions-download" size="small" />
+                <span>
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.exportPdf"
+                            default="Export PDF"
+                    />
+                </span>
+            </a>
+        </f:if>
+    </div>
+</f:if>
+</html>

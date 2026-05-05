@@ -143,9 +143,9 @@ class TableAndHeadingRulesTest extends TestCase
     }
 
     #[Test]
-    public function heading_defaultSeverityIsWarning(): void
+    public function heading_defaultSeverityIsCritical(): void
     {
-        self::assertSame(Severity::Warning, (new EmptyHeadingRule())->getDefaultSeverity());
+        self::assertSame(Severity::Critical, (new EmptyHeadingRule())->getDefaultSeverity());
     }
 
     // PASS
@@ -180,23 +180,23 @@ class TableAndHeadingRulesTest extends TestCase
     // FAIL
 
     #[Test]
-    public function heading_completelyEmptyHeadingProducesWarning(): void
+    public function heading_completelyEmptyHeadingProducesCritical(): void
     {
         $violations = (new EmptyHeadingRule())->check($this->ctx('<h2></h2>'));
 
         self::assertCount(1, $violations);
-        self::assertSame(Severity::Warning, $violations[0]->severity);
+        self::assertSame(Severity::Critical, $violations[0]->severity);
     }
 
     #[Test]
-    public function heading_whiteSpaceOnlyHeadingProducesWarning(): void
+    public function heading_whiteSpaceOnlyHeadingProducesCritical(): void
     {
         $violations = (new EmptyHeadingRule())->check($this->ctx('<h3>   </h3>'));
         self::assertCount(1, $violations);
     }
 
     #[Test]
-    public function heading_nbspOnlyHeadingProducesWarning(): void
+    public function heading_nbspOnlyHeadingProducesCritical(): void
     {
         // &nbsp; is NOT visible meaningful content
         $violations = (new EmptyHeadingRule())->check($this->ctx('<h2>&nbsp;</h2>'));
@@ -204,7 +204,7 @@ class TableAndHeadingRulesTest extends TestCase
     }
 
     #[Test]
-    public function heading_headingWithImageWithEmptyAltProducesWarning(): void
+    public function heading_headingWithImageWithEmptyAltProducesCritical(): void
     {
         // Image with empty alt provides no accessible name to the heading
         $html = '<h2><img src="deco.png" alt=""></h2>';

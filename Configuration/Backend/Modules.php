@@ -20,6 +20,7 @@ return [
                 'status' => true,
                 'severity' => true,
                 'page' => true,
+                'remotePageUid' => true,
             ],
         ],
         'routes' => [
@@ -30,6 +31,10 @@ return [
                 'path' => '/page',
                 'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::showAction',
             ],
+            'remotePageDetail' => [
+                'path' => '/remote-page',
+                'target' => \Priebera\A11yQualityGate\Controller\RemotePageDetailController::class . '::showAction',
+            ],
             'settings' => [
                 'path' => '/settings',
                 'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::indexAction',
@@ -37,6 +42,11 @@ return [
             'settingsSave' => [
                 'path' => '/settings/save',
                 'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::saveAction',
+                'methods' => ['POST'],
+            ],
+            'settingsSaveExtConf' => [
+                'path' => '/settings/save-ext-conf',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::saveExtConfAction',
                 'methods' => ['POST'],
             ],
             'settingsRefresh' => [
@@ -58,9 +68,13 @@ return [
                 'path' => '/export/csv',
                 'target' => \Priebera\A11yQualityGate\Controller\ExportController::class . '::csvAction',
             ],
-            'exportJson' => [
-                'path' => '/export/json',
-                'target' => \Priebera\A11yQualityGate\Controller\ExportController::class . '::jsonAction',
+            'exportPdf' => [
+                'path' => '/export/pdf',
+                'target' => \Priebera\A11yQualityGate\Controller\ExportController::class . '::pdfAction',
+            ],
+            'remoteScreenshot' => [
+                'path' => '/remote-screenshot',
+                'target' => \Priebera\A11yQualityGate\Controller\RemoteScreenshotController::class . '::showAction',
             ],
         ],
     ],
