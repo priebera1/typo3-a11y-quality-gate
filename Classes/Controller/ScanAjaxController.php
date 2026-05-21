@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
 use Priebera\A11yQualityGate\Service\AccessControlService;
+use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
+use Priebera\A11yQualityGate\Service\LanguageUidResolver;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
+use Priebera\A11yQualityGate\Exception\ScanCancelledException;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -29,6 +34,9 @@ final class ScanAjaxController extends AbstractApiController
         private readonly AccessControlService $accessControlService,
         private readonly ScanStatusService $scanStatusService,
         private readonly RemoteScanRepository $remoteScanRepository,
+        private readonly ScanRepository $scanRepository,
+        private readonly BackendRecordAccessService $backendRecordAccessService,
+        private readonly LanguageUidResolver $languageUidResolver,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -49,10 +57,16 @@ final class ScanAjaxController extends AbstractApiController
         }
 
         $body = $request->getParsedBody();
-        $pageUid = (int)(is_array($body) ? ($body['pageUid'] ?? 0) : 0);
+        $bodyParams = is_array($body) ? $body : [];
+        $pageUid = (int)($bodyParams['pageUid'] ?? 0);
+        $languageUid = $this->languageUidResolver->fromParameters($bodyParams, [], 0, true) ?? 0;
 
         if ($pageUid <= 0) {
             return $this->badRequestResponse('Missing or invalid pageUid');
+        }
+
+        if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+            return $this->forbiddenResponse();
         }
 
         $backendUser = $this->getBackendUser();
@@ -64,17 +78,28 @@ final class ScanAjaxController extends AbstractApiController
 
         try {
             $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierFromPageId($pageUid);
+            $resolvedBy = $this->backendUserService->getBackendUserSnapshot();
 
             $this->scanStatusService->markRunning(
                 trigger: 'page',
                 triggeredBy: $triggeredBy,
                 pageUid: $pageUid,
+                languageUid: $languageUid,
             );
             $scanStarted = true;
+
+            $this->releasePhpSessionLock();
 
             $result = $this->scanOrchestrator->scanPage(
                 siteIdentifier: $siteIdentifier,
                 pageUid: $pageUid,
+                languageUid: $languageUid,
+                resolvedBy: $resolvedBy,
+                shouldCancel: fn (int $scanUid): bool => $this->scanStatusService->isCancellationRequested()
+                    || $this->scanRepository->isScanCancellationRequested($scanUid),
+                onRunStarted: function (int $scanUid): void {
+                    $this->scanStatusService->markScanRunStarted($scanUid);
+                },
             );
 
             $this->scanStatusService->markFinished($result);
@@ -87,6 +112,15 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesNew' => $result->issuesNew,
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
+                'status' => $this->scanStatusService->getStatus(),
+            ]);
+        } catch (ScanCancelledException) {
+            $this->scanStatusService->markCancelled();
+
+            return $this->jsonResponse([
+                'success' => false,
+                'code' => 'local_scan_cancelled',
+                'message' => 'Scan was cancelled.',
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (\Throwable $e) {
@@ -125,10 +159,16 @@ final class ScanAjaxController extends AbstractApiController
         }
 
         $body = $request->getParsedBody();
-        $rootPid = (int)(is_array($body) ? ($body['rootPid'] ?? 0) : 0);
+        $bodyParams = is_array($body) ? $body : [];
+        $rootPid = (int)($bodyParams['rootPid'] ?? 0);
+        $languageUid = $this->languageUidResolver->fromParameters($bodyParams, [], 0, true) ?? 0;
 
         if ($rootPid <= 0) {
             return $this->badRequestResponse('Missing or invalid rootPid');
+        }
+
+        if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
+            return $this->forbiddenResponse();
         }
 
         $backendUser = $this->getBackendUser();
@@ -140,17 +180,28 @@ final class ScanAjaxController extends AbstractApiController
 
         try {
             $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierFromPageId($rootPid);
+            $resolvedBy = $this->backendUserService->getBackendUserSnapshot();
 
             $this->scanStatusService->markRunning(
                 trigger: 'site',
                 triggeredBy: $triggeredBy,
                 rootPid: $rootPid,
+                languageUid: $languageUid,
             );
             $scanStarted = true;
+
+            $this->releasePhpSessionLock();
 
             $result = $this->scanOrchestrator->scanSubtree(
                 siteIdentifier: $siteIdentifier,
                 rootPid: $rootPid,
+                languageUid: $languageUid,
+                resolvedBy: $resolvedBy,
+                shouldCancel: fn (int $scanUid): bool => $this->scanStatusService->isCancellationRequested()
+                    || $this->scanRepository->isScanCancellationRequested($scanUid),
+                onRunStarted: function (int $scanUid): void {
+                    $this->scanStatusService->markScanRunStarted($scanUid);
+                },
             );
 
             $this->scanStatusService->markFinished($result);
@@ -163,6 +214,15 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesNew' => $result->issuesNew,
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
+                'status' => $this->scanStatusService->getStatus(),
+            ]);
+        } catch (ScanCancelledException) {
+            $this->scanStatusService->markCancelled();
+
+            return $this->jsonResponse([
+                'success' => false,
+                'code' => 'local_scan_cancelled',
+                'message' => 'Scan was cancelled.',
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (\Throwable $e) {
@@ -185,6 +245,43 @@ final class ScanAjaxController extends AbstractApiController
         }
     }
 
+    public function cancelScanAction(ServerRequestInterface $request): ResponseInterface
+    {
+        if (!$this->isBackendUserLoggedIn()) {
+            return $this->unauthorizedResponse();
+        }
+
+        $backendUser = $this->getBackendUser();
+        if (
+            !$this->accessControlService->canShowScanNow($backendUser)
+            && !$this->accessControlService->canShowScanAll($backendUser)
+        ) {
+            return $this->forbiddenResponse();
+        }
+
+        if (!$this->scanStatusService->isRunning()) {
+            return $this->jsonResponse([
+                'success' => true,
+                'status' => $this->scanStatusService->getStatus(),
+                'message' => 'No content scan is running.',
+            ]);
+        }
+
+        $status = $this->scanStatusService->getStatus();
+        $scanUid = (int)($status['scanUid'] ?? 0);
+        if ($scanUid > 0) {
+            $this->scanRepository->requestScanCancellation($scanUid);
+        }
+
+        $this->scanStatusService->requestCancellation();
+
+        return $this->jsonResponse([
+            'success' => true,
+            'status' => $this->scanStatusService->getStatus(),
+            'message' => 'Content scan cancellation was requested.',
+        ]);
+    }
+
     public function scanStatusAction(ServerRequestInterface $request): ResponseInterface
     {
         if (!$this->isBackendUserLoggedIn()) {
@@ -196,6 +293,21 @@ final class ScanAjaxController extends AbstractApiController
             'status' => $this->scanStatusService->getStatus(),
             'remoteStatus' => $this->resolveRemoteStatusForRequest($request),
         ]);
+    }
+
+    /**
+     * Releases the PHP session lock before the long-running local scan starts.
+     *
+     * Without this, a second AJAX request from the same TYPO3 backend user can be
+     * blocked by the active scan request. That makes cooperative cancellation look
+     * unreliable for the user who started the scan, while another backend user can
+     * still cancel it because their request uses a different session.
+     */
+    private function releasePhpSessionLock(): void
+    {
+        if (PHP_SESSION_ACTIVE === session_status()) {
+            session_write_close();
+        }
     }
 
     /**
@@ -219,31 +331,42 @@ final class ScanAjaxController extends AbstractApiController
             return null;
         }
 
-        $activeSiteScan = $this->remoteScanRepository->findLatestActiveSiteScanBySite($siteIdentifier);
+        $languageUid = $this->resolveLanguageUidFromQueryParams($queryParams);
+
+        $activeSiteScan = $this->remoteScanRepository->findLatestActiveSiteScanBySite($siteIdentifier, $languageUid);
         if (is_array($activeSiteScan)) {
             return $activeSiteScan;
         }
 
         if ($pageUid > 0) {
-            $activePageScan = $this->remoteScanRepository->findLatestRelevantActiveScan($siteIdentifier, $pageUid);
+            $activePageScan = $this->remoteScanRepository->findLatestRelevantActiveScan($siteIdentifier, $pageUid, $languageUid);
             if (is_array($activePageScan)) {
                 return $activePageScan;
             }
         }
 
-        $activeAnyScan = $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
+        $activeAnyScan = $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier, $languageUid);
         if (is_array($activeAnyScan)) {
             return $activeAnyScan;
         }
 
-        $lastCompletedSiteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier);
+        $lastCompletedSiteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
         if (is_array($lastCompletedSiteScan)) {
             return $lastCompletedSiteScan;
         }
 
-        $lastCompletedScan = $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier);
+        $lastCompletedScan = $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier, $languageUid);
 
         return is_array($lastCompletedScan) ? $lastCompletedScan : null;
+    }
+
+
+    /**
+     * @param array<string, mixed> $queryParams
+     */
+    private function resolveLanguageUidFromQueryParams(array $queryParams): int
+    {
+        return $this->languageUidResolver->fromParameters($queryParams, [], 0, true) ?? 0;
     }
 
     private function isMissingSiteConfigurationException(\Throwable $exception): bool

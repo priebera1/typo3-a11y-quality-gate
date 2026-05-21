@@ -9,13 +9,17 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
 use TYPO3\CMS\Scheduler\Controller\SchedulerModuleController;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
 final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldProvider
 {
+    public function __construct(
+        private readonly SiteFinder $siteFinder,
+    ) {
+    }
+
     private const FIELD_PAGE_UID = 'task_a11y_pageUid';
     private const FIELD_ROOT_PID = 'task_a11y_rootPid';
     private const FIELD_DEPTH = 'task_a11y_depth';
@@ -262,10 +266,8 @@ final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldP
      */
     private function fetchSelectableRootPages(): array
     {
-        $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
-
         $result = [];
-        foreach ($siteFinder->getAllSites() as $site) {
+        foreach ($this->siteFinder->getAllSites() as $site) {
             $result[] = [
                 'uid' => $site->getRootPageId(),
                 'siteIdentifier' => $site->getIdentifier(),
@@ -286,14 +288,12 @@ final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldP
      */
     private function fetchSelectableLanguages(int $rootPid, int $pageUid): array
     {
-        $siteFinder = GeneralUtility::makeInstance(SiteFinder::class);
-
         $site = null;
         $candidatePid = $pageUid > 0 ? $pageUid : $rootPid;
 
         if ($candidatePid > 0) {
             try {
-                $site = $siteFinder->getSiteByPageId($candidatePid);
+                $site = $this->siteFinder->getSiteByPageId($candidatePid);
             } catch (\Throwable) {
                 $site = null;
             }

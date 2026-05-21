@@ -31,6 +31,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $lastSyncedAt = 0,
         int $persistedAt = 0,
         string $syncError = '',
+        int $languageUid = -1,
         int $pid = 0,
     ): int {
         $connection = $this->getConnection(Tables::REMOTE_SCAN);
@@ -45,6 +46,7 @@ final class RemoteScanRepository extends AbstractRepository
             'source_type' => $sourceType->value,
             'scan_scope' => $scanScope,
             'page_uid' => $pageUid,
+            'language_uid' => $languageUid,
             'start_url' => $startUrl,
             'sitemap_url' => $sitemapUrl,
             'status' => $status,
@@ -89,6 +91,7 @@ final class RemoteScanRepository extends AbstractRepository
         string $status,
         string $scanScope = 'site',
         int $pageUid = 0,
+        int $languageUid = -1,
         int $pid = 0,
     ): int {
         $now = time();
@@ -113,6 +116,7 @@ final class RemoteScanRepository extends AbstractRepository
             lastSyncedAt: $now,
             persistedAt: 0,
             syncError: '',
+            languageUid: $languageUid,
             pid: $pid,
         );
     }
@@ -169,6 +173,30 @@ final class RemoteScanRepository extends AbstractRepository
         );
     }
 
+    public function markCancelled(string $jobId, string $message = ''): void
+    {
+        $existing = $this->findScanByJobId($jobId);
+        if (!is_array($existing)) {
+            return;
+        }
+
+        $now = time();
+
+        $this->getConnection(Tables::REMOTE_SCAN)->update(
+            Tables::REMOTE_SCAN,
+            [
+                'status' => 'cancelled',
+                'finished_at' => (int)($existing['finished_at'] ?? 0) > 0 ? (int)$existing['finished_at'] : $now,
+                'last_synced_at' => $now,
+                'sync_error' => $message,
+                'tstamp' => $now,
+            ],
+            [
+                'uid' => (int)$existing['uid'],
+            ]
+        );
+    }
+
     public function isPersisted(string $jobId): bool
     {
         $existing = $this->findScanByJobId($jobId);
@@ -196,11 +224,11 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLatestActiveScanBySite(string $siteIdentifier): ?array
+    public function findLatestActiveScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
-        $row = $queryBuilder
+        $queryBuilder
             ->select('*')
             ->from(Tables::REMOTE_SCAN)
             ->where(
@@ -229,7 +257,11 @@ final class RemoteScanRepository extends AbstractRepository
                         )
                     )
                 )
-            )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
             ->orderBy('started_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
@@ -239,11 +271,11 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLatestActiveSiteScanBySite(string $siteIdentifier): ?array
+    public function findLatestActiveSiteScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
-        $row = $queryBuilder
+        $queryBuilder
             ->select('*')
             ->from(Tables::REMOTE_SCAN)
             ->where(
@@ -278,7 +310,11 @@ final class RemoteScanRepository extends AbstractRepository
                         )
                     )
                 )
-            )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
             ->orderBy('started_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
@@ -288,11 +324,11 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLastCompletedScanBySite(string $siteIdentifier): ?array
+    public function findLastCompletedScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
-        $row = $queryBuilder
+        $queryBuilder
             ->select('*')
             ->from(Tables::REMOTE_SCAN)
             ->where(
@@ -306,7 +342,11 @@ final class RemoteScanRepository extends AbstractRepository
                     'status',
                     $queryBuilder->createNamedParameter('completed')
                 )
-            )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
@@ -316,11 +356,11 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLastCompletedSiteScanBySite(string $siteIdentifier): ?array
+    public function findLastCompletedSiteScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
-        $row = $queryBuilder
+        $queryBuilder
             ->select('*')
             ->from(Tables::REMOTE_SCAN)
             ->where(
@@ -340,7 +380,11 @@ final class RemoteScanRepository extends AbstractRepository
                     'status',
                     $queryBuilder->createNamedParameter('completed')
                 )
-            )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
@@ -350,12 +394,12 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLastCompletedRelevantScan(string $siteIdentifier, int $pageUid): ?array
+    public function findLastCompletedRelevantScan(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
     {
         if ($pageUid > 0) {
             $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
-            $row = $queryBuilder
+            $queryBuilder
                 ->select('*')
                 ->from(Tables::REMOTE_SCAN)
                 ->where(
@@ -381,7 +425,11 @@ final class RemoteScanRepository extends AbstractRepository
                         'status',
                         $queryBuilder->createNamedParameter('completed')
                     )
-                )
+                );
+
+            $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+            $row = $queryBuilder
                 ->orderBy('finished_at', 'DESC')
                 ->addOrderBy('uid', 'DESC')
                 ->setMaxResults(1)
@@ -393,7 +441,7 @@ final class RemoteScanRepository extends AbstractRepository
             }
         }
 
-        return $this->findLastCompletedSiteScanBySite($siteIdentifier);
+        return $this->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
     }
 
     public function findUnpersistedCompletedScanBySite(string $siteIdentifier): ?array
@@ -470,11 +518,11 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLatestRelevantActiveScan(string $siteIdentifier, int $pageUid): ?array
+    public function findLatestRelevantActiveScan(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
-        $row = $queryBuilder
+        $queryBuilder
             ->select('*')
             ->from(Tables::REMOTE_SCAN)
             ->where(
@@ -515,7 +563,11 @@ final class RemoteScanRepository extends AbstractRepository
                         )
                     )
                 )
-            )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
             ->orderBy('started_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
@@ -526,7 +578,27 @@ final class RemoteScanRepository extends AbstractRepository
             return $row;
         }
 
-        return $this->findLatestActiveSiteScanBySite($siteIdentifier);
+        return $this->findLatestActiveSiteScanBySite($siteIdentifier, $languageUid);
+    }
+
+    private function addLanguageConstraint(QueryBuilder $queryBuilder, int $languageUid): void
+    {
+        if ($languageUid < 0) {
+            return;
+        }
+
+        $queryBuilder->andWhere(
+            $queryBuilder->expr()->or(
+                $queryBuilder->expr()->eq(
+                    'language_uid',
+                    $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'language_uid',
+                    $queryBuilder->createNamedParameter(-1, Connection::PARAM_INT)
+                )
+            )
+        );
     }
 
     public function deletePagesByRemoteScan(int $remoteScanUid): void

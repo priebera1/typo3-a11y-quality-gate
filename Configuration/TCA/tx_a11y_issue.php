@@ -188,9 +188,41 @@ return [
                 'readOnly' => true,
             ],
         ],
+        'ignored_by_name' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_issue.field.ignored_by_name',
+            'config' => [
+                'type' => 'input',
+                'readOnly' => true,
+            ],
+        ],
+        'ignored_by_username' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_issue.field.ignored_by_username',
+            'config' => [
+                'type' => 'input',
+                'readOnly' => true,
+            ],
+        ],
         'ignored_at' => [
             'exclude' => true,
             'label' => $ll . 'tx_a11y_issue.field.ignored_at',
+            'config' => [
+                'type' => 'datetime',
+                'readOnly' => true,
+            ],
+        ],
+        'ignored_until' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_issue.field.ignored_until',
+            'config' => [
+                'type' => 'datetime',
+                'readOnly' => true,
+            ],
+        ],
+        'ignored_reopened_at' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_issue.field.ignored_reopened_at',
             'config' => [
                 'type' => 'datetime',
                 'readOnly' => true,
@@ -201,6 +233,22 @@ return [
             'label' => $ll . 'tx_a11y_issue.field.resolved_by',
             'config' => [
                 'type' => 'number',
+                'readOnly' => true,
+            ],
+        ],
+        'resolved_by_name' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_issue.field.resolved_by_name',
+            'config' => [
+                'type' => 'input',
+                'readOnly' => true,
+            ],
+        ],
+        'resolved_by_username' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_issue.field.resolved_by_username',
+            'config' => [
+                'type' => 'input',
                 'readOnly' => true,
             ],
         ],
@@ -240,7 +288,7 @@ return [
                 --div--;' . $ll . 'tx_a11y_issue.tab.context,
                     context_snippet, context_path, fingerprint,
                 --div--;' . $ll . 'tx_a11y_issue.tab.status,
-                    status, ignored_reason, ignored_by, ignored_at, resolved_by, resolved_at,
+                    status, ignored_reason, ignored_by, ignored_by_name, ignored_by_username, ignored_at, ignored_until, ignored_reopened_at, resolved_by, resolved_by_name, resolved_by_username, resolved_at,
                 --div--;' . $ll . 'tx_a11y_issue.tab.scan,
                     crdate, tstamp, first_seen_scan_uid, last_seen_scan_uid
             ',

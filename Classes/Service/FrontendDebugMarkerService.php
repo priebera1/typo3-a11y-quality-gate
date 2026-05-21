@@ -11,6 +11,7 @@ final class FrontendDebugMarkerService
 {
     public function __construct(
         private readonly Context $context,
+        private readonly ScannerAccessTokenService $scannerAccessTokenService,
     ) {
     }
 
@@ -22,27 +23,21 @@ final class FrontendDebugMarkerService
         }
 
         $queryParams = $request->getQueryParams();
+        if ((string)($queryParams['aqgDebug'] ?? '') !== '1') {
+            return false;
+        }
 
-        return (string)($queryParams['aqgDebug'] ?? '') === '1';
+        if ($this->isBackendUserLoggedIn()) {
+            return true;
+        }
+
+        $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
+        if ($scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken)) {
+            return true;
+        }
+
+        return false;
     }
-
-//    public function isEnabled(ServerRequestInterface $request): bool
-//    {
-//        if (!$this->isFrontendRequest($request)) {
-//            return false;
-//        }
-//
-//        $queryParams = $request->getQueryParams();
-//        if ((string)($queryParams['aqgDebug'] ?? '') !== '1') {
-//            return false;
-//        }
-//
-//        if (!$this->isBackendUserLoggedIn()) {
-//            return false;
-//        }
-//
-//        return true;
-//    }
 
     private function isFrontendRequest(ServerRequestInterface $request): bool
     {

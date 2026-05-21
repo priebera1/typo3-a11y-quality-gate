@@ -129,6 +129,7 @@ final class RemoteScanRecoveryService
                 'pagesTotal' => $summaryResult->pagesScanned,
                 'pageUid' => (int)($remoteScan['page_uid'] ?? 0),
                 'pages' => $resultsResult->pages,
+                'languageUid' => (int)($remoteScan['language_uid'] ?? -1),
             ];
 
             $this->remoteScanPersistenceService->persistResults(

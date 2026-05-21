@@ -5,41 +5,60 @@
         aria-labelledby="a11y-settings-tab-fields"
         tabindex="0"
 >
-    <div class="card">
-        <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
-            <div>
-                <h3 class="h5 mb-1">
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scannedFields.title" />
-                </h3>
-                <p class="text-muted small mb-0">
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scannedFields.description" />
-                </p>
+    <div class="aqg-stack">
+        <form method="post" action="{refreshUrl}" id="a11y-settings-refresh-fields-form" hidden="hidden">
+            <f:for each="{returnParameters}" as="value" key="name">
+                <input type="hidden" name="{name}" value="{value}" />
+            </f:for>
+            <f:if condition="{selectedRulesetSite}">
+                <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+            </f:if>
+            <input type="hidden" name="tab" value="fields" />
+        </form>
+
+        <f:if condition="{fieldGroups}">
+        <div class="aqg-actionbar" data-a11y-settings-actionbar="true">
+            <div class="aqg-actionbar__left aqg-scan-summary">
+                <div>
+                    <div class="aqg-scan-summary__numbers">
+                        <strong data-a11y-settings-summary-enabled="true">0</strong>
+                        <span>of</span>
+                        <strong data-a11y-settings-summary-total="true">0</strong>
+                        <span class="aqg-scan-summary__label">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.fieldsEnabled" default="fields enabled" />
+                        </span>
+                    </div>
+                    <div class="aqg-actionbar__meta">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.across" default="across" />
+                        <span data-a11y-settings-summary-groups="true">0</span>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.fieldGroups" default="field groups" />
+                    </div>
+                </div>
             </div>
 
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <form method="post" action="{refreshUrl}" class="mb-0">
-                    <f:for each="{returnParameters}" as="value" key="name">
-                        <input type="hidden" name="{name}" value="{value}" />
-                    </f:for>
+            <div class="aqg-actionbar__right">
+                <span class="aqg-actionbar__dirty" data-a11y-settings-dirty="true" hidden="hidden">
+                    <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.unsavedChanges" default="Unsaved changes" /></span>
+                </span>
 
-                    <f:if condition="{selectedRulesetSite}">
-                        <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
-                    </f:if>
 
-                    <input type="hidden" name="tab" value="fields" />
+                <button type="submit" form="a11y-settings-refresh-fields-form" class="btn btn-default btn-sm">
+                    <f:render partial="Settings/Icon" arguments="{name: 'running'}" />
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields.short" default="Refresh fields" /></span>
+                </button>
 
-                    <button type="submit" class="btn btn-secondary">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields" />
-                    </button>
-                </form>
-
-                <button type="submit" form="a11y-settings-fields-form" class="btn btn-primary">
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" />
+                <button type="reset" form="a11y-settings-fields-form" class="aqg-link-button aqg-link-button--muted" data-a11y-settings-dirty="true" hidden="hidden">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.discard" default="Discard" />
+                </button>
+                <button type="submit" form="a11y-settings-fields-form" class="btn btn-primary btn-sm">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
                 </button>
             </div>
         </div>
+        </f:if>
 
-        <form method="post" action="{saveUrl}" id="a11y-settings-fields-form">
+        <form method="post" action="{saveUrl}" id="a11y-settings-fields-form" class="aqg-card">
             <f:for each="{returnParameters}" as="value" key="name">
                 <input type="hidden" name="{name}" value="{value}" />
             </f:for>
@@ -51,86 +70,117 @@
             <input type="hidden" name="tab" value="fields" />
             <input type="hidden" name="fieldsFormSubmitted" value="1" />
 
-            <div class="card-body">
+            <div class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scannedFields.title" default="Scanned fields" />
+                    </h3>
+                    <p class="aqg-card__sub">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scannedFields.description" default="Choose which discovered fields should be included in future scans." />
+                    </p>
+                </div>
+                <f:if condition="{fieldGroups}">
+                    <f:then></f:then>
+                    <f:else>
+                        <div class="aqg-card__actions">
+                            <button type="submit" form="a11y-settings-refresh-fields-form" class="btn btn-default btn-sm">
+                                <f:render partial="Settings/Icon" arguments="{name: 'running'}" />
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields.short" default="Refresh fields" /></span>
+                            </button>
+                        </div>
+                    </f:else>
+                </f:if>
+            </div>
+
+            <div class="aqg-card__body">
                 <f:if condition="{fieldGroups}">
                     <f:then>
-                        <div class="d-flex flex-column gap-3">
+                        <div class="aqg-field-groups">
                             <f:for each="{fieldGroups}" as="group" key="tableName">
-                                <div class="card border">
-                                    <details open="open" data-a11y-settings-group="true">
-                                        <summary class="a11y-field-group-header">
-                                            <span class="d-flex align-items-start gap-2">
-                                                <span class="a11y-field-group-header__toggle" aria-hidden="true"></span>
-                                                <span class="d-flex flex-column">
-                                                    <span class="fw-semibold">
-                                                        <f:translate
-                                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.group.{tableName}"
-                                                                default="{group.label}"
-                                                        />
-                                                    </span>
-                                                    <code class="small text-muted">{tableName}</code>
+                                <details class="aqg-fgroup" open="open" data-a11y-settings-group="true">
+                                    <summary class="aqg-fgroup__head a11y-field-group-header">
+                                        <span class="aqg-fgroup__chev" aria-hidden="true">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" focusable="false" aria-hidden="true"><path d="M4 2.4 L8 6 L4 9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                        </span>
+
+                                        <span class="aqg-fgroup__title-block">
+                                            <span class="aqg-fgroup__title">
+                                                <span>
+                                                    <f:if condition="{group.label}">
+                                                        <f:then>{group.label}</f:then>
+                                                        <f:else>
+                                                            <f:switch expression="{tableName}">
+                                                                <f:case value="tt_content">Content elements</f:case>
+                                                                <f:case value="pages">Page properties</f:case>
+                                                                <f:case value="tx_news_domain_model_news">News records</f:case>
+                                                                <f:defaultCase>Custom records</f:defaultCase>
+                                                            </f:switch>
+                                                        </f:else>
+                                                    </f:if>
                                                 </span>
+                                                <span class="aqg-fgroup__table">{tableName}</span>
                                             </span>
-
-                                            <span
-                                                    class="text-muted small"
-                                                    data-a11y-settings-count="true"
-                                                    data-total-count="{group.totalCount}"
-                                            >
-                                                {group.enabledCount}
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enabledFieldsCount" />
-                                                <span class="text-muted">/ {group.totalCount}</span>
+                                            <span class="aqg-fgroup__help">
+                                                <f:switch expression="{tableName}">
+                                                    <f:case value="tt_content">Standard TYPO3 content fields. Use this group to control what is scanned inside content elements on the page.</f:case>
+                                                    <f:case value="pages">Fields stored on the page itself — page title, navigation and metadata.</f:case>
+                                                    <f:case value="tx_news_domain_model_news">Detected from EXT:news. Add or remove fields if your team extends the news model.</f:case>
+                                                    <f:defaultCase>Detected database fields for this table. Enable the fields AQG should include in future scans.</f:defaultCase>
+                                                </f:switch>
                                             </span>
-                                        </summary>
+                                        </span>
 
-                                        <div class="px-3 pt-2 pb-1 small text-muted">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.group.help" />
-                                        </div>
+                                        <span class="aqg-fgroup__count" data-a11y-settings-count="true" data-total-count="{group.totalCount}" data-enabled-count="{group.enabledCount}" data-enabled-label="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enabledFieldsCount', default:'enabled')}">
+                                            <strong>{group.enabledCount}</strong><span>/ {group.totalCount} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enabledFieldsCount" default="enabled" /></span>
+                                        </span>
 
-                                        <div class="list-group list-group-flush">
+                                        <span class="aqg-fgroup__action">
+                                            <button type="button" class="btn btn-default btn-sm" data-a11y-settings-enable-group="true">
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enableAll" default="Enable all" />
+                                            </button>
+                                        </span>
+                                    </summary>
+
+                                    <div class="aqg-fgroup__body">
+                                        <div class="aqg-fgroup__list">
                                             <f:for each="{group.fields}" as="field" iteration="iterator">
                                                 <f:variable name="fieldDomId" value="a11y-field-{tableName}-{iterator.index}" />
 
-                                                <label
-                                                        for="{fieldDomId}"
-                                                        class="a11y-field-row {f:if(condition: '{field.is_enabled} == 0', then: 'is-unchecked')}"
-                                                        data-a11y-settings-item="true"
-                                                >
-                                                    <input
-                                                            id="{fieldDomId}"
-                                                            type="checkbox"
-                                                            name="enabledFields[{field.table_name}][]"
-                                                            value="{field.field_name}"
-                                                            class="form-check-input"
-                                                            data-a11y-settings-checkbox="true"
-                                                            {f:if(condition: field.is_enabled, then: 'checked="checked"')}
-                                                    />
-
-                                                    <span class="a11y-field-row__content">
-                                                        <span class="a11y-field-row__primary">
-                                                            <span class="a11y-field-row__title">{field.field_label}</span>
-
-                                                            <span class="badge rounded-pill a11y-pill a11y-pill--subtle a11y-field-row__type-badge">
-                                                                {field.field_type}
-                                                            </span>
-                                                        </span>
-
-                                                        <span class="a11y-field-row__secondary">
-                                                            <code class="a11y-field-row__name">{field.field_name}</code>
-                                                        </span>
+                                                <label for="{fieldDomId}" class="aqg-field-row a11y-field-row {f:if(condition: field.is_enabled, then: 'is-checked', else: 'is-unchecked')}" data-a11y-settings-item="true">
+                                                    <input id="{fieldDomId}" type="checkbox" name="enabledFields[{field.table_name}][]" value="{field.field_name}" class="aqg-field-row__input form-check-input" data-a11y-settings-checkbox="true" {f:if(condition: field.is_enabled, then: 'checked="checked"')} />
+                                                    <span class="aqg-check" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 L5 8.4 L9.5 3.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+                                                    <span class="aqg-field-row__body a11y-field-row__content">
+                                                        <span class="aqg-field-row__label a11y-field-row__title">{field.field_label}</span>
+                                                        <code class="aqg-field-row__name">{field.field_name}</code>
                                                     </span>
+                                                    <span class="aqg-field-row__type a11y-field-row__type-badge">{field.field_type}</span>
                                                 </label>
                                             </f:for>
                                         </div>
-                                    </details>
-                                </div>
+                                    </div>
+                                </details>
                             </f:for>
                         </div>
                     </f:then>
-
                     <f:else>
-                        <div class="alert alert-info mb-0">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.noFields" />
+                        <div class="aqg-empty">
+                            <span class="aqg-empty__icon" aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 14 14" focusable="false" aria-hidden="true"><path d="M11.5 7 A4.5 4.5 0 1 1 7 2.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><path d="M7.5 0.8 L7.5 3 L9.7 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                            </span>
+                            <span class="aqg-empty__title">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.noFields.title" default="No fields discovered" />
+                            </span>
+                            <span class="aqg-empty__body">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.noFields.text" default="AQG could not find any fields to scan. Refresh field discovery after the schema is available." />
+                            </span>
+                            <span class="aqg-empty__actions">
+                                <a href="https://typo3.priebera.sk/docs" class="btn btn-default btn-sm" data-open-new-tab="1">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.openDocs" default="Open documentation" />
+                                </a>
+                                <button type="submit" form="a11y-settings-refresh-fields-form" class="btn btn-primary btn-sm">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields.short" default="Refresh fields" />
+                                </button>
+                            </span>
                         </div>
                     </f:else>
                 </f:if>

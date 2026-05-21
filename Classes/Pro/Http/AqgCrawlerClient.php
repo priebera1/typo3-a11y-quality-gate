@@ -12,6 +12,7 @@ use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResponseDto;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSummaryResponseDto;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
+use Priebera\A11yQualityGate\Utility\StringListUtility;
 use Psr\Http\Client\ClientExceptionInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
@@ -33,22 +34,67 @@ final class AqgCrawlerClient
         string $axeLocale = 'en',
         bool $captureScreenshot = false,
         bool $cookieDismiss = true,
+        string $scannerPreviewToken = '',
+        string $httpAuthUser = '',
+        string $httpAuthPass = '',
+        array $excludedPatterns = [],
+        array $priorityUrls = [],
+        array $cookieSelectors = [],
+        ?int $languageId = null,
+        string $languageCode = '',
     ): CrawlerSubmitResponseDto {
+        $requestPayload = [
+            'siteId' => $siteId,
+            'sourceType' => $sourceType->value,
+            'startUrl' => $startUrl,
+            'sitemapUrl' => $sitemapUrl,
+            'maxPages' => $maxPages,
+            'followLinks' => $followLinks,
+            'axeLocale' => $axeLocale,
+            'captureScreenshot' => $captureScreenshot,
+            'cookieDismiss' => $cookieDismiss,
+        ];
+
+        if ($scannerPreviewToken !== '') {
+            $requestPayload['scannerToken'] = $scannerPreviewToken;
+        }
+
+        if ($httpAuthUser !== '' && $httpAuthPass !== '') {
+            $requestPayload['httpAuth'] = [
+                'username' => $httpAuthUser,
+                'password' => $httpAuthPass,
+            ];
+        }
+
+        $excludedPatterns = StringListUtility::normalize($excludedPatterns);
+        if ($excludedPatterns !== []) {
+            $requestPayload['excludedPatterns'] = $excludedPatterns;
+        }
+
+        $priorityUrls = StringListUtility::normalize($priorityUrls);
+        if ($priorityUrls !== []) {
+            $requestPayload['priorityUrls'] = $priorityUrls;
+        }
+
+        $cookieSelectors = StringListUtility::normalize($cookieSelectors);
+        if ($cookieSelectors !== []) {
+            $requestPayload['cookieSelectors'] = $cookieSelectors;
+        }
+
+        if ($languageId !== null) {
+            $requestPayload['languageId'] = $languageId;
+        }
+
+        $languageCode = trim($languageCode);
+        if ($languageCode !== '') {
+            $requestPayload['languageCode'] = $languageCode;
+        }
+
         $payload = $this->requestJson(
             '/crawl/submit',
             'POST',
             $accessToken,
-            [
-                'siteId' => $siteId,
-                'sourceType' => $sourceType->value,
-                'startUrl' => $startUrl,
-                'sitemapUrl' => $sitemapUrl,
-                'maxPages' => $maxPages,
-                'followLinks' => $followLinks,
-                'axeLocale' => $axeLocale,
-                'captureScreenshot' => $captureScreenshot,
-                'cookieDismiss' => $cookieDismiss,
-            ]
+            $requestPayload
         );
 
         return CrawlerSubmitResponseDto::fromArray($payload);
@@ -90,6 +136,19 @@ final class AqgCrawlerClient
     /**
      * @return array<string, mixed>
      */
+    public function cancel(string $accessToken, string $jobId): array
+    {
+        return $this->requestJson(
+            '/crawl/cancel/' . rawurlencode($jobId),
+            'POST',
+            $accessToken,
+            ['jobId' => $jobId]
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function requestJson(string $path, string $method, string $accessToken, array $payload = []): array
     {
         $url = rtrim(ProSettings::resolveCrawlerBaseUrl(), '/') . $path;
@@ -111,13 +170,13 @@ final class AqgCrawlerClient
 
         try {
             $response = $this->requestFactory->request($url, $method, $options);
-        } catch (ClientExceptionInterface|\JsonException $exception) {
+        } catch (ClientExceptionInterface | \JsonException $exception) {
             throw new ApiRequestFailedException(
                 'AQG crawler request failed: '
                 . $exception->getMessage()
                 . ' | url=' . $url
                 . ' | method=' . $method
-                . ' | payload=' . json_encode($payload),
+                . ' | payload=' . json_encode($this->sanitizePayloadForLog($payload)),
                 0,
                 $exception
             );
@@ -132,7 +191,7 @@ final class AqgCrawlerClient
                 . ' | http=' . $statusCode
                 . ' | url=' . $url
                 . ' | method=' . $method
-                . ' | payload=' . json_encode($payload)
+                . ' | payload=' . json_encode($this->sanitizePayloadForLog($payload))
             );
         }
 
@@ -144,8 +203,7 @@ final class AqgCrawlerClient
                 . ' | http=' . $statusCode
                 . ' | url=' . $url
                 . ' | method=' . $method
-                . ' | payload=' . json_encode($payload)
-                . ' | body=' . $body,
+                . ' | payload=' . json_encode($this->sanitizePayloadForLog($payload)),
                 0,
                 $exception
             );
@@ -157,8 +215,7 @@ final class AqgCrawlerClient
                 . ' | http=' . $statusCode
                 . ' | url=' . $url
                 . ' | method=' . $method
-                . ' | payload=' . json_encode($payload)
-                . ' | body=' . $body
+                . ' | payload=' . json_encode($this->sanitizePayloadForLog($payload))
             );
         }
 
@@ -171,24 +228,55 @@ final class AqgCrawlerClient
                 $message .= ': ' . $decoded['error'];
             }
 
+            if (isset($decoded['error']['code']) && is_string($decoded['error']['code'])) {
+                $message .= ' | code=' . $decoded['error']['code'];
+            }
+
             $message .= ' | url=' . $url;
             $message .= ' | method=' . $method;
-            $message .= ' | payload=' . json_encode($payload);
-            $message .= ' | body=' . $body;
+            $message .= ' | payload=' . json_encode($this->sanitizePayloadForLog($payload));
 
             throw new ApiRequestFailedException($message);
         }
 
         if ((bool)($decoded['success'] ?? true) === false) {
-            throw new ApiRequestFailedException(
-                'AQG crawler logical error'
-                . ' | url=' . $url
-                . ' | method=' . $method
-                . ' | payload=' . json_encode($payload)
-                . ' | body=' . $body
-            );
+            $message = 'AQG crawler logical error';
+            if (isset($decoded['error']['message']) && is_string($decoded['error']['message'])) {
+                $message .= ': ' . $decoded['error']['message'];
+            } elseif (isset($decoded['error']) && is_string($decoded['error'])) {
+                $message .= ': ' . $decoded['error'];
+            }
+
+            $message .= ' | url=' . $url;
+            $message .= ' | method=' . $method;
+            $message .= ' | payload=' . json_encode($this->sanitizePayloadForLog($payload));
+
+            throw new ApiRequestFailedException($message);
         }
 
         return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizePayloadForLog(array $payload): array
+    {
+        if (isset($payload['scannerToken']) && $payload['scannerToken'] !== '') {
+            $payload['scannerToken'] = '***';
+        }
+
+        if (isset($payload['scannerPreviewToken']) && $payload['scannerPreviewToken'] !== '') {
+            $payload['scannerPreviewToken'] = '***';
+        }
+
+        if (isset($payload['httpAuth']) && is_array($payload['httpAuth'])) {
+            if (isset($payload['httpAuth']['password']) && $payload['httpAuth']['password'] !== '') {
+                $payload['httpAuth']['password'] = '***';
+            }
+        }
+
+        return $payload;
     }
 }

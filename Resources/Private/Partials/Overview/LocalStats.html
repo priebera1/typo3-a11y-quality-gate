@@ -1,63 +1,104 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
-<div>
-    <f:if condition="{totalCounts.total} > 0">
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-lg-3">
-                <div class="card h-100 border-danger">
-                    <div class="card-body">
-                        <div class="a11y-stat-card__number text-danger">{totalCounts.critical}</div>
-                        <div class="a11y-stat-card__label text-muted mt-1">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
-                                    default="Critical"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3">
-                <div class="card h-100 border-warning">
-                    <div class="card-body">
-                        <div class="a11y-stat-card__number text-warning">{totalCounts.warning}</div>
-                        <div class="a11y-stat-card__label text-muted mt-1">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural"
-                                    default="Warnings"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3">
-                <div class="card h-100 border-info">
-                    <div class="card-body">
-                        <div class="a11y-stat-card__number text-info">{totalCounts.info}</div>
-                        <div class="a11y-stat-card__label text-muted mt-1">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
-                                    default="Info"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="a11y-stat-card__number">{totalCounts.total}</div>
-                        <div class="a11y-stat-card__label text-muted mt-1">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.total"
-                                    default="Total open"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="aqg-stats">
+    <div class="aqg-stat aqg-stat--critical {f:if(condition: totalCounts.critical, then: '', else: 'is-zero')}">
+        <div class="aqg-stat__head">
+            <span>
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
+                        default="Critical"
+                />
+            </span>
         </div>
-    </f:if>
+        <div class="aqg-stat__value">{f:if(condition: lastScan, then: totalCounts.critical, else: '—')}</div>
+        <div class="aqg-stat__delta">
+            <f:if condition="{lastScan}">
+                <f:then>
+                    <f:if condition="{localNewCounts.critical} > 0">
+                        <f:then><span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{localNewCounts.critical} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.newSinceLast" default="since last scan" /></span></f:then>
+                        <f:else><span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span></f:else>
+                    </f:if>
+                </f:then>
+                <f:else>· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title" default="No scan on record" /></f:else>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="aqg-stat aqg-stat--warning {f:if(condition: totalCounts.warning, then: '', else: 'is-zero')}">
+        <div class="aqg-stat__head">
+            <span>
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural"
+                        default="Warnings"
+                />
+            </span>
+        </div>
+        <div class="aqg-stat__value">{f:if(condition: lastScan, then: totalCounts.warning, else: '—')}</div>
+        <div class="aqg-stat__delta">
+            <f:if condition="{lastScan}">
+                <f:then>
+                    <f:if condition="{localNewCounts.warning} > 0">
+                        <f:then><span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{localNewCounts.warning} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.newSinceLast" default="since last scan" /></span></f:then>
+                        <f:else><span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span></f:else>
+                    </f:if>
+                </f:then>
+                <f:else>· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title" default="No scan on record" /></f:else>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="aqg-stat aqg-stat--info {f:if(condition: totalCounts.info, then: '', else: 'is-zero')}">
+        <div class="aqg-stat__head">
+            <span>
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
+                        default="Info"
+                />
+            </span>
+        </div>
+        <div class="aqg-stat__value">{f:if(condition: lastScan, then: totalCounts.info, else: '—')}</div>
+        <div class="aqg-stat__delta">
+            <f:if condition="{lastScan}">
+                <f:then>
+                    <f:if condition="{localNewCounts.info} > 0">
+                        <f:then><span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{localNewCounts.info} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.newSinceLast" default="since last scan" /></span></f:then>
+                        <f:else><span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span></f:else>
+                    </f:if>
+                </f:then>
+                <f:else>· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title" default="No scan on record" /></f:else>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="aqg-stat aqg-stat--neutral {f:if(condition: totalCounts.total, then: '', else: 'is-zero')}">
+        <div class="aqg-stat__head">
+            <span>
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.total"
+                        default="Total open"
+                />
+            </span>
+        </div>
+        <div class="aqg-stat__value">{f:if(condition: lastScan, then: totalCounts.total, else: '—')}</div>
+        <div class="aqg-stat__delta">
+            <f:if condition="{lastScan}">
+                <f:then>
+                    <f:if condition="{localScanDelta.new} > 0">
+                        <f:then>
+                            <span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{localScanDelta.new} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                        </f:then>
+                        <f:else>
+                            <f:if condition="{localScanDelta.resolved} > 0">
+                                <f:then>
+                                    <span class="aqg-stat__delta-change aqg-stat__delta-change--down">▼ -{localScanDelta.resolved} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                                </f:then>
+                                <f:else><span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.acrossPages" default="across" /> {totalLocalPages} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages" default="pages" /></span></f:else>
+                            </f:if>
+                        </f:else>
+                    </f:if>
+                </f:then>
+                <f:else>· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title" default="No scan on record" /></f:else>
+            </f:if>
+        </div>
+    </div>
 </div>
 </html>

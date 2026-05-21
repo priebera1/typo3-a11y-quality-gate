@@ -1,0 +1,42 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div class="aqg-expiry" data-a11y-expiry-picker="true">
+    <div class="aqg-expiry__label">Reopen automatically <span class="aqg-expiry__sub">optional</span></div>
+    <div class="aqg-expiry__row" role="radiogroup" aria-label="Ignore duration">
+        <label class="aqg-expiry__chip is-active">
+            <input type="radio" name="ignoreExpiry" value="never" checked="checked" />
+            <span class="aqg-expiry__chip-dot" aria-hidden="true"></span>
+            Ignore permanently
+        </label>
+        <label class="aqg-expiry__chip">
+            <input type="radio" name="ignoreExpiry" value="7d" />
+            <span class="aqg-expiry__chip-dot" aria-hidden="true"></span>
+            Ignore for 7 days
+        </label>
+        <label class="aqg-expiry__chip">
+            <input type="radio" name="ignoreExpiry" value="30d" />
+            <span class="aqg-expiry__chip-dot" aria-hidden="true"></span>
+            Ignore for 30 days
+        </label>
+        <label class="aqg-expiry__chip">
+            <input type="radio" name="ignoreExpiry" value="90d" />
+            <span class="aqg-expiry__chip-dot" aria-hidden="true"></span>
+            Ignore for 90 days
+        </label>
+        <label class="aqg-expiry__chip">
+            <input type="radio" name="ignoreExpiry" value="custom" />
+            <span class="aqg-expiry__chip-dot" aria-hidden="true"></span>
+            Ignore until date…
+        </label>
+    </div>
+    <div class="aqg-expiry__custom" data-a11y-expiry-custom="true" hidden="hidden">
+        <label class="aqg-expiry__custom-label" for="{inputId}{issueUid}">Reopen on</label>
+        <input id="{inputId}{issueUid}" type="date" name="ignoreUntilDate" class="aqg-expiry__custom-date" />
+        <div class="aqg-expiry__custom-helper">The issue will reopen at the start of this day in your TYPO3 timezone.</div>
+    </div>
+    <div class="aqg-expiry__preview" data-a11y-expiry-preview="true">The issue stays ignored until someone unignores it manually.</div>
+    <div class="aqg-expiry__error" data-a11y-expiry-error="true" hidden="hidden">The reopen date must be at least one day in the future.</div>
+</div>
+</html>

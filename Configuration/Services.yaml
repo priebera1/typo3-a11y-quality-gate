@@ -141,6 +141,12 @@ services:
         identifier: 'a11y-quality-gate/rte-configuration-listener'
         event: TYPO3\CMS\RteCKEditor\Form\Element\Event\BeforePrepareConfigurationForEditorEvent
 
+  Priebera\A11yQualityGate\EventListener\ModifyPageLayoutContentListener:
+    tags:
+      - name: event.listener
+        identifier: 'a11y-quality-gate/modify-page-layout-content-listener'
+        event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
+
   Priebera\A11yQualityGate\Command\ScanCommand:
     tags:
       - name: console.command

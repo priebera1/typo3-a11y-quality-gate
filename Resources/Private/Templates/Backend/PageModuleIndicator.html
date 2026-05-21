@@ -1,0 +1,63 @@
+<section
+    class="aqg-page-module-indicator aqg-page-module-indicator--{overallState}"
+    data-aqg-page-module-indicator="true"
+    data-page-uid="{pageUid}"
+    data-site="{siteIdentifier}"
+    data-running-headline="{runningHeadline}"
+    data-running-body="{runningBody}"
+    data-running-meta="{runningMeta}"
+    data-running-status="{runningStatus}"
+    aria-label="{title}"
+    aria-busy="{f:if(condition: isRunning, then: 'true', else: 'false')}"
+>
+    <header class="aqg-page-module-indicator__header">
+        <h2 class="aqg-page-module-indicator__title">{title}</h2>
+        <span class="aqg-page-module-indicator__status-pill">
+            <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: overallState}" />
+            <span>{statusLabel}</span>
+        </span>
+    </header>
+
+    <div class="aqg-page-module-indicator__content">
+        <p class="aqg-page-module-indicator__headline">{headline}</p>
+        <p class="aqg-page-module-indicator__text">{body}</p>
+
+        <div class="aqg-page-module-indicator__status-list">
+            <f:for each="{rows}" as="row">
+                <div class="aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--{row.state}">
+                    <span class="aqg-page-module-indicator__status-kind">{row.label}</span>
+                    <span class="aqg-page-module-indicator__status-value">
+                        <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: row.state}" />
+                        <span>{row.headline}</span>
+                    </span>
+                </div>
+            </f:for>
+        </div>
+    </div>
+
+    <f:if condition="{progress}">
+        <div class="aqg-page-module-indicator__progress {progress.modeClass}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{progress.percent}">
+            <span class="aqg-page-module-indicator__progress-bar" style="width:{progress.percent}%"></span>
+        </div>
+    </f:if>
+
+    <footer class="aqg-page-module-indicator__footer">
+        <div class="aqg-page-module-indicator__actions">
+            <f:for each="{actions}" as="action">
+                <f:render
+                    partial="Backend/PageModuleIndicator/Button"
+                    arguments="{action: action, pageUid: pageUid, currentPageUrl: currentPageUrl, siteIdentifier: siteIdentifier, scanMode: scanMode, languageUid: languageUid, loadingText: loadingText}"
+                />
+            </f:for>
+        </div>
+
+        <p class="aqg-page-module-indicator__meta">{meta}</p>
+
+        <f:if condition="{proHint}">
+            <div class="aqg-page-module-indicator__pro-hint">
+                <span class="aqg-page-module-indicator__pro-tag">PRO</span>
+                <span>{proHint}</span>
+            </div>
+        </f:if>
+    </footer>
+</section>

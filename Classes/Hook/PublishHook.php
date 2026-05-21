@@ -14,9 +14,10 @@ use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
 final class PublishHook
@@ -30,9 +31,10 @@ final class PublishHook
         private readonly QualityGateChecker $qualityGateChecker,
         private readonly ScanOrchestrator $scanOrchestrator,
         private readonly IssueRepository $issueRepository,
-        private readonly SiteFinder $siteFinder,
+        private readonly SiteResolutionService $siteResolutionService,
         private readonly ContentCollector $contentCollector,
         private readonly BackendUserService $backendUserService,
+        private readonly ConnectionPool $connectionPool,
         private readonly BackendContextService $backendContextService,
         private readonly ProCapabilityService $proCapabilityService,
         private readonly ExtensionContextService $extensionContextService,
@@ -54,9 +56,8 @@ final class PublishHook
         $changedContentByPage = $this->collectPrimaryChangedContentByPage($dataHandler);
 
         foreach ($changedContentByPage as $pageUid => $contentUid) {
-            try {
-                $site = $this->siteFinder->getSiteByPageId($pageUid);
-            } catch (\Throwable) {
+            $site = $this->siteResolutionService->resolveSiteByPageId($pageUid);
+            if ($site === null) {
                 continue;
             }
 
@@ -64,6 +65,7 @@ final class PublishHook
                 $this->scanOrchestrator->scanPage(
                     siteIdentifier: $site->getIdentifier(),
                     pageUid: $pageUid,
+                    resolvedBy: $this->backendUserService->getBackendUserSnapshot(),
                 );
             } catch (\Throwable) {
                 continue;
@@ -95,7 +97,8 @@ final class PublishHook
                 continue;
             }
 
-            $this->scanAndCheckPageGate($pageUid, $dataHandler);
+            $languageUid = (int)($data['sys_language_uid'] ?? 0);
+            $this->scanAndCheckPageGate($pageUid, $dataHandler, $languageUid);
         }
     }
 
@@ -230,11 +233,10 @@ final class PublishHook
         );
     }
 
-    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler): void
+    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler, int $languageUid = 0): void
     {
-        try {
-            $site = $this->siteFinder->getSiteByPageId($pageUid);
-        } catch (\Throwable) {
+        $site = $this->siteResolutionService->resolveSiteByPageId($pageUid);
+        if ($site === null) {
             return;
         }
 
@@ -242,12 +244,14 @@ final class PublishHook
             $this->scanOrchestrator->scanPage(
                 siteIdentifier: $site->getIdentifier(),
                 pageUid: $pageUid,
+                languageUid: $languageUid,
+                resolvedBy: $this->backendUserService->getBackendUserSnapshot(),
             );
         } catch (\Throwable) {
             return;
         }
 
-        $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier());
+        $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier(), $languageUid);
 
         if ($verdict->isPassed()) {
             if (!$verdict->isDisabled() && $verdict->hasAnyIssues()) {
@@ -278,7 +282,7 @@ final class PublishHook
         $proStatus = $this->getProStatusForSite((string)$site->getBase());
 
         if ($verdict->isBlockingMode() && $proStatus->valid) {
-            $dataHandler->datamap[Tables::PAGES][$pageUid]['hidden'] = 1;
+            $this->reHidePage($pageUid);
 
             $message = sprintf(
                 'Publishing blocked: %s. Open the Accessibility module to review issues.',
@@ -306,6 +310,18 @@ final class PublishHook
             title: 'AQG Warning',
             severity: ContextualFeedbackSeverity::WARNING,
             deduplicationKey: 'page-fallback-warning:' . $pageUid . ':' . md5($message),
+        );
+    }
+
+    private function reHidePage(int $pageUid): void
+    {
+        $connection = $this->connectionPool->getConnectionForTable(Tables::PAGES);
+        $connection->update(
+            Tables::PAGES,
+            [
+                'hidden' => 1,
+            ],
+            ['uid' => $pageUid]
         );
     }
 

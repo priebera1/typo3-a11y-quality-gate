@@ -1,94 +1,166 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <h1>{title}</h1>
-    <div class="subtitle">{subtitle}</div>
+    <htmlpageheader name="aqgLocalOverviewHeader">
+        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:7.2px;"><tbody><tr>
+            <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
+                <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
+            </td>
+            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:dejavusansmono, monospace; font-size:7.2px; letter-spacing:0.04em;">
+                <div class="aqgp-header__context" style="color:#7c828d; font-weight:bold; letter-spacing:0.08em;">LOCAL CONTENT SCAN</div>
+                <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
+            </td>
+        </tr></tbody></table>
+    </htmlpageheader>
+    <sethtmlpageheader name="aqgLocalOverviewHeader" value="on" show-this-page="1" />
 
-    <div class="meta">
-        <div><strong>Generated:</strong> {generatedAt}</div>
-        <div><strong>Site:</strong> {siteIdentifier}</div>
-        <div><strong>Filters:</strong> status = {status}, severity = {severity}</div>
+    <htmlpagefooter name="aqgLocalOverviewFooter">
+        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:6.8px;"><tbody><tr>
+            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:left; width:55%;">AQG · Local accessibility report · {rootPageTitle}</td>
+            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
+        </tr></tbody></table>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="aqgLocalOverviewFooter" value="on" show-this-page="1" />
+    <div class="aqgp-report-title">
+        <h1 class="aqgp-h1">Accessibility report</h1>
+        <p class="aqgp-sub">{siteLabel} · {scopeLabel}</p>
     </div>
+    <hr class="aqgp-header__rule" />
 
-    <table class="totals-table">
+    <table class="aqgp-meta">
+        <tbody>
         <tr>
-            <td class="total-card">
-                <div class="total-value">{totals.critical}</div>
-                <div class="total-label">Critical</div>
+            <td>
+                <div class="aqgp-meta__label">Generated</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{generatedAt}</div>
             </td>
-            <td class="total-card">
-                <div class="total-value">{totals.warning}</div>
-                <div class="total-label">Warnings</div>
-            </td>
-            <td class="total-card">
-                <div class="total-value">{totals.info}</div>
-                <div class="total-label">Info</div>
-            </td>
-            <td class="total-card">
-                <div class="total-value">{totals.total}</div>
-                <div class="total-label">Total</div>
+            <td>
+                <div class="aqgp-meta__label">Site</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{siteLabel}</div>
             </td>
         </tr>
+        <tr>
+            <td>
+                <div class="aqgp-meta__label">Scope</div>
+                <div class="aqgp-meta__value">{scopeLabel}</div>
+            </td>
+            <td>
+                <div class="aqgp-meta__label">Filters</div>
+                <div class="aqgp-meta__value aqgp-meta__value--chips">
+                    <span class="aqgp-chip">STATUS · {statusLabel}</span>
+                    <span class="aqgp-chip">SEVERITY · {severityLabel}</span>
+                </div>
+            </td>
+        </tr>
+        </tbody>
     </table>
 
-    <h2>Top affected pages</h2>
+    <table class="aqgp-section-title">
+        <tbody><tr><td>Totals</td><td class="aqgp-section-title__right">open issues across all pages</td></tr></tbody>
+    </table>
+    <table class="aqgp-cards">
+        <tbody><tr>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--critical{f:if(condition: totals.critical, else: ' is-zero')}"><tbody>
+                    <tr><td class="aqgp-card__label">Critical</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.critical}</td></tr>
+                    <tr><td class="aqgp-card__foot">{criticalFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--warning{f:if(condition: totals.warning, else: ' is-zero')}"><tbody>
+                    <tr><td class="aqgp-card__label">Warnings</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.warning}</td></tr>
+                    <tr><td class="aqgp-card__foot">{warningFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--info{f:if(condition: totals.info, else: ' is-zero')}"><tbody>
+                    <tr><td class="aqgp-card__label">Info</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.info}</td></tr>
+                    <tr><td class="aqgp-card__foot">{infoFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--total{f:if(condition: totals.total, else: ' is-zero')}"><tbody>
+                    <tr><td class="aqgp-card__label">Total</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.total}</td></tr>
+                    <tr><td class="aqgp-card__foot">{totalFoot}</td></tr>
+                </tbody></table>
+            </td>
+        </tr></tbody>
+    </table>
+
+    <table class="aqgp-section-title">
+        <tbody><tr><td>Top affected pages</td><td class="aqgp-section-title__right">{topPagesShown} of {affectedPagesCount}</td></tr></tbody>
+    </table>
     <f:if condition="{topPages}">
         <f:then>
-            <table>
+            <table class="aqgp-table">
                 <thead>
                 <tr>
                     <th>Page</th>
-                    <th>Critical</th>
-                    <th>Warnings</th>
-                    <th>Info</th>
-                    <th>Total</th>
+                    <th class="num">Critical</th>
+                    <th class="num">Warnings</th>
+                    <th class="num">Info</th>
+                    <th class="num">Total</th>
                 </tr>
                 </thead>
                 <tbody>
                 <f:for each="{topPages}" as="page">
                     <tr>
                         <td>
-                            <f:if condition="{page.pageTitle}">
-                                <f:then>{page.pageTitle}</f:then>
-                                <f:else>Page {page.pageUid}</f:else>
-                            </f:if>
+                            <span class="aqgp-table__title">{page.pageTitle}</span>
+                            <span class="aqgp-table__sub">{page.pageSub}</span>
                         </td>
-                        <td>{page.critical}</td>
-                        <td>{page.warning}</td>
-                        <td>{page.info}</td>
-                        <td>{page.total}</td>
+                        <td class="num"><span class="aqgp-count aqgp-count--{page.criticalTone}">{page.critical}</span></td>
+                        <td class="num"><span class="aqgp-count aqgp-count--{page.warningTone}">{page.warning}</span></td>
+                        <td class="num"><span class="aqgp-count aqgp-count--{page.infoTone}">{page.info}</span></td>
+                        <td class="num"><span class="aqgp-count aqgp-count--total">{page.total}</span></td>
                     </tr>
                 </f:for>
                 </tbody>
             </table>
         </f:then>
         <f:else>
-            <p class="muted">No matching page data found.</p>
+            <div class="aqgp-empty">
+                <p class="aqgp-empty__title">No matching page data found</p>
+                <p class="aqgp-empty__body">No pages match the active filters. Adjust severity or status filters before exporting.</p>
+            </div>
         </f:else>
     </f:if>
 
-    <h2>Top rules</h2>
+    <table class="aqgp-section-title">
+        <tbody><tr><td>Top rules</td><td class="aqgp-section-title__right">{topRulesShown} rules</td></tr></tbody>
+    </table>
     <f:if condition="{topRules}">
         <f:then>
-            <table>
+            <table class="aqgp-table">
                 <thead>
                 <tr>
                     <th>Rule</th>
-                    <th>Count</th>
+                    <th class="num">Count</th>
                 </tr>
                 </thead>
                 <tbody>
                 <f:for each="{topRules}" as="rule">
                     <tr>
-                        <td>{rule.ruleId}</td>
-                        <td>{rule.count}</td>
+                        <td>
+                            <span class="aqgp-table__title">{rule.title}</span>
+                            <span class="aqgp-table__sub">{rule.ruleId}</span>
+                        </td>
+                        <td class="num"><span class="aqgp-count aqgp-count--{rule.tone}">{rule.count}</span></td>
                     </tr>
                 </f:for>
                 </tbody>
             </table>
         </f:then>
         <f:else>
-            <p class="muted">No rule data found.</p>
+            <div class="aqgp-empty">
+                <p class="aqgp-empty__title">No rule data found</p>
+                <p class="aqgp-empty__body">Once content is scanned, the rules triggered most often will appear here.</p>
+            </div>
         </f:else>
     </f:if>
+
 </f:section>

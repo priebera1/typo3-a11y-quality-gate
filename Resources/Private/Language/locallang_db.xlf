@@ -58,13 +58,31 @@
                 <source>Ignored reason</source>
             </trans-unit>
             <trans-unit id="tx_a11y_issue.field.ignored_by">
-                <source>Ignored by</source>
+                <source>Ignored by UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_by_name">
+                <source>Ignored by name</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_by_username">
+                <source>Ignored by username</source>
             </trans-unit>
             <trans-unit id="tx_a11y_issue.field.ignored_at">
                 <source>Ignored at</source>
             </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_until">
+                <source>Ignored until</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.ignored_reopened_at">
+                <source>Automatically reopened at</source>
+            </trans-unit>
             <trans-unit id="tx_a11y_issue.field.resolved_by">
-                <source>Resolved by</source>
+                <source>Resolved by UID</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.resolved_by_name">
+                <source>Resolved by name</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_issue.field.resolved_by_username">
+                <source>Resolved by username</source>
             </trans-unit>
             <trans-unit id="tx_a11y_issue.field.resolved_at">
                 <source>Resolved at</source>
@@ -159,6 +177,49 @@
                 <source>Rules JSON</source>
             </trans-unit>
 
+            <trans-unit id="tx_a11y_ruleset.field.scanner_token">
+                <source>Scanner token</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.scanner_token.description">
+                <source>Optional token used by the remote scanner to identify or authorize this ruleset.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.http_auth_user">
+                <source>HTTP auth user</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.http_auth_user.description">
+                <source>Optional basic authentication username used by the remote scanner.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.http_auth_pass">
+                <source>HTTP auth password</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.http_auth_pass.description">
+                <source>Encrypted basic authentication password. It is managed through the AQG settings UI.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.excluded_patterns">
+                <source>Excluded URL patterns</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.excluded_patterns.description">
+                <source>JSON list of URL patterns that should be skipped by remote scans.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.cookie_accept_selectors">
+                <source>Cookie accept selectors</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.cookie_accept_selectors.description">
+                <source>Optional CSS selectors for custom cookie consent accept buttons.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.is_global">
+                <source>Global remote access settings</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.is_global.description">
+                <source>When enabled, these remote scan access settings are considered global defaults.</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.crawl_priority_urls">
+                <source>Crawl priority URLs</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.field.crawl_priority_urls.description">
+                <source>JSON list of URLs that should be prioritized by remote crawler jobs.</source>
+            </trans-unit>
+
             <trans-unit id="tx_a11y_ruleset.publish_mode.off">
                 <source>Off — no quality gate check</source>
             </trans-unit>
@@ -177,6 +238,9 @@
             </trans-unit>
             <trans-unit id="tx_a11y_ruleset.tab.quality_gate">
                 <source>Quality gate</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_ruleset.tab.remote_scan_access">
+                <source>Remote scan access</source>
             </trans-unit>
             <trans-unit id="tx_a11y_ruleset.tab.rules">
                 <source>Rules</source>
@@ -239,6 +303,9 @@
                 <source>Failed</source>
             </trans-unit>
 
+            <trans-unit id="tx_a11y_scan.status.cancelled">
+                <source>Cancelled</source>
+            </trans-unit>
             <trans-unit id="tx_a11y_scan.tab.general">
                 <source>General</source>
             </trans-unit>

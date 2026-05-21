@@ -1,54 +1,118 @@
 <html
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
 <f:layout name="Module" />
 
 <f:section name="Content">
     <div
-            class="a11y-overview container-fluid"
+            class="a11y-overview aqg-module aqg-stack container-fluid"
             data-a11y-site-identifier="{siteIdentifier}"
             data-a11y-current-page-uid="{currentPageUid}"
+        data-a11y-language-uid="{currentLanguageUid}"
     >
 
-        <div class="mb-4">
-            <h2 class="mb-1">
+        <header class="aqg-page-head aqg-page-head--with-language">
+            <div>
+            <h2 class="aqg-page-head__title">
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.overview.title"
                         default="Accessibility overview"
                 />
             </h2>
-            <p class="text-muted mb-0">
+            <p class="aqg-page-head__sub">
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.overview.description"
                         default="Review the latest scan results and open page-level issue summaries."
                 />
             </p>
-        </div>
+            </div>
 
+            <f:if condition="{hasLanguageOptions}">
+                <div class="aqg-page-head__language">
+                    <f:if condition="{languageOptionCount} > 1">
+                        <f:then>
+                            <f:render partial="Shared/LanguageSwitcher" arguments="{_all}" />
+                        </f:then>
+                        <f:else>
+                            <div class="aqg-lang aqg-lang--single">
+                                <div class="aqg-lang__readonly" title="{currentLanguageOption.title} {currentLanguageOption.locale}">
+                                    <f:if condition="{currentLanguageOption.flagIdentifier}">
+                                        <span class="aqg-lang__flag" aria-hidden="true">
+                                            <core:icon identifier="{currentLanguageOption.flagIdentifier}" size="small" />
+                                        </span>
+                                    </f:if>
+                                    <span>{currentLanguageOption.title}</span>
+                                    <f:if condition="{currentLanguageOption.locale}">
+                                        <span class="aqg-lang__locale">{currentLanguageOption.locale}</span>
+                                    </f:if>
+                                </div>
+                            </div>
+                        </f:else>
+                    </f:if>
+                    <div class="aqg-lang__context">
+                        Active · {currentLanguageOption.title}
+                        <f:if condition="{currentLanguageOption.hasResults}">
+                            · {currentLanguageOption.pageLabel}
+                        </f:if>
+                    </div>
+                </div>
+            </f:if>
+
+        </header>
+
+        <f:if condition="!{hasPageContext}">
+            <f:then>
+                <f:render partial="Shared/ModuleEmptyState" arguments="{emptyState: emptyState}" />
+            </f:then>
+            <f:else>
         <f:if condition="!{hasEnabledFields}">
-            <div class="alert alert-warning mb-4">
-                <strong>
+            <div class="aqg-notice aqg-tone-warning" role="status">
+                <span class="aqg-notice__icon" aria-hidden="true">
+                    <f:render partial="Overview/Icon" arguments="{name: 'warning'}" />
+                </span>
+                <div class="aqg-notice__body">
+                <strong class="aqg-notice__title">
                     <f:translate
                             key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.settingsRequired.title"
                             default="Scanner fields are not configured yet."
                     />
                 </strong>
-                <div>
+                <div class="aqg-notice__text">
                     <f:translate
                             key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.settingsRequired.text"
                             default="Open Settings, choose which fields should be scanned, save your changes, and then start the first scan."
                     />
                 </div>
+                </div>
+                <div class="aqg-notice__actions">
+                    <a href="{settingsUrl}" class="btn btn-primary btn-sm">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title"
+                                default="Open settings"
+                        />
+                    </a>
+                </div>
             </div>
         </f:if>
 
-        <f:render
-                partial="Shared/RemoteScanProgress"
-                arguments="{
-                    activeRemoteScan: activeRemoteScan
-                }"
-        />
+        <div class="aqg-stack aqg-scan-progress-stack" data-a11y-scan-progress-stack="true">
+            <f:render
+                    partial="Shared/RemoteScanProgress"
+                    arguments="{
+                        activeRemoteScan: activeRemoteScan
+                    }"
+            />
+
+            <f:render
+                    partial="Shared/LocalScanProgress"
+                    arguments="{
+                        isRunning: isRelevantLocalScanRunning,
+                        scanStatus: scanStatus
+                    }"
+            />
+        </div>
 
         <f:if condition="{proStatus.hasCrawler}">
             <f:render
@@ -65,6 +129,8 @@
                     arguments="{
                         lastScan: lastScan,
                         totalCounts: totalCounts,
+                        localNewCounts: localNewCounts,
+                        localScanDelta: localScanDelta,
                         pageStats: pageStats,
                         totalLocalPages: totalLocalPages,
                         localPagination: localPagination,
@@ -81,10 +147,13 @@
                         currentPageHasIssues: currentPageHasIssues,
                         currentPageDetailUrl: currentPageDetailUrl,
                         scanStatus: scanStatus,
+                        isRelevantLocalScanRunning: isRelevantLocalScanRunning,
                         exportLocalCsvUrl: exportLocalCsvUrl,
                         exportLocalPdfUrl: exportLocalPdfUrl,
                         proStatus: proStatus,
-                        siteIdentifier: siteIdentifier
+                        siteIdentifier: siteIdentifier,
+                        currentLanguageUid: currentLanguageUid,
+                        languageOptions: languageOptions
                     }"
             />
         </div>
@@ -118,7 +187,11 @@
                             siteIdentifier: siteIdentifier,
                             exportRemoteCsvUrl: exportRemoteCsvUrl,
                             exportRemotePdfUrl: exportRemotePdfUrl,
-                            proStatus: proStatus
+                            proStatus: proStatus,
+                            currentLanguageUid: currentLanguageUid,
+                            languageOptions: languageOptions,
+                            showRemoteScannerTokenNotice: showRemoteScannerTokenNotice,
+                            remoteScanAccessSettingsUrl: remoteScanAccessSettingsUrl
                         }"
                 />
             </div>
@@ -127,8 +200,10 @@
         <f:if condition="{proStatus.showProHints} && !{proStatus.hasCrawler}">
             <f:render
                     partial="Overview/ProHint"
-                    arguments="{proStatus: proStatus}"
+                    arguments="{proStatus: proStatus, settingsUrl: settingsUrl}"
             />
+        </f:if>
+            </f:else>
         </f:if>
 
     </div>

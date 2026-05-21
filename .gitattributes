@@ -1,0 +1,11 @@
+/Resources/Private/Scss export-ignore
+/node_modules export-ignore
+/.npm export-ignore
+/.cache export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/yarn.lock export-ignore
+/.gitignore export-ignore
+/phpunit.xml export-ignore
+/phpunit.unit.xml export-ignore
+/Tests export-ignore

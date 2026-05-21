@@ -128,6 +128,69 @@ return [
                 'rows' => 10,
             ],
         ],
+
+        'scanner_token' => [
+            'config' => [
+                'type' => 'passthrough',
+            ],
+        ],
+        'http_auth_user' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_ruleset.field.http_auth_user',
+            'description' => $ll . 'tx_a11y_ruleset.field.http_auth_user.description',
+            'config' => [
+                'type' => 'input',
+                'size' => 40,
+                'eval' => 'trim',
+            ],
+        ],
+        'http_auth_pass' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_ruleset.field.http_auth_pass',
+            'description' => $ll . 'tx_a11y_ruleset.field.http_auth_pass.description',
+            'config' => [
+                'type' => 'text',
+                'rows' => 3,
+                'readOnly' => true,
+            ],
+        ],
+        'excluded_patterns' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_ruleset.field.excluded_patterns',
+            'description' => $ll . 'tx_a11y_ruleset.field.excluded_patterns.description',
+            'config' => [
+                'type' => 'text',
+                'rows' => 6,
+            ],
+        ],
+        'cookie_accept_selectors' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_ruleset.field.cookie_accept_selectors',
+            'description' => $ll . 'tx_a11y_ruleset.field.cookie_accept_selectors.description',
+            'config' => [
+                'type' => 'text',
+                'rows' => 4,
+            ],
+        ],
+        'is_global' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_ruleset.field.is_global',
+            'description' => $ll . 'tx_a11y_ruleset.field.is_global.description',
+            'config' => [
+                'type' => 'check',
+                'renderType' => 'checkboxToggle',
+                'default' => 1,
+            ],
+        ],
+        'crawl_priority_urls' => [
+            'exclude' => true,
+            'label' => $ll . 'tx_a11y_ruleset.field.crawl_priority_urls',
+            'description' => $ll . 'tx_a11y_ruleset.field.crawl_priority_urls.description',
+            'config' => [
+                'type' => 'text',
+                'rows' => 6,
+            ],
+        ],
     ],
     'types' => [
         0 => [
@@ -138,6 +201,8 @@ return [
                     site_identifier,
                 --div--;' . $ll . 'tx_a11y_ruleset.tab.quality_gate,
                     publish_mode, threshold_critical, threshold_warning,
+                --div--;' . $ll . 'tx_a11y_ruleset.tab.remote_scan_access,
+                    http_auth_user, http_auth_pass, excluded_patterns, cookie_accept_selectors, is_global, crawl_priority_urls,
                 --div--;' . $ll . 'tx_a11y_ruleset.tab.rules,
                     rules_json,
                 --div--;' . $ll . 'tx_a11y_ruleset.tab.system,

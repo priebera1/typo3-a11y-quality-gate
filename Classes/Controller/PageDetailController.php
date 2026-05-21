@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
@@ -16,6 +18,7 @@ use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\FilterValueUtility;
 use Priebera\A11yQualityGate\Utility\IssueFilterUtility;
 use Psr\Http\Message\ResponseInterface;
@@ -30,12 +33,15 @@ use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
 #[AsController]
 final class PageDetailController extends AbstractBackendModuleController
 {
     private const PER_PAGE = 10;
     private const MAX_VISIBLE_PAGINATION_ITEMS = 5;
+
+    private int $activeLanguageUidForUrls = -1;
 
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
@@ -45,9 +51,11 @@ final class PageDetailController extends AbstractBackendModuleController
         SiteResolutionService $siteResolutionService,
         RequestParameterService $requestParameterService,
         private readonly IssueRepository $issueRepository,
+        private readonly ScanRepository $scanRepository,
         private readonly PageRenderer $pageRenderer,
         private readonly AccessControlService $accessControlService,
         private readonly ScanStatusService $scanStatusService,
+        private readonly SiteLanguageService $siteLanguageService,
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly ProStatusResolverService $proStatusResolverService,
@@ -79,6 +87,12 @@ final class PageDetailController extends AbstractBackendModuleController
         $activeSeverity = $this->requestParameterService->getSeverity($request, 'all');
         $currentPage = $this->requestParameterService->getPageNumber($request, 1);
         $returnParameters = $this->getA11yModuleReturnParameters($request);
+        $queryParams = $request->getQueryParams();
+        $availableLanguages = $site !== null ? $this->siteLanguageService->getLanguagesForSiteObject($site) : [];
+        $currentLanguageUid = $this->resolveCurrentLanguageUid($request, $availableLanguages);
+        $this->activeLanguageUidForUrls = $currentLanguageUid;
+        $languageOptions = $this->buildPageDetailLanguageOptions($request, $this->issueRepository, $siteIdentifier, $pageUid, $availableLanguages, $currentLanguageUid);
+        $currentLanguageOption = $this->resolveCurrentLanguageOption($languageOptions);
 
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
 
@@ -95,8 +109,19 @@ final class PageDetailController extends AbstractBackendModuleController
         $canScanNow = $this->accessControlService->canShowScanNow($backendUser);
         $canShowSettings = $this->accessControlService->canShowSettings($backendUser);
 
+        if ($siteIdentifier !== '') {
+            $this->issueRepository->reopenExpiredIgnoredIssues($siteIdentifier);
+        }
+
         $allIssues = ($pageUid > 0 && $siteIdentifier !== '')
-            ? $this->issueRepository->findAllForPage($siteIdentifier, $pageUid)
+            ? $this->issueRepository->findAllForPage($siteIdentifier, $pageUid, $currentLanguageUid)
+            : [];
+
+        $openRuleCountsOnPage = ($pageUid > 0 && $siteIdentifier !== '')
+            ? $this->issueRepository->countOpenByRuleOnPage($siteIdentifier, $pageUid, $currentLanguageUid)
+            : [];
+        $openRuleCountsOnSite = $siteIdentifier !== ''
+            ? $this->issueRepository->countOpenByRuleOnSite($siteIdentifier, $currentLanguageUid)
             : [];
 
         $allIssues = array_map(function (array $row) use (
@@ -104,13 +129,26 @@ final class PageDetailController extends AbstractBackendModuleController
             $siteIdentifier,
             $activeStatus,
             $activeSeverity,
-            $currentPage
+            $currentPage,
+            $openRuleCountsOnPage,
+            $openRuleCountsOnSite
         ): array {
             $sourceTable = (string)($row['source_table'] ?? '');
             $sourceUid = (int)($row['source_uid'] ?? 0);
 
+            $ruleId = (string)($row['rule_id'] ?? '');
             $row['severityEnum'] = Severity::fromInt((int)$row['severity']);
             $row['statusEnum'] = IssueStatus::fromInt((int)$row['status']);
+            $row['openRuleCountOnPage'] = (int)($openRuleCountsOnPage[$ruleId] ?? 0);
+            $row['openRuleCountOnSite'] = (int)($openRuleCountsOnSite[$ruleId] ?? 0);
+            $ignoredUntil = (int)($row['ignored_until'] ?? 0);
+            $ignoredReopenedAt = (int)($row['ignored_reopened_at'] ?? 0);
+            $row['ignoredUntilLabel'] = $ignoredUntil > 0 ? date('d M Y', $ignoredUntil) : '';
+            $row['ignoredUntilRelative'] = $ignoredUntil > 0 ? $this->formatExpiryRelative($ignoredUntil) : '';
+            $row['ignoreIsTemporary'] = $ignoredUntil > 0;
+            $row['ignoreReopensSoon'] = $ignoredUntil > 0 && $ignoredUntil <= strtotime('+7 days');
+            $row['ignoreWasReopened'] = (int)$row['status'] === IssueStatus::Open->value && $ignoredReopenedAt > 0;
+            $row['ignoredReopenedAtLabel'] = $ignoredReopenedAt > 0 ? date('d M Y', $ignoredReopenedAt) : '';
             $row['hasEditAccess'] = false;
             $row['editLink'] = '';
 
@@ -200,6 +238,9 @@ final class PageDetailController extends AbstractBackendModuleController
         $backUrl = $this->buildOverviewUrl($pageUid, $siteIdentifier, $request);
 
         $ignoreUrl = $this->buildRouteUrl('web_a11y.ignore');
+        $batchIgnoreUrl = $this->buildRouteUrl('web_a11y.batchIgnore');
+        $ignoreRuleOnPageUrl = $this->buildRouteUrl('web_a11y.ignoreRuleOnPage');
+        $ignoreRuleOnSiteUrl = $this->buildRouteUrl('web_a11y.ignoreRuleOnSite');
         $unignoreUrl = $this->buildRouteUrl('web_a11y.unignore');
 
         $exportCsvUrl = $this->exportUrlBuilderService->buildLocalPageCsvUrl(
@@ -229,6 +270,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'warning' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, 'warning', 1),
             'info' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, 'info', 1),
         ];
+        $resetFilterUrl = $this->buildPageDetailUrl($pageUid, $siteIdentifier, 'open', 'all', 1);
 
         $pagination['pageUrls'] = [];
         for ($page = 1; $page <= $pagination['totalPages']; $page++) {
@@ -281,6 +323,16 @@ final class PageDetailController extends AbstractBackendModuleController
         );
 
         $scanStatus = $this->scanStatusService->getStatus();
+        $siteRootPid = $site !== null ? (int)$site->getRootPageId() : 0;
+        $lastPageScan = $siteIdentifier !== '' && $pageUid > 0
+            ? $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid)
+            : null;
+        $lastScan = $lastPageScan;
+        $localDetail = [
+            'lastScanAt' => is_array($lastScan) ? (int)($lastScan['finished_at'] ?? 0) : 0,
+            'hasScan' => is_array($lastScan),
+            'isRelevantScanRunning' => $this->isRelevantScanRunning($scanStatus, $siteRootPid, $pageUid),
+        ];
 
         $moduleTemplate->assignMultiple([
             'pageUid' => $pageUid,
@@ -292,28 +344,68 @@ final class PageDetailController extends AbstractBackendModuleController
             'grouped' => $grouped,
             'severityCounts' => $severityCounts,
             'statusCounts' => $statusCounts,
+            'visibleIssuesCount' => count($visibleIssues),
             'statusFilterUrls' => $statusFilterUrls,
             'severityFilterUrls' => $severityFilterUrls,
+            'resetFilterUrl' => $resetFilterUrl,
             'filterSummary' => $filterSummary,
             'backUrl' => $backUrl,
             'ignoreUrl' => $ignoreUrl,
+            'batchIgnoreUrl' => $batchIgnoreUrl,
+            'ignoreRuleOnPageUrl' => $ignoreRuleOnPageUrl,
+            'ignoreRuleOnSiteUrl' => $ignoreRuleOnSiteUrl,
+            'canIgnoreRuleOnSite' => $canShowSettings,
             'unignoreUrl' => $unignoreUrl,
             'exportCsvUrl' => $exportCsvUrl,
             'exportPdfUrl' => $exportPdfUrl,
             'pagination' => $pagination,
             'paginationItems' => $paginationItems,
             'canScanNow' => $canScanNow,
+            'canShowSettings' => $canShowSettings,
             'scanStatus' => $scanStatus,
+            'localDetail' => $localDetail,
+            'settingsUrl' => $this->buildRouteUrl('web_a11y.settings', $returnParameters),
             'pageDoktype' => $pageDoktype,
             'isFolder' => $isFolder,
             'proStatus' => $proStatus,
+            'currentLanguageUid' => $currentLanguageUid,
+            'languageOptions' => $languageOptions,
+            'currentLanguageOption' => $currentLanguageOption,
+            'hasLanguageOptions' => $languageOptions !== [],
+            'languageOptionCount' => count($languageOptions),
+            'availableLanguageCount' => count($languageOptions),
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');
     }
 
+    private function isRelevantScanRunning(array $scanStatus, int $siteRootPid, int $pageUid): bool
+    {
+        if (empty($scanStatus['running'])) {
+            return false;
+        }
+
+        $runningPageUid = (int)($scanStatus['pageUid'] ?? 0);
+        if ($pageUid > 0 && $runningPageUid === $pageUid) {
+            return true;
+        }
+
+        $runningRootPid = (int)($scanStatus['rootPid'] ?? 0);
+
+        return $siteRootPid > 0 && $runningRootPid === $siteRootPid;
+    }
+
     public function ignoreAction(ServerRequestInterface $request): ResponseInterface
     {
+        $accessResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService,
+            'editRecord',
+            $request
+        );
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
         $body = $request->getParsedBody();
         $issueUid = (int)($body['issueUid'] ?? 0);
         $reason = trim((string)($body['reason'] ?? ''));
@@ -322,9 +414,180 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
+        $this->activeLanguageUidForUrls = (int)($body['language'] ?? -1);
 
-        if ($issueUid > 0 && $reason !== '') {
-            $this->issueRepository->ignore($issueUid, $reason, $this->getBackendUserUid());
+        $expiry = $this->resolveIgnoreExpiry($body);
+
+        if (!$expiry['valid']) {
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+        } elseif ($issueUid > 0 && !$this->canEditIssue($issueUid)) {
+            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+        } elseif ($issueUid > 0 && $reason !== '') {
+            $user = $this->getBackendUserSnapshot();
+            $this->issueRepository->ignore($issueUid, $reason, $user['uid'], $user['name'], $user['username'], $expiry['ignoredUntil']);
+        }
+
+        return new RedirectResponse(
+            $this->buildPageDetailUrl($pageUid, $siteIdentifier, $status, $severity, $page),
+            302
+        );
+    }
+
+    public function batchIgnoreAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService,
+            'editRecord',
+            $request
+        );
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
+        $body = $request->getParsedBody();
+        $issueUids = $body['issueUids'] ?? [];
+        $issueUids = is_array($issueUids) ? $issueUids : [];
+        $reason = trim((string)($body['reason'] ?? ''));
+        $pageUid = (int)($body['pageUid'] ?? 0);
+        $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
+        $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
+        $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
+        $page = max(1, (int)($body['page'] ?? 1));
+        $languageUid = (int)($body['language'] ?? -1);
+        $this->activeLanguageUidForUrls = $languageUid;
+
+        $expiry = $this->resolveIgnoreExpiry($body);
+
+        if (!$expiry['valid']) {
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+        } elseif (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+        } elseif ($issueUids !== [] && $reason !== '') {
+            $user = $this->getBackendUserSnapshot();
+            $ignored = $this->issueRepository->ignoreManyOpenOnPage(
+                $issueUids,
+                $siteIdentifier,
+                $pageUid,
+                $languageUid,
+                $reason,
+                $user['uid'],
+                $user['name'],
+                $user['username'],
+                $expiry['ignoredUntil']
+            );
+            $this->addFlashMessage($ignored . ' issues ignored.', ContextualFeedbackSeverity::OK, 'Accessibility');
+        } else {
+            $this->addFlashMessage('No issues were ignored. Select issues and enter a reason.', ContextualFeedbackSeverity::WARNING, 'Accessibility');
+        }
+
+        return new RedirectResponse(
+            $this->buildPageDetailUrl($pageUid, $siteIdentifier, $status, $severity, $page),
+            302
+        );
+    }
+
+    public function ignoreRuleOnPageAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService,
+            'editRecord',
+            $request
+        );
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
+        $body = $request->getParsedBody();
+        $ruleId = trim((string)($body['ruleId'] ?? ''));
+        $reason = trim((string)($body['reason'] ?? ''));
+        $pageUid = (int)($body['pageUid'] ?? 0);
+        $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
+        $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
+        $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
+        $page = max(1, (int)($body['page'] ?? 1));
+        $languageUid = (int)($body['language'] ?? -1);
+        $this->activeLanguageUidForUrls = $languageUid;
+
+        $expiry = $this->resolveIgnoreExpiry($body);
+
+        if (!$expiry['valid']) {
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+        } elseif (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+        } elseif ($ruleId !== '' && $reason !== '') {
+            $user = $this->getBackendUserSnapshot();
+            $ignored = $this->issueRepository->ignoreAllByRuleOnPage(
+                $siteIdentifier,
+                $pageUid,
+                $languageUid,
+                $ruleId,
+                $reason,
+                $user['uid'],
+                $user['name'],
+                $user['username'],
+                $expiry['ignoredUntil']
+            );
+            $this->addFlashMessage($ignored . ' issues ignored for rule ' . $ruleId . ' on this page.', ContextualFeedbackSeverity::OK, 'Accessibility');
+        } else {
+            $this->addFlashMessage('Rule ignore was not applied. Select a rule and enter a reason.', ContextualFeedbackSeverity::WARNING, 'Accessibility');
+        }
+
+        return new RedirectResponse(
+            $this->buildPageDetailUrl($pageUid, $siteIdentifier, $status, $severity, $page),
+            302
+        );
+    }
+
+    public function ignoreRuleOnSiteAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService,
+            'editRecord',
+            $request
+        );
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
+        $settingsAccessResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService,
+            'settings',
+            $request
+        );
+        if ($settingsAccessResponse !== null) {
+            return $settingsAccessResponse;
+        }
+
+        $body = $request->getParsedBody();
+        $ruleId = trim((string)($body['ruleId'] ?? ''));
+        $reason = trim((string)($body['reason'] ?? ''));
+        $pageUid = (int)($body['pageUid'] ?? 0);
+        $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
+        $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
+        $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
+        $page = max(1, (int)($body['page'] ?? 1));
+        $languageUid = (int)($body['language'] ?? -1);
+        $this->activeLanguageUidForUrls = $languageUid;
+
+        $expiry = $this->resolveIgnoreExpiry($body);
+
+        if (!$expiry['valid']) {
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+        } elseif ($ruleId !== '' && $reason !== '') {
+            $user = $this->getBackendUserSnapshot();
+            $ignored = $this->issueRepository->ignoreAllByRuleOnSite(
+                $siteIdentifier,
+                $languageUid,
+                $ruleId,
+                $reason,
+                $user['uid'],
+                $user['name'],
+                $user['username'],
+                $expiry['ignoredUntil']
+            );
+            $this->addFlashMessage($ignored . ' issues ignored for rule ' . $ruleId . ' on this site.', ContextualFeedbackSeverity::OK, 'Accessibility');
+        } else {
+            $this->addFlashMessage('Site-wide rule ignore was not applied. Select a rule and enter a reason.', ContextualFeedbackSeverity::WARNING, 'Accessibility');
         }
 
         return new RedirectResponse(
@@ -335,6 +598,15 @@ final class PageDetailController extends AbstractBackendModuleController
 
     public function unignoreAction(ServerRequestInterface $request): ResponseInterface
     {
+        $accessResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService,
+            'editRecord',
+            $request
+        );
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
         $body = $request->getParsedBody();
         $issueUid = (int)($body['issueUid'] ?? 0);
         $pageUid = (int)($body['pageUid'] ?? 0);
@@ -342,15 +614,81 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'ignored'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
+        $this->activeLanguageUidForUrls = (int)($body['language'] ?? -1);
 
-        if ($issueUid > 0) {
-            $this->issueRepository->unignore($issueUid);
+        if ($issueUid > 0 && !$this->canEditIssue($issueUid)) {
+            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+        } elseif ($issueUid > 0) {
+            $user = $this->getBackendUserSnapshot();
+            $this->issueRepository->unignore($issueUid, $user['uid'], $user['name'], $user['username']);
         }
 
         return new RedirectResponse(
             $this->buildPageDetailUrl($pageUid, $siteIdentifier, $status, $severity, $page),
             302
         );
+    }
+
+
+    private function canEditIssue(int $issueUid): bool
+    {
+        $context = $this->issueRepository->findAccessContextByUid($issueUid);
+        if (!is_array($context)) {
+            return false;
+        }
+
+        $sourceTable = trim((string)($context['source_table'] ?? ''));
+        $sourceUid = (int)($context['source_uid'] ?? 0);
+        if ($sourceTable !== '' && $sourceUid > 0) {
+            return $this->backendRecordAccessService->canEditRecord($sourceTable, $sourceUid);
+        }
+
+        $pageUid = (int)($context['page_uid'] ?? 0);
+        return $pageUid > 0 && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid);
+    }
+
+    private function resolveIgnoreExpiry(array $body): array
+    {
+        $mode = trim((string)($body['ignoreExpiry'] ?? 'never'));
+        $today = strtotime('today');
+
+        if ($mode === '7d') {
+            return ['valid' => true, 'ignoredUntil' => strtotime('+7 days', $today), 'error' => ''];
+        }
+
+        if ($mode === '30d') {
+            return ['valid' => true, 'ignoredUntil' => strtotime('+30 days', $today), 'error' => ''];
+        }
+
+        if ($mode === '90d') {
+            return ['valid' => true, 'ignoredUntil' => strtotime('+90 days', $today), 'error' => ''];
+        }
+
+        if ($mode === 'custom') {
+            $date = trim((string)($body['ignoreUntilDate'] ?? ''));
+            if ($date === '') {
+                return ['valid' => false, 'ignoredUntil' => 0, 'error' => 'Select a future reopen date.'];
+            }
+
+            $timestamp = strtotime($date . ' 00:00:00');
+            if ($timestamp === false || $timestamp <= $today) {
+                return ['valid' => false, 'ignoredUntil' => 0, 'error' => 'The reopen date must be at least one day in the future.'];
+            }
+
+            return ['valid' => true, 'ignoredUntil' => $timestamp, 'error' => ''];
+        }
+
+        return ['valid' => true, 'ignoredUntil' => 0, 'error' => ''];
+    }
+
+    private function formatExpiryRelative(int $timestamp): string
+    {
+        $days = (int)ceil(($timestamp - strtotime('today')) / 86400);
+        if ($days <= 0) {
+            return 'today';
+        }
+
+        return 'in ' . $days . ' day' . ($days === 1 ? '' : 's');
     }
 
     private function configureDocHeader(
@@ -404,6 +742,20 @@ final class PageDetailController extends AbstractBackendModuleController
         ]);
     }
 
+
+    private function currentLanguageUidForRoute(ServerRequestInterface $request): int
+    {
+        $queryParams = $request->getQueryParams();
+        if (isset($queryParams['language']) && is_numeric($queryParams['language'])) {
+            return (int)$queryParams['language'];
+        }
+        if (isset($queryParams['languageUid']) && is_numeric($queryParams['languageUid'])) {
+            return (int)$queryParams['languageUid'];
+        }
+
+        return $this->activeLanguageUidForUrls;
+    }
+
     private function buildOverviewUrl(
         int $pageUid,
         string $siteIdentifier,
@@ -415,6 +767,7 @@ final class PageDetailController extends AbstractBackendModuleController
         return $this->buildRouteUrl('web_a11y', [
             'id' => $rootPid,
             'site' => $siteIdentifier,
+            'language' => $this->currentLanguageUidForRoute($request),
         ]);
     }
 
@@ -432,6 +785,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'status' => $status,
             'severity' => $severity,
             'page' => $page,
+            'language' => $this->activeLanguageUidForUrls,
         ]);
     }
 

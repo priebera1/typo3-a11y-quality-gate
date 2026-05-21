@@ -1,0 +1,70 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<details class="aqg-lang aqg-lang--dropdown">
+    <summary
+            class="aqg-lang__trigger"
+            aria-label="Site language"
+    >
+        <span class="aqg-lang__trigger-text">
+            <f:if condition="{currentLanguageOption.flagIdentifier}">
+                <span class="aqg-lang__flag" aria-hidden="true">
+                    <core:icon identifier="{currentLanguageOption.flagIdentifier}" size="small" />
+                </span>
+            </f:if>
+            <span>{currentLanguageOption.title}</span>
+            <f:if condition="{currentLanguageOption.locale}">
+                <span class="aqg-lang__locale">{currentLanguageOption.locale}</span>
+            </f:if>
+        </span>
+        <svg viewBox="0 0 12 12" aria-hidden="true" class="aqg-lang__chev">
+            <path d="M3 4.6 L6 7.6 L9 4.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    </summary>
+
+    <div class="aqg-lang__menu" role="listbox" aria-label="Site language">
+        <div class="aqg-lang__menu-head">
+            <span>Site language</span>
+            <span class="aqg-lang__menu-count">{availableLanguageCount} available</span>
+        </div>
+        <f:for each="{languageOptions}" as="languageOption">
+            <a
+                    href="{languageOption.url}"
+                    class="aqg-lang__option{f:if(condition: languageOption.active, then: ' is-active')}{f:if(condition: languageOption.hasResults, else: ' is-empty')}"
+                    role="option"
+                    aria-selected="{f:if(condition: languageOption.active, then: 'true', else: 'false')}"
+            >
+                <span class="aqg-lang__option-check" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 14 14">
+                        <path d="M3 7.4 L6 10 L11 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+                <span class="aqg-lang__option-body">
+                    <span class="aqg-lang__option-name-row">
+                        <f:if condition="{languageOption.flagIdentifier}">
+                            <span class="aqg-lang__flag" aria-hidden="true">
+                                <core:icon identifier="{languageOption.flagIdentifier}" size="small" />
+                            </span>
+                        </f:if>
+                        <span class="aqg-lang__option-name">{languageOption.title}</span>
+                    </span>
+                    <span class="aqg-lang__option-meta">
+                        <f:if condition="{languageOption.locale}">{languageOption.locale} · </f:if>ID {languageOption.languageId}
+                    </span>
+                </span>
+                <span class="aqg-lang__option-trail">
+                    <f:if condition="{languageOption.hasResults}">
+                        <f:then>{languageOption.pageLabel}</f:then>
+                        <f:else><span class="aqg-lang__noresults">no results</span></f:else>
+                    </f:if>
+                </span>
+            </a>
+        </f:for>
+        <div class="aqg-lang__menu-foot">
+            Switching changes which site language AQG reports on. Backend language is unchanged.
+        </div>
+    </div>
+</details>
+</html>

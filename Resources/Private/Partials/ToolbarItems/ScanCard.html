@@ -1,0 +1,55 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<section class="aqt-card tone-{card.tone}">
+    <header class="aqt-card__head">
+        <div class="aqt-card__label-block">
+            <div class="aqt-card__label">{card.label}</div>
+            <div class="aqt-card__desc">{card.description}</div>
+        </div>
+        <span class="aqt-pill tone-{card.statusTone}">
+            <f:if condition="{card.running}">
+                <f:then>
+                    <span class="aqt-pill__dot aqt-pill__dot--pulse" aria-hidden="true"></span>
+                </f:then>
+                <f:else>
+                    <span class="aqt-pill__icon" aria-hidden="true">{card.statusIcon -> f:format.raw()}</span>
+                </f:else>
+            </f:if>
+            <span>{card.statusLabel}</span>
+        </span>
+    </header>
+
+    <f:if condition="{card.running}">
+        <div class="aqt-mini-progress" aria-hidden="true">
+            <f:if condition="{card.progressWidth}">
+                <f:then>
+                    <div class="aqt-mini-progress__fill aqt-mini-progress__fill--determinate" style="width: {card.progressWidth}%"></div>
+                </f:then>
+                <f:else>
+                    <div class="aqt-mini-progress__fill"></div>
+                </f:else>
+            </f:if>
+        </div>
+    </f:if>
+
+    <div class="aqt-card__meta">
+        <f:for each="{card.meta}" as="item">
+            <div class="aqt-meta">
+                <span class="aqt-meta__label">{item.label}</span>
+                <span class="aqt-meta__value{f:if(condition: item.muted, then: ' aqt-meta__value--muted')}">{item.value}</span>
+            </div>
+        </f:for>
+    </div>
+
+    <div class="aqt-results">
+        <f:for each="{card.results}" as="item">
+            <div class="aqt-results__item">
+                <span class="aqt-results__value{f:if(condition: item.muted, then: ' aqt-results__value--muted')} {item.toneClass}">{item.value}</span>
+                <span class="aqt-results__label">{item.label}</span>
+            </div>
+        </f:for>
+    </div>
+</section>
+</html>

@@ -7,6 +7,7 @@ namespace Priebera\A11yQualityGate\Controller;
 use Priebera\A11yQualityGate\Domain\Repository\FieldConfigRepository;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
@@ -17,22 +18,23 @@ use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\PaginationUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
-use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Http\RedirectResponse;
 
 #[AsController]
 final class OverviewController extends AbstractBackendModuleController
@@ -52,9 +54,11 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly ScanRepository $scanRepository,
         private readonly IssueRepository $issueRepository,
         private readonly RemoteScanRepository $remoteScanRepository,
+        private readonly RulesetRepository $rulesetRepository,
         private readonly PageRenderer $pageRenderer,
         private readonly AccessControlService $accessControlService,
         private readonly ScanStatusService $scanStatusService,
+        private readonly SiteLanguageService $siteLanguageService,
         private readonly FieldConfigRepository $fieldConfigRepository,
         private readonly ProCrawlerService $proCrawlerService,
         private readonly RemoteScanPersistenceService $remoteScanPersistenceService,
@@ -62,6 +66,7 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly ProStatusResolverService $proStatusResolverService,
         private readonly ExportUrlBuilderService $exportUrlBuilderService,
+        private readonly FrontendPageUrlService $frontendPageUrlService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -89,9 +94,68 @@ final class OverviewController extends AbstractBackendModuleController
         $returnParameters = $this->getA11yModuleReturnParameters($request);
         $queryParams = $request->getQueryParams();
 
+        if ($currentPageUid <= 0 || $site === null) {
+            $this->configureDocHeader(
+                $moduleTemplate,
+                $returnParameters
+            );
+
+            $emptyState = $currentPageUid <= 0
+                ? [
+                    'title' => 'Select a page to start',
+                    'body' => 'Choose a page in the TYPO3 page tree to open accessibility results for that context.',
+                    'hint' => 'Site roots show the full overview. Content pages show page-specific issues and scan actions.',
+                ]
+                : [
+                    'title' => 'No site context selected',
+                    'body' => 'AQG needs a valid site context before it can show local scans, frontend crawler results and page-level issues.',
+                    'hint' => 'Tip: Select a page inside a configured TYPO3 site root.',
+                ];
+
+            $moduleTemplate->assignMultiple([
+                'siteIdentifier' => $siteIdentifier,
+                'currentPageUid' => $currentPageUid,
+                'currentLanguageUid' => 0,
+                'hasPageContext' => false,
+                'emptyState' => $emptyState,
+                'hasLanguageOptions' => false,
+                'languageOptionCount' => 0,
+                'availableLanguageCount' => 0,
+            ]);
+
+            return $moduleTemplate->renderResponse('Overview/Index');
+        }
+
         $localQuery = trim((string)($queryParams['localQuery'] ?? ''));
         $remoteQuery = trim((string)($queryParams['remoteQuery'] ?? ''));
         $remoteFailedQuery = trim((string)($queryParams['remoteFailedQuery'] ?? ''));
+
+        $availableLanguages = $site !== null ? $this->siteLanguageService->getLanguagesForSiteObject($site) : [];
+        if ($availableLanguages !== [] && !$this->hasExplicitLanguageParameter($request)) {
+            $this->backendContextService->getBackendUser()?->setAndSaveSessionData(
+                'tx_a11y_quality_gate_language',
+                0
+            );
+
+            $redirectParameters = $this->getA11yModuleReturnParameters($request);
+            unset(
+                $redirectParameters['localPage'],
+                $redirectParameters['remotePage'],
+                $redirectParameters['remoteFailedPage'],
+                $redirectParameters['languageUid']
+            );
+            $redirectParameters['language'] = 0;
+
+            return new RedirectResponse(
+                $this->buildRouteUrl('web_a11y', $redirectParameters),
+                303
+            );
+        }
+
+        $currentLanguageUid = $this->resolveCurrentLanguageUid($request, $availableLanguages);
+        $languageUrlParameters = $this->buildLanguageUrlParameters($request);
+        $languageOptions = $this->buildOverviewLanguageOptions($request, $this->issueRepository, $siteIdentifier, $availableLanguages, $currentLanguageUid);
+        $currentLanguageOption = $this->resolveCurrentLanguageOption($languageOptions);
 
         $currentLocalPage = max(1, (int)($queryParams['localPage'] ?? 1));
         $currentRemotePage = max(1, (int)($queryParams['remotePage'] ?? 1));
@@ -113,20 +177,25 @@ final class OverviewController extends AbstractBackendModuleController
         if ($isPageContext && $siteIdentifier !== '') {
             $currentPageIssueCounts = $this->issueRepository->countOpenBySeverity(
                 $currentPageUid,
-                $siteIdentifier
+                $siteIdentifier,
+                $currentLanguageUid
             );
         }
 
-        $lastScan = $siteIdentifier !== ''
-            ? $this->scanRepository->findLastCompletedSubtreeScan($siteIdentifier)
+        $lastSubtreeScan = $siteIdentifier !== ''
+            ? $this->scanRepository->findLastCompletedSubtreeScan($siteIdentifier, $currentLanguageUid)
             : null;
+        $lastPageScan = $siteIdentifier !== '' && $isPageContext
+            ? $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $currentPageUid, $currentLanguageUid)
+            : null;
+        $lastScan = $this->selectMostRecentScan($lastSubtreeScan, $lastPageScan);
 
         $remoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid)
+            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid)
             : null;
 
         $activeRemoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $isPageContext, $currentPageUid)
+            ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid)
             : null;
 
         $pageStats = [];
@@ -135,7 +204,7 @@ final class OverviewController extends AbstractBackendModuleController
         $localPaginationItems = [];
 
         if ($siteIdentifier !== '') {
-            $totalLocalPages = $this->issueRepository->countOpenPageStatsForSite($siteIdentifier, $localQuery);
+            $totalLocalPages = $this->issueRepository->countOpenPageStatsForSite($siteIdentifier, $localQuery, $currentLanguageUid);
 
             $localPagination = PaginationUtility::buildPagination(
                 $totalLocalPages,
@@ -147,7 +216,8 @@ final class OverviewController extends AbstractBackendModuleController
                 $siteIdentifier,
                 self::LOCAL_PER_PAGE,
                 $localPagination['offset'],
-                $localQuery
+                $localQuery,
+                $currentLanguageUid
             );
 
             $localPagination['pageUrls'] = [];
@@ -340,6 +410,7 @@ final class OverviewController extends AbstractBackendModuleController
                     'detailUrl' => $this->buildRouteUrl('web_a11y.remotePageDetail', [
                         'remotePageUid' => (int)$page['uid'],
                         'site' => $siteIdentifier,
+                        'language' => $currentLanguageUid,
                     ]),
                 ],
             $remotePages
@@ -362,21 +433,36 @@ final class OverviewController extends AbstractBackendModuleController
                         'pageUid' => $stat['pageUid'],
                         'id' => $stat['pageUid'],
                         'site' => $siteIdentifier,
+                        'language' => $currentLanguageUid,
                     ]),
                 ],
             $pageStats
         );
 
         $totalCounts = $siteIdentifier !== ''
-            ? $this->issueRepository->countOpenTotalsForSite($siteIdentifier)
+            ? $this->issueRepository->countOpenTotalsForSite($siteIdentifier, $currentLanguageUid)
             : [
                 'critical' => 0,
                 'warning' => 0,
                 'info' => 0,
                 'total' => 0,
             ];
+        $localNewCounts = $siteIdentifier !== '' && is_array($lastScan)
+            ? $this->issueRepository->countNewOpenTotalsForScan($siteIdentifier, (int)($lastScan['uid'] ?? 0), $currentLanguageUid)
+            : [
+                'critical' => 0,
+                'warning' => 0,
+                'info' => 0,
+                'total' => 0,
+            ];
+        $localScanDelta = [
+            'new' => (int)($lastScan['issues_new'] ?? 0),
+            'resolved' => (int)($lastScan['issues_resolved'] ?? 0),
+            'ignored' => (int)($lastScan['issues_ignored'] ?? 0),
+        ];
 
         $scanStatus = $this->scanStatusService->getStatus();
+        $isRelevantLocalScanRunning = $this->isRelevantLocalScanRunning($scanStatus, $siteRootPid, $currentPageUid);
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
 
         $exportLocalCsvUrl = $this->exportUrlBuilderService->buildOverviewCsvUrl($siteIdentifier);
@@ -391,6 +477,17 @@ final class OverviewController extends AbstractBackendModuleController
 
         $backendUser = $this->backendContextService->getBackendUser();
         $canScanAll = $this->accessControlService->canShowScanAll($backendUser);
+        $canManageRemoteAccessSettings = $this->accessControlService->canManageAdminOnlySettings($backendUser);
+        $showRemoteScannerTokenNotice = $canManageRemoteAccessSettings
+            && $siteIdentifier !== ''
+            && !$this->hasEffectiveScannerToken($siteIdentifier);
+        $remoteScanAccessSettingsUrl = $this->buildRouteUrl(
+            'web_a11y.settings',
+            array_replace($returnParameters, [
+                'tab' => 'remote_access',
+                'rulesetSite' => $siteIdentifier,
+            ])
+        );
 
         $hasEnabledFields = $this->fieldConfigRepository->hasEnabledFields();
 
@@ -403,9 +500,12 @@ final class OverviewController extends AbstractBackendModuleController
                 'id' => $currentPageUid,
                 'pageUid' => $currentPageUid,
                 'site' => $siteIdentifier,
+                'language' => $currentLanguageUid,
             ]);
 
-            $currentPageUrl = $this->resolveCurrentPageUrl($currentPageUid, $siteBase);
+            if ($site !== null) {
+                $currentPageUrl = $this->frontendPageUrlService->resolveForPage($site, $currentPageUid, $currentLanguageUid);
+            }
 
             if (is_array($remoteScan) && isset($remoteScan['uid']) && $currentPageUrl !== '') {
                 $matchingRemotePage = $this->remoteScanRepository->findPageForScanByUrl(
@@ -417,6 +517,7 @@ final class OverviewController extends AbstractBackendModuleController
                     $currentRemotePageDetailUrl = $this->buildRouteUrl('web_a11y.remotePageDetail', [
                         'remotePageUid' => (int)$matchingRemotePage['uid'],
                         'site' => $siteIdentifier,
+                        'language' => $currentLanguageUid,
                     ]);
                 }
             }
@@ -424,12 +525,16 @@ final class OverviewController extends AbstractBackendModuleController
 
         $moduleTemplate->assignMultiple([
             'siteIdentifier' => $siteIdentifier,
+            'hasPageContext' => true,
+            'emptyState' => [],
             'lastScan' => $lastScan,
             'pageStats' => $pageStats,
             'totalLocalPages' => $totalLocalPages,
             'localPagination' => $localPagination,
             'localPaginationItems' => $localPaginationItems,
             'totalCounts' => $totalCounts,
+            'localNewCounts' => $localNewCounts,
+            'localScanDelta' => $localScanDelta,
             'canScanAll' => $canScanAll,
             'siteRootPid' => $siteRootPid,
             'currentPageUid' => $currentPageUid,
@@ -440,6 +545,7 @@ final class OverviewController extends AbstractBackendModuleController
             'currentPageUrl' => $currentPageUrl,
             'currentRemotePageDetailUrl' => $currentRemotePageDetailUrl,
             'scanStatus' => $scanStatus,
+            'isRelevantLocalScanRunning' => $isRelevantLocalScanRunning,
             'hasScanResults' => $lastScan !== null,
             'hasEnabledFields' => $hasEnabledFields,
             'remoteScan' => $remoteScan,
@@ -457,9 +563,20 @@ final class OverviewController extends AbstractBackendModuleController
             'exportLocalPdfUrl' => $exportLocalPdfUrl,
             'exportRemoteCsvUrl' => $exportRemoteCsvUrl,
             'exportRemotePdfUrl' => $exportRemotePdfUrl,
+            'settingsUrl' => $this->buildRouteUrl('web_a11y.settings', $returnParameters),
+            'remoteScanAccessSettingsUrl' => $remoteScanAccessSettingsUrl,
+            'showRemoteScannerTokenNotice' => $showRemoteScannerTokenNotice,
             'localQuery' => $localQuery,
             'remoteQuery' => $remoteQuery,
             'remoteFailedQuery' => $remoteFailedQuery,
+            'availableLanguages' => $availableLanguages,
+            'languageOptions' => $languageOptions,
+            'currentLanguageOption' => $currentLanguageOption,
+            'hasLanguageOptions' => $languageOptions !== [],
+            'languageOptionCount' => count($languageOptions),
+            'availableLanguageCount' => count($availableLanguages),
+            'currentLanguageUid' => $currentLanguageUid,
+            'languageUrlParameters' => $languageUrlParameters,
         ]);
 
         return $moduleTemplate->renderResponse('Overview/Index');
@@ -527,6 +644,23 @@ final class OverviewController extends AbstractBackendModuleController
         }
     }
 
+    private function hasEffectiveScannerToken(string $siteIdentifier): bool
+    {
+        $defaultRuleset = $this->rulesetRepository->findDefault();
+
+        return trim((string)($defaultRuleset['scanner_token'] ?? '')) !== '';
+    }
+
+    private function firstNonEmptyRulesetValue(?array $siteRuleset, ?array $defaultRuleset, string $field): string
+    {
+        $siteValue = trim((string)($siteRuleset[$field] ?? ''));
+        if ($siteValue !== '') {
+            return $siteValue;
+        }
+
+        return trim((string)($defaultRuleset[$field] ?? ''));
+    }
+
     private function configureDocHeader(
         ModuleTemplate $moduleTemplate,
         array $returnParameters = []
@@ -551,42 +685,6 @@ final class OverviewController extends AbstractBackendModuleController
         }
     }
 
-    private function resolveCurrentPageUrl(int $pageUid, string $siteBase): string
-    {
-        if ($pageUid <= 0) {
-            return '';
-        }
-
-        try {
-            $previewUri = PreviewUriBuilder::create($pageUid)->buildUri();
-            if ($previewUri !== null) {
-                $url = (string)$previewUri;
-                if ($url !== '') {
-                    return $url;
-                }
-            }
-        } catch (\Throwable) {
-        }
-
-        if ($siteBase === '') {
-            return '';
-        }
-
-        $page = BackendUtility::getRecord('pages', $pageUid, 'slug');
-        if (!is_array($page)) {
-            return '';
-        }
-
-        $slug = trim((string)($page['slug'] ?? ''));
-        $base = rtrim($siteBase, '/');
-
-        if ($slug === '' || $slug === '/') {
-            return $base . '/';
-        }
-
-        return $base . '/' . ltrim($slug, '/');
-    }
-
     private function buildOverviewPaginationUrl(
         ServerRequestInterface $request,
         string $siteIdentifier,
@@ -596,12 +694,18 @@ final class OverviewController extends AbstractBackendModuleController
         string $localQuery = '',
         string $remoteQuery = '',
         string $remoteFailedQuery = '',
-    ): string
-    {
+    ): string {
         $parameters = $this->getA11yModuleReturnParameters($request);
 
         if ($siteIdentifier !== '') {
             $parameters['site'] = $siteIdentifier;
+        }
+
+        $languageUid = (int)($request->getQueryParams()['language'] ?? $request->getQueryParams()['languageUid'] ?? 0);
+        if ($languageUid !== 0) {
+            $parameters['language'] = $languageUid;
+        } else {
+            unset($parameters['language'], $parameters['languageUid']);
         }
 
         if ($localPage > 1) {
@@ -643,49 +747,76 @@ final class OverviewController extends AbstractBackendModuleController
         return $this->buildRouteUrl('web_a11y', $parameters);
     }
 
+    /**
+     * @param array<string, mixed>|null $first
+     * @param array<string, mixed>|null $second
+     * @return array<string, mixed>|null
+     */
+    private function selectMostRecentScan(?array $first, ?array $second): ?array
+    {
+        if ($first === null) {
+            return $second;
+        }
+
+        if ($second === null) {
+            return $first;
+        }
+
+        return (int)($second['finished_at'] ?? 0) > (int)($first['finished_at'] ?? 0)
+            ? $second
+            : $first;
+    }
+
+    /**
+     * @param array<string, mixed> $scanStatus
+     */
+    private function isRelevantLocalScanRunning(array $scanStatus, int $siteRootPid, int $currentPageUid): bool
+    {
+        if (!((bool)($scanStatus['running'] ?? false))) {
+            return false;
+        }
+
+        $runningPageUid = (int)($scanStatus['pageUid'] ?? 0);
+        $runningRootPid = (int)($scanStatus['rootPid'] ?? 0);
+
+        if ($currentPageUid > 0 && $runningPageUid === $currentPageUid) {
+            return true;
+        }
+
+        return $siteRootPid > 0 && $runningRootPid === $siteRootPid;
+    }
+
     private function resolveOverviewRemoteScan(
         string $siteIdentifier,
         bool $isPageContext,
         int $currentPageUid,
+        int $languageUid,
     ): ?array {
         if ($isPageContext && $currentPageUid > 0) {
             $pageScan = $this->remoteScanRepository->findLastCompletedRelevantScan(
                 $siteIdentifier,
-                $currentPageUid
+                $currentPageUid,
+                $languageUid
             );
             if (is_array($pageScan)) {
                 return $pageScan;
             }
         }
 
-        $siteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier);
+        $siteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
         if (is_array($siteScan)) {
             return $siteScan;
         }
 
-        return $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier);
+        return $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier, $languageUid);
     }
 
     private function resolveOverviewActiveRemoteScan(
         string $siteIdentifier,
         bool $isPageContext,
         int $currentPageUid,
+        int $languageUid,
     ): ?array {
-        if ($isPageContext && $currentPageUid > 0) {
-            $pageScan = $this->remoteScanRepository->findLatestRelevantActiveScan(
-                $siteIdentifier,
-                $currentPageUid
-            );
-            if (is_array($pageScan)) {
-                return $pageScan;
-            }
-        }
-
-        $siteScan = $this->remoteScanRepository->findLatestActiveSiteScanBySite($siteIdentifier);
-        if (is_array($siteScan)) {
-            return $siteScan;
-        }
-
         return $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
     }
 }

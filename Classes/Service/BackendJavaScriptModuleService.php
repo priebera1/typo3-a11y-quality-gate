@@ -18,6 +18,8 @@ final class BackendJavaScriptModuleService
 
     public function loadBackendModule(PageRenderer $pageRenderer, ?Site $site): void
     {
+        $pageRenderer->addCssFile('EXT:a11y_quality_gate/Resources/Public/Css/backend.css');
+
         if ($site === null) {
             $pageRenderer->loadJavaScriptModule(
                 '@priebera/a11y-quality-gate/backend/module.free.js'

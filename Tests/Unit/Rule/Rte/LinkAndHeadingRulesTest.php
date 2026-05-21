@@ -165,8 +165,8 @@ final class LinkAndHeadingRulesTest extends TestCase
     #[Test]
     public function nonDescriptiveCustomPhraseProducesWarning(): void
     {
-        self::assertCount(1, $this->makeNonDescriptiveRule('klikni sem')->check($this->ctx(
-            '<a href="/kontakt">klikni sem</a>'
+        self::assertCount(1, $this->makeNonDescriptiveRule('click this')->check($this->ctx(
+            '<a href="/contact">click this</a>'
         )));
     }
 

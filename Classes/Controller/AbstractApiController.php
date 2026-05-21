@@ -89,6 +89,10 @@ abstract class AbstractApiController
             return $this->forbiddenResponse();
         }
 
+        if ($permission === 'editRecord' && !$accessControlService->canEditRecord($backendUser)) {
+            return $this->forbiddenResponse();
+        }
+
         return null;
     }
 

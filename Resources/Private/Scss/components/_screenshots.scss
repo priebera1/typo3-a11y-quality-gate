@@ -1,0 +1,98 @@
+.a11y-page-detail .aqg-shot {
+    overflow: hidden;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-lg);
+}
+
+.a11y-page-detail .aqg-shot__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--aqi-surface-2);
+    border-bottom: 1px solid var(--aqi-border-soft);
+}
+
+.a11y-page-detail .aqg-shot__title {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.a11y-page-detail .aqg-shot__sub,
+.a11y-page-detail .aqg-shot__caption {
+    color: var(--aqi-fg-subtle);
+    font-family: var(--aqi-font-mono);
+    font-size: 11px;
+}
+
+.a11y-page-detail .aqg-shot__frame {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    max-height: 520px;
+    overflow: auto;
+    width: 100%;
+    padding: 0;
+    background: repeating-linear-gradient(45deg, color-mix(in oklch, var(--aqi-fg) 4%, transparent) 0 8px, transparent 8px 16px), var(--aqi-surface-2);
+    border: 0;
+    border-radius: 0;
+    color: inherit;
+    cursor: zoom-in;
+    font: inherit;
+}
+
+.a11y-page-detail .aqg-shot__frame img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.a11y-page-detail .aqg-shot__zoom {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--aqi-surface) 92%, transparent);
+    color: var(--aqi-fg);
+    box-shadow: 0 4px 12px color-mix(in oklch, #000 18%, transparent);
+}
+
+.a11y-page-detail .aqg-shot__frame--empty {
+    cursor: default;
+}
+
+.a11y-page-detail .aqg-shot__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-sm);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg-subtle);
+    font-family: var(--aqi-font-mono);
+    font-size: 11px;
+}
+
+.a11y-page-detail .aqg-shot__caption {
+    padding: 8px 14px 12px;
+    word-break: break-all;
+}
+
+.a11y-page-detail .aqg-twocol {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+}

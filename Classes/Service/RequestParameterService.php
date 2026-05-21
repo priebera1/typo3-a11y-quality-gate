@@ -9,6 +9,11 @@ use Psr\Http\Message\ServerRequestInterface;
 
 final class RequestParameterService
 {
+    public function __construct(
+        private readonly LanguageUidResolver $languageUidResolver,
+    ) {
+    }
+
     public function getPageUid(ServerRequestInterface $request): ?int
     {
         $routing = $request->getAttribute('routing');
@@ -64,7 +69,41 @@ final class RequestParameterService
 
     public function getSiteIdentifier(ServerRequestInterface $request): string
     {
-        return trim((string)($request->getQueryParams()['site'] ?? ''));
+        $queryParams = $request->getQueryParams();
+        $body = $request->getParsedBody();
+        $bodyParams = is_array($body) ? $body : [];
+
+        return trim((string)($queryParams['site'] ?? $bodyParams['site'] ?? $bodyParams['siteIdentifier'] ?? ''));
+    }
+
+    public function getLanguageUid(ServerRequestInterface $request, int $default = 0): int
+    {
+        $body = $request->getParsedBody();
+
+        return $this->getLanguageUidFromParameters(
+            $request->getQueryParams(),
+            is_array($body) ? $body : [],
+            $default
+        );
+    }
+
+    public function getLanguageUidFromParameters(
+        array $primaryParameters,
+        array $fallbackParameters = [],
+        int $default = 0,
+        bool $allowAllLanguages = true,
+    ): int {
+        return $this->languageUidResolver->fromParameters(
+            $primaryParameters,
+            $fallbackParameters,
+            $default,
+            $allowAllLanguages,
+        ) ?? $default;
+    }
+
+    public function hasLanguageParameter(array $parameters): bool
+    {
+        return $this->languageUidResolver->hasLanguageParameter($parameters);
     }
 
     public function hasQueryParam(ServerRequestInterface $request, string $name): bool
@@ -90,7 +129,6 @@ final class RequestParameterService
             'id',
             'pageUid',
             'site',
-            'pageUid',
             'status',
             'severity',
             'page',

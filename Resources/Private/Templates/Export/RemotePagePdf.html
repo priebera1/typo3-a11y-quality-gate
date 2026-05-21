@@ -1,69 +1,185 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <h1>{title}</h1>
-    <div class="subtitle">{subtitle}</div>
+
+    <htmlpageheader name="aqgRemotePageHeader">
+        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:7.2px;"><tbody><tr>
+            <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
+                <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
+            </td>
+            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:dejavusansmono, monospace; font-size:7.2px; letter-spacing:0.04em;">
+                <div class="aqgp-header__context" style="color:#7c828d; font-weight:bold; letter-spacing:0.08em;">REMOTE PAGE DETAIL</div>
+                <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
+            </td>
+        </tr></tbody></table>
+    </htmlpageheader>
+    <sethtmlpageheader name="aqgRemotePageHeader" value="on" show-this-page="1" />
+
+    <htmlpagefooter name="aqgRemotePageFooter">
+        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:6.8px;"><tbody><tr>
+            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:left; width:55%;">AQG · Remote page detail · {relativeUrl}</td>
+            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
+        </tr></tbody></table>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="aqgRemotePageFooter" value="on" show-this-page="1" />
+    <div class="aqgp-report-title">
+        <h1 class="aqgp-h1">{title}</h1>
+        <div class="aqgp-sub">{subtitle}</div>
+    </div>
+    <hr class="aqgp-header__rule" />
 
     <f:if condition="{hasPage}">
         <f:then>
-            <div class="meta">
-                <div><strong>Generated:</strong> {generatedAt}</div>
-                <div><strong>Page:</strong> {remotePage.title}</div>
-                <div><strong>URL:</strong> {remotePage.url}</div>
-                <div><strong>HTTP status:</strong> {remotePage.http_status}</div>
-                <div><strong>Issues:</strong> {remotePage.issues_count}</div>
-            </div>
+            <table class="aqgp-meta">
+                <tr>
+                    <td>
+                        <div class="aqgp-meta__label">Generated</div>
+                        <div class="aqgp-meta__value aqgp-meta__value--mono">{generatedAt}</div>
+                    </td>
+                    <td>
+                        <div class="aqgp-meta__label">Root URL</div>
+                        <div class="aqgp-meta__value aqgp-meta__value--mono">{siteLabel}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="aqgp-meta__label">URL</div>
+                        <div class="aqgp-meta__value aqgp-meta__value--mono">{remotePage.url}</div>
+                    </td>
+                    <td>
+                        <div class="aqgp-meta__label">HTTP</div>
+                        <div><span class="aqgp-http aqgp-http--{httpTone}">{httpStatusLabel}</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="aqgp-meta__label">Scan completed</div>
+                        <div class="aqgp-meta__value aqgp-meta__value--mono">{scanCompletedAt}</div>
+                    </td>
+                    <td>
+                        <div class="aqgp-meta__label">Issues found</div>
+                        <div class="aqgp-meta__value aqgp-meta__value--mono">{issuesFoundLabel}</div>
+                    </td>
+                </tr>
+            </table>
+
+            <f:if condition="{hasFailure}">
+                <div class="aqgp-callout aqgp-callout--danger">
+                    <span class="aqgp-callout__label">Failure reason</span>
+                    <p>{failureReason}</p>
+                </div>
+            </f:if>
 
             <f:if condition="{screenshotAvailable}">
+                <table class="aqgp-section-title">
+                    <tr>
+                        <td>Screenshot</td>
+                        <td class="aqgp-section-title__right">{screenshotMeta}</td>
+                    </tr>
+                </table>
                 <f:format.raw>{screenshotPlaceholder}</f:format.raw>
             </f:if>
 
-            <f:if condition="{remotePage.failure_reason}">
-                <p><strong>Failure reason:</strong> {remotePage.failure_reason}</p>
-            </f:if>
+            <table class="aqgp-section-title">
+                <tr>
+                    <td>Issues</td>
+                    <td class="aqgp-section-title__right">{issuesShownLabel}</td>
+                </tr>
+            </table>
 
-            <f:for each="{issues}" as="issue">
-                <div class="issue">
-                    <div class="issue-title">
-                        <f:if condition="{issue.help}">
-                            <f:then>{issue.help}</f:then>
-                            <f:else>{issue.rule_id}</f:else>
-                        </f:if>
-                    </div>
+            <f:if condition="{hasIssues}">
+                <f:then>
+                    <f:for each="{issues}" as="issue">
+                        <div class="aqgp-issue aqgp-issue--{issue.tone}">
+                            <div class="aqgp-issue__head">
+                                <table class="aqgp-issue-head-table">
+                                    <tr>
+                                        <td class="aqgp-issue-head-table__num">#{issue.index}</td>
+                                        <td class="aqgp-issue-head-table__content">
+                                            <div class="aqgp-issue__title">{issue.title}</div>
+                                            <div class="aqgp-issue__sub">{issue.rule_id} · {issue.nodesLabel}</div>
+                                            <div class="aqgp-badge-row aqgp-badge-row--head">
+                                                <span class="aqgp-badge aqgp-badge--{issue.tone} aqgp-badge--impact">Impact · {issue.impactLabel}</span>
+                                                <span class="aqgp-badge aqgp-badge--none">{issue.ruleLabel}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="aqgp-issue__body">
 
-                    <div class="issue-meta">
-                        <strong>Rule:</strong> {issue.rule_id} ·
-                        <strong>Impact:</strong> {issue.impact} ·
-                        <strong>Occurrences:</strong> {issue.nodes_count}
-                    </div>
+                            <table class="aqgp-kv">
+                                <tr>
+                                    <td>RULE ID</td>
+                                    <td>{issue.rule_id}</td>
+                                </tr>
+                                <tr>
+                                    <td>IMPACT</td>
+                                    <td>{issue.impactLabel}</td>
+                                </tr>
+                                <tr>
+                                    <td>NODES</td>
+                                    <td>{issue.nodes_count}</td>
+                                </tr>
+                                <f:if condition="{issue.help_url}">
+                                    <tr>
+                                        <td>DOCS</td>
+                                        <td><a class="aqgp-docs-link" style="color:#5f6670;text-decoration:none;" href="{issue.help_url}" target="_blank" rel="noopener noreferrer">{issue.help_url_display}</a></td>
+                                    </tr>
+                                </f:if>
+                            </table>
 
-                    <f:if condition="{issue.help_url}">
-                        <div class="small"><strong>Docs:</strong> {issue.help_url}</div>
-                    </f:if>
-
-                    <f:for each="{issue.nodes}" as="node">
-                        <div class="node">
-                            <f:if condition="{node.failure_summary}">
-                                <div><strong>Summary:</strong> {node.failure_summary}</div>
-                            </f:if>
-
-                            <f:if condition="{node.mapped_table} && {node.mapped_uid}">
-                                <div>
-                                    <strong>Mapped record:</strong>
-                                    {node.mapped_table}:{node.mapped_uid}
+                            <f:if condition="{issue.hasNodes}">
+                                <div class="aqgp-occurrences-title">Occurrences</div>
+                                <div class="aqgp-node-list">
+                                    <f:for each="{issue.nodes}" as="node">
+                                        <div class="aqgp-node">
+                                            <div class="aqgp-node__title">Node {node.index} of {issue.nodes_count}</div>
+                                            <f:if condition="{node.failure_summary}">
+                                                <div class="aqgp-node__summary">{node.failure_summary}</div>
+                                            </f:if>
+                                            <f:if condition="{node.mappedRecord}">
+                                                <div class="aqgp-node__mapped">
+                                                    <span>Mapped record</span> · <strong>{node.mapped_table}</strong> · <strong>uid:{node.mapped_uid}</strong>
+                                                </div>
+                                            </f:if>
+                                            <f:if condition="{node.html_snippet}">
+                                                <pre>{node.html_snippet}</pre>
+                                            </f:if>
+                                        </div>
+                                    </f:for>
                                 </div>
                             </f:if>
-
-                            <f:if condition="{node.html_snippet}">
-                                <pre>{node.html_snippet}</pre>
-                            </f:if>
+                            </div>
                         </div>
                     </f:for>
-                </div>
-            </f:for>
+                </f:then>
+                <f:else>
+                    <div class="aqgp-empty">
+                        <div class="aqgp-empty__title">No scan data for this page</div>
+                        <div class="aqgp-empty__body">Once this URL responds successfully and a remote scan completes, page detail findings will appear here.</div>
+                    </div>
+                </f:else>
+            </f:if>
         </f:then>
         <f:else>
-            <p>Remote page was not found.</p>
+            <table class="aqgp-meta">
+                <tr>
+                    <td>
+                        <div class="aqgp-meta__label">Generated</div>
+                        <div class="aqgp-meta__value aqgp-meta__value--mono">{generatedAt}</div>
+                    </td>
+                    <td>
+                        <div class="aqgp-meta__label">Status</div>
+                        <div class="aqgp-meta__value">Page not found</div>
+                    </td>
+                </tr>
+            </table>
+            <div class="aqgp-empty">
+                <div class="aqgp-empty__title">Remote page was not found</div>
+                <div class="aqgp-empty__body">The requested remote page detail could not be loaded. Run a remote scan again or open the report from the latest remote scan.</div>
+            </div>
         </f:else>
     </f:if>
+
 </f:section>

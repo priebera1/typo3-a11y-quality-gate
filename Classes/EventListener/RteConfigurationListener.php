@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\EventListener;
 
+use Priebera\A11yQualityGate\Service\LanguageUidResolver;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\RteCKEditor\Form\Element\Event\BeforePrepareConfigurationForEditorEvent;
 
 final class RteConfigurationListener
 {
+    public function __construct(
+        private readonly PageRenderer $pageRenderer,
+        private readonly LanguageUidResolver $languageUidResolver,
+    ) {
+    }
+
     public function __invoke(BeforePrepareConfigurationForEditorEvent $event): void
     {
         $data = $event->getData();
@@ -42,15 +50,22 @@ final class RteConfigurationListener
         }
 
         $cssFile = 'EXT:a11y_quality_gate/Resources/Public/Css/ckeditor.css';
+
         if (!in_array($cssFile, $configuration['contentsCss'], true)) {
             $configuration['contentsCss'][] = $cssFile;
         }
 
+        $this->pageRenderer->addCssFile($cssFile);
+
+        $languageUid = $this->languageUidResolver->fromRteData($data);
+
         $configuration['a11yQualityGate'] = [
             'recordUid' => $uid,
             'fieldName' => $field,
+            'languageUid' => $languageUid,
         ];
 
         $event->setConfiguration($configuration);
     }
+
 }

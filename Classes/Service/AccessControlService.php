@@ -28,6 +28,18 @@ final class AccessControlService
         return $this->resolveVisibilityFlag($backendUser, 'showSettings', true);
     }
 
+    public function canEditRecord(?BackendUserAuthentication $backendUser = null): bool
+    {
+        return $this->resolveVisibilityFlag($backendUser, 'editRecord', true);
+    }
+
+    public function canManageAdminOnlySettings(?BackendUserAuthentication $backendUser = null): bool
+    {
+        $backendUser ??= $GLOBALS['BE_USER'] ?? null;
+
+        return $backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin();
+    }
+
     private function resolveVisibilityFlag(
         ?BackendUserAuthentication $backendUser,
         string $key,

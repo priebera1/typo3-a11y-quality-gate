@@ -25,6 +25,23 @@ final class BackendUserService
         return (int)($this->getBackendUser()?->user['uid'] ?? 0);
     }
 
+
+    /**
+     * @return array{uid:int,username:string,name:string}
+     */
+    public function getBackendUserSnapshot(): array
+    {
+        $user = $this->getBackendUser()?->user ?? [];
+        $username = trim((string)($user['username'] ?? ''));
+        $name = trim((string)($user['realName'] ?? ''));
+
+        return [
+            'uid' => (int)($user['uid'] ?? 0),
+            'username' => $username,
+            'name' => $name !== '' ? $name : $username,
+        ];
+    }
+
     public function isAdmin(): bool
     {
         return (bool)($this->getBackendUser()?->isAdmin() ?? false);

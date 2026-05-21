@@ -10,6 +10,7 @@ enum CrawlerJobStatus: string
     case Active = 'active';
     case Completed = 'completed';
     case Failed = 'failed';
+    case Cancelled = 'cancelled';
     case Queued = 'queued';
     case Unknown = 'unknown';
 
@@ -20,6 +21,6 @@ enum CrawlerJobStatus: string
 
     public function isFinished(): bool
     {
-        return $this === self::Completed || $this === self::Failed;
+        return $this === self::Completed || $this === self::Failed || $this === self::Cancelled;
     }
 }

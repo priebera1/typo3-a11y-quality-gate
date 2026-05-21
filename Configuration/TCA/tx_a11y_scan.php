@@ -95,6 +95,10 @@ return [
                         'label' => $ll . 'tx_a11y_scan.status.failed',
                         'value' => 3,
                     ],
+                    [
+                        'label' => $ll . 'tx_a11y_scan.status.cancelled',
+                        'value' => 4,
+                    ],
                 ],
                 'readOnly' => true,
             ],

@@ -2,17 +2,8 @@
 <div>
     <f:if condition="{pageStats}">
         <f:then>
-            <div class="table-responsive">
-                <table class="table table-hover a11y-overview-table mb-0">
-                    <colgroup>
-                        <col style="width: auto;" />
-                        <col style="width: 88px;" />
-                        <col style="width: 88px;" />
-                        <col style="width: 88px;" />
-                        <col style="width: 88px;" />
-                        <col style="width: 1%;" />
-                    </colgroup>
-
+            <div class="aqg-table-wrap">
+                <table class="aqg-table">
                     <thead>
                     <tr>
                         <th scope="col">
@@ -21,37 +12,35 @@
                                     default="Page"
                             />
                         </th>
-                        <th scope="col" class="text-center">
+                        <th scope="col" class="num">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
                                     default="Critical"
                             />
                         </th>
-                        <th scope="col" class="text-center">
+                        <th scope="col" class="num">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning"
                                     default="Warning"
                             />
                         </th>
-                        <th scope="col" class="text-center">
+                        <th scope="col" class="num">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
                                     default="Info"
                             />
                         </th>
-                        <th scope="col" class="text-center">
+                        <th scope="col" class="num">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.total"
                                     default="Total"
                             />
                         </th>
-                        <th scope="col" class="text-end">
-                            <span class="visually-hidden">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions"
-                                        default="Actions"
-                                />
-                            </span>
+                        <th scope="col" class="actions">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions"
+                                    default="Actions"
+                            />
                         </th>
                     </tr>
                     </thead>
@@ -63,15 +52,15 @@
                                 data-a11y-page-title="{stat.pageTitle}"
                                 data-a11y-page-uid="{stat.pageUid}"
                         >
-                            <th scope="row" class="min-w-0">
-                                <div class="min-w-0">
-                                    <div class="d-flex align-items-center gap-2 min-w-0">
-                                        <div class="fw-semibold text-truncate" title="{stat.pageTitle}">
+                            <td>
+                                <div class="aqg-page-cell">
+                                    <div class="aqg-page-cell__title">
+                                        <a href="{stat.detailUrl}" title="{stat.pageTitle}">
                                             {stat.pageTitle}
-                                        </div>
+                                        </a>
 
                                         <f:if condition="{stat.isFolder}">
-                                           <span class="badge badge-secondary">
+                                           <span class="aqg-mini-tag">
                                                 <f:translate
                                                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageType.folder"
                                                 />
@@ -79,38 +68,38 @@
                                         </f:if>
                                     </div>
 
-                                    <span class="text-muted small d-block">ID: {stat.pageUid}</span>
+                                    <span class="aqg-page-cell__meta">UID {stat.pageUid}</span>
                                 </div>
-                            </th>
+                            </td>
 
-                            <td class="text-center">
+                            <td class="num">
                                 <f:if condition="{stat.critical} > 0">
-                                    <f:then><span class="badge badge-danger">{stat.critical}</span></f:then>
-                                    <f:else><span class="text-muted">—</span></f:else>
+                                    <f:then><span class="aqg-count aqg-count--critical">{stat.critical}</span></f:then>
+                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
                                 </f:if>
                             </td>
 
-                            <td class="text-center">
+                            <td class="num">
                                 <f:if condition="{stat.warning} > 0">
-                                    <f:then><span class="badge badge-warning">{stat.warning}</span></f:then>
-                                    <f:else><span class="text-muted">—</span></f:else>
+                                    <f:then><span class="aqg-count aqg-count--warning">{stat.warning}</span></f:then>
+                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
                                 </f:if>
                             </td>
 
-                            <td class="text-center">
+                            <td class="num">
                                 <f:if condition="{stat.info} > 0">
-                                    <f:then><span class="badge badge-info">{stat.info}</span></f:then>
-                                    <f:else><span class="text-muted">—</span></f:else>
+                                    <f:then><span class="aqg-count aqg-count--info">{stat.info}</span></f:then>
+                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
                                 </f:if>
                             </td>
 
-                            <td class="text-center">
-                                <strong>{stat.total}</strong>
+                            <td class="num">
+                                <span class="aqg-count aqg-count--total">{stat.total}</span>
                             </td>
 
-                            <td class="text-end">
-                                <div class="d-flex justify-content-end gap-2 flex-nowrap">
-                                    <a href="{stat.detailUrl}" class="btn btn-primary btn-sm">
+                            <td class="actions">
+                                <div class="aqg-row-actions">
+                                    <a href="{stat.detailUrl}" class="aqg-action-link">
                                         <f:translate
                                                 key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.viewIssues"
                                                 default="View issues"
@@ -125,8 +114,8 @@
                                             data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
                                     >
                                         <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
-                                                default="Scan now"
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanThisPage"
+                                                default="Scan this page"
                                         />
                                     </button>
                                 </div>
@@ -138,8 +127,8 @@
             </div>
 
             <f:if condition="{localPagination.totalPages} > 1">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3 border-top">
-                    <div class="small text-muted">
+                <div class="aqg-pagination">
+                    <div class="aqg-pagination__info">
                         {totalLocalPages}
                         <f:translate
                                 key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages"
@@ -148,7 +137,7 @@
                     </div>
 
                     <nav aria-label="Local pages pagination">
-                        <ul class="pagination pagination-sm mb-0">
+                        <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
                             <li class="page-item {f:if(condition: localPagination.hasPrevious, then: '', else: 'disabled')}">
                                 <a class="page-link" href="{f:if(condition: localPagination.hasPrevious, then: localPagination.previousUrl, else: '#')}">‹</a>
                             </li>
@@ -179,19 +168,64 @@
 
         <f:else>
             <f:if condition="{localQuery}">
-                <div class="text-center text-muted py-4">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults"
-                            default="No matching pages found."
-                    />
+                <div class="aqg-empty">
+                    <div class="aqg-empty__icon" aria-hidden="true">
+                        <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
+                    </div>
+                    <div class="aqg-empty__title">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults"
+                                default="No matching pages found."
+                        />
+                    </div>
+                    <div class="aqg-empty__body">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults.text"
+                                default="Try a shorter query, or clear the filter."
+                        />
+                    </div>
                 </div>
             </f:if>
             <f:if condition="!{localQuery}">
-                <div class="alert alert-success mb-0" role="alert">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues"
-                            default="No open accessibility issues found."
-                    />
+                <div class="aqg-empty {f:if(condition: lastScan, then: 'aqg-empty--ok', else: '')}" role="status">
+                    <div class="aqg-empty__icon" aria-hidden="true">
+                        <f:if condition="{lastScan}">
+                            <f:then><f:render partial="Overview/Icon" arguments="{name: 'ok'}" /></f:then>
+                            <f:else><f:render partial="Overview/Icon" arguments="{name: 'empty'}" /></f:else>
+                        </f:if>
+                    </div>
+                    <div class="aqg-empty__title">
+                        <f:if condition="{lastScan}">
+                            <f:then>
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues"
+                                        default="No open accessibility issues found."
+                                />
+                            </f:then>
+                            <f:else>
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title"
+                                        default="No scan on record"
+                                />
+                            </f:else>
+                        </f:if>
+                    </div>
+                    <div class="aqg-empty__body">
+                        <f:if condition="{lastScan}">
+                            <f:then>
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues.text"
+                                        default="All scanned pages currently pass the configured accessibility checks."
+                                />
+                            </f:then>
+                            <f:else>
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.text"
+                                        default="Run a content scan to check this page tree for accessibility issues."
+                                />
+                            </f:else>
+                        </f:if>
+                    </div>
                 </div>
             </f:if>
         </f:else>

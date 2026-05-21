@@ -1,0 +1,20 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div class="aqg-module-empty" role="status" aria-live="polite">
+    <div class="aqg-module-empty__icon aqg-empty__icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path d="M2.4 8 L4.5 3 L11.5 3 L13.6 8 L13.6 13 L2.4 13 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" />
+            <path d="M2.4 8 L6 8 L6.6 9.4 L9.4 9.4 L10 8 L13.6 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" />
+        </svg>
+    </div>
+    <div class="aqg-module-empty__content">
+        <h3 class="aqg-module-empty__title">{emptyState.title}</h3>
+        <p class="aqg-module-empty__body">{emptyState.body}</p>
+        <f:if condition="{emptyState.hint}">
+            <p class="aqg-module-empty__hint">{emptyState.hint}</p>
+        </f:if>
+    </div>
+</div>
+</html>

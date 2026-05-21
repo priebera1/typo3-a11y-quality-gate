@@ -1,91 +1,189 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <h1>{title}</h1>
-    <div class="subtitle">{subtitle}</div>
+
+    <htmlpageheader name="aqgRemoteOverviewHeader">
+        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:7.2px;"><tbody><tr>
+            <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
+                <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
+            </td>
+            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:dejavusansmono, monospace; font-size:7.2px; letter-spacing:0.04em;">
+                <div class="aqgp-header__context" style="color:#7c828d; font-weight:bold; letter-spacing:0.08em;">REMOTE / FRONTEND SCAN</div>
+                <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
+            </td>
+        </tr></tbody></table>
+    </htmlpageheader>
+    <sethtmlpageheader name="aqgRemoteOverviewHeader" value="on" show-this-page="1" />
+
+    <htmlpagefooter name="aqgRemoteOverviewFooter">
+        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:6.8px;"><tbody><tr>
+            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:left; width:55%;">AQG · Remote accessibility report · {siteLabel}</td>
+            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
+        </tr></tbody></table>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="aqgRemoteOverviewFooter" value="on" show-this-page="1" />
+    <div class="aqgp-report-title">
+        <h1 class="aqgp-h1">Accessibility report</h1>
+        <p class="aqgp-sub">{subtitle}</p>
+    </div>
+    <hr class="aqgp-header__rule" />
+
+    <table class="aqgp-meta">
+        <tbody>
+        <tr>
+            <td>
+                <div class="aqgp-meta__label">Generated</div>
+                <div class="aqgp-meta__value">{generatedAt}</div>
+            </td>
+            <td>
+                <div class="aqgp-meta__label">Root URL</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{siteLabel}</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="aqgp-meta__label">Scan started</div>
+                <div class="aqgp-meta__value">{scanStartedAt}</div>
+            </td>
+            <td>
+                <div class="aqgp-meta__label">Scan completed</div>
+                <div class="aqgp-meta__value">{scanCompletedAt}</div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
 
     <f:if condition="{hasScan}">
         <f:then>
-            <div class="meta">
-                <div><strong>Generated:</strong> {generatedAt}</div>
-                <div><strong>Site:</strong> {siteIdentifier}</div>
-                <div><strong>Pages scanned:</strong> {scan.pages_scanned}</div>
-                <div><strong>Failed pages:</strong> {scan.pages_failed}</div>
-                <div><strong>Total issues:</strong> {scan.issues_total}</div>
-                <div><strong>New issues:</strong> {scan.issues_new}</div>
-                <div><strong>Resolved issues:</strong> {scan.issues_resolved}</div>
-            </div>
+            <table class="aqgp-section-title">
+                <tbody><tr><td>Scan summary</td><td class="aqgp-section-title__right">{pagesScanned} pages crawled · {runtimeLabel}</td></tr></tbody>
+            </table>
+            <table class="aqgp-cards">
+                <tbody><tr>
+                    <td>
+                        <table class="aqgp-card aqgp-card-table aqgp-card--ok{f:if(condition: pagesScanned, else: ' is-zero')}"><tbody>
+                            <tr><td class="aqgp-card__label">Pages scanned</td></tr>
+                            <tr><td class="aqgp-card__value">{pagesScanned}</td></tr>
+                            <tr><td class="aqgp-card__foot">{pagesScannedFoot}</td></tr>
+                        </tbody></table>
+                    </td>
+                    <td>
+                        <table class="aqgp-card aqgp-card-table aqgp-card--failed{f:if(condition: pagesFailed, else: ' is-zero')}"><tbody>
+                            <tr><td class="aqgp-card__label">Failed pages</td></tr>
+                            <tr><td class="aqgp-card__value">{pagesFailed}</td></tr>
+                            <tr><td class="aqgp-card__foot">{pagesFailedFoot}</td></tr>
+                        </tbody></table>
+                    </td>
+                    <td>
+                        <table class="aqgp-card aqgp-card-table aqgp-card--total{f:if(condition: issuesTotal, else: ' is-zero')}"><tbody>
+                            <tr><td class="aqgp-card__label">Total issues</td></tr>
+                            <tr><td class="aqgp-card__value">{issuesTotal}</td></tr>
+                            <tr><td class="aqgp-card__foot">across {topRulesTotal} rules</td></tr>
+                        </tbody></table>
+                    </td>
+                    <td>
+                        <table class="aqgp-card aqgp-card-table aqgp-card--delta"><tbody>
+                            <tr><td class="aqgp-card__label">New / resolved</td></tr>
+                            <tr><td class="aqgp-card__value">{newResolvedLabel}</td></tr>
+                            <tr><td class="aqgp-card__foot">since previous scan</td></tr>
+                        </tbody></table>
+                    </td>
+                </tr></tbody>
+            </table>
 
-            <h2>Top affected pages</h2>
+            <table class="aqgp-section-title">
+                <tbody><tr><td>Top affected pages</td><td class="aqgp-section-title__right">{pagesShown} of {pagesScanned}</td></tr></tbody>
+            </table>
             <f:if condition="{pages}">
                 <f:then>
-                    <table>
+                    <table class="aqgp-table">
                         <thead>
                         <tr>
                             <th>Page</th>
-                            <th>URL</th>
-                            <th>HTTP</th>
-                            <th>Issues</th>
+                            <th class="num">HTTP</th>
+                            <th class="num">Issues</th>
                         </tr>
                         </thead>
                         <tbody>
                         <f:for each="{pages}" as="page">
                             <tr>
-                                <td>{page.title}</td>
-                                <td>{page.url}</td>
-                                <td>{page.http_status}</td>
-                                <td>{page.issues_count}</td>
+                                <td>
+                                    <span class="aqgp-table__title">{page.title}</span>
+                                    <span class="aqgp-table__sub">{page.url}</span>
+                                </td>
+                                <td class="num"><span class="aqgp-http aqgp-http--{page.httpTone}">{page.httpStatus}</span></td>
+                                <td class="num"><span class="aqgp-count aqgp-count--{page.issueTone}">{page.issuesCount}</span></td>
                             </tr>
                         </f:for>
                         </tbody>
                     </table>
                 </f:then>
                 <f:else>
-                    <p class="muted">No remote pages found.</p>
+                    <div class="aqgp-empty">
+                        <p class="aqgp-empty__title">No matching page data found</p>
+                        <p class="aqgp-empty__body">The completed crawl has no page rows for this export.</p>
+                    </div>
                 </f:else>
             </f:if>
 
-            <h2>Top rules</h2>
+            <table class="aqgp-section-title">
+                <tbody><tr><td>Top rules</td><td class="aqgp-section-title__right">{topRulesShown} of {topRulesTotal}</td></tr></tbody>
+            </table>
             <f:if condition="{topRules}">
                 <f:then>
-                    <table>
+                    <table class="aqgp-table">
                         <thead>
                         <tr>
                             <th>Rule</th>
-                            <th>Count</th>
+                            <th class="num">Count</th>
                         </tr>
                         </thead>
                         <tbody>
                         <f:for each="{topRules}" as="rule">
                             <tr>
-                                <td>{rule.ruleId}</td>
-                                <td>{rule.count}</td>
+                                <td>
+                                    <span class="aqgp-table__title">{rule.title}</span>
+                                    <span class="aqgp-table__sub">{rule.ruleId}</span>
+                                </td>
+                                <td class="num"><span class="aqgp-count aqgp-count--{rule.tone}">{rule.count}</span></td>
                             </tr>
                         </f:for>
                         </tbody>
                     </table>
                 </f:then>
                 <f:else>
-                    <p class="muted">No rule data found.</p>
+                    <div class="aqgp-empty">
+                        <p class="aqgp-empty__title">No rule data found</p>
+                        <p class="aqgp-empty__body">No accessibility rules were triggered by the last completed scan.</p>
+                    </div>
                 </f:else>
             </f:if>
 
             <f:if condition="{failedPages}">
-                <h2>Failed pages</h2>
-                <table>
+                <table class="aqgp-section-title">
+                    <tbody><tr><td>Failed pages</td><td class="aqgp-section-title__right">{failedPagesShown} pages skipped</td></tr></tbody>
+                </table>
+                <div class="aqgp-callout">
+                    <span class="aqgp-callout__label">Pages could not be crawled</span>
+                    <p>These URLs were skipped on the last scan. They are not included in the totals above. Re-run the scan or fix upstream HTTP errors to include them.</p>
+                </div>
+                <table class="aqgp-table">
                     <thead>
                     <tr>
                         <th>URL</th>
-                        <th>HTTP</th>
+                        <th class="num">HTTP</th>
                         <th>Reason</th>
                     </tr>
                     </thead>
                     <tbody>
                     <f:for each="{failedPages}" as="page">
                         <tr>
-                            <td>{page.url}</td>
-                            <td>{page.http_status}</td>
-                            <td>{page.failure_reason}</td>
+                            <td>
+                                <span class="aqgp-table__title">{page.title}</span>
+                                <span class="aqgp-table__sub">{page.url}</span>
+                            </td>
+                            <td class="num"><span class="aqgp-http aqgp-http--{page.httpTone}">{page.httpStatus}</span></td>
+                            <td>{page.failureReason}</td>
                         </tr>
                     </f:for>
                     </tbody>
@@ -93,7 +191,14 @@
             </f:if>
         </f:then>
         <f:else>
-            <p>No completed remote scan found.</p>
+            <table class="aqgp-section-title">
+                <tbody><tr><td>Scan summary</td><td class="aqgp-section-title__right">no completed scan</td></tr></tbody>
+            </table>
+            <div class="aqgp-empty">
+                <p class="aqgp-empty__title">No completed remote scan yet</p>
+                <p class="aqgp-empty__body">The remote crawler has not finished a scan for this site. Start a scan from the AQG Overview to generate this report.</p>
+            </div>
         </f:else>
     </f:if>
+
 </f:section>

@@ -1,0 +1,206 @@
+<div
+        class="tab-pane fade{f:if(condition: '{activeTab} == ''remote_access''', then: ' show active')}"
+        id="a11y-settings-pane-remote-access"
+        role="tabpanel"
+        aria-labelledby="a11y-settings-tab-remote-access"
+        tabindex="0"
+>
+    <f:if condition="{isAdmin}">
+        <f:then>
+            <form
+                    method="post"
+                    action="{remoteAccessSaveUrl}"
+                    class="aqg-stack aqg-remote-access js-aqg-remote-access-form"
+                    id="a11y-settings-remote-access-form"
+                    data-regenerate-token-url="{remoteAccessRegenerateTokenUrl}"
+                    data-test-http-auth-url="{remoteAccessTestHttpAuthUrl}"
+            >
+                <f:for each="{returnParameters}" as="value" key="name">
+                    <input type="hidden" name="{name}" value="{value}" />
+                </f:for>
+
+                <input type="hidden" name="tab" value="remote_access" />
+                <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+                <input type="hidden" name="remoteScanAccessFormSubmitted" value="1" />
+                
+                <div class="aqg-actionbar js-aqg-remote-actionbar">
+                    <div class="aqg-actionbar__left">
+                        <span class="aqg-actionbar__title">Remote scan access</span>
+                        <span class="aqg-actionbar__meta js-aqg-remote-action-meta">All changes saved</span>
+                        <span class="aqg-toast js-aqg-remote-save-toast" hidden="hidden">✓ Settings saved</span>
+                    </div>
+                    <div class="aqg-actionbar__right">
+                        <button type="reset" class="aqg-link-button aqg-link-button--muted js-aqg-remote-discard">Discard</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save remote scan settings</button>
+                    </div>
+                </div>
+
+                <div class="aqg-admin-banner">
+                    <span class="aqg-admin-banner__badge"><span class="aqg-admin-banner__badge-dot"></span>Admin only</span>
+                    <span class="aqg-admin-banner__text">
+                        <strong>Only administrators should change Remote scan access settings.</strong>
+                        These options control how the AQG crawler reaches your frontend — including hidden pages, protected staging environments, and the URL crawl rules.
+                    </span>
+                    <f:if condition="{backendUserDisplayName}">
+                        <span class="aqg-admin-banner__user">signed in as {backendUserDisplayName}</span>
+                    </f:if>
+                </div>
+
+                <section class="aqg-card aqg-card--secret js-aqg-scanner-token-card">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">
+                                <span class="aqg-card__title-prefix" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
+                                Scanner preview token
+                            </h3>
+                            <p class="aqg-card__sub">Generate a private token so the remote crawler can access hidden pages and hidden content during scans. Keep this token secret.</p>
+                        </div>
+                        <span class="aqg-toast js-aqg-token-success" hidden="hidden">✓ Scanner token regenerated</span>
+                    </header>
+                    <div class="aqg-card__body">
+                        <div class="aqg-field">
+                            <label class="aqg-field__label">Token</label>
+                            <div class="js-aqg-token-present" {f:if(condition: remoteAccessHasScannerToken, else: 'hidden="hidden"')}>
+                                <div class="aqg-token-row__field" role="group" aria-label="Scanner token masked value">
+                                    <span class="aqg-token-row__prefix">Token</span>
+                                    <span class="aqg-token-row__value js-aqg-token-value">{remoteAccessMaskedScannerToken}</span>
+                                    <button type="button" class="aqg-token-row__action js-aqg-copy-token" data-token="" disabled="disabled" aria-label="Copy newly generated scanner token">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                                            <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
+                                            <path d="M2 8 L2 2 L8 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        Copy after regenerate
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="aqg-token-empty js-aqg-token-empty" {f:if(condition: remoteAccessHasScannerToken, then: 'hidden="hidden"')}>
+                                <span class="aqg-token-empty__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
+                                <span>No token set — click <strong>Generate token</strong> to create one. Without a token, the remote crawler cannot scan hidden pages.</span>
+                            </div>
+                            <div class="aqg-field__help">The crawler sends this token with every request. TYPO3 then allows access to hidden pages for the duration of the scan. For security, the full token is shown only once immediately after generation.</div>
+                        </div>
+
+                        <div class="aqg-remote-inline-actions">
+                            <button type="button" class="btn btn-default btn-sm js-aqg-regenerate-token">
+                                <span class="js-aqg-regenerate-token-label"><f:if condition="{remoteAccessHasScannerToken}"><f:then>Regenerate token</f:then><f:else>Generate token</f:else></f:if></span>
+                            </button>
+                            <span class="aqg-remote-warning">
+                                <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
+                                Regenerating invalidates the current token immediately. Running scans may fail until the crawler uses the new token.
+                            </span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="aqg-card">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">HTTP Basic Authentication</h3>
+                            <p class="aqg-card__sub">For password-protected staging environments. The remote crawler will use these credentials when scanning. Credentials are stored encrypted and never shown again.</p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body">
+                        <div class="aqg-remote-grid-2">
+                            <div class="aqg-field">
+                                <label class="aqg-field__label" for="aqg-http-auth-user">Username</label>
+                                <input id="aqg-http-auth-user" type="text" class="aqg-input js-aqg-http-auth-user" name="remoteScanAccess[http_auth_user]" value="{remoteAccessRuleset.http_auth_user}" placeholder="e.g. crawler" autocomplete="off" />
+                                <div class="aqg-field__help">The HTTP Basic Auth user that has access to the staging frontend.</div>
+                            </div>
+                            <div class="aqg-field">
+                                <label class="aqg-field__label" for="aqg-http-auth-pass">Password</label>
+                                <input id="aqg-http-auth-pass" type="password" class="aqg-input js-aqg-http-auth-pass" name="remoteScanAccess[http_auth_pass]" value="" placeholder="{f:if(condition: remoteAccessHasHttpAuthPassword, then: '••••••••', else: 'enter password…')}" autocomplete="new-password" />
+                                <div class="aqg-field__help">
+                                    <f:if condition="{remoteAccessHasHttpAuthPassword}">
+                                        <f:then>A password is saved. Type a new value to replace it; leave blank to keep the current password.</f:then>
+                                        <f:else>The saved password is encrypted and never shown again.</f:else>
+                                    </f:if>
+                                </div>
+                                <f:if condition="{remoteAccessHasHttpAuthPassword}">
+                                    <label class="aqg-checkbox-line aqg-checkbox-line--muted">
+                                        <input type="checkbox" name="remoteScanAccess[clear_http_auth_password]" value="1" />
+                                        <span>Remove saved password</span>
+                                    </label>
+                                </f:if>
+                            </div>
+                        </div>
+                        <div class="aqg-remote-inline-actions">
+                            <button type="button" class="btn btn-default btn-sm js-aqg-test-http-auth">Test connection</button>
+                            <span class="aqg-test-result js-aqg-test-result" hidden="hidden"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="aqg-card aqg-card--advanced aqg-cookie-selectors-card">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">Cookie accept selectors <span class="aqg-field__label-hint">optional</span></h3>
+                            <p class="aqg-card__sub">Use custom selectors only when the crawler cannot dismiss your cookie banner automatically. Leave this field empty if remote scans work correctly.</p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body">
+                        <div class="aqg-field">
+                            <label class="aqg-field__label" for="aqg-cookie-accept-selectors">Cookie accept selectors <span class="aqg-field__label-hint">one CSS selector per line</span></label>
+                            <textarea id="aqg-cookie-accept-selectors" name="remoteScanAccess[cookie_accept_selectors]" class="aqg-textarea aqg-input--mono aqg-remote-textarea aqg-remote-textarea--compact js-aqg-cookie-selectors" rows="4" placeholder="#cookie-accept-btn&#10;.cookie-consent__accept&#10;button[data-cookie-accept]">{remoteAccessCookieAcceptSelectorsText}</textarea>
+                            <div class="aqg-field__help">Selectors are tried before AQG’s automatic cookie detection. Leave empty if the cookie banner does not block scan results.</div>
+                        </div>
+                        <div class="aqg-suggest aqg-suggest--compact">
+                            <span class="aqg-suggest__label">Examples</span>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-cookie-accept-selectors" data-value="#cookie-accept-btn"><span class="aqg-suggest__chip-plus">+</span>#cookie-accept-btn</button>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-cookie-accept-selectors" data-value=".cookie-consent__accept"><span class="aqg-suggest__chip-plus">+</span>.cookie-consent__accept</button>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-cookie-accept-selectors" data-value="button[data-cookie-accept]"><span class="aqg-suggest__chip-plus">+</span>button[data-cookie-accept]</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="aqg-card">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">Excluded URL patterns</h3>
+                            <p class="aqg-card__sub">URLs the remote crawler should skip. Use this for admin areas, file folders, internal tools and other paths that should never be scanned.</p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body">
+                        <div class="aqg-field">
+                            <label class="aqg-field__label" for="aqg-excluded-patterns">Patterns <span class="aqg-field__label-hint">(one per line · supports the * wildcard)</span></label>
+                            <textarea id="aqg-excluded-patterns" name="remoteScanAccess[excluded_patterns]" class="aqg-textarea aqg-input--mono aqg-remote-textarea js-aqg-recommended-target" rows="6" placeholder="/typo3/*&#10;/fileadmin/*&#10;/typo3temp/*&#10;/typo3temp/assets/*&#10;/_assets/*">{remoteAccessExcludedPatternsText}</textarea>
+                            <div class="aqg-field__help">Matching URLs will not be crawled. Examples: /fileadmin/* skips every file path; /preview?token=* skips preview URLs.</div>
+                        </div>
+                        <div class="aqg-suggest">
+                            <span class="aqg-suggest__label">Recommended</span>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/typo3/*"><span class="aqg-suggest__chip-plus">+</span>/typo3/*</button>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/fileadmin/*"><span class="aqg-suggest__chip-plus">+</span>/fileadmin/*</button>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/typo3temp/*"><span class="aqg-suggest__chip-plus">+</span>/typo3temp/*</button>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/typo3temp/assets/*"><span class="aqg-suggest__chip-plus">+</span>/typo3temp/assets/*</button>
+                            <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/_assets/*"><span class="aqg-suggest__chip-plus">+</span>/_assets/*</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="aqg-card">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">Priority URLs</h3>
+                            <p class="aqg-card__sub">Pages the remote crawler scans first. Use this for the homepage, contact page and other high-traffic pages — so issues appear in the report early.</p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body">
+                        <div class="aqg-field">
+                            <label class="aqg-field__label" for="aqg-priority-urls">URL paths <span class="aqg-field__label-hint">(one per line · paths relative to the site root)</span></label>
+                            <textarea id="aqg-priority-urls" name="remoteScanAccess[crawl_priority_urls]" class="aqg-textarea aqg-input--mono aqg-remote-textarea" rows="6" placeholder="/&#10;/contact&#10;/products">{remoteAccessPriorityUrlsText}</textarea>
+                            <div class="aqg-field__help">Other URLs are still crawled in their normal order — this list only affects ordering, not visibility.</div>
+                        </div>
+                    </div>
+                </section>
+            </form>
+        </f:then>
+        <f:else>
+            <section class="aqg-card aqg-card--muted">
+                <div class="aqg-card__body">
+                    <div class="aqg-empty-state aqg-empty-state--compact">
+                        <strong>This section is only available to TYPO3 administrators.</strong>
+                    </div>
+                </div>
+            </section>
+        </f:else>
+    </f:if>
+</div>

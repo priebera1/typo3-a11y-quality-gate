@@ -19,7 +19,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
             const message = this.translate(
                 'notification.proScan.leaveWarning',
-                'Remote scan request is still being started. Please wait a moment before leaving this page.'
+                'Frontend scan request is still being started. Please wait a moment before leaving this page.'
             );
 
             event.preventDefault();
@@ -65,6 +65,12 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 event.preventDefault();
                 await this.handleProScanPage(proScanPageButton);
             }
+
+            const proCancelScanButton = event.target.closest(PRO_SELECTORS.proCancelScanButton);
+            if (proCancelScanButton) {
+                event.preventDefault();
+                await this.handleProCancelScan(proCancelScanButton);
+            }
         });
 
         document.querySelectorAll(PRO_SELECTORS.proScanSiteButton).forEach((button) => {
@@ -80,7 +86,15 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             return;
         }
 
-        const stored = localStorage.getItem(LS_SOURCE_KEY) || 'local';
+        const requestedSource = new URLSearchParams(window.location.search).get('aqgSource');
+        let stored = requestedSource || 'local';
+        if (!requestedSource) {
+            try {
+                stored = localStorage.getItem(LS_SOURCE_KEY) || 'local';
+            } catch {
+                stored = 'local';
+            }
+        }
         this.setOverviewSource(stored);
     }
 
@@ -192,10 +206,11 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         const rootPid = Number.parseInt(button.dataset.rootPid || '0', 10);
         const maxPages = Number.parseInt(button.dataset.maxPages || '20', 10);
+        const languageUid = this.resolveScanLanguageUid(button);
 
         if (!submitEndpoint || rootPid <= 0) {
             this.showNotification(
-                this.translate('notification.proScan.missingRootPid', 'Remote crawler scan failed: missing endpoint or root PID.'),
+                this.translate('notification.proScan.missingRootPid', 'Frontend scan failed: missing endpoint or root PID.'),
                 'error'
             );
             return;
@@ -209,6 +224,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             const submitResponse = await new AjaxRequest(submitEndpoint).post({
                 rootPid,
                 maxPages,
+                languageUid,
                 followLinks: true,
                 axeLocale: 'en',
             });
@@ -217,6 +233,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             await this.handleProSubmitPayload(button, submitData, {
                 fallbackScope: 'site',
                 fallbackPageUid: null,
+                fallbackLanguageUid: languageUid,
             });
         } catch (error) {
             const errorPayload = await this.extractAjaxErrorData(error);
@@ -225,6 +242,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 await this.handleProSubmitPayload(button, errorPayload, {
                     fallbackScope: 'site',
                     fallbackPageUid: null,
+                    fallbackLanguageUid: languageUid,
                 });
                 return;
             }
@@ -232,7 +250,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             const message = this.extractReadableRemoteError(
                 errorPayload,
                 error,
-                this.translate('notification.proScan.failed', 'Remote crawler scan failed.')
+                this.translate('notification.proScan.failed', 'Frontend scan failed.')
             );
             const notificationMessage = this.buildRemoteErrorNotificationText(errorPayload, message);
 
@@ -258,6 +276,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const pageUid = Number.parseInt(button.dataset.pageUid || '0', 10);
         const pageUrl = String(button.dataset.pageUrl || '').trim();
         const siteIdentifier = String(button.dataset.siteIdentifier || '').trim();
+        const languageUid = this.resolveScanLanguageUid(button);
 
         if (!submitEndpoint || pageUid <= 0 || pageUrl === '' || siteIdentifier === '') {
             this.showNotification(
@@ -279,6 +298,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 pageUid,
                 pageUrl,
                 siteIdentifier,
+                languageUid,
                 axeLocale: 'en',
             });
 
@@ -286,6 +306,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             await this.handleProSubmitPayload(button, submitData, {
                 fallbackScope: 'page',
                 fallbackPageUid: pageUid,
+                fallbackLanguageUid: languageUid,
             });
         } catch (error) {
             const errorPayload = await this.extractAjaxErrorData(error);
@@ -294,6 +315,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 await this.handleProSubmitPayload(button, errorPayload, {
                     fallbackScope: 'page',
                     fallbackPageUid: pageUid,
+                    fallbackLanguageUid: languageUid,
                 });
                 return;
             }
@@ -321,14 +343,97 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         }
     }
 
-    async handleProSubmitPayload(button, submitData, { fallbackScope, fallbackPageUid }) {
+    async handleProCancelScan(button) {
+        const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
+        const cancelEndpoint = ajaxUrls.a11y_pro_crawl_cancel || '';
+        const state = this.getRestorableRemoteScanState();
+
+        const jobId = String(button.dataset.jobId || state?.jobId || '').trim();
+        const siteIdentifier = String(button.dataset.siteIdentifier || state?.siteIdentifier || '').trim();
+
+        if (!cancelEndpoint || !jobId || !siteIdentifier) {
+            this.showNotification(
+                this.translate(
+                    'notification.proScan.cancelMissing',
+                    'Remote scan could not be cancelled because the cancel endpoint, job ID or site identifier is missing.'
+                ),
+                'warning'
+            );
+            return;
+        }
+
+        this.setLoadingState(button, true);
+        this.updateRemoteScanUi({
+            visible: true,
+            status: 'cancelling',
+            message: this.translate(
+                'notification.proScan.cancelling',
+                'Cancelling frontend scan…'
+            ),
+            pagesScanned: state?.pagesScanned ?? null,
+            pagesTotal: state?.pagesTotal ?? null,
+        });
+
+        try {
+            const response = await new AjaxRequest(cancelEndpoint).post({
+                jobId,
+                siteIdentifier,
+            });
+            const data = await response.resolve();
+            const status = String(data.status || 'cancelled');
+
+            this.updateRemoteScanDomState({
+                status,
+            });
+
+            this.updateRemoteScanUi({
+                visible: true,
+                status,
+                message: status === 'cancelled'
+                    ? this.translate('notification.proScan.cancelled', 'Frontend scan was cancelled.')
+                    : this.translate('notification.proScan.cancelFinished', 'Frontend scan was already finished.'),
+                pagesScanned: state?.pagesScanned ?? null,
+                pagesTotal: state?.pagesTotal ?? null,
+            });
+
+            this.showNotification(
+                status === 'cancelled'
+                    ? this.translate('notification.proScan.cancelled', 'Frontend scan was cancelled.')
+                    : this.translate('notification.proScan.cancelFinished', 'Frontend scan was already finished.'),
+                'info'
+            );
+
+            this.resetRemoteScanDomState();
+            this.setScanInProgress(false);
+            this.reloadCurrentModule(900);
+        } catch (error) {
+            const errorPayload = await this.extractAjaxErrorData(error);
+            const message = this.extractReadableRemoteError(
+                errorPayload,
+                error,
+                this.translate('notification.proScan.cancelFailed', 'Frontend scan cancel request failed.')
+            );
+
+            this.showNotification(message, 'error');
+            this.setLoadingState(button, false);
+            this.updateRemoteScanUi({
+                visible: true,
+                status: state?.status || 'running',
+                message: this.buildRemoteProgressMessage(state?.pagesScanned ?? null, state?.pagesTotal ?? null),
+                pagesScanned: state?.pagesScanned ?? null,
+                pagesTotal: state?.pagesTotal ?? null,
+            });
+        }
+    }
+
+    async handleProSubmitPayload(button, submitData, { fallbackScope, fallbackPageUid, fallbackLanguageUid = null }) {
         this.remoteSubmitInProgress = false;
         if (submitData.success === false && submitData.code === 'remote_scan_already_active') {
             const restoredJobId = String(submitData.jobId || '').trim();
             const restoredSiteIdentifier = String(submitData.siteIdentifier || '').trim();
 
             if (!restoredJobId || !restoredSiteIdentifier) {
-                throw new Error(submitData.error || 'Remote scan is already active, but restore data is missing.');
+                throw new Error(submitData.error || 'Frontend scan is already active, but restore data is missing.');
             }
 
             this.updateRemoteScanDomState({
@@ -339,6 +444,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 status: String(submitData.status || 'queued'),
                 pagesScanned: String(submitData.pagesScanned || 0),
                 pagesTotal: submitData.pagesTotal ? String(submitData.pagesTotal) : '',
+                languageUid: this.resolveSubmittedLanguageUid(submitData, fallbackLanguageUid, button),
             });
 
             this.updateRemoteScanUi({
@@ -353,7 +459,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             });
 
             this.showNotification(
-                this.translate('notification.proScan.alreadyRunning', 'A remote scan is already running. Restoring progress.'),
+                this.translate('notification.proScan.alreadyRunning', 'A frontend scan is already running. Restoring progress.'),
                 'info'
             );
 
@@ -382,6 +488,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             status: String(submitData.status || 'queued'),
             pagesScanned: '0',
             pagesTotal: fallbackScope === 'page' ? '1' : '',
+            languageUid: this.resolveSubmittedLanguageUid(submitData, fallbackLanguageUid, button),
         });
 
         this.updateRemoteScanUi({
@@ -394,8 +501,8 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         this.showNotification(
             fallbackScope === 'page'
-                ? this.translate('notification.proScan.pageStarted', 'Remote page scan started.')
-                : this.translate('notification.proScan.started', 'Remote crawler scan started.'),
+                ? this.translate('notification.proScan.pageStarted', 'Frontend page scan started.')
+                : this.translate('notification.proScan.started', 'Frontend scan started.'),
             'info'
         );
 
@@ -567,7 +674,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         if (code === 'forbidden_resource') {
             return this.translate(
                 'notification.proScan.ownershipError',
-                'Remote scan access was lost. Please start a new scan.'
+                'Frontend scan access was lost. Please start a new scan.'
             );
         }
 
@@ -590,7 +697,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         }
 
         if (code === 'forbidden_resource') {
-            return this.translate('notification.proScan.ownershipErrorTitle', 'Remote scan access lost');
+            return this.translate('notification.proScan.ownershipErrorTitle', 'Frontend scan access lost');
         }
 
         return '';
@@ -659,6 +766,19 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
     async monitorRemoteScan(scanState) {
         const statusData = await this.pollRemoteCrawlerJob(scanState.jobId, scanState.siteIdentifier);
 
+        if ((statusData.status || '') === 'cancelled') {
+            this.updateRemoteScanUi({
+                visible: true,
+                status: 'cancelled',
+                message: this.translate('notification.proScan.cancelled', 'Frontend scan was cancelled.'),
+                pagesScanned: Number(statusData.pagesScanned || 0),
+                pagesTotal: statusData.pagesTotal ?? null,
+            });
+            this.resetRemoteScanDomState();
+            this.setScanInProgress(false);
+            return;
+        }
+
         if ((statusData.status || '') !== 'completed') {
             throw new Error(
                 this.extractReadableRemoteError(
@@ -666,7 +786,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                     null,
                     this.translate(
                         'notification.proScan.didNotComplete',
-                        'Remote crawler scan did not complete successfully.'
+                        'Frontend scan did not complete successfully.'
                     )
                 )
             );
@@ -676,11 +796,14 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         if (summaryData.alreadyPersisted === true) {
             this.updateRemoteScanUi({
-                visible: false,
-                status: '',
-                message: '',
-                pagesScanned: null,
-                pagesTotal: null,
+                visible: true,
+                status: 'completed',
+                message: this.translate(
+                    'module.remotePageDetail.scanReloading',
+                    'Scan completed. Reloading page with fresh results.'
+                ),
+                pagesScanned: Number(summaryData.pagesScanned || statusData.pagesScanned || 0),
+                pagesTotal: statusData.pagesTotal ?? null,
             });
 
             try {
@@ -691,6 +814,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
             this.resetRemoteScanDomState();
             this.setScanInProgress(false);
+            this.reloadCurrentModule(2600);
             return;
         }
 
@@ -707,7 +831,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         this.showNotification(
             this.format(
-                this.translate('notification.proScan.completed', 'Remote crawler complete — %d new, %d resolved.'),
+                this.translate('notification.proScan.completed', 'Frontend scan complete — %d new, %d resolved.'),
                 Number(summaryData.issuesNew || 0),
                 Number(summaryData.issuesResolved || 0)
             ),
@@ -722,7 +846,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         this.resetRemoteScanDomState();
         this.setScanInProgress(false);
-        window.setTimeout(() => window.location.reload(), 1200);
+        this.reloadCurrentModule(2600);
     }
 
     async pollRemoteCrawlerJob(jobId, siteIdentifier) {
@@ -733,7 +857,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             throw new Error(
                 this.translate(
                     'notification.proScan.statusMissing',
-                    'Missing remote crawler status endpoint, job ID or site identifier.'
+                    'Missing frontend scan status endpoint, job ID or site identifier.'
                 )
             );
         }
@@ -750,7 +874,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         try {
             const maxAttempts = 300;
-            const intervalMs = 3000;
+            const intervalMs = 6000;
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 try {
@@ -798,7 +922,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                         });
                     }
 
-                    if (status === 'completed' || status === 'failed') {
+                    if (status === 'completed' || status === 'failed' || status === 'cancelled') {
                         return data;
                     }
                 } catch (error) {
@@ -810,12 +934,12 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                         error,
                         this.translate(
                             'notification.proScan.statusFailed',
-                            'Remote crawler status request failed.'
+                            'Frontend scan status request failed.'
                         )
                     );
 
                     if (message.includes('429') || status === 429) {
-                        await new Promise((resolve) => window.setTimeout(resolve, 5000));
+                        await new Promise((resolve) => window.setTimeout(resolve, 10000));
                         continue;
                     }
 
@@ -823,7 +947,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                         throw new Error(
                             this.translate(
                                 'notification.proScan.ownershipError',
-                                'Remote scan access was lost. Please start a new scan.'
+                                'Frontend scan access was lost. Please start a new scan.'
                             )
                         );
                     }
@@ -840,7 +964,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         throw new Error(
             this.translate(
                 'notification.proScan.statusTimeout',
-                'Remote crawler status polling timed out.'
+                'Frontend scan status polling timed out.'
             )
         );
     }
@@ -853,7 +977,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             throw new Error(
                 this.translate(
                     'notification.proScan.summaryMissing',
-                    'Missing remote crawler summary endpoint, job ID or site identifier.'
+                    'Missing frontend scan summary endpoint, job ID or site identifier.'
                 )
             );
         }
@@ -875,7 +999,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                     error,
                     this.translate(
                         'notification.proScan.summaryFailed',
-                        'Remote crawler summary request failed.'
+                        'Frontend scan summary request failed.'
                     )
                 );
 
@@ -892,7 +1016,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                     throw new Error(
                         this.translate(
                             'notification.proScan.ownershipError',
-                            'Remote scan access was lost. Please start a new scan.'
+                            'Frontend scan access was lost. Please start a new scan.'
                         )
                     );
                 }
@@ -904,12 +1028,25 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         throw new Error(
             this.translate(
                 'notification.proScan.summaryFailed',
-                'Remote crawler summary request failed.'
+                'Frontend scan summary request failed.'
             )
         );
     }
 
     initRemoteScanProgress() {
+        const state = this.getRestorableRemoteScanState();
+
+        if (state) {
+            this.updateRemoteScanUi({
+                visible: true,
+                status: state.status,
+                message: this.buildRemoteProgressMessage(state.pagesScanned, state.pagesTotal),
+                pagesScanned: state.pagesScanned,
+                pagesTotal: state.pagesTotal,
+            });
+            return;
+        }
+
         this.updateRemoteScanUi({
             visible: false,
             status: '',
@@ -938,7 +1075,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         this.monitorRemoteScan(state).catch((error) => {
             const message = error instanceof Error
                 ? error.message
-                : this.translate('notification.proScan.restoreFailed', 'Remote scan restore failed.');
+                : this.translate('notification.proScan.restoreFailed', 'Frontend scan restore failed.');
 
             this.resetRemoteScanDomState();
             this.updateRemoteScanUi({
@@ -958,10 +1095,16 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         document.querySelectorAll(PRO_SELECTORS.proScanPageButton).forEach((button) => {
             button.disabled = isActive;
+            if (!isActive) {
+                this.restoreButtonText(button);
+            }
         });
 
         document.querySelectorAll(PRO_SELECTORS.proScanSiteButton).forEach((button) => {
             button.disabled = isActive;
+            if (!isActive) {
+                this.restoreButtonText(button);
+            }
         });
 
         if (isActive) {
@@ -974,39 +1117,82 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         }
     }
 
+
+    restoreButtonText(button) {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        if (button.dataset.originalText) {
+            button.textContent = button.dataset.originalText;
+        }
+    }
+
     updateRemoteScanUi({ visible, status, message, pagesScanned = null, pagesTotal = null }) {
         const box = document.querySelector(PRO_SELECTORS.remoteScanProgressBox);
         const statusEl = document.querySelector(PRO_SELECTORS.remoteScanProgressStatus);
         const messageEl = document.querySelector(PRO_SELECTORS.remoteScanProgressMessage);
         const spinnerEl = document.querySelector(PRO_SELECTORS.remoteScanProgressSpinner);
+        const progressBarEl = document.querySelector(PRO_SELECTORS.remoteScanProgressBar);
+        const fillEl = document.querySelector(PRO_SELECTORS.remoteScanProgressFill);
+        const cancelButton = document.querySelector(PRO_SELECTORS.proCancelScanButton);
 
         if (!box) {
             return;
         }
 
+        const normalizedStatus = String(status || '');
+        const isCompleted = normalizedStatus === 'completed';
+        const isIndeterminate = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
+
         box.classList.toggle('d-none', !visible);
+        box.classList.toggle('aqg-progress-block--indeterminate', isIndeterminate);
+        box.classList.toggle('aqg-progress-block--completed', isCompleted);
 
         if (spinnerEl) {
-            const showSpinner = visible && !['completed', 'failed'].includes(String(status || ''));
+            const showSpinner = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
             spinnerEl.classList.toggle('d-none', !showSpinner);
         }
 
         if (statusEl) {
             statusEl.textContent = status || '';
-            statusEl.className = 'ms-2 badge bg-secondary';
+            statusEl.className = 'aqg-status-badge';
 
             if (status === 'completed') {
-                statusEl.className = 'ms-2 badge bg-success';
+                statusEl.className = 'aqg-status-badge aqg-status-badge--ok';
             } else if (status === 'failed') {
-                statusEl.className = 'ms-2 badge bg-danger';
-            } else if (status === 'waiting' || status === 'queued' || status === 'running' || status === 'active') {
-                statusEl.className = 'ms-2 badge bg-warning text-dark';
+                statusEl.className = 'aqg-status-badge aqg-status-badge--error';
+            } else if (status === 'cancelled') {
+                statusEl.className = 'aqg-status-badge aqg-status-badge--neutral';
+            } else if (status === 'waiting' || status === 'queued' || status === 'running' || status === 'active' || status === 'cancelling') {
+                statusEl.className = 'aqg-status-badge aqg-status-badge--running';
             }
+        }
+
+        if (fillEl) {
+            const percentage = pagesTotal !== null && pagesTotal > 0
+                ? Math.min(100, Math.max(0, (Number(pagesScanned || 0) / Number(pagesTotal)) * 100))
+                : visible ? 18 : 0;
+
+            fillEl.style.width = isCompleted ? '100%' : (isIndeterminate ? '35%' : `${percentage}%`);
+        }
+
+        if (progressBarEl) {
+            progressBarEl.setAttribute('aria-valuenow', pagesScanned === null ? '0' : String(pagesScanned));
+        }
+        if (pagesTotal !== null && pagesTotal > 0) {
+            progressBarEl?.setAttribute('aria-valuemax', String(pagesTotal));
         }
 
         if (messageEl) {
             const resolvedMessage = message || this.buildRemoteProgressMessage(pagesScanned, pagesTotal);
             messageEl.textContent = resolvedMessage;
+        }
+
+        if (cancelButton) {
+            const canCancel = visible && ['waiting', 'queued', 'active', 'running', 'cancelling'].includes(String(status || ''));
+            cancelButton.classList.toggle('d-none', !canCancel);
+            cancelButton.disabled = String(status || '') === 'cancelling';
         }
     }
 
@@ -1015,7 +1201,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             return this.format(
                 this.translate(
                     'notification.proScan.progress.withTotal',
-                    'Remote scan is running in background. %d/%d pages processed so far.'
+                    'Frontend scan is running in background. %d/%d pages processed so far.'
                 ),
                 pagesScanned,
                 pagesTotal
@@ -1026,7 +1212,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             return this.format(
                 this.translate(
                     'notification.proScan.progress.withCount',
-                    'Remote scan is running in background. %d pages processed so far.'
+                    'Frontend scan is running in background. %d pages processed so far.'
                 ),
                 pagesScanned
             );
@@ -1034,7 +1220,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         return this.translate(
             'notification.proScan.progress.starting',
-            'Remote scan is running in background. Progress will appear shortly.'
+            'Frontend scan is running in background. Progress will appear shortly.'
         );
     }
 
@@ -1047,6 +1233,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 type: 'overview',
                 siteIdentifier: String(overviewRoot.dataset.a11ySiteIdentifier || '').trim(),
                 remotePageUid: overviewPageUid,
+                languageUid: this.resolveCurrentLanguageUid(),
             };
         }
 
@@ -1056,6 +1243,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 type: 'remotePage',
                 siteIdentifier: String(remotePageRoot.dataset.a11ySiteIdentifier || '').trim(),
                 remotePageUid: Number.parseInt(remotePageRoot.dataset.a11yRemotePageUid || '0', 10) || null,
+                languageUid: this.resolveCurrentLanguageUid(),
             };
         }
 
@@ -1063,7 +1251,68 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             type: '',
             siteIdentifier: '',
             remotePageUid: null,
+            languageUid: this.resolveCurrentLanguageUid(),
         };
+    }
+
+    resolveScanLanguageUid(button = null) {
+        const buttonLanguage = this.parseLanguageUid(button?.dataset?.languageUid);
+        if (buttonLanguage !== null) {
+            return buttonLanguage;
+        }
+
+        const contextLanguage = this.resolveCurrentLanguageUid();
+        if (contextLanguage !== null) {
+            return contextLanguage;
+        }
+
+        const urlLanguage = this.resolveLanguageUidFromUrl();
+        return urlLanguage === null ? 0 : urlLanguage;
+    }
+
+    resolveSubmittedLanguageUid(submitData, fallbackLanguageUid = null, button = null) {
+        for (const key of ['languageUid', 'languageId']) {
+            if (submitData[key] !== undefined && submitData[key] !== null && submitData[key] !== '') {
+                return String(submitData[key]);
+            }
+        }
+
+        if (fallbackLanguageUid !== null && fallbackLanguageUid !== undefined && !Number.isNaN(Number(fallbackLanguageUid))) {
+            return String(fallbackLanguageUid);
+        }
+
+        return String(this.resolveScanLanguageUid(button));
+    }
+
+    resolveCurrentLanguageUid() {
+        const root = document.querySelector(PRO_SELECTORS.overviewRoot) || document.querySelector(PRO_SELECTORS.remotePageRoot);
+        const datasetLanguage = this.parseLanguageUid(root?.dataset?.a11yLanguageUid);
+        if (datasetLanguage !== null) {
+            return datasetLanguage;
+        }
+
+        return this.resolveLanguageUidFromUrl();
+    }
+
+    resolveLanguageUidFromUrl() {
+        const parameters = new URLSearchParams(window.location.search);
+        for (const key of ['language', 'languageUid', 'L', 'sys_language_uid']) {
+            const value = this.parseLanguageUid(parameters.get(key));
+            if (value !== null) {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    parseLanguageUid(value) {
+        const raw = String(value ?? '').trim();
+        if (!/^\d+$/.test(raw)) {
+            return null;
+        }
+
+        return Number.parseInt(raw, 10);
     }
 
     getRestorableRemoteScanState() {
@@ -1079,6 +1328,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const pageUid = Number.parseInt(String(box.dataset.a11yRemotePageUid || '0'), 10) || null;
         const pagesScanned = this.normalizeNullableNumber(box.dataset.a11yRemotePagesScanned);
         const pagesTotal = this.normalizeNullableNumber(box.dataset.a11yRemotePagesTotal);
+        const languageUid = Number.parseInt(String(box.dataset.a11yRemoteLanguageUid || '-1'), 10);
 
         if (!jobId || !siteIdentifier || !['waiting', 'queued', 'active', 'running'].includes(status)) {
             return null;
@@ -1086,6 +1336,10 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         const context = this.getCurrentRemoteContext();
         if (context.siteIdentifier !== siteIdentifier) {
+            return null;
+        }
+
+        if (context.languageUid !== null && languageUid >= 0 && context.languageUid !== languageUid) {
             return null;
         }
 
@@ -1103,6 +1357,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             status,
             pagesScanned,
             pagesTotal,
+            languageUid,
         };
     }
 
@@ -1120,6 +1375,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             status: 'a11yRemoteStatus',
             pagesScanned: 'a11yRemotePagesScanned',
             pagesTotal: 'a11yRemotePagesTotal',
+            languageUid: 'a11yRemoteLanguageUid',
         };
 
         Object.entries(partialState).forEach(([key, value]) => {
@@ -1130,6 +1386,16 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
             box.dataset[datasetKey] = value === null || value === undefined ? '' : String(value);
         });
+
+        const cancelButton = document.querySelector(PRO_SELECTORS.proCancelScanButton);
+        if (cancelButton instanceof HTMLButtonElement) {
+            if (partialState.jobId !== undefined) {
+                cancelButton.dataset.jobId = partialState.jobId === null || partialState.jobId === undefined ? '' : String(partialState.jobId);
+            }
+            if (partialState.siteIdentifier !== undefined) {
+                cancelButton.dataset.siteIdentifier = partialState.siteIdentifier === null || partialState.siteIdentifier === undefined ? '' : String(partialState.siteIdentifier);
+            }
+        }
     }
 
     resetRemoteScanDomState() {
@@ -1145,5 +1411,6 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         box.dataset.a11yRemoteStatus = '';
         box.dataset.a11yRemotePagesScanned = '';
         box.dataset.a11yRemotePagesTotal = '';
+        box.dataset.a11yRemoteLanguageUid = '';
     }
 }

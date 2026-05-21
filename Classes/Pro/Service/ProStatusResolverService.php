@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Pro\Service;
 
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Core\Site\Entity\Site;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 final class ProStatusResolverService
 {
     public function __construct(
         private readonly ProCapabilityService $proCapabilityService,
         private readonly ExtensionContextService $extensionContextService,
-        private readonly SiteFinder $siteFinder,
+        private readonly SiteResolutionService $siteResolutionService,
     ) {
     }
 
@@ -38,9 +38,8 @@ final class ProStatusResolverService
             return $this->resolveForDomain('');
         }
 
-        try {
-            $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
-        } catch (\Throwable) {
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        if ($site === null) {
             return $this->resolveForDomain('');
         }
 
@@ -49,13 +48,7 @@ final class ProStatusResolverService
 
     public function hasCrawlerForAnySite(): bool
     {
-        try {
-            $sites = $this->siteFinder->getAllSites();
-        } catch (\Throwable) {
-            return false;
-        }
-
-        foreach ($sites as $site) {
+        foreach ($this->siteResolutionService->getAllSites() as $site) {
             if (!$site instanceof Site) {
                 continue;
             }

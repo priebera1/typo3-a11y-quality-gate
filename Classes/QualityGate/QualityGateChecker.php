@@ -15,16 +15,16 @@ final class QualityGateChecker
     ) {
     }
 
-    public function check(int $pageUid, string $siteIdentifier): QualityGateVerdict
+    public function check(int $pageUid, string $siteIdentifier, int $languageUid = -1): QualityGateVerdict
     {
-        $ruleset = $this->findOrCreateRuleset($siteIdentifier);
+        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
 
         if ($ruleset === null) {
-            return QualityGateVerdict::pass();
+            return QualityGateVerdict::pass(mode: 0);
         }
 
         $publishMode = (int)($ruleset['publish_mode'] ?? 0);
-        $counts = $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier);
+        $counts = $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid);
 
         if ($publishMode === 0) {
             return QualityGateVerdict::pass(
@@ -69,23 +69,5 @@ final class QualityGateChecker
             counts: $counts,
             reasons: $reasons,
         );
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function findOrCreateRuleset(string $siteIdentifier): ?array
-    {
-        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
-
-        if ($ruleset !== null) {
-            return $ruleset;
-        }
-
-        try {
-            return $this->rulesetRepository->findOrCreateDefault();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }

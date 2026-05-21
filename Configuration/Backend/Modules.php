@@ -59,6 +59,21 @@ return [
                 'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::ignoreAction',
                 'methods' => ['POST'],
             ],
+            'batchIgnore' => [
+                'path' => '/batch-ignore',
+                'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::batchIgnoreAction',
+                'methods' => ['POST'],
+            ],
+            'ignoreRuleOnPage' => [
+                'path' => '/ignore-rule-on-page',
+                'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::ignoreRuleOnPageAction',
+                'methods' => ['POST'],
+            ],
+            'ignoreRuleOnSite' => [
+                'path' => '/ignore-rule-on-site',
+                'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::ignoreRuleOnSiteAction',
+                'methods' => ['POST'],
+            ],
             'unignore' => [
                 'path' => '/unignore',
                 'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::unignoreAction',

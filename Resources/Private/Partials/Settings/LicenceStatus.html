@@ -1,0 +1,155 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:if condition="{proStatus.valid}">
+    <f:then>
+        <f:if condition="{proStatus.isTrial}">
+            <f:then>
+                <section class="aqg-licence-status tone-trial">
+                    <div class="aqg-licence-status__head">
+                        <div class="aqg-licence-status__plan-line">
+                            <span class="aqg-licence-status__plan-tag">TRIAL</span>
+                            <span>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusTrial" default="Trial licence is active" />
+                            </span>
+                        </div>
+                        <h3 class="aqg-licence-status__title">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trial.activeTitle" default="Trial is active" />
+                        </h3>
+                        <p class="aqg-licence-status__sub">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trial.activeText" default="PRO features are enabled until the trial expires. Add a licence key to keep them after expiry." />
+                        </p>
+                    </div>
+
+                    <dl class="aqg-licence-status__kv">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" default="Plan" /></dt>
+                        <dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.type.trial" default="Trial" /> · PRO</dd>
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt>
+                        <dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trialStarted" default="Trial started" /></dt>
+                        <dd><f:if condition="{proStatus.trialStartedAt}"><f:then>{proStatus.trialStartedAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trialExpires" default="Trial expires" /></dt>
+                        <dd><f:if condition="{proStatus.trialExpiresAt}"><f:then>{proStatus.trialExpiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trialStartsOnFirstValidation" default="Starts on first validation" /></f:else></f:if></dd>
+                    </dl>
+
+                    <div class="aqg-licence-status__features">
+                        <div class="aqg-licence-status__features-title">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trial.featuresTitle" default="Trial limits" />
+                        </div>
+                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxPages" default="Max 10 pages per frontend scan" /></div>
+                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxScans" default="Max 5 scans per day" /></div>
+                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.screenshotCapture" default="Screenshot capture per page" /></div>
+                    </div>
+
+                    <div class="aqg-licence-status__foot">
+                        <a href="{pricingUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.upgradeToPro" default="Upgrade to PRO" /></a>
+                    </div>
+                </section>
+            </f:then>
+            <f:else>
+                <f:if condition="{proStatus.hasMultiSite}">
+                    <f:then>
+                        <section class="aqg-licence-status tone-agency">
+                            <div class="aqg-licence-status__head">
+                                <div class="aqg-licence-status__plan-line">
+                                    <span class="aqg-licence-status__plan-tag">AGENCY</span>
+                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.planLine" default="Multi-site licence" /></span>
+                                </div>
+                                <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.activeTitle" default="AQG Agency is active" /></h3>
+                                <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.activeText" default="Use this licence across multiple TYPO3 sites and client projects." /></p>
+                            </div>
+                            <dl class="aqg-licence-status__kv">
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" default="Plan" /></dt>
+                                <dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.originalPlan.agency" default="Agency" /> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.multiSite" default="Multi-site usage" /></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.thisSite" default="This site" /></dt>
+                                <dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
+                                <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>
+                            </dl>
+                            <div class="aqg-licence-status__features">
+                                <div class="aqg-licence-status__features-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.original.featuresTitle" default="Included" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.everythingInPro" default="Everything in PRO" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.multiSite" default="Multi-site usage" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.prioritySupport" default="Priority support" /></div>
+                            </div>
+                            <div class="aqg-licence-status__foot">
+                                <a href="{portalUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                            </div>
+                        </section>
+                    </f:then>
+                    <f:else>
+                        <section class="aqg-licence-status tone-pro">
+                            <div class="aqg-licence-status__head">
+                                <div class="aqg-licence-status__plan-line"><span class="aqg-licence-status__plan-tag">PRO</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusActive" default="Active licence" /></span></div>
+                                <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.pro.activeTitle" default="AQG PRO is active" /></h3>
+                                <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.pro.activeText" default="All PRO features unlocked for this installation." /></p>
+                            </div>
+                            <dl class="aqg-licence-status__kv">
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" default="Plan" /></dt>
+                                <dd>PRO · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.singleSite" default="single site" /></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt>
+                                <dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
+                                <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.seats" default="Seats" /></dt>
+                                <dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.unlimitedEditors" default="Unlimited editors" /></dd>
+                            </dl>
+                            <div class="aqg-licence-status__features">
+                                <div class="aqg-licence-status__features-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.original.featuresTitle" default="Included" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.remoteCrawler" default="Frontend scan crawler" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.qualityGateBlocking" default="Block-on-publish quality gate" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.pro.exports" default="PDF / CSV exports" /></div>
+                                <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.advancedRuleOverrides" default="Advanced rule overrides" /></div>
+                            </div>
+                            <div class="aqg-licence-status__foot">
+                                <a href="{portalUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                            </div>
+                        </section>
+                    </f:else>
+                </f:if>
+            </f:else>
+        </f:if>
+    </f:then>
+    <f:else>
+        <f:if condition="{licenceKey}">
+            <f:then>
+                <section class="aqg-licence-status tone-error">
+                    <div class="aqg-licence-status__head">
+                        <div class="aqg-licence-status__plan-line"><span class="aqg-licence-status__plan-tag">INACTIVE</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactive" default="Licence not valid" /></span></div>
+                        <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.inactive.title" default="Licence is inactive" /></h3>
+                        <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveText" default="The configured licence key did not validate against the configured domain. PRO features are disabled until a valid key is provided." /></p>
+                    </div>
+                    <dl class="aqg-licence-status__kv">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusTitle" default="Status" /></dt><dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveValue" default="Inactive" /></dd>
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt><dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.reason" default="Reason" /></dt><dd><f:if condition="{proStatus.reasonLabel}"><f:then>{proStatus.reasonLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Validation failed" /></f:else></f:if></dd>
+                    </dl>
+                    <div class="aqg-licence-status__foot">
+                        <a href="{contactUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
+                    </div>
+                </section>
+            </f:then>
+            <f:else>
+                <section class="aqg-licence-status tone-none">
+                    <div class="aqg-licence-status__head">
+                        <div class="aqg-licence-status__plan-line"><span class="aqg-licence-status__plan-tag">FREE</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusNotConfigured" default="No licence configured" /></span></div>
+                        <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.title" default="Running the free edition" /></h3>
+                        <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.text" default="AQG works without a licence. Frontend crawling, block-on-publish gate and exports require PRO." /></p>
+                    </div>
+                    <div class="aqg-licence-status__features">
+                        <div class="aqg-licence-status__features-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.featuresTitle" default="Included on FREE" /></div>
+                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.localScanning" default="Local TYPO3 content scan" /></div>
+                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.warningGate" default="Warning gate on publish" /></div>
+                        <div class="aqg-licence-status__feature aqg-licence-status__feature--off"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'minus'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.noFrontendCrawler" default="Frontend crawler" /></div>
+                        <div class="aqg-licence-status__feature aqg-licence-status__feature--off"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'minus'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.noBlockingGate" default="Block-on-publish gate" /></div>
+                    </div>
+                    <div class="aqg-licence-status__foot">
+                        <a href="{pricingUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.startTrial" default="Start trial" /></a>
+                    </div>
+                </section>
+            </f:else>
+        </f:if>
+    </f:else>
+</f:if>
+</html>

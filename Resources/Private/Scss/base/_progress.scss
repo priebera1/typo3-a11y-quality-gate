@@ -1,0 +1,309 @@
+.a11y-page-detail .aqg-progress-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-left: 3px solid var(--aqi-run);
+    border-radius: var(--aqi-radius-lg);
+}
+
+.a11y-page-detail .aqg-progress-block__head,
+.a11y-page-detail .aqg-progress-block__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.a11y-page-detail .aqg-progress-block__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--aqi-fg);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.a11y-page-detail .aqg-progress-block__bar {
+    height: 6px;
+    overflow: hidden;
+    background: var(--aqi-run-bg);
+    border: 1px solid var(--aqi-run-border);
+    border-radius: 4px;
+}
+
+.a11y-page-detail .aqg-progress-block__fill {
+    width: 18%;
+    height: 100%;
+    background: var(--aqi-run);
+    border-radius: 4px;
+    transition: width .2s ease;
+}
+
+.a11y-page-detail .aqg-progress-block__foot,
+.a11y-page-detail .aqg-progress-block__foot .aqg-meta {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.a11y-page-detail .aqg-progress-block__foot .aqg-meta {
+    color: var(--aqi-fg-subtle);
+    font-family: var(--aqi-font-mono);
+    font-size: 11px;
+}
+
+.a11y-page-detail .aqg-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border);
+    border-radius: 3px;
+    color: var(--aqi-fg-muted);
+    font-family: var(--aqi-font-mono);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.a11y-page-detail .aqg-status-badge--running {
+    color: var(--aqi-run);
+    background: var(--aqi-run-bg);
+    border-color: var(--aqi-run-border);
+}
+
+.a11y-page-detail .aqg-status-badge--ok {
+    color: var(--aqi-ok);
+    background: var(--aqi-ok-bg);
+    border-color: var(--aqi-ok-border);
+}
+
+.a11y-page-detail .aqg-status-badge--error {
+    color: var(--aqi-err);
+    background: var(--aqi-err-bg);
+    border-color: var(--aqi-err-border);
+}
+
+/* Shared AQG progress block, used in Overview and remote page detail */
+.aqg-progress-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--aqi-border, var(--typo3-component-border-color));
+    border-left: 3px solid var(--aqi-run, var(--typo3-state-info-bg));
+    border-radius: var(--aqi-radius, 6px);
+    background: var(--aqi-surface, var(--typo3-surface-container-lowest));
+    color: var(--aqi-fg, var(--typo3-text-color-base));
+}
+
+.aqg-progress-block__head,
+.aqg-progress-block__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.aqg-progress-block__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--aqi-fg, var(--typo3-text-color-base));
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.aqg-progress-block__bar {
+    position: relative;
+    height: 6px;
+    overflow: hidden;
+    border: 1px solid var(--aqi-run-border, var(--typo3-component-border-color));
+    border-radius: 4px;
+    background: var(--aqi-run-bg, var(--typo3-surface-container-info));
+}
+
+.aqg-progress-block__fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--aqi-run, var(--typo3-state-info-bg));
+    transition: width 200ms ease;
+}
+
+.aqg-progress-block__foot {
+    color: var(--aqi-fg-muted, var(--typo3-text-color-variant));
+    font-size: 12px;
+}
+
+.aqg-progress-block__foot .aqg-meta {
+    color: var(--aqi-fg-subtle, var(--typo3-text-color-variant));
+    font-family: var(--aqi-font-mono, var(--bs-font-monospace, monospace));
+    font-size: 11px;
+}
+
+.aqg-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    border: 1px solid var(--aqi-none-border, var(--typo3-component-border-color));
+    border-radius: 3px;
+    background: var(--aqi-none-bg, var(--typo3-surface-container-low));
+    color: var(--aqi-none, var(--typo3-text-color-variant));
+    font-family: var(--aqi-font-mono, var(--bs-font-monospace, monospace));
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.aqg-status-badge--running {
+    border-color: var(--aqi-run-border, var(--typo3-state-info-border-color));
+    background: var(--aqi-run-bg, var(--typo3-surface-container-info));
+    color: var(--aqi-run, var(--typo3-text-color-info));
+}
+
+.aqg-status-badge--ok {
+    border-color: var(--aqi-ok-border, var(--typo3-state-success-border-color));
+    background: var(--aqi-ok-bg, var(--typo3-surface-container-success));
+    color: var(--aqi-ok, var(--typo3-text-color-success));
+}
+
+.aqg-status-badge--error {
+    border-color: var(--aqi-err-border, var(--typo3-state-danger-border-color));
+    background: var(--aqi-err-bg, var(--typo3-surface-container-danger));
+    color: var(--aqi-err, var(--typo3-text-color-danger));
+}
+
+.a11y-overview .aqi-spin {
+    display: inline-flex;
+    animation: aqg-spin 900ms linear infinite;
+}
+
+@keyframes aqg-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.a11y-overview .aqg-progress-block--indeterminate .aqg-progress-block__bar,
+.a11y-page-detail .aqg-progress-block--indeterminate .aqg-progress-block__bar {
+    position: relative;
+    overflow: hidden;
+}
+
+.a11y-overview .aqg-progress-block--indeterminate .aqg-progress-block__fill,
+.a11y-page-detail .aqg-progress-block--indeterminate .aqg-progress-block__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -35%;
+    width: 35%;
+    animation: aqg-progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes aqg-progress-indeterminate {
+    0% {
+        left: -35%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Remote crawler cancel action */
+.a11y-overview .aqg-progress-block__head-actions,
+.a11y-page-detail .aqg-progress-block__head-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+.a11y-overview .aqg-progress-block__cancel,
+.a11y-page-detail .aqg-progress-block__cancel {
+  white-space: nowrap;
+}
+.a11y-overview .aqg-status-badge--neutral,
+.a11y-page-detail .aqg-status-badge--neutral {
+  color: var(--aqi-fg-muted);
+  background: var(--aqi-none-bg, var(--aqi-surface-2));
+  border-color: var(--aqi-none-border, var(--aqi-border));
+}
+
+/* AQG patch: Remote crawler cancel button as danger outline, visually aligned with status badge */
+.a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline,
+.a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  border: 1px solid var(--aqi-err-border, var(--typo3-state-danger-border-color));
+  border-radius: 3px;
+  background: transparent;
+  color: var(--aqi-err, var(--typo3-text-color-danger));
+  font-family: var(--aqi-font-mono, var(--bs-font-monospace, monospace));
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: none;
+}
+.a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline:hover,
+.a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline:hover,
+.a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline:focus,
+.a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline:focus {
+  border-color: var(--aqi-err, var(--typo3-text-color-danger));
+  background: var(--aqi-err-bg, var(--typo3-surface-container-danger));
+  color: var(--aqi-err, var(--typo3-text-color-danger));
+  box-shadow: none;
+}
+.a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline:focus-visible,
+.a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-err, #c7372f) 18%, transparent);
+}
+.a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline:disabled,
+.a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline:disabled {
+  opacity: .65;
+  cursor: progress;
+}
+
+.a11y-overview .aqg-scan-progress-stack,
+.a11y-page-detail .aqg-scan-progress-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Shared scan progress stack above source tabs */
+.a11y-overview .aqg-scan-progress-stack,
+.a11y-page-detail .aqg-scan-progress-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.a11y-overview .aqg-scan-progress-stack:not(:empty),
+.a11y-page-detail .aqg-scan-progress-stack:not(:empty) {
+  margin-bottom: 12px;
+}
+
+.a11y-overview .aqg-progress-block--completed,
+.a11y-page-detail .aqg-progress-block--completed,
+.aqg-progress-block--completed {
+    border-left-color: var(--aqi-ok, var(--typo3-state-success-bg));
+}
+
+.a11y-overview .aqg-progress-block--completed .aqg-progress-block__bar,
+.a11y-page-detail .aqg-progress-block--completed .aqg-progress-block__bar,
+.aqg-progress-block--completed .aqg-progress-block__bar {
+    border-color: var(--aqi-ok-border, var(--typo3-state-success-border-color));
+    background: var(--aqi-ok-bg, var(--typo3-surface-container-success));
+}
+
+.a11y-overview .aqg-progress-block--completed .aqg-progress-block__fill,
+.a11y-page-detail .aqg-progress-block--completed .aqg-progress-block__fill,
+.aqg-progress-block--completed .aqg-progress-block__fill {
+    background: var(--aqi-ok, var(--typo3-state-success-bg));
+}

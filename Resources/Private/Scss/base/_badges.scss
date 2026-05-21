@@ -1,0 +1,21 @@
+.a11y-page-detail .badge {
+    vertical-align: middle;
+}
+
+.a11y-page-detail .aqg-pro-card__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 17px;
+    margin-left: 2px;
+    padding: 1px 4px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 3px;
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg);
+    font-family: var(--aqi-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1;
+}

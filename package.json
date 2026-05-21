@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "build:css": "sass Resources/Private/Scss/backend.scss Resources/Public/Css/backend.css --style=compressed --no-source-map",
+    "build:indicator-css": "sass Resources/Private/Scss/page-module-indicator.scss Resources/Public/Css/page-module-indicator.css --style=compressed --no-source-map",
+    "build:toolbar-css": "sass Resources/Private/Scss/toolbar.scss Resources/Public/Css/toolbar.css --style=compressed --no-source-map",
+    "build": "npm run build:css && npm run build:indicator-css && npm run build:toolbar-css",
+    "watch:css": "sass --watch Resources/Private/Scss:Resources/Public/Css --no-source-map"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.0",
+    "jsdom": "^29.0.0",
+    "sass": "^1.80.0",
+    "vitest": "^4.1.0"
+  }
+}

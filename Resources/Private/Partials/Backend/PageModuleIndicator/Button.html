@@ -1,0 +1,18 @@
+<f:if condition="{action.isScan}">
+    <f:then>
+        <button
+            type="button"
+            class="aqg-page-module-indicator__button aqg-page-module-indicator__button--{action.variant}"
+            data-aqg-indicator-scan="true"
+            data-aqg-scan-mode="{scanMode}"
+            data-page-uid="{pageUid}"
+            data-page-url="{currentPageUrl}"
+            data-site-identifier="{siteIdentifier}"
+            data-language-uid="{languageUid}"
+            data-loading-text="{loadingText}"
+        >{action.label}</button>
+    </f:then>
+    <f:else>
+        <a class="aqg-page-module-indicator__button aqg-page-module-indicator__button--{action.variant}" href="{action.url}">{action.label}</a>
+    </f:else>
+</f:if>

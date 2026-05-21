@@ -8,14 +8,14 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Pro\Configuration\ProSettings;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Core\Http\RequestFactory;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 final class RemoteScreenshotService
 {
     public function __construct(
         private readonly RemoteScanRepository $remoteScanRepository,
-        private readonly SiteFinder $siteFinder,
+        private readonly SiteResolutionService $siteResolutionService,
         private readonly ProTokenService $proTokenService,
         private readonly RequestFactory $requestFactory,
         private readonly ExtensionContextService $extensionContextService,
@@ -57,7 +57,11 @@ final class RemoteScreenshotService
             return null;
         }
 
-        $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        if ($site === null) {
+            return null;
+        }
+
         $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$site->getBase());
         $version = $this->extensionContextService->getExtensionVersion();
 

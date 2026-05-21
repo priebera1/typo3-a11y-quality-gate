@@ -1,103 +1,332 @@
-<div class="card">
-    <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
-        <div>
-            <h3 class="h5 mb-1">
-                <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.title"
-                        default="Rules"
-                />
-            </h3>
-            <p class="text-muted small mb-0">
-                <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.description"
-                        default="Configure custom phrase lists that are merged with AQG built-in defaults."
-                />
-            </p>
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div
+        class="tab-pane fade{f:if(condition: '{activeTab} == ''rules''', then: ' show active')}"
+        id="a11y-settings-pane-rules"
+        role="tabpanel"
+        aria-labelledby="a11y-settings-tab-rules"
+        tabindex="0"
+>
+    <form method="post" action="{saveExtConfUrl}" class="aqg-stack" id="a11y-settings-rules-form" data-a11y-rules-form="true">
+        <f:for each="{returnParameters}" as="value" key="name">
+            <input type="hidden" name="{name}" value="{value}" />
+        </f:for>
+
+        <f:if condition="{selectedRulesetSite}">
+            <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
+        </f:if>
+
+        <input type="hidden" name="tab" value="rules" />
+        <input type="hidden" name="rulesManagementFormSubmitted" value="1" />
+
+        <div class="aqg-actionbar" data-a11y-rules-actionbar="true">
+            <div class="aqg-actionbar__left">
+                <div class="aqg-actionbar__title">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.title" default="Rules" />
+                </div>
+                <div
+                        class="aqg-actionbar__meta"
+                        data-a11y-rules-saved-meta="All changes saved · {settingsLastSavedLabel}"
+                        data-a11y-rules-dirty-meta="Unsaved changes"
+                >
+                    <span data-a11y-rules-meta-label="true">All changes saved · {settingsLastSavedLabel}</span>
+                </div>
+            </div>
+
+            <div class="aqg-actionbar__right">
+                <button
+                        type="button"
+                        class="aqg-text-action"
+                        data-a11y-rules-discard="true"
+                        hidden="hidden"
+                >
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.discard" default="Discard" />
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm" data-a11y-rules-save="true" disabled="disabled">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
+                </button>
+            </div>
         </div>
 
-        <button type="submit" form="a11y-settings-rules-form" class="btn btn-primary">
-            <f:translate
-                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save"
-                    default="Save changes"
-            />
-        </button>
-    </div>
+        <div class="aqg-notice aqg-notice--info aqg-rules-management-notice">
+            <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+            <span class="aqg-notice__body">
+                <span class="aqg-notice__title">Rules management</span>
+                <span class="aqg-notice__text">Choose which accessibility rules AQG should use during scans. Disabled rules are not reported in editor highlights, local scans or quality-gate checks. Disabling a rule is a project-wide configuration — not the same as ignoring an individual issue.</span>
+            </span>
+        </div>
 
-    <div class="card-body pt-3">
-        <form method="post" action="{saveExtConfUrl}" class="d-flex flex-column gap-4" id="a11y-settings-rules-form">
-            <f:for each="{returnParameters}" as="value" key="name">
-                <input type="hidden" name="{name}" value="{value}" />
-            </f:for>
+        <section class="aqg-card aqg-rule-card aqg-rules-card">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title">Enabled rules</h3>
+                    <p class="aqg-card__sub">Every local accessibility rule AQG ships with. Toggle a rule off to remove it from scans across this project.</p>
+                </div>
+            </header>
 
-            <f:if condition="{selectedRulesetSite}">
-                <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
-            </f:if>
+            <div class="aqg-card__body">
+                <div class="aqg-rules-toolbar" data-a11y-rules-toolbar="true">
+                    <label class="aqg-rules-toolbar__search">
+                        <span class="aqg-rules-toolbar__search-icon" aria-hidden="true">
+                            <svg width="14" height="14" viewBox="0 0 16 16" focusable="false">
+                                <path d="M7 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm3.7-1.3 2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            </svg>
+                        </span>
+                        <span class="visually-hidden">Search rules</span>
+                        <input type="search" placeholder="Search rules by name or id (e.g. table_caption)" data-a11y-rules-search="true" />
+                    </label>
 
-            <input type="hidden" name="tab" value="rules" />
+                    <div class="aqg-rules-toolbar__filters" role="group" aria-label="Filter rules">
+                        <button type="button" class="aqg-rules-toolbar__chip is-active" data-a11y-rules-filter="all" aria-pressed="true">All <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.all}</span></button>
+                        <button type="button" class="aqg-rules-toolbar__chip" data-a11y-rules-filter="enabled" aria-pressed="false">Enabled <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.enabled}</span></button>
+                        <button type="button" class="aqg-rules-toolbar__chip" data-a11y-rules-filter="disabled" aria-pressed="false">Disabled <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.disabled}</span></button>
+                    </div>
 
-            <div>
-                <label class="form-label fw-semibold" for="aqg-non-descriptive-phrases">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveLabel"
-                            default="Non-descriptive link phrases"
-                    />
-                </label>
-
-                <textarea
-                        id="aqg-non-descriptive-phrases"
-                        name="nonDescriptiveLinkPhrases"
-                        class="form-control font-monospace"
-                        rows="6"
-                        placeholder="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.placeholder', default:'One phrase per line or comma-separated')}"
-                >{nonDescriptiveLinkPhrases}</textarea>
-
-                <div class="form-text">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveHelp"
-                            default="Custom phrases are merged with built-in defaults. One phrase per line or comma-separated."
-                    />
+                    <div class="aqg-rules-toolbar__bulk">
+                        <span class="aqg-rules-toolbar__counts"><span data-a11y-rules-visible-count="true">{rulesManagement.counts.all}</span>/{rulesManagement.counts.all} on</span>
+                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-open="true">Reset to defaults</button>
+                    </div>
                 </div>
 
-                <div class="small text-muted mt-2">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveBuiltIn"
-                            default="Built-in"
-                    />:
-                    <code>{nonDescriptiveDefaultsText}</code>
+                <div class="aqg-rules-reset" data-a11y-rules-reset-panel="true" hidden="hidden">
+                    <span class="aqg-rules-reset__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'warning'}" /></span>
+                    <span class="aqg-rules-reset__body">
+                        <span class="aqg-rules-reset__title">Reset every rule to its default state?</span>
+                        <span class="aqg-rules-reset__text">Re-enables the default set of accessibility rules. Custom phrase lists below are not affected.</span>
+                    </span>
+                    <span class="aqg-rules-reset__actions">
+                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-cancel="true">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm" data-a11y-rules-reset-confirm="true">Yes, reset rules</button>
+                    </span>
+                </div>
+
+                <div class="aqg-rules-empty" data-a11y-rules-empty="true" hidden="hidden">
+                    <h4 class="aqg-rules-empty__title">No rules match your search</h4>
+                    <p class="aqg-rules-empty__body">Nothing in the rules catalog matches <span class="aqg-rules-empty__match" data-a11y-rules-empty-query="true"></span>. Try a different keyword, a rule id fragment, or the category filters above.</p>
+                </div>
+
+                <div class="aqg-rules-groups" data-a11y-rules-groups="true">
+                    <f:for each="{rulesManagement.groups}" as="group">
+                        <details class="aqg-rgroup" data-a11y-rule-group="true" data-group-key="{group.key}">
+                            <summary class="aqg-rgroup__head">
+                                <span class="aqg-rgroup__chev" aria-hidden="true">›</span>
+                                <span class="aqg-rgroup__title-block">
+                                    <span class="aqg-rgroup__title">{group.title}</span>
+                                    <span class="aqg-rgroup__sub">{group.subtitle}</span>
+                                </span>
+                                <span class="aqg-rgroup__count" data-a11y-rule-group-count="true">
+                                    <strong>{group.enabledCount}</strong> / {group.totalCount} on
+                                </span>
+                                <button type="button" class="aqg-rgroup__bulk" data-a11y-rule-group-toggle="true">Enable all in group</button>
+                            </summary>
+
+                            <div class="aqg-rgroup__body">
+                                <f:for each="{group.rules}" as="rule">
+                                    <label
+                                            class="aqg-rule-row{f:if(condition: rule.enabled, else: ' is-disabled')}"
+                                            data-a11y-rule-row="true"
+                                            data-rule-id="{rule.id}"
+                                            data-rule-search="{rule.searchText}"
+                                            data-rule-enabled="{f:if(condition: '{rule.enabled}', then: '1', else: '0')}"
+                                    >
+                                        <span class="aqg-rule-row__switch">
+                                            <span class="aqg-rule-switch">
+                                                <f:if condition="{rule.enabled}">
+                                                    <f:then>
+                                                        <input
+                                                                id="{rule.inputId}"
+                                                                type="checkbox"
+                                                                name="enabledRules[]"
+                                                                value="{rule.id}"
+                                                                data-a11y-rules-input="true"
+                                                                data-a11y-rule-toggle="true"
+                                                                checked="checked"
+                                                        />
+                                                    </f:then>
+                                                    <f:else>
+                                                        <input
+                                                                id="{rule.inputId}"
+                                                                type="checkbox"
+                                                                name="enabledRules[]"
+                                                                value="{rule.id}"
+                                                                data-a11y-rules-input="true"
+                                                                data-a11y-rule-toggle="true"
+                                                        />
+                                                    </f:else>
+                                                </f:if>
+                                                <span class="aqg-rule-switch__track" aria-hidden="true"><span class="aqg-rule-switch__thumb"></span></span>
+                                            </span>
+                                        </span>
+                                        <span class="aqg-rule-row__body">
+                                            <span class="aqg-rule-row__title-line">
+                                                <span class="aqg-rule-row__dirty" data-a11y-rule-dirty="true" hidden="hidden"></span>
+                                                <span class="aqg-rule-row__label">{rule.label}</span>
+                                                <code class="aqg-rule-row__id">{rule.id}</code>
+                                                <span class="aqg-rule-row__off-tag{f:if(condition: '{rule.enabled}', then: ' aqg-is-hidden')}" data-a11y-rule-off-tag="true">OFF</span>
+                                            </span>
+                                            <span class="aqg-rule-row__desc">{rule.description}</span>
+                                            <span class="aqg-rule-row__tags">
+                                                <span class="aqg-tag tone-{rule.severity}"><span class="aqg-tag__dot" aria-hidden="true"></span>{rule.severityLabel}</span>
+                                                <span class="aqg-tag-cat">{rule.category}</span>
+                                            </span>
+                                        </span>
+                                        <span class="aqg-rule-row__meta">
+                                            <span class="aqg-rule-row__status" data-a11y-rule-status="true">
+                                                <f:if condition="{rule.enabled}">
+                                                    <f:then>Reported in scans</f:then>
+                                                    <f:else>Not reported in scans</f:else>
+                                                </f:if>
+                                            </span>
+                                        </span>
+                                    </label>
+                                </f:for>
+                            </div>
+                        </details>
+                    </f:for>
                 </div>
             </div>
+        </section>
 
-            <div>
-                <label class="form-label fw-semibold" for="aqg-window-hint-phrases">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowLabel"
-                            default="New window warning phrases"
-                    />
-                </label>
+        <section class="aqg-card aqg-rule-card">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveLabel" default="Non-descriptive link phrases" />
+                    </h3>
+                    <p class="aqg-card__sub">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveHelp" default="Phrases that flag a link's accessible name as too vague. The built-in defaults always apply; add your own phrases — including translations — to extend them." />
+                    </p>
+                </div>
+            </header>
 
-                <textarea
-                        id="aqg-window-hint-phrases"
-                        name="linkNewWindowHintPhrases"
-                        class="form-control font-monospace"
-                        rows="4"
-                        placeholder="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.placeholder', default:'One phrase per line or comma-separated')}"
-                >{linkNewWindowHintPhrases}</textarea>
+            <div class="aqg-card__body">
+                <div class="aqg-field">
+                    <label class="aqg-field__label" for="aqg-non-descriptive-phrases">
+                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.customPhrases" default="Custom phrases" /></span>
+                        <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.onePerLine" default="(one per line · case-insensitive)" /></span>
+                    </label>
 
-                <div class="form-text">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowHelp"
-                            default="Phrases that count as valid warnings for links opening in a new tab or window."
-                    />
+                    <textarea
+                            id="aqg-non-descriptive-phrases"
+                            name="nonDescriptiveLinkPhrases"
+                            class="aqg-textarea aqg-input--mono"
+                            rows="5"
+                            placeholder="click here&#10;read more&#10;more information&#10;learn more"
+                            data-a11y-rules-input="true"
+                    >{nonDescriptiveLinkPhrases}</textarea>
+
+                    <div class="aqg-field__help">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveTip" default="Tip: include translated versions of common phrases. Phrases match the link's accessible name only — not surrounding text." />
+                    </div>
                 </div>
 
-                <div class="small text-muted mt-2">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowBuiltIn"
-                            default="Built-in"
-                    />:
-                    <code>{windowHintDefaultsText}</code>
+                <div class="aqg-defaults" data-a11y-defaults="true">
+                    <div class="aqg-defaults__head">
+                        <span class="aqg-defaults__title">
+                            <f:render partial="Settings/Icon" arguments="{name: 'info'}" />
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.builtInDefaults" default="Built-in defaults" /></span>
+                            <span aria-hidden="true">·</span>
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveBuiltIn" default="Non-descriptive link phrases" /></span>
+                        </span>
+                        <button
+                                type="button"
+                                class="aqg-defaults__toggle"
+                                aria-expanded="true"
+                                data-a11y-defaults-toggle="true"
+                        >
+                            <span data-a11y-defaults-toggle-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.hide" default="Hide" /></span>
+                            <span class="aqg-defaults__chevron" aria-hidden="true">›</span>
+                        </button>
+                    </div>
+                    <div class="aqg-defaults__chips" data-a11y-defaults-panel="true">
+                        <f:for each="{nonDescriptiveDefaults}" as="phrase">
+                            <code class="aqg-default-chip">{phrase}</code>
+                        </f:for>
+                    </div>
+                    <div class="aqg-field__help">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.defaultsHelp" default="The built-in list is always applied. Your custom phrases below extend the defaults — one phrase per line." />
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
+        </section>
+
+        <section class="aqg-card aqg-rule-card">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowLabel" default="New-window warning phrases" />
+                    </h3>
+                    <p class="aqg-card__sub">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowHelp" default="Phrases that count as a valid “opens in a new window” warning inside a link's accessible name. AQG uses these to detect that a link to a new tab is announced to screen readers." />
+                    </p>
+                </div>
+            </header>
+
+            <div class="aqg-card__body">
+                <div class="aqg-field">
+                    <label class="aqg-field__label" for="aqg-window-hint-phrases">
+                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.customPhrases" default="Custom phrases" /></span>
+                        <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.onePerLine" default="(one per line · case-insensitive)" /></span>
+                    </label>
+
+                    <textarea
+                            id="aqg-window-hint-phrases"
+                            name="linkNewWindowHintPhrases"
+                            class="aqg-textarea aqg-input--mono"
+                            rows="5"
+                            placeholder="(opens in a new window)"
+                            data-a11y-rules-input="true"
+                    >{linkNewWindowHintPhrases}</textarea>
+
+                    <div class="aqg-field__help">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowTip" default="Useful when your style guide uses a specific localisation, e.g. (opens in a new window). Surrounding parentheses are optional." />
+                    </div>
+                </div>
+
+                <div class="aqg-defaults" data-a11y-defaults="true">
+                    <div class="aqg-defaults__head">
+                        <span class="aqg-defaults__title">
+                            <f:render partial="Settings/Icon" arguments="{name: 'info'}" />
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.builtInDefaults" default="Built-in defaults" /></span>
+                            <span aria-hidden="true">·</span>
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowBuiltIn" default="New-window warning phrases" /></span>
+                        </span>
+                        <button
+                                type="button"
+                                class="aqg-defaults__toggle"
+                                aria-expanded="false"
+                                data-a11y-defaults-toggle="true"
+                        >
+                            <span data-a11y-defaults-toggle-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.show" default="Show" /></span>
+                            <span class="aqg-defaults__chevron" aria-hidden="true">›</span>
+                        </button>
+                    </div>
+                    <div class="aqg-defaults__chips" data-a11y-defaults-panel="true" hidden="hidden">
+                        <f:for each="{windowHintDefaults}" as="phrase">
+                            <code class="aqg-default-chip">{phrase}</code>
+                        </f:for>
+                    </div>
+                    <div class="aqg-field__help">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.defaultsHelp" default="The built-in list is always applied. Your custom phrases below extend the defaults — one phrase per line." />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="aqg-guidance aqg-guidance--rules">
+            <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+            <span class="aqg-guidance__body">
+                <span class="aqg-guidance__title">About custom rule lists</span>
+                <ol class="aqg-guidance__steps">
+                    <li>Custom phrases <strong>extend</strong> the built-in defaults — they never replace them.</li>
+                    <li>Phrases are matched case-insensitively and trimmed of whitespace.</li>
+                    <li>For phrase rules, the match is on the link's accessible name (label + aria-label).</li>
+                    <li>You do not need to clear TYPO3 caches — new rules apply to the next scan.</li>
+                </ol>
+            </span>
+        </div>
+    </form>
 </div>
+</html>

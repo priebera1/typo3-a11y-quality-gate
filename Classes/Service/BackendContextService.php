@@ -31,6 +31,15 @@ final class BackendContextService
         return $this->backendUserService->getBackendUserUid();
     }
 
+
+    /**
+     * @return array{uid:int,username:string,name:string}
+     */
+    public function getBackendUserSnapshot(): array
+    {
+        return $this->backendUserService->getBackendUserSnapshot();
+    }
+
     public function isAdmin(): bool
     {
         return $this->backendUserService->isAdmin();

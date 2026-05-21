@@ -7,218 +7,347 @@
 >
     <f:if condition="{proStatus.valid}">
         <f:then>
-            <form method="post" action="{saveUrl}">
+            <form method="post" action="{saveUrl}" class="aqg-stack js-aqg-quality-gate-form" id="a11y-settings-gate-form">
                 <f:for each="{returnParameters}" as="value" key="name">
                     <input type="hidden" name="{name}" value="{value}" />
                 </f:for>
 
                 <input type="hidden" name="tab" value="gate" />
                 <input type="hidden" name="qualityGateFormSubmitted" value="1" />
+                <input type="hidden" name="qualityGate[is_global]" value="{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: '0', else: '1')}" class="js-aqg-quality-gate-scope-input" />
+                <input type="hidden" name="qualityGate[reset_defaults]" value="0" class="js-aqg-quality-gate-reset-input" />
 
-                <div class="card">
-                    <div class="card-header d-flex align-items-start justify-content-between gap-3 flex-wrap">
-                        <div>
-                            <h3 class="h5 mb-1">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.title" />
-                            </h3>
-                            <p class="text-muted small mb-0">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.description" />
-                            </p>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" />
+                <div class="aqg-actionbar">
+                    <div class="aqg-actionbar__left">
+                        <span class="aqg-actionbar__title">Quality Gate</span>
+                        <span class="aqg-actionbar__meta js-aqg-quality-gate-action-meta">
+                            Applies to publish &amp; unhide · <f:if condition="{qualityGateRuleset.is_global} == 0"><f:then>Per-site · {siteOverrideCount} override<f:if condition="{siteOverrideCount} != 1">s</f:if></f:then><f:else>Global configuration</f:else></f:if>
+                        </span>
+                    </div>
+                    <div class="aqg-actionbar__right">
+                        <button type="button" class="aqg-link-button aqg-link-button--muted js-aqg-reset-defaults">Reset to defaults</button>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
                         </button>
                     </div>
+                </div>
 
-                    <div class="card-body pt-3">
-                        <div class="row g-4">
-                            <div class="col-12 col-lg-6">
-                                <label class="form-label fw-semibold" for="aqg-ruleset-site">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.scope" />
-                                </label>
-
-                                <select
-                                        id="aqg-ruleset-site"
-                                        name="rulesetSite"
-                                        class="form-select"
-                                >
-                                    <f:for each="{siteOptions}" as="siteOption">
-                                        <option
-                                                value="{siteOption.identifier}"
-                                                {f:if(condition: '{siteOption.identifier} == {selectedRulesetSite}', then: 'selected="selected"')}
-                                        >
-                                        {siteOption.label}
-                                        </option>
-                                    </f:for>
-                                </select>
-
-                                <div class="form-text">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.scopeHelp" />
-                                </div>
-                            </div>
+                <section class="aqg-card">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">Quality Gate scope</h3>
+                            <p class="aqg-card__sub">Decide whether every site uses the same publish rules, or whether individual sites can override the default.</p>
                         </div>
+                    </header>
+                    <div class="aqg-card__body">
+                        <div class="aqg-scope" role="radiogroup" aria-label="Quality Gate scope">
+                            <button type="button" class="aqg-scope__card js-aqg-scope-card{f:if(condition: '{qualityGateRuleset.is_global} == 0', else: ' is-active')}" data-scope="global" aria-pressed="{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: 'false', else: 'true')}">
+                                <span class="aqg-radio{f:if(condition: '{qualityGateRuleset.is_global} == 0', else: ' is-checked')}" aria-hidden="true"></span>
+                                <span class="aqg-scope__body">
+                                    <span class="aqg-scope__head">Global configuration <span class="aqg-scope__meta">Default</span></span>
+                                    <span class="aqg-scope__text">One Quality Gate setup applies to every site in this TYPO3 installation. Editors see the same publish rules wherever they work.</span>
+                                    <span class="aqg-scope__foot"><span class="aqg-scope__foot-num">1</span> shared ruleset · applies to all sites</span>
+                                </span>
+                            </button>
 
-                        <hr class="my-4" />
-
-                        <div class="mb-4">
-                            <div class="form-label fw-semibold mb-3">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode" />
-                            </div>
-
-                            <div class="d-flex flex-column gap-3">
-                                <div class="border rounded p-3">
-                                    <div class="form-check mb-0">
-                                        <input
-                                                class="form-check-input"
-                                                type="radio"
-                                                name="qualityGate[publish_mode]"
-                                                id="aqg-publish-mode-0"
-                                                value="0"
-                                                {f:if(condition: '{qualityGateRuleset.publish_mode} == 0', then: 'checked="checked"')}
-                                        />
-                                        <label class="form-check-label fw-semibold" for="aqg-publish-mode-0">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.disabled" />
-                                        </label>
-                                    </div>
-                                    <div class="small text-muted mt-2 ms-4">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.disabledHelp" />
-                                    </div>
-                                </div>
-
-                                <div class="border rounded p-3">
-                                    <div class="form-check mb-0">
-                                        <input
-                                                class="form-check-input"
-                                                type="radio"
-                                                name="qualityGate[publish_mode]"
-                                                id="aqg-publish-mode-1"
-                                                value="1"
-                                                {f:if(condition: '{qualityGateRuleset.publish_mode} == 1', then: 'checked="checked"')}
-                                        />
-                                        <label class="form-check-label fw-semibold" for="aqg-publish-mode-1">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.warn" />
-                                        </label>
-                                    </div>
-                                    <div class="small text-muted mt-2 ms-4">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.warnHelp" />
-                                    </div>
-                                </div>
-
-                                <div class="border rounded p-3">
-                                    <div class="form-check mb-0">
-                                        <input
-                                                class="form-check-input"
-                                                type="radio"
-                                                name="qualityGate[publish_mode]"
-                                                id="aqg-publish-mode-2"
-                                                value="2"
-                                                {f:if(condition: '{qualityGateRuleset.publish_mode} == 2', then: 'checked="checked"')}
-                                        />
-                                        <label class="form-check-label fw-semibold" for="aqg-publish-mode-2">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.block" />
-                                        </label>
-                                    </div>
-                                    <div class="small text-muted mt-2 ms-4">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.mode.blockHelp" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-12 col-lg-6">
-                                <label class="form-label fw-semibold" for="aqg-threshold-critical">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.criticalThreshold" />
-                                </label>
-
-                                <input
-                                        type="number"
-                                        min="0"
-                                        class="form-control"
-                                        id="aqg-threshold-critical"
-                                        name="qualityGate[threshold_critical]"
-                                        value="{qualityGateRuleset.threshold_critical}"
-                                />
-
-                                <div class="form-text">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.criticalThresholdHelp" />
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-lg-6">
-                                <label class="form-label fw-semibold" for="aqg-threshold-warning">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold" />
-                                </label>
-
-                                <select
-                                        id="aqg-threshold-warning"
-                                        name="qualityGate[threshold_warning]"
-                                        class="form-select"
-                                >
-                                    <option value="-1" {f:if(condition: '{qualityGateRuleset.threshold_warning} == -1', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.ignore" />
-                                    </option>
-                                    <option value="0" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 0', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.0" />
-                                    </option>
-                                    <option value="1" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 1', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.1" />
-                                    </option>
-                                    <option value="2" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 2', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.2" />
-                                    </option>
-                                    <option value="3" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 3', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.3" />
-                                    </option>
-                                    <option value="5" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 5', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.5" />
-                                    </option>
-                                    <option value="10" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 10', then: 'selected="selected"')}>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.10" />
-                                    </option>
-                                </select>
-
-                                <div class="form-text">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThresholdHelp" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-light border mt-4 mb-0 small">
-                            <div class="fw-semibold mb-1">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.howItWorksTitle" />
-                            </div>
-                            <div>
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.howItWorksText" />
-                            </div>
+                            <button type="button" class="aqg-scope__card js-aqg-scope-card{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: ' is-active')}" data-scope="per-site" aria-pressed="{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: 'true', else: 'false')}">
+                                <span class="aqg-radio{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: ' is-checked')}" aria-hidden="true"></span>
+                                <span class="aqg-scope__body">
+                                    <span class="aqg-scope__head">Per-site configuration <span class="aqg-scope__meta">Override</span></span>
+                                    <span class="aqg-scope__text">Configure selected sites individually. Sites without their own configuration inherit the global default.</span>
+                                    <span class="aqg-scope__foot"><span class="aqg-scope__foot-num js-aqg-site-override-count">{siteOverrideCount}</span> site override<f:if condition="{siteOverrideCount} != 1">s</f:if> · others inherit global</span>
+                                </span>
+                            </button>
                         </div>
                     </div>
+                </section>
+
+                <div class="aqg-scope-panel aqg-scope-panel--global js-aqg-scope-panel-global{f:if(condition: '{qualityGateRuleset.is_global} == 0', else: ' is-active')}">
+                    <div class="aqg-notice aqg-tone-info">
+                        <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                        <span class="aqg-notice__body">
+                            <span class="aqg-notice__title">This setup applies to all sites.</span>
+                            <span class="aqg-notice__text">If you need different rules for selected sites, switch to per-site configuration above.</span>
+                        </span>
+                    </div>
+
+                    <section class="aqg-card">
+                        <header class="aqg-card__head aqg-card__head--quiet">
+                            <div>
+                                <h3 class="aqg-card__title">Publishing mode</h3>
+                                <p class="aqg-card__sub">Pick how strictly AQG reacts when an editor publishes a page that does not meet the thresholds. The same mode applies to unhiding pages.</p>
+                            </div>
+                        </header>
+                        <div class="aqg-card__body">
+                            <div class="aqg-radio-cards">
+                                <label class="aqg-radio-card tone-neutral {f:if(condition: '{qualityGateRuleset.publish_mode} == 0', then: 'is-active')}">
+                                    <input class="aqg-radio-card__input" type="radio" name="qualityGate[global][publish_mode]" id="aqg-global-publish-mode-0" value="0" {f:if(condition: '{qualityGateRuleset.publish_mode} == 0', then: 'checked="checked"')} />
+                                    <span class="aqg-radio {f:if(condition: '{qualityGateRuleset.publish_mode} == 0', then: 'is-checked')}" aria-hidden="true"></span>
+                                    <span class="aqg-radio-card__mode-icon aqg-radio-card__mode-icon--disabled" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'pause'}" /></span>
+                                    <span class="aqg-radio-card__body">
+                                        <span class="aqg-radio-card__head">Disabled</span>
+                                        <span class="aqg-radio-card__text">AQG runs in the background but does not warn or block on publish. Editors can still open issues from the Overview.</span>
+                                        <span class="aqg-radio-card__impact"><span class="aqg-radio-card__impact-dot"></span>Editors are never interrupted</span>
+                                    </span>
+                                </label>
+                                <label class="aqg-radio-card tone-warning {f:if(condition: '{qualityGateRuleset.publish_mode} == 1', then: 'is-active')}">
+                                    <input class="aqg-radio-card__input" type="radio" name="qualityGate[global][publish_mode]" id="aqg-global-publish-mode-1" value="1" {f:if(condition: '{qualityGateRuleset.publish_mode} == 1', then: 'checked="checked"')} />
+                                    <span class="aqg-radio {f:if(condition: '{qualityGateRuleset.publish_mode} == 1', then: 'is-checked')}" aria-hidden="true"></span>
+                                    <span class="aqg-radio-card__mode-icon aqg-radio-card__mode-icon--warning" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'warning'}" /></span>
+                                    <span class="aqg-radio-card__body">
+                                        <span class="aqg-radio-card__head">Warn editors</span>
+                                        <span class="aqg-radio-card__text">Show a warning in the publish/unhide flow when configured thresholds are exceeded. Editors can review the report before continuing.</span>
+                                        <span class="aqg-radio-card__impact"><span class="aqg-radio-card__impact-dot"></span>Editors confirm to continue</span>
+                                    </span>
+                                </label>
+                                <label class="aqg-radio-card tone-critical {f:if(condition: '{qualityGateRuleset.publish_mode} == 2', then: 'is-active')}">
+                                    <input class="aqg-radio-card__input" type="radio" name="qualityGate[global][publish_mode]" id="aqg-global-publish-mode-2" value="2" {f:if(condition: '{qualityGateRuleset.publish_mode} == 2', then: 'checked="checked"')} />
+                                    <span class="aqg-radio {f:if(condition: '{qualityGateRuleset.publish_mode} == 2', then: 'is-checked')}" aria-hidden="true"></span>
+                                    <span class="aqg-radio-card__mode-icon aqg-radio-card__mode-icon--critical" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'block'}" /></span>
+                                    <span class="aqg-radio-card__body">
+                                        <span class="aqg-radio-card__head"><span>Block publish</span><span class="aqg-pill aqg-pill--strict tone-critical">Strict</span></span>
+                                        <span class="aqg-radio-card__text">Prevent publish/unhide when thresholds fail. Editors must resolve or ignore issues with a documented reason before publishing.</span>
+                                        <span class="aqg-radio-card__impact"><span class="aqg-radio-card__impact-dot"></span>Publishing is blocked until issues are resolved</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="aqg-card">
+                        <header class="aqg-card__head aqg-card__head--quiet">
+                            <div>
+                                <h3 class="aqg-card__title">Thresholds</h3>
+                                <p class="aqg-card__sub">Define what counts as a failing page. Thresholds are evaluated after the editor saves but before the page is published.</p>
+                            </div>
+                        </header>
+                        <div class="aqg-card__body">
+                            <div class="aqg-threshold">
+                                <div class="aqg-threshold__col">
+                                    <div class="aqg-field">
+                                        <label class="aqg-field__label" for="aqg-global-threshold-critical">Critical threshold</label>
+                                        <div class="aqg-inline-row">
+                                            <input type="number" min="0" class="aqg-input aqg-input--num" id="aqg-global-threshold-critical" name="qualityGate[global][threshold_critical]" value="{qualityGateRuleset.threshold_critical}" />
+                                            <span class="aqg-field__help">or more open critical issues</span>
+                                        </div>
+                                        <div class="aqg-field__help">Set to <code>0</code> to react on any critical issue.</div>
+                                    </div>
+                                </div>
+                                <div class="aqg-threshold__col">
+                                    <div class="aqg-field">
+                                        <label class="aqg-field__label" for="aqg-global-threshold-warning">Warning threshold</label>
+                                        <select id="aqg-global-threshold-warning" name="qualityGate[global][threshold_warning]" class="aqg-select">
+                                            <option value="-1" {f:if(condition: '{qualityGateRuleset.threshold_warning} == -1', then: 'selected="selected"')}>Ignore warnings — only criticals fail</option>
+                                            <option value="0" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 0', then: 'selected="selected"')}>Any warning fails the gate</option>
+                                            <option value="1" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 1', then: 'selected="selected"')}>1 or more warnings fail the gate</option>
+                                            <option value="3" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 3', then: 'selected="selected"')}>3 or more warnings fail the gate</option>
+                                            <option value="5" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 5', then: 'selected="selected"')}>5 or more warnings fail the gate</option>
+                                            <option value="10" {f:if(condition: '{qualityGateRuleset.threshold_warning} == 10', then: 'selected="selected"')}>10 or more warnings fail the gate</option>
+                                        </select>
+                                        <div class="aqg-field__help">Keep “Ignore warnings” to evaluate critical issues only.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="aqg-scope-panel aqg-scope-panel--per-site js-aqg-scope-panel-per-site{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: ' is-active')}">
+                    <section class="aqg-card">
+                        <header class="aqg-card__head aqg-card__head--quiet">
+                            <div>
+                                <h3 class="aqg-card__title">Site overrides</h3>
+                                <p class="aqg-card__sub">Each site listed below uses its own publish rules. Sites that are not listed inherit the <strong>global</strong> configuration.</p>
+                            </div>
+                            <div class="aqg-card__actions">
+                                <button type="button" class="btn btn-default btn-sm js-aqg-addsite-toggle">+ Add site override</button>
+                            </div>
+                        </header>
+                        <div class="aqg-card__body">
+                            <div class="aqg-addsite-panel js-aqg-addsite-panel" hidden="hidden">
+                                <span class="aqg-addsite-panel__label">Add site override</span>
+                                <select class="aqg-select js-aqg-addsite-select">
+                                    <f:for each="{availableSiteOptions}" as="siteOption">
+                                        <option value="{siteOption.identifier}" data-label="{siteOption.label}">{siteOption.label}</option>
+                                    </f:for>
+                                </select>
+                                <button type="button" class="btn btn-default btn-sm js-aqg-addsite-cancel">Cancel</button>
+                                <button type="button" class="btn btn-primary btn-sm js-aqg-addsite-confirm">Add</button>
+                                <span class="aqg-addsite-panel__sub">The new site starts from the global default — adjust mode and thresholds, then save.</span>
+                            </div>
+
+                            <div class="aqg-site-empty js-aqg-site-empty" {f:if(condition: '{siteRulesets}', then: 'hidden="hidden"')}>
+                                <span class="aqg-site-empty__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                                <h4 class="aqg-site-empty__title">No site-specific rules yet</h4>
+                                <p class="aqg-site-empty__text">All sites currently inherit the global Quality Gate configuration. Add a site override if a particular site needs different publish rules.</p>
+                                <div class="aqg-site-empty__actions">
+                                    <button type="button" class="btn btn-primary btn-sm js-aqg-addsite-toggle">Add site override</button>
+                                </div>
+                            </div>
+
+                            <div class="aqg-sitelist js-aqg-sitelist">
+                                <f:for each="{siteRulesets}" as="siteRuleset">
+                                    <div class="aqg-site js-aqg-site-row" data-site-identifier="{siteRuleset.site_identifier}">
+                                        <header class="aqg-site__head">
+                                            <div class="aqg-site__title-block">
+                                                <span class="aqg-site__title">
+                                                    {siteRuleset.site_label}
+                                                    <span class="aqg-site__id">{siteRuleset.site_identifier}</span>
+                                                    <span class="aqg-mode-pill js-aqg-mode-pill" data-mode="{siteRuleset.publish_mode}">
+                                                        <span class="aqg-mode-pill__dot"></span>
+                                                        <span class="js-aqg-mode-label"><f:if condition="{siteRuleset.publish_mode} == 2"><f:then>Block publish</f:then><f:else><f:if condition="{siteRuleset.publish_mode} == 1"><f:then>Warn editors</f:then><f:else>Disabled</f:else></f:if></f:else></f:if></span>
+                                                    </span>
+                                                </span>
+                                                <span class="aqg-site__sub">Stored for site identifier <code>{siteRuleset.site_identifier}</code></span>
+                                            </div>
+                                            <div class="aqg-site__actions">
+                                                <button type="button" class="btn btn-default btn-sm js-aqg-remove-site">Remove custom configuration</button>
+                                                <span class="aqg-confirm js-aqg-remove-confirm" hidden="hidden">
+                                                    <span>Remove custom configuration?</span>
+                                                    <button type="button" class="aqg-confirm__btn js-aqg-remove-cancel">Cancel</button>
+                                                    <button type="button" class="aqg-confirm__btn aqg-confirm__btn--danger js-aqg-remove-confirmed">Remove</button>
+                                                </span>
+                                            </div>
+                                        </header>
+                                        <div class="aqg-site__body aqg-site__body--compact">
+                                            <div class="aqg-field">
+                                                <label class="aqg-field__label">Publishing mode</label>
+                                                <select class="aqg-select js-aqg-site-mode" name="qualityGate[sites][{siteRuleset.site_identifier}][publish_mode]">
+                                                    <option value="0" {f:if(condition: '{siteRuleset.publish_mode} == 0', then: 'selected="selected"')}>Disabled — do not warn or block</option>
+                                                    <option value="1" {f:if(condition: '{siteRuleset.publish_mode} == 1', then: 'selected="selected"')}>Warn editors before publish</option>
+                                                    <option value="2" {f:if(condition: '{siteRuleset.publish_mode} == 2', then: 'selected="selected"')}>Block publish on failure</option>
+                                                </select>
+                                                <div class="aqg-field__help">Disabled · Warn editors · Block publishing.</div>
+                                            </div>
+                                            <div class="aqg-field">
+                                                <label class="aqg-field__label">Critical threshold</label>
+                                                <div class="aqg-inline-row">
+                                                    <input type="number" min="0" class="aqg-input aqg-input--num" name="qualityGate[sites][{siteRuleset.site_identifier}][threshold_critical]" value="{siteRuleset.threshold_critical}" />
+                                                    <span class="aqg-field__help">or more</span>
+                                                </div>
+                                                <div class="aqg-field__help">Open criticals allowed. <code>0</code> = any critical fails.</div>
+                                            </div>
+                                            <div class="aqg-field">
+                                                <label class="aqg-field__label">Warning threshold</label>
+                                                <select class="aqg-select" name="qualityGate[sites][{siteRuleset.site_identifier}][threshold_warning]">
+                                                    <option value="-1" {f:if(condition: '{siteRuleset.threshold_warning} == -1', then: 'selected="selected"')}>Ignore warnings</option>
+                                                    <option value="0" {f:if(condition: '{siteRuleset.threshold_warning} == 0', then: 'selected="selected"')}>Any warning fails</option>
+                                                    <option value="1" {f:if(condition: '{siteRuleset.threshold_warning} == 1', then: 'selected="selected"')}>1 or more fail</option>
+                                                    <option value="3" {f:if(condition: '{siteRuleset.threshold_warning} == 3', then: 'selected="selected"')}>3 or more fail</option>
+                                                    <option value="5" {f:if(condition: '{siteRuleset.threshold_warning} == 5', then: 'selected="selected"')}>5 or more fail</option>
+                                                    <option value="10" {f:if(condition: '{siteRuleset.threshold_warning} == 10', then: 'selected="selected"')}>10 or more fail</option>
+                                                </select>
+                                                <div class="aqg-field__help">Optional. Leave on <em>Ignore</em> to evaluate critical only.</div>
+                                            </div>
+                                        </div>
+                                        <div class="aqg-inherit-note js-aqg-inherit-note" hidden="hidden">
+                                            <span class="aqg-inherit-note__badge">FYI</span>
+                                            Removing this configuration makes the site inherit the global default again.
+                                        </div>
+                                    </div>
+                                </f:for>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="aqg-guidance">
+                    <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                    <span class="aqg-guidance__body">
+                        <span class="aqg-guidance__title">How the Quality Gate decides which configuration to use</span>
+                        <ol class="aqg-guidance__steps">
+                            <li>Editor presses <strong>Save &amp; publish</strong> or unhides the page.</li>
+                            <li>AQG looks for a <strong>site-specific</strong> configuration matching the page's site.</li>
+                            <li>If none exists, it falls back to the <strong>global</strong> configuration.</li>
+                            <li>If neither exists, the Quality Gate is <strong>disabled</strong> for that page.</li>
+                            <li>Open issues are compared against the matching thresholds; mode determines whether AQG <strong>warns</strong> or <strong>blocks</strong>.</li>
+                        </ol>
+                    </span>
                 </div>
             </form>
         </f:then>
 
         <f:else>
-            <div class="card">
-                <div class="card-header border-0 pb-0">
-                    <h3 class="h5 mb-1">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.title" />
-                    </h3>
-                    <p class="text-muted small mb-0">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.description" />
-                    </p>
-                </div>
-
-                <div class="card-body pt-3">
-                    <div class="alert alert-light border mb-0 small">
-                        <div class="fw-semibold mb-1">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.warningTitle" />
-                        </div>
-                        <div>
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePublishing.warningText" />
-                        </div>
+            <div class="aqg-stack">
+                <div class="aqg-actionbar">
+                    <div class="aqg-actionbar__left">
+                        <span class="aqg-actionbar__title">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.title" default="Publishing rules" />
+                        </span>
+                        <span class="aqg-actionbar__meta">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeActionMeta" default="The quality gate runs every time an editor publishes or unhides a page." />
+                        </span>
+                    </div>
+                    <div class="aqg-actionbar__right">
+                        <button type="button" class="btn btn-default btn-sm" disabled="disabled">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
+                        </button>
                     </div>
                 </div>
+
+                <section class="aqg-card aqg-card--locked">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.title" default="Publishing rules" />
+                            </h3>
+                            <p class="aqg-card__sub">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeDescription" default="FREE keeps the warning gate active. Block-on-publish and custom publishing rules require AQG PRO." />
+                            </p>
+                        </div>
+                    </header>
+
+                    <div class="aqg-card__body">
+                    <div class="aqg-notice aqg-tone-info">
+                        <span class="aqg-notice__icon" aria-hidden="true">i</span>
+                        <span class="aqg-notice__body">
+                            <span class="aqg-notice__title">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeNoticeTitle" default="Warning gate is active on FREE" />
+                            </span>
+                            <span class="aqg-notice__text">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeNoticeText" default="On FREE, AQG always runs in warning mode. Editors see a warning dialog before publishing pages with critical issues, but can continue." />
+                            </span>
+                        </span>
+                    </div>
+
+                    <div class="aqg-compare">
+                        <div class="aqg-compare__col aqg-compare__col--free">
+                            <div class="aqg-compare__col-head"><h4 class="aqg-compare__title">FREE</h4><span class="aqg-compare__plan">FREE</span></div>
+                            <ul class="aqg-compare__list">
+                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span>Warning dialog before publish</span></li>
+                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span>Critical threshold</span></li>
+                                <li class="aqg-compare__item aqg-compare__item--off"><span class="aqg-compare__mark">–</span><span>Block-on-publish gate</span></li>
+                                <li class="aqg-compare__item aqg-compare__item--off"><span class="aqg-compare__mark">–</span><span>Per-site rulesets</span></li>
+                                <li class="aqg-compare__item aqg-compare__item--off"><span class="aqg-compare__mark">–</span><span>Warning threshold</span></li>
+                            </ul>
+                        </div>
+                        <div class="aqg-compare__col aqg-compare__col--pro">
+                            <div class="aqg-compare__col-head"><h4 class="aqg-compare__title">PRO</h4><span class="aqg-compare__plan">PRO</span></div>
+                            <ul class="aqg-compare__list">
+                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span>Everything in FREE</span></li>
+                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span>Block-on-publish gate</span></li>
+                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span>Per-site rulesets</span></li>
+                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span>Warning threshold</span></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="aqg-guidance">
+                        <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                        <span class="aqg-guidance__body">
+                            <span class="aqg-guidance__title">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeGuidanceTitle" default="How the warning gate works on FREE" />
+                            </span>
+                            <ol class="aqg-guidance__steps">
+                                <li>An editor presses <strong>Save &amp; publish</strong> on a page.</li>
+                                <li>AQG counts open critical issues.</li>
+                                <li>If any critical issue is open, a warning dialog appears.</li>
+                                <li>The editor can confirm or open the report.</li>
+                            </ol>
+                        </span>
+                    </div>
+                    </div>
+                </section>
             </div>
         </f:else>
     </f:if>

@@ -35,6 +35,14 @@ final class ProCrawlerService
         string $axeLocale = 'en',
         bool $captureScreenshot = false,
         bool $cookieDismiss = true,
+        string $scannerPreviewToken = '',
+        string $httpAuthUser = '',
+        string $httpAuthPass = '',
+        array $excludedPatterns = [],
+        array $priorityUrls = [],
+        array $cookieSelectors = [],
+        ?int $languageId = null,
+        string $languageCode = '',
     ): CrawlerSubmitResult {
         $licence = $this->proLicenceService->validate($domain, $version);
 
@@ -60,6 +68,14 @@ final class ProCrawlerService
                 $axeLocale,
                 $captureScreenshot,
                 $cookieDismiss,
+                $scannerPreviewToken,
+                $httpAuthUser,
+                $httpAuthPass,
+                $excludedPatterns,
+                $priorityUrls,
+                $cookieSelectors,
+                $languageId,
+                $languageCode,
             );
         } catch (ApiRequestFailedException $exception) {
             throw new TokenRefreshException(
@@ -145,5 +161,29 @@ final class ProCrawlerService
         }
 
         return CrawlerSummaryResult::fromResponseDto($responseDto);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function cancel(string $domain, string $version, string $jobId): array
+    {
+        $licence = $this->proLicenceService->validate($domain, $version);
+
+        if (!$licence->valid || !$licence->hasFeature(FeatureFlag::Crawler)) {
+            throw new TokenRefreshException('Crawler feature is not available for this licence.');
+        }
+
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->cancel($token->accessToken, $jobId);
+        } catch (ApiRequestFailedException $exception) {
+            throw new TokenRefreshException(
+                'Remote crawler cancel request failed: ' . $exception->getMessage(),
+                0,
+                $exception
+            );
+        }
     }
 }

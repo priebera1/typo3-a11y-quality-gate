@@ -1,0 +1,130 @@
+/* Final theme tokens: prefer TYPO3 backend variables, no JS/theme class required. */
+.a11y-page-detail.aqg-module,
+.a11y-overview.aqg-module,
+.a11y-settings.aqg-module {
+    --aqi-bg: var(--typo3-surface-container-base, var(--bs-body-bg, #f5f6f8));
+    --aqi-surface: var(--typo3-surface-container-lowest, var(--typo3-surface-container-base, #ffffff));
+    --aqi-surface-2: var(--typo3-surface-container-low, var(--typo3-surface-container-high, #fafbfc));
+    --aqi-border: var(--typo3-component-border-color, var(--bs-border-color, #d9dde3));
+    --aqi-border-soft: var(--typo3-component-border-color, #e6e9ee);
+    --aqi-divider: var(--typo3-component-border-color, #eef0f3);
+    --aqi-fg: var(--typo3-text-color-base, var(--bs-body-color, #1f2937));
+    --aqi-fg-muted: var(--typo3-text-color-variant, var(--bs-secondary-color, #667085));
+    --aqi-fg-subtle: var(--typo3-text-color-variant, #8a94a2);
+    --aqi-ok: var(--typo3-text-color-success, #168a4a);
+    --aqi-ok-bg: var(--typo3-surface-container-success, #eefaf2);
+    --aqi-ok-border: var(--typo3-state-success-border-color, #b7e3c7);
+    --aqi-warn: var(--typo3-text-color-warning, #9a6700);
+    --aqi-warn-bg: var(--typo3-surface-container-warning, #fff7df);
+    --aqi-warn-border: var(--typo3-state-warning-border-color, #eed48a);
+    --aqi-err: var(--typo3-text-color-danger, #c7372f);
+    --aqi-err-bg: var(--typo3-surface-container-danger, #fff1ef);
+    --aqi-err-border: var(--typo3-state-danger-border-color, #efb4ae);
+    --aqi-run: var(--typo3-text-color-info, #1b7fbf);
+    --aqi-run-bg: var(--typo3-surface-container-info, #eef7ff);
+    --aqi-run-border: var(--typo3-state-info-border-color, #afd9f4);
+    --aqi-none: var(--typo3-text-color-variant, #8a94a2);
+    --aqi-none-bg: var(--typo3-surface-container-low, #f4f5f7);
+    --aqi-none-border: var(--typo3-component-border-color, #d9dde3);
+    --aqi-focus: var(--typo3-state-primary-bg, var(--bs-primary, #2563eb));
+    --aqg-bg: var(--aqi-bg);
+    --aqg-surface: var(--aqi-surface);
+    --aqg-surface-2: var(--aqi-surface-2);
+    --aqg-border: var(--aqi-border);
+    --aqg-border-soft: var(--aqi-border-soft);
+    --aqg-fg: var(--aqi-fg);
+    --aqg-fg-muted: var(--aqi-fg-muted);
+    --aqg-fg-subtle: var(--aqi-fg-subtle);
+    --aqg-ok: var(--aqi-ok);
+    --aqg-ok-bg: var(--aqi-ok-bg);
+    --aqg-ok-border: var(--aqi-ok-border);
+    --aqg-warning: var(--aqi-warn);
+    --aqg-warning-bg: var(--aqi-warn-bg);
+    --aqg-warning-border: var(--aqi-warn-border);
+    --aqg-error: var(--aqi-err);
+    --aqg-error-bg: var(--aqi-err-bg);
+    --aqg-error-border: var(--aqi-err-border);
+    --aqg-info: var(--aqi-run);
+    --aqg-info-bg: var(--aqi-run-bg);
+    --aqg-info-border: var(--aqi-run-border);
+    --aqg-focus: var(--aqi-focus);
+    --aqg-indicator-surface: var(--aqi-surface);
+    --aqg-indicator-surface-2: var(--aqi-surface-2);
+    --aqg-indicator-border: var(--aqi-border);
+    --aqg-indicator-border-soft: var(--aqi-border-soft);
+    --aqg-indicator-divider: var(--aqi-divider);
+    --aqg-indicator-fg: var(--aqi-fg);
+    --aqg-indicator-fg-muted: var(--aqi-fg-muted);
+    --aqg-indicator-fg-subtle: var(--aqi-fg-subtle);
+    --aqg-indicator-ok: var(--aqi-ok);
+    --aqg-indicator-ok-bg: var(--aqi-ok-bg);
+    --aqg-indicator-ok-border: var(--aqi-ok-border);
+    --aqg-indicator-warning: var(--aqi-warn);
+    --aqg-indicator-warning-bg: var(--aqi-warn-bg);
+    --aqg-indicator-warning-border: var(--aqi-warn-border);
+    --aqg-indicator-error: var(--aqi-err);
+    --aqg-indicator-error-bg: var(--aqi-err-bg);
+    --aqg-indicator-error-border: var(--aqi-err-border);
+    --aqg-indicator-running: var(--aqi-run);
+    --aqg-indicator-running-bg: var(--aqi-run-bg);
+    --aqg-indicator-running-border: var(--aqi-run-border);
+    --aqg-indicator-none: var(--aqi-none);
+    --aqg-indicator-none-bg: var(--aqi-none-bg);
+    --aqg-indicator-none-border: var(--aqi-none-border);
+    --aqg-indicator-focus: var(--aqi-focus);
+}
+
+html[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
+html[data-bs-theme="dark"] .a11y-settings.aqg-module,
+html[data-theme="dark"] .a11y-page-detail.aqg-module,
+html[data-theme="dark"] .a11y-settings.aqg-module,
+html[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
+html[data-color-scheme="dark"] .a11y-settings.aqg-module,
+body[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
+body[data-bs-theme="dark"] .a11y-settings.aqg-module,
+body[data-theme="dark"] .a11y-page-detail.aqg-module,
+body[data-theme="dark"] .a11y-settings.aqg-module,
+body[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
+body[data-color-scheme="dark"] .a11y-settings.aqg-module,
+.typo3-backend-dark .a11y-page-detail.aqg-module,
+.typo3-backend-dark .a11y-settings.aqg-module,
+.theme-dark .a11y-page-detail.aqg-module,
+.theme-dark .a11y-settings.aqg-module,
+.t3js-theme-dark .a11y-page-detail.aqg-module,
+.t3js-theme-dark .a11y-settings.aqg-module,
+html[data-bs-theme="dark"] .a11y-overview.aqg-module,
+html[data-theme="dark"] .a11y-overview.aqg-module,
+html[data-color-scheme="dark"] .a11y-overview.aqg-module,
+body[data-bs-theme="dark"] .a11y-overview.aqg-module,
+body[data-theme="dark"] .a11y-overview.aqg-module,
+body[data-color-scheme="dark"] .a11y-overview.aqg-module,
+.typo3-backend-dark .a11y-overview.aqg-module,
+.theme-dark .a11y-overview.aqg-module,
+.t3js-theme-dark .a11y-overview.aqg-module {
+    color-scheme: dark;
+    --aqi-bg: var(--typo3-surface-container-base, #14181d);
+    --aqi-surface: var(--typo3-surface-container-lowest, #1c2128);
+    --aqi-surface-2: var(--typo3-surface-container-low, #232931);
+    --aqi-border: var(--typo3-component-border-color, #2d343d);
+    --aqi-border-soft: var(--typo3-component-border-color, #262c34);
+    --aqi-divider: var(--typo3-component-border-color, #242a32);
+    --aqi-fg: var(--typo3-text-color-base, #e7ebf0);
+    --aqi-fg-muted: var(--typo3-text-color-variant, #aeb6c2);
+    --aqi-fg-subtle: var(--typo3-text-color-variant, #8a94a2);
+    --aqi-ok: var(--typo3-text-color-success, #58cf89);
+    --aqi-ok-bg: var(--typo3-surface-container-success, #173322);
+    --aqi-ok-border: var(--typo3-state-success-border-color, #255739);
+    --aqi-warn: var(--typo3-text-color-warning, #f1b739);
+    --aqi-warn-bg: var(--typo3-surface-container-warning, #3a2a09);
+    --aqi-warn-border: var(--typo3-state-warning-border-color, #684b0f);
+    --aqi-err: var(--typo3-text-color-danger, #ff756b);
+    --aqi-err-bg: var(--typo3-surface-container-danger, #3a1d1b);
+    --aqi-err-border: var(--typo3-state-danger-border-color, #6a302c);
+    --aqi-run: var(--typo3-text-color-info, #56b9f4);
+    --aqi-run-bg: var(--typo3-surface-container-info, #173142);
+    --aqi-run-border: var(--typo3-state-info-border-color, #25536e);
+    --aqi-none: var(--typo3-text-color-variant, #a3a9b2);
+    --aqi-none-bg: var(--typo3-surface-container-low, #25292e);
+    --aqi-none-border: var(--typo3-component-border-color, #3a4047);
+    --aqi-focus: var(--typo3-state-primary-bg, #56b9f4);
+}

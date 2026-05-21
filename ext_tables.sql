@@ -54,8 +54,14 @@ CREATE TABLE tx_a11y_issue (
     status               tinyint(1)    NOT NULL DEFAULT 0,
     ignored_reason       text,
     ignored_by           int(11)       NOT NULL DEFAULT 0,
+    ignored_by_name      varchar(255)  NOT NULL DEFAULT '',
+    ignored_by_username  varchar(50)   NOT NULL DEFAULT '',
     ignored_at           int(11)       NOT NULL DEFAULT 0,
+    ignored_until        int(11)       NOT NULL DEFAULT 0,
+    ignored_reopened_at  int(11)       NOT NULL DEFAULT 0,
     resolved_by          int(11)       NOT NULL DEFAULT 0,
+    resolved_by_name     varchar(255)  NOT NULL DEFAULT '',
+    resolved_by_username varchar(50)   NOT NULL DEFAULT '',
     resolved_at          int(11)       NOT NULL DEFAULT 0,
 
     first_seen_scan_uid  int(11)       NOT NULL DEFAULT 0,
@@ -68,8 +74,11 @@ CREATE TABLE tx_a11y_issue (
     KEY idx_page_status_sev (site_identifier(50), page_uid, status, severity),
     KEY idx_source (source_table(50), source_uid, source_field(50), source_lang_uid),
     KEY idx_rule_sev_status (rule_id(50), severity, status),
+    KEY idx_ignored_until (status, ignored_until),
     KEY idx_deleted (deleted)
 );
+
+
 
 #
 # Table structure for table 'tx_a11y_ruleset'
@@ -84,6 +93,13 @@ CREATE TABLE tx_a11y_ruleset (
     threshold_warning   int(11)       NOT NULL DEFAULT -1,
     publish_mode        tinyint(1)    NOT NULL DEFAULT 0,
     rules_json          text,
+    scanner_token       varchar(64)   NOT NULL DEFAULT '',
+    http_auth_user      varchar(255)  NOT NULL DEFAULT '',
+    http_auth_pass      text,
+    excluded_patterns   text,
+    cookie_accept_selectors text,
+    is_global           tinyint(1)    NOT NULL DEFAULT 1,
+    crawl_priority_urls text,
     is_default          tinyint(1)    NOT NULL DEFAULT 0,
     crdate              int(11)       NOT NULL DEFAULT 0,
     tstamp              int(11)       NOT NULL DEFAULT 0,
@@ -163,6 +179,7 @@ CREATE TABLE tx_a11y_remote_scan (
     source_type varchar(50) DEFAULT '' NOT NULL,
     scan_scope varchar(20) DEFAULT 'site' NOT NULL,
     page_uid int(11) DEFAULT '0' NOT NULL,
+    language_uid int(11) DEFAULT '-1' NOT NULL,
 
     start_url varchar(2048) DEFAULT '' NOT NULL,
     sitemap_url varchar(2048) DEFAULT NULL,
@@ -187,6 +204,7 @@ CREATE TABLE tx_a11y_remote_scan (
     KEY status (status),
     KEY scan_scope (scan_scope),
     KEY page_uid (page_uid),
+    KEY language_uid (language_uid),
     KEY persisted_at (persisted_at)
 );
 

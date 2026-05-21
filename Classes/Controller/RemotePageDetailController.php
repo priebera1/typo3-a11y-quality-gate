@@ -65,9 +65,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         $remotePageUid = (int)$this->requestParameterService->getString($request, 'remotePageUid');
         $siteIdentifier = $this->requestParameterService->getSiteIdentifier($request);
 
-        $backUrl = $this->buildRouteUrl('web_a11y', [
-            'site' => $siteIdentifier,
-        ]);
+        $backUrl = $this->buildRemoteOverviewBackUrl($request, $siteIdentifier);
 
         if ($remotePageUid <= 0) {
             $site = $siteIdentifier !== ''
@@ -91,6 +89,11 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 'exportPdfUrl' => '',
                 'exportPdfAllowed' => false,
                 'resolvedTypo3PageUid' => 0,
+                'scanPageUid' => 0,
+                'canScanRemotePage' => false,
+                'usesSiteRootContext' => false,
+                'resolvedSiteIdentifier' => $siteIdentifier,
+                'remoteDetail' => [],
                 'proStatus' => null,
             ]);
 
@@ -120,6 +123,11 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 'exportPdfUrl' => '',
                 'exportPdfAllowed' => false,
                 'resolvedTypo3PageUid' => 0,
+                'scanPageUid' => 0,
+                'canScanRemotePage' => false,
+                'usesSiteRootContext' => false,
+                'resolvedSiteIdentifier' => $siteIdentifier,
+                'remoteDetail' => [],
                 'proStatus' => null,
             ]);
 
@@ -145,6 +153,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 $this->buildRouteUrl('web_a11y.remotePageDetail', [
                     'remotePageUid' => (int)$latestRemotePage['uid'],
                     'site' => $resolvedSiteIdentifier,
+                    'id' => (int)($remoteScan['page_uid'] ?? 0),
+                    'language' => (int)($remoteScan['language_uid'] ?? 0),
                 ])
             );
         }
@@ -211,14 +221,18 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 ];
         }, $issues);
 
+        $siteRootPid = $resolvedSite !== null ? (int)$resolvedSite->getRootPageId() : 0;
         $resolvedTypo3PageUid = $this->resolveTypo3PageUid($remoteScan, $issuesWithNodes);
+        $scanPageUid = $resolvedTypo3PageUid > 0 ? $resolvedTypo3PageUid : $siteRootPid;
+        $canScanRemotePage = $scanPageUid > 0;
+        $usesSiteRootContext = $canScanRemotePage && $resolvedTypo3PageUid <= 0;
 
         $activeRemoteScan = null;
         if ($resolvedSiteIdentifier !== '') {
-            if ($resolvedTypo3PageUid > 0) {
+            if ($scanPageUid > 0) {
                 $activeRemoteScan = $this->remoteScanRepository->findLatestRelevantActiveScan(
                     $resolvedSiteIdentifier,
-                    $resolvedTypo3PageUid
+                    $scanPageUid
                 );
             }
 
@@ -237,6 +251,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         $groupedIssues = $this->groupIssuesByRule($issuesWithNodes);
+        $remoteDetail = $this->buildRemoteDetailViewData($remotePage, $remoteScan, $activeRemoteScan);
+        $backUrl = $this->buildRemoteOverviewBackUrl(
+            $request,
+            $resolvedSiteIdentifier,
+            (int)($remoteScan['page_uid'] ?? 0) ?: $scanPageUid,
+            (int)($remoteScan['language_uid'] ?? 0)
+        );
 
         $exportCsvUrl = $this->exportUrlBuilderService->buildRemotePageCsvUrl(
             $resolvedSiteIdentifier,
@@ -256,6 +277,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                     'screenshot_proxy_url' => $remoteScreenshotProxyUrl,
                 ],
             'remoteScan' => $remoteScan,
+            'remoteDetail' => $remoteDetail,
             'activeRemoteScan' => $activeRemoteScan,
             'issues' => $groupedIssues,
             'backUrl' => $backUrl,
@@ -265,6 +287,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'exportPdfUrl' => $exportPdfUrl,
             'exportPdfAllowed' => $proStatus->valid && !$proStatus->isTrial && $proStatus->hasExportPdf,
             'resolvedTypo3PageUid' => $resolvedTypo3PageUid,
+            'scanPageUid' => $scanPageUid,
+            'canScanRemotePage' => $canScanRemotePage,
+            'usesSiteRootContext' => $usesSiteRootContext,
             'proStatus' => $proStatus,
         ]);
 
@@ -320,6 +345,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 $groups[$ruleId] = [
                     'rule_id' => $ruleId,
                     'impact' => (string)($issue['impact'] ?? ''),
+                    'impact_tone' => $this->resolveImpactTone((string)($issue['impact'] ?? '')),
                     'help' => (string)($issue['help'] ?? ''),
                     'help_url' => (string)($issue['help_url'] ?? ''),
                     'count' => 0,
@@ -354,6 +380,74 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         unset($group);
 
         return array_values($groups);
+    }
+
+    private function resolveImpactTone(string $impact): string
+    {
+        return match (strtolower(trim($impact))) {
+            'critical' => 'critical',
+            'serious', 'moderate' => 'warning',
+            'minor' => 'info',
+            default => 'none',
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $remotePage
+     * @param array<string, mixed>|null $remoteScan
+     * @param array<string, mixed>|null $activeRemoteScan
+     * @return array<string, mixed>
+     */
+    private function buildRemoteDetailViewData(array $remotePage, ?array $remoteScan, ?array $activeRemoteScan): array
+    {
+        $httpStatus = (int)($remotePage['http_status'] ?? 0);
+        $failureReason = trim((string)($remotePage['failure_reason'] ?? ''));
+        $pageMarkedFailed = (int)($remotePage['is_failed'] ?? 0) === 1;
+        $scanStatus = strtolower(trim((string)($remoteScan['status'] ?? '')));
+        $hasActiveScan = is_array($activeRemoteScan) && trim((string)($activeRemoteScan['job_id'] ?? '')) !== '';
+        $isFailed = !$hasActiveScan && (
+            $scanStatus === 'failed'
+            || $pageMarkedFailed
+            || ($remoteScan === null && ($failureReason !== '' || $httpStatus >= 400))
+        );
+
+        $finishedAt = (int)($remoteScan['finished_at'] ?? 0);
+        $startedAt = (int)($remoteScan['started_at'] ?? 0);
+        $activeStartedAt = (int)($activeRemoteScan['started_at'] ?? 0);
+        $activePagesScanned = (int)($activeRemoteScan['pages_scanned'] ?? 0);
+        $activePagesTotal = (int)($activeRemoteScan['pages_total'] ?? 0);
+
+        return [
+            'scanType' => 'frontend_http',
+            'httpStatusLabel' => $httpStatus > 0 ? (string)$httpStatus : '—',
+            'httpStatusTone' => $httpStatus > 0 && $httpStatus < 400 ? 'tone-ok' : ($httpStatus >= 500 ? 'tone-critical' : 'tone-warning'),
+            'lastScanAt' => $finishedAt,
+            'lastAttemptAt' => $finishedAt > 0 ? $finishedAt : $startedAt,
+            'startedAt' => $startedAt,
+            'activeStartedAt' => $activeStartedAt,
+            'activePagesLabel' => $activePagesTotal > 0
+                ? $activePagesScanned . ' / ' . $activePagesTotal
+                : (string)$activePagesScanned,
+            'durationLabel' => $this->formatDuration($startedAt, $finishedAt),
+            'failureReason' => $failureReason,
+            'isFailed' => $isFailed,
+            'hasActiveScan' => $hasActiveScan,
+            'hasCompletedScan' => $remoteScan !== null && $finishedAt > 0,
+        ];
+    }
+
+    private function formatDuration(int $startedAt, int $finishedAt): string
+    {
+        if ($startedAt <= 0 || $finishedAt <= $startedAt) {
+            return '—';
+        }
+
+        $seconds = $finishedAt - $startedAt;
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $remainingSeconds = $seconds % 60;
+
+        return sprintf('%02d:%02d:%02d', $hours, $minutes, $remainingSeconds);
     }
 
     /**
@@ -394,6 +488,37 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         return 0;
+    }
+
+    private function buildRemoteOverviewBackUrl(
+        ServerRequestInterface $request,
+        string $siteIdentifier,
+        int $pageUid = 0,
+        ?int $languageUid = null,
+    ): string {
+        $queryParams = $request->getQueryParams();
+        $resolvedPageUid = $pageUid > 0 ? $pageUid : (int)($queryParams['id'] ?? 0);
+        $resolvedLanguageUid = $languageUid;
+
+        if ($resolvedLanguageUid === null && $this->requestParameterService->hasLanguageParameter($queryParams)) {
+            $resolvedLanguageUid = $this->requestParameterService->getLanguageUidFromParameters(
+                $queryParams,
+                [],
+                0,
+                false,
+            );
+        }
+
+        $parameters = [];
+        if ($resolvedPageUid > 0) {
+            $parameters['id'] = $resolvedPageUid;
+        }
+        if ($siteIdentifier !== '') {
+            $parameters['site'] = $siteIdentifier;
+        }
+        $parameters['language'] = $resolvedLanguageUid ?? 0;
+
+        return $this->buildRouteUrl('web_a11y', $parameters);
     }
 
     private function configureDocHeader(

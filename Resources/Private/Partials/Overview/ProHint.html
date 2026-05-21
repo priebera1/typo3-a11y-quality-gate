@@ -1,18 +1,82 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
-<div class="card mt-4">
-    <div class="card-body">
-        <div class="fw-semibold mb-1">
-            <f:translate
-                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.title"
-                    default="Need frontend crawling?"
-            />
+<div class="aqg-panel-stack">
+    <div class="aqg-pro-card">
+        <span class="aqg-pro-card__badge">PRO</span>
+        <div class="aqg-pro-card__body">
+            <div class="aqg-pro-card__title">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.title"
+                        default="Need frontend crawling?"
+                />
+            </div>
+            <div class="aqg-pro-card__text">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.text"
+                        default="AQG PRO adds frontend scans for published pages and advanced reporting."
+                />
+            </div>
         </div>
-        <div class="text-muted small mb-0">
-            <f:translate
-                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.text"
-                    default="AQG PRO adds remote crawler scans for frontend pages and advanced reporting."
-            />
+        <div class="aqg-pro-card__actions">
+            <a href="{settingsUrl}" class="btn btn-primary btn-sm">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title"
+                        default="Open settings"
+                />
+            </a>
         </div>
     </div>
+
+    <section class="aqg-section aqg-section--locked">
+        <div class="aqg-section__head">
+            <div>
+                <h2 class="aqg-section__title">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote"
+                            default="Frontend scan"
+                    />
+                </h2>
+                <p class="aqg-section__sub">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.sectionSub"
+                            default="Available in AQG PRO."
+                    />
+                </p>
+            </div>
+            <div class="aqg-section__actions">
+                <a href="{settingsUrl}" class="btn btn-primary btn-sm">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title"
+                            default="Open settings"
+                    />
+                </a>
+            </div>
+        </div>
+
+        <div class="aqg-empty">
+            <div class="aqg-empty__icon" aria-hidden="true">
+                <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
+            </div>
+            <div class="aqg-empty__title">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.lockedTitle"
+                        default="Frontend scan is a PRO feature"
+                />
+            </div>
+            <div class="aqg-empty__body">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proHint.lockedText"
+                        default="Local content scans stay free and unlimited. Frontend crawling is part of AQG PRO."
+                />
+            </div>
+            <div class="aqg-empty__actions">
+                <a href="{settingsUrl}" class="btn btn-primary btn-sm">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title"
+                            default="Open settings"
+                    />
+                </a>
+            </div>
+        </div>
+    </section>
 </div>
 </html>

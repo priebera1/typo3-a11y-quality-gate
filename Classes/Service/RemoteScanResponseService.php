@@ -25,6 +25,7 @@ final class RemoteScanResponseService
             'pageUid' => (int)($activeScan['page_uid'] ?? 0),
             'pagesScanned' => (int)($activeScan['pages_scanned'] ?? 0),
             'pagesTotal' => (int)($activeScan['pages_total'] ?? 0),
+            'languageUid' => (int)($activeScan['language_uid'] ?? -1),
         ];
     }
 
@@ -52,6 +53,9 @@ final class RemoteScanResponseService
                 ? (int)($existingScan['page_uid'] ?? 0)
                 : $pageUid,
             'pages' => $resultsResult->pages,
+            'languageUid' => $existingScan !== null
+                ? (int)($existingScan['language_uid'] ?? -1)
+                : -1,
         ];
     }
 

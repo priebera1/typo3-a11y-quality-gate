@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Pro\Service;
 
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Core\Site\Entity\Site;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 final class ProSiteFingerprintService
 {
     public function __construct(
-        private readonly SiteFinder $siteFinder,
+        private readonly SiteResolutionService $siteResolutionService,
         private readonly ExtensionContextService $extensionContextService,
     ) {
     }
@@ -23,19 +23,15 @@ final class ProSiteFingerprintService
     {
         $allSites = [];
 
-        try {
-            foreach ($this->siteFinder->getAllSites() as $site) {
-                if (!$site instanceof Site) {
-                    continue;
-                }
-
-                $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$site->getBase());
-                if ($domain !== '') {
-                    $allSites[] = $domain;
-                }
+        foreach ($this->siteResolutionService->getAllSites() as $site) {
+            if (!$site instanceof Site) {
+                continue;
             }
-        } catch (\Throwable) {
-            return [];
+
+            $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$site->getBase());
+            if ($domain !== '') {
+                $allSites[] = $domain;
+            }
         }
 
         $allSites = array_values(array_unique($allSites));

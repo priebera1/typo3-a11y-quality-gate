@@ -1,5 +1,63 @@
 # Changelog
 
+## [1.2.0] - 2026-05-21
+
+### Added
+- Added batch ignore workflow in local Page Detail, including selectable issue cards, sticky bulk action bar, required reason confirmation, group selection, and rule-based ignore shortcuts.
+- Added temporary ignore expiry for single and batch ignores with 7, 30, 90 day and custom-date options.
+- Added automatic reopening of expired ignored issues with audit metadata for reopened ignores.
+- Added Settings → Rules management for enabling and disabling individual accessibility rules per site/default ruleset.
+- Added rule configuration filtering to local scans, CKEditor live validation, existing issue APIs, overview counts, and Quality Gate checks.
+- Added remote scan access settings for HTTP Basic Authentication, excluded URL patterns, priority URLs, and cookie accept selectors.
+- Added scanner token warning notice in the Overview remote scan section when hidden/draft page scanning is not configured.
+- Added show-once scanner token handling in Settings → Remote scan access.
+- Added local and remote scan progress blocks above the source tabs, including completed, cancelled, and running states.
+- Added local content scan cancellation and remote scan cancellation UI handling.
+- Added language-aware scan state handling for Overview, Page Detail, toolbar, and Page Module Indicator.
+- Added Page Module Indicator for accessibility status directly in the TYPO3 Page module.
+- Added improved toolbar scan card/dropdown UI and mobile handling.
+- Added reusable empty state for modules opened without page/site context.
+- Added cookie consent selector support in crawler submit payloads.
+
+### Changed
+- Renamed local scan actions to match frontend scan wording: `Scan this page` and `Scan site`.
+- Improved Overview and Page Detail responsive behaviour, especially toolbar rows and horizontally scrollable tables on narrow screens.
+- Improved scan completion UX so local and frontend scans briefly show a green completed state before reloading results.
+- Changed scanner token settings so raw tokens are no longer rendered in the DOM or editable through TCA.
+- Changed HTTP Basic Auth testing to resolve the target URL from TYPO3 Site configuration instead of accepting arbitrary request URLs.
+- Changed remote single-page scan validation so submitted URLs must belong to the configured TYPO3 Site base or one of its language bases.
+- Changed remote crawler submit payload handling to include scanner token, HTTP auth, excluded patterns, priority URLs, cookie selectors, and language metadata where configured.
+- Changed Quality Gate checks and issue count queries to ignore disabled rules.
+- Changed scan language constraints so all-language scans (`language_uid = -1`) are considered when viewing a specific language.
+- Refactored repeated site/language resolving and URL generation into shared services.
+- Refactored language switcher, expiry picker, and other repeated UI pieces into shared partials where appropriate.
+
+### Fixed
+- Fixed root Overview showing “No scan on record” after all-language subtree scans.
+- Fixed Quality Gate blocking so blocked publish/unhide actions re-hide the page after DataHandler has completed.
+- Fixed local and remote scan progress not reliably refreshing the backend iframe after completion.
+- Fixed remote scan completion recovery so completed crawler jobs are persisted without requiring a manual “View issues” click.
+- Fixed frontend scan state leaking across languages in the Page module and toolbar.
+- Fixed secondary-language frontend scan buttons being disabled when a usable site/language URL can be resolved.
+- Fixed stale running scan states and improved local scan cancel handling.
+- Fixed duplicate `escapeHtml()` definition in backend JavaScript.
+- Fixed unsupported `rte.heading_order` fallback handling in CKEditor JavaScript.
+- Fixed `SiteNotFoundException` namespace usage and consolidated site resolving code.
+- Fixed scanner token notice placement and styling without affecting the language switcher.
+- Fixed mobile overview toolbar layout and table horizontal scrolling.
+- Fixed cookie accept selector fallback between site-specific and default rulesets.
+
+### Security
+- Hardened scanner token handling: raw tokens are shown only immediately after regeneration and are no longer rendered into normal settings HTML.
+- Hid scanner token storage from TCA forms by using passthrough configuration.
+- Added TYPO3 record/page permission checks to CKEditor issue APIs, local scan AJAX actions, remote scan submit actions, and Page Detail ignore workflows.
+- Added verification that ignored CKEditor issues belong to the requested content record.
+- Added site-base validation for single-page remote scan URLs to reduce SSRF/open-crawler risk.
+- Hardened HTTP Basic Auth testing by deriving the test target from TYPO3 Site configuration and blocking localhost/private/reserved targets.
+- Added explicit removal option for stored HTTP Basic Auth passwords.
+- Prevented crawler client exceptions from exposing raw response bodies in backend responses.
+- Kept crawler payload log sanitization for scanner tokens and HTTP auth passwords.
+
 ## [1.1.0] - 2026-05-04
 
 ### Added

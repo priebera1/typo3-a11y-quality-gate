@@ -1,82 +1,182 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <h1>{title}</h1>
-    <div class="subtitle">{subtitle}</div>
+    <htmlpageheader name="aqgLocalPageHeader">
+        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:7.2px;"><tbody><tr>
+            <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
+                <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
+            </td>
+            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:dejavusansmono, monospace; font-size:7.2px; letter-spacing:0.04em;">
+                <div class="aqgp-header__context" style="color:#7c828d; font-weight:bold; letter-spacing:0.08em;">LOCAL PAGE DETAIL</div>
+                <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
+            </td>
+        </tr></tbody></table>
+    </htmlpageheader>
+    <sethtmlpageheader name="aqgLocalPageHeader" value="on" show-this-page="1" />
 
-    <div class="meta">
-        <div><strong>Generated:</strong> {generatedAt}</div>
-        <div><strong>Site:</strong> {siteIdentifier}</div>
-        <div><strong>Page UID:</strong> {pageUid}</div>
-        <f:if condition="{pagePath}">
-            <div><strong>Path:</strong> {pagePath}</div>
-        </f:if>
-        <div><strong>Filters:</strong> status = {status}, severity = {severity}</div>
+    <htmlpagefooter name="aqgLocalPageFooter">
+        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:6.8px;"><tbody><tr>
+            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:left; width:55%;">AQG · Local page detail · {pagePathLabel}</td>
+            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
+        </tr></tbody></table>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="aqgLocalPageFooter" value="on" show-this-page="1" />
+    <div class="aqgp-report-title">
+        <h1 class="aqgp-h1">{title}</h1>
+        <div class="aqgp-sub">{subtitle}</div>
     </div>
+    <hr class="aqgp-header__rule" />
 
-    <table class="totals-table">
+    <table class="aqgp-meta">
         <tr>
-            <td class="total-card">
-                <div class="total-value">{totals.critical}</div>
-                <div class="total-label">Critical</div>
+            <td>
+                <div class="aqgp-meta__label">Generated</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{generatedAt}</div>
             </td>
-            <td class="total-card">
-                <div class="total-value">{totals.warning}</div>
-                <div class="total-label">Warnings</div>
+            <td>
+                <div class="aqgp-meta__label">Site</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{siteLabel}</div>
             </td>
-            <td class="total-card">
-                <div class="total-value">{totals.info}</div>
-                <div class="total-label">Info</div>
+        </tr>
+        <tr>
+            <td>
+                <div class="aqgp-meta__label">Page UID</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">uid:{pageUid}</div>
             </td>
-            <td class="total-card">
-                <div class="total-value">{totals.total}</div>
-                <div class="total-label">Total</div>
+            <td>
+                <div class="aqgp-meta__label">Path</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{pagePathLabel}</div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="aqgp-meta__label">Filters</div>
+                <div class="aqgp-meta__value aqgp-meta__value--chips">
+                    <span class="aqgp-chip">STATUS · {statusLabel}</span>
+                    <span class="aqgp-chip">SEVERITY · {severityLabel}</span>
+                </div>
+            </td>
+            <td>
+                <div class="aqgp-meta__label">Last scan</div>
+                <div class="aqgp-meta__value aqgp-meta__value--mono">{lastScanLabel}</div>
             </td>
         </tr>
     </table>
 
-    <h2>Issues</h2>
+    <table class="aqgp-section-title">
+        <tr>
+            <td>Totals</td>
+            <td class="aqgp-section-title__right">{totalFoot}</td>
+        </tr>
+    </table>
 
-    <f:if condition="{issues}">
+    <table class="aqgp-cards">
+        <tr>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--critical{criticalZeroClass}"><tbody>
+                    <tr><td class="aqgp-card__label">Critical</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.critical}</td></tr>
+                    <tr><td class="aqgp-card__foot">{criticalFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--warning{warningZeroClass}"><tbody>
+                    <tr><td class="aqgp-card__label">Warnings</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.warning}</td></tr>
+                    <tr><td class="aqgp-card__foot">{warningFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--info{infoZeroClass}"><tbody>
+                    <tr><td class="aqgp-card__label">Info</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.info}</td></tr>
+                    <tr><td class="aqgp-card__foot">{infoFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--total{totalZeroClass}"><tbody>
+                    <tr><td class="aqgp-card__label">Total</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.total}</td></tr>
+                    <tr><td class="aqgp-card__foot">{totalCardFoot}</td></tr>
+                </tbody></table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="aqgp-section-title">
+        <tr>
+            <td>Issues</td>
+            <td class="aqgp-section-title__right">{issuesShownLabel}</td>
+        </tr>
+    </table>
+
+    <f:if condition="{hasIssues}">
         <f:then>
             <f:for each="{issues}" as="issue">
-                <div class="issue">
-                    <div class="issue-title">{issue.message}</div>
+                <div class="aqgp-local-issue aqgp-local-issue--{issue.severityKey}">
+                    <table class="aqgp-local-issue__head">
+                        <tr>
+                            <td class="aqgp-local-issue__num">#{issue.index}</td>
+                            <td class="aqgp-local-issue__main">
+                                <div class="aqgp-local-issue__title">{issue.message}</div>
+                                <div class="aqgp-local-issue__sub">{issue.ruleTitle} · {issue.rule_id}</div>
+                                <div class="aqgp-local-issue__badges">
+                                    <span class="aqgp-badge aqgp-badge--{issue.severityKey}">{issue.severityLabel}</span>
+                                    <span class="aqgp-badge aqgp-badge--{issue.statusKey}">{issue.statusLabel}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
 
-                    <div class="issue-badges">
-                        <span class="badge badge-severity-{issue.severityKey}">{issue.severityLabel}</span>
-                        <span class="badge badge-status-{issue.statusKey}">{issue.statusLabel}</span>
-                    </div>
+                    <div class="aqgp-local-issue__body">
+                        <f:if condition="{issue.hint}">
+                            <div class="aqgp-local-fix">
+                                <div class="aqgp-local-fix__label">How to fix</div>
+                                <div class="aqgp-local-fix__text">{issue.hint}</div>
+                            </div>
+                        </f:if>
 
-                    <f:if condition="{issue.hint}">
-                        <div class="issue-block">
-                            <div class="label">How to fix</div>
-                            <div>{issue.hint}</div>
-                        </div>
-                    </f:if>
+                        <table class="aqgp-local-kv">
+                            <tr>
+                                <td>Rule</td>
+                                <td>{issue.rule_id}</td>
+                            </tr>
+                            <tr>
+                                <td>Source table</td>
+                                <td>{issue.source_table}</td>
+                            </tr>
+                            <tr>
+                                <td>Source UID</td>
+                                <td>uid:{issue.source_uid}</td>
+                            </tr>
+                            <tr>
+                                <td>Field</td>
+                                <td>{issue.source_field}</td>
+                            </tr>
+                            <f:if condition="{issue.context_path}">
+                                <tr>
+                                    <td>Context</td>
+                                    <td>{issue.context_path}</td>
+                                </tr>
+                            </f:if>
+                        </table>
 
-                    <div class="issue-block">
-                        <div class="label">Technical details</div>
-                        <div><strong>Rule:</strong> {issue.rule_id}</div>
-                        <div><strong>Record:</strong> {issue.source_table}:{issue.source_uid}</div>
-                        <div><strong>Field:</strong> {issue.source_field}</div>
-
-                        <f:if condition="{issue.context_path}">
-                            <div><strong>Location:</strong> {issue.context_path}</div>
+                        <f:if condition="{issue.context_snippet}">
+                            <div class="aqgp-local-snippet">
+                                <div class="aqgp-local-snippet__label">Context snippet</div>
+                                <pre>{issue.context_snippet}</pre>
+                            </div>
                         </f:if>
                     </div>
-
-                    <f:if condition="{issue.context_snippet}">
-                        <div class="issue-block">
-                            <div class="label">Snippet</div>
-                            <pre>{issue.context_snippet}</pre>
-                        </div>
-                    </f:if>
                 </div>
             </f:for>
         </f:then>
         <f:else>
-            <p class="muted">No matching issues found for this page.</p>
+            <div class="aqgp-empty">
+                <div class="aqgp-empty__title">No matching issues on this page</div>
+                <div class="aqgp-empty__body">No issues match the active filters. This page may still have findings under another severity or status filter.</div>
+            </div>
         </f:else>
     </f:if>
+
 </f:section>

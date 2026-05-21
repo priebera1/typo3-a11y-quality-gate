@@ -6,8 +6,11 @@ namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Export\IssueExporter;
 use Priebera\A11yQualityGate\Export\PdfReportBuilder;
+use Priebera\A11yQualityGate\Database\Tables;
+use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Export\RemoteExportBuilder;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\FilterValueUtility;
@@ -25,6 +28,8 @@ final class ExportController
         private readonly IssueExporter $issueExporter,
         private readonly PdfReportBuilder $pdfReportBuilder,
         private readonly RemoteExportBuilder $remoteExportBuilder,
+        private readonly RemoteScanRepository $remoteScanRepository,
+        private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly SiteResolutionService $siteResolutionService,
         private readonly RequestParameterService $requestParameterService,
         private readonly ProStatusResolverService $proStatusResolverService,
@@ -38,9 +43,27 @@ final class ExportController
         $context = $this->parseExportContext($request);
 
         if ($context['scope'] === 'remote') {
+            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'])) {
+                return $this->downloadResponse(
+                    content: 'Access denied.',
+                    filename: 'aqg-export-access-denied.txt',
+                    contentType: 'text/plain; charset=UTF-8',
+                    statusCode: 403,
+                );
+            }
+
             return $this->buildRemoteCsvResponse(
                 siteIdentifier: $context['siteIdentifier'],
                 remotePageUid: $context['remotePageUid'],
+            );
+        }
+
+        if (!$this->canAccessLocalExport($request, $context['siteIdentifier'], $context['pageUid'])) {
+            return $this->downloadResponse(
+                content: 'Access denied.',
+                filename: 'aqg-export-access-denied.txt',
+                contentType: 'text/plain; charset=UTF-8',
+                statusCode: 403,
             );
         }
 
@@ -62,6 +85,47 @@ final class ExportController
     {
         $context = $this->parseExportContext($request);
 
+        if ($context['scope'] === 'remote') {
+            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'])) {
+                return $this->downloadResponse(
+                    content: 'Access denied.',
+                    filename: 'aqg-pdf-export-access-denied.txt',
+                    contentType: 'text/plain; charset=UTF-8',
+                    statusCode: 403,
+                );
+            }
+
+            $site = $this->resolveSiteForExport(
+                request: $request,
+                siteIdentifier: $context['siteIdentifier'],
+                pageUid: $context['pageUid'],
+            );
+
+            if (!$this->canExportPdf($site, $context['siteIdentifier'])) {
+                return $this->downloadResponse(
+                    content: 'PDF export is available in AQG PRO only.',
+                    filename: 'aqg-pdf-export-unavailable.txt',
+                    contentType: 'text/plain; charset=UTF-8',
+                    statusCode: 403,
+                );
+            }
+
+            return $this->buildRemotePdfResponse(
+                request: $request,
+                siteIdentifier: $context['siteIdentifier'],
+                remotePageUid: $context['remotePageUid'],
+            );
+        }
+
+        if (!$this->canAccessLocalExport($request, $context['siteIdentifier'], $context['pageUid'])) {
+            return $this->downloadResponse(
+                content: 'Access denied.',
+                filename: 'aqg-pdf-export-access-denied.txt',
+                contentType: 'text/plain; charset=UTF-8',
+                statusCode: 403,
+            );
+        }
+
         $site = $this->resolveSiteForExport(
             request: $request,
             siteIdentifier: $context['siteIdentifier'],
@@ -74,14 +138,6 @@ final class ExportController
                 filename: 'aqg-pdf-export-unavailable.txt',
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,
-            );
-        }
-
-        if ($context['scope'] === 'remote') {
-            return $this->buildRemotePdfResponse(
-                request: $request,
-                siteIdentifier: $context['siteIdentifier'],
-                remotePageUid: $context['remotePageUid'],
             );
         }
 
@@ -194,6 +250,68 @@ final class ExportController
         );
     }
 
+    private function canAccessLocalExport(
+        ServerRequestInterface $request,
+        string $siteIdentifier,
+        ?int $pageUid,
+    ): bool {
+        if ($pageUid !== null && $pageUid > 0) {
+            return $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid);
+        }
+
+        $site = $this->resolveSiteForExport($request, $siteIdentifier, $pageUid);
+        $rootPageId = $site !== null ? (int)$site->getRootPageId() : 0;
+
+        return $rootPageId > 0
+            && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
+    }
+
+    private function canAccessRemoteExport(string $siteIdentifier, int $remotePageUid): bool
+    {
+        if ($remotePageUid > 0) {
+            $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
+            if (!is_array($remotePage)) {
+                return false;
+            }
+
+            $remoteScanUid = (int)($remotePage['remote_scan'] ?? 0);
+            $remoteScan = $remoteScanUid > 0
+                ? $this->remoteScanRepository->findScanByUid($remoteScanUid)
+                : null;
+
+            return is_array($remoteScan) && $this->canAccessRemoteScan($remoteScan);
+        }
+
+        if ($siteIdentifier === '') {
+            return false;
+        }
+
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        $rootPageId = $site !== null ? (int)$site->getRootPageId() : 0;
+
+        return $rootPageId > 0
+            && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
+    }
+
+    private function canAccessRemoteScan(array $remoteScan): bool
+    {
+        $pageUid = (int)($remoteScan['page_uid'] ?? 0);
+        if ($pageUid > 0) {
+            return $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid);
+        }
+
+        $siteIdentifier = trim((string)($remoteScan['site_identifier'] ?? ''));
+        if ($siteIdentifier === '') {
+            return false;
+        }
+
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        $rootPageId = $site !== null ? (int)$site->getRootPageId() : 0;
+
+        return $rootPageId > 0
+            && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
+    }
+
     private function canExportPdf(?Site $site, string $siteIdentifier): bool
     {
         $proStatus = $site !== null
@@ -238,7 +356,10 @@ final class ExportController
 
         $parts[] = date('Y-m-d');
 
-        return implode('-', $parts) . '.' . $extension;
+        $filename = implode('-', $parts) . '.' . $extension;
+        $filename = preg_replace('/[^a-zA-Z0-9._-]+/', '-', $filename) ?: 'aqg-export.' . $extension;
+
+        return trim($filename, '-');
     }
 
     private function downloadResponse(

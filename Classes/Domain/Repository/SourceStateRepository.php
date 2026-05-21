@@ -106,6 +106,40 @@ final class SourceStateRepository extends AbstractRepository
             ->executeStatement();
     }
 
+    public function findLatestScanTimestampForPage(string $siteIdentifier, int $pageUid, int $languageUid = -1): int
+    {
+        $qb = $this->getQueryBuilder(Tables::SOURCE_STATE);
+
+        $qb
+            ->selectLiteral('MAX(tstamp) AS latest_scan_at')
+            ->from(Tables::SOURCE_STATE)
+            ->where(
+                $qb->expr()->eq(
+                    'site_identifier',
+                    $qb->createNamedParameter($siteIdentifier)
+                ),
+                $qb->expr()->eq(
+                    'page_uid',
+                    $qb->createNamedParameter($pageUid, Connection::PARAM_INT)
+                )
+            );
+
+        if ($languageUid >= 0) {
+            $qb->andWhere(
+                $qb->expr()->eq(
+                    'source_lang_uid',
+                    $qb->createNamedParameter($languageUid, Connection::PARAM_INT)
+                )
+            );
+        }
+
+        $row = $qb
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return (int)($row['latest_scan_at'] ?? 0);
+    }
+
     private function findHash(
         string $siteIdentifier,
         string $sourceTable,

@@ -1,0 +1,69 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div
+        class="aqg-progress-block aqg-progress-block--local aqg-progress-block--indeterminate {f:if(condition: isRunning, then: '', else: 'd-none')}"
+        data-a11y-local-scan-progress="true"
+>
+    <div class="aqg-progress-block__head">
+        <div class="aqg-progress-block__title">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span data-a11y-local-scan-title="true">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localScan.runningTitle"
+                        default="Content scan is running"
+                />
+            </span>
+        </div>
+        <div class="aqg-progress-block__head-actions">
+            <span class="aqg-status-badge aqg-status-badge--running" data-a11y-local-scan-status="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localScan.activeShort" default="active" />
+            </span>
+            <button
+                    type="button"
+                    class="btn btn-sm aqg-btn-danger-outline aqg-progress-block__cancel"
+                    data-action="a11y-local-cancel-scan"
+                    data-loading-text="Cancelling..."
+            >
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel" default="Cancel" />
+            </button>
+        </div>
+    </div>
+
+    <div class="aqg-progress-block__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="aqg-progress-block__fill"></div>
+    </div>
+
+    <div class="aqg-progress-block__foot">
+        <span data-a11y-local-scan-message="true">
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localScan.runningEta"
+                    default="This usually takes a moment. You can view progress while it runs."
+            />
+        </span>
+        <span class="aqg-meta">
+            <f:if condition="{scanStatus.startedAt}">
+                <f:then>
+                    <span data-a11y-local-scan-started="true">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.progress.started"
+                                default="Started"
+                        />
+                        <f:format.raw> </f:format.raw>
+                        <f:format.date date="{scanStatus.startedAt}" format="H:i" />
+                        <f:format.raw> · </f:format.raw>
+                    </span>
+                </f:then>
+                <f:else>
+                    <span data-a11y-local-scan-started="true"></span>
+                </f:else>
+            </f:if>
+            <f:translate
+                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.progress.backgroundHint"
+                    default="You can leave this page; the scan keeps running."
+            />
+        </span>
+    </div>
+</div>
+</html>

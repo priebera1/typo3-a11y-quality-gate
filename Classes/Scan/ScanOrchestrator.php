@@ -8,8 +8,10 @@ use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
+use Priebera\A11yQualityGate\Exception\ScanCancelledException;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
+use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use Psr\Log\LoggerInterface;
 
 final class ScanOrchestrator
@@ -19,6 +21,7 @@ final class ScanOrchestrator
         private readonly ContentCollector $contentCollector,
         private readonly ContentHashCalculator $contentHashCalculator,
         private readonly RuleRegistry $ruleRegistry,
+        private readonly RuleConfigurationService $ruleConfigurationService,
         private readonly IssueRepository $issueRepository,
         private readonly ScanRepository $scanRepository,
         private readonly SourceStateRepository $sourceStateRepository,
@@ -26,12 +29,18 @@ final class ScanOrchestrator
     ) {
     }
 
+    /**
+     * @param array{uid:int,name:string,username:string}|null $resolvedBy
+     */
     public function scanSubtree(
         string $siteIdentifier,
         int $rootPid,
         int $depth = 99,
         int $languageUid = -1,
         bool $changedOnly = false,
+        ?array $resolvedBy = null,
+        ?\Closure $shouldCancel = null,
+        ?\Closure $onRunStarted = null,
     ): ScanResult {
         $pageUids = $this->pageCollector->collectSubtree($rootPid, $depth);
 
@@ -42,14 +51,23 @@ final class ScanOrchestrator
             languageUid: $languageUid,
             scope: 'subtree',
             changedOnly: $changedOnly,
+            resolvedBy: $resolvedBy,
+            shouldCancel: $shouldCancel,
+            onRunStarted: $onRunStarted,
         );
     }
 
+    /**
+     * @param array{uid:int,name:string,username:string}|null $resolvedBy
+     */
     public function scanPage(
         string $siteIdentifier,
         int $pageUid,
         int $languageUid = -1,
         bool $changedOnly = false,
+        ?array $resolvedBy = null,
+        ?\Closure $shouldCancel = null,
+        ?\Closure $onRunStarted = null,
     ): ScanResult {
         $pageUids = $this->pageCollector->collectPage($pageUid);
 
@@ -60,11 +78,15 @@ final class ScanOrchestrator
             languageUid: $languageUid,
             scope: 'page',
             changedOnly: $changedOnly,
+            resolvedBy: $resolvedBy,
+            shouldCancel: $shouldCancel,
+            onRunStarted: $onRunStarted,
         );
     }
 
     /**
      * @param int[] $pageUids
+     * @param array{uid:int,name:string,username:string}|null $resolvedBy
      */
     private function runScan(
         string $siteIdentifier,
@@ -73,6 +95,9 @@ final class ScanOrchestrator
         int $languageUid,
         string $scope,
         bool $changedOnly,
+        ?array $resolvedBy,
+        ?\Closure $shouldCancel,
+        ?\Closure $onRunStarted,
     ): ScanResult {
         $scanUid = $this->scanRepository->createScanRun(
             siteIdentifier: $siteIdentifier,
@@ -81,10 +106,15 @@ final class ScanOrchestrator
             scope: $scope,
         );
 
+        if ($onRunStarted !== null) {
+            $onRunStarted($scanUid);
+        }
+
         $result = new ScanResult(scanUid: $scanUid);
 
         try {
             foreach ($pageUids as $pageUid) {
+                $this->throwIfCancellationRequested($shouldCancel, $scanUid);
                 $this->scanSinglePage(
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
@@ -92,8 +122,12 @@ final class ScanOrchestrator
                     scanUid: $scanUid,
                     result: $result,
                     changedOnly: $changedOnly,
+                    resolvedBy: $resolvedBy,
+                    shouldCancel: $shouldCancel,
                 );
             }
+
+            $this->throwIfCancellationRequested($shouldCancel, $scanUid);
 
             $this->scanRepository->finishScanRun(
                 scanUid: $scanUid,
@@ -103,6 +137,23 @@ final class ScanOrchestrator
                 issuesResolved: $result->issuesResolved,
                 issuesIgnored: $result->issuesIgnored,
             );
+        } catch (ScanCancelledException $e) {
+            $this->scanRepository->cancelScanRun(
+                scanUid: $scanUid,
+                pagesScanned: $result->pagesScanned,
+                recordsScanned: $result->recordsScanned,
+                issuesNew: $result->issuesNew,
+                issuesResolved: $result->issuesResolved,
+                issuesIgnored: $result->issuesIgnored,
+            );
+
+            $this->logger->info('Scan cancelled', [
+                'scanUid' => $scanUid,
+                'pagesScanned' => $result->pagesScanned,
+                'recordsScanned' => $result->recordsScanned,
+            ]);
+
+            throw $e;
         } catch (\Throwable $e) {
             $this->logger->error('Scan failed', [
                 'scanUid' => $scanUid,
@@ -129,6 +180,9 @@ final class ScanOrchestrator
         return $result;
     }
 
+    /**
+     * @param array{uid:int,name:string,username:string}|null $resolvedBy
+     */
     private function scanSinglePage(
         string $siteIdentifier,
         int $pageUid,
@@ -136,6 +190,8 @@ final class ScanOrchestrator
         int $scanUid,
         ScanResult $result,
         bool $changedOnly,
+        ?array $resolvedBy,
+        ?\Closure $shouldCancel,
     ): void {
         $records = $this->contentCollector->collectForPage($pageUid, $languageUid);
         $result->pagesScanned++;
@@ -143,6 +199,7 @@ final class ScanOrchestrator
         $seenFingerprintsForPage = [];
 
         foreach ($records as $recordEnvelope) {
+            $this->throwIfCancellationRequested($shouldCancel, $scanUid);
             $result->recordsScanned++;
 
             $tableName = (string)$recordEnvelope['tableName'];
@@ -159,6 +216,7 @@ final class ScanOrchestrator
             $recordHadProcessedField = false;
 
             foreach ($rteFields as $field) {
+                $this->throwIfCancellationRequested($shouldCancel, $scanUid);
                 $html = (string)($record[$field] ?? '');
                 if (trim($html) === '') {
                     continue;
@@ -220,6 +278,7 @@ final class ScanOrchestrator
             }
 
             foreach ($structuredFields as $field) {
+                $this->throwIfCancellationRequested($shouldCancel, $scanUid);
                 $value = $record[$field] ?? null;
                 $shouldProcessEmptyValue = $field === 'header' && $recordCType === 'header';
 
@@ -287,6 +346,7 @@ final class ScanOrchestrator
             }
 
             foreach ($fileReferenceFields as $field) {
+                $this->throwIfCancellationRequested($shouldCancel, $scanUid);
                 $ctx = new CheckContext(
                     siteIdentifier: $siteIdentifier,
                     pageUid: $pageUid,
@@ -327,6 +387,9 @@ final class ScanOrchestrator
                 sourceLangUid: $languageUid,
                 seenFingerprints: array_values(array_unique($seenFingerprintsForPage)),
                 scanUid: $scanUid,
+                backendUserUid: (int)($resolvedBy['uid'] ?? 0),
+                backendUserName: (string)($resolvedBy['name'] ?? ''),
+                backendUsername: (string)($resolvedBy['username'] ?? ''),
             );
 
             $result->issuesResolved += $resolved;
@@ -338,6 +401,17 @@ final class ScanOrchestrator
             'scanUid' => $scanUid,
             'changedFingerprintsCount' => count(array_unique($seenFingerprintsForPage)),
         ]);
+    }
+
+    private function throwIfCancellationRequested(?\Closure $shouldCancel, int $scanUid): void
+    {
+        if ($this->scanRepository->isScanCancellationRequested($scanUid)) {
+            throw new ScanCancelledException();
+        }
+
+        if ($shouldCancel !== null && $shouldCancel($scanUid) === true) {
+            throw new ScanCancelledException();
+        }
     }
 
     /**
@@ -373,6 +447,10 @@ final class ScanOrchestrator
         $violations = [];
 
         foreach ($this->ruleRegistry->getRulesFor($ctx) as $rule) {
+            if (!$this->ruleConfigurationService->isRuleEnabledForSite($ctx->siteIdentifier, $rule->getRuleId())) {
+                continue;
+            }
+
             try {
                 $ruleViolations = $rule->check($ctx);
                 array_push($violations, ...$ruleViolations);

@@ -1,0 +1,181 @@
+@media (max-width: 980px) {
+    .a11y-page-detail .aqg-twocol,
+    .a11y-page-detail .aqg-rule__head {
+        grid-template-columns: 1fr;
+    }
+
+    .a11y-page-detail .aqg-rule__actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .a11y-page-detail.aqg-module {
+        padding: 16px;
+    }
+
+    .a11y-page-detail .aqg-hero__top,
+    .a11y-page-detail .aqg-filterbar__result,
+    .a11y-page-detail .aqg-shot__head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .a11y-page-detail .aqg-hero__actions,
+    .a11y-page-detail .aqg-issue__actions,
+    .a11y-page-detail .aqg-node__actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .a11y-page-detail .aqg-hero__actions .btn,
+    .a11y-page-detail .aqg-issue__actions .btn,
+    .a11y-page-detail .aqg-node__actions .btn,
+    .a11y-page-detail .aqg-filterbar__result .btn {
+        width: 100%;
+    }
+
+    .a11y-page-detail .aqg-node {
+        grid-template-columns: 1fr;
+    }
+
+    .a11y-page-detail .aqg-node__num {
+        width: 36px;
+    }
+}
+
+/* ═══════════════════════════════════════════
+   Responsive
+═══════════════════════════════════════════ */
+@media (max-width: 1199.98px) {
+    .a11y-overview .aqg-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .a11y-overview.aqg-module {
+        padding: 16px;
+    }
+
+    .a11y-overview .aqg-page-head,
+    .a11y-overview .aqg-section__head,
+    .a11y-overview .card-header.aqg-section__head,
+    .a11y-overview .card-header.aqg-toolbar-row,
+    .a11y-overview .aqg-toolbar-row,
+    .a11y-overview .aqg-progress-block__head,
+    .a11y-overview .aqg-progress-block__foot,
+    .a11y-overview .aqg-pro-card,
+    .a11y-overview .aqg-notice {
+        align-items: stretch;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+
+    .a11y-overview .aqg-page-head__meta,
+    .a11y-overview .aqg-section__actions,
+    .a11y-overview .aqg-toolbar-row__right,
+    .a11y-overview .aqg-pro-card__actions,
+    .a11y-overview .aqg-notice__actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .a11y-overview .aqg-toolbar-row__right {
+        min-width: 0;
+    }
+
+    .a11y-overview .aqg-toolbar-row > :first-child,
+    .a11y-overview .aqg-toolbar-row__left {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .a11y-overview .aqg-toolbar-row__right {
+        max-width: none;
+        flex: 1 1 auto;
+    }
+
+    .a11y-overview .aqg-toolbar-row__right .a11y-overview-search-form {
+        max-width: none;
+        flex-basis: 100%;
+    }
+
+    .a11y-overview .aqg-section__actions .btn,
+    .a11y-overview .aqg-pro-card__actions .btn,
+    .a11y-overview .aqg-notice__actions .btn,
+    .a11y-overview .aqg-empty__actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .a11y-overview .aqg-table {
+        min-width: 680px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .a11y-overview .aqg-page-head,
+    .a11y-overview .aqg-section__head,
+    .a11y-overview .aqg-toolbar-row,
+    .a11y-overview .aqg-progress-block__head,
+    .a11y-overview .aqg-progress-block__foot,
+    .a11y-overview .aqg-pagination {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .a11y-overview .aqg-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .a11y-overview .aqg-row-actions,
+    .a11y-overview .aqg-section__actions,
+    .a11y-overview .aqg-toolbar-row__right {
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .a11y-overview .aqg-row-actions {
+        flex-direction: column;
+    }
+
+    .a11y-overview .aqg-section__actions .btn,
+    .a11y-overview .aqg-row-actions .btn {
+        width: 100%;
+    }
+
+    .a11y-overview-actions .row {
+        flex-direction: column;
+    }
+
+    .a11y-overview-actions .col,
+    .a11y-overview-actions .col-auto {
+        width: 100%;
+    }
+
+    .a11y-overview-actions .d-grid .btn {
+        width: 100%;
+    }
+
+    .a11y-source-switch {
+        width: 100%;
+    }
+
+    .a11y-source-switch__btn {
+        flex: 1 1 0;
+        text-align: center;
+    }
+
+    .a11y-field-group-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 479.98px) {
+    .a11y-overview .aqg-stats {
+        grid-template-columns: 1fr;
+    }
+}

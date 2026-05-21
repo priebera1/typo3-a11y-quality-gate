@@ -52,6 +52,7 @@ final class RemoteScanPersistenceService
             lastSyncedAt: time(),
             persistedAt: time(),
             syncError: '',
+            languageUid: (int)($resultsData['languageUid'] ?? $resultsData['languageId'] ?? -1),
         );
 
         $existingIssueUids = $this->remoteIssueRepository->findUidsByRemoteScan($remoteScanUid);
@@ -167,6 +168,7 @@ final class RemoteScanPersistenceService
             'pagesTotal' => $summaryResult->pagesScanned,
             'pageUid' => $pageUid,
             'pages' => $resultsResult->pages,
+            'languageUid' => -1,
         ];
 
         return $this->persistResults(

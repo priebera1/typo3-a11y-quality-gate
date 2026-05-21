@@ -43,6 +43,40 @@ final class RemoteScanInputResolver
         );
     }
 
+
+    /**
+     * @param array{languageId:int,title:string,locale:string,flagIdentifier:string,base:string,sitemapUrl:string,isAll:bool} $language
+     */
+    public function resolveForOverviewLanguage(
+        Site $site,
+        array $language,
+        int $maxPages,
+        string $axeLocale = 'en',
+    ): RemoteScanRequestData {
+        $siteIdentifier = trim((string)$site->getIdentifier());
+        $languageBase = rtrim((string)($language['base'] ?? ''), '/');
+        if ($languageBase === '') {
+            $languageBase = rtrim((string)$site->getBase(), '/');
+        }
+
+        $domain = $this->domainNormalizer->normalizeFromSiteBase($languageBase);
+        $sitemapUrl = trim((string)($language['sitemapUrl'] ?? ''));
+        if ($sitemapUrl === '') {
+            $sitemapUrl = $languageBase . '/sitemap.xml';
+        }
+
+        return new RemoteScanRequestData(
+            siteIdentifier: $siteIdentifier,
+            domain: $domain,
+            startUrl: $languageBase . '/',
+            sitemapUrl: $sitemapUrl,
+            sourceType: RemoteScanSourceType::Sitemap,
+            maxPages: max(1, $maxPages),
+            followLinks: false,
+            axeLocale: trim($axeLocale) !== '' ? trim($axeLocale) : 'en',
+        );
+    }
+
     public function resolveForSinglePage(
         Site $site,
         string $pageUrl,
@@ -51,17 +85,97 @@ final class RemoteScanInputResolver
         $siteBase = rtrim((string)$site->getBase(), '/');
         $siteIdentifier = trim((string)$site->getIdentifier());
         $domain = $this->domainNormalizer->normalizeFromSiteBase($siteBase);
+        $startUrl = $this->resolveTrustedPageUrl($site, trim($pageUrl));
 
         return new RemoteScanRequestData(
             siteIdentifier: $siteIdentifier,
             domain: $domain,
-            startUrl: trim($pageUrl),
+            startUrl: $startUrl,
             sitemapUrl: null,
             sourceType: RemoteScanSourceType::SinglePage,
             maxPages: 1,
             followLinks: false,
             axeLocale: trim($axeLocale) !== '' ? trim($axeLocale) : 'en',
         );
+    }
+
+    private function resolveTrustedPageUrl(Site $site, string $pageUrl): string
+    {
+        if ($pageUrl === '') {
+            throw new \InvalidArgumentException('Missing page URL', 1779360101);
+        }
+
+        $pageParts = parse_url($pageUrl);
+        if (!is_array($pageParts)) {
+            throw new \InvalidArgumentException('Invalid page URL', 1779360102);
+        }
+
+        $scheme = strtolower((string)($pageParts['scheme'] ?? ''));
+        $host = strtolower((string)($pageParts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            throw new \InvalidArgumentException('Page URL must use the configured site domain', 1779360103);
+        }
+
+        foreach ($this->getAllowedSiteBaseUrls($site) as $baseUrl) {
+            if ($this->isUrlBelowBase($pageUrl, $baseUrl)) {
+                return $pageUrl;
+            }
+        }
+
+        throw new \InvalidArgumentException('Page URL is outside the configured TYPO3 site', 1779360104);
+    }
+
+    private function getAllowedSiteBaseUrls(Site $site): array
+    {
+        $baseUrls = [rtrim((string)$site->getBase(), '/') . '/'];
+
+        foreach ($site->getLanguages() as $language) {
+            try {
+                $base = trim((string)$language->getBase());
+            } catch (\Throwable) {
+                $base = '';
+            }
+
+            if ($base !== '') {
+                $baseUrls[] = rtrim($base, '/') . '/';
+            }
+        }
+
+        return array_values(array_unique($baseUrls));
+    }
+
+    private function isUrlBelowBase(string $url, string $baseUrl): bool
+    {
+        $urlParts = parse_url($url);
+        $baseParts = parse_url($baseUrl);
+
+        if (!is_array($urlParts) || !is_array($baseParts)) {
+            return false;
+        }
+
+        $urlScheme = strtolower((string)($urlParts['scheme'] ?? ''));
+        $baseScheme = strtolower((string)($baseParts['scheme'] ?? ''));
+        $urlHost = strtolower((string)($urlParts['host'] ?? ''));
+        $baseHost = strtolower((string)($baseParts['host'] ?? ''));
+        $urlPort = (int)($urlParts['port'] ?? $this->defaultPortForScheme($urlScheme));
+        $basePort = (int)($baseParts['port'] ?? $this->defaultPortForScheme($baseScheme));
+
+        if ($urlScheme !== $baseScheme || $urlHost !== $baseHost || $urlPort !== $basePort) {
+            return false;
+        }
+
+        $urlPath = '/' . ltrim((string)($urlParts['path'] ?? '/'), '/');
+        $basePath = '/' . trim((string)($baseParts['path'] ?? '/'), '/');
+        if ($basePath !== '/') {
+            $basePath .= '/';
+        }
+
+        return $basePath === '/' || str_starts_with($urlPath . '/', $basePath);
+    }
+
+    private function defaultPortForScheme(string $scheme): int
+    {
+        return $scheme === 'http' ? 80 : 443;
     }
 
     private function resolveSitemapUrl(string $siteBase): ?string

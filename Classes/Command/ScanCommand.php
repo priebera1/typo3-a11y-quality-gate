@@ -52,8 +52,8 @@ final class ScanCommand extends Command
                 'language',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                'sys_language_uid to scan',
-                -1,
+                'sys_language_uid to scan, or all',
+                'all',
             )
             ->addOption(
                 'changed-only',
@@ -70,7 +70,8 @@ final class ScanCommand extends Command
         $rootPid = $input->getOption('root-pid') !== null ? (int)$input->getOption('root-pid') : null;
         $pageUid = $input->getOption('page-uid') !== null ? (int)$input->getOption('page-uid') : null;
         $depth = (int)$input->getOption('depth');
-        $languageUid = (int)$input->getOption('language');
+        $languageOption = trim((string)$input->getOption('language'));
+        $languageUid = strtolower($languageOption) === 'all' ? -1 : (int)$languageOption;
         $changedOnly = (bool)$input->getOption('changed-only');
 
         if ($rootPid === null && $pageUid === null) {

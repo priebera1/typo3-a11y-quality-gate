@@ -99,7 +99,7 @@ final class AqgApiClient
                     'allow_redirects' => false,
                 ]
             );
-        } catch (ClientExceptionInterface|\JsonException $exception) {
+        } catch (ClientExceptionInterface | \JsonException $exception) {
             throw new ApiRequestFailedException(
                 'AQG API request failed: ' . $exception->getMessage(),
                 0,

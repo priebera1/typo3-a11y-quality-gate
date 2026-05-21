@@ -1,0 +1,22 @@
+.a11y-page-detail .aqg-detail-pagination {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.a11y-page-detail .pagination .page-link {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 5px 8px;
+    border-color: var(--aqi-border);
+    border-radius: var(--aqi-radius-sm);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    font-size: 12px;
+}
+
+.a11y-page-detail .pagination .active .page-link {
+    color: var(--aqi-surface);
+    background: var(--aqi-fg);
+    border-color: var(--aqi-fg);
+    font-weight: 600;
+}

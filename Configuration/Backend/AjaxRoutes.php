@@ -14,6 +14,12 @@ return [
         'target' => IssueApiController::class . '::issuesAction',
         'inheritAccessFromModule' => 'web_a11y',
     ],
+    'a11y_rte_validate' => [
+        'path' => '/a11y/rte/validate',
+        'target' => IssueApiController::class . '::validateRteAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
     'a11y_ignore' => [
         'path' => '/a11y/ignore',
         'target' => IssueApiController::class . '::ignoreAction',
@@ -24,18 +30,36 @@ return [
         'path' => '/a11y/scan/page',
         'target' => ScanAjaxController::class . '::scanPageAction',
         'methods' => ['POST'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
         'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_scan_site' => [
         'path' => '/a11y/scan/site',
         'target' => ScanAjaxController::class . '::scanSiteAction',
         'methods' => ['POST'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
         'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_scan_status' => [
         'path' => '/a11y/scan/status',
         'target' => ScanAjaxController::class . '::scanStatusAction',
         'methods' => ['GET'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_scan_cancel' => [
+        'path' => '/a11y/scan/cancel',
+        'target' => ScanAjaxController::class . '::cancelScanAction',
+        'methods' => ['POST'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
         'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_toolbar_render' => [
@@ -62,12 +86,34 @@ return [
         'path' => '/a11y/pro/crawl/status',
         'target' => ProCrawlerAjaxController::class . '::statusAction',
         'methods' => ['GET'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
         'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_pro_crawl_summary' => [
         'path' => '/a11y/pro/crawl/summary',
         'target' => ProCrawlerAjaxController::class . '::summaryAction',
         'methods' => ['GET'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_pro_crawl_cancel' => [
+        'path' => '/a11y/pro/crawl/cancel',
+        'target' => ProCrawlerAjaxController::class . '::cancelSiteAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+
+    'a11y_regenerate_scanner_token' => [
+        'path' => '/a11y/settings/regenerate-scanner-token',
+        'target' => SettingsController::class . '::regenerateScannerTokenAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_test_http_auth' => [
+        'path' => '/a11y/settings/test-http-auth',
+        'target' => SettingsController::class . '::testHttpAuthAction',
+        'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_validate_licence' => [
