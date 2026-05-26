@@ -3,6 +3,7 @@
     data-aqg-page-module-indicator="true"
     data-page-uid="{pageUid}"
     data-site="{siteIdentifier}"
+    data-remote-scan-enabled="{f:if(condition: remoteScanEnabled, then: '1', else: '0')}"
     data-running-headline="{runningHeadline}"
     data-running-body="{runningBody}"
     data-running-meta="{runningMeta}"
@@ -46,7 +47,7 @@
             <f:for each="{actions}" as="action">
                 <f:render
                     partial="Backend/PageModuleIndicator/Button"
-                    arguments="{action: action, pageUid: pageUid, currentPageUrl: currentPageUrl, siteIdentifier: siteIdentifier, scanMode: scanMode, languageUid: languageUid, loadingText: loadingText}"
+                    arguments="{action: action, pageUid: pageUid, currentPageUrl: currentPageUrl, siteIdentifier: siteIdentifier, scanMode: scanMode, remoteScanEnabled: remoteScanEnabled, languageUid: languageUid, loadingText: loadingText}"
                 />
             </f:for>
         </div>

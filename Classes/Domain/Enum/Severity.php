@@ -9,6 +9,17 @@ enum Severity: int
     case Critical = 1;
     case Warning = 2;
     case Info = 3;
+    case NeedsReview = 4;
+
+    public function key(): string
+    {
+        return match ($this) {
+            self::Critical => 'critical',
+            self::Warning => 'warning',
+            self::Info => 'info',
+            self::NeedsReview => 'needs_review',
+        };
+    }
 
     public function label(): string
     {
@@ -16,6 +27,7 @@ enum Severity: int
             self::Critical => 'Critical',
             self::Warning => 'Warning',
             self::Info => 'Info',
+            self::NeedsReview => 'Needs review',
         };
     }
 
@@ -25,6 +37,7 @@ enum Severity: int
             self::Critical => 'badge-danger',
             self::Warning => 'badge-warning',
             self::Info => 'badge-info',
+            self::NeedsReview => 'badge-info',
         };
     }
 
@@ -34,6 +47,7 @@ enum Severity: int
             self::Critical => 'status-dialog-error',
             self::Warning => 'status-dialog-warning',
             self::Info => 'status-dialog-information',
+            self::NeedsReview => 'actions-eye',
         };
     }
 

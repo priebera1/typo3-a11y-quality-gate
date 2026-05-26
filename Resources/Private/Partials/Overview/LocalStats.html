@@ -1,5 +1,5 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
-<div class="aqg-stats">
+<div class="aqg-stats aqg-stats--local">
     <div class="aqg-stat aqg-stat--critical {f:if(condition: totalCounts.critical, then: '', else: 'is-zero')}">
         <div class="aqg-stat__head">
             <span>
@@ -61,6 +61,29 @@
                 <f:then>
                     <f:if condition="{localNewCounts.info} > 0">
                         <f:then><span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{localNewCounts.info} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.newSinceLast" default="since last scan" /></span></f:then>
+                        <f:else><span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span></f:else>
+                    </f:if>
+                </f:then>
+                <f:else>· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title" default="No scan on record" /></f:else>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="aqg-stat aqg-stat--needs-review {f:if(condition: totalCounts.needs_review, then: '', else: 'is-zero')}">
+        <div class="aqg-stat__head">
+            <span>
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview"
+                        default="Needs review"
+                />
+            </span>
+        </div>
+        <div class="aqg-stat__value">{f:if(condition: lastScan, then: totalCounts.needs_review, else: '—')}</div>
+        <div class="aqg-stat__delta">
+            <f:if condition="{lastScan}">
+                <f:then>
+                    <f:if condition="{localNewCounts.needs_review} > 0">
+                        <f:then><span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{localNewCounts.needs_review} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.newSinceLast" default="since last scan" /></span></f:then>
                         <f:else><span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span></f:else>
                     </f:if>
                 </f:then>

@@ -37,6 +37,7 @@ final class TableMissingCaptionRule extends AbstractRteRule
     {
         $violations = [];
         $dom = $this->loadDom($context->content);
+        $xpath = $this->createXPath($dom);
 
         foreach ($dom->getElementsByTagName('table') as $table) {
             if (!$table instanceof \DOMElement) {
@@ -51,7 +52,7 @@ final class TableMissingCaptionRule extends AbstractRteRule
                 continue;
             }
 
-            if ($this->hasAccessibleName($table)) {
+            if ($this->hasAccessibleName($table, $xpath)) {
                 continue;
             }
 
@@ -68,13 +69,13 @@ final class TableMissingCaptionRule extends AbstractRteRule
         return $violations;
     }
 
-    private function hasAccessibleName(\DOMElement $table): bool
+    private function hasAccessibleName(\DOMElement $table, \DOMXPath $xpath): bool
     {
         if ($this->hasNonEmptyAttribute($table, 'aria-label')) {
             return true;
         }
 
-        if ($this->hasNonEmptyAttribute($table, 'aria-labelledby')) {
+        if ($this->hasValidAriaLabelledBy($table, $xpath)) {
             return true;
         }
 

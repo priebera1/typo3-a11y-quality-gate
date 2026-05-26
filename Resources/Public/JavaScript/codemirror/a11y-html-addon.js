@@ -8,10 +8,10 @@ const clearRevealAqgLineEffect = StateEffect.define();
 
 const normalizeSeverity = (severity) => {
     const value = String(severity || '').toLowerCase();
-    return ['critical', 'warning', 'info'].includes(value) ? value : 'info';
+    return ['critical', 'warning', 'info', 'needs_review'].includes(value) ? value : 'info';
 };
 
-const severityRank = (severity) => ({ critical: 3, warning: 2, info: 1 }[normalizeSeverity(severity)] || 0);
+const severityRank = (severity) => ({ critical: 3, warning: 2, needs_review: 1.5, info: 1 }[normalizeSeverity(severity)] || 0);
 
 const buildDecorations = (state, issues) => {
     const grouped = new Map();

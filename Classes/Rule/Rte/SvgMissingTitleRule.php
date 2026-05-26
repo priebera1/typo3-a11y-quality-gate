@@ -49,32 +49,15 @@ final class SvgMissingTitleRule extends AbstractRteRule
                 continue;
             }
 
-            $role = strtolower($this->normalizedText($svg->getAttribute('role')));
-            if (in_array($role, ['presentation', 'none'], true)) {
+            if ($this->isHiddenFromAssistiveTechnology($svg) || $this->hasPresentationRole($svg)) {
                 continue;
             }
 
-            if ($this->hasNonEmptyAttribute($svg, 'aria-label')) {
+            if ($this->hasAccessibleName($svg, $xpath)) {
                 continue;
             }
 
-            if ($svg->hasAttribute('aria-labelledby')) {
-                continue;
-            }
-
-            $titles = $xpath->query('./*[local-name()="title"]', $svg);
-            $hasTitle = false;
-
-            if ($titles !== false) {
-                foreach ($titles as $title) {
-                    if ($title instanceof \DOMElement && $this->normalizedText($title->textContent) !== '') {
-                        $hasTitle = true;
-                        break;
-                    }
-                }
-            }
-
-            if ($hasTitle) {
+            if ($this->isLikelyDecorativeInlineIcon($svg)) {
                 continue;
             }
 
@@ -89,5 +72,67 @@ final class SvgMissingTitleRule extends AbstractRteRule
         }
 
         return $violations;
+    }
+
+    private function isHiddenFromAssistiveTechnology(\DOMElement $svg): bool
+    {
+        $node = $svg;
+        while ($node instanceof \DOMElement) {
+            if (strtolower($this->normalizedText($node->getAttribute('aria-hidden'))) === 'true') {
+                return true;
+            }
+            $node = $node->parentNode;
+        }
+
+        return false;
+    }
+
+    private function hasPresentationRole(\DOMElement $svg): bool
+    {
+        return in_array(strtolower($this->normalizedText($svg->getAttribute('role'))), ['presentation', 'none'], true);
+    }
+
+    private function hasAccessibleName(\DOMElement $svg, \DOMXPath $xpath): bool
+    {
+        if ($this->hasNonEmptyAttribute($svg, 'aria-label')) {
+            return true;
+        }
+
+        if ($this->hasValidAriaLabelledBy($svg, $xpath)) {
+            return true;
+        }
+
+        $titles = $xpath->query('./*[local-name()="title"]', $svg);
+        if ($titles === false) {
+            return false;
+        }
+
+        foreach ($titles as $title) {
+            if ($title instanceof \DOMElement && $this->normalizedText($title->textContent) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isLikelyDecorativeInlineIcon(\DOMElement $svg): bool
+    {
+        $role = strtolower($this->normalizedText($svg->getAttribute('role')));
+        if ($role === 'img') {
+            return false;
+        }
+
+        $parent = $svg->parentNode;
+        if (!$parent instanceof \DOMElement) {
+            return false;
+        }
+
+        $parentText = $this->normalizedText($parent->textContent);
+        if ($parentText === '') {
+            return false;
+        }
+
+        return in_array(strtolower($parent->tagName), ['a', 'button', 'span'], true);
     }
 }

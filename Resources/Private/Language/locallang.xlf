@@ -1617,6 +1617,10 @@
                 <source>%d notes</source>
             </trans-unit>
 
+            <trans-unit id="pageModuleIndicator.metric.needsReview">
+                <source>%d needs review</source>
+            </trans-unit>
+
             <trans-unit id="pageModuleIndicator.meta.remoteProgressTotal">
                 <source>Frontend scan: %d/%d pages processed.</source>
             </trans-unit>
@@ -1727,6 +1731,264 @@
 
             <trans-unit id="overview.remoteScannerTokenNotice.cta">
                 <source>Open Remote Scan Access settings</source>
+            </trans-unit>
+
+
+            <trans-unit id="severity.needsReview">
+                <source>Needs review</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rte.img_alt_redundant_phrase.title">
+                <source>Image alternative text starts with a redundant phrase</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_redundant_phrase.howToFix">
+                <source>Remove the redundant opening phrase from the alt text. Before: alt=&quot;photo of our team&quot;. After: alt=&quot;Our team at the 2025 company retreat&quot;.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_redundant_phrase.whyItMatters">
+                <source>Screen readers already announce images before reading alt text. Starting with phrases such as &quot;photo of&quot; makes the output repetitive.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rte.img_alt_too_long.title">
+                <source>Image alternative text is too long</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_too_long.howToFix">
+                <source>Shorten the alt text to describe the essential purpose of the image. Move detailed descriptions into the surrounding text or a linked description page.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_too_long.whyItMatters">
+                <source>Long alt text makes screen reader navigation tedious. Alt text should convey meaning, not reproduce entire image descriptions.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rte.link_text_is_url_or_filename.title">
+                <source>Link text is a raw URL or filename</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_text_is_url_or_filename.howToFix">
+                <source>Replace the URL or filename with descriptive text that explains the link destination. Example: Download annual report 2024 (PDF).</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_text_is_url_or_filename.whyItMatters">
+                <source>Screen readers may read URLs character by character. Raw URLs and filenames often do not explain the link destination.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rte.link_to_document.title">
+                <source>Link points to a document file — verify accessibility</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_to_document.howToFix">
+                <source>This is a review item, not an automatic failure. Verify manually whether accessibility requirements are met. Ensure the linked document is accessible and the link text describes the document and includes the file type.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_to_document.whyItMatters">
+                <source>Documents linked from websites must also be accessible. Inaccessible PDFs and Office documents can exclude users with disabilities.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rte.link_to_document_missing_notice.title">
+                <source>Document link does not mention file type</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_to_document_missing_notice.howToFix">
+                <source>Add the file type to the link text. Example: Download our annual report (PDF).</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_to_document_missing_notice.whyItMatters">
+                <source>Users need to know whether a link opens a file instead of a web page so they can prepare their assistive technology or document reader.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.structured.file_reference_alt_quality.title">
+                <source>Image alternative text quality issue in media record</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.file_reference_alt_quality.howToFix">
+                <source>Edit the image record and improve the alternative text. Remove redundant phrases and keep the description concise.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.file_reference_alt_quality.whyItMatters">
+                <source>Poor alternative text in a media reference affects every place where that image reference is rendered.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.structured.form_field_label_missing.title">
+                <source>Form field has no label</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.form_field_label_missing.howToFix">
+                <source>Add a visible label to the form field in the EXT:form editor. Every user input field must have a label to be accessible.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.form_field_label_missing.whyItMatters">
+                <source>Form fields without labels cannot be identified by screen readers or other assistive technologies. This prevents users with disabilities from completing forms.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.structured.form_placeholder_as_label.title">
+                <source>Form field uses placeholder text instead of a label</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.form_placeholder_as_label.howToFix">
+                <source>Add a visible label to the form field in the EXT:form editor. Do not rely on placeholder text as the only field identification.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.form_placeholder_as_label.whyItMatters">
+                <source>Placeholder text disappears when users start typing and is not reliably announced by screen readers as a label.</source>
+            </trans-unit>
+
+
+
+            <trans-unit id="rule.rte.link_text_duplicate_different_targets.title">
+                <source>Same link text points to different destinations</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_text_duplicate_different_targets.howToFix">
+                <source>Use unique link text that describes each destination, or add context via aria-label or surrounding text.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_text_duplicate_different_targets.whyItMatters">
+                <source>Users who navigate by links need to understand where each link goes. Reusing the same text for different destinations can be confusing.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.structured.header_level_is_h1.title">
+                <source>Header content element is configured as H1</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.header_level_is_h1.howToFix">
+                <source>This is a review item, not an automatic failure. Verify manually whether accessibility requirements are met. H1 is typically reserved for the main page heading.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.header_level_is_h1.whyItMatters">
+                <source>A clear heading structure helps users understand the page outline. Multiple or misplaced H1 headings can make navigation harder.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.structured.media_no_transcript_hint.title">
+                <source>Media content should be reviewed for captions or transcripts</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.media_no_transcript_hint.howToFix">
+                <source>This is a review item, not an automatic failure. Verify manually whether captions, transcripts or other required alternatives for time-based media are available.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.media_no_transcript_hint.whyItMatters">
+                <source>Audio and video content may need captions, transcripts or audio descriptions so users with disabilities can access the information.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.structured.form_autocomplete_missing.title">
+                <source>Personal data field is missing autocomplete attribute</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.form_autocomplete_missing.howToFix">
+                <source>Add the appropriate autocomplete attribute to personal information fields in EXT:form. Examples: email, given-name, tel.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.form_autocomplete_missing.whyItMatters">
+                <source>Autocomplete helps users with cognitive disabilities, motor impairments and anyone using browser autofill.</source>
+            </trans-unit>
+
+
+            <trans-unit id="rule.rendered.img_missing_alt.title">
+                <source>Rendered image is missing an alt attribute</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.img_missing_alt.howToFix">
+                <source>Add descriptive alt text for meaningful images. For decorative images, use an empty alt attribute: alt="".</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.img_missing_alt.whyItMatters">
+                <source>The rendered HTML is what assistive technologies consume. Meaningful images need text alternatives.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.empty_link.title">
+                <source>Rendered link has no accessible name</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.empty_link.howToFix">
+                <source>Add visible link text or an accessible label that describes the destination.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.empty_link.whyItMatters">
+                <source>Links without accessible names cannot be understood by screen reader users.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.empty_button.title">
+                <source>Rendered button has no accessible name</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.empty_button.howToFix">
+                <source>Add visible button text or an accessible label such as aria-label.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.empty_button.whyItMatters">
+                <source>Buttons need an accessible name so users understand the action before activating it.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.iframe_missing_title.title">
+                <source>Rendered iframe is missing a title</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.iframe_missing_title.howToFix">
+                <source>Add a short title attribute that describes the iframe content.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.iframe_missing_title.whyItMatters">
+                <source>Iframe titles help assistive technology users understand embedded content.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.form_control_missing_label.title">
+                <source>Rendered form control has no accessible label</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.form_control_missing_label.howToFix">
+                <source>Add a visible label, aria-label, or valid aria-labelledby reference.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.form_control_missing_label.whyItMatters">
+                <source>Users need labels to understand the purpose of form fields.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.empty_heading.title">
+                <source>Rendered heading is empty</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.empty_heading.howToFix">
+                <source>Remove the empty heading or add meaningful heading text.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.empty_heading.whyItMatters">
+                <source>Empty headings create confusing landmarks in screen reader heading navigation.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.duplicate_id.title">
+                <source>Rendered HTML contains duplicate IDs</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.duplicate_id.howToFix">
+                <source>Ensure each id attribute is unique in the final HTML document.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.duplicate_id.whyItMatters">
+                <source>Duplicate IDs can break labels, descriptions, scripting and assistive technology references.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.table_missing_header.title">
+                <source>Rendered table has no header cells</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.table_missing_header.howToFix">
+                <source>Add th cells for data tables, or mark layout tables as presentation.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.table_missing_header.whyItMatters">
+                <source>Table headers help users understand relationships between cells.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.table_empty_header.title">
+                <source>Rendered table header cell is empty</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.table_empty_header.howToFix">
+                <source>Add meaningful text to the table header cell or remove the empty header.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.table_empty_header.whyItMatters">
+                <source>Empty th cells provide no useful structure for assistive technologies.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.svg_missing_accessible_name.title">
+                <source>Rendered SVG has no accessible name</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.svg_missing_accessible_name.howToFix">
+                <source>Add aria-hidden="true" for decorative SVGs, or add a title, aria-label, or valid aria-labelledby for meaningful SVG graphics.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.svg_missing_accessible_name.whyItMatters">
+                <source>Meaningful SVG graphics need an accessible name so their purpose can be understood.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.html_lang_missing.title">
+                <source>Rendered HTML is missing a lang attribute</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.html_lang_missing.howToFix">
+                <source>Set the lang attribute on the html element according to the page language.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.html_lang_missing.whyItMatters">
+                <source>The lang attribute helps screen readers choose the correct pronunciation rules.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.page_title_missing.title">
+                <source>Rendered page has no title</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.page_title_missing.howToFix">
+                <source>Add a meaningful title element for the page.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.page_title_missing.whyItMatters">
+                <source>Page titles help users identify where they are and distinguish browser tabs.</source>
+            </trans-unit>
+
+            <trans-unit id="rule.rendered.main_landmark_missing.title">
+                <source>Rendered page may be missing a main landmark</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.main_landmark_missing.howToFix">
+                <source>This is a review item, not an automatic failure. Verify manually whether the page has a clear main landmark using main or role="main".</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.main_landmark_missing.whyItMatters">
+                <source>A main landmark helps keyboard and screen reader users jump directly to the primary content.</source>
             </trans-unit>
         </body>
     </file>

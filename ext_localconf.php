@@ -28,8 +28,18 @@ defined('TYPO3') || die();
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\PublishHook::class;
 
-    $GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash']['excludedParameters'][] = 'aqgDebug';
-    $GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash']['excludedParameters'][] = 'aqgh';
+    foreach ([
+        'aqgDebug',
+        'aqgh',
+        'tx_aqg_rendered_check',
+        '_aqg_page',
+        '_aqg_lang',
+        '_aqg_nonce',
+    ] as $parameterName) {
+        if (!in_array($parameterName, $GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash']['excludedParameters'] ?? [], true)) {
+            $GLOBALS['TYPO3_CONF_VARS']['FE']['cacheHash']['excludedParameters'][] = $parameterName;
+        }
+    }
 
     ExtensionManagementUtility::addTypoScript(
         'a11y_quality_gate',

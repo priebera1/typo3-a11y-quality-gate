@@ -61,6 +61,130 @@ final class RuleConfigurationService
         return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
+
+    /**
+     * @return array{mode:string,forceLanguage:string,nonDescriptiveAdditional:string,nonDescriptiveDisabled:string}
+     */
+    public function getDictionarySettingsFromRuleset(array $ruleset): array
+    {
+        $configuration = $this->decodeRulesJson((string)($ruleset['rules_json'] ?? ''));
+        $dictionary = is_array($configuration['dictionary'] ?? null) ? $configuration['dictionary'] : [];
+
+        $mode = strtolower(trim((string)($dictionary['mode'] ?? 'auto')));
+        if (!in_array($mode, ['auto', 'force', 'disable'], true)) {
+            $mode = 'auto';
+        }
+
+        return [
+            'mode' => $mode,
+            'forceLanguage' => strtolower(trim((string)($dictionary['forceLanguage'] ?? ''))),
+            'nonDescriptiveAdditional' => $this->listToTextarea($dictionary['nonDescriptiveAdditional'] ?? []),
+            'nonDescriptiveDisabled' => $this->listToTextarea($dictionary['nonDescriptiveDisabled'] ?? []),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $dictionarySettings
+     */
+    public function encodeRulesJsonWithDictionarySettings(string $currentRulesJson, array $dictionarySettings): string
+    {
+        $configuration = $this->decodeRulesJson($currentRulesJson);
+
+        $mode = strtolower(trim((string)($dictionarySettings['mode'] ?? 'auto')));
+        if (!in_array($mode, ['auto', 'force', 'disable'], true)) {
+            $mode = 'auto';
+        }
+
+        $configuration['dictionary'] = [
+            'mode' => $mode,
+            'forceLanguage' => strtolower(trim((string)($dictionarySettings['forceLanguage'] ?? ''))),
+            'nonDescriptiveAdditional' => $this->normalizeTextareaList($dictionarySettings['nonDescriptiveAdditional'] ?? ''),
+            'nonDescriptiveDisabled' => $this->normalizeTextareaList($dictionarySettings['nonDescriptiveDisabled'] ?? ''),
+        ];
+
+        return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+
+    /**
+     * @return array{enabled:bool,allowPrivateHosts:bool}
+     */
+    public function getRenderedCheckSettingsForSite(string $siteIdentifier): array
+    {
+        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
+        if (!is_array($ruleset)) {
+            return [
+                'enabled' => true,
+                'allowPrivateHosts' => false,
+            ];
+        }
+
+        return $this->getRenderedCheckSettingsFromRuleset($ruleset);
+    }
+
+    /**
+     * @return array{enabled:bool,allowPrivateHosts:bool}
+     */
+    public function getRenderedCheckSettingsFromRuleset(array $ruleset): array
+    {
+        $configuration = $this->decodeRulesJson((string)($ruleset['rules_json'] ?? ''));
+        $renderedCheck = is_array($configuration['renderedCheck'] ?? null) ? $configuration['renderedCheck'] : [];
+
+        return [
+            'enabled' => !array_key_exists('enabled', $renderedCheck) || (bool)$renderedCheck['enabled'],
+            'allowPrivateHosts' => (bool)($renderedCheck['allowPrivateHosts'] ?? false),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $renderedCheckSettings
+     */
+    public function encodeRulesJsonWithRenderedCheckSettings(string $currentRulesJson, array $renderedCheckSettings): string
+    {
+        $configuration = $this->decodeRulesJson($currentRulesJson);
+
+        $configuration['renderedCheck'] = [
+            'enabled' => (bool)($renderedCheckSettings['enabled'] ?? false),
+            'allowPrivateHosts' => (bool)($renderedCheckSettings['allowPrivateHosts'] ?? false),
+        ];
+
+        return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeTextareaList(mixed $value): array
+    {
+        if (is_array($value)) {
+            $items = $value;
+        } else {
+            $items = preg_split('/[\r\n,]+/', (string)$value) ?: [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            $item = trim((string)$item);
+            if ($item !== '') {
+                $normalized[] = $item;
+            }
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    private function listToTextarea(mixed $value): string
+    {
+        if (!is_array($value)) {
+            return '';
+        }
+
+        return implode("\n", array_values(array_filter(array_map(
+            static fn (mixed $item): string => trim((string)$item),
+            $value
+        ), static fn (string $item): bool => $item !== '')));
+    }
+
     private function decodeRulesJson(string $rulesJson): array
     {
         $rulesJson = trim($rulesJson);

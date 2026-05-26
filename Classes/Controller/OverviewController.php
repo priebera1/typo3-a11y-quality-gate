@@ -172,6 +172,7 @@ final class OverviewController extends AbstractBackendModuleController
             'critical' => 0,
             'warning' => 0,
             'info' => 0,
+            'needs_review' => 0,
         ];
 
         if ($isPageContext && $siteIdentifier !== '') {
@@ -445,6 +446,7 @@ final class OverviewController extends AbstractBackendModuleController
                 'critical' => 0,
                 'warning' => 0,
                 'info' => 0,
+                'needs_review' => 0,
                 'total' => 0,
             ];
         $localNewCounts = $siteIdentifier !== '' && is_array($lastScan)
@@ -453,6 +455,7 @@ final class OverviewController extends AbstractBackendModuleController
                 'critical' => 0,
                 'warning' => 0,
                 'info' => 0,
+                'needs_review' => 0,
                 'total' => 0,
             ];
         $localScanDelta = [
@@ -701,7 +704,7 @@ final class OverviewController extends AbstractBackendModuleController
             $parameters['site'] = $siteIdentifier;
         }
 
-        $languageUid = (int)($request->getQueryParams()['language'] ?? $request->getQueryParams()['languageUid'] ?? 0);
+        $languageUid = $this->requestParameterService->getLanguageUid($request, 0);
         if ($languageUid !== 0) {
             $parameters['language'] = $languageUid;
         } else {

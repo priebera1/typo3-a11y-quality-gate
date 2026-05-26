@@ -1,0 +1,40 @@
+settings:
+  a11yQualityGate.dictionary.mode:
+    label: 'Dictionary mode'
+    description: 'auto: use TYPO3 page language; force: always use the configured language; disable: turn phrase-based checks off.'
+    type: string
+    default: 'auto'
+    enum:
+      auto: 'Auto (uses page language)'
+      force: 'Force language'
+      disable: 'Disable phrase checks'
+
+  a11yQualityGate.dictionary.forceLanguage:
+    label: 'Force language code'
+    description: 'Used only when dictionary mode is force. Example: en, de, sk, fr, pl.'
+    type: string
+    default: ''
+
+  a11yQualityGate.dictionary.rte_non_descriptive_link.additionalPhrases:
+    label: 'Non-descriptive link: additional phrases'
+    description: 'Additional phrases to flag as non-descriptive link text.'
+    type: array
+    default: []
+
+  a11yQualityGate.dictionary.rte_non_descriptive_link.disabledPhrases:
+    label: 'Non-descriptive link: disabled phrases'
+    description: 'Built-in phrases that should be ignored for this site.'
+    type: array
+    default: []
+
+  a11yQualityGate.dictionary.rte_link_new_window_no_warning.additionalPhrases:
+    label: 'New-window warning: additional phrases'
+    description: 'Additional phrases that count as a valid new-window/new-tab warning.'
+    type: array
+    default: []
+
+  a11yQualityGate.dictionary.rte_link_new_window_no_warning.disabledPhrases:
+    label: 'New-window warning: disabled phrases'
+    description: 'Built-in new-window warning phrases that should be ignored for this site.'
+    type: array
+    default: []

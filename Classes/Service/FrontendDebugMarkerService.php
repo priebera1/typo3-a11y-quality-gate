@@ -12,6 +12,7 @@ final class FrontendDebugMarkerService
     public function __construct(
         private readonly Context $context,
         private readonly ScannerAccessTokenService $scannerAccessTokenService,
+        private readonly RenderedCheckNonceService $renderedCheckNonceService,
     ) {
     }
 
@@ -27,16 +28,19 @@ final class FrontendDebugMarkerService
             return false;
         }
 
+        $isRenderedCheckRequest = (string)($queryParams['tx_aqg_rendered_check'] ?? '') === '1';
+        $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
+        $hasValidScannerToken = $scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken);
+
+        if ($isRenderedCheckRequest) {
+            return $this->renderedCheckNonceService->isValidRequest($request) || $hasValidScannerToken;
+        }
+
         if ($this->isBackendUserLoggedIn()) {
             return true;
         }
 
-        $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
-        if ($scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken)) {
-            return true;
-        }
-
-        return false;
+        return $hasValidScannerToken;
     }
 
     private function isFrontendRequest(ServerRequestInterface $request): bool

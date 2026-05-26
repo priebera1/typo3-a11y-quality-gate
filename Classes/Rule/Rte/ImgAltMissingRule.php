@@ -27,7 +27,7 @@ final class ImgAltMissingRule extends AbstractRteRule
 
     public function getHint(): string
     {
-        return 'Add an alt attribute describing the image content. For decorative images, use alt="" together with role="presentation".';
+        return 'Add descriptive alt text for meaningful images. For decorative images that add no information, use an empty alt attribute: alt="".';
     }
 
     /**
@@ -45,9 +45,7 @@ final class ImgAltMissingRule extends AbstractRteRule
             }
 
             $hasAlt = $image->hasAttribute('alt');
-            $altValue = $image->getAttribute('alt');
-            $role = strtolower($this->normalizedText($image->getAttribute('role')));
-            $isDecorative = in_array($role, ['presentation', 'none'], true);
+            $altValue = trim($image->getAttribute('alt'));
             $snippet = $this->elementSnippet($image);
             $path = $this->buildXPath($image);
 
@@ -64,15 +62,9 @@ final class ImgAltMissingRule extends AbstractRteRule
                 continue;
             }
 
-            if ($altValue === '' && !$isDecorative) {
-                $violations[] = new RuleViolation(
-                    ruleId: $this->getRuleId(),
-                    severity: Severity::Critical,
-                    message: 'Image has empty alt text without a decorative role.',
-                    hint: 'If this image is decorative, add role="presentation". Otherwise, provide a meaningful alt description.',
-                    contextSnippet: $snippet,
-                    contextPath: $path,
-                );
+            if ($altValue === '') {
+                // Empty alt is a valid WCAG pattern for intentionally decorative images.
+                continue;
             }
         }
 

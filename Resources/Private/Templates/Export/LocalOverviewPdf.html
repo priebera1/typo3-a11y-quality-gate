@@ -82,6 +82,13 @@
                 </tbody></table>
             </td>
             <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--needs_review{f:if(condition: totals.needs_review, else: ' is-zero')}"><tbody>
+                    <tr><td class="aqgp-card__label">Needs review</td></tr>
+                    <tr><td class="aqgp-card__value">{totals.needs_review}</td></tr>
+                    <tr><td class="aqgp-card__foot">{needsReviewFoot}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
                 <table class="aqgp-card aqgp-card-table aqgp-card--total{f:if(condition: totals.total, else: ' is-zero')}"><tbody>
                     <tr><td class="aqgp-card__label">Total</td></tr>
                     <tr><td class="aqgp-card__value">{totals.total}</td></tr>
@@ -103,6 +110,7 @@
                     <th class="num">Critical</th>
                     <th class="num">Warnings</th>
                     <th class="num">Info</th>
+                    <th class="num">Needs review</th>
                     <th class="num">Total</th>
                 </tr>
                 </thead>
@@ -116,6 +124,7 @@
                         <td class="num"><span class="aqgp-count aqgp-count--{page.criticalTone}">{page.critical}</span></td>
                         <td class="num"><span class="aqgp-count aqgp-count--{page.warningTone}">{page.warning}</span></td>
                         <td class="num"><span class="aqgp-count aqgp-count--{page.infoTone}">{page.info}</span></td>
+                        <td class="num"><span class="aqgp-count aqgp-count--{page.needsReviewTone}">{page.needs_review}</span></td>
                         <td class="num"><span class="aqgp-count aqgp-count--total">{page.total}</span></td>
                     </tr>
                 </f:for>

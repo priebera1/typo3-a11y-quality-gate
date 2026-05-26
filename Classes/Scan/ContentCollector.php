@@ -20,9 +20,11 @@ final class ContentCollector
     private const STRUCTURED_FIELDS = [
         'header' => 'text',
         'header_link' => 'link',
+        'header_layout' => 'int',
         'image_zoom' => 'bool',
         'table_header_position' => 'int',
         'table_caption' => 'text',
+        'pi_flexform' => 'xml',
     ];
 
     private const FALLBACK_FILE_REFERENCE_FIELDS = [

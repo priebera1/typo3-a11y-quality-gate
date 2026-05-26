@@ -398,9 +398,14 @@ async function scanPage(button) {
     const panel = button.closest(SELECTOR_PANEL);
     const endpoint = window.TYPO3?.settings?.ajaxUrls?.a11y_scan_page || '';
     const pageUid = Number.parseInt(button.dataset.pageUid || panel?.dataset.pageUid || '0', 10);
-    const scanMode = String(button.dataset.aqgScanMode || 'local');
+    const configuredScanMode = String(button.dataset.aqgScanMode || 'local');
     const pageUrl = String(button.dataset.pageUrl || '').trim();
     const siteIdentifier = String(button.dataset.siteIdentifier || panel?.dataset.site || '').trim();
+    const remoteScanEnabled = button.dataset.remoteScanEnabled === '1'
+        || panel?.dataset?.remoteScanEnabled === '1';
+    const scanMode = configuredScanMode === 'combined' && remoteScanEnabled && pageUrl !== '' && siteIdentifier !== ''
+        ? 'combined'
+        : 'local';
     const languageUid = resolveLanguageUidForButton(button);
 
     if (!endpoint || pageUid <= 0 || !panel) {

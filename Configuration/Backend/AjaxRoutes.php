@@ -12,19 +12,16 @@ return [
     'a11y_issues' => [
         'path' => '/a11y/issues',
         'target' => IssueApiController::class . '::issuesAction',
-        'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_rte_validate' => [
         'path' => '/a11y/rte/validate',
         'target' => IssueApiController::class . '::validateRteAction',
         'methods' => ['POST'],
-        'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_ignore' => [
         'path' => '/a11y/ignore',
         'target' => IssueApiController::class . '::ignoreAction',
         'methods' => ['POST'],
-        'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_scan_page' => [
         'path' => '/a11y/scan/page',

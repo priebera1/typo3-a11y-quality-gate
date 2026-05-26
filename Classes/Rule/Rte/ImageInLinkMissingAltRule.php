@@ -61,7 +61,9 @@ final class ImageInLinkMissingAltRule extends AbstractRteRule
                 continue;
             }
 
-            if ($this->hasNonEmptyAttribute($link, 'aria-label') || $this->hasNonEmptyAttribute($link, 'title')) {
+            if ($this->hasNonEmptyAttribute($link, 'aria-label')
+                || $this->hasValidAriaLabelledBy($link, $xpath)
+                || $this->hasNonEmptyAttribute($link, 'title')) {
                 continue;
             }
 

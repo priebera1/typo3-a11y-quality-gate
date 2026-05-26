@@ -1,0 +1,266 @@
+
+/* Site language switcher used inside AQG backend modules. Keep this scoped so TYPO3 backend controls are not affected. */
+.a11y-page-detail .aqg-lang,
+.a11y-overview .aqg-lang {
+    position: relative;
+    color: var(--aqi-fg);
+    font-family: var(--aqi-font);
+    font-size: 12px;
+}
+
+/* Keep the language control visually attached to the right edge of Overview/local scan headers.
+   The context label can be wider than the readonly/dropdown trigger, so the control itself must align to flex-end. */
+.a11y-overview .aqg-page-head__language {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-left: auto;
+    max-width: 100%;
+    text-align: right;
+}
+
+.a11y-overview .aqg-page-head__language .aqg-lang {
+    align-self: flex-end;
+}
+
+.a11y-overview .aqg-lang__context,
+.a11y-page-detail .aqg-lang__context {
+    color: var(--aqi-fg-subtle);
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+
+/* Page Detail uses a separate language row. Keep the trigger and dropdown aligned to the right, same as Overview/local scan header actions. */
+.a11y-page-detail .aqg-page-detail__languagebar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+}
+
+.a11y-page-detail .aqg-page-detail__language {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    max-width: 100%;
+}
+
+.a11y-page-detail .aqg-lang summary,
+.a11y-overview .aqg-lang summary {
+    list-style: none;
+}
+
+.a11y-page-detail .aqg-lang summary::-webkit-details-marker,
+.a11y-overview .aqg-lang summary::-webkit-details-marker {
+    display: none;
+}
+
+.a11y-page-detail .aqg-lang__trigger,
+.a11y-overview .aqg-lang__trigger,
+.a11y-page-detail .aqg-lang__readonly,
+.a11y-overview .aqg-lang__readonly {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 5px 9px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-sm);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    cursor: pointer;
+    user-select: none;
+}
+
+.a11y-page-detail .aqg-lang__trigger:hover,
+.a11y-overview .aqg-lang__trigger:hover {
+    border-color: var(--aqi-fg-subtle);
+    background: var(--aqi-surface-2);
+}
+
+.a11y-page-detail .aqg-lang__trigger-text,
+.a11y-overview .aqg-lang__trigger-text,
+.a11y-page-detail .aqg-lang__option-name-row,
+.a11y-overview .aqg-lang__option-name-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.a11y-page-detail .aqg-lang__chev,
+.a11y-overview .aqg-lang__chev {
+    display: block;
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
+    color: var(--aqi-fg-subtle);
+}
+
+.a11y-page-detail .aqg-lang[open] .aqg-lang__chev,
+.a11y-overview .aqg-lang[open] .aqg-lang__chev {
+    transform: rotate(180deg);
+}
+
+.a11y-page-detail .aqg-lang__flag,
+.a11y-overview .aqg-lang__flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    overflow: hidden;
+}
+
+.a11y-page-detail .aqg-lang__flag .icon,
+.a11y-overview .aqg-lang__flag .icon,
+.a11y-page-detail .aqg-lang__flag svg,
+.a11y-overview .aqg-lang__flag svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+
+.a11y-page-detail .aqg-lang__locale,
+.a11y-overview .aqg-lang__locale {
+    color: var(--aqi-fg-subtle);
+    font-family: var(--aqi-font-mono);
+    font-size: 11px;
+}
+
+.a11y-page-detail .aqg-lang__menu,
+.a11y-overview .aqg-lang__menu {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 6px);
+    right: 0;
+    display: grid;
+    gap: 4px;
+    min-width: 280px;
+    padding: 8px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-lg);
+    background: var(--aqi-surface);
+    box-shadow: 0 14px 32px -18px rgba(15, 23, 42, .45), 0 2px 8px rgba(15, 23, 42, .08);
+}
+
+.a11y-page-detail .aqg-lang__menu-head,
+.a11y-overview .aqg-lang__menu-head,
+.a11y-page-detail .aqg-lang__menu-foot,
+.a11y-overview .aqg-lang__menu-foot {
+    padding: 5px 7px;
+    color: var(--aqi-fg-muted);
+    font-size: 11px;
+}
+
+.a11y-page-detail .aqg-lang__menu-head,
+.a11y-overview .aqg-lang__menu-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.a11y-page-detail .aqg-lang__menu-count,
+.a11y-overview .aqg-lang__menu-count {
+    color: var(--aqi-fg-subtle);
+    font-family: var(--aqi-font-mono);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.a11y-page-detail .aqg-lang__option,
+.a11y-overview .aqg-lang__option {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px;
+    border-radius: var(--aqi-radius-sm);
+    color: var(--aqi-fg);
+    text-decoration: none;
+}
+
+.a11y-page-detail .aqg-lang__option:hover,
+.a11y-overview .aqg-lang__option:hover,
+.a11y-page-detail .aqg-lang__option.is-active,
+.a11y-overview .aqg-lang__option.is-active {
+    background: var(--aqi-surface-2);
+    text-decoration: none;
+}
+
+.a11y-page-detail .aqg-lang__option-check,
+.a11y-overview .aqg-lang__option-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--aqi-ok);
+    opacity: 0;
+}
+
+.a11y-page-detail .aqg-lang__option.is-active .aqg-lang__option-check,
+.a11y-overview .aqg-lang__option.is-active .aqg-lang__option-check {
+    opacity: 1;
+}
+
+.a11y-page-detail .aqg-lang__option-check svg,
+.a11y-overview .aqg-lang__option-check svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+}
+
+.a11y-page-detail .aqg-lang__option-body,
+.a11y-overview .aqg-lang__option-body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.a11y-page-detail .aqg-lang__option-name,
+.a11y-overview .aqg-lang__option-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.a11y-page-detail .aqg-lang__option-meta,
+.a11y-overview .aqg-lang__option-meta,
+.a11y-page-detail .aqg-lang__option-trail,
+.a11y-overview .aqg-lang__option-trail {
+    color: var(--aqi-fg-subtle);
+    font-size: 11px;
+}
+
+.a11y-page-detail .aqg-lang__option-meta,
+.a11y-overview .aqg-lang__option-meta {
+    justify-self: start;
+    text-align: left;
+}
+
+.a11y-page-detail .aqg-lang__option-trail,
+.a11y-overview .aqg-lang__option-trail {
+    white-space: nowrap;
+}
+
+.a11y-page-detail .aqg-lang__noresults,
+.a11y-overview .aqg-lang__noresults {
+    color: var(--aqi-fg-subtle);
+}
+
+@media (max-width: 575.98px) {
+    .a11y-page-detail .aqg-lang__menu,
+    .a11y-overview .aqg-lang__menu {
+        right: auto;
+        left: 0;
+        min-width: min(280px, calc(100vw - 32px));
+    }
+}

@@ -7,7 +7,7 @@ namespace Priebera\A11yQualityGate\Utility;
 final class FilterValueUtility
 {
     private const ALLOWED_STATUSES = ['open', 'ignored', 'resolved', 'all'];
-    private const ALLOWED_SEVERITIES = ['all', 'critical', 'warning', 'info'];
+    private const ALLOWED_SEVERITIES = ['all', 'critical', 'warning', 'info', 'needs_review'];
 
     private function __construct()
     {

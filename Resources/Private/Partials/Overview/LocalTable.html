@@ -32,6 +32,12 @@
                         </th>
                         <th scope="col" class="num">
                             <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview"
+                                    default="Needs review"
+                            />
+                        </th>
+                        <th scope="col" class="num">
+                            <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.total"
                                     default="Total"
                             />
@@ -89,6 +95,13 @@
                             <td class="num">
                                 <f:if condition="{stat.info} > 0">
                                     <f:then><span class="aqg-count aqg-count--info">{stat.info}</span></f:then>
+                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
+                                </f:if>
+                            </td>
+
+                            <td class="num">
+                                <f:if condition="{stat.needs_review} > 0">
+                                    <f:then><span class="aqg-count aqg-count--needs-review">{stat.needs_review}</span></f:then>
                                     <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
                                 </f:if>
                             </td>

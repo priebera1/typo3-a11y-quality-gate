@@ -1,0 +1,230 @@
+# Rule: rte.non_descriptive_link
+# WCAG: 2.4.4 Link Purpose
+# Match type: exact accessible-name match after normalization.
+phrases:
+  en:
+    - click
+    - click here
+    - here
+    - go here
+    - more
+    - read more
+    - learn more
+    - see more
+    - view more
+    - find out more
+    - see details
+    - more details
+    - details
+    - continue
+    - continue reading
+    - link
+    - open
+    - download
+    - button
+    - this page
+    - this link
+    - go
+    - view
+    - more info
+    - more information
+
+  de:
+    - hier klicken
+    - klicken
+    - hier
+    - mehr
+    - mehr erfahren
+    - weiterlesen
+    - weitere informationen
+    - mehr informationen
+    - herunterladen
+    - öffnen
+    - details
+    - mehr details
+    - weiter
+    - ansehen
+    - jetzt klicken
+    - jetzt
+
+  sk:
+    - kliknite tu
+    - kliknite
+    - tu
+    - viac
+    - čítajte viac
+    - zistiť viac
+    - zobraziť viac
+    - stiahnuť
+    - otvoriť
+    - detaily
+    - viac info
+    - viac informácií
+    - odkaz
+    - link
+    - pozrieť
+
+  fr:
+    - cliquez ici
+    - ici
+    - en savoir plus
+    - lire la suite
+    - plus
+    - voir plus
+    - voir les détails
+    - détails
+    - télécharger
+    - ouvrir
+    - continuer
+
+  nl:
+    - klik hier
+    - klik
+    - hier
+    - meer
+    - lees meer
+    - meer informatie
+    - details
+    - meer details
+    - downloaden
+    - openen
+    - doorgaan
+    - bekijken
+    - meer info
+
+  pl:
+    - kliknij tutaj
+    - kliknij
+    - tutaj
+    - więcej
+    - czytaj więcej
+    - dowiedz się więcej
+    - pobierz
+    - otwórz
+    - szczegóły
+    - sprawdź
+    - zobacz więcej
+    - więcej informacji
+
+  cs:
+    - klikněte zde
+    - klikněte
+    - zde
+    - více
+    - číst více
+    - zjistit více
+    - zobrazit více
+    - stáhnout
+    - otevřít
+    - podrobnosti
+    - více info
+    - více informací
+    - odkaz
+
+  it:
+    - clicca qui
+    - clicca
+    - qui
+    - più
+    - leggi di più
+    - scopri di più
+    - vedi di più
+    - dettagli
+    - ulteriori dettagli
+    - scarica
+    - apri
+    - continua
+    - visualizza
+
+  es:
+    - haz clic aquí
+    - clic
+    - aquí
+    - más
+    - leer más
+    - saber más
+    - ver más
+    - detalles
+    - más detalles
+    - descargar
+    - abrir
+    - continuar
+    - ver
+    - más información
+
+  pt:
+    - clique aqui
+    - clique
+    - aqui
+    - mais
+    - ler mais
+    - saber mais
+    - ver mais
+    - detalhes
+    - mais detalhes
+    - baixar
+    - descarregar
+    - abrir
+    - continuar
+    - ver
+    - mais informações
+
+  da:
+    - klik her
+    - klik
+    - her
+    - mere
+    - læs mere
+    - find ud af mere
+    - se mere
+    - detaljer
+    - flere detaljer
+    - download
+    - åbn
+    - fortsæt
+    - vis
+
+  sv:
+    - klicka här
+    - klicka
+    - här
+    - mer
+    - läs mer
+    - ta reda på mer
+    - se mer
+    - detaljer
+    - fler detaljer
+    - ladda ned
+    - öppna
+    - fortsätt
+    - visa
+
+  nb:
+    - klikk her
+    - klikk
+    - her
+    - mer
+    - les mer
+    - finn ut mer
+    - se mer
+    - detaljer
+    - flere detaljer
+    - last ned
+    - åpne
+    - fortsett
+    - vis
+
+  fi:
+    - klikkaa tästä
+    - klikkaa
+    - tästä
+    - lisää
+    - lue lisää
+    - lue lisätietoja
+    - näytä lisää
+    - tiedot
+    - lisätietoja
+    - lataa
+    - avaa
+    - jatka
+    - näytä

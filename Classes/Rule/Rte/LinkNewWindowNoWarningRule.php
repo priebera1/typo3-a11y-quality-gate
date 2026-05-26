@@ -7,21 +7,13 @@ namespace Priebera\A11yQualityGate\Rule\Rte;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use Priebera\A11yQualityGate\Service\DictionaryRegistry;
+use Priebera\A11yQualityGate\Service\PhraseMatcher;
 
 final class LinkNewWindowNoWarningRule extends AbstractRteRule
 {
-    /**
-     * @var list<string>|null
-     */
-    private ?array $resolvedHintPhrases = null;
-
-    /**
-     * @param list<string> $defaultHintPhrases
-     */
     public function __construct(
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly array $defaultHintPhrases,
+        private readonly DictionaryRegistry $dictionaryRegistry,
     ) {
     }
 
@@ -51,6 +43,7 @@ final class LinkNewWindowNoWarningRule extends AbstractRteRule
     public function check(CheckContext $context): array
     {
         $violations = [];
+        $phrases = $this->dictionaryRegistry->resolveForContext($this->getRuleId(), $context);
         $dom = $this->loadDom($context->content);
         $xpath = $this->createXPath($dom);
         $links = $xpath->query('//a[@target="_blank"]');
@@ -64,7 +57,7 @@ final class LinkNewWindowNoWarningRule extends AbstractRteRule
                 continue;
             }
 
-            if ($this->hasWindowWarning($link, $xpath)) {
+            if ($this->hasWindowWarning($link, $xpath, $phrases)) {
                 continue;
             }
 
@@ -81,120 +74,33 @@ final class LinkNewWindowNoWarningRule extends AbstractRteRule
         return $violations;
     }
 
-    private function hasWindowWarning(\DOMElement $link, \DOMXPath $xpath): bool
+    /**
+     * @param list<string> $phrases
+     */
+    private function hasWindowWarning(\DOMElement $link, \DOMXPath $xpath, array $phrases): bool
     {
-        if ($this->containsHint($link->getAttribute('aria-label'))) {
-            return true;
+        if ($phrases === []) {
+            return false;
         }
 
-        if ($this->containsHint($link->getAttribute('title'))) {
-            return true;
-        }
-
-        if ($this->containsHint($link->textContent)) {
-            return true;
-        }
+        $textParts = [
+            $link->textContent,
+            $link->getAttribute('aria-label'),
+            $link->getAttribute('title'),
+        ];
 
         $childrenWithAriaLabel = $xpath->query('.//*[@aria-label]', $link);
         if ($childrenWithAriaLabel !== false) {
             foreach ($childrenWithAriaLabel as $child) {
-                if (!$child instanceof \DOMElement) {
-                    continue;
-                }
-
-                if ($this->containsHint($child->getAttribute('aria-label'))) {
-                    return true;
+                if ($child instanceof \DOMElement) {
+                    $textParts[] = $child->getAttribute('aria-label');
                 }
             }
         }
 
-        return false;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function getHintPhrases(): array
-    {
-        if ($this->resolvedHintPhrases !== null) {
-            return $this->resolvedHintPhrases;
-        }
-
-        $adminPhrases = $this->loadAdminHintPhrases();
-
-        $this->resolvedHintPhrases = array_values(array_unique(array_merge(
-            $this->normalizePhrases($this->defaultHintPhrases),
-            $adminPhrases,
-        )));
-
-        return $this->resolvedHintPhrases;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function loadAdminHintPhrases(): array
-    {
-        try {
-            $raw = (string)($this->extensionConfiguration->get(
-                'a11y_quality_gate',
-                'linkNewWindowHintPhrases'
-            ) ?? '');
-        } catch (\Throwable) {
-            return [];
-        }
-
-        if (trim($raw) === '') {
-            return [];
-        }
-
-        $normalizedRaw = str_replace(["\r\n", "\r"], "\n", $raw);
-        $parts = preg_split('/[\n,]+/', $normalizedRaw) ?: [];
-
-        return $this->normalizePhrases($parts);
-    }
-
-    /**
-     * @param array<int, string> $phrases
-     * @return list<string>
-     */
-    private function normalizePhrases(array $phrases): array
-    {
-        $result = [];
-
-        foreach ($phrases as $phrase) {
-            $normalized = $this->normalize($phrase);
-
-            if ($normalized !== '') {
-                $result[] = $normalized;
-            }
-        }
-
-        return array_values(array_unique($result));
-    }
-
-    private function containsHint(string $text): bool
-    {
-        $normalizedText = $this->normalize($text);
-        if ($normalizedText === '') {
-            return false;
-        }
-
-        foreach ($this->getHintPhrases() as $phrase) {
-            if ($phrase !== '' && str_contains($normalizedText, $phrase)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function normalize(string $text): string
-    {
-        $normalized = mb_strtolower($this->normalizedText($text));
-        $normalized = (string)preg_replace('/[^\p{L}\p{N}\s]/u', '', $normalized);
-        $normalized = (string)preg_replace('/\s+/u', ' ', $normalized);
-
-        return trim($normalized);
+        return PhraseMatcher::isWordBoundaryMatch(
+            PhraseMatcher::normalize(implode(' ', array_filter($textParts))),
+            $phrases
+        );
     }
 }

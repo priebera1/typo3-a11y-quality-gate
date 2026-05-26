@@ -161,6 +161,12 @@
     color: var(--aqi-run);
 }
 
+.a11y-page-detail .aqg-chip.is-active.tone-needs_review {
+    background: var(--aqi-review-bg);
+    border-color: var(--aqi-review-border);
+    color: var(--aqi-review);
+}
+
 /* ── Filter bar ───────────────────────────────────────── */
 .a11y-filter-bar {
     padding-bottom: .75rem;

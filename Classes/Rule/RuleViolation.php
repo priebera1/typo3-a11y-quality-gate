@@ -15,20 +15,38 @@ final readonly class RuleViolation
         public string $hint,
         public string $contextSnippet = '',
         public string $contextPath = '',
+        public string $sourceType = '',
+        public string $frontendUrl = '',
+        public string $cssSelector = '',
+        public string $sourceTable = '',
+        public int $sourceUid = 0,
+        public string $sourceField = '',
     ) {
     }
 
     public function fingerprint(CheckContext $ctx): string
     {
-        return sha1(implode('|', [
+        $sourceType = $this->sourceType !== '' ? $this->sourceType : $ctx->sourceType;
+        $sourceTable = $this->sourceTable !== '' ? $this->sourceTable : $ctx->sourceTable;
+        $sourceUid = $this->sourceUid > 0 ? $this->sourceUid : $ctx->sourceUid;
+        $sourceField = $this->sourceField !== '' ? $this->sourceField : $ctx->sourceField;
+
+        $parts = [
             $ctx->siteIdentifier,
             (string)$ctx->pageUid,
             (string)$ctx->sourceLangUid,
-            $ctx->sourceTable . ':' . $ctx->sourceUid . ':' . $ctx->sourceField,
+            $sourceTable . ':' . $sourceUid . ':' . $sourceField,
             $this->ruleId,
             $this->normalizeForFingerprint($this->contextSnippet, 100),
             $this->normalizeForFingerprint($this->contextPath, 100),
-        ]));
+        ];
+
+        if ($sourceType === 'rendered') {
+            $parts[] = 'rendered';
+            $parts[] = $this->normalizeForFingerprint($this->cssSelector, 140);
+        }
+
+        return sha1(implode('|', $parts));
     }
 
     private function normalizeForFingerprint(string $value, int $maxLength): string

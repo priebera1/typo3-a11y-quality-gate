@@ -1,4 +1,2 @@
 name: priebera/a11y-quality-gate
 label: Accessibility Quality Gate
-dependencies:
-  - typo3/fluid-styled-content

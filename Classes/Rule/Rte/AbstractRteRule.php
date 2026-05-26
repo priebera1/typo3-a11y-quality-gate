@@ -83,6 +83,58 @@ abstract class AbstractRteRule implements RuleInterface
         return trim($element->getAttribute($attributeName)) !== '';
     }
 
+    protected function hasValidAriaLabelledBy(\DOMElement $element, \DOMXPath $xpath): bool
+    {
+        return $this->resolveAriaLabelledByText($element, $xpath) !== '';
+    }
+
+    protected function resolveAriaLabelledByText(\DOMElement $element, \DOMXPath $xpath): string
+    {
+        $value = trim($element->getAttribute('aria-labelledby'));
+        if ($value === '') {
+            return '';
+        }
+
+        $texts = [];
+        $ids = preg_split('/\s+/', $value) ?: [];
+        foreach ($ids as $id) {
+            $id = trim($id);
+            if ($id === '') {
+                continue;
+            }
+
+            $nodes = $xpath->query('//*[@id=' . $this->xpathLiteral($id) . ']');
+            if ($nodes === false || $nodes->length === 0) {
+                continue;
+            }
+
+            $text = $this->normalizedText((string)$nodes->item(0)?->textContent);
+            if ($text !== '') {
+                $texts[] = $text;
+            }
+        }
+
+        return trim(implode(' ', $texts));
+    }
+
+    protected function xpathLiteral(string $value): string
+    {
+        if (!str_contains($value, "'")) {
+            return "'" . $value . "'";
+        }
+
+        if (!str_contains($value, '"')) {
+            return '"' . $value . '"';
+        }
+
+        $parts = array_map(
+            static fn(string $part): string => "'" . $part . "'",
+            explode("'", $value),
+        );
+
+        return 'concat(' . implode(', "\'", ', $parts) . ')';
+    }
+
     protected function normalizedText(string $value): string
     {
         $value = str_replace("\u{00A0}", ' ', $value);

@@ -17,6 +17,8 @@ const ELEMENT_FALLBACK_RULES = [
     'rte.duplicate_id',
     'rte.non_descriptive_link',
     'rte.empty_link',
+    'rte.link_to_document',
+    'rte.link_to_document_missing_notice',
     'rte.empty_heading',
     'rte.heading_hierarchy_jump',
 ];
@@ -122,6 +124,9 @@ export default class A11yPlugin extends Plugin {
             const url = new URL(endpoint, window.location.origin);
             url.searchParams.set('recordUid', String(cfg.recordUid));
             url.searchParams.set('fieldName', String(cfg.fieldName));
+            if (cfg.pageUid) {
+                url.searchParams.set('pageUid', String(cfg.pageUid));
+            }
 
             const response = await fetch(url.toString(), {
                 headers: {
@@ -157,19 +162,21 @@ export default class A11yPlugin extends Plugin {
             this._clearAllMarkers(writer);
 
             let markerIndex = 0;
+            const editable = this.editor.ui.getEditableElement();
 
             for (const issue of issues) {
-                if (this._supportsElementFallback(issue.ruleId ?? '')) {
+                // Element-based rules are normally decorated directly on matching DOM nodes.
+                // If no DOM target exists (for example when CKEditor contains escaped HTML
+                // snippets such as "<img ...>" as visible text), fall back to text markers so
+                // live issues returned by the server are still visible and not shown as "passed".
+                if (this._supportsElementFallback(issue.ruleId ?? '')
+                    && editable
+                    && this._findDomTargetsForIssue(editable, issue).length > 0
+                ) {
                     continue;
                 }
 
-                const text = this._plainText(issue.snippet ?? issue.contextSnippet ?? '');
-
-                if (!text) {
-                    continue;
-                }
-
-                const ranges = this._findAll(model, text);
+                const ranges = this._findRangesForIssue(issue);
 
                 if (ranges.length === 0) {
                     console.warn('[A11Y] No text range found for issue', issue);
@@ -295,6 +302,8 @@ export default class A11yPlugin extends Plugin {
                 return 3;
             case 'warning':
                 return 2;
+            case 'needs_review':
+                return 1.5;
             case 'info':
                 return 1;
             default:
@@ -314,6 +323,10 @@ export default class A11yPlugin extends Plugin {
 
             case 'rte.empty_link':
                 return this._findEmptyLinkTargets(editable, issue);
+
+            case 'rte.link_to_document':
+            case 'rte.link_to_document_missing_notice':
+                return this._findDocumentLinkTargets(editable, issue);
 
             case 'rte.table_missing_header':
                 return this._findTablesMissingHeaders(editable, issue);
@@ -436,6 +449,27 @@ export default class A11yPlugin extends Plugin {
         return Array.from(editable.querySelectorAll('a'));
     }
 
+    _findDocumentLinkTargets(editable, issue) {
+        const snippet = String(issue.snippet ?? issue.contextSnippet ?? '');
+        const hrefMatch = snippet.match(/href="([^"]+)"/i) ?? snippet.match(/href='([^']+)'/i);
+        const href = hrefMatch?.[1] ?? '';
+
+        if (href !== '') {
+            const matches = Array.from(editable.querySelectorAll('a[href]')).filter((element) => {
+                return (element.getAttribute('href') ?? '') === href;
+            });
+
+            if (matches.length > 0) {
+                return matches;
+            }
+        }
+
+        return Array.from(editable.querySelectorAll('a[href]')).filter((element) => {
+            const hrefValue = (element.getAttribute('href') ?? '').split(/[?#]/, 1)[0].toLowerCase();
+            return /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|odp|rtf|csv)$/.test(hrefValue);
+        });
+    }
+
     _findEmptyLinkTargets(editable, issue) {
         const snippet = String(issue.snippet ?? issue.contextSnippet ?? '');
         const hrefMatch = snippet.match(/href="([^"]+)"/i);
@@ -462,7 +496,7 @@ export default class A11yPlugin extends Plugin {
             }
 
             if (element.tagName.toLowerCase() === 'a') {
-                return element.hasAttribute('href');
+                return true;
             }
 
             return element.tagName.toLowerCase() === 'button';
@@ -604,7 +638,13 @@ export default class A11yPlugin extends Plugin {
     _findAll(model, searchText) {
         const root = model.document.getRoot();
         const ranges = [];
-        const lowerSearchText = searchText.toLowerCase();
+        const normalizedSearchText = String(searchText ?? '').replace(/\s+/g, ' ').trim();
+
+        if (!normalizedSearchText) {
+            return ranges;
+        }
+
+        const lowerSearchText = normalizedSearchText.toLowerCase();
 
         for (const block of root.getChildren()) {
             let blockText = '';
@@ -645,6 +685,62 @@ export default class A11yPlugin extends Plugin {
         }
 
         return ranges;
+    }
+
+    _findRangesForIssue(issue) {
+        const model = this.editor.model;
+        const ranges = [];
+
+        for (const text of this._issueTextCandidates(issue)) {
+            for (const range of this._findAll(model, text)) {
+                ranges.push(range);
+            }
+
+            if (ranges.length > 0) {
+                break;
+            }
+        }
+
+        return ranges;
+    }
+
+    _issueTextCandidates(issue) {
+        const snippet = String(issue.snippet ?? issue.contextSnippet ?? '').trim();
+        const candidates = [];
+        const addCandidate = (candidate) => {
+            const value = String(candidate ?? '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, MAX_SNIPPET);
+
+            if (value && !candidates.includes(value)) {
+                candidates.push(value);
+            }
+        };
+
+        addCandidate(this._plainText(snippet));
+
+        const markupText = this._decodeHtmlEntities(snippet)
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        addCandidate(markupText);
+
+        // DOMDocument serializes void tags as <img ...>, while CKEditor source-mode text
+        // may still be visible as <img ... />. Try both variants for escaped-code snippets.
+        addCandidate(markupText.replace(/<\s*(img|br|hr|input)([^>]*)>/gi, (match, tagName, attributes) => {
+            const cleanedAttributes = String(attributes ?? '').replace(/\s*\/$/, '').trimEnd();
+            return `<${tagName}${cleanedAttributes} />`;
+        }));
+
+        return candidates;
+    }
+
+    _decodeHtmlEntities(value) {
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = String(value ?? '');
+
+        return textarea.value;
     }
 
     _plainText(html) {
@@ -894,7 +990,7 @@ export default class A11yPlugin extends Plugin {
         }
 
         const counts = this._countSeverities(issues);
-        const total = counts.critical + counts.warning + counts.info;
+        const total = counts.critical + counts.warning + counts.needs_review + counts.info;
         const variant = counts.critical > 0 ? 'critical' : 'issues';
 
         this._summaryElement.className = `ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--${variant}`;
@@ -905,6 +1001,7 @@ export default class A11yPlugin extends Plugin {
                 <span class="ck-a11y-summary__counts">
                     ${this._summaryCount('critical', counts.critical)}
                     ${this._summaryCount('warning', counts.warning)}
+                    ${this._summaryCount('needs_review', counts.needs_review)}
                     ${this._summaryCount('info', counts.info)}
                 </span>
             </span>
@@ -919,8 +1016,8 @@ export default class A11yPlugin extends Plugin {
             return '';
         }
 
-        const label = severity === 'info'
-            ? 'Info'
+        const label = severity === 'info' || severity === 'needs_review'
+            ? this._severityLabel(severity)
             : `${this._severityLabel(severity)}${count === 1 ? '' : 's'}`;
 
         return `
@@ -936,6 +1033,7 @@ export default class A11yPlugin extends Plugin {
             critical: 0,
             warning: 0,
             info: 0,
+            needs_review: 0,
         };
 
         for (const issue of issues) {
@@ -945,6 +1043,61 @@ export default class A11yPlugin extends Plugin {
         return counts;
     }
 
+
+    _collectLiveValidationHtml(dataHtml) {
+        const editable = this.editor.ui.getEditableElement();
+        if (!editable) {
+            return dataHtml;
+        }
+
+        const domHtml = this._cleanEditableHtmlForValidation(editable);
+        if (!domHtml) {
+            return dataHtml;
+        }
+
+        const dataRelevantCount = this._a11yRelevantElementCount(dataHtml);
+        const domRelevantCount = this._a11yRelevantElementCount(domHtml);
+
+        // Prefer editor.getData(), because CKEditor editable DOM may contain widget/helper
+        // markup that is not persisted. Use editable DOM only as a strict fallback for cases
+        // where getData() contains no accessibility-relevant elements but the visible editor DOM does.
+        return dataRelevantCount === 0 && domRelevantCount > 0
+            ? domHtml
+            : dataHtml;
+    }
+
+    _cleanEditableHtmlForValidation(editable) {
+        const clone = editable.cloneNode(true);
+
+        clone.querySelectorAll('.ck-widget__selection-handle, .ck-fake-selection-container').forEach((element) => element.remove());
+        clone.querySelectorAll('.ck-a11y-mark, .a11y-highlight, .ck-a11y-element, .a11y-element-highlight').forEach((element) => {
+            element.classList.remove(
+                'ck-a11y-mark',
+                'a11y-highlight',
+                'ck-a11y-element',
+                'a11y-element-highlight',
+                'a11y-element-critical',
+                'a11y-element-warning',
+                'a11y-element-info',
+                'ck-a11y-element--critical',
+                'ck-a11y-element--warning',
+                'ck-a11y-element--info',
+                'ck-a11y-element--multiple',
+                'ck-a11y-element--single',
+                'is-hover',
+                'is-selected'
+            );
+            element.removeAttribute('data-a11y-rule');
+            element.removeAttribute('data-a11y-fp');
+            element.removeAttribute('data-a11y-label');
+        });
+
+        return clone.innerHTML ?? '';
+    }
+
+    _a11yRelevantElementCount(html) {
+        return (String(html).match(/<\s*(a|img|table|th|td|button|iframe|svg|h[1-6])\b/gi) ?? []).length;
+    }
 
     async _fetchLiveValidation() {
         const cfg = this.editor.config.get('a11yQualityGate') ?? {};
@@ -962,7 +1115,8 @@ export default class A11yPlugin extends Plugin {
         }
 
         const currentData = this.editor.getData();
-        if (currentData.length > MAX_LIVE_VALIDATION_HTML_SIZE) {
+        const validationHtml = this._collectLiveValidationHtml(currentData);
+        if (validationHtml.length > MAX_LIVE_VALIDATION_HTML_SIZE) {
             console.warn('[A11Y] Live RTE validation skipped because HTML is too large');
             this._renderSummary('error');
             return;
@@ -993,7 +1147,9 @@ export default class A11yPlugin extends Plugin {
                 body: JSON.stringify({
                     recordUid: cfg.recordUid,
                     fieldName: cfg.fieldName,
-                    html: currentData,
+                    pageUid: cfg.pageUid ?? 0,
+                    html: validationHtml,
+                    dataHtml: currentData,
                 }),
             });
 
@@ -1061,16 +1217,19 @@ export default class A11yPlugin extends Plugin {
         const model = this.editor.model;
 
         return issues.filter((issue) => {
-            if (this._supportsElementFallback(issue.ruleId ?? '')) {
-                return !!editable && this._findDomTargetsForIssue(editable, issue).length > 0;
-            }
-
-            const text = this._plainText(issue.snippet ?? issue.contextSnippet ?? '');
-            if (!text) {
+            if (this._supportsElementFallback(issue.ruleId ?? '')
+                && editable
+                && this._findDomTargetsForIssue(editable, issue).length > 0
+            ) {
                 return true;
             }
 
-            return this._findAll(model, text).length > 0;
+            const textCandidates = this._issueTextCandidates(issue);
+            if (textCandidates.length === 0) {
+                return true;
+            }
+
+            return textCandidates.some((text) => this._findAll(model, text).length > 0);
         });
     }
 
@@ -1344,6 +1503,7 @@ export default class A11yPlugin extends Plugin {
                 reason: 'Ignored via editor',
                 recordUid: cfg.recordUid ?? 0,
                 fieldName: cfg.fieldName ?? 'bodytext',
+                pageUid: cfg.pageUid ?? 0,
             };
 
             if (issueData?.isLive) {
@@ -1397,6 +1557,10 @@ export default class A11yPlugin extends Plugin {
             return 'critical';
         }
 
+        if (value === 'needs_review' || value === 'needs-review' || value === 'needsreview' || value === 'review') {
+            return 'needs_review';
+        }
+
         if (value === 'info' || value === 'notice') {
             return 'info';
         }
@@ -1405,11 +1569,13 @@ export default class A11yPlugin extends Plugin {
     }
 
     _severityLabel(severity) {
-        switch (severity) {
+        switch (this._normalizeSeverity(severity)) {
             case 'critical':
                 return 'Critical';
             case 'info':
                 return 'Info';
+            case 'needs_review':
+                return 'Needs review';
             case 'warning':
             default:
                 return 'Warning';

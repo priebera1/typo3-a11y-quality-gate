@@ -99,7 +99,8 @@ final class PageModuleIndicatorService
         $progress = $this->buildProgress($overallState, $remoteActiveScan);
         $headline = $this->buildPanelHeadline($overallState, $localState, $remoteState, $counts, $remoteCompletedScan, $remotePage, $hasRemoteScanRun);
         $body = $this->buildBody($overallState, $isRemoteScanRunning, $hasRemoteScanRun);
-        $scanMode = $hasRemoteScanCapability && $currentPageUrl !== '' ? 'combined' : 'local';
+        $remoteScanEnabled = $hasRemoteScanCapability && $currentPageUrl !== '';
+        $scanMode = $remoteScanEnabled ? 'combined' : 'local';
         $rows = [[
             'label' => $this->translate('pageModuleIndicator.row.local', 'Local scan'),
             'state' => $localState,
@@ -144,6 +145,7 @@ final class PageModuleIndicatorService
             'siteIdentifier' => $siteIdentifier,
             'currentPageUrl' => $currentPageUrl,
             'scanMode' => $scanMode,
+            'remoteScanEnabled' => $remoteScanEnabled,
             'languageUid' => $languageUid,
             'runningHeadline' => $this->translate('pageModuleIndicator.headline.running', 'Scan running'),
             'runningBody' => $this->translate('pageModuleIndicator.body.running', 'Checking this page for accessibility issues...'),
@@ -163,7 +165,7 @@ final class PageModuleIndicatorService
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int} $counts
+     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
      */
     private function resolveState(array $counts, bool $hasLocalScanState, bool $isRunning): string
     {
@@ -179,7 +181,7 @@ final class PageModuleIndicatorService
             return 'error';
         }
 
-        if (($counts['warning'] ?? 0) > 0 || ($counts['info'] ?? 0) > 0) {
+        if (($counts['warning'] ?? 0) > 0 || ($counts['info'] ?? 0) > 0 || ($counts['needs_review'] ?? 0) > 0) {
             return 'warning';
         }
 
@@ -187,11 +189,11 @@ final class PageModuleIndicatorService
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int} $counts
+     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
      */
     private function hasOpenFindings(array $counts): bool
     {
-        return ((int)($counts['critical'] ?? 0) + (int)($counts['warning'] ?? 0) + (int)($counts['info'] ?? 0)) > 0;
+        return ((int)($counts['critical'] ?? 0) + (int)($counts['warning'] ?? 0) + (int)($counts['info'] ?? 0) + (int)($counts['needs_review'] ?? 0)) > 0;
     }
 
     /**
@@ -253,7 +255,7 @@ final class PageModuleIndicatorService
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int} $counts
+     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
      */
     private function buildHeadline(string $state, array $counts): string
     {
@@ -272,27 +274,23 @@ final class PageModuleIndicatorService
         $critical = (int)($counts['critical'] ?? 0);
         $warning = (int)($counts['warning'] ?? 0);
         $info = (int)($counts['info'] ?? 0);
+        $needsReview = (int)($counts['needs_review'] ?? 0);
 
+        $parts = [];
         if ($critical > 0) {
-            $parts = [sprintf($this->translate('pageModuleIndicator.metric.errors', '%d errors'), $critical)];
-            if ($warning > 0) {
-                $parts[] = sprintf($this->translate('pageModuleIndicator.metric.warnings', '%d warnings'), $warning);
-            }
-            if ($info > 0) {
-                $parts[] = sprintf($this->translate('pageModuleIndicator.metric.notes', '%d notes'), $info);
-            }
-            return implode(' · ', $parts);
+            $parts[] = sprintf($this->translate('pageModuleIndicator.metric.errors', '%d errors'), $critical);
         }
-
         if ($warning > 0) {
-            $parts = [sprintf($this->translate('pageModuleIndicator.metric.warnings', '%d warnings'), $warning)];
-            if ($info > 0) {
-                $parts[] = sprintf($this->translate('pageModuleIndicator.metric.notes', '%d notes'), $info);
-            }
-            return implode(' · ', $parts);
+            $parts[] = sprintf($this->translate('pageModuleIndicator.metric.warnings', '%d warnings'), $warning);
+        }
+        if ($info > 0) {
+            $parts[] = sprintf($this->translate('pageModuleIndicator.metric.notes', '%d notes'), $info);
+        }
+        if ($needsReview > 0) {
+            $parts[] = sprintf($this->translate('pageModuleIndicator.metric.needsReview', '%d needs review'), $needsReview);
         }
 
-        return sprintf($this->translate('pageModuleIndicator.metric.notes', '%d notes'), $info);
+        return $parts !== [] ? implode(' · ', $parts) : $this->translate('pageModuleIndicator.headline.ok', 'No issues found');
     }
 
     /**
@@ -318,7 +316,7 @@ final class PageModuleIndicatorService
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int} $counts
+     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
      * @param array<string,mixed>|null $remoteCompletedScan
      * @param array<string,mixed>|null $remotePage
      */
@@ -477,7 +475,7 @@ final class PageModuleIndicatorService
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int} $counts
+     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
      * @param array<string,mixed> $scanStatus
      * @param array<string,mixed>|null $remoteActiveScan
      * @param array<string,mixed>|null $remoteCompletedScan
@@ -521,7 +519,7 @@ final class PageModuleIndicatorService
             );
         }
 
-        $openTotal = (int)($counts['critical'] ?? 0) + (int)($counts['warning'] ?? 0) + (int)($counts['info'] ?? 0);
+        $openTotal = (int)($counts['critical'] ?? 0) + (int)($counts['warning'] ?? 0) + (int)($counts['info'] ?? 0) + (int)($counts['needs_review'] ?? 0);
         if ($openTotal > 0) {
             return sprintf($this->translate('pageModuleIndicator.meta.openTotal', '%d open findings in local checks.'), $openTotal);
         }

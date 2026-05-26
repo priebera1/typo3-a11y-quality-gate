@@ -56,34 +56,6 @@ final class SettingsController extends AbstractBackendModuleController
         'remote_access',
     ];
 
-    /**
-     * @var list<string>
-     */
-    private const NON_DESCRIPTIVE_DEFAULTS = [
-        'click here',
-        'here',
-        'read more',
-        'more',
-        'learn more',
-        'continue',
-        'continue reading',
-        'details',
-        'link',
-        'this link',
-        'this page',
-        'download',
-        'more info',
-        'more information',
-        'see more',
-        'view more',
-    ];
-
-    /**
-     * @var list<string>
-     */
-    private const WINDOW_HINT_DEFAULTS = [
-        'opens in new window',
-    ];
 
     /**
      * @var list<string>
@@ -176,6 +148,8 @@ final class SettingsController extends AbstractBackendModuleController
 
         $qualityGateRuleset = $this->rulesetRepository->findOrCreateDefault();
         $rulesManagement = $this->buildRulesManagement($qualityGateRuleset);
+        $dictionarySettings = $this->ruleConfigurationService->getDictionarySettingsFromRuleset($qualityGateRuleset);
+        $renderedCheckSettings = $this->ruleConfigurationService->getRenderedCheckSettingsFromRuleset($qualityGateRuleset);
         $remoteAccessRuleset = $selectedRulesetSite !== ''
             ? ($this->rulesetRepository->findBySiteIdentifier($selectedRulesetSite) ?? $qualityGateRuleset)
             : $qualityGateRuleset;
@@ -205,8 +179,6 @@ final class SettingsController extends AbstractBackendModuleController
 
         $licenceKey = $this->getExtensionConfigurationString('licenceKey');
         $showProHints = $this->getExtensionConfigurationBool('showProHints', true);
-        $nonDescriptiveLinkPhrases = $this->getExtensionConfigurationString('nonDescriptiveLinkPhrases');
-        $linkNewWindowHintPhrases = $this->getExtensionConfigurationString('linkNewWindowHintPhrases');
 
         $moduleTemplate->assignMultiple([
             'fieldGroups' => $fieldGroups,
@@ -218,6 +190,8 @@ final class SettingsController extends AbstractBackendModuleController
             'proStatus' => $proStatus,
             'qualityGateRuleset' => $qualityGateRuleset,
             'rulesManagement' => $rulesManagement,
+            'dictionarySettings' => $dictionarySettings,
+            'renderedCheckSettings' => $renderedCheckSettings,
             'remoteAccessRuleset' => $remoteAccessRuleset,
             'remoteAccessExcludedPatternsText' => $remoteAccessExcludedPatternsText,
             'remoteAccessCookieAcceptSelectorsText' => $remoteAccessCookieAcceptSelectorsText,
@@ -244,12 +218,6 @@ final class SettingsController extends AbstractBackendModuleController
             'isAdmin' => $isAdmin,
             'licenceKey' => $licenceKey,
             'showProHints' => $showProHints,
-            'nonDescriptiveLinkPhrases' => $nonDescriptiveLinkPhrases,
-            'linkNewWindowHintPhrases' => $linkNewWindowHintPhrases,
-            'nonDescriptiveDefaults' => self::NON_DESCRIPTIVE_DEFAULTS,
-            'windowHintDefaults' => self::WINDOW_HINT_DEFAULTS,
-            'nonDescriptiveDefaultsText' => implode(', ', self::NON_DESCRIPTIVE_DEFAULTS),
-            'windowHintDefaultsText' => implode(', ', self::WINDOW_HINT_DEFAULTS),
             'pricingUrl' => 'https://typo3.priebera.sk/pricing',
             'portalUrl' => 'https://typo3.priebera.sk/portal',
             'licensingDocsUrl' => 'https://typo3.priebera.sk/docs',
@@ -464,9 +432,6 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         if ($activeTab === 'rules') {
-            $configuration['nonDescriptiveLinkPhrases'] = trim((string)($body['nonDescriptiveLinkPhrases'] ?? ''));
-            $configuration['linkNewWindowHintPhrases'] = trim((string)($body['linkNewWindowHintPhrases'] ?? ''));
-
             if ((string)($body['rulesManagementFormSubmitted'] ?? '') === '1') {
                 $this->saveRuleManagementState($body);
             }
@@ -773,9 +738,22 @@ final class SettingsController extends AbstractBackendModuleController
             static fn (string $ruleId): bool => !isset($enabledLookup[$ruleId])
         ));
         $ruleset = $this->rulesetRepository->findOrCreateDefault();
+        $currentRulesJson = is_array($ruleset) ? (string)($ruleset['rules_json'] ?? '') : '';
         $rulesJson = $this->ruleConfigurationService->encodeRulesJsonWithDisabledRules(
-            is_array($ruleset) ? (string)($ruleset['rules_json'] ?? '') : '',
+            $currentRulesJson,
             $disabledRuleIds
+        );
+
+        $dictionarySettings = is_array($body['dictionarySettings'] ?? null) ? $body['dictionarySettings'] : [];
+        $rulesJson = $this->ruleConfigurationService->encodeRulesJsonWithDictionarySettings(
+            $rulesJson,
+            $dictionarySettings
+        );
+
+        $renderedCheckSettings = is_array($body['renderedCheckSettings'] ?? null) ? $body['renderedCheckSettings'] : [];
+        $rulesJson = $this->ruleConfigurationService->encodeRulesJsonWithRenderedCheckSettings(
+            $rulesJson,
+            $renderedCheckSettings
         );
 
         $this->rulesetRepository->saveRulesJsonForDefault($rulesJson);

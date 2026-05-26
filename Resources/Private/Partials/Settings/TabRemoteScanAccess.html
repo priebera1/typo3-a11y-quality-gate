@@ -30,7 +30,7 @@
                         <span class="aqg-toast js-aqg-remote-save-toast" hidden="hidden">✓ Settings saved</span>
                     </div>
                     <div class="aqg-actionbar__right">
-                        <button type="reset" class="aqg-link-button aqg-link-button--muted js-aqg-remote-discard">Discard</button>
+                        <button type="reset" class="aqg-text-action js-aqg-remote-discard">Discard</button>
                         <button type="submit" class="btn btn-primary btn-sm">Save remote scan settings</button>
                     </div>
                 </div>
@@ -64,12 +64,12 @@
                                 <div class="aqg-token-row__field" role="group" aria-label="Scanner token masked value">
                                     <span class="aqg-token-row__prefix">Token</span>
                                     <span class="aqg-token-row__value js-aqg-token-value">{remoteAccessMaskedScannerToken}</span>
-                                    <button type="button" class="aqg-token-row__action js-aqg-copy-token" data-token="" disabled="disabled" aria-label="Copy newly generated scanner token">
+                                    <button type="button" class="btn btn-default btn-sm aqg-token-row__action js-aqg-copy-token" data-token="" disabled="disabled" aria-label="Copy newly generated scanner token">
                                         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                                             <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
                                             <path d="M2 8 L2 2 L8 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
-                                        Copy after regenerate
+                                        <span class="js-aqg-copy-token-label">Copy</span>
                                     </button>
                                 </div>
                             </div>

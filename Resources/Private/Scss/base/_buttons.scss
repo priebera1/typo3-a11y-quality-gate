@@ -1,3 +1,4 @@
+.aqg-module .btn,
 .a11y-page-detail .btn {
     display: inline-flex;
     align-items: center;
@@ -10,20 +11,27 @@
     font-size: 13px;
     font-weight: 500;
     line-height: 1.25;
+    text-decoration: none;
+    box-shadow: none;
+    white-space: nowrap;
 }
 
+.aqg-module .btn-sm,
 .a11y-page-detail .btn-sm {
     min-height: 29px;
     padding: 5px 9px;
     font-size: 12px;
 }
 
+.aqg-module .btn-primary,
 .a11y-page-detail .btn-primary {
     background: var(--aqi-fg);
     border-color: var(--aqi-fg);
     color: var(--aqi-surface);
 }
 
+.aqg-module .btn-primary:hover,
+.aqg-module .btn-primary:focus,
 .a11y-page-detail .btn-primary:hover,
 .a11y-page-detail .btn-primary:focus {
     background: color-mix(in oklch, var(--aqi-fg) 88%, var(--aqi-surface));
@@ -31,6 +39,9 @@
     color: var(--aqi-surface);
 }
 
+.aqg-module .btn-default,
+.aqg-module .btn-secondary,
+.aqg-module .btn-info,
 .a11y-page-detail .btn-default,
 .a11y-page-detail .btn-secondary,
 .a11y-page-detail .btn-info {
@@ -39,6 +50,12 @@
     color: var(--aqi-fg);
 }
 
+.aqg-module .btn-default:hover,
+.aqg-module .btn-default:focus,
+.aqg-module .btn-secondary:hover,
+.aqg-module .btn-secondary:focus,
+.aqg-module .btn-info:hover,
+.aqg-module .btn-info:focus,
 .a11y-page-detail .btn-default:hover,
 .a11y-page-detail .btn-default:focus,
 .a11y-page-detail .btn-secondary:hover,
@@ -50,12 +67,23 @@
     color: var(--aqi-fg);
 }
 
+.aqg-module .btn-warning,
 .a11y-page-detail .btn-warning {
     background: var(--aqi-warn-bg);
     border-color: var(--aqi-warn-border);
     color: var(--aqi-warn);
 }
 
+.aqg-module .btn:disabled,
+.aqg-module .btn.disabled,
+.a11y-page-detail .btn:disabled,
+.a11y-page-detail .btn.disabled {
+    opacity: .62;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.aqg-module .btn:focus-visible,
 .a11y-page-detail .btn:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);

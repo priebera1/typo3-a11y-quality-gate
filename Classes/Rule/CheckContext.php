@@ -16,6 +16,9 @@ final readonly class CheckContext
         public mixed $content,
         public string $cType = '',
         public string $contextPath = '',
+        public string $sourceType = '',
+        public string $frontendUrl = '',
+        public string $cssSelector = '',
     ) {
     }
 

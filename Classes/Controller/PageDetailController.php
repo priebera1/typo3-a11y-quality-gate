@@ -151,6 +151,20 @@ final class PageDetailController extends AbstractBackendModuleController
             $row['ignoredReopenedAtLabel'] = $ignoredReopenedAt > 0 ? date('d M Y', $ignoredReopenedAt) : '';
             $row['hasEditAccess'] = false;
             $row['editLink'] = '';
+            $sourceType = trim((string)($row['source_type'] ?? ''));
+            if ($sourceType === '') {
+                $sourceType = str_starts_with($ruleId, 'structured.') ? 'structured' : (str_starts_with($ruleId, 'rendered.') ? 'rendered' : 'rte');
+            }
+            $row['sourceType'] = $sourceType;
+            $row['sourceTypeLabel'] = match ($sourceType) {
+                'rendered' => 'Rendered HTML',
+                'structured' => 'Structured content',
+                'remote' => 'Remote crawler',
+                default => 'Content source',
+            };
+            $row['sourceHint'] = $sourceType === 'rendered' && $sourceTable === 'pages'
+                ? 'Likely: template, layout or plugin output'
+                : '';
 
             if (
                 $sourceTable !== ''
@@ -203,10 +217,15 @@ final class PageDetailController extends AbstractBackendModuleController
                 $issuesForStatus,
                 static fn(array $issue): bool => (int)$issue['severity'] === Severity::Info->value
             )),
+            'needs_review' => count(array_filter(
+                $issuesForStatus,
+                static fn(array $issue): bool => (int)$issue['severity'] === Severity::NeedsReview->value
+            )),
             'total' => count($issuesForStatus),
         ];
 
         $visibleIssues = IssueFilterUtility::filterBySeverity($issuesForStatus, $activeSeverity);
+        $hasRenderedIssues = count(array_filter($issuesForStatus, static fn(array $issue): bool => (string)($issue['sourceType'] ?? '') === 'rendered')) > 0;
 
         $pagination = $this->buildPagination(
             totalItems: count($visibleIssues),
@@ -232,6 +251,10 @@ final class PageDetailController extends AbstractBackendModuleController
             'info' => array_values(array_filter(
                 $paginatedIssues,
                 static fn(array $issue): bool => (int)$issue['severity'] === Severity::Info->value
+            )),
+            'needs_review' => array_values(array_filter(
+                $paginatedIssues,
+                static fn(array $issue): bool => (int)$issue['severity'] === Severity::NeedsReview->value
             )),
         ];
 
@@ -269,6 +292,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'critical' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, 'critical', 1),
             'warning' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, 'warning', 1),
             'info' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, 'info', 1),
+            'needs_review' => $this->buildPageDetailUrl($pageUid, $siteIdentifier, $activeStatus, 'needs_review', 1),
         ];
         $resetFilterUrl = $this->buildPageDetailUrl($pageUid, $siteIdentifier, 'open', 'all', 1);
 
@@ -345,6 +369,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'severityCounts' => $severityCounts,
             'statusCounts' => $statusCounts,
             'visibleIssuesCount' => count($visibleIssues),
+            'hasRenderedIssues' => $hasRenderedIssues,
             'statusFilterUrls' => $statusFilterUrls,
             'severityFilterUrls' => $severityFilterUrls,
             'resetFilterUrl' => $resetFilterUrl,
@@ -414,7 +439,12 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
-        $this->activeLanguageUidForUrls = (int)($body['language'] ?? -1);
+        $this->activeLanguageUidForUrls = $this->requestParameterService->getLanguageUidFromParameters(
+            is_array($body) ? $body : [],
+            [],
+            -1,
+            true,
+        );
 
         $expiry = $this->resolveIgnoreExpiry($body);
 
@@ -453,7 +483,12 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
-        $languageUid = (int)($body['language'] ?? -1);
+        $languageUid = $this->requestParameterService->getLanguageUidFromParameters(
+            is_array($body) ? $body : [],
+            [],
+            -1,
+            true,
+        );
         $this->activeLanguageUidForUrls = $languageUid;
 
         $expiry = $this->resolveIgnoreExpiry($body);
@@ -505,7 +540,12 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
-        $languageUid = (int)($body['language'] ?? -1);
+        $languageUid = $this->requestParameterService->getLanguageUidFromParameters(
+            is_array($body) ? $body : [],
+            [],
+            -1,
+            true,
+        );
         $this->activeLanguageUidForUrls = $languageUid;
 
         $expiry = $this->resolveIgnoreExpiry($body);
@@ -566,7 +606,12 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'open'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
-        $languageUid = (int)($body['language'] ?? -1);
+        $languageUid = $this->requestParameterService->getLanguageUidFromParameters(
+            is_array($body) ? $body : [],
+            [],
+            -1,
+            true,
+        );
         $this->activeLanguageUidForUrls = $languageUid;
 
         $expiry = $this->resolveIgnoreExpiry($body);
@@ -614,7 +659,12 @@ final class PageDetailController extends AbstractBackendModuleController
         $status = FilterValueUtility::normalizeStatus((string)($body['status'] ?? 'ignored'));
         $severity = FilterValueUtility::normalizeSeverity((string)($body['severity'] ?? 'all'));
         $page = max(1, (int)($body['page'] ?? 1));
-        $this->activeLanguageUidForUrls = (int)($body['language'] ?? -1);
+        $this->activeLanguageUidForUrls = $this->requestParameterService->getLanguageUidFromParameters(
+            is_array($body) ? $body : [],
+            [],
+            -1,
+            true,
+        );
 
         if ($issueUid > 0 && !$this->canEditIssue($issueUid)) {
             $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
@@ -745,15 +795,12 @@ final class PageDetailController extends AbstractBackendModuleController
 
     private function currentLanguageUidForRoute(ServerRequestInterface $request): int
     {
-        $queryParams = $request->getQueryParams();
-        if (isset($queryParams['language']) && is_numeric($queryParams['language'])) {
-            return (int)$queryParams['language'];
-        }
-        if (isset($queryParams['languageUid']) && is_numeric($queryParams['languageUid'])) {
-            return (int)$queryParams['languageUid'];
-        }
-
-        return $this->activeLanguageUidForUrls;
+        return $this->requestParameterService->getLanguageUidFromParameters(
+            $request->getQueryParams(),
+            [],
+            $this->activeLanguageUidForUrls,
+            true,
+        );
     }
 
     private function buildOverviewUrl(

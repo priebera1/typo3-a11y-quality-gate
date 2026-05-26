@@ -163,6 +163,10 @@
     color: var(--aqi-run);
 }
 
+.a11y-page-detail .aqg-hero-stat__value.tone-needs_review {
+    color: var(--aqi-review);
+}
+
 .a11y-page-detail .aqg-hero-stat__value.tone-ok {
     color: var(--aqi-ok);
 }

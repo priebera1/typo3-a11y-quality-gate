@@ -66,6 +66,9 @@ final class PdfReportBuilder
                 'infoFoot' => $totals['info'] > 0
                     ? 'across ' . $pageCounts['info'] . ' ' . $this->pluralize('page', $pageCounts['info'])
                     : 'no info findings',
+                'needsReviewFoot' => $totals['needs_review'] > 0
+                    ? 'across ' . $pageCounts['needs_review'] . ' ' . $this->pluralize('page', $pageCounts['needs_review'])
+                    : 'no review items',
                 'totalFoot' => $totals['total'] > 0
                     ? 'across ' . $affectedPagesCount . ' ' . $this->pluralize('page', $affectedPagesCount)
                     : 'no matching issues',
@@ -134,11 +137,13 @@ final class PdfReportBuilder
                 'criticalFoot' => $totals['critical'] > 0 ? $totals['critical'] . ' on this page' : 'none matching',
                 'warningFoot' => $totals['warning'] > 0 ? $totals['warning'] . ' on this page' : 'none matching',
                 'infoFoot' => $totals['info'] > 0 ? $totals['info'] . ' on this page' : 'none matching',
+                'needsReviewFoot' => $totals['needs_review'] > 0 ? $totals['needs_review'] . ' on this page' : 'none matching',
                 'totalFoot' => $totals['total'] > 0 ? $totals['total'] . ' issues on this page' : 'filtered to 0',
                 'totalCardFoot' => $totals['total'] > 0 ? 'matching filters' : 'no matching issues',
                 'criticalZeroClass' => $totals['critical'] === 0 ? ' is-zero' : '',
                 'warningZeroClass' => $totals['warning'] === 0 ? ' is-zero' : '',
                 'infoZeroClass' => $totals['info'] === 0 ? ' is-zero' : '',
+                'needsReviewZeroClass' => $totals['needs_review'] === 0 ? ' is-zero' : '',
                 'totalZeroClass' => $totals['total'] === 0 ? ' is-zero' : '',
                 'issues' => $preparedIssues,
                 'hasIssues' => $preparedIssues !== [],
@@ -155,7 +160,7 @@ final class PdfReportBuilder
 
     /**
      * @param array<int, array<string, mixed>> $issues
-     * @return array{critical:int,warning:int,info:int,total:int}
+     * @return array{critical:int,warning:int,info:int,needs_review:int,total:int}
      */
     private function buildTotalsFromIssues(array $issues): array
     {
@@ -163,6 +168,7 @@ final class PdfReportBuilder
             'critical' => 0,
             'warning' => 0,
             'info' => 0,
+            'needs_review' => 0,
             'total' => 0,
         ];
 
@@ -173,6 +179,7 @@ final class PdfReportBuilder
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             $totals[$key]++;
@@ -184,7 +191,7 @@ final class PdfReportBuilder
 
     /**
      * @param array<int, array<string, mixed>> $issues
-     * @return array{critical:int,warning:int,info:int,total:int}
+     * @return array{critical:int,warning:int,info:int,needs_review:int,total:int}
      */
     private function buildPageCountsBySeverity(array $issues): array
     {
@@ -192,6 +199,7 @@ final class PdfReportBuilder
             'critical' => [],
             'warning' => [],
             'info' => [],
+            'needs_review' => [],
             'total' => [],
         ];
 
@@ -203,6 +211,7 @@ final class PdfReportBuilder
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             $pages[$severityKey][$pageKey] = true;
@@ -213,6 +222,7 @@ final class PdfReportBuilder
             'critical' => count($pages['critical']),
             'warning' => count($pages['warning']),
             'info' => count($pages['info']),
+            'needs_review' => count($pages['needs_review']),
             'total' => count($pages['total']),
         ];
     }
@@ -236,6 +246,7 @@ final class PdfReportBuilder
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             if (!isset($rules[$ruleId])) {
@@ -273,7 +284,7 @@ final class PdfReportBuilder
 
     /**
      * @param array<int, array<string, mixed>> $issues
-     * @return array<int, array{pageUid:int,pageTitle:string,pageSub:string,critical:int,warning:int,info:int,total:int,criticalTone:string,warningTone:string,infoTone:string}>
+     * @return array<int, array{pageUid:int,pageTitle:string,pageSub:string,critical:int,warning:int,info:int,needs_review:int,total:int,criticalTone:string,warningTone:string,infoTone:string,needsReviewTone:string}>
      */
     private function buildTopPages(array $issues, string $siteLabel): array
     {
@@ -292,6 +303,7 @@ final class PdfReportBuilder
                     'critical' => 0,
                     'warning' => 0,
                     'info' => 0,
+                    'needs_review' => 0,
                     'total' => 0,
                 ];
             }
@@ -301,6 +313,7 @@ final class PdfReportBuilder
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             $pages[$pageKey][$severityKey]++;
@@ -323,6 +336,7 @@ final class PdfReportBuilder
             $page['criticalTone'] = (int)$page['critical'] > 0 ? 'critical' : 'zero';
             $page['warningTone'] = (int)$page['warning'] > 0 ? 'warning' : 'zero';
             $page['infoTone'] = (int)$page['info'] > 0 ? 'info' : 'zero';
+            $page['needsReviewTone'] = (int)($page['needs_review'] ?? 0) > 0 ? 'info' : 'zero';
         }
         unset($page);
 
@@ -345,6 +359,7 @@ final class PdfReportBuilder
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
             $statusKey = match ($statusEnum) {
                 IssueStatus::Open => 'open',
@@ -439,7 +454,11 @@ final class PdfReportBuilder
             return 'all';
         }
 
-        return strtolower(str_replace('_', ' ', $value));
+        return match (strtolower($value)) {
+            'all' => 'All',
+            'needs_review' => 'Needs review',
+            default => ucfirst(strtolower(str_replace('_', ' ', $value))),
+        };
     }
 
     private function pluralize(string $singular, int $count): string
@@ -459,9 +478,10 @@ final class PdfReportBuilder
     private function severityWeight(string $tone): int
     {
         return match ($tone) {
-            'critical' => 3,
-            'warning' => 2,
-            'info' => 1,
+            'critical' => 30,
+            'warning' => 20,
+            'needs_review' => 15,
+            'info' => 10,
             default => 0,
         };
     }

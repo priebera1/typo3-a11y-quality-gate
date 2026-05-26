@@ -12,6 +12,8 @@ use Priebera\A11yQualityGate\Rule\RuleViolation;
 
 final class FileReferenceAltRule implements RuleInterface
 {
+    private const SUPPORTED_FILE_FIELDS = ['image', 'assets', 'media'];
+
     private const GROUPING_THRESHOLD = 5;
     private const GROUPED_CONTEXT_PREVIEW_LIMIT = 5;
 
@@ -42,9 +44,15 @@ final class FileReferenceAltRule implements RuleInterface
 
     public function supports(CheckContext $context): bool
     {
+        $sourceField = strtolower(trim($context->sourceField));
+
         return $context->sourceTable !== ''
-            && $context->sourceField !== ''
-            && $context->sourceUid > 0;
+            && $context->sourceUid > 0
+            && (
+                in_array($sourceField, self::SUPPORTED_FILE_FIELDS, true)
+                || str_contains($sourceField, 'image')
+                || str_contains($sourceField, 'asset')
+            );
     }
 
     /**

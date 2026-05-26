@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
 use Priebera\A11yQualityGate\Exception\ScanCancelledException;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
+use Priebera\A11yQualityGate\Rendered\RenderedPageScanner;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use Psr\Log\LoggerInterface;
 
@@ -21,6 +22,7 @@ final class ScanOrchestrator
         private readonly ContentCollector $contentCollector,
         private readonly ContentHashCalculator $contentHashCalculator,
         private readonly RuleRegistry $ruleRegistry,
+        private readonly RenderedPageScanner $renderedPageScanner,
         private readonly RuleConfigurationService $ruleConfigurationService,
         private readonly IssueRepository $issueRepository,
         private readonly ScanRepository $scanRepository,
@@ -54,6 +56,7 @@ final class ScanOrchestrator
             resolvedBy: $resolvedBy,
             shouldCancel: $shouldCancel,
             onRunStarted: $onRunStarted,
+            includeRenderedPageCheck: false,
         );
     }
 
@@ -81,6 +84,7 @@ final class ScanOrchestrator
             resolvedBy: $resolvedBy,
             shouldCancel: $shouldCancel,
             onRunStarted: $onRunStarted,
+            includeRenderedPageCheck: true,
         );
     }
 
@@ -98,6 +102,7 @@ final class ScanOrchestrator
         ?array $resolvedBy,
         ?\Closure $shouldCancel,
         ?\Closure $onRunStarted,
+        bool $includeRenderedPageCheck,
     ): ScanResult {
         $scanUid = $this->scanRepository->createScanRun(
             siteIdentifier: $siteIdentifier,
@@ -124,6 +129,7 @@ final class ScanOrchestrator
                     changedOnly: $changedOnly,
                     resolvedBy: $resolvedBy,
                     shouldCancel: $shouldCancel,
+                    includeRenderedPageCheck: $includeRenderedPageCheck && $scope === 'page',
                 );
             }
 
@@ -192,11 +198,13 @@ final class ScanOrchestrator
         bool $changedOnly,
         ?array $resolvedBy,
         ?\Closure $shouldCancel,
+        bool $includeRenderedPageCheck,
     ): void {
         $records = $this->contentCollector->collectForPage($pageUid, $languageUid);
         $result->pagesScanned++;
 
         $seenFingerprintsForPage = [];
+        $renderedCheckCompleted = false;
 
         foreach ($records as $recordEnvelope) {
             $this->throwIfCancellationRequested($shouldCancel, $scanUid);
@@ -380,6 +388,51 @@ final class ScanOrchestrator
             }
         }
 
+        if ($includeRenderedPageCheck && !$changedOnly) {
+            $renderedSettings = $this->ruleConfigurationService->getRenderedCheckSettingsForSite($siteIdentifier);
+            if (!$renderedSettings['enabled']) {
+                $this->logger->debug('Rendered page check skipped: disabled in ruleset settings.', [
+                    'siteIdentifier' => $siteIdentifier,
+                    'pageUid' => $pageUid,
+                    'scanUid' => $scanUid,
+                ]);
+            } else {
+                $this->throwIfCancellationRequested($shouldCancel, $scanUid);
+                $renderedLanguageUid = $languageUid >= 0 ? $languageUid : 0;
+            $renderedContext = new CheckContext(
+                siteIdentifier: $siteIdentifier,
+                pageUid: $pageUid,
+                sourceLangUid: $renderedLanguageUid,
+                sourceTable: Tables::PAGES,
+                sourceUid: $pageUid,
+                sourceField: '__rendered_html',
+                content: '',
+                cType: '',
+                contextPath: sprintf('Page:%d > rendered HTML', $pageUid),
+                sourceType: 'rendered',
+            );
+
+                $renderedResult = $this->renderedPageScanner->scanPageWithResult(
+                    $siteIdentifier,
+                    $pageUid,
+                    $renderedLanguageUid,
+                    $renderedSettings['allowPrivateHosts']
+                );
+                $renderedCheckCompleted = $renderedResult->completed;
+
+                foreach ($renderedResult->violations as $violation) {
+                    $fingerprint = $violation->fingerprint($renderedContext);
+                    $seenFingerprintsForPage[] = $fingerprint;
+                    $upsertResult = $this->issueRepository->upsert($violation, $renderedContext, $scanUid);
+                    match ($upsertResult) {
+                        'inserted' => $result->issuesNew++,
+                        'protected' => $result->issuesIgnored++,
+                        default => null,
+                    };
+                }
+            }
+        }
+
         if (!$changedOnly) {
             $resolved = $this->issueRepository->resolveUnseen(
                 pageUid: $pageUid,
@@ -390,6 +443,7 @@ final class ScanOrchestrator
                 backendUserUid: (int)($resolvedBy['uid'] ?? 0),
                 backendUserName: (string)($resolvedBy['name'] ?? ''),
                 backendUsername: (string)($resolvedBy['username'] ?? ''),
+                excludeSourceTypes: ($includeRenderedPageCheck && !$renderedCheckCompleted) ? ['rendered'] : [],
             );
 
             $result->issuesResolved += $resolved;

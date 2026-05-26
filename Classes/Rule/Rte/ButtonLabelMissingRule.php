@@ -72,7 +72,7 @@ final class ButtonLabelMissingRule extends AbstractRteRule
             return true;
         }
 
-        if ($button->hasAttribute('aria-labelledby')) {
+        if ($this->hasValidAriaLabelledBy($button, $xpath)) {
             return true;
         }
 

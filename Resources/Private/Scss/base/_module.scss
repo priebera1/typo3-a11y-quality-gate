@@ -25,6 +25,9 @@
     --aqi-run: oklch(0.58 0.13 245);
     --aqi-run-bg: oklch(0.97 0.025 245);
     --aqi-run-border: oklch(0.87 0.06 245);
+    --aqi-review: oklch(0.54 0.18 305);
+    --aqi-review-bg: oklch(0.97 0.025 305);
+    --aqi-review-border: oklch(0.86 0.07 305);
     --aqi-none: oklch(0.55 0 0);
     --aqi-none-bg: oklch(0.97 0 0);
     --aqi-none-border: oklch(0.88 0 0);
@@ -52,6 +55,9 @@
     --aqg-info: var(--aqi-run);
     --aqg-info-bg: var(--aqi-run-bg);
     --aqg-info-border: var(--aqi-run-border);
+    --aqg-review: var(--aqi-review);
+    --aqg-review-bg: var(--aqi-review-bg);
+    --aqg-review-border: var(--aqi-review-border);
     --aqg-focus: var(--aqi-focus);
     display: flex;
     flex-direction: column;

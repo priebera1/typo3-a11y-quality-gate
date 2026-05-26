@@ -23,6 +23,9 @@
     --aqi-run: var(--typo3-text-color-info, #1b7fbf);
     --aqi-run-bg: var(--typo3-surface-container-info, #eef7ff);
     --aqi-run-border: var(--typo3-state-info-border-color, #afd9f4);
+    --aqi-review: #7c3aed;
+    --aqi-review-bg: #f5f3ff;
+    --aqi-review-border: #c4b5fd;
     --aqi-none: var(--typo3-text-color-variant, #8a94a2);
     --aqi-none-bg: var(--typo3-surface-container-low, #f4f5f7);
     --aqi-none-border: var(--typo3-component-border-color, #d9dde3);
@@ -47,6 +50,9 @@
     --aqg-info: var(--aqi-run);
     --aqg-info-bg: var(--aqi-run-bg);
     --aqg-info-border: var(--aqi-run-border);
+    --aqg-review: var(--aqi-review);
+    --aqg-review-bg: var(--aqi-review-bg);
+    --aqg-review-border: var(--aqi-review-border);
     --aqg-focus: var(--aqi-focus);
     --aqg-indicator-surface: var(--aqi-surface);
     --aqg-indicator-surface-2: var(--aqi-surface-2);
@@ -68,6 +74,9 @@
     --aqg-indicator-running: var(--aqi-run);
     --aqg-indicator-running-bg: var(--aqi-run-bg);
     --aqg-indicator-running-border: var(--aqi-run-border);
+    --aqg-indicator-review: var(--aqi-review);
+    --aqg-indicator-review-bg: var(--aqi-review-bg);
+    --aqg-indicator-review-border: var(--aqi-review-border);
     --aqg-indicator-none: var(--aqi-none);
     --aqg-indicator-none-bg: var(--aqi-none-bg);
     --aqg-indicator-none-border: var(--aqi-none-border);
@@ -123,6 +132,9 @@ body[data-color-scheme="dark"] .a11y-overview.aqg-module,
     --aqi-run: var(--typo3-text-color-info, #56b9f4);
     --aqi-run-bg: var(--typo3-surface-container-info, #173142);
     --aqi-run-border: var(--typo3-state-info-border-color, #25536e);
+    --aqi-review: #c084fc;
+    --aqi-review-bg: #2e1f48;
+    --aqi-review-border: #6b3fa0;
     --aqi-none: var(--typo3-text-color-variant, #a3a9b2);
     --aqi-none-bg: var(--typo3-surface-container-low, #25292e);
     --aqi-none-border: var(--typo3-component-border-color, #3a4047);

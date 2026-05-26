@@ -1,0 +1,107 @@
+# Rule: rte.link_new_window_no_warning
+# WCAG: 3.2.2 On Input
+# Match type: word-boundary contains check in link text, aria-label, title and labelled descendants.
+phrases:
+  en:
+    - new window
+    - new tab
+    - opens in new
+    - opens new
+    - opens in a new window
+    - opens in a new tab
+    - external link
+
+  de:
+    - neues fenster
+    - neuer tab
+    - öffnet sich in
+    - öffnet in neuem
+    - externer link
+    - neues browserfenster
+
+  sk:
+    - nové okno
+    - nová záložka
+    - otvorí sa v novom
+    - otvorí sa v novej
+    - otvára sa v novom okne
+    - otvára sa v novej záložke
+    - externý odkaz
+    - nové okno prehliadača
+
+  fr:
+    - nouvelle fenêtre
+    - nouvel onglet
+    - s'ouvre dans
+    - lien externe
+
+  nl:
+    - nieuw venster
+    - nieuw tabblad
+    - opent in nieuw
+    - externe link
+    - opent in een nieuw venster
+    - opent in een nieuw tabblad
+
+  pl:
+    - nowe okno
+    - nowa karta
+    - otwiera się w nowym
+    - otwiera nowe
+    - zewnętrzny link
+
+  cs:
+    - nové okno
+    - nová záložka
+    - otevře se v novém
+    - externí odkaz
+    - nové okno prohlížeče
+
+  it:
+    - nuova finestra
+    - nuova scheda
+    - si apre in una nuova
+    - link esterno
+    - apre in nuova finestra
+
+  es:
+    - nueva ventana
+    - nueva pestaña
+    - se abre en una nueva
+    - enlace externo
+    - abre en nueva ventana
+
+  pt:
+    - nova janela
+    - novo separador
+    - novo separador do browser
+    - abre numa nova janela
+    - link externo
+
+  da:
+    - nyt vindue
+    - ny fane
+    - åbner i nyt
+    - eksternt link
+    - åbner i nyt vindue
+
+  sv:
+    - nytt fönster
+    - ny flik
+    - öppnas i nytt
+    - extern länk
+    - öppnas i ett nytt fönster
+
+  nb:
+    - nytt vindu
+    - ny fane
+    - åpner i nytt
+    - ekstern lenke
+    - åpner i et nytt vindu
+
+  fi:
+    - uusi ikkuna
+    - uusi välilehti
+    - avautuu uuteen
+    - ulkoinen linkki
+    - avautuu uuteen ikkunaan

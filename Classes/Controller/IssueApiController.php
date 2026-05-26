@@ -52,13 +52,22 @@ final class IssueApiController extends AbstractApiController
         $params = $request->getQueryParams();
         $recordUid = (int)($params['recordUid'] ?? 0);
         $fieldName = trim((string)($params['fieldName'] ?? 'bodytext'));
+        $pageUid = (int)($params['pageUid'] ?? 0);
 
         if ($recordUid <= 0) {
             return $this->badRequestResponse('Missing recordUid');
         }
 
-        if (!$this->backendRecordAccessService->canEditRecord(Tables::TT_CONTENT, $recordUid)) {
+        if (!$this->canAccessRteRecord($recordUid, $pageUid)) {
             return $this->forbiddenResponse();
+        }
+
+        if (!$this->backendRecordAccessService->recordExists(Tables::TT_CONTENT, $recordUid)) {
+            return $this->jsonResponse([
+                'success' => true,
+                'issues' => [],
+                'pendingRecord' => true,
+            ]);
         }
 
         $issues = $this->issueRepository->findOpenForRecord(
@@ -66,7 +75,7 @@ final class IssueApiController extends AbstractApiController
             sourceUid: $recordUid,
             sourceField: $fieldName,
         );
-        $context = $this->buildRteContext($recordUid, $fieldName, '');
+        $context = $this->buildRteContext($recordUid, $fieldName, '', $pageUid);
         if ($context instanceof CheckContext) {
             $issues = array_values(array_filter(
                 $issues,
@@ -109,7 +118,8 @@ final class IssueApiController extends AbstractApiController
 
         $recordUid = (int)($data['recordUid'] ?? 0);
         $fieldName = trim((string)($data['fieldName'] ?? 'bodytext'));
-        $html = $this->removeHtmlComments((string)($data['html'] ?? ''));
+        $pageUid = (int)($data['pageUid'] ?? 0);
+        $html = $this->normalizeLiveValidationHtml((string)($data['html'] ?? ''));
 
         if ($recordUid <= 0) {
             return $this->badRequestResponse('Missing recordUid');
@@ -119,7 +129,7 @@ final class IssueApiController extends AbstractApiController
             return $this->badRequestResponse('Missing fieldName');
         }
 
-        if (!$this->backendRecordAccessService->canEditRecord(Tables::TT_CONTENT, $recordUid)) {
+        if (!$this->canAccessRteRecord($recordUid, $pageUid)) {
             return $this->forbiddenResponse();
         }
 
@@ -135,7 +145,7 @@ final class IssueApiController extends AbstractApiController
             ]);
         }
 
-        $ctx = $this->buildRteContext($recordUid, $fieldName, $html);
+        $ctx = $this->buildRteContext($recordUid, $fieldName, $html, $pageUid);
         if (!$ctx instanceof CheckContext) {
             return $this->notFoundResponse('RTE record not found');
         }
@@ -169,9 +179,34 @@ final class IssueApiController extends AbstractApiController
         ]);
     }
 
-    private function removeHtmlComments(string $html): string
+    private function normalizeLiveValidationHtml(string $html): string
     {
-        return (string)preg_replace('/<!--.*?-->/s', '', $html);
+        $html = (string)preg_replace('/<!--.*?-->/s', '', $html);
+
+        // CKEditor normally sends real HTML through editor.getData(). In some source/editing flows,
+        // however, the payload can contain escaped HTML fragments wrapped in normal paragraph tags:
+        // <p>&lt;img href="nic" /&gt;</p>. The previous fallback did not decode this because
+        // the wrapper <p> counted as a real HTML element, so the RTE rules only saw text.
+        if ($this->containsEscapedHtmlElement($html) && $this->countActionableHtmlElements($html) === 0) {
+            $decoded = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($this->countActionableHtmlElements($decoded) > 0) {
+                $html = $decoded;
+            }
+        }
+
+        return $html;
+    }
+
+    private function containsEscapedHtmlElement(string $html): bool
+    {
+        return preg_match('/&lt;\s*(a|img|table|thead|tbody|tr|th|td|button|iframe|svg|h[1-6]|ul|ol|li)\b/i', $html) === 1;
+    }
+
+    private function countActionableHtmlElements(string $html): int
+    {
+        preg_match_all('/<\s*(a|img|table|thead|tbody|tr|th|td|button|iframe|svg|h[1-6]|ul|ol|li)\b/i', $html, $matches);
+
+        return count($matches[0] ?? []);
     }
 
     public function ignoreAction(ServerRequestInterface $request): ResponseInterface
@@ -211,18 +246,19 @@ final class IssueApiController extends AbstractApiController
         $storedFingerprint = $isLiveIssue ? substr($fingerprint, 5) : $fingerprint;
         $recordUid = (int)($data['recordUid'] ?? 0);
         $fieldName = trim((string)($data['fieldName'] ?? 'bodytext'));
+        $pageUid = (int)($data['pageUid'] ?? 0);
         $siteIdentifier = trim((string)($data['siteIdentifier'] ?? ''));
 
         if ($recordUid <= 0) {
             return $this->badRequestResponse('Missing recordUid');
         }
 
-        if (!$this->backendRecordAccessService->canEditRecord(Tables::TT_CONTENT, $recordUid)) {
+        if (!$this->canAccessRteRecord($recordUid, $pageUid)) {
             return $this->forbiddenResponse();
         }
 
         if ($siteIdentifier === '' && $recordUid > 0 && $fieldName !== '') {
-            $contextForSite = $this->buildRteContext($recordUid, $fieldName, '');
+            $contextForSite = $this->buildRteContext($recordUid, $fieldName, '', $pageUid);
             if ($contextForSite instanceof CheckContext) {
                 $siteIdentifier = $contextForSite->siteIdentifier;
             }
@@ -264,7 +300,7 @@ final class IssueApiController extends AbstractApiController
             return $this->notFoundResponse('Issue not found');
         }
 
-        $html = $this->removeHtmlComments((string)($data['html'] ?? ''));
+        $html = $this->normalizeLiveValidationHtml((string)($data['html'] ?? ''));
 
         if ($recordUid <= 0 || $fieldName === '') {
             return $this->badRequestResponse('Missing live issue context');
@@ -274,7 +310,7 @@ final class IssueApiController extends AbstractApiController
             return $this->badRequestResponse('HTML too large');
         }
 
-        $ctx = $this->buildRteContext($recordUid, $fieldName, $html);
+        $ctx = $this->buildRteContext($recordUid, $fieldName, $html, $pageUid);
         if (!$ctx instanceof CheckContext) {
             return $this->notFoundResponse('RTE record not found');
         }
@@ -328,7 +364,28 @@ final class IssueApiController extends AbstractApiController
         return $sourceField === '' || $sourceField === $fieldName;
     }
 
-    private function buildRteContext(int $recordUid, string $fieldName, string $html): ?CheckContext
+    private function canAccessRteRecord(int $recordUid, int $fallbackPageUid = 0): bool
+    {
+        if ($recordUid <= 0) {
+            return false;
+        }
+
+        if ($this->backendRecordAccessService->canEditRecord(Tables::TT_CONTENT, $recordUid)) {
+            return true;
+        }
+
+        if ($fallbackPageUid <= 0) {
+            return false;
+        }
+
+        if ($this->backendRecordAccessService->recordExists(Tables::TT_CONTENT, $recordUid)) {
+            return false;
+        }
+
+        return $this->backendRecordAccessService->canEditContentOnPage($fallbackPageUid);
+    }
+
+    private function buildRteContext(int $recordUid, string $fieldName, string $html, int $fallbackPageUid = 0): ?CheckContext
     {
         $qb = $this->connectionPool->getQueryBuilderForTable(Tables::TT_CONTENT);
         $record = $qb
@@ -342,11 +399,15 @@ final class IssueApiController extends AbstractApiController
             ->executeQuery()
             ->fetchAssociative();
 
-        if (!$record) {
+        if (!$record && $fallbackPageUid <= 0) {
             return null;
         }
 
-        $pageUid = (int)($record['pid'] ?? 0);
+        $pageUid = $record ? (int)($record['pid'] ?? 0) : $fallbackPageUid;
+        if ($pageUid <= 0 && $fallbackPageUid > 0) {
+            $pageUid = $fallbackPageUid;
+        }
+
         $siteIdentifier = 'ckeditor-live';
 
         if ($pageUid > 0) {
@@ -359,12 +420,12 @@ final class IssueApiController extends AbstractApiController
         return new CheckContext(
             siteIdentifier: $siteIdentifier,
             pageUid: $pageUid,
-            sourceLangUid: (int)($record['sys_language_uid'] ?? 0),
+            sourceLangUid: $record ? (int)($record['sys_language_uid'] ?? 0) : 0,
             sourceTable: Tables::TT_CONTENT,
             sourceUid: $recordUid,
             sourceField: $fieldName,
             content: $html,
-            cType: (string)($record['CType'] ?? ''),
+            cType: $record ? (string)($record['CType'] ?? '') : '',
             contextPath: sprintf(
                 'Page:%d > %s:%d > %s',
                 $pageUid,
@@ -394,7 +455,7 @@ final class IssueApiController extends AbstractApiController
             'fingerprint' => 'live:' . $fingerprint,
             'persistedFingerprint' => $fingerprint,
             'ruleId' => $violation->ruleId,
-            'severity' => strtolower($violation->severity->name),
+            'severity' => $violation->severity->key(),
             'message' => $violation->message,
             'hint' => $violation->hint,
             'snippet' => $violation->contextSnippet,
@@ -415,7 +476,7 @@ final class IssueApiController extends AbstractApiController
         return [
             'fingerprint' => $row['fingerprint'] ?? '',
             'ruleId' => $row['rule_id'] ?? '',
-            'severity' => strtolower($severity->name),
+            'severity' => $severity->key(),
             'message' => $row['message'] ?? '',
             'hint' => $row['hint'] ?? '',
             'snippet' => $row['context_snippet'] ?? '',

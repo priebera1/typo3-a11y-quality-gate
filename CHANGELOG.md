@@ -1,5 +1,67 @@
 # Changelog
 
+## [1.3.0] - 2026-05-26
+
+### Added
+- Added rendered page check (FREE, no licence key required): fetches and
+  analyzes the live rendered HTML of the current page, running a dedicated
+  set of HTML-level accessibility rules alongside the existing TCA/RTE checks.
+- Added short-lived HMAC nonce authentication for rendered page checks so
+  FREE users can run page scans without configuring a scanner token in Settings.
+- Added rendered HTML scanner, SSRF-hardened fetcher, URL resolver, analyzer,
+  rule registry, issue factory and issue mapper.
+- Added `source_type`, `frontend_url` and `css_selector` metadata fields to
+  local issues to track rendered issue origin and position.
+- Added rendered HTML issue mapping via `data-aqg-content-uid` /
+  `data-aqg-c-type` frontend debug markers; issues outside a mapped marker
+  fall back to the page record with a template/layout attribution hint.
+- Added 13 rendered HTML rules: missing image alt, empty links, empty buttons,
+  empty headings, missing iframe title, missing form label, duplicate IDs,
+  missing table header, empty table header, SVG missing accessible name,
+  missing HTML lang, missing page title, missing main landmark.
+- Added custom TypoScript ExpressionLanguage condition `aqgDebugMarkers(request)`
+  replacing the previously unsupported `request.getAttribute()` approach.
+- Added `FE.cacheHash.excludedParameters` registration in `ext_localconf.php`
+  for all rendered check URL parameters (`aqgDebug`, `aqgh`,
+  `tx_aqg_rendered_check`, `_aqg_page`, `_aqg_lang`, `_aqg_nonce`).
+- Added a ruleset setting to disable rendered page checks per project.
+- Added an explicit `allowPrivateHosts` development override for private/local
+  frontend hosts; production default remains blocked for SSRF safety.
+
+### Changed
+- Rendered checks are intentionally HTML-only: no sitemap crawling, Playwright,
+  axe-core, screenshots, JavaScript execution or scheduled scans.
+- Rendered checks run only during manual "Scan this page" page scans;
+  site/subtree scans and scheduled tasks do not trigger rendered checks.
+- `tx_aqg_rendered_check=1` requests now require either a valid short-lived
+  HMAC nonce or a valid scanner token to render debug markers; backend-user
+  login alone is not sufficient for rendered check requests.
+- Hardened rendered URL validation for same-host redirects with optional
+  site port checks.
+- Tightened media transcript review hints so `uploads` document lists are
+  not flagged by CType alone.
+- Extended `aria-labelledby` lookup helpers with content validation and
+  reused them across RTE accessible-name checks.
+- Replaced remaining manual backend language parameter parsing in Overview
+  and Page Detail controllers with the shared `RequestParameterService`.
+
+### Fixed
+- Fixed fingerprint backward compatibility so rendered issues include
+  `rendered` and `cssSelector` in their hash while existing RTE and
+  structured issues keep their previous fingerprint; ignored issues from
+  earlier versions are not re-opened after upgrade.
+- Fixed CKEditor live validation for new and unsaved `tt_content` records
+  by resolving `pageUid` from context and falling back to page-level content
+  permissions when the record UID does not yet exist.
+- Fixed CKEditor live validation for escaped HTML fragments (image alt,
+  document links) submitted as plain text in live validation requests.
+- Fixed CKEditor issue panel to show server-side live issues even when a
+  matching editable DOM target cannot be found.
+- Fixed Settings module stylesheet loading so Remote scan access buttons
+  use correct AQG/TYPO3 styling instead of browser defaults.
+- Fixed Copy token button in Remote scan access so the icon is preserved
+  when the token is regenerated.
+
 ## [1.2.0] - 2026-05-21
 
 ### Added

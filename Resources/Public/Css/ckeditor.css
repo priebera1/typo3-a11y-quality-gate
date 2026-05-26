@@ -3186,3 +3186,14 @@ typo3-t3editor-codemirror .cm-line.aqg-cm-line-reveal {
     font-size: 11px !important;
     line-height: 1.2 !important;
 }
+
+/* AQG needs-review severity uses a distinct review/violet tone. */
+.ck-a11y-summary__count--needs_review { color: var(--cka-review, #7c3aed) !important; background: var(--cka-review-bg, #f5f3ff) !important; border-color: var(--cka-review-border, #c4b5fd) !important; }
+.ck-a11y-summary__count--needs_review .ck-a11y-summary__count-dot { background: var(--cka-review, #7c3aed) !important; }
+.ck-a11y-summary__count--needs_review .ck-a11y-summary__count-num { color: var(--cka-review, #7c3aed) !important; }
+.a11y-element-needs_review,
+.ck-a11y-element--needs_review { outline: 2px dotted var(--cka-review, #7c3aed) !important; }
+.ck-content .a11y-element-needs_review { outline: 2px dotted var(--cka-review, #7c3aed) !important; }
+.ck-content .a11y-element-needs_review::before { background: var(--cka-review, #7c3aed) !important; }
+.ck-a11y-panel__severity--needs_review { color: var(--cka-review, #7c3aed) !important; }
+.ck-a11y-panel__severity--needs_review .ck-a11y-panel__severity-dot { background: var(--cka-review, #7c3aed) !important; }

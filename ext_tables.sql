@@ -40,6 +40,9 @@ CREATE TABLE tx_a11y_issue (
     source_table         varchar(100)  NOT NULL DEFAULT '',
     source_uid           int(11)       NOT NULL DEFAULT 0,
     source_field         varchar(100)  NOT NULL DEFAULT '',
+    source_type          varchar(20)   NOT NULL DEFAULT 'rte',
+    frontend_url         varchar(2048) DEFAULT NULL,
+    css_selector         varchar(512)  DEFAULT NULL,
 
     rule_id              varchar(100)  NOT NULL DEFAULT '',
     severity             tinyint(1)    NOT NULL DEFAULT 2,
@@ -73,6 +76,7 @@ CREATE TABLE tx_a11y_issue (
     UNIQUE KEY uniq_site_fingerprint (site_identifier(50), fingerprint),
     KEY idx_page_status_sev (site_identifier(50), page_uid, status, severity),
     KEY idx_source (source_table(50), source_uid, source_field(50), source_lang_uid),
+    KEY idx_source_type (source_type),
     KEY idx_rule_sev_status (rule_id(50), severity, status),
     KEY idx_ignored_until (status, ignored_until),
     KEY idx_deleted (deleted)

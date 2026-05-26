@@ -153,7 +153,10 @@ class AqgRemoteAccessSettings {
     if (copy instanceof HTMLElement) {
       copy.dataset.token = fullToken;
       copy.disabled = fullToken === '';
-      copy.textContent = fullToken !== '' ? 'Copy token' : 'Copy after regenerate';
+      const copyLabel = copy.querySelector('.js-aqg-copy-token-label');
+      if (copyLabel instanceof HTMLElement) {
+        copyLabel.textContent = 'Copy';
+      }
     }
   }
 
@@ -198,7 +201,14 @@ class AqgRemoteAccessSettings {
       return;
     }
     await navigator.clipboard.writeText(token);
-    const original = button.textContent;
+    const label = button.querySelector('.js-aqg-copy-token-label');
+    const original = label instanceof HTMLElement ? label.textContent : button.textContent;
+    if (label instanceof HTMLElement) {
+      label.textContent = 'Copied';
+      window.setTimeout(() => { label.textContent = original || 'Copy'; }, 1800);
+      return;
+    }
+
     button.textContent = 'Copied';
     window.setTimeout(() => { button.textContent = original || 'Copy'; }, 1800);
   }

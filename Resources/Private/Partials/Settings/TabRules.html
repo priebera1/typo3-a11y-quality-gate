@@ -189,65 +189,56 @@
             </div>
         </section>
 
+
         <section class="aqg-card aqg-rule-card">
             <header class="aqg-card__head aqg-card__head--quiet">
                 <div>
-                    <h3 class="aqg-card__title">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveLabel" default="Non-descriptive link phrases" />
-                    </h3>
-                    <p class="aqg-card__sub">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveHelp" default="Phrases that flag a link's accessible name as too vague. The built-in defaults always apply; add your own phrases — including translations — to extend them." />
-                    </p>
+                    <h3 class="aqg-card__title">Rendered Page Check</h3>
+                    <p class="aqg-card__sub">Controls the FREE, manual HTML-only rendered check that runs only during Scan this page.</p>
                 </div>
             </header>
 
             <div class="aqg-card__body">
-                <div class="aqg-field">
-                    <label class="aqg-field__label" for="aqg-non-descriptive-phrases">
-                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.customPhrases" default="Custom phrases" /></span>
-                        <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.onePerLine" default="(one per line · case-insensitive)" /></span>
+                <div class="aqg-settings-grid aqg-settings-grid--rules">
+                    <label class="aqg-check-option aqg-check-option--inline">
+                        <input
+                                type="checkbox"
+                                name="renderedCheckSettings[enabled]"
+                                value="1"
+                                {f:if(condition: renderedCheckSettings.enabled, then: 'checked="checked"')}
+                                data-a11y-rules-input="true"
+                        />
+                        <span>
+                            <span class="aqg-check-option__title">Enable rendered page checks</span>
+                            <span class="aqg-check-option__copy">Runs DOM-only checks against the final frontend HTML output of the current page. It is not used by Scan site, scheduler subtree scans or the PRO crawler.</span>
+                        </span>
                     </label>
 
-                    <textarea
-                            id="aqg-non-descriptive-phrases"
-                            name="nonDescriptiveLinkPhrases"
-                            class="aqg-textarea aqg-input--mono"
-                            rows="5"
-                            placeholder="click here&#10;read more&#10;more information&#10;learn more"
-                            data-a11y-rules-input="true"
-                    >{nonDescriptiveLinkPhrases}</textarea>
-
-                    <div class="aqg-field__help">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveTip" default="Tip: include translated versions of common phrases. Phrases match the link's accessible name only — not surrounding text." />
-                    </div>
+                    <label class="aqg-check-option aqg-check-option--inline">
+                        <input
+                                type="checkbox"
+                                name="renderedCheckSettings[allowPrivateHosts]"
+                                value="1"
+                                {f:if(condition: renderedCheckSettings.allowPrivateHosts, then: 'checked="checked"')}
+                                data-a11y-rules-input="true"
+                        />
+                        <span>
+                            <span class="aqg-check-option__title">Allow private/local frontend hosts for rendered checks</span>
+                            <span class="aqg-check-option__copy">Use only for DDEV, local development or isolated staging. Keep disabled in production to protect against SSRF.</span>
+                        </span>
+                    </label>
                 </div>
 
-                <div class="aqg-defaults" data-a11y-defaults="true">
-                    <div class="aqg-defaults__head">
-                        <span class="aqg-defaults__title">
-                            <f:render partial="Settings/Icon" arguments="{name: 'info'}" />
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.builtInDefaults" default="Built-in defaults" /></span>
-                            <span aria-hidden="true">·</span>
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.nonDescriptiveBuiltIn" default="Non-descriptive link phrases" /></span>
-                        </span>
-                        <button
-                                type="button"
-                                class="aqg-defaults__toggle"
-                                aria-expanded="true"
-                                data-a11y-defaults-toggle="true"
-                        >
-                            <span data-a11y-defaults-toggle-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.hide" default="Hide" /></span>
-                            <span class="aqg-defaults__chevron" aria-hidden="true">›</span>
-                        </button>
-                    </div>
-                    <div class="aqg-defaults__chips" data-a11y-defaults-panel="true">
-                        <f:for each="{nonDescriptiveDefaults}" as="phrase">
-                            <code class="aqg-default-chip">{phrase}</code>
-                        </f:for>
-                    </div>
-                    <div class="aqg-field__help">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.defaultsHelp" default="The built-in list is always applied. Your custom phrases below extend the defaults — one phrase per line." />
-                    </div>
+                <div class="aqg-guidance aqg-guidance--rules">
+                    <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                    <span class="aqg-guidance__body">
+                        <span class="aqg-guidance__title">Rendered check scope</span>
+                        <ol class="aqg-guidance__steps">
+                            <li>FREE rendered checks are manual and page-level only.</li>
+                            <li>They do not run sitemap crawls, Playwright, axe-core or screenshots.</li>
+                            <li>Whole-site frontend crawling remains a PRO crawler feature.</li>
+                        </ol>
+                    </span>
                 </div>
             </div>
         </section>
@@ -256,77 +247,86 @@
             <header class="aqg-card__head aqg-card__head--quiet">
                 <div>
                     <h3 class="aqg-card__title">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowLabel" default="New-window warning phrases" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionaryLabel" default="Dictionary-based phrase detection" />
                     </h3>
                     <p class="aqg-card__sub">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowHelp" default="Phrases that count as a valid “opens in a new window” warning inside a link's accessible name. AQG uses these to detect that a link to a new tab is announced to screen readers." />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionaryHelp" default="Phrase-based RTE rules now use built-in multilingual dictionaries and automatically resolve the TYPO3 site language. Project-specific overrides belong in TYPO3 Site Settings." />
                     </p>
                 </div>
             </header>
 
             <div class="aqg-card__body">
-                <div class="aqg-field">
-                    <label class="aqg-field__label" for="aqg-window-hint-phrases">
-                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.customPhrases" default="Custom phrases" /></span>
-                        <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.onePerLine" default="(one per line · case-insensitive)" /></span>
-                    </label>
+                <div class="aqg-settings-grid aqg-settings-grid--rules">
+                    <div class="aqg-field">
+                        <label class="aqg-field__label" for="aqg-dictionary-mode">Dictionary mode</label>
+                        <select id="aqg-dictionary-mode" name="dictionarySettings[mode]" class="aqg-select" data-a11y-rules-input="true">
+                            <option value="auto" {f:if(condition: '{dictionarySettings.mode} == 'auto'', then: 'selected="selected"')}>Auto — uses TYPO3 page language</option>
+                            <option value="force" {f:if(condition: '{dictionarySettings.mode} == 'force'', then: 'selected="selected"')}>Force a single language</option>
+                            <option value="disable" {f:if(condition: '{dictionarySettings.mode} == 'disable'', then: 'selected="selected"')}>Disable phrase-based checks</option>
+                        </select>
+                        <div class="aqg-field__help">Auto is recommended for multilingual TYPO3 sites. The scanner resolves the language from the scanned content record and TYPO3 SiteLanguage.</div>
+                    </div>
 
-                    <textarea
-                            id="aqg-window-hint-phrases"
-                            name="linkNewWindowHintPhrases"
-                            class="aqg-textarea aqg-input--mono"
-                            rows="5"
-                            placeholder="(opens in a new window)"
-                            data-a11y-rules-input="true"
-                    >{linkNewWindowHintPhrases}</textarea>
-
-                    <div class="aqg-field__help">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowTip" default="Useful when your style guide uses a specific localisation, e.g. (opens in a new window). Surrounding parentheses are optional." />
+                    <div class="aqg-field">
+                        <label class="aqg-field__label" for="aqg-dictionary-force-language">Forced language code</label>
+                        <input
+                                id="aqg-dictionary-force-language"
+                                type="text"
+                                name="dictionarySettings[forceLanguage]"
+                                value="{dictionarySettings.forceLanguage}"
+                                class="aqg-input aqg-input--short"
+                                placeholder="en"
+                                maxlength="8"
+                                data-a11y-rules-input="true"
+                        />
+                        <div class="aqg-field__help">Used only when dictionary mode is set to force. Examples: <code>en</code>, <code>de</code>, <code>nl</code>, <code>cs</code>.</div>
                     </div>
                 </div>
 
-                <div class="aqg-defaults" data-a11y-defaults="true">
-                    <div class="aqg-defaults__head">
-                        <span class="aqg-defaults__title">
-                            <f:render partial="Settings/Icon" arguments="{name: 'info'}" />
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.builtInDefaults" default="Built-in defaults" /></span>
-                            <span aria-hidden="true">·</span>
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.windowBuiltIn" default="New-window warning phrases" /></span>
-                        </span>
-                        <button
-                                type="button"
-                                class="aqg-defaults__toggle"
-                                aria-expanded="false"
-                                data-a11y-defaults-toggle="true"
-                        >
-                            <span data-a11y-defaults-toggle-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.show" default="Show" /></span>
-                            <span class="aqg-defaults__chevron" aria-hidden="true">›</span>
-                        </button>
-                    </div>
-                    <div class="aqg-defaults__chips" data-a11y-defaults-panel="true" hidden="hidden">
-                        <f:for each="{windowHintDefaults}" as="phrase">
-                            <code class="aqg-default-chip">{phrase}</code>
-                        </f:for>
-                    </div>
-                    <div class="aqg-field__help">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.defaultsHelp" default="The built-in list is always applied. Your custom phrases below extend the defaults — one phrase per line." />
-                    </div>
+                <div class="aqg-guidance aqg-guidance--rules">
+                    <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                    <span class="aqg-guidance__body">
+                        <span class="aqg-guidance__title">Built-in dictionary languages</span>
+                        <ol class="aqg-guidance__steps">
+                            <li>Phrase dictionaries are shipped for EN, DE, SK, FR, NL, PL, CS, IT, ES, PT, DA, SV, NB and FI.</li>
+                            <li>Phrase matching is normalized, language-aware and cached for scans.</li>
+                            <li>Needs review findings are informational and never block the quality gate.</li>
+                        </ol>
+                    </span>
                 </div>
+
+                <f:if condition="{proStatus.valid}">
+                    <div class="aqg-settings-grid aqg-settings-grid--rules">
+                        <div class="aqg-field">
+                            <label class="aqg-field__label" for="aqg-dictionary-non-desc-additional">Additional non-descriptive link phrases</label>
+                            <textarea
+                                    id="aqg-dictionary-non-desc-additional"
+                                    name="dictionarySettings[nonDescriptiveAdditional]"
+                                    class="aqg-textarea aqg-textarea--mono"
+                                    rows="4"
+                                    data-a11y-rules-input="true"
+                                    placeholder="one phrase per line"
+                            >{dictionarySettings.nonDescriptiveAdditional}</textarea>
+                            <div class="aqg-field__help">Adds project-specific phrases to <code>rte.non_descriptive_link</code>.</div>
+                        </div>
+
+                        <div class="aqg-field">
+                            <label class="aqg-field__label" for="aqg-dictionary-non-desc-disabled">Disabled built-in non-descriptive link phrases</label>
+                            <textarea
+                                    id="aqg-dictionary-non-desc-disabled"
+                                    name="dictionarySettings[nonDescriptiveDisabled]"
+                                    class="aqg-textarea aqg-textarea--mono"
+                                    rows="4"
+                                    data-a11y-rules-input="true"
+                                    placeholder="one phrase per line"
+                            >{dictionarySettings.nonDescriptiveDisabled}</textarea>
+                            <div class="aqg-field__help">Removes selected built-in phrases for this project to reduce false positives.</div>
+                        </div>
+                    </div>
+                </f:if>
             </div>
         </section>
 
-        <div class="aqg-guidance aqg-guidance--rules">
-            <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
-            <span class="aqg-guidance__body">
-                <span class="aqg-guidance__title">About custom rule lists</span>
-                <ol class="aqg-guidance__steps">
-                    <li>Custom phrases <strong>extend</strong> the built-in defaults — they never replace them.</li>
-                    <li>Phrases are matched case-insensitively and trimmed of whitespace.</li>
-                    <li>For phrase rules, the match is on the link's accessible name (label + aria-label).</li>
-                    <li>You do not need to clear TYPO3 caches — new rules apply to the next scan.</li>
-                </ol>
-            </span>
-        </div>
     </form>
 </div>
 </html>

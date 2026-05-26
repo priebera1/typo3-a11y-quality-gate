@@ -28,6 +28,16 @@ services:
     tags:
       - name: a11y_quality_gate.rule
 
+  Priebera\A11yQualityGate\Rule\Rte\ImgAltTooLongRule:
+    arguments:
+      $defaultMaxLength: 120
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\ImgAltRedundantPhraseRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
   Priebera\A11yQualityGate\Rule\Rte\EmptyHeadingRule:
     tags:
       - name: a11y_quality_gate.rule
@@ -36,25 +46,11 @@ services:
     tags:
       - name: a11y_quality_gate.rule
 
+  Priebera\A11yQualityGate\Rule\Rte\LinkTextDuplicateDifferentTargetsRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
   Priebera\A11yQualityGate\Rule\Rte\NonDescriptiveLinkRule:
-    arguments:
-      $defaultPhrases:
-        - 'click here'
-        - 'here'
-        - 'read more'
-        - 'more'
-        - 'learn more'
-        - 'continue'
-        - 'continue reading'
-        - 'details'
-        - 'link'
-        - 'this link'
-        - 'this page'
-        - 'download'
-        - 'more info'
-        - 'more information'
-        - 'see more'
-        - 'view more'
     tags:
       - name: a11y_quality_gate.rule
 
@@ -98,6 +94,12 @@ services:
     tags:
       - name: a11y_quality_gate.rule
 
+  Priebera\A11yQualityGate\Rule\Structured\FileReferenceAltQualityRule:
+    arguments:
+      $defaultMaxLength: 120
+    tags:
+      - name: a11y_quality_gate.rule
+
   Priebera\A11yQualityGate\Rule\Structured\HeaderCtypeEmptyRule:
     tags:
       - name: a11y_quality_gate.rule
@@ -106,7 +108,15 @@ services:
     tags:
       - name: a11y_quality_gate.rule
 
+  Priebera\A11yQualityGate\Rule\Structured\HeaderLevelIsH1Rule:
+    tags:
+      - name: a11y_quality_gate.rule
+
   Priebera\A11yQualityGate\Rule\Structured\UploadsFileMissingDescriptionRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\MediaNoTranscriptHintRule:
     tags:
       - name: a11y_quality_gate.rule
 
@@ -114,19 +124,73 @@ services:
     tags:
       - name: a11y_quality_gate.rule
 
+  Priebera\A11yQualityGate\Rule\Structured\FormPlaceholderAsLabelRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\FormFieldLabelMissingRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Structured\FormAutocompleteMissingRule:
+    arguments:
+      $personalFieldPatterns:
+        - '/name/i'
+        - '/email/i'
+        - '/phone/i'
+        - '/tel/i'
+        - '/address/i'
+        - '/zip/i'
+        - '/postal/i'
+        - '/country/i'
+        - '/birth/i'
+        - '/city/i'
+    tags:
+      - name: a11y_quality_gate.rule
+
   Priebera\A11yQualityGate\Rule\Rte\HeadingHierarchyRule:
     tags:
       - name: a11y_quality_gate.rule
 
-  Priebera\A11yQualityGate\Rule\Rte\LinkNewWindowNoWarningRule:
+  Priebera\A11yQualityGate\Rule\Rte\LinkTextIsUrlOrFilenameRule:
     arguments:
-      $defaultHintPhrases:
-        - 'opens in new window'
-        - 'opens in a new window'
-        - 'opens in new tab'
-        - 'opens in a new tab'
-        - 'new window'
-        - 'new tab'
+      $documentExtensions:
+        - 'pdf'
+        - 'docx'
+        - 'doc'
+        - 'xlsx'
+        - 'xls'
+        - 'pptx'
+        - 'ppt'
+        - 'csv'
+        - 'zip'
+        - 'txt'
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\LinkToDocumentRule:
+    arguments:
+      $documentExtensions:
+        - 'pdf'
+        - 'doc'
+        - 'docx'
+        - 'xls'
+        - 'xlsx'
+        - 'ppt'
+        - 'pptx'
+        - 'odt'
+        - 'ods'
+        - 'odp'
+        - 'rtf'
+        - 'csv'
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\LinkToDocumentMissingNoticeRule:
+    tags:
+      - name: a11y_quality_gate.rule
+
+  Priebera\A11yQualityGate\Rule\Rte\LinkNewWindowNoWarningRule:
     tags:
       - name: a11y_quality_gate.rule
 
@@ -153,3 +217,59 @@ services:
         command: 'a11y:scan'
         description: 'Scan TYPO3 content for accessibility issues.'
         schedulable: false
+
+  Priebera\A11yQualityGate\Rendered\RenderedHtmlRuleRegistry:
+    arguments:
+      $rules: !tagged_iterator a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\ImgMissingAltRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\EmptyLinkRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\EmptyButtonRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\IframeMissingTitleRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\FormControlMissingLabelRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\EmptyHeadingRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\DuplicateIdRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\TableMissingHeaderRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\TableEmptyHeaderRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\SvgMissingAccessibleNameRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\HtmlLangMissingRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\PageTitleMissingRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule
+
+  Priebera\A11yQualityGate\Rendered\Rule\MainLandmarkMissingRule:
+    tags:
+      - name: a11y_quality_gate.rendered_rule

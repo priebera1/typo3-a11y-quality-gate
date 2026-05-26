@@ -7,21 +7,13 @@ namespace Priebera\A11yQualityGate\Rule\Rte;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use Priebera\A11yQualityGate\Service\DictionaryRegistry;
+use Priebera\A11yQualityGate\Service\PhraseMatcher;
 
 final class NonDescriptiveLinkRule extends AbstractRteRule
 {
-    /**
-     * @var list<string>|null
-     */
-    private ?array $resolvedPhrases = null;
-
-    /**
-     * @param list<string> $defaultPhrases
-     */
     public function __construct(
-        private readonly ExtensionConfiguration $extensionConfiguration,
-        private readonly array $defaultPhrases,
+        private readonly DictionaryRegistry $dictionaryRegistry,
     ) {
     }
 
@@ -50,6 +42,11 @@ final class NonDescriptiveLinkRule extends AbstractRteRule
      */
     public function check(CheckContext $context): array
     {
+        $phrases = $this->dictionaryRegistry->resolveForContext($this->getRuleId(), $context);
+        if ($phrases === []) {
+            return [];
+        }
+
         $violations = [];
         $dom = $this->loadDom($context->content);
 
@@ -62,23 +59,22 @@ final class NonDescriptiveLinkRule extends AbstractRteRule
                 continue;
             }
 
-            $ariaLabel = $this->normalizedText($link->getAttribute('aria-label'));
-            $visibleText = $this->normalizedText($link->textContent);
-
+            $visibleText = PhraseMatcher::normalize($link->textContent);
             if ($visibleText === '') {
                 continue;
             }
 
+            $ariaLabel = PhraseMatcher::normalize($link->getAttribute('aria-label'));
             $textToCheck = $ariaLabel !== '' ? $ariaLabel : $visibleText;
 
-            if (!$this->isNonDescriptive($textToCheck)) {
+            if (!PhraseMatcher::isExactMatch($textToCheck, $phrases)) {
                 continue;
             }
 
             $violations[] = new RuleViolation(
                 ruleId: $this->getRuleId(),
                 severity: $this->getDefaultSeverity(),
-                message: sprintf('Link text "%s" is not descriptive.', $visibleText),
+                message: sprintf('Link text "%s" is not descriptive.', $this->truncate($link->textContent, 80)),
                 hint: $this->getHint(),
                 contextSnippet: $this->elementSnippet($link),
                 contextPath: $this->buildXPath($link),
@@ -86,97 +82,5 @@ final class NonDescriptiveLinkRule extends AbstractRteRule
         }
 
         return $violations;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function getPhrases(): array
-    {
-        if ($this->resolvedPhrases !== null) {
-            return $this->resolvedPhrases;
-        }
-
-        $adminPhrases = $this->loadAdminPhrases();
-
-        $this->resolvedPhrases = array_values(array_unique(array_merge(
-            $this->normalizePhrases($this->defaultPhrases),
-            $adminPhrases,
-        )));
-
-        return $this->resolvedPhrases;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function loadAdminPhrases(): array
-    {
-        try {
-            $raw = (string)($this->extensionConfiguration->get(
-                'a11y_quality_gate',
-                'nonDescriptiveLinkPhrases'
-            ) ?? '');
-        } catch (\Throwable) {
-            return [];
-        }
-
-        if (trim($raw) === '') {
-            return [];
-        }
-
-        $normalizedRaw = str_replace(["\r\n", "\r"], "\n", $raw);
-        $parts = preg_split('/[\n,]+/', $normalizedRaw) ?: [];
-
-        $parts = array_map(
-            static fn(mixed $value): string => trim((string)$value),
-            $parts
-        );
-
-        $parts = array_values(array_filter(
-            $parts,
-            static fn(string $value): bool => $value !== ''
-        ));
-
-        $parts = array_slice($parts, 0, 100);
-        $parts = array_values(array_filter(
-            $parts,
-            static fn(string $value): bool => mb_strlen($value) <= 100
-        ));
-
-        return $this->normalizePhrases($parts);
-    }
-
-    /**
-     * @param array<int, string> $phrases
-     * @return list<string>
-     */
-    private function normalizePhrases(array $phrases): array
-    {
-        $result = [];
-
-        foreach ($phrases as $phrase) {
-            $normalized = $this->normalize($phrase);
-
-            if ($normalized !== '') {
-                $result[] = $normalized;
-            }
-        }
-
-        return array_values(array_unique($result));
-    }
-
-    private function isNonDescriptive(string $text): bool
-    {
-        return in_array($this->normalize($text), $this->getPhrases(), true);
-    }
-
-    private function normalize(string $text): string
-    {
-        $normalized = mb_strtolower($this->normalizedText($text));
-        $normalized = (string)preg_replace('/[^\p{L}\p{N}\s]/u', '', $normalized);
-        $normalized = (string)preg_replace('/\s+/u', ' ', $normalized);
-
-        return trim($normalized);
     }
 }

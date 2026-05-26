@@ -18,14 +18,16 @@ const decodeHtmlEntities = (value) => {
 
 const normalizeSeverity = (severity) => {
     const value = String(severity ?? '').toLowerCase();
-    return ['critical', 'warning', 'info'].includes(value) ? value : 'info';
+    return ['critical', 'warning', 'info', 'needs_review', 'needsreview'].includes(value)
+        ? (value === 'needsreview' ? 'needs_review' : value)
+        : 'info';
 };
 
-const severityRank = (severity) => ({ critical: 3, warning: 2, info: 1 }[normalizeSeverity(severity)] ?? 0);
+const severityRank = (severity) => ({ critical: 3, warning: 2, needs_review: 1.5, info: 1 }[normalizeSeverity(severity)] ?? 0);
 
 const severityLabel = (severity) => {
     const value = normalizeSeverity(severity);
-    return value.charAt(0).toUpperCase() + value.slice(1);
+    return value === 'needs_review' ? 'Needs review' : value.charAt(0).toUpperCase() + value.slice(1);
 };
 
 class PlainHtmlA11yValidator {
@@ -434,8 +436,8 @@ class PlainHtmlA11yValidator {
         const counts = issues.reduce((acc, issue) => {
             acc[normalizeSeverity(issue.severity)]++;
             return acc;
-        }, { critical: 0, warning: 0, info: 0 });
-        const total = counts.critical + counts.warning + counts.info;
+        }, { critical: 0, warning: 0, needs_review: 0, info: 0 });
+        const total = counts.critical + counts.warning + counts.needs_review + counts.info;
         const state = total === 0 ? 'ok' : counts.critical > 0 ? 'critical' : 'issues';
 
         this.summary.className = `ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--${state}`;
@@ -458,6 +460,7 @@ class PlainHtmlA11yValidator {
                 <span class="ck-a11y-summary__counts">
                     ${this.renderCount('critical', counts.critical)}
                     ${this.renderCount('warning', counts.warning)}
+                    ${this.renderCount('needs_review', counts.needs_review)}
                     ${this.renderCount('info', counts.info)}
                 </span>
             </span>
@@ -472,8 +475,8 @@ class PlainHtmlA11yValidator {
             return '';
         }
 
-        const label = severity === 'info'
-            ? 'Info'
+        const label = severity === 'info' || severity === 'needs_review'
+            ? severityLabel(severity)
             : `${severityLabel(severity)}${count === 1 ? '' : 's'}`;
 
         return `

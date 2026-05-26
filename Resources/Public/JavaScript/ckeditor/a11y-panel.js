@@ -256,6 +256,9 @@ export default class A11yPanelView extends View {
                 return 'Critical';
             case 'info':
                 return 'Info';
+            case 'needs_review':
+            case 'needs-review':
+                return 'Needs review';
             case 'warning':
             default:
                 return 'Warning';

@@ -58,7 +58,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: min(100%, 760px);
+  width: 100%;
   margin: 0 0 12px;
   overflow: hidden;
   border: 1px solid var(--aqg-indicator-border);
@@ -252,7 +252,7 @@
 
 .aqg-page-module-indicator__status-row {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
   align-items: center;
   min-height: 22px;
   gap: 8px;
@@ -276,9 +276,10 @@
 }
 
 .aqg-page-module-indicator__status-value span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .aqg-page-module-indicator__status-row--ok .aqg-page-module-indicator__status-value {
@@ -516,7 +517,7 @@ p.aqg-page-module-indicator__meta {
 
 @media (max-width: 420px) {
   .aqg-page-module-indicator {
-    width: min(100%, 248px);
+    width: 100%;
   }
 
   .aqg-page-module-indicator__header {
@@ -524,18 +525,18 @@ p.aqg-page-module-indicator__meta {
   }
 
   .aqg-page-module-indicator__title {
-    max-width: 138px;
+    max-width: none;
   }
 }
 
-@media (min-width: 560px) {
+@media (min-width: 680px) {
   .aqg-page-module-indicator {
     min-height: 0;
   }
 
   .aqg-page-module-indicator__content {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(320px, 0.95fr);
+    grid-template-columns: minmax(260px, 0.9fr) minmax(420px, 1.1fr);
     column-gap: 18px;
     align-items: start;
     padding-bottom: 6px;

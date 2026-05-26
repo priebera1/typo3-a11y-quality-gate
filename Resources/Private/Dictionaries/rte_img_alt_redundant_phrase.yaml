@@ -1,0 +1,135 @@
+# Rule: rte.img_alt_redundant_phrase
+# WCAG: 1.1.1 Non-text Content
+# Match type: prefix match after normalization.
+phrases:
+  en:
+    - image of
+    - photo of
+    - picture of
+    - graphic of
+    - icon of
+    - screenshot of
+    - illustration of
+    - logo of
+    - image showing
+    - photo showing
+    - picture showing
+    - photograph of
+    - an image of
+    - a photo of
+    - a picture of
+
+  de:
+    - bild von
+    - foto von
+    - abbildung von
+    - grafik von
+    - zeichnung von
+    - screenshot von
+    - bild zeigt
+    - foto zeigt
+    - ein bild von
+    - ein foto von
+
+  sk:
+    - obrázok znázorňuje
+    - obrázok znázorňujúci
+    - fotografia znázorňuje
+    - fotografia znázorňujúca
+    - fotografia ukazuje
+    - foto ukazuje
+    - snímka obrazovky
+    - obrázok produktu
+    - fotografia produktu
+
+  fr:
+    - image de
+    - photo de
+    - photographie de
+    - illustration de
+    - dessin de
+    - capture d'écran de
+    - image montrant
+    - photo montrant
+
+  nl:
+    - afbeelding van
+    - foto van
+    - plaatje van
+    - schermafbeelding van
+    - afbeelding toont
+    - foto toont
+    - illustratie van
+
+  pl:
+    - zdjęcie przedstawiające
+    - zdjęcie pokazujące
+    - obraz przedstawiający
+    - grafika przedstawiająca
+    - zrzut ekranu
+    - ilustracja przedstawiająca
+
+  cs:
+    - obrázek zobrazující
+    - fotografie zobrazující
+    - snímek obrazovky
+    - ilustrace zobrazující
+    - grafika zobrazující
+
+  it:
+    - immagine di
+    - foto di
+    - fotografia di
+    - grafica di
+    - schermata di
+    - illustrazione di
+    - immagine che mostra
+
+  es:
+    - imagen de
+    - foto de
+    - fotografía de
+    - gráfico de
+    - captura de pantalla de
+    - ilustración de
+    - imagen que muestra
+
+  pt:
+    - imagem de
+    - foto de
+    - fotografia de
+    - gráfico de
+    - captura de ecrã de
+    - ilustração de
+    - imagem mostrando
+
+  da:
+    - billede af
+    - foto af
+    - skærmbillede af
+    - illustration af
+    - grafik af
+    - billede der viser
+
+  sv:
+    - bild av
+    - foto av
+    - skärmbild av
+    - illustration av
+    - grafik av
+    - bild som visar
+
+  nb:
+    - bilde av
+    - foto av
+    - skjermbilde av
+    - illustrasjon av
+    - grafikk av
+    - bilde som viser
+
+  fi:
+    - kuva josta
+    - valokuva josta
+    - kuvakaappaus
+    - kuvitus josta
+    - kuva joka näyttää

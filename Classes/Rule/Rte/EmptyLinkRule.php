@@ -27,7 +27,7 @@ final class EmptyLinkRule extends AbstractRteRule
 
     public function getHint(): string
     {
-        return 'Add visible link text or an aria-label attribute describing the destination or action.';
+        return 'Add a valid href and visible link text, or an aria-label attribute describing the destination or action.';
     }
 
     /**
@@ -35,10 +35,10 @@ final class EmptyLinkRule extends AbstractRteRule
      */
     public function check(CheckContext $context): array
     {
-        $violations = [];
+        $violations = $this->detectRawEmptyAnchors((string)$context->content);
         $dom = $this->loadDom($context->content);
         $xpath = $this->createXPath($dom);
-        $links = $xpath->query('//a[@href]');
+        $links = $xpath->query('//a');
 
         if ($links === false) {
             return [];
@@ -66,13 +66,40 @@ final class EmptyLinkRule extends AbstractRteRule
         return $violations;
     }
 
+
+    /**
+     * DOMDocument can repair invalid self-closing anchors by swallowing following siblings into
+     * the anchor text. Keep a small raw-HTML guard so snippets like <a src="..." /> are still
+     * reported as broken/empty links in live RTE validation.
+     *
+     * @return RuleViolation[]
+     */
+    private function detectRawEmptyAnchors(string $html): array
+    {
+        $violations = [];
+        if (preg_match_all('/<a\b(?=[^>]*\bsrc\s*=)(?![^>]*\bhref\s*=)[^>]*(?:\/\s*)?>/i', $html, $matches) !== false) {
+            foreach ($matches[0] as $snippet) {
+                $violations[] = new RuleViolation(
+                    ruleId: $this->getRuleId(),
+                    severity: $this->getDefaultSeverity(),
+                    message: 'Anchor has no href and no accessible name.',
+                    hint: $this->getHint(),
+                    contextSnippet: $snippet,
+                    contextPath: 'raw-html/a',
+                );
+            }
+        }
+
+        return $violations;
+    }
+
     private function hasAccessibleName(\DOMElement $element, \DOMXPath $xpath): bool
     {
         if ($this->hasNonEmptyAttribute($element, 'aria-label')) {
             return true;
         }
 
-        if ($element->hasAttribute('aria-labelledby')) {
+        if ($this->hasValidAriaLabelledBy($element, $xpath)) {
             return true;
         }
 

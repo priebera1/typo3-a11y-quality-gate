@@ -23,6 +23,31 @@ final class IssueRepository extends AbstractRepository
         parent::__construct($connectionPool);
     }
 
+    private function effectiveSourceType(RuleViolation $violation, CheckContext $ctx): string
+    {
+        $sourceType = trim($violation->sourceType !== '' ? $violation->sourceType : $ctx->sourceType);
+        if ($sourceType !== '') {
+            return $sourceType;
+        }
+
+        return str_starts_with($violation->ruleId, 'structured.') ? 'structured' : 'rte';
+    }
+
+    private function effectiveSourceTable(RuleViolation $violation, CheckContext $ctx): string
+    {
+        return $violation->sourceTable !== '' ? $violation->sourceTable : $ctx->sourceTable;
+    }
+
+    private function effectiveSourceUid(RuleViolation $violation, CheckContext $ctx): int
+    {
+        return $violation->sourceUid > 0 ? $violation->sourceUid : $ctx->sourceUid;
+    }
+
+    private function effectiveSourceField(RuleViolation $violation, CheckContext $ctx): string
+    {
+        return $violation->sourceField !== '' ? $violation->sourceField : $ctx->sourceField;
+    }
+
     /**
      * @return 'inserted'|'updated'|'protected'
      */
@@ -30,6 +55,12 @@ final class IssueRepository extends AbstractRepository
     {
         $fingerprint = $violation->fingerprint($ctx);
         $now = time();
+        $sourceType = $this->effectiveSourceType($violation, $ctx);
+        $sourceTable = $this->effectiveSourceTable($violation, $ctx);
+        $sourceUid = $this->effectiveSourceUid($violation, $ctx);
+        $sourceField = $this->effectiveSourceField($violation, $ctx);
+        $frontendUrl = $violation->frontendUrl !== '' ? $violation->frontendUrl : $ctx->frontendUrl;
+        $cssSelector = $violation->cssSelector !== '' ? $violation->cssSelector : $ctx->cssSelector;
         $existing = $this->findByFingerprint($fingerprint, $ctx->siteIdentifier);
 
         if ($existing === null) {
@@ -37,9 +68,12 @@ final class IssueRepository extends AbstractRepository
                 'site_identifier' => $ctx->siteIdentifier,
                 'page_uid' => $ctx->pageUid,
                 'source_lang_uid' => $ctx->sourceLangUid,
-                'source_table' => $ctx->sourceTable,
-                'source_uid' => $ctx->sourceUid,
-                'source_field' => $ctx->sourceField,
+                'source_table' => $sourceTable,
+                'source_uid' => $sourceUid,
+                'source_field' => $sourceField,
+                'source_type' => $sourceType,
+                'frontend_url' => $frontendUrl,
+                'css_selector' => $cssSelector,
                 'rule_id' => $violation->ruleId,
                 'severity' => $violation->severity->value,
                 'message' => $violation->message,
@@ -99,6 +133,7 @@ final class IssueRepository extends AbstractRepository
         int $backendUserUid = 0,
         string $backendUserName = '',
         string $backendUsername = '',
+        array $excludeSourceTypes = [],
     ): int {
         $now = time();
         $qb = $this->getQueryBuilder(Tables::ISSUE);
@@ -140,6 +175,19 @@ final class IssueRepository extends AbstractRepository
                 $qb->expr()->eq(
                     'source_lang_uid',
                     $qb->createNamedParameter($sourceLangUid, Connection::PARAM_INT)
+                )
+            );
+        }
+
+        $excludeSourceTypes = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $sourceType): string => trim((string)$sourceType),
+            $excludeSourceTypes
+        ), static fn (string $sourceType): bool => $sourceType !== '')));
+        if ($excludeSourceTypes !== []) {
+            $qb->andWhere(
+                $qb->expr()->notIn(
+                    'source_type',
+                    $qb->createNamedParameter($excludeSourceTypes, Connection::PARAM_STR_ARRAY)
                 )
             );
         }
@@ -314,6 +362,12 @@ final class IssueRepository extends AbstractRepository
     ): int {
         $fingerprint = $violation->fingerprint($ctx);
         $now = time();
+        $sourceType = $this->effectiveSourceType($violation, $ctx);
+        $sourceTable = $this->effectiveSourceTable($violation, $ctx);
+        $sourceUid = $this->effectiveSourceUid($violation, $ctx);
+        $sourceField = $this->effectiveSourceField($violation, $ctx);
+        $frontendUrl = $violation->frontendUrl !== '' ? $violation->frontendUrl : $ctx->frontendUrl;
+        $cssSelector = $violation->cssSelector !== '' ? $violation->cssSelector : $ctx->cssSelector;
         $existing = $this->findByFingerprint($fingerprint, $ctx->siteIdentifier);
 
         if ($existing !== null) {
@@ -326,9 +380,12 @@ final class IssueRepository extends AbstractRepository
             'site_identifier' => $ctx->siteIdentifier,
             'page_uid' => $ctx->pageUid,
             'source_lang_uid' => $ctx->sourceLangUid,
-            'source_table' => $ctx->sourceTable,
-            'source_uid' => $ctx->sourceUid,
-            'source_field' => $ctx->sourceField,
+            'source_table' => $sourceTable,
+            'source_uid' => $sourceUid,
+            'source_field' => $sourceField,
+            'source_type' => $sourceType,
+            'frontend_url' => $frontendUrl,
+            'css_selector' => $cssSelector,
             'rule_id' => $violation->ruleId,
             'severity' => $violation->severity->value,
             'message' => $violation->message,
@@ -354,7 +411,7 @@ final class IssueRepository extends AbstractRepository
     }
 
     /**
-     * @return array{critical:int,warning:int,info:int}
+     * @return array{critical:int,warning:int,info:int,needs_review:int}
      */
     public function countOpenBySeverity(int $pageUid, string $siteIdentifier, int $languageUid = -1): array
     {
@@ -382,6 +439,7 @@ final class IssueRepository extends AbstractRepository
             'critical' => 0,
             'warning' => 0,
             'info' => 0,
+            'needs_review' => 0,
         ];
 
         foreach ($rows as $row) {
@@ -390,6 +448,7 @@ final class IssueRepository extends AbstractRepository
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
             $counts[$key] = (int)$row['cnt'];
         }
@@ -398,7 +457,7 @@ final class IssueRepository extends AbstractRepository
     }
 
     /**
-     * @return array{critical:int,warning:int,info:int,total:int}
+     * @return array{critical:int,warning:int,info:int,needs_review:int,total:int}
      */
     public function countOpenTotalsForSite(string $siteIdentifier, int $languageUid = -1): array
     {
@@ -443,6 +502,7 @@ final class IssueRepository extends AbstractRepository
             'critical' => 0,
             'warning' => 0,
             'info' => 0,
+            'needs_review' => 0,
             'total' => 0,
         ];
 
@@ -454,6 +514,7 @@ final class IssueRepository extends AbstractRepository
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             $counts[$key] += $cnt;
@@ -464,7 +525,7 @@ final class IssueRepository extends AbstractRepository
     }
 
     /**
-     * @return array{critical:int,warning:int,info:int,total:int}
+     * @return array{critical:int,warning:int,info:int,needs_review:int,total:int}
      */
     public function countNewOpenTotalsForScan(string $siteIdentifier, int $scanUid, int $languageUid = -1): array
     {
@@ -473,6 +534,7 @@ final class IssueRepository extends AbstractRepository
                 'critical' => 0,
                 'warning' => 0,
                 'info' => 0,
+                'needs_review' => 0,
                 'total' => 0,
             ];
         }
@@ -521,6 +583,7 @@ final class IssueRepository extends AbstractRepository
             'critical' => 0,
             'warning' => 0,
             'info' => 0,
+            'needs_review' => 0,
             'total' => 0,
         ];
 
@@ -532,6 +595,7 @@ final class IssueRepository extends AbstractRepository
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             $counts[$key] += $cnt;
@@ -583,7 +647,7 @@ final class IssueRepository extends AbstractRepository
     }
 
     /**
-     * @return array<int, array{pageUid:int,pageTitle:string,pageDoktype:int,critical:int,warning:int,info:int,total:int}>
+     * @return array<int, array{pageUid:int,pageTitle:string,pageDoktype:int,critical:int,warning:int,info:int,needs_review:int,total:int}>
      */
     public function findOpenPageStatsForSitePaginated(
         string $siteIdentifier,
@@ -605,6 +669,7 @@ final class IssueRepository extends AbstractRepository
                 'SUM(CASE WHEN i.severity = ' . (int)Severity::Critical->value . ' THEN 1 ELSE 0 END) AS critical',
                 'SUM(CASE WHEN i.severity = ' . (int)Severity::Warning->value . ' THEN 1 ELSE 0 END) AS warning',
                 'SUM(CASE WHEN i.severity = ' . (int)Severity::Info->value . ' THEN 1 ELSE 0 END) AS info',
+                'SUM(CASE WHEN i.severity = ' . (int)Severity::NeedsReview->value . ' THEN 1 ELSE 0 END) AS needs_review',
                 'COUNT(*) AS total'
             )
             ->from(Tables::ISSUE, 'i')
@@ -658,6 +723,7 @@ final class IssueRepository extends AbstractRepository
                     'critical' => (int)($row['critical'] ?? 0),
                     'warning' => (int)($row['warning'] ?? 0),
                     'info' => (int)($row['info'] ?? 0),
+                    'needs_review' => (int)($row['needs_review'] ?? 0),
                     'total' => (int)($row['total'] ?? 0),
                 ];
             },
@@ -666,7 +732,7 @@ final class IssueRepository extends AbstractRepository
     }
 
     /**
-     * @return array<int, array{pageUid:int,pageTitle:string,pageDoktype:int,critical:int,warning:int,info:int,total:int}>
+     * @return array<int, array{pageUid:int,pageTitle:string,pageDoktype:int,critical:int,warning:int,info:int,needs_review:int,total:int}>
      */
     public function findOpenPageStatsForSite(string $siteIdentifier, string $search = '', int $languageUid = -1): array
     {

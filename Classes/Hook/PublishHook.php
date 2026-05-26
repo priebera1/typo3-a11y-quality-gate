@@ -284,10 +284,7 @@ final class PublishHook
         if ($verdict->isBlockingMode() && $proStatus->valid) {
             $this->reHidePage($pageUid);
 
-            $message = sprintf(
-                'Publishing blocked: %s. Open the Accessibility module to review issues.',
-                implode(', ', $verdict->reasons)
-            );
+            $message = $verdict->toFlashMessage();
 
             if ($proStatus->isTrial) {
                 $message .= ' Trial licence active — upgrade to PRO to keep this feature after the trial ends.';
@@ -335,7 +332,7 @@ final class PublishHook
 
     /**
      * @param array<int, array<string, mixed>> $issues
-     * @return array{critical:int,warning:int,info:int}
+     * @return array{critical:int,warning:int,info:int,needs_review:int}
      */
     private function countIssuesBySeverity(array $issues): array
     {
@@ -343,6 +340,7 @@ final class PublishHook
             'critical' => 0,
             'warning' => 0,
             'info' => 0,
+            'needs_review' => 0,
         ];
 
         foreach ($issues as $issue) {
@@ -352,6 +350,7 @@ final class PublishHook
                 Severity::Critical => 'critical',
                 Severity::Warning => 'warning',
                 Severity::Info => 'info',
+                Severity::NeedsReview => 'needs_review',
             };
 
             $counts[$key]++;

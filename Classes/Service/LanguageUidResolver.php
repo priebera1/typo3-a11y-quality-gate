@@ -83,7 +83,7 @@ final class LanguageUidResolver
         }
 
         $languageUid = (int)$raw;
-        if (!$allowAllLanguages && $languageUid < 0) {
+        if ($languageUid < 0 && (!$allowAllLanguages || $languageUid !== -1)) {
             return $default;
         }
 

@@ -1714,3 +1714,16 @@ table.aqgp-card-table .aqgp-card__foot {
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+
+/* AQG 1.3 needs-review PDF support */
+.aqgp-card--needs_review { border-left-color: #7c3aed; }
+.aqgp-card--needs_review .aqgp-card__label { color: #7c3aed; }
+table.aqgp-card-table.aqgp-card--needs_review { border-left-color: #7c3aed; }
+table.aqgp-card-table.aqgp-card--needs_review .aqgp-card__label { color: #7c3aed; }
+.aqgp-count--needs_review { color: #7c3aed; }
+.aqgp-badge--needs_review { color: #5b21b6; background: #f3e8ff; border-color: #d8b4fe; }
+.aqgp-local-issue--needs_review { border-left-color: #7c3aed; }
+.aqgp-issue--needs_review { border-left-color: #7c3aed; }
+.aqgp-cards td { width: 20%; }
+.aqgp-cards > tbody > tr > td { width: 20%; }

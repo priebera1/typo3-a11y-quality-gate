@@ -55,6 +55,10 @@ final class IssueFilterUtility
                 $issues,
                 static fn(array $issue): bool => (int)$issue['severity'] === Severity::Info->value
             )),
+            'needs_review' => array_values(array_filter(
+                $issues,
+                static fn(array $issue): bool => (int)$issue['severity'] === Severity::NeedsReview->value
+            )),
             default => $issues,
         };
     }

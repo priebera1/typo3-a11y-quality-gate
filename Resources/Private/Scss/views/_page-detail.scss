@@ -30,6 +30,10 @@
     background: var(--aqi-run);
 }
 
+.a11y-page-detail .aqg-issue-group__rail.tone-needs_review {
+    background: var(--aqi-review);
+}
+
 .a11y-page-detail .aqg-issue-group__title {
     color: var(--aqi-fg);
     font-size: 13px;
@@ -74,6 +78,10 @@
 
 .a11y-page-detail .aqg-issue.tone-info::before {
     background: var(--aqi-run);
+}
+
+.a11y-page-detail .aqg-issue.tone-needs_review::before {
+    background: var(--aqi-review);
 }
 
 .a11y-page-detail .aqg-issue.is-ignored,
@@ -153,6 +161,12 @@
     color: var(--aqi-run);
     background: var(--aqi-run-bg);
     border-color: var(--aqi-run-border);
+}
+
+.a11y-page-detail .aqg-pill.tone-needs_review {
+    color: var(--aqi-review);
+    background: var(--aqi-review-bg);
+    border-color: var(--aqi-review-border);
 }
 
 .a11y-page-detail .aqg-pill.tone-ok {
