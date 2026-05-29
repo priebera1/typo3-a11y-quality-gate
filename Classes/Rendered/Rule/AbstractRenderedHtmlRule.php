@@ -76,7 +76,12 @@ abstract class AbstractRenderedHtmlRule implements RenderedHtmlRuleInterface
             if ($nodes === false || $nodes->length === 0) {
                 continue;
             }
-            $text = $this->normalizedText((string)$nodes->item(0)?->textContent);
+            $labelledByElement = $nodes->item(0);
+            if (!$labelledByElement instanceof \DOMElement || $this->isInsideTemplate($labelledByElement)) {
+                continue;
+            }
+
+            $text = $this->normalizedText((string)$labelledByElement->textContent);
             if ($text !== '') {
                 $texts[] = $text;
             }
@@ -106,6 +111,67 @@ abstract class AbstractRenderedHtmlRule implements RenderedHtmlRuleInterface
             }
             $parent = $node->parentNode;
             $node = $parent instanceof \DOMElement ? $parent : null;
+        }
+
+        return false;
+    }
+
+    protected function isInsideTemplate(\DOMElement $element): bool
+    {
+        $node = $element->parentNode;
+        while ($node instanceof \DOMElement) {
+            if (strtolower($node->tagName) === 'template') {
+                return true;
+            }
+
+            $node = $node->parentNode;
+        }
+
+        return false;
+    }
+
+    protected function isRenderedHidden(\DOMElement $element, bool $includeDisabled = false, bool $includeHiddenClassAllowlist = false): bool
+    {
+        $node = $element;
+        while ($node instanceof \DOMElement) {
+            if (strtolower(trim($node->getAttribute('aria-hidden'))) === 'true') {
+                return true;
+            }
+
+            if ($node->hasAttribute('hidden')) {
+                return true;
+            }
+
+            if ($includeDisabled && $node === $element && $node->hasAttribute('disabled')) {
+                return true;
+            }
+
+            $style = strtolower((string)$node->getAttribute('style'));
+            if ($style !== '' && (
+                preg_match('/(?:^|;)\s*display\s*:\s*none\b/', $style)
+                || preg_match('/(?:^|;)\s*visibility\s*:\s*hidden\b/', $style)
+            )) {
+                return true;
+            }
+
+            if ($includeHiddenClassAllowlist && $this->hasHiddenClassAllowlistMatch($node)) {
+                return true;
+            }
+
+            $parent = $node->parentNode;
+            $node = $parent instanceof \DOMElement ? $parent : null;
+        }
+
+        return false;
+    }
+
+    protected function hasHiddenClassAllowlistMatch(\DOMElement $element): bool
+    {
+        $classes = preg_split('/\s+/', strtolower(trim($element->getAttribute('class')))) ?: [];
+        foreach ($classes as $className) {
+            if (in_array($className, ['is-hidden', 'hidden', 'd-none'], true)) {
+                return true;
+            }
         }
 
         return false;

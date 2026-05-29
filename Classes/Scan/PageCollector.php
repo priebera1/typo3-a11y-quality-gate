@@ -15,7 +15,6 @@ final class PageCollector
      * @var int[]
      */
     private const EXCLUDED_DOKTYPES = [
-        PageDoktypes::RECYCLER,
         PageDoktypes::MENU_SEPARATOR,
     ];
 

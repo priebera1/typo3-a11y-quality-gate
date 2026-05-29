@@ -29,12 +29,12 @@ final class LinkNewWindowNoWarningRule extends AbstractRteRule
 
     public function getMessage(): string
     {
-        return 'Link opens in a new window without warning the user.';
+        return 'Link opens in a new window or tab without warning the user.';
     }
 
     public function getHint(): string
     {
-        return 'Add a visible or accessible hint such as "opens in new window" so users know what to expect.';
+        return 'Add a visible or accessible hint such as "opens in a new window or tab" so users know what to expect.';
     }
 
     /**

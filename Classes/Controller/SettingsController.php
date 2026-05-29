@@ -145,6 +145,7 @@ final class SettingsController extends AbstractBackendModuleController
         $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier(
             $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier
         );
+        $remoteAccessAvailable = (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
 
         $qualityGateRuleset = $this->rulesetRepository->findOrCreateDefault();
         $rulesManagement = $this->buildRulesManagement($qualityGateRuleset);
@@ -188,6 +189,7 @@ final class SettingsController extends AbstractBackendModuleController
             'overviewUrl' => $overviewUrl,
             'returnParameters' => $returnParameters,
             'proStatus' => $proStatus,
+            'remoteAccessAvailable' => $remoteAccessAvailable,
             'qualityGateRuleset' => $qualityGateRuleset,
             'rulesManagement' => $rulesManagement,
             'dictionarySettings' => $dictionarySettings,
@@ -219,6 +221,7 @@ final class SettingsController extends AbstractBackendModuleController
             'licenceKey' => $licenceKey,
             'showProHints' => $showProHints,
             'pricingUrl' => 'https://typo3.priebera.sk/pricing',
+            'trialUrl' => 'https://typo3.priebera.sk/trial',
             'portalUrl' => 'https://typo3.priebera.sk/portal',
             'licensingDocsUrl' => 'https://typo3.priebera.sk/docs',
             'contactUrl' => 'https://typo3.priebera.sk/contact',
@@ -366,7 +369,7 @@ final class SettingsController extends AbstractBackendModuleController
             }
         }
 
-        if ((string)($body['remoteScanAccessFormSubmitted'] ?? '') === '1' && $isAdmin) {
+        if ((string)($body['remoteScanAccessFormSubmitted'] ?? '') === '1' && $isAdmin && $this->hasRemoteScanAccessCapability($selectedRulesetSite, $request)) {
             $remoteAccessData = is_array($body['remoteScanAccess'] ?? null) ? $body['remoteScanAccess'] : [];
             $httpAuthPass = trim((string)($remoteAccessData['http_auth_pass'] ?? ''));
             $clearHttpAuthPassword = (string)($remoteAccessData['clear_http_auth_password'] ?? '') === '1';
@@ -532,6 +535,15 @@ final class SettingsController extends AbstractBackendModuleController
             ], 403);
         }
 
+        $body = $this->parseRequestBody($request);
+        $rulesetSite = trim((string)($body['rulesetSite'] ?? ''));
+        if (!$this->hasRemoteScanAccessCapability($rulesetSite, $request)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Remote scan access is available in AQG PRO or Trial. Add a licence key or start a trial to configure remote scanning.',
+            ], 403);
+        }
+
         $token = $this->scannerAccessTokenService->generateAndSaveDefaultToken();
 
         return new JsonResponse([
@@ -553,6 +565,17 @@ final class SettingsController extends AbstractBackendModuleController
             ], 403);
         }
 
+        $body = $this->parseRequestBody($request);
+        $rulesetSite = trim((string)($body['rulesetSite'] ?? ''));
+        if (!$this->hasRemoteScanAccessCapability($rulesetSite, $request)) {
+            return new JsonResponse([
+                'success' => false,
+                'ok' => false,
+                'status' => 403,
+                'message' => 'Remote scan access is available in AQG PRO or Trial. Add a licence key or start a trial to configure remote scanning.',
+            ], 403);
+        }
+
         if (!$this->consumeHttpAuthTestQuota($request)) {
             return new JsonResponse([
                 'success' => false,
@@ -562,8 +585,6 @@ final class SettingsController extends AbstractBackendModuleController
             ], 429);
         }
 
-        $body = $this->parseRequestBody($request);
-        $rulesetSite = trim((string)($body['rulesetSite'] ?? ''));
         $username = trim((string)($body['username'] ?? ''));
         $password = trim((string)($body['password'] ?? ''));
 
@@ -1219,6 +1240,19 @@ final class SettingsController extends AbstractBackendModuleController
             'api_unreachable' => $this->translate('settings.licence.validation.reason.api_unreachable'),
             default => $this->translate('settings.licence.validation.invalidFallback'),
         };
+    }
+
+    private function hasRemoteScanAccessCapability(string $siteIdentifier, ServerRequestInterface $request): bool
+    {
+        if ($siteIdentifier === '') {
+            $pageUid = $this->requestParameterService->getPageUidOrZero($request);
+            $site = $this->resolveSiteForPage($request, $pageUid);
+            $siteIdentifier = $site?->getIdentifier() ?? '';
+        }
+
+        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+
+        return (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
     }
 
     private function looksLikeTrialKey(string $licenceKey): bool

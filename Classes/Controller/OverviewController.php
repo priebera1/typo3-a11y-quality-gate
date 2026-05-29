@@ -131,6 +131,9 @@ final class OverviewController extends AbstractBackendModuleController
         $remoteFailedQuery = trim((string)($queryParams['remoteFailedQuery'] ?? ''));
 
         $availableLanguages = $site !== null ? $this->siteLanguageService->getLanguagesForSiteObject($site) : [];
+        if ($site !== null && $currentPageUid > 0) {
+            $availableLanguages = $this->siteLanguageService->filterLanguagesAvailableForPage($currentPageUid, $availableLanguages);
+        }
         if ($availableLanguages !== [] && !$this->hasExplicitLanguageParameter($request)) {
             $this->backendContextService->getBackendUser()?->setAndSaveSessionData(
                 'tx_a11y_quality_gate_language',
@@ -138,12 +141,7 @@ final class OverviewController extends AbstractBackendModuleController
             );
 
             $redirectParameters = $this->getA11yModuleReturnParameters($request);
-            unset(
-                $redirectParameters['localPage'],
-                $redirectParameters['remotePage'],
-                $redirectParameters['remoteFailedPage'],
-                $redirectParameters['languageUid']
-            );
+            unset($redirectParameters['languageUid']);
             $redirectParameters['language'] = 0;
 
             return new RedirectResponse(
@@ -705,11 +703,8 @@ final class OverviewController extends AbstractBackendModuleController
         }
 
         $languageUid = $this->requestParameterService->getLanguageUid($request, 0);
-        if ($languageUid !== 0) {
-            $parameters['language'] = $languageUid;
-        } else {
-            unset($parameters['language'], $parameters['languageUid']);
-        }
+        $parameters['language'] = $languageUid;
+        unset($parameters['languageUid']);
 
         if ($localPage > 1) {
             $parameters['localPage'] = $localPage;

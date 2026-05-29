@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Scan;
 
 use Priebera\A11yQualityGate\Database\Tables;
-use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
 use Priebera\A11yQualityGate\Exception\ScanCancelledException;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Rendered\RenderedPageScanner;
+use Priebera\A11yQualityGate\Rendered\RenderedPageTypeGuard;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use Psr\Log\LoggerInterface;
 
@@ -23,8 +23,10 @@ final class ScanOrchestrator
         private readonly ContentHashCalculator $contentHashCalculator,
         private readonly RuleRegistry $ruleRegistry,
         private readonly RenderedPageScanner $renderedPageScanner,
+        private readonly RenderedPageTypeGuard $renderedPageTypeGuard,
         private readonly RuleConfigurationService $ruleConfigurationService,
-        private readonly IssueRepository $issueRepository,
+        private readonly IssuePersistenceCoordinator $issuePersistenceCoordinator,
+        private readonly IssueResolutionService $issueResolutionService,
         private readonly ScanRepository $scanRepository,
         private readonly SourceStateRepository $sourceStateRepository,
         private readonly LoggerInterface $logger,
@@ -204,7 +206,10 @@ final class ScanOrchestrator
         $result->pagesScanned++;
 
         $seenFingerprintsForPage = [];
+        $pendingHeaderLevelIsH1Violations = [];
         $renderedCheckCompleted = false;
+        $suppressStructuredHeaderLevelIsH1 = false;
+        $suppressStructuredHeaderLevelIsH1LanguageUid = $languageUid >= 0 ? $languageUid : 0;
 
         foreach ($records as $recordEnvelope) {
             $this->throwIfCancellationRequested($shouldCancel, $scanUid);
@@ -334,8 +339,20 @@ final class ScanOrchestrator
                     ),
                 );
 
-                $this->processViolations(
-                    ctx: $ctx,
+                $violations = $this->runRulesFor($ctx);
+                $nonDeferredViolations = [];
+                foreach ($violations as $violation) {
+                    if ($violation->ruleId === 'structured.header_level_is_h1') {
+                        $pendingHeaderLevelIsH1Violations[] = [$ctx, $violation];
+                        continue;
+                    }
+
+                    $nonDeferredViolations[] = $violation;
+                }
+
+                $this->issuePersistenceCoordinator->persistViolations(
+                    violations: $nonDeferredViolations,
+                    context: $ctx,
                     scanUid: $scanUid,
                     result: $result,
                     seenFingerprintsForPage: $seenFingerprintsForPage,
@@ -397,52 +414,135 @@ final class ScanOrchestrator
                     'scanUid' => $scanUid,
                 ]);
             } else {
-                $this->throwIfCancellationRequested($shouldCancel, $scanUid);
                 $renderedLanguageUid = $languageUid >= 0 ? $languageUid : 0;
-            $renderedContext = new CheckContext(
-                siteIdentifier: $siteIdentifier,
-                pageUid: $pageUid,
-                sourceLangUid: $renderedLanguageUid,
-                sourceTable: Tables::PAGES,
-                sourceUid: $pageUid,
-                sourceField: '__rendered_html',
-                content: '',
-                cType: '',
-                contextPath: sprintf('Page:%d > rendered HTML', $pageUid),
-                sourceType: 'rendered',
-            );
+                $pageDoktype = $this->renderedPageTypeGuard->getDoktypeForPage($pageUid);
 
-                $renderedResult = $this->renderedPageScanner->scanPageWithResult(
-                    $siteIdentifier,
-                    $pageUid,
-                    $renderedLanguageUid,
-                    $renderedSettings['allowPrivateHosts']
-                );
-                $renderedCheckCompleted = $renderedResult->completed;
+                if (!$this->renderedPageTypeGuard->supportsDoktype($pageDoktype)) {
+                    $renderedCheckCompleted = true;
+                    $result->addWarning(
+                        code: 'rendered_check_skipped_unsupported_doktype',
+                        message: 'Rendered page check was skipped because this page type does not render a standard frontend page. Local content checks were still completed.',
+                        context: [
+                            'pageUid' => $pageUid,
+                            'languageUid' => $renderedLanguageUid,
+                            'doktype' => $pageDoktype ?? 0,
+                            'source' => 'rendered_check',
+                        ]
+                    );
+                    $this->logger->info('Rendered page check skipped for unsupported page doktype.', [
+                        'siteIdentifier' => $siteIdentifier,
+                        'pageUid' => $pageUid,
+                        'languageUid' => $renderedLanguageUid,
+                        'doktype' => $pageDoktype,
+                        'scanUid' => $scanUid,
+                    ]);
+                } else {
+                    $this->throwIfCancellationRequested($shouldCancel, $scanUid);
+                    $renderedContext = new CheckContext(
+                        siteIdentifier: $siteIdentifier,
+                        pageUid: $pageUid,
+                        sourceLangUid: $renderedLanguageUid,
+                        sourceTable: Tables::PAGES,
+                        sourceUid: $pageUid,
+                        sourceField: '__rendered_html',
+                        content: '',
+                        cType: '',
+                        contextPath: sprintf('Page:%d > rendered HTML', $pageUid),
+                        sourceType: 'rendered',
+                    );
 
-                foreach ($renderedResult->violations as $violation) {
-                    $fingerprint = $violation->fingerprint($renderedContext);
-                    $seenFingerprintsForPage[] = $fingerprint;
-                    $upsertResult = $this->issueRepository->upsert($violation, $renderedContext, $scanUid);
-                    match ($upsertResult) {
-                        'inserted' => $result->issuesNew++,
-                        'protected' => $result->issuesIgnored++,
-                        default => null,
-                    };
+                    $renderedResult = $this->renderedPageScanner->scanPageWithResult(
+                        $siteIdentifier,
+                        $pageUid,
+                        $renderedLanguageUid,
+                        $renderedSettings['allowPrivateHosts']
+                    );
+                    $renderedCheckCompleted = $renderedResult->completed;
+                    $suppressStructuredHeaderLevelIsH1 = $renderedCheckCompleted && $renderedResult->h1Count === 1;
+                    $this->logger->debug('Rendered H1 suppression evaluation finished.', [
+                        'siteIdentifier' => $siteIdentifier,
+                        'pageUid' => $pageUid,
+                        'languageUid' => $renderedLanguageUid,
+                        'scanUid' => $scanUid,
+                        'renderedCheckCompleted' => $renderedCheckCompleted,
+                        'h1Count' => $renderedResult->h1Count,
+                        'suppressedStructuredH1' => $suppressStructuredHeaderLevelIsH1,
+                        'failureReason' => $renderedResult->failureReason,
+                    ]);
+                    if (!$renderedCheckCompleted && $renderedResult->warning !== '') {
+                        $result->addWarning(
+                            code: 'rendered_check_skipped',
+                            message: $renderedResult->warning,
+                            context: [
+                                'pageUid' => $pageUid,
+                                'languageUid' => $renderedLanguageUid,
+                                'source' => 'rendered_check',
+                            ]
+                        );
+                    }
+
+                    if ($renderedResult->failureReason === 'error_page') {
+                        $resolvedTechnicalErrorIssues = $this->issueResolutionService->resolveRenderedTechnicalErrorSnippetIssues(
+                            pageUid: $pageUid,
+                            siteIdentifier: $siteIdentifier,
+                            sourceLangUid: $renderedLanguageUid,
+                            scanUid: $scanUid,
+                        );
+                        $result->issuesResolved += $resolvedTechnicalErrorIssues;
+                    }
+
+                    $this->issuePersistenceCoordinator->persistViolations(
+                        violations: $renderedResult->violations,
+                        context: $renderedContext,
+                        scanUid: $scanUid,
+                        result: $result,
+                        seenFingerprintsForPage: $seenFingerprintsForPage,
+                    );
                 }
             }
         }
 
+        if ($suppressStructuredHeaderLevelIsH1) {
+            $resolvedSuppressedH1Issues = $this->issueResolutionService->resolveOpenRuleForPage(
+                pageUid: $pageUid,
+                siteIdentifier: $siteIdentifier,
+                sourceLangUid: $suppressStructuredHeaderLevelIsH1LanguageUid,
+                ruleId: 'structured.header_level_is_h1',
+                scanUid: $scanUid,
+            );
+            $result->issuesResolved += $resolvedSuppressedH1Issues;
+
+            $this->logger->debug('Structured H1 review issue suppressed because rendered HTML contains exactly one H1.', [
+                'siteIdentifier' => $siteIdentifier,
+                'pageUid' => $pageUid,
+                'languageUid' => $suppressStructuredHeaderLevelIsH1LanguageUid,
+                'scanUid' => $scanUid,
+                'resolvedExistingIssues' => $resolvedSuppressedH1Issues,
+            ]);
+        } else {
+            foreach ($pendingHeaderLevelIsH1Violations as [$pendingContext, $pendingViolation]) {
+                if (!$pendingContext instanceof CheckContext || !$pendingViolation instanceof \Priebera\A11yQualityGate\Rule\RuleViolation) {
+                    continue;
+                }
+
+                $this->issuePersistenceCoordinator->persistViolations(
+                    violations: [$pendingViolation],
+                    context: $pendingContext,
+                    scanUid: $scanUid,
+                    result: $result,
+                    seenFingerprintsForPage: $seenFingerprintsForPage,
+                );
+            }
+        }
+
         if (!$changedOnly) {
-            $resolved = $this->issueRepository->resolveUnseen(
+            $resolved = $this->issueResolutionService->resolveUnseenForPage(
                 pageUid: $pageUid,
                 siteIdentifier: $siteIdentifier,
                 sourceLangUid: $languageUid,
-                seenFingerprints: array_values(array_unique($seenFingerprintsForPage)),
+                seenFingerprintsForPage: $seenFingerprintsForPage,
                 scanUid: $scanUid,
-                backendUserUid: (int)($resolvedBy['uid'] ?? 0),
-                backendUserName: (string)($resolvedBy['name'] ?? ''),
-                backendUsername: (string)($resolvedBy['username'] ?? ''),
+                resolvedBy: $resolvedBy,
                 excludeSourceTypes: ($includeRenderedPageCheck && !$renderedCheckCompleted) ? ['rendered'] : [],
             );
 
@@ -479,18 +579,13 @@ final class ScanOrchestrator
     ): void {
         $violations = $this->runRulesFor($ctx);
 
-        foreach ($violations as $violation) {
-            $fingerprint = $violation->fingerprint($ctx);
-            $seenFingerprintsForPage[] = $fingerprint;
-
-            $upsertResult = $this->issueRepository->upsert($violation, $ctx, $scanUid);
-
-            match ($upsertResult) {
-                'inserted' => $result->issuesNew++,
-                'protected' => $result->issuesIgnored++,
-                default => null,
-            };
-        }
+        $this->issuePersistenceCoordinator->persistViolations(
+            violations: $violations,
+            context: $ctx,
+            scanUid: $scanUid,
+            result: $result,
+            seenFingerprintsForPage: $seenFingerprintsForPage,
+        );
     }
 
     /**

@@ -15,7 +15,7 @@ final class EmptyLinkRule extends AbstractRenderedHtmlRule
     public function evaluate(RenderedHtmlContext $context): iterable
     {
         foreach ($context->document->getElementsByTagName('a') as $link) {
-            if (!$link instanceof \DOMElement || $this->isAriaHidden($link)) { continue; }
+            if (!$link instanceof \DOMElement || $this->isInsideTemplate($link) || $this->isAriaHidden($link)) { continue; }
             if (!$this->hasAccessibleName($link, $context->xpath)) {
                 yield $this->issueFactory->create($context, $link, $this->getRuleId(), $this->getDefaultSeverity(), 'Rendered link has no accessible name.', 'Add visible link text or an accessible label that describes the destination.');
             }

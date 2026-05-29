@@ -107,9 +107,9 @@ final class SvgMissingTitleRuleTest extends TestCase
     }
 
     #[Test]
-    public function svgWithAriaHiddenTrueFailsInCurrentImplementation(): void
+    public function svgWithAriaHiddenTrueIsIgnored(): void
     {
-        self::assertCount(1, $this->rule->check($this->ctx(
+        self::assertCount(0, $this->rule->check($this->ctx(
             '<svg aria-hidden="true"><use href="#icon-close"></use></svg>'
         )));
     }
@@ -125,7 +125,7 @@ final class SvgMissingTitleRuleTest extends TestCase
             <svg><rect></rect></svg>
         '));
 
-        self::assertCount(3, $violations);
+        self::assertCount(2, $violations);
     }
 
     #[Test]

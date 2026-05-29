@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.3.1] - 2026-05-29
+
+### Fixed
+- Rendered scans no longer create accessibility issues when the fetched
+  frontend response is a detected technical error page. The scan reports
+  a warning instead.
+- Old rendered false positives with stored technical error snippets are
+  automatically resolved on the next scan that detects an error page for
+  the same page.
+- Overview pagination now correctly preserves local, remote and
+  failed-remote list state, including language and search parameters.
+- Settings → Remote scan access now shows a PRO/Trial gate in FREE mode
+  instead of the scanner token and crawler setup forms.
+- Rendered Frontend URLs in Page Detail technical details are now
+  clickable links.
+- Language switcher in Overview and Page Detail now only offers languages
+  that have an existing page translation.
+- Rendered page checks are now skipped for non-frontend page types
+  (External URL, Shortcut, Backend user section, Mountpoint, Spacer,
+  Folder) while custom renderable page types remain eligible.
+- Reduced rendered-scan false positives: inert `<template>` content is
+  ignored across all rendered rules; hidden noscript tracking iframes, SVG
+  sprite containers, hidden helper form controls and SVGs inside
+  already-named links or buttons are no longer flagged.
+- `structured.header_level_is_h1` review noise is suppressed when a
+  successful rendered scan confirms the final HTML contains exactly one `<h1>`.
+- Rule messages, hints and severity are refreshed for re-seen issues on
+  rescan, so wording fixes apply without a manual delete-and-rescan.
+- Updated `rte.link_new_window_no_warning` wording to "new window or tab".
+
+### Changed
+- Improved user-facing warnings for rendered fetch failures, private/local
+  host blocking, oversized responses and unsupported page types.
+- Clarified Settings and Page Detail copy: local rendered checks inspect
+  server-rendered HTML only and do not execute JavaScript, AJAX or
+  lazy-loaded content.
+
 ## [1.3.0] - 2026-05-26
 
 ### Added

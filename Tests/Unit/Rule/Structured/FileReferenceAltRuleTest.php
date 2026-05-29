@@ -62,9 +62,9 @@ final class FileReferenceAltRuleTest extends TestCase
     }
 
     #[Test]
-    public function supportsNonImageFieldBecauseFilteringNowHappensAtRepositoryLevel(): void
+    public function doesNotSupportNonImageField(): void
     {
-        self::assertTrue($this->makeRule()->supports($this->ctx(field: 'bodytext', content: 42)));
+        self::assertFalse($this->makeRule()->supports($this->ctx(field: 'bodytext', content: 42)));
     }
 
     #[Test]

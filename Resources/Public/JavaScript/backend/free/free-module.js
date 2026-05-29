@@ -1460,6 +1460,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 ),
                 'success'
             );
+            this.showScanWarnings(data);
 
             this.updateLocalScanProgress(
                 true,
@@ -1484,6 +1485,25 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         await new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
         await new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
     }
+
+    showScanWarnings(data) {
+        const warnings = Array.isArray(data?.warnings) ? data.warnings : [];
+        warnings.forEach((warning) => {
+            const message = String(warning?.message || '').trim();
+            if (message === '') {
+                return;
+            }
+
+            this.showNotification(
+                this.format(
+                    this.translate('notification.scan.warning', 'Scan completed with a warning: %s'),
+                    message
+                ),
+                'warning'
+            );
+        });
+    }
+
 
     formatLocalScanStartedAt(date = new Date()) {
         return `${this.translate('overview.progress.started', 'Started')} ${date.toLocaleTimeString([], {
@@ -1643,6 +1663,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 ),
                 'success'
             );
+            this.showScanWarnings(data);
 
             this.updateLocalScanProgress(
                 true,

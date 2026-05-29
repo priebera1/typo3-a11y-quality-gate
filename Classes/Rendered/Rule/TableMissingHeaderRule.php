@@ -15,7 +15,7 @@ final class TableMissingHeaderRule extends AbstractRenderedHtmlRule
     public function evaluate(RenderedHtmlContext $context): iterable
     {
         foreach ($context->document->getElementsByTagName('table') as $table) {
-            if (!$table instanceof \DOMElement || $this->isPresentationTable($table)) { continue; }
+            if (!$table instanceof \DOMElement || $this->isInsideTemplate($table) || $this->isPresentationTable($table)) { continue; }
             if ($table->getElementsByTagName('th')->length === 0) {
                 yield $this->issueFactory->create($context, $table, $this->getRuleId(), $this->getDefaultSeverity(), 'Rendered table has no header cells.', 'Add table header cells (<th>) for data tables, or mark layout tables as presentation.');
             }

@@ -12,7 +12,7 @@ use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\Rte\EmptyLinkRule;
 use Priebera\A11yQualityGate\Rule\Rte\HeadingHierarchyRule;
 use Priebera\A11yQualityGate\Rule\Rte\NonDescriptiveLinkRule;
-use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use Priebera\A11yQualityGate\Service\DictionaryRegistry;
 
 final class LinkAndHeadingRulesTest extends TestCase
 {
@@ -54,7 +54,7 @@ final class LinkAndHeadingRulesTest extends TestCase
     public function emptyLinkLinkWithAriaLabelledbyPasses(): void
     {
         self::assertCount(0, (new EmptyLinkRule())->check($this->ctx(
-            '<a href="/about" aria-labelledby="heading1"></a>'
+            '<span id="heading1">About us</span><a href="/about" aria-labelledby="heading1"></a>'
         )));
     }
 
@@ -280,30 +280,36 @@ final class LinkAndHeadingRulesTest extends TestCase
 
     private function makeNonDescriptiveRule(string $adminConfig = ''): NonDescriptiveLinkRule
     {
-        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
-        $extensionConfiguration->method('get')->willReturn($adminConfig);
+        $phrases = [
+            'click here',
+            'here',
+            'read more',
+            'more',
+            'learn more',
+            'continue',
+            'continue reading',
+            'details',
+            'link',
+            'this link',
+            'this page',
+            'download',
+            'more info',
+            'more information',
+            'see more',
+            'view more',
+        ];
 
-        return new NonDescriptiveLinkRule(
-            $extensionConfiguration,
-            [
-                'click here',
-                'here',
-                'read more',
-                'more',
-                'learn more',
-                'continue',
-                'continue reading',
-                'details',
-                'link',
-                'this link',
-                'this page',
-                'download',
-                'more info',
-                'more information',
-                'see more',
-                'view more',
-            ]
-        );
+        foreach (preg_split('/\R+/', trim($adminConfig)) ?: [] as $customPhrase) {
+            $customPhrase = trim($customPhrase);
+            if ($customPhrase !== '') {
+                $phrases[] = $customPhrase;
+            }
+        }
+
+        $dictionaryRegistry = $this->createMock(DictionaryRegistry::class);
+        $dictionaryRegistry->method('resolveForContext')->willReturn($phrases);
+
+        return new NonDescriptiveLinkRule($dictionaryRegistry);
     }
 
     private function ctx(string $html, int $langUid = 0): CheckContext

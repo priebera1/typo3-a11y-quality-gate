@@ -16,7 +16,7 @@ final class EmptyHeadingRule extends AbstractRenderedHtmlRule
     {
         foreach (['h1','h2','h3','h4','h5','h6'] as $tagName) {
             foreach ($context->document->getElementsByTagName($tagName) as $heading) {
-                if (!$heading instanceof \DOMElement || $this->isAriaHidden($heading)) { continue; }
+                if (!$heading instanceof \DOMElement || $this->isInsideTemplate($heading) || $this->isAriaHidden($heading)) { continue; }
                 if (!$this->hasMeaningfulText($heading)) {
                     yield $this->issueFactory->create($context, $heading, $this->getRuleId(), $this->getDefaultSeverity(), 'Rendered heading is empty.', 'Remove the empty heading or add meaningful heading text.');
                 }

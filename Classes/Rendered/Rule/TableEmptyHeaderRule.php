@@ -15,7 +15,7 @@ final class TableEmptyHeaderRule extends AbstractRenderedHtmlRule
     public function evaluate(RenderedHtmlContext $context): iterable
     {
         foreach ($context->document->getElementsByTagName('th') as $th) {
-            if (!$th instanceof \DOMElement || $this->isAriaHidden($th)) { continue; }
+            if (!$th instanceof \DOMElement || $this->isInsideTemplate($th) || $this->isAriaHidden($th)) { continue; }
             if (!$this->hasMeaningfulText($th)) {
                 yield $this->issueFactory->create($context, $th, $this->getRuleId(), $this->getDefaultSeverity(), 'Rendered table header cell is empty.', 'Add meaningful text to the table header cell or remove the empty header.');
             }

@@ -49,6 +49,10 @@ final class EmptyLinkRule extends AbstractRteRule
                 continue;
             }
 
+            if (!$link->hasAttribute('href')) {
+                continue;
+            }
+
             if ($this->hasAccessibleName($link, $xpath)) {
                 continue;
             }

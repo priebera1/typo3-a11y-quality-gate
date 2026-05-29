@@ -62,7 +62,7 @@ final class ButtonLabelMissingRuleTest extends TestCase
     public function buttonWithAriaLabelledByPasses(): void
     {
         self::assertCount(0, $this->rule->check($this->ctx(
-            '<button aria-labelledby="lbl"><i class="icon"></i></button>'
+            '<span id="lbl">Close</span><button aria-labelledby="lbl"><i class="icon"></i></button>'
         )));
     }
 

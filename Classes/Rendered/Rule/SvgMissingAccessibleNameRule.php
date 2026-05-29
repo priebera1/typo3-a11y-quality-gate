@@ -15,13 +15,53 @@ final class SvgMissingAccessibleNameRule extends AbstractRenderedHtmlRule
     public function evaluate(RenderedHtmlContext $context): iterable
     {
         foreach ($context->document->getElementsByTagName('svg') as $svg) {
-            if (!$svg instanceof \DOMElement) { continue; }
-            if ($this->isAriaHidden($svg) || $this->isPresentation($svg)) { continue; }
+            if (!$svg instanceof \DOMElement || $this->isInsideTemplate($svg)) { continue; }
+            if ($this->isAriaHidden($svg) || $this->isPresentation($svg) || $this->isSpriteDefinitionContainer($svg)) { continue; }
+            if ($this->hasNamedInteractiveAncestor($svg, $context->xpath) && !$this->hasExplicitImageRole($svg)) { continue; }
             if ($this->hasMeaningfulInlineIconContext($svg) && !$this->hasExplicitImageRole($svg)) { continue; }
             if (trim($svg->getAttribute('aria-label')) !== '' || $this->resolveAriaLabelledByText($svg, $context->xpath) !== '' || $this->hasDirectTitle($svg)) { continue; }
 
             yield $this->issueFactory->create($context, $svg, $this->getRuleId(), $this->getDefaultSeverity(), 'Rendered inline SVG has no accessible name.', 'Add aria-hidden="true" for decorative SVGs, or add a <title>, aria-label, or valid aria-labelledby for meaningful SVG graphics.');
         }
+    }
+
+
+    private function isSpriteDefinitionContainer(\DOMElement $svg): bool
+    {
+        $elementChildren = [];
+        foreach ($svg->childNodes as $child) {
+            if ($child instanceof \DOMElement) {
+                $elementChildren[] = strtolower($child->tagName);
+            }
+        }
+
+        if ($elementChildren === []) {
+            return false;
+        }
+
+        $definitionTags = ['symbol', 'defs', 'clippath', 'mask', 'lineargradient', 'radialgradient', 'title', 'desc'];
+        foreach ($elementChildren as $tagName) {
+            if (!in_array($tagName, $definitionTags, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function hasNamedInteractiveAncestor(\DOMElement $svg, \DOMXPath $xpath): bool
+    {
+        $node = $svg->parentNode;
+        while ($node instanceof \DOMElement) {
+            $tag = strtolower($node->tagName);
+            if (in_array($tag, ['a', 'button'], true)) {
+                return $this->hasAccessibleName($node, $xpath);
+            }
+
+            $node = $node->parentNode;
+        }
+
+        return false;
     }
 
     private function isPresentation(\DOMElement $svg): bool

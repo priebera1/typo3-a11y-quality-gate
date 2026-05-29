@@ -112,6 +112,7 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesNew' => $result->issuesNew,
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
+                'warnings' => $result->warnings,
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (ScanCancelledException) {
@@ -214,6 +215,7 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesNew' => $result->issuesNew,
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
+                'warnings' => $result->warnings,
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (ScanCancelledException) {

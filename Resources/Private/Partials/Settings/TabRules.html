@@ -235,7 +235,8 @@
                         <span class="aqg-guidance__title">Rendered check scope</span>
                         <ol class="aqg-guidance__steps">
                             <li>FREE rendered checks are manual and page-level only.</li>
-                            <li>They do not run sitemap crawls, Playwright, axe-core or screenshots.</li>
+                            <li>They inspect the server-rendered HTML returned by TYPO3 and do not execute JavaScript.</li>
+                            <li>They do not load AJAX or lazy-loaded content, run sitemap crawls, Playwright, axe-core or screenshots.</li>
                             <li>Whole-site frontend crawling remains a PRO crawler feature.</li>
                         </ol>
                     </span>

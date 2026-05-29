@@ -13,9 +13,31 @@ final class ScanResult
     public int $issuesResolved = 0;
     public int $issuesIgnored = 0;
 
+    /**
+     * @var list<array{code:string,message:string,context:array<string, int|string|bool>}>
+     */
+    public array $warnings = [];
+
     public function __construct(
         public readonly int $scanUid,
     ) {
+    }
+
+    /**
+     * @param array<string, int|string|bool> $context
+     */
+    public function addWarning(string $code, string $message, array $context = []): void
+    {
+        $message = trim($message);
+        if ($code === '' || $message === '') {
+            return;
+        }
+
+        $this->warnings[] = [
+            'code' => $code,
+            'message' => $message,
+            'context' => $context,
+        ];
     }
 
     public function toSummaryString(): string

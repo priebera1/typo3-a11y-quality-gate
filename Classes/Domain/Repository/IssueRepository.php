@@ -48,6 +48,24 @@ final class IssueRepository extends AbstractRepository
         return $violation->sourceField !== '' ? $violation->sourceField : $ctx->sourceField;
     }
 
+    private function effectiveMessage(RuleViolation $violation): string
+    {
+        if ($violation->ruleId === 'rte.link_new_window_no_warning') {
+            return 'Link opens in a new window or tab without warning the user.';
+        }
+
+        return $violation->message;
+    }
+
+    private function effectiveHint(RuleViolation $violation): string
+    {
+        if ($violation->ruleId === 'rte.link_new_window_no_warning') {
+            return 'Add a visible or accessible hint such as "opens in a new window or tab" so users know what to expect.';
+        }
+
+        return $violation->hint;
+    }
+
     /**
      * @return 'inserted'|'updated'|'protected'
      */
@@ -61,6 +79,8 @@ final class IssueRepository extends AbstractRepository
         $sourceField = $this->effectiveSourceField($violation, $ctx);
         $frontendUrl = $violation->frontendUrl !== '' ? $violation->frontendUrl : $ctx->frontendUrl;
         $cssSelector = $violation->cssSelector !== '' ? $violation->cssSelector : $ctx->cssSelector;
+        $message = $this->effectiveMessage($violation);
+        $hint = $this->effectiveHint($violation);
         $existing = $this->findByFingerprint($fingerprint, $ctx->siteIdentifier);
 
         if ($existing === null) {
@@ -76,8 +96,8 @@ final class IssueRepository extends AbstractRepository
                 'css_selector' => $cssSelector,
                 'rule_id' => $violation->ruleId,
                 'severity' => $violation->severity->value,
-                'message' => $violation->message,
-                'hint' => $violation->hint,
+                'message' => $message,
+                'hint' => $hint,
                 'context_snippet' => $violation->contextSnippet,
                 'context_path' => $violation->contextPath,
                 'fingerprint' => $fingerprint,
@@ -101,6 +121,13 @@ final class IssueRepository extends AbstractRepository
         }
 
         $update = [
+            'severity' => $violation->severity->value,
+            'message' => $message,
+            'hint' => $hint,
+            'context_snippet' => $violation->contextSnippet,
+            'context_path' => $violation->contextPath,
+            'frontend_url' => $frontendUrl,
+            'css_selector' => $cssSelector,
             'last_seen_scan_uid' => $scanUid,
             'tstamp' => $now,
         ];
@@ -200,6 +227,119 @@ final class IssueRepository extends AbstractRepository
                 )
             );
         }
+
+        return (int)$qb->executeStatement();
+    }
+
+
+    /**
+     * Resolves old rendered issues that were clearly created from technical error HTML.
+     *
+     * This is intentionally narrower than a generic rendered fetch failure cleanup: only
+     * snippets containing known technical error patterns are resolved, so legitimate
+     * rendered findings stay open when a later fetch fails or returns an error page.
+     */
+    public function resolveOpenRuleForPage(
+        int $pageUid,
+        string $siteIdentifier,
+        int $sourceLangUid,
+        string $ruleId,
+        int $scanUid,
+    ): int {
+        if ($pageUid <= 0 || trim($siteIdentifier) === '' || trim($ruleId) === '') {
+            return 0;
+        }
+
+        $now = time();
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->update(Tables::ISSUE)
+            ->set('status', (string)IssueStatus::Resolved->value)
+            ->set('resolved_at', (string)$now)
+            ->set('last_seen_scan_uid', (string)$scanUid)
+            ->set('tstamp', (string)$now)
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId)),
+                $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)),
+            );
+
+        if ($sourceLangUid >= 0) {
+            $qb->andWhere(
+                $qb->expr()->eq('source_lang_uid', $qb->createNamedParameter($sourceLangUid, Connection::PARAM_INT))
+            );
+        }
+
+        return (int)$qb->executeStatement();
+    }
+
+    public function resolveRenderedTechnicalErrorSnippetIssues(
+        int $pageUid,
+        string $siteIdentifier,
+        int $sourceLangUid,
+        int $scanUid,
+    ): int {
+        if ($pageUid <= 0 || trim($siteIdentifier) === '') {
+            return 0;
+        }
+
+        $now = time();
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->update(Tables::ISSUE)
+            ->set('status', (string)IssueStatus::Resolved->value)
+            ->set('resolved_at', (string)$now)
+            ->set('last_seen_scan_uid', (string)$scanUid)
+            ->set('tstamp', (string)$now)
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_type', $qb->createNamedParameter('rendered')),
+                $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)),
+            );
+
+        if ($sourceLangUid >= 0) {
+            $qb->andWhere(
+                $qb->expr()->eq('source_lang_uid', $qb->createNamedParameter($sourceLangUid, Connection::PARAM_INT))
+            );
+        }
+
+        $or = [];
+        foreach ([
+            '%Application exception%',
+            '%Technical error%',
+            '%TYPO3 Exception%',
+            '%Uncaught TYPO3 Exception%',
+            '%Core: Exception handler%',
+            '%Oops, an error occurred!%',
+            '%Symfony debug%',
+            '%sf-reset%',
+            '%sf-body%',
+            '%PHP Fatal error%',
+            '%Fatal error:%',
+            '%Stack trace:%',
+            '%cURL error%',
+            '%Client error:%',
+            '%upstream timed out%',
+            '%Connection refused%',
+            '%Name or service not known%',
+        ] as $pattern) {
+            $or[] = $qb->expr()->like('context_snippet', $qb->createNamedParameter($pattern));
+        }
+
+        foreach ([
+            ['%Exception%', '%Server error%'],
+            ['%Exception%', '%connect fail%'],
+            ['%Exception%', '%connection fail%'],
+            ['%Exception%', '%GET http%'],
+            ['%Server error:%', '%GET http%'],
+        ] as [$firstPattern, $secondPattern]) {
+            $or[] = $qb->expr()->and(
+                $qb->expr()->like('context_snippet', $qb->createNamedParameter($firstPattern)),
+                $qb->expr()->like('context_snippet', $qb->createNamedParameter($secondPattern)),
+            );
+        }
+
+        $qb->andWhere($qb->expr()->or(...$or));
 
         return (int)$qb->executeStatement();
     }
@@ -368,6 +508,8 @@ final class IssueRepository extends AbstractRepository
         $sourceField = $this->effectiveSourceField($violation, $ctx);
         $frontendUrl = $violation->frontendUrl !== '' ? $violation->frontendUrl : $ctx->frontendUrl;
         $cssSelector = $violation->cssSelector !== '' ? $violation->cssSelector : $ctx->cssSelector;
+        $message = $this->effectiveMessage($violation);
+        $hint = $this->effectiveHint($violation);
         $existing = $this->findByFingerprint($fingerprint, $ctx->siteIdentifier);
 
         if ($existing !== null) {
@@ -388,8 +530,8 @@ final class IssueRepository extends AbstractRepository
             'css_selector' => $cssSelector,
             'rule_id' => $violation->ruleId,
             'severity' => $violation->severity->value,
-            'message' => $violation->message,
-            'hint' => $violation->hint,
+            'message' => $message,
+            'hint' => $hint,
             'context_snippet' => $violation->contextSnippet,
             'context_path' => $violation->contextPath,
             'fingerprint' => $fingerprint,
@@ -409,6 +551,7 @@ final class IssueRepository extends AbstractRepository
 
         return $issueUid;
     }
+
 
     /**
      * @return array{critical:int,warning:int,info:int,needs_review:int}

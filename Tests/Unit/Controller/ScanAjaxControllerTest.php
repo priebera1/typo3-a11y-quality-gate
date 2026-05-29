@@ -14,6 +14,9 @@ use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
+use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
+use Priebera\A11yQualityGate\Service\LanguageUidResolver;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -30,6 +33,8 @@ final class ScanAjaxControllerTest extends TestCase
     private ScanStatusService $scanStatusService;
     private BackendUserService $backendUserService;
     private RemoteScanRepository $remoteScanRepository;
+    private ScanRepository $scanRepository;
+    private BackendRecordAccessService $backendRecordAccessService;
     private ServerRequestInterface $request;
     private ResponseInterface $response;
 
@@ -41,6 +46,9 @@ final class ScanAjaxControllerTest extends TestCase
         $this->scanStatusService = $this->createMock(ScanStatusService::class);
         $this->backendUserService = $this->createMock(BackendUserService::class);
         $this->remoteScanRepository = $this->createMock(RemoteScanRepository::class);
+        $this->scanRepository = $this->createMock(ScanRepository::class);
+        $this->backendRecordAccessService = $this->createMock(BackendRecordAccessService::class);
+        $this->backendRecordAccessService->method('canEditRecord')->willReturn(true);
 
         $stream = $this->createMock(StreamInterface::class);
 
@@ -63,6 +71,9 @@ final class ScanAjaxControllerTest extends TestCase
             $this->accessControlService,
             $this->scanStatusService,
             $this->remoteScanRepository,
+            $this->scanRepository,
+            $this->backendRecordAccessService,
+            new LanguageUidResolver(),
         );
 
         $this->request = $this->createMock(ServerRequestInterface::class);
@@ -196,6 +207,7 @@ final class ScanAjaxControllerTest extends TestCase
                 'tester',
                 42,
                 null,
+                0,
             );
 
         $result = new ScanResult(scanUid: 7);
@@ -208,7 +220,6 @@ final class ScanAjaxControllerTest extends TestCase
         $this->orchestrator
             ->expects($this->once())
             ->method('scanPage')
-            ->with('main', 42)
             ->willReturn($result);
 
         $this->scanStatusService
@@ -258,12 +269,12 @@ final class ScanAjaxControllerTest extends TestCase
                 'tester',
                 42,
                 null,
+                0,
             );
 
         $this->orchestrator
             ->expects($this->once())
             ->method('scanPage')
-            ->with('main', 42)
             ->willThrowException(new \RuntimeException('DB connection lost'));
 
         $this->scanStatusService
@@ -411,6 +422,7 @@ final class ScanAjaxControllerTest extends TestCase
                 'tester',
                 null,
                 123,
+                0,
             );
 
         $result = new ScanResult(scanUid: 8);
@@ -423,7 +435,6 @@ final class ScanAjaxControllerTest extends TestCase
         $this->orchestrator
             ->expects($this->once())
             ->method('scanSubtree')
-            ->with('main', 123)
             ->willReturn($result);
 
         $this->scanStatusService
@@ -490,6 +501,14 @@ final class ScanAjaxControllerTest extends TestCase
         $this->backendUserService
             ->method('getBackendUser')
             ->willReturn($beUser);
+
+        $this->backendUserService
+            ->method('getBackendUserSnapshot')
+            ->willReturn([
+                'uid' => $uid,
+                'username' => $username,
+                'name' => $username,
+            ]);
 
         return $beUser;
     }

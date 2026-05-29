@@ -68,4 +68,37 @@ class ScanResultTest extends TestCase
         self::assertStringContainsString('2', $summary);
         self::assertStringContainsString('1', $summary);
     }
+    #[Test]
+    public function warningsCanBeAddedWithContext(): void
+    {
+        $result = new ScanResult(scanUid: 1);
+
+        $result->addWarning('rendered_check_skipped', 'Rendered page fetch timed out.', [
+            'pageUid' => 123,
+            'source' => 'rendered_check',
+        ]);
+
+        self::assertSame([
+            [
+                'code' => 'rendered_check_skipped',
+                'message' => 'Rendered page fetch timed out.',
+                'context' => [
+                    'pageUid' => 123,
+                    'source' => 'rendered_check',
+                ],
+            ],
+        ], $result->warnings);
+    }
+
+    #[Test]
+    public function emptyWarningsAreIgnored(): void
+    {
+        $result = new ScanResult(scanUid: 1);
+
+        $result->addWarning('', 'Message');
+        $result->addWarning('code', '');
+
+        self::assertSame([], $result->warnings);
+    }
+
 }

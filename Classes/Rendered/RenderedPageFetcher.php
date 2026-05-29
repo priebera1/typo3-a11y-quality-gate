@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Rendered;
 
+use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
 final class RenderedPageFetcher
@@ -13,6 +14,7 @@ final class RenderedPageFetcher
 
     public function __construct(
         private readonly RequestFactory $requestFactory,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -20,6 +22,14 @@ final class RenderedPageFetcher
     {
         $validationError = $this->validateUrl($url, $allowedHost, $allowedPort, $allowPrivateHosts);
         if ($validationError !== '') {
+            $this->logger->warning('Rendered page fetch blocked by URL validation.', [
+                'url' => $url,
+                'allowedHost' => $allowedHost,
+                'allowedPort' => $allowedPort,
+                'allowPrivateHosts' => $allowPrivateHosts,
+                'reason' => $validationError,
+                'resolvedIps' => $this->resolveHostIps($allowedHost),
+            ]);
             return new RenderedPageResponse(false, error: $validationError, finalUrl: $url);
         }
 
@@ -41,22 +51,41 @@ final class RenderedPageFetcher
                 ],
             ]);
         } catch (\Throwable $e) {
-            return new RenderedPageResponse(false, error: 'Rendered page fetch failed: ' . $e->getMessage(), finalUrl: $url);
+            $this->logger->warning('Rendered page fetch failed.', [
+                'url' => $url,
+                'allowedHost' => $allowedHost,
+                'allowedPort' => $allowedPort,
+                'allowPrivateHosts' => $allowPrivateHosts,
+                'exceptionClass' => $e::class,
+                'exceptionMessage' => $e->getMessage(),
+                'resolvedIps' => $this->resolveHostIps($allowedHost),
+            ]);
+            return new RenderedPageResponse(false, error: $this->userFacingFetchError($e), finalUrl: $url);
         }
 
         $statusCode = $response->getStatusCode();
         $contentType = strtolower(trim($response->getHeaderLine('Content-Type')));
         $finalUrl = (string)($response->getHeaderLine('X-Guzzle-Effective-Url') ?: $url);
-        if ($this->validateUrl($finalUrl, $allowedHost, $allowedPort, $allowPrivateHosts) !== '') {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page fetch ended on an invalid host.', finalUrl: $finalUrl);
+        $finalUrlValidationError = $this->validateUrl($finalUrl, $allowedHost, $allowedPort, $allowPrivateHosts);
+        if ($finalUrlValidationError !== '') {
+            $this->logger->warning('Rendered page fetch ended on invalid final URL.', [
+                'url' => $url,
+                'finalUrl' => $finalUrl,
+                'allowedHost' => $allowedHost,
+                'allowedPort' => $allowedPort,
+                'statusCode' => $statusCode,
+                'contentType' => $contentType,
+                'reason' => $finalUrlValidationError,
+            ]);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page fetch ended on a URL that does not match the configured site host or port.', finalUrl: $finalUrl);
         }
 
         if ($statusCode < 200 || $statusCode >= 300) {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page returned HTTP ' . $statusCode, finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page returned HTTP ' . $statusCode . '. The local rendered check can only inspect successful HTML responses.', finalUrl: $finalUrl);
         }
 
         if ($contentType !== '' && !str_contains($contentType, 'text/html') && !str_contains($contentType, 'application/xhtml+xml')) {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page response is not HTML.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page response is not HTML. The local rendered check can only inspect server-rendered HTML pages.', finalUrl: $finalUrl);
         }
 
         $body = $response->getBody();
@@ -66,11 +95,11 @@ final class RenderedPageFetcher
         }
 
         if (strlen($html) > self::MAX_HTML_BYTES) {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page HTML exceeds 5 MB limit.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered HTML response is too large for the local rendered check. Try scanning a smaller page or use the PRO remote crawler for browser-based scanning.', finalUrl: $finalUrl);
         }
 
         if (trim($html) === '') {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page response body is empty.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page response body is empty. The local rendered check could not inspect the page output.', finalUrl: $finalUrl);
         }
 
         return new RenderedPageResponse(true, html: $html, statusCode: $statusCode, contentType: $contentType, finalUrl: $finalUrl);
@@ -93,24 +122,67 @@ final class RenderedPageFetcher
             return 'Rendered page URL does not belong to the configured site host.';
         }
 
-        $port = $parts['port'] ?? null;
-        if ($allowedPort !== null && $port !== null && (int)$port !== $allowedPort) {
+        $actualPort = $this->effectivePort($scheme, $parts['port'] ?? null);
+        $expectedPort = $allowedPort ?? $this->defaultPortForScheme($scheme);
+        if ($actualPort !== $expectedPort) {
             return 'Rendered page URL port does not match the configured site port.';
         }
 
         if (!$allowPrivateHosts && $this->resolvesToPrivateAddress($host)) {
-            return 'Rendered page URL resolves to a private or local address.';
+            return 'Rendered page check was skipped because the frontend URL resolves to a private/local address. For trusted DDEV or staging environments, enable “Allow private/local frontend hosts for rendered checks” in Settings → Rules.';
         }
 
         return '';
     }
 
-    private function resolvesToPrivateAddress(string $host): bool
+    private function userFacingFetchError(\Throwable $exception): string
+    {
+        $message = strtolower($exception->getMessage());
+        if (str_contains($message, 'timed out') || str_contains($message, 'timeout') || str_contains($message, 'operation timed out')) {
+            return 'Rendered page fetch timed out. This can happen on very large, protected or slow pages. Try scanning a smaller page or use the PRO remote crawler for browser-based scanning.';
+        }
+
+        if (str_contains($message, 'redirect is not allowed')) {
+            return 'Rendered page check was stopped because a redirect led outside the configured site host or port. Check your TYPO3 site base URL configuration.';
+        }
+
+        return 'Rendered page fetch failed. This can happen on very large, protected or slow pages. Check that the frontend URL is reachable from TYPO3, or use the PRO remote crawler for browser-based scanning.';
+    }
+
+    private function effectivePort(string $scheme, mixed $port): int
+    {
+        if (is_int($port)) {
+            return $port;
+        }
+
+        if (is_string($port) && ctype_digit($port)) {
+            return (int)$port;
+        }
+
+        return $this->defaultPortForScheme($scheme);
+    }
+
+    private function defaultPortForScheme(string $scheme): int
+    {
+        return strtolower($scheme) === 'http' ? 80 : 443;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveHostIps(string $host): array
     {
         $ips = @gethostbynamel($host) ?: [];
         if ($ips === [] && filter_var($host, FILTER_VALIDATE_IP)) {
             $ips = [$host];
         }
+
+        return array_values(array_unique($ips));
+    }
+
+    private function resolvesToPrivateAddress(string $host): bool
+    {
+        $ips = $this->resolveHostIps($host);
 
         foreach ($ips as $ip) {
             if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {

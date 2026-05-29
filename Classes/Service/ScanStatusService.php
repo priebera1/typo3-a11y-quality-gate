@@ -94,6 +94,7 @@ final class ScanStatusService
                 'issuesNew' => $scanResult->issuesNew,
                 'issuesResolved' => $scanResult->issuesResolved,
                 'issuesIgnored' => $scanResult->issuesIgnored,
+                'warnings' => $scanResult->warnings,
             ],
             'error' => null,
             'cancelRequested' => false,

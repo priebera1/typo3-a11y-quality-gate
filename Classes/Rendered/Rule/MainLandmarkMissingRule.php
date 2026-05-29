@@ -14,9 +14,16 @@ final class MainLandmarkMissingRule extends AbstractRenderedHtmlRule
 
     public function evaluate(RenderedHtmlContext $context): iterable
     {
-        if ($context->document->getElementsByTagName('main')->length > 0) { return; }
+        foreach ($context->document->getElementsByTagName('main') as $main) {
+            if ($main instanceof \DOMElement && !$this->isInsideTemplate($main)) { return; }
+        }
+
         $mainRoles = $context->xpath->query('//*[@role="main"]');
-        if ($mainRoles !== false && $mainRoles->length > 0) { return; }
+        if ($mainRoles !== false) {
+            foreach ($mainRoles as $mainRole) {
+                if ($mainRole instanceof \DOMElement && !$this->isInsideTemplate($mainRole)) { return; }
+            }
+        }
 
         $body = $context->document->getElementsByTagName('body')->item(0)
             ?: $context->document->getElementsByTagName('html')->item(0);

@@ -89,6 +89,9 @@ final class PageDetailController extends AbstractBackendModuleController
         $returnParameters = $this->getA11yModuleReturnParameters($request);
         $queryParams = $request->getQueryParams();
         $availableLanguages = $site !== null ? $this->siteLanguageService->getLanguagesForSiteObject($site) : [];
+        if ($site !== null && $pageUid > 0) {
+            $availableLanguages = $this->siteLanguageService->filterLanguagesAvailableForPage($pageUid, $availableLanguages);
+        }
         $currentLanguageUid = $this->resolveCurrentLanguageUid($request, $availableLanguages);
         $this->activeLanguageUidForUrls = $currentLanguageUid;
         $languageOptions = $this->buildPageDetailLanguageOptions($request, $this->issueRepository, $siteIdentifier, $pageUid, $availableLanguages, $currentLanguageUid);

@@ -132,6 +132,15 @@ final class RequestParameterService
             'status',
             'severity',
             'page',
+            'language',
+            'languageUid',
+            'localPage',
+            'remotePage',
+            'remoteFailedPage',
+            'localQuery',
+            'remoteQuery',
+            'remoteFailedQuery',
+            'remotePageUid',
         ];
 
         $parameters = [];

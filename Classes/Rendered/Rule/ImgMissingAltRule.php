@@ -15,7 +15,7 @@ final class ImgMissingAltRule extends AbstractRenderedHtmlRule
     public function evaluate(RenderedHtmlContext $context): iterable
     {
         foreach ($context->document->getElementsByTagName('img') as $img) {
-            if (!$img instanceof \DOMElement || $this->isAriaHidden($img)) { continue; }
+            if (!$img instanceof \DOMElement || $this->isInsideTemplate($img) || $this->isAriaHidden($img)) { continue; }
             if (!$img->hasAttribute('alt')) {
                 yield $this->issueFactory->create($context, $img, $this->getRuleId(), $this->getDefaultSeverity(), 'Rendered image has no alt attribute.', 'Add descriptive alt text for meaningful images. For decorative images, use alt="".');
             }

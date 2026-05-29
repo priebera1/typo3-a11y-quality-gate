@@ -19,7 +19,7 @@ final class DuplicateIdRule extends AbstractRenderedHtmlRule
         if ($nodes === false) { return; }
 
         foreach ($nodes as $element) {
-            if (!$element instanceof \DOMElement) { continue; }
+            if (!$element instanceof \DOMElement || $this->isInsideTemplate($element)) { continue; }
             $id = trim($element->getAttribute('id'));
             if ($id === '') { continue; }
             $elementsById[$id][] = $element;

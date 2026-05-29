@@ -75,15 +75,17 @@ final class IssueApiController extends AbstractApiController
             sourceUid: $recordUid,
             sourceField: $fieldName,
         );
-        $context = $this->buildRteContext($recordUid, $fieldName, '', $pageUid);
-        if ($context instanceof CheckContext) {
-            $issues = array_values(array_filter(
-                $issues,
-                fn (array $row): bool => $this->ruleConfigurationService->isRuleEnabledForSite(
-                    $context->siteIdentifier,
-                    (string)($row['rule_id'] ?? '')
-                )
-            ));
+        if ($issues !== []) {
+            $context = $this->buildRteContext($recordUid, $fieldName, '', $pageUid);
+            if ($context instanceof CheckContext) {
+                $issues = array_values(array_filter(
+                    $issues,
+                    fn (array $row): bool => $this->ruleConfigurationService->isRuleEnabledForSite(
+                        $context->siteIdentifier,
+                        (string)($row['rule_id'] ?? '')
+                    )
+                ));
+            }
         }
 
         return $this->jsonResponse([

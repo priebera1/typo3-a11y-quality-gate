@@ -63,6 +63,9 @@ final class RenderedPageUrlResolver
         $nonce = $this->renderedCheckNonceService->generate($pageUid, $languageUid);
         $separator = str_contains($url, '?') ? '&' : '?';
 
+        // no_cache=1 is intentional here: rendered checks need the fresh server-rendered
+        // TYPO3 output with AQG debug markers and must not read/write a cached marker variant.
+        // The internal parameters are removed again before frontend_url is persisted/displayed.
         return $url . $separator . http_build_query([
             'aqgDebug' => '1',
             'tx_aqg_rendered_check' => '1',

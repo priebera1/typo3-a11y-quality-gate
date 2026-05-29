@@ -9,7 +9,12 @@ use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Controller\IssueApiController;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Rule\RuleRegistry;
+use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
+use Priebera\A11yQualityGate\Service\RuleConfigurationService;
+use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,6 +27,7 @@ final class IssueApiControllerTest extends TestCase
     private IssueApiController $controller;
     private IssueRepository $issueRepo;
     private BackendUserService $backendUserService;
+    private BackendRecordAccessService $backendRecordAccessService;
     private ServerRequestInterface $request;
     private ResponseInterface $response;
 
@@ -42,9 +48,24 @@ final class IssueApiControllerTest extends TestCase
         $streamFactory->method('createStream')->willReturn($stream);
 
         $this->backendUserService = $this->createMock(BackendUserService::class);
+        $this->backendRecordAccessService = $this->createMock(BackendRecordAccessService::class);
+        $this->backendRecordAccessService
+            ->method('recordExists')
+            ->willReturn(true);
+
+        $ruleConfigurationService = $this->createMock(RuleConfigurationService::class);
+        $ruleConfigurationService->method('isRuleEnabledForSite')->willReturn(true);
+
+        $siteResolutionService = $this->createMock(SiteResolutionService::class);
+        $siteResolutionService->method('resolveSiteIdentifierForPageId')->willReturn('test');
 
         $this->controller = new IssueApiController(
             $this->issueRepo,
+            $this->createMock(RuleRegistry::class),
+            $ruleConfigurationService,
+            $this->createMock(ConnectionPool::class),
+            $siteResolutionService,
+            $this->backendRecordAccessService,
             $responseFactory,
             $streamFactory,
             $this->backendUserService,
@@ -162,13 +183,13 @@ final class IssueApiControllerTest extends TestCase
 
         $this->request->method('getMethod')->willReturn('POST');
         $this->request->method('getBody')->willReturn(
-            $this->mockStream('{"fingerprint":"abc123"}')
+            $this->mockStream('{"fingerprint":"abc123","recordUid":99,"siteIdentifier":"test"}')
         );
 
         $this->issueRepo
             ->expects($this->once())
             ->method('findByFingerprintPublic')
-            ->with('abc123')
+            ->with('abc123', 'test')
             ->willReturn(null);
 
         $this->issueRepo->expects($this->never())->method('ignore');
@@ -185,17 +206,20 @@ final class IssueApiControllerTest extends TestCase
 
         $this->request->method('getMethod')->willReturn('POST');
         $this->request->method('getBody')->willReturn(
-            $this->mockStream('{"fingerprint":"abc123"}')
+            $this->mockStream('{"fingerprint":"abc123","recordUid":99,"siteIdentifier":"test"}')
         );
 
         $this->issueRepo
             ->expects($this->once())
             ->method('findByFingerprintPublic')
-            ->with('abc123')
+            ->with('abc123', 'test')
             ->willReturn([
                 'uid' => 1,
                 'status' => IssueStatus::Ignored->value,
                 'site_identifier' => 'test',
+                'source_table' => 'tt_content',
+                'source_uid' => 99,
+                'source_field' => 'bodytext',
             ]);
 
         $this->issueRepo->expects($this->never())->method('ignore');
@@ -212,23 +236,32 @@ final class IssueApiControllerTest extends TestCase
 
         $this->request->method('getMethod')->willReturn('POST');
         $this->request->method('getBody')->willReturn(
-            $this->mockStream('{"fingerprint":"abc123","reason":"Intentional design"}')
+            $this->mockStream('{"fingerprint":"abc123","recordUid":99,"siteIdentifier":"test","reason":"Intentional design"}')
         );
 
         $this->issueRepo
             ->expects($this->once())
             ->method('findByFingerprintPublic')
-            ->with('abc123')
+            ->with('abc123', 'test')
             ->willReturn([
                 'uid' => 7,
                 'status' => IssueStatus::Open->value,
                 'site_identifier' => 'test',
+                'source_table' => 'tt_content',
+                'source_uid' => 99,
+                'source_field' => 'bodytext',
             ]);
 
         $this->issueRepo
             ->expects($this->once())
             ->method('ignore')
-            ->with(7, 'Intentional design', 99);
+            ->with(
+                7,
+                'Intentional design',
+                99,
+                'Admin',
+                'admin',
+            );
 
         $response = $this->controller->ignoreAction($this->request);
 
@@ -257,6 +290,19 @@ final class IssueApiControllerTest extends TestCase
             ->expects($this->any())
             ->method('getBackendUserUid')
             ->willReturn($uid);
+
+        $this->backendUserService
+            ->expects($this->any())
+            ->method('getBackendUserSnapshot')
+            ->willReturn([
+                'uid' => $uid,
+                'username' => 'admin',
+                'name' => 'Admin',
+            ]);
+
+        $this->backendRecordAccessService
+            ->method('canEditRecord')
+            ->willReturn(true);
     }
 
     private function mockStream(string $content): StreamInterface

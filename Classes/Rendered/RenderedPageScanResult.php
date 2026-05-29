@@ -18,6 +18,8 @@ final readonly class RenderedPageScanResult
         public bool $completed,
         public array $violations = [],
         public string $warning = '',
+        public string $failureReason = '',
+        public int $h1Count = 0,
     ) {
     }
 }

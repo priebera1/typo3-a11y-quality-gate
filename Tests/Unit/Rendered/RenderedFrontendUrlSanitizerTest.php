@@ -28,6 +28,18 @@ class RenderedFrontendUrlSanitizerTest extends TestCase
         );
     }
 
+
+    #[Test]
+    public function removesNoCacheWhileKeepingPublicParameters(): void
+    {
+        $url = 'https://example.org/page?category=news&no_cache=1&tx_aqg_rendered_check=1&_aqg_nonce=secret';
+
+        self::assertSame(
+            'https://example.org/page?category=news',
+            $this->sanitizer->sanitize($url)
+        );
+    }
+
     #[Test]
     public function preservesPublicQueryParametersAndFragment(): void
     {

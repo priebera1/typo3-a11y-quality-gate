@@ -18,7 +18,10 @@ final class FormControlMissingLabelRule extends AbstractRenderedHtmlRule
     {
         foreach (['input', 'select', 'textarea'] as $tagName) {
             foreach ($context->document->getElementsByTagName($tagName) as $control) {
-                if (!$control instanceof \DOMElement || $this->isAriaHidden($control)) { continue; }
+                if (!$control instanceof \DOMElement || $this->isInsideTemplate($control) || $this->isAriaHidden($control) || $this->isRenderedHidden($control, true, true)) {
+                    continue;
+                }
+
                 $type = strtolower(trim($control->getAttribute('type')));
                 if ($tagName === 'input' && in_array($type, self::SKIPPED_INPUT_TYPES, true)) { continue; }
                 if ($this->hasFormControlLabel($control, $context)) { continue; }
@@ -73,14 +76,14 @@ final class FormControlMissingLabelRule extends AbstractRenderedHtmlRule
             $labels = $context->xpath->query('//label[@for=' . $this->xpathLiteral($id) . ']');
             if ($labels !== false) {
                 foreach ($labels as $label) {
-                    if ($label instanceof \DOMElement && $this->labelHasText($label)) { return true; }
+                    if ($label instanceof \DOMElement && !$this->isInsideTemplate($label) && $this->labelHasText($label)) { return true; }
                 }
             }
         }
 
         $node = $control->parentNode;
         while ($node instanceof \DOMElement) {
-            if (strtolower($node->tagName) === 'label' && $this->labelHasText($node)) { return true; }
+            if (strtolower($node->tagName) === 'label' && !$this->isInsideTemplate($node) && $this->labelHasText($node)) { return true; }
             $node = $node->parentNode;
         }
 

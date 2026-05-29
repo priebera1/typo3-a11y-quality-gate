@@ -97,12 +97,11 @@ final class ImgAltMissingRuleTest extends TestCase
     }
 
     #[Test]
-    public function emptyAltWithoutDecorativeRoleProducesCriticalViolation(): void
+    public function emptyAltWithoutDecorativeRoleIsTreatedAsDecorativeAndPasses(): void
     {
         $violations = $this->rule->check($this->ctx('<img src="photo.jpg" alt="">'));
 
-        self::assertCount(1, $violations);
-        self::assertSame(Severity::Critical, $violations[0]->severity);
+        self::assertCount(0, $violations);
     }
 
     #[Test]
@@ -117,7 +116,7 @@ final class ImgAltMissingRuleTest extends TestCase
 
         $violations = $this->rule->check($this->ctx($html));
 
-        self::assertCount(2, $violations);
+        self::assertCount(1, $violations);
     }
 
     #[Test]
