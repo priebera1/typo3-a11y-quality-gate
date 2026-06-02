@@ -85,7 +85,9 @@ class AqgRemoteAccessSettings {
           'X-Requested-With': 'XMLHttpRequest',
         },
         credentials: 'same-origin',
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          rulesetSite: this.rulesetSiteInput?.value || '',
+        }),
       });
       const payload = await response.json();
 

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Functional;
 
+use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
+use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -23,7 +26,18 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
     protected array $coreExtensionsToLoad = [
         'backend',
         'scheduler',
+        'rte_ckeditor',
     ];
+
+
+    protected function createIssueRepository(): IssueRepository
+    {
+        $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $rulesetRepository = new RulesetRepository($connectionPool);
+        $ruleConfigurationService = new RuleConfigurationService($rulesetRepository);
+
+        return new IssueRepository($connectionPool, $ruleConfigurationService);
+    }
 
     // -------------------------------------------------------------------------
     // Fixtures

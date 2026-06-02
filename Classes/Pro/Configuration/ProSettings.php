@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Pro\Configuration;
 
+use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
+use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 
 final class ProSettings
 {
     public function __construct(
         private readonly ExtensionConfiguration $extensionConfiguration,
+        private readonly RulesetRepository $rulesetRepository,
+        private readonly RuleConfigurationService $ruleConfigurationService,
     ) {
     }
 
@@ -40,6 +44,18 @@ final class ProSettings
 
     public function showProHints(): bool
     {
+        try {
+            $ruleset = $this->rulesetRepository->findDefault();
+            if (is_array($ruleset)) {
+                $storedValue = $this->ruleConfigurationService->getShowProHintsFromRuleset($ruleset);
+                if ($storedValue !== null) {
+                    return $storedValue;
+                }
+            }
+        } catch (\Throwable) {
+            // Keep ExtensionConfiguration as the backwards-compatible source below.
+        }
+
         try {
             $rawValue = $this->extensionConfiguration->get('a11y_quality_gate', 'showProHints');
         } catch (\Throwable) {

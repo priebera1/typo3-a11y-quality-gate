@@ -1143,7 +1143,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             const title = String(row.dataset.a11yPageTitle || '').toLowerCase();
             const uid = String(row.dataset.a11yPageUid || '').toLowerCase();
             const url = String(row.dataset.a11yPageUrl || '').toLowerCase();
-            const haystack = `${title} ${uid} ${url}`;
+            const remotePageUid = String(row.dataset.a11yRemotePageUid || '').toLowerCase();
+            const remoteScanUid = String(row.dataset.a11yRemoteScanUid || '').toLowerCase();
+            const haystack = `${title} ${uid} ${url} ${remotePageUid} ${remoteScanUid}`;
             const matches = query === '' || haystack.includes(query);
 
             row.style.display = matches ? '' : 'none';

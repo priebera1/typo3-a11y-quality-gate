@@ -6,7 +6,7 @@ defined('TYPO3') or die();
 
 $ll = 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:';
 
-return [
+$tca = [
     'ctrl' => [
         'title' => $ll . 'tx_a11y_issue',
         'label' => 'rule_id',
@@ -18,7 +18,6 @@ return [
         'rootLevel' => -1,
         'adminOnly' => true,
         'hideTable' => true,
-        'searchFields' => 'rule_id,message,context_snippet,source_table,source_field,fingerprint',
         'iconfile' => 'EXT:a11y_quality_gate/Resources/Public/Icons/Extension.svg',
         'security' => [
             'ignorePageTypeRestriction' => true,
@@ -295,3 +294,10 @@ return [
         ],
     ],
 ];
+
+if ((new \TYPO3\CMS\Core\Information\Typo3Version())->getMajorVersion() < 14) {
+    // TYPO3 v13 still uses ctrl['searchFields']; TYPO3 v14 logs a deprecation for it.
+    $tca['ctrl']['searchFields'] = 'rule_id,message,context_snippet,source_table,source_field,fingerprint';
+}
+
+return $tca;

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="12" r="6" fill="var(--icon-color-accent, #ff8700)"/>
+    <path fill="currentColor" d="M32 18c1.1 0 2 .9 2 2v20c0 1.1-.9 2-2 2s-2-.9-2-2V20c0-1.1.9-2 2-2Z"/>
+    <path fill="currentColor" d="M18 26h28c1.1 0 2 .9 2 2s-.9 2-2 2H18c-1.1 0-2-.9-2-2s.9-2 2-2Z"/>
+    <path fill="currentColor" d="M32 38c.63 0 1.22.3 1.6.8l12 16c.66.88.48 2.14-.4 2.8-.36.27-.78.4-1.2.4-.61 0-1.21-.28-1.6-.8L32 43.33 21.6 57.2c-.39.52-.99.8-1.6.8-.42 0-.84-.13-1.2-.4-.88-.66-1.06-1.92-.4-2.8l12-16c.38-.5.97-.8 1.6-.8Z"/>
+</svg>

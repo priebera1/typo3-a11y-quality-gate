@@ -93,9 +93,18 @@
                         </div>
                     </div>
 
-                    <label class="aqg-switch {f:if(condition: showProHints, then: 'is-on')}">
-                        <input type="checkbox" role="switch" name="showProHints" id="aqg-show-pro-hints" value="1" {f:if(condition: showProHints, then: 'checked="checked"')} />
-                        <span class="aqg-switch__track"><span class="aqg-switch__thumb"></span></span>
+                    <input type="hidden" name="showProHints" value="0" />
+                    <input
+                            type="checkbox"
+                            role="switch"
+                            class="aqg-switch__input"
+                            name="showProHints"
+                            id="aqg-show-pro-hints"
+                            value="1"
+                            {f:if(condition: showProHints, then: 'checked="checked"')}
+                    />
+                    <label class="aqg-switch" for="aqg-show-pro-hints">
+                        <span class="aqg-switch__track" aria-hidden="true"><span class="aqg-switch__thumb"></span></span>
                         <span class="aqg-switch__body">
                             <span class="aqg-switch__label">
                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" default="Show PRO hints in the AQG UI" />

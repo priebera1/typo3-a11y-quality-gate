@@ -394,6 +394,48 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
+    public function findLastCompletedPageScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
+    {
+        if ($siteIdentifier === '') {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+
+        $queryBuilder
+            ->select('*')
+            ->from(Tables::REMOTE_SCAN)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'scan_scope',
+                    $queryBuilder->createNamedParameter('page')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'status',
+                    $queryBuilder->createNamedParameter('completed')
+                )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
+            ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
+
     public function findLastCompletedRelevantScan(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
     {
         if ($pageUid > 0) {
@@ -770,6 +812,216 @@ final class RemoteScanRepository extends AbstractRepository
             ->fetchAllAssociative();
     }
 
+
+    public function countCompletedPageScanPagesForSite(
+        string $siteIdentifier,
+        int $languageUid = -1,
+        bool $failed = false,
+        string $search = ''
+    ): int {
+        return count($this->findLatestCompletedPageScanPagesForSite($siteIdentifier, $languageUid, $failed, $search));
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findCompletedPageScanPagesForSitePaginated(
+        string $siteIdentifier,
+        int $limit,
+        int $offset,
+        int $languageUid = -1,
+        bool $failed = false,
+        string $search = ''
+    ): array {
+        $rows = $this->findLatestCompletedPageScanPagesForSite($siteIdentifier, $languageUid, $failed, $search);
+
+        return array_slice($rows, max(0, $offset), max(1, $limit));
+    }
+
+    /**
+     * Returns the latest completed single-page remote result per page identity.
+     *
+     * The overview must behave like the local overview: one page equals one row.
+     * Older scan runs of the same TYPO3 page / normalized URL are deliberately
+     * hidden here. They remain accessible through their direct detail URLs when
+     * needed, but they must not create duplicate overview rows.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function findLatestCompletedPageScanPagesForSite(
+        string $siteIdentifier,
+        int $languageUid,
+        bool $failed,
+        string $search
+    ): array {
+        if ($siteIdentifier === '') {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
+
+        $queryBuilder
+            ->select('rsp.*')
+            ->addSelectLiteral(
+                'rs.uid AS remote_scan_uid',
+                'rs.finished_at AS remote_scan_finished_at',
+                'rs.started_at AS remote_scan_started_at',
+                'rs.page_uid AS typo3_page_uid',
+                'rs.language_uid AS remote_scan_language_uid',
+                'rs.scan_scope AS remote_scan_scope'
+            )
+            ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
+            ->innerJoin(
+                'rsp',
+                Tables::REMOTE_SCAN,
+                'rs',
+                $queryBuilder->expr()->eq('rs.uid', 'rsp.remote_scan')
+            )
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'rs.site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.scan_scope',
+                    $queryBuilder->createNamedParameter('page')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.status',
+                    $queryBuilder->createNamedParameter('completed')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rsp.is_failed',
+                    $queryBuilder->createNamedParameter($failed ? 1 : 0, Connection::PARAM_INT)
+                )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $rows = $queryBuilder
+            ->orderBy('rs.finished_at', 'DESC')
+            ->addOrderBy('rs.uid', 'DESC')
+            ->addOrderBy('rsp.uid', 'DESC')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $latestByPageIdentity = [];
+        foreach ($rows as $row) {
+            $identity = $this->buildRemoteOverviewPageIdentity($row);
+            if ($identity === '') {
+                continue;
+            }
+
+            if (!isset($latestByPageIdentity[$identity])) {
+                $latestByPageIdentity[$identity] = $row;
+            }
+        }
+
+        $deduplicatedRows = array_values($latestByPageIdentity);
+        $search = trim($search);
+        if ($search !== '') {
+            $deduplicatedRows = array_values(array_filter(
+                $deduplicatedRows,
+                fn(array $row): bool => $this->remoteOverviewPageMatchesSearch($row, $search, $failed)
+            ));
+        }
+
+        usort(
+            $deduplicatedRows,
+            static function (array $a, array $b) use ($failed): int {
+                $issuesCompare = $failed
+                    ? ((int)($b['http_status'] ?? 0) <=> (int)($a['http_status'] ?? 0))
+                    : ((int)($b['issues_count'] ?? 0) <=> (int)($a['issues_count'] ?? 0));
+                if ($issuesCompare !== 0) {
+                    return $issuesCompare;
+                }
+
+                $finishedCompare = (int)($b['remote_scan_finished_at'] ?? 0) <=> (int)($a['remote_scan_finished_at'] ?? 0);
+                if ($finishedCompare !== 0) {
+                    return $finishedCompare;
+                }
+
+                return (int)($b['uid'] ?? 0) <=> (int)($a['uid'] ?? 0);
+            }
+        );
+
+        return $deduplicatedRows;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function buildRemoteOverviewPageIdentity(array $row): string
+    {
+        $languageUid = (int)($row['remote_scan_language_uid'] ?? -1);
+        $pageUid = (int)($row['typo3_page_uid'] ?? 0);
+        if ($pageUid > 0) {
+            return 'page:' . $pageUid . ':language:' . $languageUid;
+        }
+
+        $normalizedUrl = $this->normalizeRemoteOverviewUrl((string)($row['url'] ?? ''));
+        if ($normalizedUrl !== '') {
+            return 'url:' . $normalizedUrl . ':language:' . $languageUid;
+        }
+
+        return 'remote-page:' . (int)($row['uid'] ?? 0) . ':language:' . $languageUid;
+    }
+
+    private function normalizeRemoteOverviewUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        $url = rtrim($url, '/');
+        if ($url === '') {
+            return '';
+        }
+
+        return mb_strtolower($url);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function remoteOverviewPageMatchesSearch(array $row, string $search, bool $includeFailureReason): bool
+    {
+        $needle = mb_strtolower(trim($search));
+        if ($needle === '') {
+            return true;
+        }
+
+        $haystacks = [
+            (string)($row['title'] ?? ''),
+            (string)($row['url'] ?? ''),
+            (string)($row['http_status'] ?? ''),
+            (string)($row['uid'] ?? ''),
+            (string)($row['remote_scan_uid'] ?? ''),
+            (string)($row['typo3_page_uid'] ?? ''),
+            (string)($row['external_page_id'] ?? ''),
+        ];
+
+        if ($includeFailureReason) {
+            $haystacks[] = (string)($row['failure_reason'] ?? '');
+        }
+
+        foreach ($haystacks as $haystack) {
+            if ($haystack !== '' && str_contains(mb_strtolower($haystack), $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
     public function findPageForScanByUrl(int $remoteScanUid, string $url): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
@@ -802,7 +1054,7 @@ final class RemoteScanRepository extends AbstractRepository
 
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
 
-        $row = $queryBuilder
+        $queryBuilder
             ->select('rsp.*')
             ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
             ->innerJoin(
@@ -813,12 +1065,6 @@ final class RemoteScanRepository extends AbstractRepository
             )
             ->where(
                 $queryBuilder->expr()->eq(
-                    'rsp.url',
-                    $queryBuilder->createNamedParameter($url)
-                )
-            )
-            ->andWhere(
-                $queryBuilder->expr()->eq(
                     'rs.site_identifier',
                     $queryBuilder->createNamedParameter($siteIdentifier)
                 )
@@ -828,7 +1074,11 @@ final class RemoteScanRepository extends AbstractRepository
                     'rs.status',
                     $queryBuilder->createNamedParameter('completed')
                 )
-            )
+            );
+
+        $this->addUrlVariantConstraint($queryBuilder, $url);
+
+        $row = $queryBuilder
             ->orderBy('rs.finished_at', 'DESC')
             ->addOrderBy('rs.uid', 'DESC')
             ->addOrderBy('rsp.uid', 'DESC')
@@ -837,6 +1087,103 @@ final class RemoteScanRepository extends AbstractRepository
             ->fetchAssociative();
 
         return is_array($row) ? $row : null;
+    }
+
+
+    public function findLatestPageForCompletedPageScan(
+        string $siteIdentifier,
+        int $pageUid,
+        int $languageUid = -1,
+        string $url = '',
+    ): ?array {
+        if ($siteIdentifier === '' || $pageUid <= 0) {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
+
+        $queryBuilder
+            ->select('rsp.*')
+            ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
+            ->innerJoin(
+                'rsp',
+                Tables::REMOTE_SCAN,
+                'rs',
+                $queryBuilder->expr()->eq('rs.uid', 'rsp.remote_scan')
+            )
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'rs.site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.scan_scope',
+                    $queryBuilder->createNamedParameter('page')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.page_uid',
+                    $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.status',
+                    $queryBuilder->createNamedParameter('completed')
+                )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+        $this->addUrlVariantConstraint($queryBuilder, $url);
+
+        $row = $queryBuilder
+            ->orderBy('rs.finished_at', 'DESC')
+            ->addOrderBy('rs.uid', 'DESC')
+            ->addOrderBy('rsp.uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
+
+    private function addUrlVariantConstraint(QueryBuilder $queryBuilder, string $url): void
+    {
+        $variants = $this->buildUrlVariants($url);
+        if ($variants === []) {
+            return;
+        }
+
+        $queryBuilder->andWhere(
+            $queryBuilder->expr()->in(
+                'rsp.url',
+                $queryBuilder->createNamedParameter($variants, Connection::PARAM_STR_ARRAY)
+            )
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildUrlVariants(string $url): array
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return [];
+        }
+
+        $variants = [$url];
+
+        $withoutTrailingSlash = rtrim($url, '/');
+        if ($withoutTrailingSlash !== '') {
+            $variants[] = $withoutTrailingSlash;
+            $variants[] = $withoutTrailingSlash . '/';
+        }
+
+        return array_values(array_unique(array_filter($variants, static fn (string $variant): bool => $variant !== '')));
     }
 
     public function findPageByUid(int $pageUid): ?array
@@ -903,23 +1250,24 @@ final class RemoteScanRepository extends AbstractRepository
         );
     }
 
-    private function addRemotePageSearchConstraint(QueryBuilder $qb, string $search, bool $includeFailureReason): void
+    private function addRemotePageSearchConstraint(QueryBuilder $qb, string $search, bool $includeFailureReason, string $alias = ''): void
     {
         $search = trim($search);
         if ($search === '') {
             return;
         }
 
+        $prefix = $alias !== '' ? $alias . '.' : '';
         $like = $qb->createNamedParameter('%' . mb_strtolower($search) . '%');
 
         $conditions = [
-            'LOWER(COALESCE(title, \'\')) LIKE ' . $like,
-            'LOWER(COALESCE(url, \'\')) LIKE ' . $like,
-            'LOWER(CONCAT(COALESCE(http_status, 0), \'\')) LIKE ' . $like,
+            'LOWER(COALESCE(' . $prefix . 'title, \'\')) LIKE ' . $like,
+            'LOWER(COALESCE(' . $prefix . 'url, \'\')) LIKE ' . $like,
+            'LOWER(CONCAT(COALESCE(' . $prefix . 'http_status, 0), \'\')) LIKE ' . $like,
         ];
 
         if ($includeFailureReason) {
-            $conditions[] = 'LOWER(COALESCE(failure_reason, \'\')) LIKE ' . $like;
+            $conditions[] = 'LOWER(COALESCE(' . $prefix . 'failure_reason, \'\')) LIKE ' . $like;
         }
 
         $qb->andWhere('(' . implode(' OR ', $conditions) . ')');

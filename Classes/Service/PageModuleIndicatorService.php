@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -62,7 +63,12 @@ final class PageModuleIndicatorService
         }
 
         $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedRelevantScan($siteIdentifier, $pageUid, $languageUid);
-        $remotePage = $currentPageUrl !== '' ? $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier) : null;
+        $remotePage = $currentPageUrl !== ''
+            ? $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl)
+            : null;
+        if (!is_array($remotePage) && $currentPageUrl !== '') {
+            $remotePage = $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier);
+        }
 
         $isLocalScanRunning = (bool)($scanStatus['running'] ?? false)
             && $this->matchesLanguage((int)($scanStatus['languageUid'] ?? -1), $languageUid)
@@ -515,7 +521,7 @@ final class PageModuleIndicatorService
         if ($latestLocalScanAt > 0) {
             return sprintf(
                 $this->translate('pageModuleIndicator.meta.lastScanned', 'Last scanned %s'),
-                date('d.m.Y H:i', $latestLocalScanAt)
+                BackendTimeUtility::formatDateTime($latestLocalScanAt)
             );
         }
 
@@ -527,7 +533,7 @@ final class PageModuleIndicatorService
         if (is_array($remoteCompletedScan) && (int)($remoteCompletedScan['finished_at'] ?? 0) > 0) {
             return sprintf(
                 $this->translate('pageModuleIndicator.meta.remoteCompleted', 'Frontend scan available. Last remote sync: %s.'),
-                date('d.m.Y H:i', (int)$remoteCompletedScan['finished_at'])
+                BackendTimeUtility::formatDateTime((int)$remoteCompletedScan['finished_at'])
             );
         }
 

@@ -145,7 +145,7 @@
                     </span>
                     <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
                         <f:if condition="{localDetail.lastScanAt}">
-                            <f:then>{localDetail.lastScanAt -> f:format.date(format: 'd.m.Y · H:i')}</f:then>
+                            <f:then>{localDetail.lastScanAtFormatted}</f:then>
                             <f:else>—</f:else>
                         </f:if>
                     </span>

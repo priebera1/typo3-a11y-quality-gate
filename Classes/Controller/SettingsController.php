@@ -56,7 +56,6 @@ final class SettingsController extends AbstractBackendModuleController
         'remote_access',
     ];
 
-
     /**
      * @var list<string>
      */
@@ -157,7 +156,7 @@ final class SettingsController extends AbstractBackendModuleController
         $remoteAccessExcludedPatternsText = $this->jsonListToTextarea((string)($remoteAccessRuleset['excluded_patterns'] ?? '[]'));
         $remoteAccessCookieAcceptSelectorsText = $this->jsonListToTextarea((string)($remoteAccessRuleset['cookie_accept_selectors'] ?? '[]'));
         $remoteAccessPriorityUrlsText = $this->jsonListToTextarea((string)($remoteAccessRuleset['crawl_priority_urls'] ?? '[]'));
-        $remoteAccessScannerToken = trim((string)($qualityGateRuleset['scanner_token'] ?? ''));
+        $remoteAccessScannerToken = trim((string)($remoteAccessRuleset['scanner_token'] ?? ''));
         $remoteAccessMaskedScannerToken = $remoteAccessScannerToken !== '' ? 'Generated token is stored securely' : '';
         $remoteAccessHasHttpAuthPassword = trim((string)($remoteAccessRuleset['http_auth_pass'] ?? '')) !== '';
 
@@ -179,7 +178,9 @@ final class SettingsController extends AbstractBackendModuleController
         ));
 
         $licenceKey = $this->getExtensionConfigurationString('licenceKey');
-        $showProHints = $this->getExtensionConfigurationBool('showProHints', true);
+        $showProHints = $this->ruleConfigurationService->getShowProHintsFromRuleset(
+            $qualityGateRuleset,
+        ) ?? $this->getExtensionConfigurationBool('showProHints', true);
 
         $moduleTemplate->assignMultiple([
             'fieldGroups' => $fieldGroups,
@@ -269,10 +270,7 @@ final class SettingsController extends AbstractBackendModuleController
 
         $redirectParameters['tab'] = $tab;
 
-        return new RedirectResponse(
-            $this->buildRouteUrl('web_a11y.settings', $redirectParameters),
-            302
-        );
+        return $this->buildSettingsPostResponse($request, $redirectParameters);
     }
 
     public function saveAction(ServerRequestInterface $request): ResponseInterface
@@ -297,6 +295,10 @@ final class SettingsController extends AbstractBackendModuleController
         if ((string)($body['fieldsFormSubmitted'] ?? '') === '1') {
             $enabledFields = is_array($body['enabledFields'] ?? null) ? $body['enabledFields'] : [];
             $this->fieldConfigRepository->saveEnabledState($enabledFields);
+        }
+
+        if ((string)($body['rulesManagementFormSubmitted'] ?? '') === '1') {
+            $this->saveRuleManagementState($body);
         }
 
         if ((string)($body['qualityGateFormSubmitted'] ?? '') === '1') {
@@ -385,7 +387,7 @@ final class SettingsController extends AbstractBackendModuleController
 
             $this->rulesetRepository->saveRemoteScanAccessForSiteOrDefault(
                 siteIdentifier: $selectedRulesetSite,
-                scannerToken: $selectedRulesetSite === '' ? trim((string)($existingRemoteRuleset['scanner_token'] ?? '')) : '',
+                scannerToken: trim((string)($existingRemoteRuleset['scanner_token'] ?? '')),
                 httpAuthUser: trim((string)($remoteAccessData['http_auth_user'] ?? '')),
                 encryptedHttpAuthPass: $encryptedHttpAuthPass,
                 excludedPatterns: $this->normalizeJsonListSetting($remoteAccessData['excluded_patterns'] ?? '[]'),
@@ -393,10 +395,6 @@ final class SettingsController extends AbstractBackendModuleController
                 crawlPriorityUrls: $this->normalizeJsonListSetting($remoteAccessData['crawl_priority_urls'] ?? '[]'),
             );
         }
-
-        $this->addFlashMessage(
-            $this->translate('settings.flash.saved')
-        );
 
         $redirectParameters = $this->getA11yModuleReturnParameters($request);
 
@@ -406,10 +404,7 @@ final class SettingsController extends AbstractBackendModuleController
 
         $redirectParameters['tab'] = $activeTab;
 
-        return new RedirectResponse(
-            $this->buildRouteUrl('web_a11y.settings', $redirectParameters),
-            302
-        );
+        return $this->buildSettingsPostResponse($request, $redirectParameters, $this->translate('settings.flash.saved'));
     }
 
     public function saveExtConfAction(ServerRequestInterface $request): ResponseInterface
@@ -429,9 +424,11 @@ final class SettingsController extends AbstractBackendModuleController
             $configuration = [];
         }
 
+        $showProHints = true;
         if ($activeTab === 'licence') {
+            $showProHints = $this->submittedBoolean($body['showProHints'] ?? null);
             $configuration['licenceKey'] = trim((string)($body['licenceKey'] ?? ''));
-            $configuration['showProHints'] = ((string)($body['showProHints'] ?? '') === '1') ? '1' : '0';
+            $configuration['showProHints'] = $showProHints ? '1' : '0';
         }
 
         if ($activeTab === 'rules') {
@@ -440,15 +437,13 @@ final class SettingsController extends AbstractBackendModuleController
             }
         }
 
-        $this->extensionConfiguration->set('a11y_quality_gate', $configuration);
-
         if ($activeTab === 'licence') {
+            // Persist UI-only state in the AQG ruleset first, so the toggle survives even
+            // when LocalConfiguration writes are restricted on a staging/live system.
+            $this->saveShowProHintsState($showProHints);
+            $this->persistExtensionConfiguration($configuration);
             $this->proCacheManager->flushAll();
         }
-
-        $this->addFlashMessage(
-            $this->translate('settings.flash.saved')
-        );
 
         $redirectParameters = $this->getA11yModuleReturnParameters($request);
         $redirectParameters['tab'] = $activeTab;
@@ -458,10 +453,7 @@ final class SettingsController extends AbstractBackendModuleController
             $redirectParameters['rulesetSite'] = $rulesetSite;
         }
 
-        return new RedirectResponse(
-            $this->buildRouteUrl('web_a11y.settings', $redirectParameters),
-            302
-        );
+        return $this->buildSettingsPostResponse($request, $redirectParameters, $this->translate('settings.flash.saved'));
     }
 
     public function validateLicenceAction(ServerRequestInterface $request): ResponseInterface
@@ -540,11 +532,14 @@ final class SettingsController extends AbstractBackendModuleController
         if (!$this->hasRemoteScanAccessCapability($rulesetSite, $request)) {
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Remote scan access is available in AQG PRO or Trial. Add a licence key or start a trial to configure remote scanning.',
+                'message' => 'Remote scan access is available with a valid remote-scanning licence (Trial, PRO, Agency or Enterprise). Add a licence key or start a trial to configure remote scanning.',
             ], 403);
         }
 
-        $token = $this->scannerAccessTokenService->generateAndSaveDefaultToken();
+        $token = $this->scannerAccessTokenService->generateAndSaveTokenForSiteOrDefault($rulesetSite);
+        if ($rulesetSite === '') {
+            $this->syncScannerTokenToConfiguredSites($token);
+        }
 
         return new JsonResponse([
             'success' => true,
@@ -572,7 +567,7 @@ final class SettingsController extends AbstractBackendModuleController
                 'success' => false,
                 'ok' => false,
                 'status' => 403,
-                'message' => 'Remote scan access is available in AQG PRO or Trial. Add a licence key or start a trial to configure remote scanning.',
+                'message' => 'Remote scan access is available with a valid remote-scanning licence (Trial, PRO, Agency or Enterprise). Add a licence key or start a trial to configure remote scanning.',
             ], 403);
         }
 
@@ -772,6 +767,10 @@ final class SettingsController extends AbstractBackendModuleController
         );
 
         $renderedCheckSettings = is_array($body['renderedCheckSettings'] ?? null) ? $body['renderedCheckSettings'] : [];
+        $renderedCheckSettings = [
+            'enabled' => $this->submittedBoolean($renderedCheckSettings['enabled'] ?? null),
+            'allowPrivateHosts' => $this->submittedBoolean($renderedCheckSettings['allowPrivateHosts'] ?? null),
+        ];
         $rulesJson = $this->ruleConfigurationService->encodeRulesJsonWithRenderedCheckSettings(
             $rulesJson,
             $renderedCheckSettings
@@ -1071,6 +1070,21 @@ final class SettingsController extends AbstractBackendModuleController
         return true;
     }
 
+    private function buildSettingsPostResponse(
+        ServerRequestInterface $request,
+        array $redirectParameters,
+        ?string $flashMessage = null,
+    ): ResponseInterface {
+        if ($flashMessage !== null && $flashMessage !== '') {
+            $this->addFlashMessage($flashMessage);
+        }
+
+        return new RedirectResponse(
+            $this->buildRouteUrl('web_a11y.settings', $redirectParameters),
+            303
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -1084,6 +1098,13 @@ final class SettingsController extends AbstractBackendModuleController
         $rawBody = (string)$request->getBody();
         if ($rawBody === '') {
             return [];
+        }
+
+        $contentType = strtolower($request->getHeaderLine('content-type'));
+        if (str_contains($contentType, 'application/x-www-form-urlencoded')) {
+            parse_str($rawBody, $decodedFormBody);
+
+            return is_array($decodedFormBody) ? $decodedFormBody : [];
         }
 
         try {
@@ -1100,6 +1121,40 @@ final class SettingsController extends AbstractBackendModuleController
         $tab = trim($tab);
 
         return in_array($tab, self::AVAILABLE_TABS, true) ? $tab : 'licence';
+    }
+
+    /**
+     * @param array<string, mixed> $configuration
+     */
+    private function persistExtensionConfiguration(array $configuration): void
+    {
+        $this->extensionConfiguration->set('a11y_quality_gate', $configuration);
+
+        // Keep the runtime value in sync for services created later in the same request.
+        $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate'] = $configuration;
+    }
+
+    private function saveShowProHintsState(bool $showProHints): void
+    {
+        $ruleset = $this->rulesetRepository->findOrCreateDefault();
+        $currentRulesJson = is_array($ruleset) ? (string)($ruleset['rules_json'] ?? '') : '';
+        $rulesJson = $this->ruleConfigurationService->encodeRulesJsonWithShowProHints(
+            $currentRulesJson,
+            $showProHints,
+        );
+
+        $this->rulesetRepository->saveRulesJsonForDefault($rulesJson);
+    }
+
+    private function submittedBoolean(mixed $value): bool
+    {
+        if (is_array($value)) {
+            $value = end($value);
+        }
+
+        $normalized = strtolower(trim((string)$value));
+
+        return in_array($normalized, ['1', 'true', 'on', 'yes'], true);
     }
 
     private function getExtensionConfigurationString(string $key): string
@@ -1242,6 +1297,29 @@ final class SettingsController extends AbstractBackendModuleController
         };
     }
 
+
+    private function syncScannerTokenToConfiguredSites(string $token): void
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return;
+        }
+
+        foreach ($this->siteResolutionService->getAllSites() as $site) {
+            try {
+                $siteIdentifier = trim($site->getIdentifier());
+            } catch (\Throwable) {
+                continue;
+            }
+
+            if ($siteIdentifier === '') {
+                continue;
+            }
+
+            $this->rulesetRepository->saveScannerTokenForSiteOrDefault($siteIdentifier, $token);
+        }
+    }
+
     private function hasRemoteScanAccessCapability(string $siteIdentifier, ServerRequestInterface $request): bool
     {
         if ($siteIdentifier === '') {
@@ -1250,9 +1328,15 @@ final class SettingsController extends AbstractBackendModuleController
             $siteIdentifier = $site?->getIdentifier() ?? '';
         }
 
-        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+        if ($siteIdentifier !== '') {
+            $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
 
-        return (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
+            return (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
+        }
+
+        // AJAX requests such as scanner-token generation may not carry a page id.
+        // In that case, accept any configured site that has the remote crawler capability.
+        return $this->proStatusResolverService->hasCrawlerForAnySite();
     }
 
     private function looksLikeTrialKey(string $licenceKey): bool

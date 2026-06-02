@@ -2,7 +2,7 @@
 <phpunit
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
-        bootstrap="../../vendor/typo3/testing-framework/Resources/Core/Build/FunctionalTestsBootstrap.php"
+        bootstrap="Tests/Bootstrap/FunctionalTestsBootstrap.php"
         cacheDirectory="../../.cache/phpunit"
         executionOrder="depends,defects"
         requireCoverageMetadata="false"
@@ -40,7 +40,7 @@
         <env name="typo3DatabaseDriver" value="mysqli"/>
         <env name="typo3DatabaseHost" value="db"/>
         <env name="typo3DatabasePort" value="3306"/>
-        <env name="typo3DatabaseName" value="db"/>
+        <env name="typo3DatabaseName" value="func"/>
         <env name="typo3DatabaseUsername" value="root"/>
         <env name="typo3DatabasePassword" value="root"/>
         <env name="typo3DatabaseCharset" value="utf8mb4"/>

@@ -11,7 +11,6 @@ use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
 use Priebera\A11yQualityGate\Tests\Functional\AbstractFunctionalTestCase;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -35,9 +34,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->subject = new IssueRepository(
-            GeneralUtility::makeInstance(ConnectionPool::class)
-        );
+        $this->subject = $this->createIssueRepository();
     }
 
     // -------------------------------------------------------------------------

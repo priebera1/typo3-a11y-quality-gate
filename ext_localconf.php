@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Priebera\A11yQualityGate\FormEngine\FieldWizard\PlainHtmlA11yWizard;
 use Priebera\A11yQualityGate\Scheduler\A11yScanTaskAdditionalFieldProvider;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
 defined('TYPO3') || die();
@@ -17,13 +18,17 @@ defined('TYPO3') || die();
         'class' => PlainHtmlA11yWizard::class,
     ];
 
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks']
-    [\Priebera\A11yQualityGate\Scheduler\A11yScanTask::class] = [
-        'extension' => 'a11y_quality_gate',
-        'title' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.task.title',
-        'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.task.description',
-        'additionalFields' => A11yScanTaskAdditionalFieldProvider::class,
-    ];
+    if ((new Typo3Version())->getMajorVersion() < 14) {
+        // TYPO3 13 uses the classic Scheduler registration. TYPO3 14 uses
+        // Configuration/TCA/Overrides/scheduler_a11y_scan_task.php instead.
+        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks']
+        [\Priebera\A11yQualityGate\Scheduler\A11yScanTask::class] = [
+            'extension' => 'a11y_quality_gate',
+            'title' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.task.title',
+            'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.task.description',
+            'additionalFields' => A11yScanTaskAdditionalFieldProvider::class,
+        ];
+    }
 
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\PublishHook::class;

@@ -72,78 +72,68 @@
     </div>
 
     <div class="aqg-section__body">
-        <f:if condition="{remoteScan}">
-            <f:then>
-                <div class="aqg-section__meta-row">
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label"
-                                    default="Last scan"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">
-                            <f:if condition="{remoteScan.finished_at}">
-                                <f:then>{remoteScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:then>
-                                <f:else>—</f:else>
-                            </f:if>
-                        </span>
-                    </div>
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pagesScanned"
-                                    default="Pages scanned"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">
+        <div class="aqg-section__meta-row">
+            <div class="aqg-meta-item">
+                <span class="aqg-meta-item__label">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label"
+                            default="Last scan"
+                    />
+                </span>
+                <span class="aqg-meta-item__value">
+                    <f:if condition="{remoteScan.finished_at}">
+                        <f:then><f:if condition="{remoteScan.finished_at_formatted}"><f:then>{remoteScan.finished_at_formatted}</f:then><f:else>{remoteScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:else></f:if></f:then>
+                        <f:else>—</f:else>
+                    </f:if>
+                </span>
+            </div>
+            <div class="aqg-meta-item">
+                <span class="aqg-meta-item__label">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pagesScanned"
+                            default="Pages scanned"
+                    />
+                </span>
+                <span class="aqg-meta-item__value">
+                    <f:if condition="{remoteScan}">
+                        <f:then>
                             <f:if condition="{remoteScan.pages_total}">
                                 <f:then>{remoteScan.pages_scanned} / {remoteScan.pages_total}</f:then>
                                 <f:else>{remoteScan.pages_scanned}</f:else>
                             </f:if>
-                        </span>
-                    </div>
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal"
-                                    default="Total issues"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">{remoteScan.issues_total}</span>
-                    </div>
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesResolved"
-                                    default="Resolved"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">-{remoteScan.issues_resolved}</span>
-                    </div>
-                </div>
-            </f:then>
+                        </f:then>
+                        <f:else>— / —</f:else>
+                    </f:if>
+                </span>
+            </div>
+            <div class="aqg-meta-item">
+                <span class="aqg-meta-item__label">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal"
+                            default="Total issues"
+                    />
+                </span>
+                <span class="aqg-meta-item__value"><f:if condition="{remoteScan}"><f:then>{remoteScan.issues_total}</f:then><f:else>—</f:else></f:if></span>
+            </div>
+            <div class="aqg-meta-item">
+                <span class="aqg-meta-item__label">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesResolved"
+                            default="Resolved"
+                    />
+                </span>
+                <span class="aqg-meta-item__value"><f:if condition="{remoteScan}"><f:then>-{remoteScan.issues_resolved}</f:then><f:else>—</f:else></f:if></span>
+            </div>
+        </div>
 
+        <f:if condition="{remoteScan}">
             <f:else>
-                <div class="aqg-empty aqg-empty--compact">
-                    <div class="aqg-empty__icon" aria-hidden="true">
-                        <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
-                    </div>
-                    <div>
-                        <div class="aqg-empty__title">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.empty.title"
-                                    default="No frontend scan yet"
-                            />
-                        </div>
-                        <div class="aqg-empty__body">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.emptyPages"
-                                    default="Run a frontend scan to load published page results."
-                            />
-                        </div>
-                    </div>
-                </div>
+                <p class="aqg-section__sub mt-2 mb-0">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.runSiteScanHint"
+                            default="Run Scan site to create a site-wide frontend audit."
+                    />
+                </p>
             </f:else>
         </f:if>
 

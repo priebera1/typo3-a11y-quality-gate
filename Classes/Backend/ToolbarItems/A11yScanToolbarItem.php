@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Backend\ToolbarItems;
 
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Toolbar\RequestAwareToolbarItemInterface;
 use TYPO3\CMS\Backend\Toolbar\ToolbarItemInterface;
 use TYPO3\CMS\Backend\View\BackendViewFactory;
@@ -22,8 +25,10 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
 
     public function __construct(
         private readonly BackendViewFactory $backendViewFactory,
+        private readonly UriBuilder $uriBuilder,
         private readonly AccessControlService $accessControlService,
         private readonly ScanStatusService $scanStatusService,
+        private readonly ScanRepository $scanRepository,
         private readonly RemoteScanRepository $remoteScanRepository,
         private readonly ProStatusResolverService $proStatusResolverService,
         private readonly RemoteScanRecoveryService $remoteScanRecoveryService,
@@ -48,7 +53,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return '';
         }
 
-        $localStatus = $this->languageAwareLocalStatus($this->scanStatusService->getStatus());
+        $localStatus = $this->resolveLocalStatus();
         $showRemoteSection = $this->shouldShowRemoteSection();
         $remoteStatus = $showRemoteSection ? $this->resolveRemoteStatus() : [];
         $toolbarState = $this->buildToolbarState($localStatus, $remoteStatus, $showRemoteSection);
@@ -72,7 +77,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return '';
         }
 
-        $localStatus = $this->languageAwareLocalStatus($this->scanStatusService->getStatus());
+        $localStatus = $this->resolveLocalStatus();
         $showRemoteSection = $this->shouldShowRemoteSection();
         $remoteStatus = $showRemoteSection ? $this->resolveRemoteStatus() : [];
         $toolbarState = $this->buildToolbarState($localStatus, $remoteStatus, $showRemoteSection);
@@ -89,6 +94,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             'currentLanguageUid' => $this->requestParameterService->getLanguageUid($this->request),
             'localToolbarCard' => $this->buildLocalCard($localStatus),
             'remoteToolbarCard' => $showRemoteSection ? $this->buildRemoteCard($remoteStatus) : [],
+            'moduleUrl' => (string)$this->uriBuilder->buildUriFromRoute('web_a11y'),
         ]);
 
         return $view->render('ToolbarItems/A11yScanToolbarDropDown');
@@ -115,6 +121,216 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     private function shouldShowRemoteSection(): bool
     {
         return $this->proStatusResolverService->hasCrawlerForAnySite();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveLocalStatus(): array
+    {
+        $status = $this->scanStatusService->getStatus();
+
+        if ((bool)($status['running'] ?? false)) {
+            return $this->languageAwareLocalStatus($status);
+        }
+
+        return $this->languageAwareLocalStatus(
+            $this->mergeWithPersistedLocalScan($status)
+        );
+    }
+
+    /**
+     * Backend-module scans write a live status snapshot into the TYPO3 registry.
+     * Scheduler and CLI scans are intentionally left untouched and are detected
+     * from tx_a11y_scan instead. This keeps TYPO3 13 legacy Scheduler execution
+     * stable while still showing Scheduler/CLI scan activity in the toolbar.
+     *
+     * @param array<string, mixed> $status
+     * @return array<string, mixed>
+     */
+    private function mergeWithPersistedLocalScan(array $status): array
+    {
+        $siteIdentifier = $this->resolveSiteIdentifierFromRequestOrStatus($status);
+        $languageUid = $this->requestParameterService->getLanguageUid($this->request);
+
+        try {
+            $runningScan = $this->scanRepository->findLatestRunningScan($siteIdentifier, $languageUid);
+            if (is_array($runningScan) && !$this->isStaleRunningScan($runningScan)) {
+                return $this->buildRunningStatusFromScanRow($runningScan, $status);
+            }
+
+            $latestScan = $this->scanRepository->findLastCompletedLocalScan($siteIdentifier, $languageUid);
+        } catch (\Throwable) {
+            return $status;
+        }
+
+        if (!is_array($latestScan)) {
+            return $status;
+        }
+
+        $persistedScanUid = (int)($latestScan['uid'] ?? 0);
+        $persistedFinishedAt = (int)($latestScan['finished_at'] ?? 0);
+        if ($persistedFinishedAt <= 0 && $persistedScanUid <= 0) {
+            return $status;
+        }
+
+        $currentScanUid = $this->extractLocalStatusScanUid($status);
+        $currentFinishedAt = (int)($status['finishedAt'] ?? 0);
+
+        if (
+            $currentScanUid > 0
+            && $persistedScanUid > 0
+            && $currentScanUid >= $persistedScanUid
+            && is_array($status['summary'] ?? null)
+        ) {
+            return $status;
+        }
+
+        if (
+            $currentScanUid <= 0
+            && $currentFinishedAt > 0
+            && $persistedFinishedAt > 0
+            && $currentFinishedAt >= $persistedFinishedAt
+            && is_array($status['summary'] ?? null)
+        ) {
+            return $status;
+        }
+
+        return $this->buildFinishedStatusFromScanRow($latestScan, $status);
+    }
+
+    /**
+     * The TYPO3 toolbar is global and its request does not always include the
+     * current page or site. Prefer the request context, then fall back to the
+     * last registry scan context. If both are missing, repository methods will
+     * intentionally fall back to the newest local scan across all sites.
+     *
+     * @param array<string, mixed> $status
+     */
+    private function resolveSiteIdentifierFromRequestOrStatus(array $status): string
+    {
+        $siteIdentifier = $this->resolveSiteIdentifierFromRequest();
+        if ($siteIdentifier !== '') {
+            return $siteIdentifier;
+        }
+
+        $pageUid = (int)($status['pageUid'] ?? 0);
+        if ($pageUid > 0) {
+            $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierForPageId($pageUid);
+            if ($siteIdentifier !== '') {
+                return $siteIdentifier;
+            }
+        }
+
+        $rootPid = (int)($status['rootPid'] ?? 0);
+        if ($rootPid > 0) {
+            $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierForPageId($rootPid);
+            if ($siteIdentifier !== '') {
+                return $siteIdentifier;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<string, mixed> $status
+     */
+    private function extractLocalStatusScanUid(array $status): int
+    {
+        $summary = $status['summary'] ?? null;
+        if (is_array($summary)) {
+            $scanUid = (int)($summary['scanUid'] ?? 0);
+            if ($scanUid > 0) {
+                return $scanUid;
+            }
+        }
+
+        return (int)($status['scanUid'] ?? 0);
+    }
+
+    /**
+     * @param array<string, mixed> $scanRow
+     * @param array<string, mixed> $fallbackStatus
+     * @return array<string, mixed>
+     */
+    private function buildRunningStatusFromScanRow(array $scanRow, array $fallbackStatus): array
+    {
+        return [
+            'running' => true,
+            'startedAt' => (int)($scanRow['started_at'] ?? 0) ?: null,
+            'finishedAt' => null,
+            'trigger' => $fallbackStatus['trigger'] ?? 'persisted-scan',
+            'triggeredBy' => $fallbackStatus['triggeredBy'] ?? 'TYPO3',
+            'pageUid' => (string)($scanRow['scope'] ?? '') === 'page' ? (int)($scanRow['root_pid'] ?? 0) : null,
+            'rootPid' => (int)($scanRow['root_pid'] ?? 0) ?: null,
+            'languageUid' => (int)($scanRow['language_uid'] ?? -1),
+            'scanUid' => (int)($scanRow['uid'] ?? 0),
+            'summary' => null,
+            'error' => null,
+            'cancelRequested' => false,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $scanRow
+     * @param array<string, mixed> $fallbackStatus
+     * @return array<string, mixed>
+     */
+    private function buildFinishedStatusFromScanRow(array $scanRow, array $fallbackStatus): array
+    {
+        return [
+            'running' => false,
+            'startedAt' => (int)($scanRow['started_at'] ?? 0) ?: null,
+            'finishedAt' => (int)($scanRow['finished_at'] ?? 0),
+            'trigger' => $fallbackStatus['trigger'] ?? 'persisted-scan',
+            'triggeredBy' => $fallbackStatus['triggeredBy'] ?? 'TYPO3',
+            'pageUid' => (string)($scanRow['scope'] ?? '') === 'page' ? (int)($scanRow['root_pid'] ?? 0) : null,
+            'rootPid' => (int)($scanRow['root_pid'] ?? 0) ?: null,
+            'languageUid' => (int)($scanRow['language_uid'] ?? -1),
+            'scanUid' => (int)($scanRow['uid'] ?? 0),
+            'summary' => [
+                'scanUid' => (int)($scanRow['uid'] ?? 0),
+                'pagesScanned' => (int)($scanRow['pages_scanned'] ?? 0),
+                'recordsScanned' => (int)($scanRow['records_scanned'] ?? 0),
+                'issuesNew' => (int)($scanRow['issues_new'] ?? 0),
+                'issuesResolved' => (int)($scanRow['issues_resolved'] ?? 0),
+                'issuesIgnored' => (int)($scanRow['issues_ignored'] ?? 0),
+                'warnings' => [],
+            ],
+            'error' => null,
+            'cancelRequested' => false,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $first
+     * @param array<string, mixed>|null $second
+     * @return array<string, mixed>|null
+     */
+    private function selectMostRecentLocalScan(?array $first, ?array $second, string $timestampColumn): ?array
+    {
+        if ($first === null) {
+            return $second;
+        }
+
+        if ($second === null) {
+            return $first;
+        }
+
+        return (int)($second[$timestampColumn] ?? 0) > (int)($first[$timestampColumn] ?? 0)
+            ? $second
+            : $first;
+    }
+
+    /**
+     * @param array<string, mixed> $scanRow
+     */
+    private function isStaleRunningScan(array $scanRow): bool
+    {
+        $startedAt = (int)($scanRow['started_at'] ?? 0);
+
+        return $startedAt > 0 && $startedAt < (time() - 86400);
     }
 
     /**
@@ -417,7 +633,7 @@ HTML;
             return '—';
         }
 
-        return date('d.m. · H:i', $timestamp);
+        return BackendTimeUtility::formatDateTime($timestamp, 'd.m. · H:i');
     }
 
     private function statusIcon(string $tone): string

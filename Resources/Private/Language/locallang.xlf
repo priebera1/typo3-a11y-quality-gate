@@ -454,10 +454,22 @@
                 <source>No frontend scan has been run yet.</source>
             </trans-unit>
             <trans-unit id="overview.proSummary.empty.title">
-                <source>No frontend scan yet</source>
+                <source>No completed site frontend scan yet</source>
             </trans-unit>
             <trans-unit id="overview.proSummary.emptyPages">
-                <source>Run a frontend scan to load published page results.</source>
+                <source>Run Scan site to create a site-wide frontend audit.</source>
+            </trans-unit>
+            <trans-unit id="overview.proSummary.noCompletedSiteScanYet">
+                <source>no completed site scan yet</source>
+            </trans-unit>
+            <trans-unit id="overview.proSummary.runSiteScanHint">
+                <source>Run Scan site to create a site-wide frontend audit.</source>
+            </trans-unit>
+            <trans-unit id="overview.proSummary.lastPageScan">
+                <source>Last page scan</source>
+            </trans-unit>
+            <trans-unit id="overview.proSummary.openPageScan">
+                <source>Open latest page scan results</source>
             </trans-unit>
             <trans-unit id="overview.proSummary.failedPages">
                 <source>Failed pages</source>
@@ -748,6 +760,12 @@
             <trans-unit id="scheduler.field.languageUid.help">
                 <source>Use -1 to scan all languages.</source>
             </trans-unit>
+            <trans-unit id="scheduler.field.languageUid.allLanguages">
+                <source>All languages (-1)</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.languageUid.defaultLanguage">
+                <source>Default language (0)</source>
+            </trans-unit>
             <trans-unit id="scheduler.field.pageUid">
                 <source>Single page UID (optional)</source>
             </trans-unit>
@@ -756,6 +774,9 @@
             </trans-unit>
             <trans-unit id="scheduler.field.rootPid">
                 <source>Root page</source>
+            </trans-unit>
+            <trans-unit id="scheduler.field.rootPid.help">
+                <source>Select the site root page for a subtree scan. If a single page UID is filled, that page UID is used instead.</source>
             </trans-unit>
             <trans-unit id="scheduler.field.rootPid.placeholder">
                 <source>-- Select root page --</source>
@@ -1989,6 +2010,13 @@
             </trans-unit>
             <trans-unit id="rule.rendered.main_landmark_missing.whyItMatters">
                 <source>A main landmark helps keyboard and screen reader users jump directly to the primary content.</source>
+            </trans-unit>
+
+            <trans-unit id="overview.proSummary.emptyPageContext">
+                <source>Run Frontend scan for this page to create a page-level frontend audit.</source>
+            </trans-unit>
+            <trans-unit id="overview.remotePageInline.title">
+                <source>Frontend page audit</source>
             </trans-unit>
         </body>
     </file>

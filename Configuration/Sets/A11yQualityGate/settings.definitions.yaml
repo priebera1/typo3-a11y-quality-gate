@@ -18,23 +18,23 @@ settings:
   a11yQualityGate.dictionary.rte_non_descriptive_link.additionalPhrases:
     label: 'Non-descriptive link: additional phrases'
     description: 'Additional phrases to flag as non-descriptive link text.'
-    type: array
+    type: stringlist
     default: []
 
   a11yQualityGate.dictionary.rte_non_descriptive_link.disabledPhrases:
     label: 'Non-descriptive link: disabled phrases'
     description: 'Built-in phrases that should be ignored for this site.'
-    type: array
+    type: stringlist
     default: []
 
   a11yQualityGate.dictionary.rte_link_new_window_no_warning.additionalPhrases:
     label: 'New-window warning: additional phrases'
     description: 'Additional phrases that count as a valid new-window/new-tab warning.'
-    type: array
+    type: stringlist
     default: []
 
   a11yQualityGate.dictionary.rte_link_new_window_no_warning.disabledPhrases:
     label: 'New-window warning: disabled phrases'
     description: 'Built-in new-window warning phrases that should be ignored for this site.'
-    type: array
+    type: stringlist
     default: []

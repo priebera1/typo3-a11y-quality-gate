@@ -23,6 +23,7 @@ use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Utility\PaginationUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -34,6 +35,7 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\PageRenderer;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 
 #[AsController]
@@ -189,9 +191,33 @@ final class OverviewController extends AbstractBackendModuleController
             : null;
         $lastScan = $this->selectMostRecentScan($lastSubtreeScan, $lastPageScan);
 
+        $lastScan = $this->withFormattedScanTimestamps($lastScan);
+
+        $currentPageDetailUrl = '';
+        $currentPageUrl = '';
+
+        if ($currentPageUid > 0 && $siteIdentifier !== '') {
+            $currentPageDetailUrl = $this->buildRouteUrl('web_a11y.pageDetail', [
+                'id' => $currentPageUid,
+                'pageUid' => $currentPageUid,
+                'site' => $siteIdentifier,
+                'language' => $currentLanguageUid,
+            ]);
+
+            if ($site !== null) {
+                $currentPageUrl = $this->frontendPageUrlService->resolveForPage($site, $currentPageUid, $currentLanguageUid);
+            }
+        }
+
         $remoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid)
+            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl)
             : null;
+        $remoteScan = $this->withFormattedScanTimestamps($remoteScan);
+
+        $latestRemotePageScan = $siteIdentifier !== ''
+            ? $this->remoteScanRepository->findLastCompletedPageScanBySite($siteIdentifier, $currentLanguageUid)
+            : null;
+        $latestRemotePageScan = $this->withFormattedScanTimestamps($latestRemotePageScan);
 
         $activeRemoteScan = $siteIdentifier !== ''
             ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid)
@@ -301,6 +327,23 @@ final class OverviewController extends AbstractBackendModuleController
                 $remotePagination['offset'],
                 $remoteQuery
             );
+            $remotePages = $this->enrichRemoteOverviewPages($remotePages, $site, $currentLanguageUid);
+
+            if ($remoteQuery !== '' && $totalRemotePages === 0) {
+                $allRemotePages = $this->enrichRemoteOverviewPages(
+                    $this->remoteScanRepository->findPagesForScan($remoteScanUid),
+                    $site,
+                    $currentLanguageUid
+                );
+                $filteredRemotePages = $this->filterRemoteOverviewPages($allRemotePages, $remoteQuery, false);
+                $totalRemotePages = count($filteredRemotePages);
+                $remotePagination = PaginationUtility::buildPagination(
+                    $totalRemotePages,
+                    $currentRemotePage,
+                    self::REMOTE_PER_PAGE
+                );
+                $remotePages = array_slice($filteredRemotePages, $remotePagination['offset'], self::REMOTE_PER_PAGE);
+            }
 
             $remoteFailedPages = $this->remoteScanRepository->findFailedPagesForScanPaginated(
                 $remoteScanUid,
@@ -308,6 +351,164 @@ final class OverviewController extends AbstractBackendModuleController
                 $remoteFailedPagination['offset'],
                 $remoteFailedQuery
             );
+            $remoteFailedPages = $this->enrichRemoteOverviewPages($remoteFailedPages, $site, $currentLanguageUid);
+
+            if ($remoteFailedQuery !== '' && $totalRemoteFailedPages === 0) {
+                $allRemoteFailedPages = $this->enrichRemoteOverviewPages(
+                    $this->remoteScanRepository->findFailedPagesForScan($remoteScanUid),
+                    $site,
+                    $currentLanguageUid
+                );
+                $filteredRemoteFailedPages = $this->filterRemoteOverviewPages($allRemoteFailedPages, $remoteFailedQuery, true);
+                $totalRemoteFailedPages = count($filteredRemoteFailedPages);
+                $remoteFailedPagination = PaginationUtility::buildPagination(
+                    $totalRemoteFailedPages,
+                    $currentRemoteFailedPage,
+                    self::REMOTE_FAILED_PER_PAGE
+                );
+                $remoteFailedPages = array_slice($filteredRemoteFailedPages, $remoteFailedPagination['offset'], self::REMOTE_FAILED_PER_PAGE);
+            }
+
+            $remotePagination['pageUrls'] = [];
+            for ($page = 1; $page <= $remotePagination['totalPages']; $page++) {
+                $remotePagination['pageUrls'][$page] = $this->buildOverviewPaginationUrl(
+                    $request,
+                    $siteIdentifier,
+                    $localPagination['currentPage'],
+                    $page,
+                    $remoteFailedPagination['currentPage'],
+                    $localQuery,
+                    $remoteQuery,
+                    $remoteFailedQuery
+                );
+            }
+
+            $remotePagination['previousUrl'] = $remotePagination['hasPrevious']
+                ? $this->buildOverviewPaginationUrl(
+                    $request,
+                    $siteIdentifier,
+                    $localPagination['currentPage'],
+                    $remotePagination['currentPage'] - 1,
+                    $remoteFailedPagination['currentPage'],
+                    $localQuery,
+                    $remoteQuery,
+                    $remoteFailedQuery
+                )
+                : null;
+
+            $remotePagination['nextUrl'] = $remotePagination['hasNext']
+                ? $this->buildOverviewPaginationUrl(
+                    $request,
+                    $siteIdentifier,
+                    $localPagination['currentPage'],
+                    $remotePagination['currentPage'] + 1,
+                    $remoteFailedPagination['currentPage'],
+                    $localQuery,
+                    $remoteQuery,
+                    $remoteFailedQuery
+                )
+                : null;
+
+            $remotePaginationItems = PaginationUtility::buildPaginationItems(
+                $remotePagination['currentPage'],
+                $remotePagination['totalPages'],
+                $remotePagination['pageUrls'],
+                self::MAX_VISIBLE_PAGINATION_ITEMS
+            );
+
+            $remoteFailedPagination['pageUrls'] = [];
+            for ($page = 1; $page <= $remoteFailedPagination['totalPages']; $page++) {
+                $remoteFailedPagination['pageUrls'][$page] = $this->buildOverviewPaginationUrl(
+                    $request,
+                    $siteIdentifier,
+                    $localPagination['currentPage'],
+                    $remotePagination['currentPage'],
+                    $page,
+                    $localQuery,
+                    $remoteQuery,
+                    $remoteFailedQuery
+                );
+            }
+
+            $remoteFailedPagination['previousUrl'] = $remoteFailedPagination['hasPrevious']
+                ? $this->buildOverviewPaginationUrl(
+                    $request,
+                    $siteIdentifier,
+                    $localPagination['currentPage'],
+                    $remotePagination['currentPage'],
+                    $remoteFailedPagination['currentPage'] - 1,
+                    $localQuery,
+                    $remoteQuery,
+                    $remoteFailedQuery
+                )
+                : null;
+
+            $remoteFailedPagination['nextUrl'] = $remoteFailedPagination['hasNext']
+                ? $this->buildOverviewPaginationUrl(
+                    $request,
+                    $siteIdentifier,
+                    $localPagination['currentPage'],
+                    $remotePagination['currentPage'],
+                    $remoteFailedPagination['currentPage'] + 1,
+                    $localQuery,
+                    $remoteQuery,
+                    $remoteFailedQuery
+                )
+                : null;
+
+            $remoteFailedPaginationItems = PaginationUtility::buildPaginationItems(
+                $remoteFailedPagination['currentPage'],
+                $remoteFailedPagination['totalPages'],
+                $remoteFailedPagination['pageUrls'],
+                self::MAX_VISIBLE_PAGINATION_ITEMS
+            );
+        }
+
+        if (!is_array($remoteScan) && $siteIdentifier !== '') {
+            $totalRemotePages = $this->remoteScanRepository->countCompletedPageScanPagesForSite(
+                $siteIdentifier,
+                $currentLanguageUid,
+                false,
+                $remoteQuery
+            );
+            $totalRemoteFailedPages = $this->remoteScanRepository->countCompletedPageScanPagesForSite(
+                $siteIdentifier,
+                $currentLanguageUid,
+                true,
+                $remoteFailedQuery
+            );
+
+            $remotePagination = PaginationUtility::buildPagination(
+                $totalRemotePages,
+                $currentRemotePage,
+                self::REMOTE_PER_PAGE
+            );
+
+            $remoteFailedPagination = PaginationUtility::buildPagination(
+                $totalRemoteFailedPages,
+                $currentRemoteFailedPage,
+                self::REMOTE_FAILED_PER_PAGE
+            );
+
+            $remotePages = $this->remoteScanRepository->findCompletedPageScanPagesForSitePaginated(
+                $siteIdentifier,
+                self::REMOTE_PER_PAGE,
+                $remotePagination['offset'],
+                $currentLanguageUid,
+                false,
+                $remoteQuery
+            );
+            $remotePages = $this->enrichRemoteOverviewPages($remotePages, $site, $currentLanguageUid);
+
+            $remoteFailedPages = $this->remoteScanRepository->findCompletedPageScanPagesForSitePaginated(
+                $siteIdentifier,
+                self::REMOTE_FAILED_PER_PAGE,
+                $remoteFailedPagination['offset'],
+                $currentLanguageUid,
+                true,
+                $remoteFailedQuery
+            );
+            $remoteFailedPages = $this->enrichRemoteOverviewPages($remoteFailedPages, $site, $currentLanguageUid);
 
             $remotePagination['pageUrls'] = [];
             for ($page = 1; $page <= $remotePagination['totalPages']; $page++) {
@@ -468,8 +669,12 @@ final class OverviewController extends AbstractBackendModuleController
 
         $exportLocalCsvUrl = $this->exportUrlBuilderService->buildOverviewCsvUrl($siteIdentifier);
         $exportLocalPdfUrl = $this->exportUrlBuilderService->buildOverviewPdfUrl($siteIdentifier);
-        $exportRemoteCsvUrl = $this->exportUrlBuilderService->buildOverviewCsvUrl($siteIdentifier, true);
-        $exportRemotePdfUrl = $this->exportUrlBuilderService->buildOverviewPdfUrl($siteIdentifier, true);
+        $exportRemoteCsvUrl = is_array($remoteScan)
+            ? $this->exportUrlBuilderService->buildOverviewCsvUrl($siteIdentifier, true)
+            : '';
+        $exportRemotePdfUrl = is_array($remoteScan)
+            ? $this->exportUrlBuilderService->buildOverviewPdfUrl($siteIdentifier, true)
+            : '';
 
         $this->configureDocHeader(
             $moduleTemplate,
@@ -492,37 +697,6 @@ final class OverviewController extends AbstractBackendModuleController
 
         $hasEnabledFields = $this->fieldConfigRepository->hasEnabledFields();
 
-        $currentPageDetailUrl = '';
-        $currentPageUrl = '';
-        $currentRemotePageDetailUrl = '';
-
-        if ($currentPageUid > 0 && $siteIdentifier !== '') {
-            $currentPageDetailUrl = $this->buildRouteUrl('web_a11y.pageDetail', [
-                'id' => $currentPageUid,
-                'pageUid' => $currentPageUid,
-                'site' => $siteIdentifier,
-                'language' => $currentLanguageUid,
-            ]);
-
-            if ($site !== null) {
-                $currentPageUrl = $this->frontendPageUrlService->resolveForPage($site, $currentPageUid, $currentLanguageUid);
-            }
-
-            if (is_array($remoteScan) && isset($remoteScan['uid']) && $currentPageUrl !== '') {
-                $matchingRemotePage = $this->remoteScanRepository->findPageForScanByUrl(
-                    (int)$remoteScan['uid'],
-                    $currentPageUrl
-                );
-
-                if (is_array($matchingRemotePage) && isset($matchingRemotePage['uid'])) {
-                    $currentRemotePageDetailUrl = $this->buildRouteUrl('web_a11y.remotePageDetail', [
-                        'remotePageUid' => (int)$matchingRemotePage['uid'],
-                        'site' => $siteIdentifier,
-                        'language' => $currentLanguageUid,
-                    ]);
-                }
-            }
-        }
 
         $moduleTemplate->assignMultiple([
             'siteIdentifier' => $siteIdentifier,
@@ -544,12 +718,12 @@ final class OverviewController extends AbstractBackendModuleController
             'currentPageHasIssues' => array_sum($currentPageIssueCounts) > 0,
             'currentPageDetailUrl' => $currentPageDetailUrl,
             'currentPageUrl' => $currentPageUrl,
-            'currentRemotePageDetailUrl' => $currentRemotePageDetailUrl,
             'scanStatus' => $scanStatus,
             'isRelevantLocalScanRunning' => $isRelevantLocalScanRunning,
             'hasScanResults' => $lastScan !== null,
             'hasEnabledFields' => $hasEnabledFields,
             'remoteScan' => $remoteScan,
+            'latestRemotePageScan' => $latestRemotePageScan,
             'activeRemoteScan' => $activeRemoteScan,
             'remotePages' => $remotePages,
             'remoteFailedPages' => $remoteFailedPages,
@@ -581,6 +755,27 @@ final class OverviewController extends AbstractBackendModuleController
         ]);
 
         return $moduleTemplate->renderResponse('Overview/Index');
+    }
+
+
+    /**
+     * @param array<string, mixed>|null $scan
+     * @return array<string, mixed>|null
+     */
+    private function withFormattedScanTimestamps(?array $scan): ?array
+    {
+        if ($scan === null) {
+            return null;
+        }
+
+        foreach (['started_at', 'finished_at', 'tstamp'] as $field) {
+            $timestamp = (int)($scan[$field] ?? 0);
+            if ($timestamp > 0) {
+                $scan[$field . '_formatted'] = BackendTimeUtility::formatDateTime($timestamp);
+            }
+        }
+
+        return $scan;
     }
 
     private function recoverPendingRemoteScanPersistence(string $siteIdentifier, string $siteBase): void
@@ -686,6 +881,79 @@ final class OverviewController extends AbstractBackendModuleController
         }
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $pages
+     * @return array<int, array<string, mixed>>
+     */
+    private function enrichRemoteOverviewPages(array $pages, ?Site $site, int $languageUid): array
+    {
+        if (!$site instanceof Site || $pages === []) {
+            return $pages;
+        }
+
+        foreach ($pages as &$page) {
+            $page['remote_page_uid'] = (int)($page['uid'] ?? $page['remote_page_uid'] ?? 0);
+            $page['remote_scan_uid'] = (int)($page['remote_scan_uid'] ?? $page['remote_scan'] ?? 0);
+
+            $pageUid = (int)($page['typo3_page_uid'] ?? $page['page_uid'] ?? 0);
+            if ($pageUid <= 0) {
+                $pageUid = $this->frontendPageUrlService->resolvePageUidForUrl(
+                    $site,
+                    (string)($page['url'] ?? ''),
+                    $languageUid
+                );
+            }
+
+            if ($pageUid > 0) {
+                $page['typo3_page_uid'] = $pageUid;
+                $page['page_uid'] = $pageUid;
+            }
+        }
+        unset($page);
+
+        return $pages;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $pages
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterRemoteOverviewPages(array $pages, string $query, bool $includeFailureReason): array
+    {
+        $needle = mb_strtolower(trim($query));
+        if ($needle === '') {
+            return $pages;
+        }
+
+        return array_values(array_filter(
+            $pages,
+            static function (array $page) use ($needle, $includeFailureReason): bool {
+                $haystacks = [
+                    (string)($page['title'] ?? ''),
+                    (string)($page['url'] ?? ''),
+                    (string)($page['http_status'] ?? ''),
+                    (string)($page['uid'] ?? ''),
+                    (string)($page['remote_page_uid'] ?? ''),
+                    (string)($page['remote_scan_uid'] ?? $page['remote_scan'] ?? ''),
+                    (string)($page['typo3_page_uid'] ?? $page['page_uid'] ?? ''),
+                    (string)($page['external_page_id'] ?? ''),
+                ];
+
+                if ($includeFailureReason) {
+                    $haystacks[] = (string)($page['failure_reason'] ?? '');
+                }
+
+                foreach ($haystacks as $haystack) {
+                    if ($haystack !== '' && str_contains(mb_strtolower($haystack), $needle)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        ));
+    }
+
     private function buildOverviewPaginationUrl(
         ServerRequestInterface $request,
         string $siteIdentifier,
@@ -765,6 +1033,7 @@ final class OverviewController extends AbstractBackendModuleController
             : $first;
     }
 
+
     /**
      * @param array<string, mixed> $scanStatus
      */
@@ -789,24 +1058,13 @@ final class OverviewController extends AbstractBackendModuleController
         bool $isPageContext,
         int $currentPageUid,
         int $languageUid,
+        string $currentPageUrl = '',
     ): ?array {
-        if ($isPageContext && $currentPageUid > 0) {
-            $pageScan = $this->remoteScanRepository->findLastCompletedRelevantScan(
-                $siteIdentifier,
-                $currentPageUid,
-                $languageUid
-            );
-            if (is_array($pageScan)) {
-                return $pageScan;
-            }
-        }
-
-        $siteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
-        if (is_array($siteScan)) {
-            return $siteScan;
-        }
-
-        return $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier, $languageUid);
+        // The Overview panel represents an overview, not a detail view.
+        // Prefer completed site/subtree frontend scans for the main summary.
+        // If no site scan exists, the page table below falls back to recent
+        // single-page scans, but single-page issues are never rendered inline here.
+        return $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
     }
 
     private function resolveOverviewActiveRemoteScan(

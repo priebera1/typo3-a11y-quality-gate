@@ -31,10 +31,22 @@ final class ProCapabilityService
         $effectiveIsTrial = $result->isTrial || $this->proSettings->isTrialKey();
         $effectivePlan = $effectiveIsTrial ? 'trial' : $result->plan;
 
-        $hasCrawler = $result->hasFeature(FeatureFlag::Crawler);
-        $hasExportPdf = !$effectiveIsTrial && $result->hasFeature(FeatureFlag::ExportPdf);
-        $hasMultiSite = !$effectiveIsTrial && $result->hasFeature(FeatureFlag::MultiSite);
-        $hasProRules = $result->hasFeature(FeatureFlag::ProRules);
+        $hasCrawler = $result->valid && (
+            $result->hasFeature(FeatureFlag::Crawler)
+            || $this->planProvidesRemoteCrawler($effectivePlan)
+        );
+        $hasExportPdf = !$effectiveIsTrial && $result->valid && (
+            $result->hasFeature(FeatureFlag::ExportPdf)
+            || $this->planProvidesPdfExport($effectivePlan)
+        );
+        $hasMultiSite = !$effectiveIsTrial && $result->valid && (
+            $result->hasFeature(FeatureFlag::MultiSite)
+            || $this->planProvidesMultiSite($effectivePlan)
+        );
+        $hasProRules = $result->valid && (
+            $result->hasFeature(FeatureFlag::ProRules)
+            || $this->planProvidesProRules($effectivePlan)
+        );
 
         return new ProStatusViewModel(
             configured: true,
@@ -56,6 +68,32 @@ final class ProCapabilityService
             trialExpiresAt: $result->trialExpiresAt,
             trialStartedAt: $result->trialStartedAt,
         );
+    }
+
+
+    private function normalizePlan(string $plan): string
+    {
+        return strtolower(trim($plan));
+    }
+
+    private function planProvidesRemoteCrawler(string $plan): bool
+    {
+        return in_array($this->normalizePlan($plan), ['trial', 'pro', 'agency', 'enterprise'], true);
+    }
+
+    private function planProvidesPdfExport(string $plan): bool
+    {
+        return in_array($this->normalizePlan($plan), ['pro', 'agency', 'enterprise'], true);
+    }
+
+    private function planProvidesMultiSite(string $plan): bool
+    {
+        return in_array($this->normalizePlan($plan), ['agency', 'enterprise'], true);
+    }
+
+    private function planProvidesProRules(string $plan): bool
+    {
+        return in_array($this->normalizePlan($plan), ['trial', 'pro', 'agency', 'enterprise'], true);
     }
 
     private function buildStatusLabel(

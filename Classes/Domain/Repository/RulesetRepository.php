@@ -311,6 +311,46 @@ final class RulesetRepository extends AbstractRepository
     /**
      * @return array<string, mixed>|null
      */
+    public function saveScannerTokenForSiteOrDefault(string $siteIdentifier, string $scannerToken): ?array
+    {
+        $siteIdentifier = trim($siteIdentifier);
+        if ($siteIdentifier === '') {
+            return $this->saveScannerTokenForDefault($scannerToken);
+        }
+
+        $existing = $this->findBySiteIdentifier($siteIdentifier);
+        if (!is_array($existing)) {
+            $existing = $this->saveForSiteOrDefault(
+                siteIdentifier: $siteIdentifier,
+                publishMode: 1,
+                thresholdCritical: 0,
+                thresholdWarning: -1,
+                isGlobal: false,
+            );
+        }
+
+        if (!is_array($existing)) {
+            return null;
+        }
+
+        $this->getConnection(Tables::RULESET)->update(
+            Tables::RULESET,
+            [
+                'scanner_token' => trim($scannerToken),
+                'tstamp' => time(),
+            ],
+            [
+                'uid' => (int)$existing['uid'],
+            ]
+        );
+
+        return $this->findByUid((int)$existing['uid']);
+    }
+
+
+    /**
+     * @return array<string, mixed>|null
+     */
     public function saveRemoteScanAccessForSiteOrDefault(
         string $siteIdentifier,
         string $scannerToken,
@@ -338,8 +378,13 @@ final class RulesetRepository extends AbstractRepository
             return null;
         }
 
+        $scannerToken = trim($scannerToken);
+        if ($scannerToken === '') {
+            $scannerToken = trim((string)($existing['scanner_token'] ?? ''));
+        }
+
         $data = [
-            'scanner_token' => trim($scannerToken),
+            'scanner_token' => $scannerToken,
             'http_auth_user' => trim($httpAuthUser),
             'excluded_patterns' => $this->normalizeJsonList($excludedPatterns),
             'cookie_accept_selectors' => $this->normalizeJsonList($cookieAcceptSelectors),

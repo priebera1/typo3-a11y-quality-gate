@@ -15,6 +15,7 @@ use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -64,8 +65,33 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         $remotePageUid = (int)$this->requestParameterService->getString($request, 'remotePageUid');
         $siteIdentifier = $this->requestParameterService->getSiteIdentifier($request);
+        $pageUid = $this->requestParameterService->getPageUidOrZero($request);
+        $languageUid = $this->requestParameterService->getLanguageUid($request, 0);
 
-        $backUrl = $this->buildRemoteOverviewBackUrl($request, $siteIdentifier);
+        if ($siteIdentifier === '' && $pageUid > 0) {
+            $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierForPageId($pageUid);
+        }
+
+        if ($remotePageUid <= 0 && $siteIdentifier !== '' && $pageUid > 0) {
+            $latestRemotePage = $this->remoteScanRepository->findLatestPageForCompletedPageScan(
+                $siteIdentifier,
+                $pageUid,
+                $languageUid
+            );
+
+            if (is_array($latestRemotePage) && isset($latestRemotePage['uid'])) {
+                return new RedirectResponse(
+                    $this->buildRouteUrl('web_a11y.remotePageDetail', [
+                        'remotePageUid' => (int)$latestRemotePage['uid'],
+                        'site' => $siteIdentifier,
+                        'id' => $pageUid,
+                        'language' => $languageUid,
+                    ])
+                );
+            }
+        }
+
+        $backUrl = $this->buildRemoteOverviewBackUrl($request, $siteIdentifier, $pageUid, $languageUid);
 
         if ($remotePageUid <= 0) {
             $site = $siteIdentifier !== ''
@@ -422,9 +448,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'httpStatusLabel' => $httpStatus > 0 ? (string)$httpStatus : '—',
             'httpStatusTone' => $httpStatus > 0 && $httpStatus < 400 ? 'tone-ok' : ($httpStatus >= 500 ? 'tone-critical' : 'tone-warning'),
             'lastScanAt' => $finishedAt,
+            'lastScanAtFormatted' => BackendTimeUtility::formatDateTime($finishedAt, 'd.m.Y · H:i'),
             'lastAttemptAt' => $finishedAt > 0 ? $finishedAt : $startedAt,
+            'lastAttemptAtFormatted' => BackendTimeUtility::formatDateTime($finishedAt > 0 ? $finishedAt : $startedAt, 'd.m.Y · H:i'),
             'startedAt' => $startedAt,
+            'startedAtFormatted' => BackendTimeUtility::formatDateTime($startedAt, 'd.m.Y H:i:s'),
             'activeStartedAt' => $activeStartedAt,
+            'activeStartedAtFormatted' => BackendTimeUtility::formatDateTime($activeStartedAt, 'H:i'),
             'activePagesLabel' => $activePagesTotal > 0
                 ? $activePagesScanned . ' / ' . $activePagesTotal
                 : (string)$activePagesScanned,

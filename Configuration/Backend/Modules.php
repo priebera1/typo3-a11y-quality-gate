@@ -2,14 +2,26 @@
 
 declare(strict_types=1);
 
+use TYPO3\CMS\Core\Information\Typo3Version;
+
+$typo3MajorVersion = (new Typo3Version())->getMajorVersion();
+$mainModule = $typo3MajorVersion >= 14 ? 'content' : 'web';
+$statusModule = $typo3MajorVersion >= 14 ? 'content_status' : 'web_info';
+$modulePath = $typo3MajorVersion >= 14 ? '/module/content/a11y' : '/module/web/a11y';
+
+// Keep the route identifier stable across TYPO3 13 and 14. The parent module/path
+// changes from Web to Content in TYPO3 14, but controllers, Ajax routes and toolbar
+// links keep using web_a11y / web_a11y.* as the backend route key.
+$moduleIdentifier = 'web_a11y';
+
 return [
-    'web_a11y' => [
-        'parent' => 'web',
-        'position' => ['after' => 'web_info'],
+    $moduleIdentifier => [
+        'parent' => $mainModule,
+        'position' => ['after' => $statusModule],
         'access' => 'user',
         'workspaces' => '*',
         'iconIdentifier' => 'a11y-quality-gate-module',
-        'path' => '/module/web/a11y',
+        'path' => $modulePath,
         'labels' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_mod.xlf',
         'redirect' => [
             'enable' => true,
@@ -29,6 +41,8 @@ return [
                 'localQuery' => true,
                 'remoteQuery' => true,
                 'remoteFailedQuery' => true,
+                'tab' => true,
+                'rulesetSite' => true,
             ],
         ],
         'routes' => [

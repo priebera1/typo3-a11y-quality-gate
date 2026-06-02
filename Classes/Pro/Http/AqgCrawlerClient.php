@@ -15,6 +15,8 @@ use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Utility\StringListUtility;
 use Psr\Http\Client\ClientExceptionInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class AqgCrawlerClient
 {
@@ -54,6 +56,10 @@ final class AqgCrawlerClient
             'captureScreenshot' => $captureScreenshot,
             'cookieDismiss' => $cookieDismiss,
         ];
+
+        if (is_string($sitemapUrl) && trim($sitemapUrl) !== '') {
+            $requestPayload['sitemapUrl'] = trim($sitemapUrl);
+        }
 
         if ($scannerPreviewToken !== '') {
             $requestPayload['scannerToken'] = $scannerPreviewToken;
@@ -168,6 +174,21 @@ final class AqgCrawlerClient
             $options['body'] = json_encode($payload, JSON_THROW_ON_ERROR);
         }
 
+        $this->logCrawlerRequest('outbound', [
+            'url' => $url,
+            'method' => $method,
+            'payloadKeys' => array_keys($payload),
+            'payload' => $this->sanitizePayloadForLog($payload),
+            'authMode' => $accessToken !== '' ? 'bearer-header' : 'none',
+            'authorizationHeaderPresent' => $accessToken !== '',
+            'authorizationHeaderType' => $accessToken !== '' ? 'Bearer' : '',
+            'accessTokenPresent' => $accessToken !== '',
+            'accessTokenLength' => strlen($accessToken),
+            'contentType' => (string)($options['headers']['Content-Type'] ?? ''),
+            'licenseKeyPresent' => false,
+            'scannerTokenPresent' => isset($payload['scannerToken']) && trim((string)$payload['scannerToken']) !== '',
+        ]);
+
         try {
             $response = $this->requestFactory->request($url, $method, $options);
         } catch (ClientExceptionInterface | \JsonException $exception) {
@@ -184,6 +205,20 @@ final class AqgCrawlerClient
 
         $statusCode = $response->getStatusCode();
         $body = trim((string)$response->getBody());
+
+        $this->logCrawlerRequest($statusCode >= 400 ? 'response-error' : 'response', [
+            'url' => $url,
+            'method' => $method,
+            'status' => $statusCode,
+            'payloadKeys' => array_keys($payload),
+            'authorizationHeaderPresent' => $accessToken !== '',
+            'authorizationHeaderType' => $accessToken !== '' ? 'Bearer' : '',
+            'accessTokenPresent' => $accessToken !== '',
+            'accessTokenLength' => strlen($accessToken),
+            'licenseKeyPresent' => false,
+            'scannerTokenPresent' => isset($payload['scannerToken']) && trim((string)$payload['scannerToken']) !== '',
+            'body' => $this->sanitizeBodyForLog($body),
+        ], $statusCode >= 400 ? 'warning' : 'debug');
 
         if ($body === '') {
             throw new ApiRequestFailedException(
@@ -235,6 +270,8 @@ final class AqgCrawlerClient
             $message .= ' | url=' . $url;
             $message .= ' | method=' . $method;
             $message .= ' | payload=' . json_encode($this->sanitizePayloadForLog($payload));
+            $message .= ' | auth=' . json_encode($this->buildAuthDebug($accessToken, $payload));
+            $message .= ' | body=' . $this->sanitizeBodyForLog($body);
 
             throw new ApiRequestFailedException($message);
         }
@@ -250,11 +287,62 @@ final class AqgCrawlerClient
             $message .= ' | url=' . $url;
             $message .= ' | method=' . $method;
             $message .= ' | payload=' . json_encode($this->sanitizePayloadForLog($payload));
+            $message .= ' | auth=' . json_encode($this->buildAuthDebug($accessToken, $payload));
+            $message .= ' | body=' . $this->sanitizeBodyForLog($body);
 
             throw new ApiRequestFailedException($message);
         }
 
         return $decoded;
+    }
+
+
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function buildAuthDebug(string $accessToken, array $payload): array
+    {
+        return [
+            'authMode' => $accessToken !== '' ? 'bearer-header' : 'none',
+            'authorizationHeaderPresent' => $accessToken !== '',
+            'authorizationHeaderType' => $accessToken !== '' ? 'Bearer' : '',
+            'accessTokenPresent' => $accessToken !== '',
+            'accessTokenLength' => strlen($accessToken),
+            'licenseKeyPresent' => false,
+            'scannerTokenPresent' => isset($payload['scannerToken']) && trim((string)$payload['scannerToken']) !== '',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logCrawlerRequest(string $event, array $context, string $level = 'debug'): void
+    {
+        try {
+            $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
+            if ($level === 'warning') {
+                $logger->warning('AQG crawler client ' . $event, $context);
+                return;
+            }
+            $logger->debug('AQG crawler client ' . $event, $context);
+        } catch (\Throwable) {
+        }
+    }
+
+    private function sanitizeBodyForLog(string $body): string
+    {
+        if ($body === '') {
+            return '';
+        }
+
+        $decoded = json_decode($body, true);
+        if (is_array($decoded)) {
+            return json_encode($this->sanitizePayloadForLog($decoded), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
+        }
+
+        return substr($body, 0, 2000);
     }
 
     /**

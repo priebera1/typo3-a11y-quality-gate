@@ -18,6 +18,7 @@ use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\FilterValueUtility;
 use Priebera\A11yQualityGate\Utility\IssueFilterUtility;
@@ -357,6 +358,7 @@ final class PageDetailController extends AbstractBackendModuleController
         $lastScan = $lastPageScan;
         $localDetail = [
             'lastScanAt' => is_array($lastScan) ? (int)($lastScan['finished_at'] ?? 0) : 0,
+            'lastScanAtFormatted' => is_array($lastScan) ? BackendTimeUtility::formatDateTime((int)($lastScan['finished_at'] ?? 0), 'd.m.Y · H:i') : '—',
             'hasScan' => is_array($lastScan),
             'isRelevantScanRunning' => $this->isRelevantScanRunning($scanStatus, $siteRootPid, $pageUid),
         ];

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Export;
 
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Core\View\ViewFactoryInterface;
 
@@ -24,28 +23,28 @@ final class PdfTemplateRenderer
         array $variables,
         ?ServerRequestInterface $request = null,
     ): string {
-        $templatePathAndFilename = GeneralUtility::getFileAbsFileName(
-            'EXT:a11y_quality_gate/Resources/Private/Templates/' . $templateName . '.html'
-        );
+        $normalizedTemplateName = ltrim($templateName, '/');
+        if (str_ends_with($normalizedTemplateName, '.html')) {
+            $normalizedTemplateName = substr($normalizedTemplateName, 0, -5);
+        }
 
         $view = $this->viewFactory->create(
             new ViewFactoryData(
                 templateRootPaths: [
-                    GeneralUtility::getFileAbsFileName('EXT:a11y_quality_gate/Resources/Private/Templates/'),
+                    'EXT:a11y_quality_gate/Resources/Private/Templates/',
                 ],
                 partialRootPaths: [
-                    GeneralUtility::getFileAbsFileName('EXT:a11y_quality_gate/Resources/Private/Partials/'),
+                    'EXT:a11y_quality_gate/Resources/Private/Partials/',
                 ],
                 layoutRootPaths: [
-                    GeneralUtility::getFileAbsFileName('EXT:a11y_quality_gate/Resources/Private/Layouts/'),
+                    'EXT:a11y_quality_gate/Resources/Private/Layouts/',
                 ],
-                templatePathAndFilename: $templatePathAndFilename,
                 request: $request,
             )
         );
 
         $view->assignMultiple($variables);
 
-        return $view->render();
+        return $view->render($normalizedTemplateName);
     }
 }

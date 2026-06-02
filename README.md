@@ -1,15 +1,15 @@
 # TYPO3 Extension `a11y_quality_gate`
 
-![TYPO3 13.4](https://img.shields.io/badge/TYPO3-13.4-orange.svg)
+![TYPO3 13.4 LTS | 14](https://img.shields.io/badge/TYPO3-13.4%20LTS%20%7C%2014-orange.svg)
 ![PHP 8.2+](https://img.shields.io/badge/PHP-8.2+-blue.svg)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green.svg)
 ![State](https://img.shields.io/badge/State-stable-brightgreen.svg)
 
 Accessibility Quality Gate brings accessibility checks directly into the TYPO3 editorial workflow.
 
-It combines CKEditor inline feedback, backend issue management, manual and automated scans, and configurable quality gate rules to help editors and integrators catch common accessibility issues before content goes live.
+It combines CKEditor inline feedback, backend issue management, manual and automated scans, a rendered HTML check and configurable quality gate rules to help editors and integrators catch common accessibility issues before content goes live.
 
-More information, pricing, documentation, and portal access are available on the project website:
+More information, pricing, documentation and portal access are available on the project website:
 
 **https://typo3.priebera.sk/**
 
@@ -17,25 +17,28 @@ More information, pricing, documentation, and portal access are available on the
 
 ## Features
 
-### Free
+### Free — no licence key required
 
 - CKEditor 5 inline highlighting for accessibility issues
 - Backend overview and page detail modules
-- Issue tracking with ignore / unignore workflow
+- Issue tracking with ignore / unignore workflow and expiry dates
 - Stable issue fingerprints across rescans
-- Manual scans via CLI
-- Automated scans via TYPO3 Scheduler
+- Batch ignore workflow with required reason confirmation
+- Per-rule enable / disable in Settings
+- Manual scans via backend module and CLI
+- Automated local scans via TYPO3 Scheduler
 - Changed-only scan mode for incremental rescans
-- Quality gate warning mode on page publish / unhide
+- Quality gate warning mode on page publish / unhide; editors can continue after reviewing the warning
+- FREE rendered page check — inspects the live server-rendered HTML of the current page
 - CSV export
 - TCA-based field discovery for `tt_content` RTE and file fields
 - Settings module for enabling and disabling scanned fields
-- Built-in WCAG 2.1 Level AA-oriented rules for common TYPO3 content problems
+- Built-in rules that help identify common WCAG 2.1 AA-related accessibility issues in RTE content, structured fields and rendered HTML
 
 ### Trial / PRO / Agency
 
-- Remote frontend accessibility scans
-- Remote page detail with issue breakdown and screenshot preview
+- Remote browser accessibility scans via Playwright + axe-core
+- Remote browser scan results with issue breakdown and screenshot preview
 - PDF export for overview and page detail reports
 - Remote CSV export
 - Per-site quality gate configuration
@@ -43,7 +46,7 @@ More information, pricing, documentation, and portal access are available on the
 - Diff tracking for new and resolved issues across scans
 - Multi-site support for agencies
 
-Plan details, trial access, and pricing:
+Plan details, trial access and pricing:
 
 - Trial: **https://typo3.priebera.sk/trial**
 - Pricing: **https://typo3.priebera.sk/pricing**
@@ -52,7 +55,7 @@ Plan details, trial access, and pricing:
 
 ## Requirements
 
-- TYPO3 13.4 LTS
+- TYPO3 13.4 LTS or TYPO3 14
 - PHP 8.2 or higher
 - No additional services required for the Free version
 
@@ -92,46 +95,83 @@ Plan details, trial access, and pricing:
 
 | Version | TYPO3 | PHP | Support |
 |---------|-------|-----|---------|
-| 1.x | 13.4 | 8.2+ | Features and bugfixes |
+| 1.4+ | 13.4 LTS / 14.3+ | 8.2+ | Features and bugfixes |
+| 1.3.x | 13.4 LTS | 8.2+ | Security and bugfixes |
 
 ---
 
 ## Built-in rules
 
-### RTE rules
+AQG includes rules across three categories. For the full reference with WCAG
+mappings and fix guidance see the documentation:
+**https://typo3.priebera.sk/docs/rules**
+
+### RTE rules — CKEditor and RTE HTML content
 
 | Rule ID | Severity | WCAG |
 |---------|----------|------|
-| `rte.img_alt_missing` | Critical | 1.1.1 Non-text Content |
-| `rte.img_alt_is_filename` | Warning | 1.1.1 Non-text Content / Best Practice |
-| `rte.empty_heading` | Critical | 1.3.1 Info and Relationships |
+| `rte.img_alt_missing` | Critical | 1.1.1 |
+| `rte.img_alt_is_filename` | Warning | 1.1.1 |
+| `rte.img_alt_too_long` | Warning | 1.1.1 |
+| `rte.img_alt_redundant_phrase` | Warning | 1.1.1 |
+| `rte.empty_heading` | Critical | 1.3.1 |
 | `rte.empty_link` | Critical | 2.4.4 / 4.1.2 |
-| `rte.button_label_missing` | Critical | 4.1.2 Name, Role, Value |
-| `rte.table_missing_header` | Warning | 1.3.1 Info and Relationships |
-| `rte.table_th_missing_scope` | Warning | 1.3.1 (H63) |
-| `rte.table_missing_caption` | Info | 1.3.1 (H39) / Best Practice |
-| `rte.duplicate_id` | Warning | 1.3.1 Info and Relationships |
-| `rte.svg_missing_title` | Warning | 1.1.1 Non-text Content |
-| `rte.iframe_missing_title` | Critical | 4.1.2 Name, Role, Value |
+| `rte.button_label_missing` | Critical | 4.1.2 |
+| `rte.table_missing_header` | Warning | 1.3.1 |
+| `rte.table_th_missing_scope` | Warning | 1.3.1 |
+| `rte.table_missing_caption` | Info | 1.3.1 |
+| `rte.duplicate_id` | Warning | 1.3.1 |
+| `rte.svg_missing_title` | Warning | 1.1.1 |
+| `rte.iframe_missing_title` | Critical | 4.1.2 |
 | `rte.image_in_link_missing_alt` | Critical | 1.1.1 / 2.4.4 |
-| `rte.marquee_or_blink` | Critical | 2.2.2 Pause, Stop, Hide |
-| `rte.non_descriptive_link` | Warning | 2.4.4 Link Purpose / Best Practice |
-| `rte.heading_hierarchy_jump` | Warning | 1.3.1 Info and Relationships / Best Practice |
-| `rte.link_new_window_no_warning` | Warning | 3.2.2 On Input / Best Practice |
+| `rte.marquee_or_blink` | Critical | 2.2.2 |
+| `rte.non_descriptive_link` | Warning | 2.4.4 |
+| `rte.heading_hierarchy_jump` | Warning | 1.3.1 |
+| `rte.link_new_window_no_warning` | Warning | 3.2.2 |
+| `rte.link_text_is_url_or_filename` | Warning | 2.4.4 |
+| `rte.link_to_document` | Needs review | 2.4.4 |
+| `rte.link_to_document_missing_notice` | Info | 2.4.4 |
+| `rte.link_text_duplicate_different_targets` | Warning | 2.4.4 |
 
-### Structured rules
+### Structured rules — TCA field values
 
 | Rule ID | Severity | WCAG |
 |---------|----------|------|
-| `structured.file_reference_alt` | Critical | 1.1.1 Non-text Content |
-| `structured.header_ctype_empty` | Warning | 1.3.1 Info and Relationships |
+| `structured.file_reference_alt` | Critical | 1.1.1 |
+| `structured.file_reference_alt_quality` | Warning | 1.1.1 |
+| `structured.header_ctype_empty` | Warning | 1.3.1 |
 | `structured.header_link_no_text` | Critical | 2.4.4 / 4.1.2 |
-| `structured.uploads_file_missing_description` | Warning | 2.4.4 Link Purpose |
-| `structured.table_missing_caption` | Info | 1.3.1 (H39) / Best Practice |
+| `structured.header_level_is_h1` | Needs review | 1.3.1 |
+| `structured.uploads_file_missing_description` | Warning | 2.4.4 |
+| `structured.table_missing_caption` | Info | 1.3.1 |
+| `structured.form_placeholder_as_label` | Warning | 1.3.1 / 3.3.2 |
+| `structured.form_field_label_missing` | Critical | 1.3.1 / 3.3.2 |
+| `structured.form_autocomplete_missing` | Warning | 1.3.5 |
+| `structured.media_no_transcript_hint` | Needs review | 1.2.1 |
 
-`structured.file_reference_alt` checks image file references, falls back to
-file metadata alt text if no reference-level alt text is set, and supports
-decorative images via the file reference setting.
+Some structured rules may adjust severity depending on the detected case, for example missing alternative text versus title-only fallback.
+
+### Rendered HTML rules — FREE, manual, server-rendered HTML only
+
+Rendered checks run during **Scan this page** only. They inspect the final
+server-rendered HTML returned by TYPO3 and do not execute JavaScript, AJAX
+or lazy-loaded content.
+
+| Rule ID | Severity | WCAG |
+|---------|----------|------|
+| `rendered.img_missing_alt` | Critical | 1.1.1 |
+| `rendered.empty_link` | Critical | 2.4.4 |
+| `rendered.empty_button` | Critical | 4.1.2 |
+| `rendered.empty_heading` | Critical | 1.3.1 |
+| `rendered.iframe_missing_title` | Critical | 4.1.2 |
+| `rendered.form_control_missing_label` | Critical | 1.3.1 / 3.3.2 |
+| `rendered.duplicate_id` | Warning | 1.3.1 |
+| `rendered.table_missing_header` | Warning | 1.3.1 |
+| `rendered.table_empty_header` | Warning | 1.3.1 |
+| `rendered.svg_missing_accessible_name` | Warning | 1.1.1 |
+| `rendered.html_lang_missing` | Critical | 3.1.1 |
+| `rendered.page_title_missing` | Warning | 2.4.2 |
+| `rendered.main_landmark_missing` | Needs review | 1.3.6 |
 
 ---
 
@@ -141,16 +181,20 @@ decorative images via the file reference setting.
 composer require priebera/typo3-a11y-quality-gate
 ```
 
-Then:
+Then run TYPO3 extension setup and flush caches:
 
-1. Install and activate the extension in the TYPO3 Extension Manager
-2. Apply database schema updates
-3. Flush caches
-4. Open the Accessibility Quality Gate module in the backend
-5. Run **Re-scan TCA** in Settings once
-6. Configure a Scheduler task or run scans manually via CLI
+```bash
+./vendor/bin/typo3 extension:setup
+./vendor/bin/typo3 cache:flush
+```
 
-For full setup and usage instructions, see the documentation:
+Next:
+
+1. Open the Accessibility Quality Gate module in the TYPO3 backend
+2. Run **Re-scan TCA** in Settings once
+3. Configure a Scheduler task or run scans manually via backend module or CLI
+
+For full setup and usage instructions see the documentation:
 **https://typo3.priebera.sk/docs**
 
 ---
@@ -162,7 +206,7 @@ For full setup and usage instructions, see the documentation:
 In the Settings module you can:
 
 - refresh supported fields from TCA
-- enable or disable individual fields
+- enable or disable individual fields and rules
 - control which fields are included in future scans
 
 Changes are applied only after clicking **Save settings**.
@@ -177,7 +221,7 @@ A default ruleset is created automatically on first use.
 | `threshold_warning` | Maximum allowed open warnings (`-1` disables the warning threshold) |
 | `publish_mode` | `0` = disabled, `1` = warn, `2` = block (PRO) |
 
-For site-specific rulesets, set `site_identifier` to match the TYPO3 site
+For site-specific rulesets set `site_identifier` to match the TYPO3 site
 configuration identifier.
 
 ---
@@ -212,23 +256,19 @@ options.a11y_quality_gate {
 
 | Option | Default | Description |
 |---|---|---|
-| `showToolbarItem` | `1` | Show accessibility indicator in the CKEditor toolbar |
-| `showScanAll` | `1` | Show the "Scan all" button in the overview module |
-| `showScanNow` | `1` | Show the "Scan now" button in page and record-related views |
+| `showToolbarItem` | `1` | Show the AQG item in the TYPO3 backend toolbar |
+| `showScanAll` | `1` | Show the "Scan site" button in the overview module |
+| `showScanNow` | `1` | Show the "Scan this page" button in page and record-related views |
 
 ---
 
 ## Scope
 
-Accessibility Quality Gate is a TYPO3-native editorial quality layer. It helps
-editors and integrators detect common accessibility issues in TYPO3 content
-fields and manage them directly inside TYPO3.
+AQG helps teams identify common accessibility issues early in the TYPO3 editorial workflow. It is not a legal certification tool and cannot guarantee WCAG, EAA, BITV or any other accessibility compliance on its own.
 
-It does not replace a full accessibility audit, rendered-page review, keyboard
-testing, assistive technology testing, or a professional WCAG review.
+The Free rendered page check analyzes server-rendered HTML only. It does not execute JavaScript, wait for AJAX or lazy-loaded content, interact with cookie banners or take screenshots. Browser-based crawling, screenshots and axe-core checks are part of the Trial / PRO remote scanner.
 
-Some rules reflect best practices and may not always correspond to a hard
-WCAG 2.1 failure in every context. All findings should be reviewed in context.
+Accessibility Quality Gate does not replace a full accessibility audit, keyboard testing, assistive technology testing or a professional WCAG review. Some rules reflect best practices and may not always correspond to a hard WCAG 2.1 failure in every context. All findings should be reviewed in context.
 
 ---
 

@@ -21,8 +21,21 @@ final class ScannerAccessTokenService
 
     public function generateAndSaveDefaultToken(): string
     {
+        return $this->generateAndSaveTokenForSiteOrDefault('');
+    }
+
+    public function generateAndSaveTokenForSiteOrDefault(string $siteIdentifier): string
+    {
         $token = bin2hex(random_bytes(32));
+        $siteIdentifier = trim($siteIdentifier);
+
+        // Keep the default token in sync because frontend marker validation is
+        // currently global. Also save the site-specific token so remote access
+        // settings and crawler submit resolve the same ruleset as the UI.
         $this->rulesetRepository->saveScannerTokenForDefault($token);
+        if ($siteIdentifier !== '') {
+            $this->rulesetRepository->saveScannerTokenForSiteOrDefault($siteIdentifier, $token);
+        }
         $this->setCachedToken($token);
 
         return $token;

@@ -732,15 +732,17 @@ final class RemoteExportBuilder
         }
 
         $meta = (int)$imageInfo[0] . ' × ' . (int)$imageInfo[1];
+        $mimeType = is_string($imageInfo['mime'] ?? null) && $imageInfo['mime'] !== ''
+            ? (string)$imageInfo['mime']
+            : 'image/png';
+        $dataUri = 'data:' . $mimeType . ';base64,' . base64_encode($content);
 
         return [
             'html' => '<div class="aqgp-screenshot">'
-                . '<img src="var:remote-page-screenshot" alt="Remote page screenshot" class="aqgp-screenshot__image" />'
+                . '<img src="' . htmlspecialchars($dataUri, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="Remote page screenshot" class="aqgp-screenshot__image" />'
                 . '</div>',
             'meta' => $meta,
-            'imageVars' => [
-                'remote-page-screenshot' => $content,
-            ],
+            'imageVars' => [],
         ];
     }
 }

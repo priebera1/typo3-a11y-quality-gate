@@ -1,6 +1,36 @@
 # Changelog
 
-## [1.3.1] - 2026-05-29
+## [1.4.0] - 2026-06-02
+
+### Added
+- Added TYPO3 14 compatibility while keeping TYPO3 13.4 LTS support in the same extension version.
+- Added TYPO3 14 compatible Scheduler task handling for automated local accessibility scans.
+- Added improved PRO/Agency/Trial frontend scan support for TYPO3 14, including scan progress, screenshots, page detail actions and report exports.
+- Added Trial support with visible trial status, expiry information and frontend scan limits.
+
+### Changed
+- Moved the AQG backend module into the Content area on TYPO3 14 to match the new backend structure.
+- Improved Remote/Frontend Overview so it behaves like the local Overview: one page is shown once, repeated page scans update the latest result instead of creating duplicate rows.
+- Improved Remote Page Detail with clearer frontend scan results, screenshot preview, mapped record actions and export handling.
+- Improved toolbar and Page Module status so running and completed frontend scans are visible while editors work.
+- Improved the empty Remote Overview state by keeping the normal summary layout with dash values until a site-wide frontend scan exists.
+
+### Fixed
+- Fixed TYPO3 14 Scheduler task creation, editing and execution while keeping TYPO3 13.4 LTS Scheduler compatibility.
+- Fixed Settings save behavior for rules, fields, rendered checks, dictionary mode and licence-related settings.
+- Fixed Agency and Trial remote scan access so valid licences unlock token generation, remote settings and frontend scans consistently.
+- Fixed remote scanner token persistence for site-specific rulesets.
+- Fixed frontend scan submission compatibility with crawler payload validation and relative priority URL handling.
+- Fixed Remote/Frontend Overview deduplication after repeated single-page scans.
+- Fixed Remote/Frontend Overview search so page UID, title, URL, HTTP status and remote scan metadata can be used for filtering.
+- Fixed Remote Overview PDF/CSV export so site-wide reports are generated only from completed site scans.
+- Fixed remote page PDF exports so captured screenshots are embedded reliably.
+- Fixed dark mode contrast issues in the toolbar and plain HTML editor issue list.
+- Fixed completed scan messages so finished scans no longer say that the scan is still running.
+- Fixed the “Show PRO hints” switch so its visual state and saved value stay in sync.
+- Fixed Quality Gate behavior on TYPO3 14 for warning and block-on-publish flows.
+
+## [1.3.1] - 2026-05-27
 
 ### Fixed
 - Rendered scans no longer create accessibility issues when the fetched

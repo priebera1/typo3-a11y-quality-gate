@@ -9,7 +9,7 @@
         aria-labelledby="a11y-settings-tab-rules"
         tabindex="0"
 >
-    <form method="post" action="{saveExtConfUrl}" class="aqg-stack" id="a11y-settings-rules-form" data-a11y-rules-form="true">
+    <form method="post" action="{saveUrl}" class="aqg-stack" id="a11y-settings-rules-form" data-a11y-rules-form="true">
         <f:for each="{returnParameters}" as="value" key="name">
             <input type="hidden" name="{name}" value="{value}" />
         </f:for>
@@ -200,6 +200,7 @@
 
             <div class="aqg-card__body">
                 <div class="aqg-settings-grid aqg-settings-grid--rules">
+                    <input type="hidden" name="renderedCheckSettings[enabled]" value="0" />
                     <label class="aqg-check-option aqg-check-option--inline">
                         <input
                                 type="checkbox"
@@ -214,6 +215,7 @@
                         </span>
                     </label>
 
+                    <input type="hidden" name="renderedCheckSettings[allowPrivateHosts]" value="0" />
                     <label class="aqg-check-option aqg-check-option--inline">
                         <input
                                 type="checkbox"
@@ -261,9 +263,18 @@
                     <div class="aqg-field">
                         <label class="aqg-field__label" for="aqg-dictionary-mode">Dictionary mode</label>
                         <select id="aqg-dictionary-mode" name="dictionarySettings[mode]" class="aqg-select" data-a11y-rules-input="true">
-                            <option value="auto" {f:if(condition: '{dictionarySettings.mode} == 'auto'', then: 'selected="selected"')}>Auto — uses TYPO3 page language</option>
-                            <option value="force" {f:if(condition: '{dictionarySettings.mode} == 'force'', then: 'selected="selected"')}>Force a single language</option>
-                            <option value="disable" {f:if(condition: '{dictionarySettings.mode} == 'disable'', then: 'selected="selected"')}>Disable phrase-based checks</option>
+                            <f:if condition="{dictionarySettings.isAuto}">
+                                <f:then><option value="auto" selected="selected">Auto — uses TYPO3 page language</option></f:then>
+                                <f:else><option value="auto">Auto — uses TYPO3 page language</option></f:else>
+                            </f:if>
+                            <f:if condition="{dictionarySettings.isForce}">
+                                <f:then><option value="force" selected="selected">Force a single language</option></f:then>
+                                <f:else><option value="force">Force a single language</option></f:else>
+                            </f:if>
+                            <f:if condition="{dictionarySettings.isDisable}">
+                                <f:then><option value="disable" selected="selected">Disable phrase-based checks</option></f:then>
+                                <f:else><option value="disable">Disable phrase-based checks</option></f:else>
+                            </f:if>
                         </select>
                         <div class="aqg-field__help">Auto is recommended for multilingual TYPO3 sites. The scanner resolves the language from the scanned content record and TYPO3 SiteLanguage.</div>
                     </div>

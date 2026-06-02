@@ -9,15 +9,18 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\AbstractAdditionalFieldProvider;
 use TYPO3\CMS\Scheduler\Controller\SchedulerModuleController;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
 final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldProvider
 {
-    public function __construct(
-        private readonly SiteFinder $siteFinder,
-    ) {
+    private ?SiteFinder $siteFinder = null;
+
+    public function __construct(?SiteFinder $siteFinder = null)
+    {
+        $this->siteFinder = $siteFinder;
     }
 
     private const FIELD_PAGE_UID = 'task_a11y_pageUid';
@@ -267,7 +270,7 @@ final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldP
     private function fetchSelectableRootPages(): array
     {
         $result = [];
-        foreach ($this->siteFinder->getAllSites() as $site) {
+        foreach ($this->getSiteFinder()->getAllSites() as $site) {
             $result[] = [
                 'uid' => $site->getRootPageId(),
                 'siteIdentifier' => $site->getIdentifier(),
@@ -293,7 +296,7 @@ final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldP
 
         if ($candidatePid > 0) {
             try {
-                $site = $this->siteFinder->getSiteByPageId($candidatePid);
+                $site = $this->getSiteFinder()->getSiteByPageId($candidatePid);
             } catch (\Throwable) {
                 $site = null;
             }
@@ -326,7 +329,12 @@ final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldP
 
     private function pageExists(int $pageUid): bool
     {
-        return is_array(BackendUtility::getRecord(Tables::PAGES, $pageUid, 'uid', '', false));
+        return is_array(BackendUtility::getRecord(Tables::PAGES, $pageUid, 'uid'));
+    }
+
+    private function getSiteFinder(): SiteFinder
+    {
+        return $this->siteFinder ??= GeneralUtility::makeInstance(SiteFinder::class);
     }
 
     private function getLabel(string $key): string

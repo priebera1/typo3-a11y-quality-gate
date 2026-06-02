@@ -31,6 +31,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsController]
 final class ProCrawlerAjaxController extends AbstractApiController
@@ -140,6 +142,40 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
             $captureScreenshot = $this->canCaptureScreenshot($proStatus);
             $remoteAccessSettings = $this->buildRemoteAccessSettingsForCrawl($resolved->siteIdentifier);
+            $scannerPreviewToken = $remoteAccessSettings['scannerPreviewToken'];
+
+            $this->logRemoteSubmitDebug('submit-site:outbound', [
+                'resolvedRulesetUid' => $remoteAccessSettings['resolvedRulesetUid'],
+                'resolvedRulesetSiteIdentifier' => $remoteAccessSettings['resolvedRulesetSiteIdentifier'],
+                'scannerTokenExists' => $remoteAccessSettings['scannerPreviewToken'] !== '',
+                'scannerTokenLength' => $remoteAccessSettings['scannerTokenLength'],
+                'scannerTokenSent' => $scannerPreviewToken !== '',
+                'licenceValid' => (bool)($proStatus->valid ?? false),
+                'licencePlan' => (string)($proStatus->plan ?? ''),
+                'remoteCapability' => (bool)($proStatus->hasCrawler ?? false),
+                'pageUid' => 0,
+                'pageUrl' => '',
+                'startUrl' => $resolved->startUrl,
+                'targetDomain' => $resolved->domain,
+                'siteIdentifier' => $resolved->siteIdentifier,
+                'rulesetSite' => $resolved->siteIdentifier,
+                'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                'languageCode' => $languageCode,
+                'axeLocale' => $resolved->axeLocale,
+                'sourceType' => $resolved->sourceType->value,
+                'captureScreenshot' => $captureScreenshot,
+                'cookieDismiss' => $cookieDismiss,
+                'cookieSelectorsConfigured' => $remoteAccessSettings['cookieSelectors'] !== [],
+                'outboundEndpoint' => '/crawl/submit',
+                'outboundPayloadKeys' => $this->buildCrawlerSubmitPayloadKeys(
+                    $resolved->sourceType,
+                    $resolved->sitemapUrl,
+                    $scannerPreviewToken,
+                    $remoteAccessSettings,
+                    $languageContext !== null ? (int)$languageContext['languageId'] : null,
+                    $languageCode
+                ),
+            ]);
 
             $result = $this->proCrawlerService->submit(
                 domain: $resolved->domain,
@@ -153,7 +189,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 axeLocale: $resolved->axeLocale,
                 captureScreenshot: $captureScreenshot,
                 cookieDismiss: $cookieDismiss,
-                scannerPreviewToken: $remoteAccessSettings['scannerPreviewToken'],
+                scannerPreviewToken: $scannerPreviewToken,
                 httpAuthUser: $remoteAccessSettings['httpAuthUser'],
                 httpAuthPass: $remoteAccessSettings['httpAuthPass'],
                 excludedPatterns: $remoteAccessSettings['excludedPatterns'],
@@ -283,6 +319,40 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
             $captureScreenshot = $this->canCaptureScreenshot($proStatus);
             $remoteAccessSettings = $this->buildRemoteAccessSettingsForCrawl($resolved->siteIdentifier);
+            $scannerPreviewToken = $remoteAccessSettings['scannerPreviewToken'];
+
+            $this->logRemoteSubmitDebug('submit-page:outbound', [
+                'resolvedRulesetUid' => $remoteAccessSettings['resolvedRulesetUid'],
+                'resolvedRulesetSiteIdentifier' => $remoteAccessSettings['resolvedRulesetSiteIdentifier'],
+                'scannerTokenExists' => $remoteAccessSettings['scannerPreviewToken'] !== '',
+                'scannerTokenLength' => $remoteAccessSettings['scannerTokenLength'],
+                'scannerTokenSent' => $scannerPreviewToken !== '',
+                'licenceValid' => (bool)($proStatus->valid ?? false),
+                'licencePlan' => (string)($proStatus->plan ?? ''),
+                'remoteCapability' => (bool)($proStatus->hasCrawler ?? false),
+                'pageUid' => $pageUid,
+                'pageUrl' => $pageUrl,
+                'startUrl' => $resolved->startUrl,
+                'targetDomain' => $resolved->domain,
+                'siteIdentifier' => $siteIdentifier,
+                'rulesetSite' => $resolved->siteIdentifier,
+                'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                'languageCode' => $languageCode,
+                'axeLocale' => $resolved->axeLocale,
+                'sourceType' => RemoteScanSourceType::SinglePage->value,
+                'captureScreenshot' => $captureScreenshot,
+                'cookieDismiss' => $cookieDismiss,
+                'cookieSelectorsConfigured' => $remoteAccessSettings['cookieSelectors'] !== [],
+                'outboundEndpoint' => '/crawl/submit',
+                'outboundPayloadKeys' => $this->buildCrawlerSubmitPayloadKeys(
+                    RemoteScanSourceType::SinglePage,
+                    null,
+                    $scannerPreviewToken,
+                    $remoteAccessSettings,
+                    $languageContext !== null ? (int)$languageContext['languageId'] : null,
+                    $languageCode
+                ),
+            ]);
 
             $result = $this->proCrawlerService->submit(
                 domain: $resolved->domain,
@@ -296,7 +366,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 axeLocale: $resolved->axeLocale,
                 captureScreenshot: $captureScreenshot,
                 cookieDismiss: $cookieDismiss,
-                scannerPreviewToken: $remoteAccessSettings['scannerPreviewToken'],
+                scannerPreviewToken: $scannerPreviewToken,
                 httpAuthUser: $remoteAccessSettings['httpAuthUser'],
                 httpAuthPass: $remoteAccessSettings['httpAuthPass'],
                 excludedPatterns: $remoteAccessSettings['excludedPatterns'],
@@ -633,16 +703,16 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return $this->buildSimpleErrorResponse(
-            message: 'Remote crawler is available in AQG PRO only.',
+            message: 'Remote crawler is available with a valid remote-scanning licence.',
             status: 403,
             code: 'pro_crawler_required',
-            title: 'AQG PRO required'
+            title: 'Remote-scanning licence required'
         );
     }
 
 
     /**
-     * @return array{scannerPreviewToken:string,httpAuthUser:string,httpAuthPass:string,excludedPatterns:list<string>,priorityUrls:list<string>,cookieSelectors:list<string>}
+     * @return array{scannerPreviewToken:string,scannerTokenLength:int,resolvedRulesetUid:int,resolvedRulesetSiteIdentifier:string,httpAuthUser:string,httpAuthPass:string,excludedPatterns:list<string>,priorityUrls:list<string>,cookieSelectors:list<string>}
      */
     private function buildRemoteAccessSettingsForCrawl(string $siteIdentifier = ''): array
     {
@@ -654,6 +724,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
         if (!is_array($defaultRuleset) && !is_array($siteRuleset)) {
             return [
                 'scannerPreviewToken' => '',
+                'scannerTokenLength' => 0,
+                'resolvedRulesetUid' => 0,
+                'resolvedRulesetSiteIdentifier' => '',
                 'httpAuthUser' => '',
                 'httpAuthPass' => '',
                 'excludedPatterns' => [],
@@ -662,7 +735,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
             ];
         }
 
-        $scannerToken = trim((string)($defaultRuleset['scanner_token'] ?? ''));
+        $scannerToken = $this->firstNonEmptyRulesetValue($siteRuleset, $defaultRuleset, 'scanner_token');
+        $scannerTokenRuleset = $this->resolveRulesetForFirstNonEmptyValue($siteRuleset, $defaultRuleset, 'scanner_token');
         $httpAuthUser = $this->firstNonEmptyRulesetValue($siteRuleset, $defaultRuleset, 'http_auth_user');
         $encryptedHttpAuthPass = $this->firstNonEmptyRulesetValue($siteRuleset, $defaultRuleset, 'http_auth_pass');
         $excludedPatterns = $this->firstNonEmptyRulesetList($siteRuleset, $defaultRuleset, 'excluded_patterns');
@@ -676,6 +750,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
         return [
             'scannerPreviewToken' => $scannerToken,
+            'scannerTokenLength' => strlen($scannerToken),
+            'resolvedRulesetUid' => is_array($scannerTokenRuleset) ? (int)($scannerTokenRuleset['uid'] ?? 0) : 0,
+            'resolvedRulesetSiteIdentifier' => is_array($scannerTokenRuleset) ? (string)($scannerTokenRuleset['site_identifier'] ?? '') : '',
             'httpAuthUser' => $httpAuthUser,
             'httpAuthPass' => $httpAuthPass,
             'excludedPatterns' => $excludedPatterns,
@@ -701,6 +778,26 @@ final class ProCrawlerAjaxController extends AbstractApiController
     /**
      * @param array<string, mixed>|null $siteRuleset
      * @param array<string, mixed>|null $defaultRuleset
+     * @return array<string, mixed>|null
+     */
+    private function resolveRulesetForFirstNonEmptyValue(?array $siteRuleset, ?array $defaultRuleset, string $field): ?array
+    {
+        $siteValue = trim((string)($siteRuleset[$field] ?? ''));
+        if ($siteValue !== '') {
+            return $siteRuleset;
+        }
+
+        $defaultValue = trim((string)($defaultRuleset[$field] ?? ''));
+        if ($defaultValue !== '') {
+            return $defaultRuleset;
+        }
+
+        return $siteRuleset ?? $defaultRuleset;
+    }
+
+    /**
+     * @param array<string, mixed>|null $siteRuleset
+     * @param array<string, mixed>|null $defaultRuleset
      * @return list<string>
      */
     private function firstNonEmptyRulesetList(?array $siteRuleset, ?array $defaultRuleset, string $field): array
@@ -711,6 +808,94 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return StringListUtility::decodeJsonList((string)($defaultRuleset[$field] ?? '[]'));
+    }
+
+
+
+
+    /**
+     * @param array{scannerPreviewToken:string,httpAuthUser:string,httpAuthPass:string,excludedPatterns:list<string>,priorityUrls:list<string>,cookieSelectors:list<string>} $remoteAccessSettings
+     * @return list<string>
+     */
+    private function buildCrawlerSubmitPayloadKeys(
+        RemoteScanSourceType $sourceType,
+        ?string $sitemapUrl,
+        string $scannerPreviewToken,
+        array $remoteAccessSettings,
+        ?int $languageId,
+        string $languageCode,
+    ): array {
+        $keys = [
+            'siteId',
+            'sourceType',
+            'startUrl',
+            'sitemapUrl',
+            'maxPages',
+            'followLinks',
+            'axeLocale',
+            'captureScreenshot',
+            'cookieDismiss',
+        ];
+
+        if ($scannerPreviewToken !== '') {
+            $keys[] = 'scannerToken';
+        }
+        if ($remoteAccessSettings['httpAuthUser'] !== '' && $remoteAccessSettings['httpAuthPass'] !== '') {
+            $keys[] = 'httpAuth';
+        }
+        if ($remoteAccessSettings['excludedPatterns'] !== []) {
+            $keys[] = 'excludedPatterns';
+        }
+        if ($remoteAccessSettings['priorityUrls'] !== []) {
+            $keys[] = 'priorityUrls';
+        }
+        if ($remoteAccessSettings['cookieSelectors'] !== []) {
+            $keys[] = 'cookieSelectors';
+        }
+        if ($languageId !== null) {
+            $keys[] = 'languageId';
+        }
+        if (trim($languageCode) !== '') {
+            $keys[] = 'languageCode';
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logRemoteSubmitDebug(string $event, array $context): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->debug('AQG remote crawler submit ' . $event, $this->sanitizeLogContext($context));
+        } catch (\Throwable) {
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @return array<string, mixed>
+     */
+    private function sanitizeLogContext(array $context): array
+    {
+        foreach ($context as $key => $value) {
+            $lowerKey = strtolower((string)$key);
+            if (str_contains($lowerKey, 'token') || str_contains($lowerKey, 'password') || str_contains($lowerKey, 'licencekey')) {
+                if (is_int($value) || is_bool($value) || $value === null) {
+                    continue;
+                }
+                $context[$key] = $value === '' ? '' : '***';
+                continue;
+            }
+            if (is_array($value)) {
+                $context[$key] = $this->sanitizeLogContext($value);
+            }
+        }
+
+        return $context;
     }
 
     private function canCaptureScreenshot(object $proStatus): bool
@@ -889,7 +1074,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $status = 500;
         }
 
-        return [
+        $payload = [
             'success' => false,
             'code' => $code,
             'title' => $this->resolveCrawlerErrorTitle($code, $status),
@@ -898,6 +1083,50 @@ final class ProCrawlerAjaxController extends AbstractApiController
             'details' => $details,
             'error' => $message,
         ];
+
+        $debug = $this->extractCrawlerDebugFromRawMessage($rawMessage);
+        if ($debug !== []) {
+            $payload['debug'] = $debug;
+        }
+
+        return $payload;
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function extractCrawlerDebugFromRawMessage(string $rawMessage): array
+    {
+        $debug = [];
+
+        if (preg_match('/\|\s*url=([^|]+)/', $rawMessage, $matches) === 1) {
+            $debug['url'] = trim($matches[1]);
+        }
+        if (preg_match('/\|\s*method=([^|]+)/', $rawMessage, $matches) === 1) {
+            $debug['method'] = trim($matches[1]);
+        }
+        if (preg_match('/\|\s*payload=(\{.*?\})(?:\s*\|\s*auth=|\s*\|\s*body=|$)/s', $rawMessage, $matches) === 1) {
+            $decoded = json_decode(trim($matches[1]), true);
+            if (is_array($decoded)) {
+                $debug['payloadKeys'] = array_keys($decoded);
+                $debug['payload'] = $this->sanitizeLogContext($decoded);
+            }
+        }
+        if (preg_match('/\|\s*auth=(\{.*?\})(?:\s*\|\s*body=|$)/s', $rawMessage, $matches) === 1) {
+            $decoded = json_decode(trim($matches[1]), true);
+            if (is_array($decoded)) {
+                $debug['auth'] = $this->sanitizeLogContext($decoded);
+            }
+        }
+        if (preg_match('/\|\s*body=(\{.*\})\s*$/s', $rawMessage, $matches) === 1) {
+            $decoded = json_decode(trim($matches[1]), true);
+            if (is_array($decoded)) {
+                $debug['responseBody'] = $this->sanitizeLogContext($decoded);
+            }
+        }
+
+        return $debug;
     }
 
     private function decodeCrawlerErrorBody(string $rawMessage): ?array

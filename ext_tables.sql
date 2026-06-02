@@ -301,3 +301,13 @@ CREATE TABLE tx_a11y_remote_issue_node (
 CREATE TABLE sys_file_reference (
     tx_a11y_is_decorative tinyint(1) unsigned DEFAULT '0' NOT NULL
 );
+#
+# Native TYPO3 14 Scheduler task fields for EXT:a11y_quality_gate
+#
+CREATE TABLE tx_scheduler_task (
+    tx_a11yqualitygate_page_uid int(11) DEFAULT '0' NOT NULL,
+    tx_a11yqualitygate_root_pid int(11) DEFAULT '0' NOT NULL,
+    tx_a11yqualitygate_depth int(11) DEFAULT '99' NOT NULL,
+    tx_a11yqualitygate_language_uid int(11) DEFAULT '-1' NOT NULL,
+    tx_a11yqualitygate_changed_only tinyint(1) DEFAULT '0' NOT NULL
+);

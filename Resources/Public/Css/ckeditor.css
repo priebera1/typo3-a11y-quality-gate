@@ -3197,3 +3197,52 @@ typo3-t3editor-codemirror .cm-line.aqg-cm-line-reveal {
 .ck-content .a11y-element-needs_review::before { background: var(--cka-review, #7c3aed) !important; }
 .ck-a11y-panel__severity--needs_review { color: var(--cka-review, #7c3aed) !important; }
 .ck-a11y-panel__severity--needs_review .ck-a11y-panel__severity-dot { background: var(--cka-review, #7c3aed) !important; }
+
+
+/* AQG plain HTML editor issue list: theme-safe hover/focus states.
+   Keep collapsed rows readable in TYPO3 dark/auto mode and avoid hardcoded white hover backgrounds. */
+.ck-a11y-theme-dark .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover,
+.ck-a11y-theme-dark .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus,
+.ck-a11y-theme-dark .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus-visible,
+html[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover,
+html[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus,
+html[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus-visible,
+html[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover,
+html[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus,
+html[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus-visible,
+body[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover,
+body[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus,
+body[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus-visible,
+body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover,
+body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus,
+body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus-visible {
+    background: var(--typo3-component-bg-hover, var(--bs-tertiary-bg, #252b33)) !important;
+    color: var(--typo3-component-color, var(--bs-body-color, #f2f4f8)) !important;
+}
+
+.ck-a11y-theme-dark .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover .aqg-plain-html-a11y__issue-title,
+.ck-a11y-theme-dark .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title,
+html[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover .aqg-plain-html-a11y__issue-title,
+html[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title,
+html[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover .aqg-plain-html-a11y__issue-title,
+html[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title,
+body[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover .aqg-plain-html-a11y__issue-title,
+body[data-color-scheme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title,
+body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover .aqg-plain-html-a11y__issue-title,
+body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title {
+    color: var(--typo3-component-color, var(--bs-body-color, #f2f4f8)) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-color-scheme="auto"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover,
+    html[data-color-scheme="auto"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus,
+    html[data-color-scheme="auto"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus-visible {
+        background: var(--typo3-component-bg-hover, var(--bs-tertiary-bg, #252b33)) !important;
+        color: var(--typo3-component-color, var(--bs-body-color, #f2f4f8)) !important;
+    }
+
+    html[data-color-scheme="auto"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:hover .aqg-plain-html-a11y__issue-title,
+    html[data-color-scheme="auto"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title {
+        color: var(--typo3-component-color, var(--bs-body-color, #f2f4f8)) !important;
+    }
+}

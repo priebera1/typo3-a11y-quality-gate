@@ -141,6 +141,8 @@ final class RequestParameterService
             'remoteQuery',
             'remoteFailedQuery',
             'remotePageUid',
+            'tab',
+            'rulesetSite',
         ];
 
         $parameters = [];

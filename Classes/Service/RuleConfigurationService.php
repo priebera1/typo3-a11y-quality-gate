@@ -63,7 +63,7 @@ final class RuleConfigurationService
 
 
     /**
-     * @return array{mode:string,forceLanguage:string,nonDescriptiveAdditional:string,nonDescriptiveDisabled:string}
+     * @return array{mode:string,forceLanguage:string,nonDescriptiveAdditional:string,nonDescriptiveDisabled:string,isAuto:bool,isForce:bool,isDisable:bool}
      */
     public function getDictionarySettingsFromRuleset(array $ruleset): array
     {
@@ -80,6 +80,9 @@ final class RuleConfigurationService
             'forceLanguage' => strtolower(trim((string)($dictionary['forceLanguage'] ?? ''))),
             'nonDescriptiveAdditional' => $this->listToTextarea($dictionary['nonDescriptiveAdditional'] ?? []),
             'nonDescriptiveDisabled' => $this->listToTextarea($dictionary['nonDescriptiveDisabled'] ?? []),
+            'isAuto' => $mode === 'auto',
+            'isForce' => $mode === 'force',
+            'isDisable' => $mode === 'disable',
         ];
     }
 
@@ -89,17 +92,22 @@ final class RuleConfigurationService
     public function encodeRulesJsonWithDictionarySettings(string $currentRulesJson, array $dictionarySettings): string
     {
         $configuration = $this->decodeRulesJson($currentRulesJson);
+        $currentDictionary = is_array($configuration['dictionary'] ?? null) ? $configuration['dictionary'] : [];
 
-        $mode = strtolower(trim((string)($dictionarySettings['mode'] ?? 'auto')));
+        $mode = strtolower(trim((string)($dictionarySettings['mode'] ?? ($currentDictionary['mode'] ?? 'auto'))));
         if (!in_array($mode, ['auto', 'force', 'disable'], true)) {
             $mode = 'auto';
         }
 
         $configuration['dictionary'] = [
             'mode' => $mode,
-            'forceLanguage' => strtolower(trim((string)($dictionarySettings['forceLanguage'] ?? ''))),
-            'nonDescriptiveAdditional' => $this->normalizeTextareaList($dictionarySettings['nonDescriptiveAdditional'] ?? ''),
-            'nonDescriptiveDisabled' => $this->normalizeTextareaList($dictionarySettings['nonDescriptiveDisabled'] ?? ''),
+            'forceLanguage' => strtolower(trim((string)($dictionarySettings['forceLanguage'] ?? ($currentDictionary['forceLanguage'] ?? '')))),
+            'nonDescriptiveAdditional' => array_key_exists('nonDescriptiveAdditional', $dictionarySettings)
+                ? $this->normalizeTextareaList($dictionarySettings['nonDescriptiveAdditional'])
+                : $this->normalizeListValue($currentDictionary['nonDescriptiveAdditional'] ?? []),
+            'nonDescriptiveDisabled' => array_key_exists('nonDescriptiveDisabled', $dictionarySettings)
+                ? $this->normalizeTextareaList($dictionarySettings['nonDescriptiveDisabled'])
+                : $this->normalizeListValue($currentDictionary['nonDescriptiveDisabled'] ?? []),
         ];
 
         return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
@@ -151,6 +159,29 @@ final class RuleConfigurationService
         return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
+
+    public function getShowProHintsFromRuleset(array $ruleset): ?bool
+    {
+        $configuration = $this->decodeRulesJson((string)($ruleset['rules_json'] ?? ''));
+        $ui = is_array($configuration['ui'] ?? null) ? $configuration['ui'] : [];
+
+        if (!array_key_exists('showProHints', $ui)) {
+            return null;
+        }
+
+        return filter_var($ui['showProHints'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? null;
+    }
+
+    public function encodeRulesJsonWithShowProHints(string $currentRulesJson, bool $showProHints): string
+    {
+        $configuration = $this->decodeRulesJson($currentRulesJson);
+        $ui = is_array($configuration['ui'] ?? null) ? $configuration['ui'] : [];
+        $ui['showProHints'] = $showProHints;
+        $configuration['ui'] = $ui;
+
+        return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+    }
+
     /**
      * @return list<string>
      */
@@ -171,6 +202,22 @@ final class RuleConfigurationService
         }
 
         return array_values(array_unique($normalized));
+    }
+
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeListValue(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            static fn (mixed $item): string => trim((string)$item),
+            $value
+        ), static fn (string $item): bool => $item !== '')));
     }
 
     private function listToTextarea(mixed $value): string

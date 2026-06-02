@@ -2,8 +2,14 @@
 
 declare(strict_types=1);
 
-use DG\BypassFinals;
+$projectAutoload = dirname(__DIR__, 4) . '/vendor/autoload.php';
 
-require_once __DIR__ . '/../../../../vendor/autoload.php';
+if (!is_file($projectAutoload)) {
+    throw new RuntimeException('Composer autoload not found at ' . $projectAutoload);
+}
 
-BypassFinals::enable();
+require_once $projectAutoload;
+
+if (class_exists(\DG\BypassFinals::class)) {
+    \DG\BypassFinals::enable();
+}

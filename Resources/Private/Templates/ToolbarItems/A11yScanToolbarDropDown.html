@@ -12,29 +12,28 @@
 ></span>
 
 <div class="aqt-pop" role="region" aria-label="Accessibility Quality toolbar summary">
-    <span class="aqt-pop__caret" aria-hidden="true"></span>
-
-    <header class="aqt-pop__head">
-        <div class="aqt-pop__title-block">
-            <h3 class="aqt-pop__title">
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" />
-            </h3>
-            <div class="aqt-pop__title-sub">
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.summary" default="Current scan health snapshot" />
-            </div>
-        </div>
-    </header>
-
-    <div class="aqt-pop__body">
-        <f:render partial="ToolbarItems/ScanCard" arguments="{card: localToolbarCard}" />
-
-        <f:if condition="{showRemoteSection}">
-            <f:render partial="ToolbarItems/ScanCard" arguments="{card: remoteToolbarCard}" />
-        </f:if>
+    <p class="dropdown-headline aqt-pop__title">
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" />
+    </p>
+    <div class="dropdown-item-text aqt-pop__title-sub">
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.summary" default="Current scan health snapshot" />
     </div>
 
-    <footer class="aqt-pop__foot">
-        <a href="/typo3/module/web/a11y" class="aqt-pop__button aqt-pop__button--primary">
+    <ul class="dropdown-list aqt-card-list">
+        <li>
+            <f:render partial="ToolbarItems/ScanCard" arguments="{card: localToolbarCard}" />
+        </li>
+        <f:if condition="{showRemoteSection}">
+            <li>
+                <f:render partial="ToolbarItems/ScanCard" arguments="{card: remoteToolbarCard}" />
+            </li>
+        </f:if>
+    </ul>
+
+    <hr class="dropdown-divider" aria-hidden="true">
+
+    <div class="dropdown-item-text aqt-pop__foot">
+        <a href="{moduleUrl}" class="btn btn-sm btn-default aqt-pop__button aqt-pop__button--primary">
             <span>
                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.openModule" />
             </span>
@@ -48,6 +47,6 @@
                 </f:else>
             </f:if>
         </span>
-    </footer>
+    </div>
 </div>
 </html>

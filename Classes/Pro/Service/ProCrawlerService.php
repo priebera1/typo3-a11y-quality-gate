@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Pro\Dto\CrawlerResultsResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerStatusResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSummaryResult;
+use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
 use Priebera\A11yQualityGate\Pro\Enum\FeatureFlag;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
@@ -46,7 +47,7 @@ final class ProCrawlerService
     ): CrawlerSubmitResult {
         $licence = $this->proLicenceService->validate($domain, $version);
 
-        if (!$licence->valid || !$licence->hasFeature(FeatureFlag::Crawler)) {
+        if (!$this->hasCrawlerCapability($licence)) {
             throw new TokenRefreshException('Crawler feature is not available for this licence.');
         }
 
@@ -92,6 +93,22 @@ final class ProCrawlerService
         }
 
         return CrawlerSubmitResult::fromResponseDto($responseDto);
+    }
+
+
+    private function hasCrawlerCapability(LicenceValidationResult $licence): bool
+    {
+        if (!$licence->valid) {
+            return false;
+        }
+
+        if ($licence->hasFeature(FeatureFlag::Crawler)) {
+            return true;
+        }
+
+        $plan = strtolower(trim($licence->isTrial ? 'trial' : $licence->plan));
+
+        return in_array($plan, ['trial', 'pro', 'agency', 'enterprise'], true);
     }
 
     public function getResults(string $domain, string $version, string $jobId): CrawlerResultsResult
@@ -170,7 +187,7 @@ final class ProCrawlerService
     {
         $licence = $this->proLicenceService->validate($domain, $version);
 
-        if (!$licence->valid || !$licence->hasFeature(FeatureFlag::Crawler)) {
+        if (!$this->hasCrawlerCapability($licence)) {
             throw new TokenRefreshException('Crawler feature is not available for this licence.');
         }
 

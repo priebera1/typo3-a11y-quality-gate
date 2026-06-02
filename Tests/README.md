@@ -45,7 +45,7 @@ This extension uses two separate PHPUnit config files:
 | `packages/a11y_quality_gate/phpunit.unit.xml` | Unit tests |
 | `packages/a11y_quality_gate/phpunit.xml` | Functional tests |
 
-The separation is intentional — unit tests use a lightweight custom bootstrap, functional tests use the TYPO3 testing framework bootstrap. Unit tests also enable mocking of final classes via `dg/bypass-finals`.
+The separation is intentional — unit tests use a lightweight custom bootstrap, functional tests use the TYPO3 testing framework bootstrap through an extension-local bootstrap. Unit tests also enable mocking of final classes via `dg/bypass-finals` when the package is installed.
 
 ---
 
@@ -55,11 +55,12 @@ The separation is intentional — unit tests use a lightweight custom bootstrap,
 
 - a TYPO3 project with this extension installed through Composer
 - `phpunit/phpunit`
-- Composer dev autoload for the extension test namespace
+- Composer dependencies installed in the root TYPO3 project
 
 ### Functional tests only
 
 - `typo3/testing-framework`
+- `typo3/cms-rte-ckeditor` installed in the root TYPO3 test project
 - a working database connection for the TYPO3 testing framework
 - permission to create temporary functional test databases
 
@@ -69,16 +70,13 @@ The separation is intentional — unit tests use a lightweight custom bootstrap,
 
 ```json
 "require-dev": {
-  "phpunit/phpunit": "^11.5",
+  "phpunit/phpunit": "^11.5 || ^12.0",
   "typo3/testing-framework": "^9.4",
-  "dg/bypass-finals": "^1.6"
-},
-"autoload-dev": {
-  "psr-4": {
-    "Priebera\\A11yQualityGate\\Tests\\": "packages/a11y_quality_gate/Tests/"
-  }
+  "dg/bypass-finals": "^1.8"
 }
 ```
+
+The extension ships its own PHPUnit bootstraps. The functional bootstrap registers the extension test namespace before loading TYPO3 testing-framework, so the root project does not need to duplicate the extension test namespace in its own `autoload-dev`.
 
 After changing Composer configuration, run:
 
@@ -134,14 +132,14 @@ composer dump-autoload
 
 ## DDEV database setup for functional tests
 
-Functional tests create temporary databases. In DDEV, the database user must have sufficient privileges.
+Functional tests create temporary databases. In DDEV, the database user must have sufficient privileges. The value of `typo3DatabaseName` is used as the prefix for generated test databases such as `func_ft...`; it does not need to be the live project database name.
 
 Set these variables before running functional tests:
 
 ```bash
 export typo3DatabaseDriver=mysqli
 export typo3DatabaseHost=db
-export typo3DatabaseName=db
+export typo3DatabaseName=func
 export typo3DatabaseUsername=root
 export typo3DatabasePassword=root
 export typo3DatabasePort=3306
@@ -159,7 +157,7 @@ export typo3DatabasePort=3306
 ddev exec env \
   typo3DatabaseDriver=mysqli \
   typo3DatabaseHost=db \
-  typo3DatabaseName=db \
+  typo3DatabaseName=func \
   typo3DatabaseUsername=root \
   typo3DatabasePassword=root \
   typo3DatabasePort=3306 \
@@ -172,7 +170,7 @@ ddev exec env \
 ddev exec env \
   typo3DatabaseDriver=mysqli \
   typo3DatabaseHost=db \
-  typo3DatabaseName=db \
+  typo3DatabaseName=func \
   typo3DatabaseUsername=root \
   typo3DatabasePassword=root \
   typo3DatabasePort=3306 \
@@ -186,7 +184,7 @@ ddev exec env \
 ddev exec env \
   typo3DatabaseDriver=mysqli \
   typo3DatabaseHost=db \
-  typo3DatabaseName=db \
+  typo3DatabaseName=func \
   typo3DatabaseUsername=root \
   typo3DatabasePassword=root \
   typo3DatabasePort=3306 \
@@ -204,7 +202,13 @@ Unit tests use:
 packages/a11y_quality_gate/Tests/Bootstrap/UnitTestsBootstrap.php
 ```
 
-This bootstrap loads Composer autoload and enables `DG\BypassFinals`, which allows mocking final classes in PHPUnit. This is needed because several production classes are intentionally declared `final`.
+Functional tests use:
+
+```
+packages/a11y_quality_gate/Tests/Bootstrap/FunctionalTestsBootstrap.php
+```
+
+The unit bootstrap loads Composer autoload and enables `DG\BypassFinals` when available, which allows mocking final classes in PHPUnit. The functional bootstrap registers the extension test namespace and then loads TYPO3 testing-framework.
 
 ---
 
@@ -250,6 +254,8 @@ This means all tests and assertions passed. PHPUnit deprecations may still exist
 | `ClassIsFinalException` in unit tests | Ensure `dg/bypass-finals` is installed and unit tests are run with `phpunit.unit.xml` |
 | Database permission errors | Use the root database user in DDEV |
 | Missing class loading errors | Run `composer dump-autoload` |
+| `Package "a11y_quality_gate" depends on package "rte_ckeditor" which does not exist` | Install `typo3/cms-rte-ckeditor` in the root TYPO3 test project, for example `composer require "typo3/cms-rte-ckeditor:^13.4 || ^14.3" -W`, and run `composer dump-autoload` |
+| `Unknown database ..._ft...` | Verify DDEV DB env vars and ensure the DB user can create databases; use `typo3DatabaseName=func` as test DB prefix |
 | Functional bootstrap / DB errors | Verify paths and DB env vars in `phpunit.xml` |
 | Wrong config file used | Use `phpunit.unit.xml` for unit tests and `phpunit.xml` for functional tests |
 

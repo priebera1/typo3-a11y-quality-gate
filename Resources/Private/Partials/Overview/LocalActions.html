@@ -74,7 +74,7 @@
                                     default="Last scan"
                             />
                         </span>
-                        <span class="aqg-meta-item__value">{lastScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</span>
+                        <span class="aqg-meta-item__value"><f:if condition="{lastScan.finished_at_formatted}"><f:then>{lastScan.finished_at_formatted}</f:then><f:else>{lastScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:else></f:if></span>
                     </div>
                     <div class="aqg-meta-item">
                         <span class="aqg-meta-item__label">

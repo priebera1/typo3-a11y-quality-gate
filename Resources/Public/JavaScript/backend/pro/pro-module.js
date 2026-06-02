@@ -1132,6 +1132,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const box = document.querySelector(PRO_SELECTORS.remoteScanProgressBox);
         const statusEl = document.querySelector(PRO_SELECTORS.remoteScanProgressStatus);
         const messageEl = document.querySelector(PRO_SELECTORS.remoteScanProgressMessage);
+        const backgroundHintEl = document.querySelector(PRO_SELECTORS.remoteScanProgressBackgroundHint);
         const spinnerEl = document.querySelector(PRO_SELECTORS.remoteScanProgressSpinner);
         const progressBarEl = document.querySelector(PRO_SELECTORS.remoteScanProgressBar);
         const fillEl = document.querySelector(PRO_SELECTORS.remoteScanProgressFill);
@@ -1187,6 +1188,11 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         if (messageEl) {
             const resolvedMessage = message || this.buildRemoteProgressMessage(pagesScanned, pagesTotal);
             messageEl.textContent = resolvedMessage;
+        }
+
+        if (backgroundHintEl) {
+            const shouldShowBackgroundHint = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
+            backgroundHintEl.classList.toggle('d-none', !shouldShowBackgroundHint);
         }
 
         if (cancelButton) {

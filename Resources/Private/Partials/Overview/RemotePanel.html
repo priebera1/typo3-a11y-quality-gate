@@ -14,85 +14,123 @@
             partial="Overview/RemoteActions"
             arguments="{
                 remoteScan: remoteScan,
+                latestRemotePageScan: latestRemotePageScan,
                 canScanAll: canScanAll,
                 siteRootPid: siteRootPid,
                 currentPageUid: currentPageUid,
+                isPageContext: isPageContext,
                 currentPageUrl: currentPageUrl,
                 siteIdentifier: siteIdentifier,
                 currentLanguageUid: currentLanguageUid,
-                proStatus: proStatus
+                proStatus: proStatus,
+                totalRemotePages: totalRemotePages,
+                hasRemotePages: remotePages
             }"
     />
 
-    <f:if condition="{remoteScan}">
-        <div class="aqg-stats">
-            <div class="aqg-stat aqg-stat--neutral {f:if(condition: remoteScan.pages_scanned, then: '', else: 'is-zero')}">
-                <div class="aqg-stat__head">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pagesScanned"
-                            default="Pages scanned"
-                    />
-                </div>
-                <div class="aqg-stat__value" id="a11y-pro-pages-scanned">{remoteScan.pages_scanned}</div>
-                <div class="aqg-stat__delta">
-                    <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.acrossPages" default="across" /> {totalRemotePages} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages" default="pages" /></span>
-                </div>
+    <div class="aqg-stats">
+        <div class="aqg-stat aqg-stat--neutral {f:if(condition: remoteScan.pages_scanned, then: '', else: 'is-zero')}">
+            <div class="aqg-stat__head">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pagesScanned"
+                        default="Pages scanned"
+                />
             </div>
-
-            <div class="aqg-stat aqg-stat--critical {f:if(condition: remoteScan.issues_total, then: '', else: 'is-zero')}">
-                <div class="aqg-stat__head">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal"
-                            default="Total issues"
-                    />
-                </div>
-                <div class="aqg-stat__value" id="a11y-pro-issues-total">{remoteScan.issues_total}</div>
-                <div class="aqg-stat__delta">
-                    <f:if condition="{remoteScan.issues_new} > 0">
-                        <f:then>
-                            <span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{remoteScan.issues_new} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
-                        </f:then>
-                        <f:else>
-                            <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
-                        </f:else>
-                    </f:if>
-                </div>
+            <div class="aqg-stat__value" id="a11y-pro-pages-scanned">
+                <f:if condition="{remoteScan}"><f:then>{remoteScan.pages_scanned}</f:then><f:else>—</f:else></f:if>
             </div>
-
-            <div class="aqg-stat aqg-stat--warning {f:if(condition: remoteScan.pages_failed, then: '', else: 'is-zero')}">
-                <div class="aqg-stat__head">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pagesFailed"
-                            default="Failed pages"
-                    />
-                </div>
-                <div class="aqg-stat__value" id="a11y-pro-pages-failed">{remoteScan.pages_failed}</div>
-                <div class="aqg-stat__delta">
-                    <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
-                </div>
-            </div>
-
-            <div class="aqg-stat aqg-stat--ok {f:if(condition: remoteScan.issues_resolved, then: '', else: 'is-zero')}">
-                <div class="aqg-stat__head">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesResolved"
-                            default="Resolved since last scan"
-                    />
-                </div>
-                <div class="aqg-stat__value" id="a11y-pro-issues-resolved">{remoteScan.issues_resolved}</div>
-                <div class="aqg-stat__delta">
-                    <f:if condition="{remoteScan.issues_resolved} > 0">
-                        <f:then>
-                            <span class="aqg-stat__delta-change aqg-stat__delta-change--down">▼ -{remoteScan.issues_resolved} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
-                        </f:then>
-                        <f:else>
-                            <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
-                        </f:else>
-                    </f:if>
-                </div>
+            <div class="aqg-stat__delta">
+                <f:if condition="{remoteScan}">
+                    <f:then>
+                        <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.acrossPages" default="across" /> {totalRemotePages} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages" default="pages" /></span>
+                    </f:then>
+                    <f:else>
+                        <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.noCompletedSiteScanYet" default="no completed site scan yet" /></span>
+                    </f:else>
+                </f:if>
             </div>
         </div>
-    </f:if>
+
+        <div class="aqg-stat aqg-stat--critical {f:if(condition: remoteScan.issues_total, then: '', else: 'is-zero')}">
+            <div class="aqg-stat__head">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal"
+                        default="Total issues"
+                />
+            </div>
+            <div class="aqg-stat__value" id="a11y-pro-issues-total">
+                <f:if condition="{remoteScan}"><f:then>{remoteScan.issues_total}</f:then><f:else>—</f:else></f:if>
+            </div>
+            <div class="aqg-stat__delta">
+                <f:if condition="{remoteScan}">
+                    <f:then>
+                        <f:if condition="{remoteScan.issues_new} > 0">
+                            <f:then>
+                                <span class="aqg-stat__delta-change aqg-stat__delta-change--up">▲ +{remoteScan.issues_new} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                            </f:then>
+                            <f:else>
+                                <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                            </f:else>
+                        </f:if>
+                    </f:then>
+                    <f:else>
+                        <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.noCompletedSiteScanYet" default="no completed site scan yet" /></span>
+                    </f:else>
+                </f:if>
+            </div>
+        </div>
+
+        <div class="aqg-stat aqg-stat--warning {f:if(condition: remoteScan.pages_failed, then: '', else: 'is-zero')}">
+            <div class="aqg-stat__head">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pagesFailed"
+                        default="Failed pages"
+                />
+            </div>
+            <div class="aqg-stat__value" id="a11y-pro-pages-failed">
+                <f:if condition="{remoteScan}"><f:then>{remoteScan.pages_failed}</f:then><f:else>—</f:else></f:if>
+            </div>
+            <div class="aqg-stat__delta">
+                <f:if condition="{remoteScan}">
+                    <f:then>
+                        <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                    </f:then>
+                    <f:else>
+                        <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.noCompletedSiteScanYet" default="no completed site scan yet" /></span>
+                    </f:else>
+                </f:if>
+            </div>
+        </div>
+
+        <div class="aqg-stat aqg-stat--ok {f:if(condition: remoteScan.issues_resolved, then: '', else: 'is-zero')}">
+            <div class="aqg-stat__head">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesResolved"
+                        default="Resolved since last scan"
+                />
+            </div>
+            <div class="aqg-stat__value" id="a11y-pro-issues-resolved">
+                <f:if condition="{remoteScan}"><f:then>{remoteScan.issues_resolved}</f:then><f:else>—</f:else></f:if>
+            </div>
+            <div class="aqg-stat__delta">
+                <f:if condition="{remoteScan}">
+                    <f:then>
+                        <f:if condition="{remoteScan.issues_resolved} > 0">
+                            <f:then>
+                                <span class="aqg-stat__delta-change aqg-stat__delta-change--down">▼ -{remoteScan.issues_resolved} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                            </f:then>
+                            <f:else>
+                                <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· ±0 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.stats.sinceLastScan" default="since last scan" /></span>
+                            </f:else>
+                        </f:if>
+                    </f:then>
+                    <f:else>
+                        <span class="aqg-stat__delta-change aqg-stat__delta-change--flat">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.noCompletedSiteScanYet" default="no completed site scan yet" /></span>
+                    </f:else>
+                </f:if>
+            </div>
+        </div>
+    </div>
 
     <section class="aqg-section">
         <div class="aqg-toolbar-row">
@@ -233,6 +271,9 @@
                                         data-a11y-page-row="true"
                                         data-a11y-page-title="{page.title}"
                                         data-a11y-page-url="{page.url}"
+                                        data-a11y-page-uid="{page.typo3_page_uid}"
+                                        data-a11y-remote-page-uid="{page.uid}"
+                                        data-a11y-remote-scan-uid="{page.remote_scan_uid}"
                                 >
                                     <td>
                                         <div class="aqg-page-cell">
@@ -245,6 +286,9 @@
                                                 </a>
                                             </div>
                                             <span class="aqg-page-cell__meta">{page.url}</span>
+                                            <span class="visually-hidden">
+                                                Page UID {page.typo3_page_uid} · Remote page UID {page.uid} · Remote scan UID {page.remote_scan_uid}
+                                            </span>
                                         </div>
                                     </td>
 
@@ -482,6 +526,9 @@
                                             data-a11y-page-row="true"
                                             data-a11y-page-title="{page.title}"
                                             data-a11y-page-url="{page.url}"
+                                            data-a11y-page-uid="{page.typo3_page_uid}"
+                                            data-a11y-remote-page-uid="{page.uid}"
+                                            data-a11y-remote-scan-uid="{page.remote_scan_uid}"
                                     >
                                         <td>
                                             <div class="aqg-page-cell">

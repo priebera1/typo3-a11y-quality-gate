@@ -385,24 +385,26 @@
       background: var(--aqi-fg-subtle);
       transition: transform 120ms ease, background 120ms ease;
     }
-    .aqg-switch.is-on .aqg-switch__track {
+    .aqg-switch__input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      opacity: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .aqg-switch__input:checked + .aqg-switch .aqg-switch__track {
       background: var(--aqi-fg);
       border-color: var(--aqi-fg);
     }
-    .aqg-switch.is-on .aqg-switch__thumb {
+    .aqg-switch__input:checked + .aqg-switch .aqg-switch__thumb {
       transform: translateX(12px);
       background: var(--aqi-surface);
     }
-    .aqg-switch input { position: absolute; opacity: 0; pointer-events: none; }
-    .aqg-switch input:checked + .aqg-switch__track {
-      background: var(--aqi-fg);
-      border-color: var(--aqi-fg);
-    }
-    .aqg-switch input:checked + .aqg-switch__track .aqg-switch__thumb {
-      transform: translateX(12px);
-      background: var(--aqi-surface);
-    }
-    .aqg-switch input:focus-visible + .aqg-switch__track {
+    .aqg-switch__input:focus-visible + .aqg-switch .aqg-switch__track {
       box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
     }
     .aqg-switch__body {

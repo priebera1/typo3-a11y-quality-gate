@@ -145,7 +145,7 @@
                                 </span>
                                 <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
                                     <f:if condition="{remoteDetail.activeStartedAt}">
-                                        <f:then>{remoteDetail.activeStartedAt -> f:format.date(format: 'H:i')}</f:then>
+                                        <f:then>{remoteDetail.activeStartedAtFormatted}</f:then>
                                         <f:else>—</f:else>
                                     </f:if>
                                 </span>
@@ -182,7 +182,7 @@
                                         </span>
                                         <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
                                             <f:if condition="{remoteDetail.lastAttemptAt}">
-                                                <f:then>{remoteDetail.lastAttemptAt -> f:format.date(format: 'd.m.Y · H:i')}</f:then>
+                                                <f:then>{remoteDetail.lastAttemptAtFormatted}</f:then>
                                                 <f:else>—</f:else>
                                             </f:if>
                                         </span>
@@ -213,7 +213,7 @@
                                         </span>
                                         <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
                                             <f:if condition="{remoteDetail.lastScanAt}">
-                                                <f:then>{remoteDetail.lastScanAt -> f:format.date(format: 'd.m.Y · H:i')}</f:then>
+                                                <f:then>{remoteDetail.lastScanAtFormatted}</f:then>
                                                 <f:else>—</f:else>
                                             </f:if>
                                         </span>
@@ -392,7 +392,7 @@
                                 </dt>
                                 <dd>
                                     <f:if condition="{remoteDetail.startedAt}">
-                                        <f:then>{remoteDetail.startedAt -> f:format.date(format: 'd.m.Y H:i:s')}</f:then>
+                                        <f:then>{remoteDetail.startedAtFormatted}</f:then>
                                         <f:else>—</f:else>
                                     </f:if>
                                 </dd>
@@ -697,7 +697,7 @@
                 </dt>
                 <dd>
                     <f:if condition="{remoteDetail.startedAt}">
-                        <f:then>{remoteDetail.startedAt -> f:format.date(format: 'd.m.Y H:i:s')}</f:then>
+                        <f:then>{remoteDetail.startedAtFormatted}</f:then>
                         <f:else>—</f:else>
                     </f:if>
                 </dd>

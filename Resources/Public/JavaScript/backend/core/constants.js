@@ -62,6 +62,7 @@ export const PRO_SELECTORS = {
     remoteScanProgressBox: '[data-a11y-remote-scan-progress="true"]',
     remoteScanProgressStatus: '[data-a11y-remote-scan-status="true"]',
     remoteScanProgressMessage: '[data-a11y-remote-scan-message="true"]',
+    remoteScanProgressBackgroundHint: '[data-a11y-remote-scan-background-hint="true"]',
     remoteScanProgressSpinner: '[data-a11y-remote-scan-progress="true"] .spinner-border',
     remoteScanProgressBar: '[data-a11y-remote-scan-progress="true"] .aqg-progress-block__bar',
     remoteScanProgressFill: '[data-a11y-remote-scan-progress="true"] .aqg-progress-block__fill',
