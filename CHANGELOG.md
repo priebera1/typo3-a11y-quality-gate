@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1] - 2026-06-04
+
+### Fixed
+- Fixed remote frontend scanner token not activating AQG debug markers on the TYPO3 frontend. Remote scans now correctly embed content-element markers and map issues to source records.
+- Fixed scanner token validation to accept site-specific ruleset tokens in addition to the default scanner token.
+- Cleaned up the TypoScript marker condition to read PSR-7 request attributes instead of performing redundant token validation.
+- Clarified scanner token help text and warning layout in Remote Scan Access settings.
+
 ## [1.4.0] - 2026-06-02
 
 ### Added

@@ -77,9 +77,11 @@
                                 </div>
                                 <div class="aqg-token-empty js-aqg-token-empty" {f:if(condition: remoteAccessHasScannerToken, then: 'hidden="hidden"')}>
                                     <span class="aqg-token-empty__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
-                                    <span>No token set — click <strong>Generate token</strong> to create one. Without a token, the remote crawler cannot scan hidden pages.</span>
+                                    <span>No token set — click <strong>Generate token</strong> to create one. Without a token, the remote crawler scans only publicly visible pages and mapping to TYPO3 records may be limited.</span>
                                 </div>
-                                <div class="aqg-field__help">The crawler sends this token with every request. TYPO3 then allows access to hidden pages for the duration of the scan. For security, the full token is shown only once immediately after generation.</div>
+                                <div class="aqg-field__help">Optional. When set, the crawler sends this token with every request so TYPO3 can expose AQG debug markers for record mapping and scanner-only access during the scan.<br />
+                                    Without a token, the crawler scans only publicly visible pages and mapping to TYPO3 records may be limited.<br />
+                                    For security, the full token is shown only once immediately after generation.</div>
                             </div>
     
                             <div class="aqg-remote-inline-actions">

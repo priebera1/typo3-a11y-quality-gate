@@ -41,6 +41,40 @@ final class RulesetRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findByScannerToken(string $scannerToken): ?array
+    {
+        $scannerToken = trim($scannerToken);
+        if ($scannerToken === '') {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::RULESET);
+
+        $row = $queryBuilder
+            ->select('*')
+            ->from(Tables::RULESET)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'scanner_token',
+                    $queryBuilder->createNamedParameter($scannerToken)
+                ),
+                $queryBuilder->expr()->eq(
+                    'deleted',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                )
+            )
+            ->orderBy('uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
+
     /**
      * @return array<string, mixed>|null
      */

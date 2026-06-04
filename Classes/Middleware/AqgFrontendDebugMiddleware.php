@@ -22,6 +22,8 @@ final class AqgFrontendDebugMiddleware implements MiddlewareInterface
         $enabled = $this->frontendDebugMarkerService->isEnabled($request);
 
         $request = $request->withAttribute('aqgDebugMarkers', $enabled);
+        $GLOBALS['TYPO3_REQUEST'] = $request;
+
         $response = $handler->handle($request);
 
         if (!$enabled) {

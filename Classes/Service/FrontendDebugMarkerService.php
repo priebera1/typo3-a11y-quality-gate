@@ -24,23 +24,22 @@ final class FrontendDebugMarkerService
         }
 
         $queryParams = $request->getQueryParams();
+        $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
+        $hasValidScannerToken = $scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken);
+
+        if ($hasValidScannerToken || $request->getAttribute('aqgScannerPreviewTokenValid', false) === true) {
+            return true;
+        }
+
         if ((string)($queryParams['aqgDebug'] ?? '') !== '1') {
             return false;
         }
 
-        $isRenderedCheckRequest = (string)($queryParams['tx_aqg_rendered_check'] ?? '') === '1';
-        $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
-        $hasValidScannerToken = $scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken);
-
-        if ($isRenderedCheckRequest) {
-            return $this->renderedCheckNonceService->isValidRequest($request) || $hasValidScannerToken;
+        if ((string)($queryParams['tx_aqg_rendered_check'] ?? '') === '1') {
+            return $this->renderedCheckNonceService->isValidRequest($request);
         }
 
-        if ($this->isBackendUserLoggedIn()) {
-            return true;
-        }
-
-        return $hasValidScannerToken;
+        return $this->isBackendUserLoggedIn();
     }
 
     private function isFrontendRequest(ServerRequestInterface $request): bool

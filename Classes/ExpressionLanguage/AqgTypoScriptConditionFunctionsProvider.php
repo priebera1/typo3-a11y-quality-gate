@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\ExpressionLanguage;
 
 use Priebera\A11yQualityGate\Service\RenderedCheckNonceService;
-use Priebera\A11yQualityGate\Service\ScannerAccessTokenService;
 use Symfony\Component\ExpressionLanguage\ExpressionFunction;
 use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
 use TYPO3\CMS\Core\Context\Context;
@@ -19,6 +18,9 @@ final class AqgTypoScriptConditionFunctionsProvider implements ExpressionFunctio
             new ExpressionFunction(
                 'aqgDebugMarkers',
                 static function (string $request = 'null'): string {
+                    // Keep an optional argument for backwards compatibility.
+                    // The runtime evaluator resolves the current PSR-7 request,
+                    // including attributes set by AQG frontend middleware.
                     return '\\' . self::class . '::evaluate(' . $request . ')';
                 },
                 static function (array $arguments, mixed $request = null): bool {
@@ -30,27 +32,50 @@ final class AqgTypoScriptConditionFunctionsProvider implements ExpressionFunctio
 
     public static function evaluate(mixed $request = null): bool
     {
+        $request = self::resolveRequest($request);
+
+        if (self::requestAttributeIsTrue($request, 'aqgDebugMarkers')) {
+            return true;
+        }
+        if (self::requestAttributeIsTrue($request, 'aqgScannerPreviewTokenValid')) {
+            return true;
+        }
+
         $queryParams = self::getQueryParams($request);
-        if ((string)($queryParams['aqgDebug'] ?? '') !== '1') {
+        $debugRequested = (string)($queryParams['aqgDebug'] ?? '') === '1';
+        if (!$debugRequested) {
             return false;
         }
 
         $isRenderedCheckRequest = (string)($queryParams['tx_aqg_rendered_check'] ?? '') === '1';
-        $scannerToken = self::getScannerToken($request);
-        $hasValidScannerToken = $scannerToken !== ''
-            && GeneralUtility::makeInstance(ScannerAccessTokenService::class)->isValidToken($scannerToken);
-
         if ($isRenderedCheckRequest) {
-            $nonceIsValid = GeneralUtility::makeInstance(RenderedCheckNonceService::class)->isValidParameters(
+            return GeneralUtility::makeInstance(RenderedCheckNonceService::class)->isValidParameters(
                 (int)($queryParams['_aqg_page'] ?? $queryParams['id'] ?? 0),
                 (int)($queryParams['_aqg_lang'] ?? $queryParams['L'] ?? 0),
                 trim((string)($queryParams['_aqg_nonce'] ?? ''))
             );
-
-            return $nonceIsValid || $hasValidScannerToken;
         }
 
-        return self::isBackendUserLoggedIn() || $hasValidScannerToken;
+        return self::isBackendUserLoggedIn();
+    }
+
+
+    private static function resolveRequest(mixed $request): mixed
+    {
+        if (is_object($request)) {
+            return $request;
+        }
+
+        return $GLOBALS['TYPO3_REQUEST'] ?? null;
+    }
+
+    private static function requestAttributeIsTrue(mixed $request, string $attributeName): bool
+    {
+        if (is_object($request) && method_exists($request, 'getAttribute')) {
+            return $request->getAttribute($attributeName, false) === true;
+        }
+
+        return false;
     }
 
     /**
@@ -64,15 +89,6 @@ final class AqgTypoScriptConditionFunctionsProvider implements ExpressionFunctio
         }
 
         return [];
-    }
-
-    private static function getScannerToken(mixed $request): string
-    {
-        if (is_object($request) && method_exists($request, 'getHeaderLine')) {
-            return trim((string)$request->getHeaderLine('X-AQG-Scanner-Token'));
-        }
-
-        return '';
     }
 
     private static function isBackendUserLoggedIn(): bool

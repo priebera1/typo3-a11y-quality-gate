@@ -1,4 +1,4 @@
-[aqgDebugMarkers(request)]
+[aqgDebugMarkers()]
     page.bodyTagAdd = data-aqg-debug="1"
 
     page.jsFooterInline.100 = TEXT

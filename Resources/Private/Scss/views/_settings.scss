@@ -3751,14 +3751,24 @@
         display: flex;
         align-items: center;
         gap: 10px 12px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+    }
+
+    .aqg-remote-inline-actions .btn {
+        flex: 0 0 auto;
+        align-self: center;
     }
 
     .aqg-remote-warning {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 6px;
-        max-width: 86ch;
+        gap: 8px;
+        width: auto;
+        min-width: min(260px, 100%);
+        min-height: 29px;
+        flex: 1 1 auto;
+        align-self: center;
+        box-sizing: border-box;
         color: var(--aqi-warn);
         font-size: 12px;
         line-height: 1.45;
@@ -3917,6 +3927,18 @@
         .aqg-remote-inline-actions .btn,
         .aqg-token-row__action {
             width: 100%;
+        }
+
+        .aqg-remote-inline-actions {
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+
+        .aqg-remote-warning {
+            width: 100%;
+            flex: 1 1 100%;
+            justify-content: flex-start;
+            text-align: left;
         }
     }
 }

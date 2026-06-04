@@ -63,11 +63,17 @@ final class ScannerAccessTokenService
         }
 
         $storedToken = $this->getDefaultToken();
-        if ($storedToken === '') {
+        if ($storedToken !== '' && hash_equals($storedToken, $token)) {
+            return true;
+        }
+
+        $ruleset = $this->rulesetRepository->findByScannerToken($token);
+        if (!is_array($ruleset)) {
             return false;
         }
 
-        return hash_equals($storedToken, $token);
+        $storedToken = trim((string)($ruleset['scanner_token'] ?? ''));
+        return $storedToken !== '' && hash_equals($storedToken, $token);
     }
 
     public function flush(): void

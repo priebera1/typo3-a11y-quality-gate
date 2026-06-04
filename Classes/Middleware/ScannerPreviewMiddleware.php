@@ -34,6 +34,7 @@ final class ScannerPreviewMiddleware implements MiddlewareInterface
             );
 
             $request = $request->withAttribute('aqgScannerPreviewTokenValid', true);
+            $GLOBALS['TYPO3_REQUEST'] = $request;
         }
 
         return $handler->handle($request);
