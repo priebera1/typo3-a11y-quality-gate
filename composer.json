@@ -3,7 +3,7 @@
     "description": "Accessibility Quality Gate for TYPO3: editor-time checks, site governance and configurable quality gates.",
     "type": "typo3-cms-extension",
     "license": "GPL-2.0-or-later",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "homepage": "https://github.com/priebera1/typo3-a11y-quality-gate",
     "keywords": [
         "TYPO3",
@@ -56,7 +56,7 @@
             "Package": {
                 "providesPackages": {}
             },
-            "version": "1.4.1"
+            "version": "1.5.0"
         }
     },
     "config": {

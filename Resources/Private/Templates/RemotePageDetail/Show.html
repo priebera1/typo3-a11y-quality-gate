@@ -406,6 +406,77 @@
                         <f:then>
                             <div class="aqg-twocol">
                                 <div class="aqg-stack">
+                                    <f:if condition="{hasPageRecommendation}">
+                                        <section class="aqg-page-recommendation" aria-label="Suggested first step">
+                                            <div class="aqg-page-recommendation__kicker">Start here</div>
+                                            <h2 class="aqg-page-recommendation__title">Suggested first step based on automated findings</h2>
+                                            <f:if condition="{pageRecommendation.summary}">
+                                                <p class="aqg-page-recommendation__summary">{pageRecommendation.summary}</p>
+                                            </f:if>
+                                            <f:if condition="{pageRecommendation.hasFirstSteps}">
+                                                <ol class="aqg-page-recommendation__steps">
+                                                    <f:for each="{pageRecommendation.firstSteps}" as="step">
+                                                        <li>{step}</li>
+                                                    </f:for>
+                                                </ol>
+                                            </f:if>
+                                            <div class="aqg-page-recommendation__meta">
+                                                <f:if condition="{pageRecommendation.primaryRuleId}">
+                                                    <span>Primary rule: <code>{pageRecommendation.primaryRuleId}</code></span>
+                                                </f:if>
+                                                <f:if condition="{pageRecommendation.primaryFixType}">
+                                                    <span>Primary fix type: {pageRecommendation.primaryFixTypeLabel}</span>
+                                                </f:if>
+                                                <f:if condition="{pageRecommendation.primaryOwner}">
+                                                    <span>Suggested owner: {pageRecommendation.primaryOwnerLabel}</span>
+                                                </f:if>
+                                                <f:if condition="{pageRecommendation.quickWinsLabel}">
+                                                    <span>{pageRecommendation.quickWinsLabel}</span>
+                                                </f:if>
+                                                <f:if condition="{pageRecommendation.manualReviewRequired}">
+                                                    <span>{pageRecommendation.manualReviewLabel}</span>
+                                                </f:if>
+                                            </div>
+                                            <div class="aqg-page-recommendation__counts">
+                                                <f:if condition="{pageRecommendation.contentIssuesLabel}"><span>{pageRecommendation.contentIssuesLabel}</span></f:if>
+                                                <f:if condition="{pageRecommendation.templateIssuesLabel}"><span>{pageRecommendation.templateIssuesLabel}</span></f:if>
+                                                <f:if condition="{pageRecommendation.designIssuesLabel}"><span>{pageRecommendation.designIssuesLabel}</span></f:if>
+                                            </div>
+                                        </section>
+                                    </f:if>
+
+                                    <f:if condition="{hasPageRemediationSummary}">
+                                        <section class="aqg-remediation-summary" aria-label="Suggested remediation grouping">
+                                            <div class="aqg-remediation-summary__head">
+                                                <div>
+                                                    <div class="aqg-remediation-summary__kicker">Remediation</div>
+                                                    <h2 class="aqg-remediation-summary__title">Suggested remediation grouping</h2>
+                                                </div>
+                                            </div>
+                                            <f:if condition="{pageRemediationSummary.hasItems}">
+                                                <div class="aqg-remediation-summary__grid">
+                                                    <f:for each="{pageRemediationSummary.items}" as="item">
+                                                        <div class="aqg-remediation-summary__item">
+                                                            <span class="aqg-remediation-summary__label">{item.label}</span>
+                                                            <span class="aqg-remediation-summary__value">
+                                                                <f:if condition="{item.countLabel}">
+                                                                    <f:then>{item.countLabel}</f:then>
+                                                                    <f:else>{item.description}</f:else>
+                                                                </f:if>
+                                                            </span>
+                                                        </div>
+                                                    </f:for>
+                                                </div>
+                                            </f:if>
+                                            <f:if condition="{pageRemediationSummary.recommendation}">
+                                                <p class="aqg-remediation-summary__note">Recommendation: {pageRemediationSummary.recommendation}</p>
+                                            </f:if>
+                                            <f:if condition="{pageRemediationSummary.note}">
+                                                <p class="aqg-remediation-summary__note aqg-remediation-summary__note--muted">{pageRemediationSummary.note}</p>
+                                            </f:if>
+                                        </section>
+                                    </f:if>
+
                                     <f:for each="{issues}" as="issue">
                                         <article class="aqg-rule">
                                             <header class="aqg-rule__head">
@@ -436,6 +507,24 @@
                                                             </a>
                                                         </f:if>
                                                     </div>
+
+                                                    <div class="aqg-guidance-badges">
+                                                        <f:if condition="{issue.whoShouldFix}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{issue.whoShouldFix}">
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.whoShouldFix" default="Suggested owner" />: {issue.whoShouldFixLabel}
+                                                            </span>
+                                                        </f:if>
+                                                        <f:if condition="{issue.fixType}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{issue.fixType}">
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.fixType" default="Suggested fix type" />: {issue.fixTypeLabel}
+                                                            </span>
+                                                        </f:if>
+                                                        <f:if condition="{issue.confidence}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}">
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.confidence" default="Guidance confidence" />: {issue.confidenceLabel}
+                                                            </span>
+                                                        </f:if>
+                                                    </div>
                                                 </div>
 
                                                 <div class="aqg-rule__actions">
@@ -457,6 +546,28 @@
                                             </header>
 
                                             <div class="aqg-rule__body">
+                                                <section class="aqg-rule-guidance" aria-label="Rule guidance">
+                                                    <f:if condition="{issue.guidanceWhyItMatters}">
+                                                        <div class="aqg-rule-guidance__item">
+                                                            <h3>
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.whyItMatters" default="Why it matters" />
+                                                            </h3>
+                                                            <p>{issue.guidanceWhyItMatters}</p>
+                                                        </div>
+                                                    </f:if>
+                                                    <f:if condition="{issue.guidanceHowToFix}">
+                                                        <div class="aqg-rule-guidance__item">
+                                                            <h3>
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.howToFix" default="How to fix" />
+                                                            </h3>
+                                                            <p>{issue.guidanceHowToFix}</p>
+                                                        </div>
+                                                    </f:if>
+                                                    <p class="aqg-guidance-note aqg-rule-guidance__note">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.note" default="AQG guidance is based on the rule type and scan context. Review the affected element before applying changes." />
+                                                    </p>
+                                                </section>
+
                                                 <f:for each="{issue.nodes}" as="node" iteration="iterator">
                                                     <div class="aqg-node">
                                                         <span class="aqg-node__num">#{iterator.cycle}</span>
@@ -467,6 +578,117 @@
 
                                                             <f:if condition="{node.html_snippet}">
                                                                 <pre class="aqg-snippet aqg-snippet--wrap"><code>{node.html_snippet}</code></pre>
+                                                            </f:if>
+
+                                                            <f:if condition="{node.hasNodeRemediation}">
+                                                                <div class="aqg-node-remediation" aria-label="Suggested remediation for this finding">
+                                                                    <div class="aqg-node-remediation__title">Suggested remediation</div>
+                                                                    <f:if condition="{node.nodeRemediation.summary}">
+                                                                        <p>{node.nodeRemediation.summary}</p>
+                                                                    </f:if>
+                                                                    <div class="aqg-node-remediation__meta">
+                                                                        <f:if condition="{node.nodeRemediation.recommendedOwnerLabel}"><span>Suggested owner: {node.nodeRemediation.recommendedOwnerLabel}</span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.fixTypeLabel}"><span>Fix type: {node.nodeRemediation.fixTypeLabel}</span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.confidenceLabel}"><span>Confidence: {node.nodeRemediation.confidenceLabel}</span></f:if>
+                                                                    </div>
+                                                                    <f:if condition="{node.nodeRemediation.hasSteps}">
+                                                                        <ol class="aqg-node-remediation__steps">
+                                                                            <f:for each="{node.nodeRemediation.steps}" as="step">
+                                                                                <li>{step}</li>
+                                                                            </f:for>
+                                                                        </ol>
+                                                                    </f:if>
+                                                                    <f:if condition="{node.nodeRemediation.documentationHint}">
+                                                                        <p class="aqg-node-remediation__hint">{node.nodeRemediation.documentationHint}</p>
+                                                                    </f:if>
+                                                                </div>
+                                                            </f:if>
+
+                                                            <f:if condition="{node.hasContrastDetails}">
+                                                                <div class="aqg-contrast-details" aria-label="Contrast details">
+                                                                    <div class="aqg-contrast-details__title">Contrast details</div>
+                                                                    <f:for each="{node.contrastDetails}" as="contrast">
+                                                                        <div class="aqg-contrast-details__row">
+                                                                            <f:if condition="{contrast.actualRatio}"><span>Actual ratio: <strong>{contrast.actualRatio}</strong></span></f:if>
+                                                                            <f:if condition="{contrast.requiredRatio}"><span>Required ratio: <strong>{contrast.requiredRatio}</strong></span></f:if>
+                                                                            <f:if condition="{contrast.foreground}"><span>Foreground: <code>{contrast.foreground}</code></span></f:if>
+                                                                            <f:if condition="{contrast.background}"><span>Background: <code>{contrast.background}</code></span></f:if>
+                                                                        </div>
+                                                                        <f:if condition="{contrast.hasContrastSuggestion}">
+                                                                            <div class="aqg-contrast-suggestion">
+                                                                                <div class="aqg-contrast-suggestion__title">Candidate colors</div>
+                                                                                <div class="aqg-contrast-suggestion__meta">
+                                                                                    <f:if condition="{contrast.contrastSuggestion.candidateTypeLabel}"><span>Candidate type: {contrast.contrastSuggestion.candidateTypeLabel}</span></f:if>
+                                                                                    <f:if condition="{contrast.contrastSuggestion.riskLevelLabel}"><span>Risk signal: {contrast.contrastSuggestion.riskLevelLabel}</span></f:if>
+                                                                                </div>
+                                                                                <div class="aqg-contrast-suggestion__rows">
+                                                                                    <f:if condition="{contrast.contrastSuggestion.currentForeground}">
+                                                                                        <span>Current foreground: <code>{contrast.contrastSuggestion.currentForeground}</code></span>
+                                                                                    </f:if>
+                                                                                    <f:if condition="{contrast.contrastSuggestion.currentBackground}">
+                                                                                        <span>Current background: <code>{contrast.contrastSuggestion.currentBackground}</code></span>
+                                                                                    </f:if>
+                                                                                    <f:if condition="{contrast.contrastSuggestion.actualRatio}">
+                                                                                        <span>Actual ratio: <strong>{contrast.contrastSuggestion.actualRatio}</strong></span>
+                                                                                    </f:if>
+                                                                                    <f:if condition="{contrast.contrastSuggestion.requiredRatio}">
+                                                                                        <span>Required ratio: <strong>{contrast.contrastSuggestion.requiredRatio}</strong></span>
+                                                                                    </f:if>
+                                                                                </div>
+                                                                                <f:if condition="{contrast.contrastSuggestion.hasPreferredCandidate}">
+                                                                                    <div class="aqg-contrast-suggestion__preferred">
+                                                                                        <span>Preferred candidate:</span>
+                                                                                        <code>{contrast.contrastSuggestion.preferredCandidate.color}</code>
+                                                                                        <f:if condition="{contrast.contrastSuggestion.preferredCandidate.label}">
+                                                                                            <span>{contrast.contrastSuggestion.preferredCandidate.label}</span>
+                                                                                        </f:if>
+                                                                                        <f:if condition="{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}">
+                                                                                            <span>Estimated contrast ratio: <strong>{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}</strong></span>
+                                                                                        </f:if>
+                                                                                        <f:if condition="{contrast.contrastSuggestion.preferredCandidate.explanation}">
+                                                                                            <small>{contrast.contrastSuggestion.preferredCandidate.explanation}</small>
+                                                                                        </f:if>
+                                                                                    </div>
+                                                                                </f:if>
+                                                                                <f:if condition="{contrast.contrastSuggestion.hasSuggestedForegroundCandidates}">
+                                                                                    <div class="aqg-contrast-suggestion__candidate-row">
+                                                                                        <span>Foreground candidates:</span>
+                                                                                        <f:for each="{contrast.contrastSuggestion.suggestedForegroundCandidateDetails}" as="candidate">
+                                                                                            <span class="aqg-contrast-suggestion__candidate">
+                                                                                                <code>{candidate.color}</code>
+                                                                                                <f:if condition="{candidate.label}">
+                                                                                                    <small>{candidate.label}</small>
+                                                                                                </f:if>
+                                                                                                <f:if condition="{candidate.explanation}">
+                                                                                                    <small>{candidate.explanation}</small>
+                                                                                                </f:if>
+                                                                                            </span>
+                                                                                        </f:for>
+                                                                                    </div>
+                                                                                </f:if>
+                                                                                <f:if condition="{contrast.contrastSuggestion.hasSuggestedBackgroundCandidates}">
+                                                                                    <div class="aqg-contrast-suggestion__candidate-row">
+                                                                                        <span>Background candidates:</span>
+                                                                                        <f:for each="{contrast.contrastSuggestion.suggestedBackgroundCandidateDetails}" as="candidate">
+                                                                                            <span class="aqg-contrast-suggestion__candidate">
+                                                                                                <code>{candidate.color}</code>
+                                                                                                <f:if condition="{candidate.label}">
+                                                                                                    <small>{candidate.label}</small>
+                                                                                                </f:if>
+                                                                                                <f:if condition="{candidate.explanation}">
+                                                                                                    <small>{candidate.explanation}</small>
+                                                                                                </f:if>
+                                                                                            </span>
+                                                                                        </f:for>
+                                                                                    </div>
+                                                                                </f:if>
+                                                                                <f:if condition="{contrast.contrastSuggestion.note}">
+                                                                                    <p class="aqg-contrast-suggestion__note">{contrast.contrastSuggestion.note}</p>
+                                                                                </f:if>
+                                                                            </div>
+                                                                        </f:if>
+                                                                    </f:for>
+                                                                </div>
                                                             </f:if>
 
                                                             <f:if condition="{node.hasRecordMapping}">
@@ -560,7 +782,7 @@
                                         <div class="aqg-empty__body">
                                             <f:translate
                                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noIssuesClean.text"
-                                                    default="This frontend URL passes every configured accessibility rule. Re-scan after publishing changes."
+                                                    default="No automated findings were detected for this frontend URL. Re-scan after publishing changes."
                                             />
                                         </div>
                                         <div class="aqg-empty__actions">

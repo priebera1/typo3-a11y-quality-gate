@@ -189,7 +189,7 @@
                 <source>No issues found by the remote scan</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.noIssuesClean.text">
-                <source>This frontend URL passes every configured accessibility rule. Re-scan after publishing changes.</source>
+                <source>No automated findings were detected for this frontend URL. Re-scan after publishing changes.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.node">
                 <source>Item</source>
@@ -385,7 +385,7 @@
             </trans-unit>
 
             <trans-unit id="overview.lastScan.label">
-                <source>Last scan:</source>
+                <source>Last scan</source>
             </trans-unit>
             <trans-unit id="overview.lastScan.newIssues">
                 <source>new issues</source>
@@ -486,6 +486,9 @@
             <trans-unit id="overview.proSummary.issuesTotal">
                 <source>Total issues</source>
             </trans-unit>
+            <trans-unit id="overview.proSummary.page">
+                <source>page</source>
+            </trans-unit>
             <trans-unit id="overview.proSummary.pages">
                 <source>pages</source>
             </trans-unit>
@@ -517,7 +520,96 @@
                 <source>Frontend scan summary</source>
             </trans-unit>
             <trans-unit id="overview.proSummary.topPages">
-                <source>Top affected pages</source>
+                <source>Affected pages</source>
+            </trans-unit>
+
+
+            <trans-unit id="overview.remote.affectedPages.subtitle">
+                <source>Pages with the most accessibility issues. Open a page to review concrete findings.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportingAid.group">
+                <source>Group</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportingAid.findings">
+                <source>Findings</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportingAid.criteria">
+                <source>Criteria</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.title">
+                <source>What to fix first</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.subtitle">
+                <source>Recommended based on impact, reach and WCAG criterion across scanned pages.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.issue">
+                <source>issue</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.issues">
+                <source>issues</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.page">
+                <source>page</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.pages">
+                <source>pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.moreSingle">
+                <source>more priority issue</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.more">
+                <source>more priority issues</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.viewTopPages">
+                <source>View top pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.viewAffectedPages">
+                <source>View affected pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyTitle">
+                <source>No priority fixes available yet</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyBody">
+                <source>Run a remote scan to generate recommended fixes based on impact and reach.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyClearTitle">
+                <source>No priority fixes needed</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyClearBody">
+                <source>The latest frontend scan did not find issues requiring prioritisation.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.title">
+                <source>WCAG breakdown</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.subtitle">
+                <source>Issues grouped by WCAG success criterion.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.criterion">
+                <source>Criterion</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.level">
+                <source>Level</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.issues">
+                <source>Issues</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.pages">
+                <source>Pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.topRules">
+                <source>Top rules</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.emptyTitle">
+                <source>No WCAG breakdown available</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.emptyBody">
+                <source>Run a remote scan to generate a breakdown by WCAG success criterion.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.emptyUnmappedTitle">
+                <source>No WCAG-mapped findings available</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.wcagBreakdown.emptyUnmappedBody">
+                <source>This scan found issues, but none of the current findings could be mapped to a specific WCAG success criterion.</source>
             </trans-unit>
 
             <trans-unit id="overview.remoteActions.description">
@@ -1615,11 +1707,11 @@
             </trans-unit>
 
             <trans-unit id="pageModuleIndicator.body.ok">
-                <source>This page currently passes the configured accessibility checks.</source>
+                <source>No automated local findings are currently stored for this page.</source>
             </trans-unit>
 
             <trans-unit id="pageModuleIndicator.body.okWithRemote">
-                <source>This page currently passes the configured accessibility checks. Review AQG for frontend results.</source>
+                <source>No automated local findings are currently stored for this page. Review AQG for frontend results.</source>
             </trans-unit>
 
             <trans-unit id="pageModuleIndicator.body.issues">
@@ -2017,6 +2109,142 @@
             </trans-unit>
             <trans-unit id="overview.remotePageInline.title">
                 <source>Frontend page audit</source>
+            </trans-unit>
+
+            <trans-unit id="overview.remote.reportSummary.title">
+                <source>Report summary</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.subtitle">
+                <source>High-level recommendation from the remote crawler report.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.issues">
+                <source>issues</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.affectedPages">
+                <source>affected pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.wcagCriteria">
+                <source>WCAG criteria</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.priorityFixes">
+                <source>priority fixes</source>
+            </trans-unit>
+
+            <trans-unit id="overview.remote.manualReview.title">
+                <source>Manual review checklist</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.manualReview.subtitle">
+                <source>Generic review tasks that automated checks cannot fully verify.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.manualReview.owner">
+                <source>Suggested owner</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportingAid.title">
+                <source>WCAG / BFSG / BITV reporting aid</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportingAid.subtitle">
+                <source>Automated WCAG-mapped findings grouped for reporting context. This does not confirm compliance.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.guidance.who">
+                <source>Suggested owner</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.guidance.fixType">
+                <source>Suggested fix type</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.guidance.confidence">
+                <source>Guidance confidence</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.guidance.howToFix">
+                <source>How to fix</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.guidance.note">
+                <source>AQG guidance is based on the rule type and scan context. Review the affected element before applying changes.</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.guidance.whyItMatters">
+                <source>Why it matters</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.guidance.howToFix">
+                <source>How to fix</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.guidance.whoShouldFix">
+                <source>Suggested owner</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.guidance.fixType">
+                <source>Suggested fix type</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.guidance.confidence">
+                <source>Guidance confidence</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.guidance.note">
+                <source>AQG guidance is based on the rule type and scan context. Review the affected element before applying changes.</source>
+            </trans-unit>
+
+            <trans-unit id="overview.remote.signal.eyebrow">
+                <source>Automated accessibility signal</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.critical">
+                <source>Critical</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.attention">
+                <source>Needs attention</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.good">
+                <source>Good automated signal</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.noScanTitle">
+                <source>No remote scan has been run yet</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.noScanBody">
+                <source>Run a remote scan to generate frontend accessibility findings.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.scoreLabel">
+                <source>AQG signal</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.wcagMapped">
+                <source>WCAG-mapped findings</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.scoreUnavailable">
+                <source>AQG signal unavailable</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.wcagMappedFindings">
+                <source>WCAG-mapped findings</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.manualReview">
+                <source>Manual review required</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.goodNote">
+                <source>No priority fixes found by automated checks. Manual review may still be required.</source>
+            </trans-unit>
+
+            <trans-unit id="overview.remote.failedPages.title">
+                <source>Failed / unreachable pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.failedPages.view">
+                <source>View failed pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSupport.title">
+                <source>Report &amp; audit support</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSupport.subtitle">
+                <source>Automated checks help prioritise issues, but they do not replace manual accessibility review.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSupport.noSummary">
+                <source>Run a remote scan to generate reporting support.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSupport.viewChecklist">
+                <source>View checklist</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSupport.viewBreakdown">
+                <source>View breakdown</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.overallImpact">
+                <source>Overall automated impact</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.topRecommendation">
+                <source>Top recommendation</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.manualReview.verificationTasks">
+                <source>generic verification tasks — not scan failures.</source>
             </trans-unit>
         </body>
     </file>

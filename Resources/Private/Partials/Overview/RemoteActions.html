@@ -68,6 +68,16 @@
                     />
                 </button>
             </f:if>
+
+            <f:render
+                    partial="Shared/ExportButtons"
+                    arguments="{
+                        show: exportRemoteCsvUrl,
+                        csvUrl: exportRemoteCsvUrl,
+                        pdfUrl: exportRemotePdfUrl,
+                        showPdf: proStatus.hasExportPdf
+                    }"
+            />
         </div>
     </div>
 

@@ -443,6 +443,9 @@
             <trans-unit id="tx_a11y_remote_scan_page.field.failure_reason">
                 <source>Failure reason</source>
             </trans-unit>
+            <trans-unit id="tx_a11y_remote_scan_page.field.keyboard_summary_json">
+                <source>Keyboard summary JSON</source>
+            </trans-unit>
             <trans-unit id="tx_a11y_remote_scan_page.field.is_failed">
                 <source>Failed page</source>
             </trans-unit>
@@ -499,6 +502,25 @@
                 <source>State</source>
             </trans-unit>
 
+            <trans-unit id="tx_a11y_remote_issue.field.guidance_why_it_matters">
+                <source>Why it matters</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.guidance_how_to_fix">
+                <source>How to fix</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.who_should_fix">
+                <source>Suggested owner</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.fix_type">
+                <source>Suggested fix type</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.field.confidence">
+                <source>Guidance confidence</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue.tab.guidance">
+                <source>Guidance</source>
+            </trans-unit>
+
             <trans-unit id="tx_a11y_remote_issue_node">
                 <source>Remote accessibility issue node</source>
             </trans-unit>
@@ -520,6 +542,9 @@
             </trans-unit>
             <trans-unit id="tx_a11y_remote_issue_node.field.screenshot_url">
                 <source>Screenshot URL</source>
+            </trans-unit>
+            <trans-unit id="tx_a11y_remote_issue_node.field.contrast_details_json">
+                <source>Contrast details JSON</source>
             </trans-unit>
             <trans-unit id="tx_a11y_remote_issue_node.tab.general">
                 <source>General</source>

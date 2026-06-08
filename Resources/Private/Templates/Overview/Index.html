@@ -114,7 +114,7 @@
             />
         </div>
 
-        <f:if condition="{proStatus.hasCrawler}">
+        <f:if condition="{remoteUiAvailable}">
             <f:render
                     partial="Overview/SourceTabs"
                     arguments="{
@@ -158,7 +158,7 @@
             />
         </div>
 
-        <f:if condition="{proStatus.hasCrawler}">
+        <f:if condition="{remoteUiAvailable}">
             <div
                     class="a11y-overview-panel"
                     data-a11y-overview-panel="remote"
@@ -170,7 +170,28 @@
                             remoteScan: remoteScan,
                             remotePages: remotePages,
                             remoteFailedPages: remoteFailedPages,
+                            remotePriorityFixes: remotePriorityFixes,
+                            remotePriorityFixesVisible: remotePriorityFixesVisible,
+                            remotePriorityFixesMoreCount: remotePriorityFixesMoreCount,
+                            remoteWcagSummary: remoteWcagSummary,
+                            remoteReportSummary: remoteReportSummary,
+                            remoteScore: remoteScore,
+                            remoteSignalTone: remoteSignalTone,
+                            remoteSignalLabel: remoteSignalLabel,
+                            remoteScoreTone: remoteScoreTone,
+                            remoteSignalIcon: remoteSignalIcon,
+                            remoteHasPriorityFixes: remoteHasPriorityFixes,
+                            remoteHasNoPriorityFixes: remoteHasNoPriorityFixes,
+                            remoteManualReviewChecklist: remoteManualReviewChecklist,
+                            remoteReportingGroups: remoteReportingGroups,
+                            remoteKeyboardSummary: remoteKeyboardSummary,
+                            remoteShowKeyboardSummary: remoteShowKeyboardSummary,
+                            remoteStructureSummary: remoteStructureSummary,
+                            remoteContrastDetails: remoteContrastDetails,
+                            remoteHasAdditionalAutomatedSignals: remoteHasAdditionalAutomatedSignals,
+                            remoteScanHasIssues: remoteScanHasIssues,
                             totalRemotePages: totalRemotePages,
+                            totalRemotePagesIsSingle: totalRemotePagesIsSingle,
                             totalRemoteFailedPages: totalRemoteFailedPages,
                             remotePagination: remotePagination,
                             remotePaginationItems: remotePaginationItems,
@@ -198,7 +219,7 @@
             </div>
         </f:if>
 
-        <f:if condition="{proStatus.showProHints} && !{proStatus.hasCrawler}">
+        <f:if condition="{proStatus.showProHints} &amp;&amp; !{remoteUiAvailable}">
             <f:render
                     partial="Overview/ProHint"
                     arguments="{proStatus: proStatus, settingsUrl: settingsUrl}"

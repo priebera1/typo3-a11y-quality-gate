@@ -63,6 +63,11 @@ final class RemoteIssueRepository extends AbstractRepository
             'impact' => (string)($issue['impact'] ?? ''),
             'help' => (string)($issue['help'] ?? ''),
             'help_url' => (string)($issue['helpUrl'] ?? ''),
+            'guidance_why_it_matters' => $this->extractGuidanceText($issue, 'whyItMatters', 'why_it_matters'),
+            'guidance_how_to_fix' => $this->extractGuidanceText($issue, 'howToFix', 'how_to_fix'),
+            'who_should_fix' => $this->extractGuidanceChoice($issue, 'whoShouldFix', 'who_should_fix'),
+            'fix_type' => $this->extractGuidanceChoice($issue, 'fixType', 'fix_type'),
+            'confidence' => $this->extractGuidanceChoice($issue, 'confidence', 'confidence'),
             'nodes_count' => is_array($issue['nodes'] ?? null) ? count($issue['nodes']) : 0,
             'fingerprint' => (string)($issue['fingerprint'] ?? ''),
             'status' => (string)($issue['status'] ?? 'open'),
@@ -71,6 +76,72 @@ final class RemoteIssueRepository extends AbstractRepository
         ]);
 
         return (int)$connection->lastInsertId();
+    }
+
+
+
+
+    /**
+     * @param array<string, mixed> $issue
+     */
+    private function extractGuidanceText(array $issue, string $camelKey, string $snakeKey): string
+    {
+        $guidance = is_array($issue['guidance'] ?? null) ? $issue['guidance'] : [];
+        $value = $issue[$camelKey] ?? $issue[$snakeKey] ?? $guidance[$camelKey] ?? $guidance[$snakeKey] ?? '';
+
+        return trim((string)$value);
+    }
+
+    /**
+     * @param array<string, mixed> $issue
+     */
+    private function extractGuidanceChoice(array $issue, string $camelKey, string $snakeKey): string
+    {
+        $value = strtolower($this->extractGuidanceText($issue, $camelKey, $snakeKey));
+        $value = preg_replace('/[^a-z0-9_-]+/', '_', $value) ?? '';
+        $value = trim($value, '_-');
+
+        return substr($value, 0, 50);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findIssueRowsForRemoteScan(int $remoteScanUid): array
+    {
+        if ($remoteScanUid <= 0) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+
+        return $queryBuilder
+            ->select('ri.*')
+            ->addSelectLiteral('rsp.uid AS remote_scan_page_uid')
+            ->from(Tables::REMOTE_ISSUE, 'ri')
+            ->leftJoin(
+                'ri',
+                Tables::REMOTE_SCAN_PAGE,
+                'rsp',
+                $queryBuilder->expr()->eq('rsp.uid', 'ri.remote_scan_page')
+            )
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'ri.remote_scan',
+                    $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->neq(
+                    'ri.status',
+                    $queryBuilder->createNamedParameter('ignored')
+                )
+            )
+            ->orderBy('ri.impact', 'ASC')
+            ->addOrderBy('ri.rule_id', 'ASC')
+            ->addOrderBy('ri.uid', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     public function findByRemoteScanPage(int $remoteScanPageUid): array

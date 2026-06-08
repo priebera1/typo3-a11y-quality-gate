@@ -17,6 +17,7 @@ final class IssueResolutionService
      * @param array<int, string> $seenFingerprintsForPage
      * @param array{uid:int,name:string,username:string}|null $resolvedBy
      * @param array<int, string> $excludeSourceTypes
+     * @param array<int, string>|null $includeRuleIds
      */
     public function resolveUnseenForPage(
         int $pageUid,
@@ -26,6 +27,7 @@ final class IssueResolutionService
         int $scanUid,
         ?array $resolvedBy,
         array $excludeSourceTypes = [],
+        ?array $includeRuleIds = null,
     ): int {
         return $this->issueRepository->resolveUnseen(
             pageUid: $pageUid,
@@ -37,6 +39,7 @@ final class IssueResolutionService
             backendUserName: (string)($resolvedBy['name'] ?? ''),
             backendUsername: (string)($resolvedBy['username'] ?? ''),
             excludeSourceTypes: $excludeSourceTypes,
+            includeRuleIds: $includeRuleIds,
         );
     }
 

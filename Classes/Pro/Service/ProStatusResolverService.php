@@ -22,11 +22,26 @@ final class ProStatusResolverService
      */
     public function resolveForSite(?Site $site): object
     {
-        $domain = $site !== null
-            ? $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$site->getBase())
-            : '';
+        if ($site === null) {
+            return $this->resolveForDomain('');
+        }
 
-        return $this->resolveForDomain($domain);
+        $domains = $this->collectCandidateDomainsForSite($site);
+        $fallbackStatus = null;
+
+        foreach ($domains as $domain) {
+            $status = $this->resolveForDomain($domain);
+
+            if ($fallbackStatus === null) {
+                $fallbackStatus = $status;
+            }
+
+            if (($status->valid ?? false) && ($status->hasCrawler ?? false)) {
+                return $status;
+            }
+        }
+
+        return $fallbackStatus ?? $this->resolveForDomain('');
     }
 
     /**
@@ -44,6 +59,47 @@ final class ProStatusResolverService
         }
 
         return $this->resolveForSite($site);
+    }
+
+
+    /**
+     * Licence validation and remote crawler submission can be domain-sensitive.
+     * TYPO3 site bases may differ between the default site base and language
+     * bases, especially in test fixtures and multi-domain setups. The overview
+     * must therefore resolve PRO status against the same domain candidates that
+     * can be used by the remote crawler flow, not only the default site base.
+     *
+     * @return list<string>
+     */
+    private function collectCandidateDomainsForSite(Site $site): array
+    {
+        $domains = [];
+
+        $this->appendNormalizedDomain($domains, (string)$site->getBase());
+
+        foreach ($site->getLanguages() as $language) {
+            try {
+                $this->appendNormalizedDomain($domains, (string)$language->getBase());
+            } catch (\Throwable) {
+                // Broken language base configuration should not hide the PRO UI
+                // for otherwise valid site domains.
+            }
+        }
+
+        return $domains !== [] ? $domains : [''];
+    }
+
+    /**
+     * @param list<string> $domains
+     */
+    private function appendNormalizedDomain(array &$domains, string $siteBase): void
+    {
+        $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
+        if ($domain === '' || in_array($domain, $domains, true)) {
+            return;
+        }
+
+        $domains[] = $domain;
     }
 
     public function hasCrawlerForAnySite(): bool

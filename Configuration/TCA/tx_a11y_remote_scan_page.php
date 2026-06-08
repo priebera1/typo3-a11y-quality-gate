@@ -77,6 +77,13 @@ return [
                 'readOnly' => true,
             ],
         ],
+        'keyboard_summary_json' => [
+            'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_scan_page.field.keyboard_summary_json',
+            'config' => [
+                'type' => 'text',
+                'readOnly' => true,
+            ],
+        ],
         'is_failed' => [
             'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_scan_page.field.is_failed',
             'config' => [
@@ -92,7 +99,7 @@ return [
                 --div--;LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_scan_page.tab.general,
                     remote_scan, source_type, url, title,
                 --div--;LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_scan_page.tab.result,
-                    http_status, issues_count, is_failed, failure_reason,
+                    http_status, issues_count, is_failed, failure_reason, keyboard_summary_json,
                 --div--;LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_scan_page.tab.artifacts,
                     screenshot_path, screenshot_url
             ',

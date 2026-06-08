@@ -1,5 +1,56 @@
 # Changelog
 
+## [1.5.0] - 2026-06-08
+
+### Added
+
+* Added a redesigned Frontend scan overview for PRO remote scans with an automated accessibility signal, priority fixes, affected pages, report support and export actions.
+* Added “What to fix first” recommendations based on impact, affected pages, WCAG mapping and remediation guidance.
+* Added report and audit support blocks for remote scan results, including WCAG / BFSG / BITV reporting aid, manual review checklist and automated review disclaimers.
+* Added additional automated signals for remote scans, including keyboard exploration, page structure and shared template/component signals.
+* Added remediation summaries for remote scan results to group suggested work by editor/content, developer/template and design-related fixes.
+* Added page-level “Start here” recommendations in Remote Page Detail.
+* Added node-level remediation guidance for common frontend accessibility findings.
+* Added color contrast remediation details for remote `color-contrast` findings, including current colors, actual/required ratio, candidate colors, preferred candidate and estimated contrast ratios.
+* Added compact color candidate output to Remote Page Detail, CSV export and PDF export.
+* Added support for API contract feature metadata so the TYPO3 integration can detect available remote crawler capabilities.
+* Added CSV export columns for remote contrast remediation data.
+
+### Changed
+
+* Improved Remote Overview wording to consistently describe results as automated signals and reporting aids, not as compliance confirmation.
+* Improved Remote Overview export links so CSV and PDF exports use the currently displayed remote scan context.
+* Improved Remote Page Detail PDF generation for better server-side performance.
+* Remote Page Detail PDF now uses a compact export layout and omits heavy screenshots in favour of a placeholder when needed.
+* Improved PDF layout for remote report summaries, screenshots, candidate colors and remediation summaries.
+* Improved dark/auto mode support for TYPO3 14 backend themes, including `data-theme="fresh"` and `data-color-scheme="auto"`.
+* Improved responsive layout and spacing in Remote Overview priority cards, report support sections and affected page tables.
+* Improved PRO capability resolution across site and language base URLs.
+* Improved PRO cache invalidation after licence re-validation.
+* Improved remote scan recovery and persistence for newer optional crawler fields while keeping backward compatibility with older scans.
+
+### Fixed
+
+* Fixed Remote Overview CSV/PDF exports falling back to an unrelated latest site scan instead of the currently displayed page scan.
+* Fixed empty or incomplete Remote Overview exports for page-scope remote scans.
+* Fixed Remote Page Detail handling of contrast detail data stored as either a list or a single object.
+* Fixed persistence of remote page remediation and recommendation data.
+* Fixed Remote Overview visibility when existing remote results are available but the PRO status cache is stale.
+* Fixed dark mode hover and focus states for report support summaries, manual review rows, reporting tables, toggle badges and affected page action links.
+* Fixed duplicated SCSS override layers in the Remote Overview styles.
+* Fixed “Last scan” label formatting in Remote Overview.
+* Fixed protected local issues so ignored or muted issues are not reopened or updated incorrectly during later upserts.
+* Fixed resolved issue recovery when a matching issue is found by source and rule but its fingerprint changed.
+* Fixed local issue lifecycle consistency for ignored issue expiry data.
+
+### Security
+
+* Hardened Settings permissions so licence keys, PRO configuration, remote scan access and quality gate administration settings can only be changed by administrators.
+* Hardened remote scan status, summary and cancel actions with local job ownership and site-context validation.
+* Hardened remote crawler response handling with job/site identity checks before persisting results.
+* Reduced debug data exposure in remote crawler error responses outside development/admin debug contexts.
+* Hardened remote scan access helpers for scanner token, HTTP Basic Auth and remote access test actions.
+
 ## [1.4.1] - 2026-06-04
 
 ### Fixed

@@ -43,7 +43,7 @@ final class ExportController
         $context = $this->parseExportContext($request);
 
         if ($context['scope'] === 'remote') {
-            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'])) {
+            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])) {
                 return $this->downloadResponse(
                     content: 'Access denied.',
                     filename: 'aqg-export-access-denied.txt',
@@ -55,6 +55,9 @@ final class ExportController
             return $this->buildRemoteCsvResponse(
                 siteIdentifier: $context['siteIdentifier'],
                 remotePageUid: $context['remotePageUid'],
+                remoteScanUid: $context['remoteScanUid'],
+                pageUid: $context['pageUid'],
+                languageUid: $context['languageUid'],
             );
         }
 
@@ -86,7 +89,7 @@ final class ExportController
         $context = $this->parseExportContext($request);
 
         if ($context['scope'] === 'remote') {
-            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'])) {
+            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])) {
                 return $this->downloadResponse(
                     content: 'Access denied.',
                     filename: 'aqg-pdf-export-access-denied.txt',
@@ -114,6 +117,9 @@ final class ExportController
                 request: $request,
                 siteIdentifier: $context['siteIdentifier'],
                 remotePageUid: $context['remotePageUid'],
+                remoteScanUid: $context['remoteScanUid'],
+                pageUid: $context['pageUid'],
+                languageUid: $context['languageUid'],
             );
         }
 
@@ -170,7 +176,9 @@ final class ExportController
      *   status:string,
      *   severity:string,
      *   scope:string,
-     *   remotePageUid:int
+     *   remotePageUid:int,
+     *   remoteScanUid:int,
+     *   languageUid:int
      * }
      */
     private function parseExportContext(ServerRequestInterface $request): array
@@ -200,6 +208,8 @@ final class ExportController
 
         $scope = trim((string)($request->getQueryParams()['scope'] ?? 'local'));
         $remotePageUid = (int)($request->getQueryParams()['remotePageUid'] ?? 0);
+        $remoteScanUid = (int)($request->getQueryParams()['remoteScanUid'] ?? 0);
+        $languageUid = $this->requestParameterService->getLanguageUid($request, 0);
 
         return [
             'siteIdentifier' => $siteIdentifier,
@@ -208,14 +218,21 @@ final class ExportController
             'severity' => $severity,
             'scope' => $scope === 'remote' ? 'remote' : 'local',
             'remotePageUid' => $remotePageUid,
+            'remoteScanUid' => $remoteScanUid,
+            'languageUid' => $languageUid,
         ];
     }
 
-    private function buildRemoteCsvResponse(string $siteIdentifier, int $remotePageUid): ResponseInterface
-    {
+    private function buildRemoteCsvResponse(
+        string $siteIdentifier,
+        int $remotePageUid,
+        int $remoteScanUid,
+        ?int $pageUid,
+        int $languageUid,
+    ): ResponseInterface {
         $csv = $remotePageUid > 0
             ? $this->remoteExportBuilder->buildPageCsv($remotePageUid)
-            : $this->remoteExportBuilder->buildOverviewCsv($siteIdentifier);
+            : $this->remoteExportBuilder->buildOverviewCsv($siteIdentifier, $remoteScanUid, $pageUid, $languageUid);
 
         return $this->downloadResponse(
             content: "\xEF\xBB\xBF" . $csv,
@@ -233,10 +250,13 @@ final class ExportController
         ServerRequestInterface $request,
         string $siteIdentifier,
         int $remotePageUid,
+        int $remoteScanUid,
+        ?int $pageUid,
+        int $languageUid,
     ): ResponseInterface {
         $pdf = $remotePageUid > 0
             ? $this->remoteExportBuilder->buildPagePdf($remotePageUid, $request)
-            : $this->remoteExportBuilder->buildOverviewPdf($siteIdentifier, $request);
+            : $this->remoteExportBuilder->buildOverviewPdf($siteIdentifier, $request, $remoteScanUid, $pageUid, $languageUid);
 
         return $this->downloadResponse(
             content: $pdf,
@@ -266,7 +286,7 @@ final class ExportController
             && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
     }
 
-    private function canAccessRemoteExport(string $siteIdentifier, int $remotePageUid): bool
+    private function canAccessRemoteExport(string $siteIdentifier, int $remotePageUid, int $remoteScanUid = 0): bool
     {
         if ($remotePageUid > 0) {
             $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
@@ -279,6 +299,11 @@ final class ExportController
                 ? $this->remoteScanRepository->findScanByUid($remoteScanUid)
                 : null;
 
+            return is_array($remoteScan) && $this->canAccessRemoteScan($remoteScan);
+        }
+
+        if ($remoteScanUid > 0) {
+            $remoteScan = $this->remoteScanRepository->findScanByUid($remoteScanUid);
             return is_array($remoteScan) && $this->canAccessRemoteScan($remoteScan);
         }
 

@@ -282,6 +282,12 @@ final class SettingsController extends AbstractBackendModuleController
 
         $body = $this->parseRequestBody($request);
         $isAdmin = $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser());
+        if (!$isAdmin && (
+            (string)($body['qualityGateFormSubmitted'] ?? '') === '1'
+            || (string)($body['remoteScanAccessFormSubmitted'] ?? '') === '1'
+        )) {
+            return $this->buildAdminOnlySettingsDeniedResponse();
+        }
         if (!$isAdmin) {
             $body = $this->removeAdminOnlyRulesetFields($body);
         }
@@ -417,6 +423,11 @@ final class SettingsController extends AbstractBackendModuleController
         $body = $this->parseRequestBody($request);
         $activeTab = $this->resolveActiveTab((string)($body['tab'] ?? 'licence'));
 
+        $backendUser = $this->backendContextService->getBackendUser();
+        if (!$this->accessControlService->canManageAdminOnlySettings($backendUser)) {
+            return $this->buildAdminOnlySettingsDeniedResponse();
+        }
+
         try {
             $configuration = $this->extensionConfiguration->get('a11y_quality_gate');
             $configuration = is_array($configuration) ? $configuration : [];
@@ -467,6 +478,14 @@ final class SettingsController extends AbstractBackendModuleController
             ], 403);
         }
 
+        if (!$this->accessControlService->canManageAdminOnlySettings($backendUser)) {
+            return new JsonResponse([
+                'valid' => false,
+                'reason' => 'admin_only_settings_required',
+                'reasonLabel' => 'Only administrators can validate AQG licence keys.',
+            ], 403);
+        }
+
         $body = $this->parseRequestBody($request);
         $licenceKey = trim((string)($body['licenceKey'] ?? ''));
 
@@ -494,6 +513,13 @@ final class SettingsController extends AbstractBackendModuleController
             $this->extensionContextService->getExtensionVersion(),
             $allSites,
         );
+
+        if ($result->valid) {
+            // A re-validation request is often followed by returning to the
+            // overview without saving the form again. Drop stale invalid licence
+            // cache entries so the overview resolves the current PRO capability.
+            $this->proCacheManager->flushAll();
+        }
 
         $isTrial = $result->isTrial || $isTrial;
         $plan = $isTrial ? 'trial' : ($result->plan !== '' ? $result->plan : null);
@@ -1068,6 +1094,18 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         return true;
+    }
+
+    private function buildAdminOnlySettingsDeniedResponse(): ResponseInterface
+    {
+        $message = 'Only administrators can save AQG licence and installation configuration.';
+        $this->addFlashMessage($message, ContextualFeedbackSeverity::ERROR);
+
+        return new JsonResponse([
+            'success' => false,
+            'code' => 'admin_only_settings_required',
+            'message' => $message,
+        ], 403);
     }
 
     private function buildSettingsPostResponse(

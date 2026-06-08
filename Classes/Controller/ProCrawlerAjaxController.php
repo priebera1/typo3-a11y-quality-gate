@@ -31,7 +31,9 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsController]
@@ -230,12 +232,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
-                'Remote crawler scan failed.'
+                'Remote crawler scan failed.',
+                $request
             );
         } catch (\Throwable $exception) {
             return $this->buildCrawlerExceptionResponse(
                 $exception,
-                'Remote crawler scan failed.'
+                'Remote crawler scan failed.',
+                $request
             );
         }
     }
@@ -409,12 +413,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
-                'Remote page scan failed.'
+                'Remote page scan failed.',
+                $request
             );
         } catch (\Throwable $exception) {
             return $this->buildCrawlerExceptionResponse(
                 $exception,
-                'Remote page scan failed.'
+                'Remote page scan failed.',
+                $request
             );
         }
     }
@@ -441,6 +447,12 @@ final class ProCrawlerAjaxController extends AbstractApiController
             if ($site === null) {
                 return $this->badRequestResponse('Unknown siteIdentifier');
             }
+
+            $validatedScan = $this->resolveValidatedLocalScanJob($jobId, $siteIdentifier, $site);
+            if ($validatedScan instanceof ResponseInterface) {
+                return $validatedScan;
+            }
+
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
             $proStatus = $this->resolveProStatus($domain);
@@ -484,12 +496,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
-                'Remote crawler cancel request failed.'
+                'Remote crawler cancel request failed.',
+                $request
             );
         } catch (\Throwable $exception) {
             return $this->buildCrawlerExceptionResponse(
                 $exception,
-                'Remote crawler cancel request failed.'
+                'Remote crawler cancel request failed.',
+                $request
             );
         }
     }
@@ -514,6 +528,12 @@ final class ProCrawlerAjaxController extends AbstractApiController
             if ($site === null) {
                 return $this->badRequestResponse('Unknown siteIdentifier');
             }
+
+            $validatedScan = $this->resolveValidatedLocalScanJob($jobId, $siteIdentifier, $site);
+            if ($validatedScan instanceof ResponseInterface) {
+                return $validatedScan;
+            }
+
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
             $proStatus = $this->resolveProStatus($domain);
@@ -527,6 +547,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 version: $this->extensionContextService->getExtensionVersion(),
                 jobId: $jobId,
             );
+
+            if (!$this->remoteJobIdMatches($result->jobId, $jobId)) {
+                return $this->buildRemoteJobResponseMismatchResponse();
+            }
 
             $this->remoteScanRepository->syncStatus(
                 jobId: $jobId,
@@ -568,12 +592,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
-                'Remote crawler status request failed.'
+                'Remote crawler status request failed.',
+                $request
             );
         } catch (\Throwable $exception) {
             return $this->buildCrawlerExceptionResponse(
                 $exception,
-                'Remote crawler status request failed.'
+                'Remote crawler status request failed.',
+                $request
             );
         }
     }
@@ -593,20 +619,26 @@ final class ProCrawlerAjaxController extends AbstractApiController
             return $this->badRequestResponse('Missing jobId or siteIdentifier');
         }
 
-        if ($this->remoteScanRepository->isPersisted($jobId)) {
-            return $this->jsonResponse([
-                'success' => true,
-                'saved' => true,
-                'jobId' => $jobId,
-                'alreadyPersisted' => true,
-            ]);
-        }
-
         try {
             $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
             if ($site === null) {
                 return $this->badRequestResponse('Unknown siteIdentifier');
             }
+
+            $validatedScan = $this->resolveValidatedLocalScanJob($jobId, $siteIdentifier, $site);
+            if ($validatedScan instanceof ResponseInterface) {
+                return $validatedScan;
+            }
+
+            if ($this->remoteScanRepository->isPersisted($jobId)) {
+                return $this->jsonResponse([
+                    'success' => true,
+                    'saved' => true,
+                    'jobId' => $jobId,
+                    'alreadyPersisted' => true,
+                ]);
+            }
+
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
             $proStatus = $this->resolveProStatus($domain);
@@ -620,6 +652,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 version: $this->extensionContextService->getExtensionVersion(),
                 jobId: $jobId,
             );
+
+            if (!$this->remoteJobIdMatches($summaryResult->jobId, $jobId)) {
+                return $this->buildRemoteJobResponseMismatchResponse();
+            }
+
+            if (!$this->remoteSiteIdentifierMatches($summaryResult->siteId, $siteIdentifier)) {
+                return $this->buildRemoteJobResponseMismatchResponse();
+            }
 
             $resultsResult = $this->proCrawlerService->getResults(
                 domain: $domain,
@@ -669,20 +709,95 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'failedPages' => $summaryResult->failedPages,
                 'topRules' => $summaryResult->topRules,
                 'countsByStatus' => $summaryResult->countsByStatus,
+                'contrast' => $summaryResult->contrast,
+                'contrastDetails' => $summaryResult->contrastDetails,
+                'score' => $summaryResult->score,
+                'keyboardSummary' => $summaryResult->keyboardSummary,
+                'structureSummary' => $summaryResult->structureSummary,
+                'remediationSummary' => $summaryResult->remediationSummary,
+                'wcagSummary' => $summaryResult->wcagSummary,
+                'priorityFixes' => $summaryResult->priorityFixes,
+                'reportSummary' => $summaryResult->reportSummary,
+                'manualReviewChecklist' => $summaryResult->manualReviewChecklist,
+                'reportingGroups' => $summaryResult->reportingGroups,
                 'startedAt' => $summaryResult->startedAt,
                 'finishedAt' => $summaryResult->finishedAt,
             ]);
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
-                'Remote crawler summary request failed.'
+                'Remote crawler summary request failed.',
+                $request
             );
         } catch (\Throwable $exception) {
             return $this->buildCrawlerExceptionResponse(
                 $exception,
-                'Remote crawler summary request failed.'
+                'Remote crawler summary request failed.',
+                $request
             );
         }
+    }
+
+    /**
+     * @return array<string, mixed>|ResponseInterface
+     */
+    private function resolveValidatedLocalScanJob(string $jobId, string $siteIdentifier, Site $site): array|ResponseInterface
+    {
+        $scan = $this->remoteScanRepository->findScanByJobId($jobId);
+        if (!is_array($scan)) {
+            return $this->buildSimpleErrorResponse(
+                message: 'Unknown remote scan job.',
+                status: 404,
+                code: 'unknown_remote_scan_job',
+                title: 'Unknown remote scan job'
+            );
+        }
+
+        if ((string)($scan['site_identifier'] ?? '') !== $siteIdentifier) {
+            return $this->buildSimpleErrorResponse(
+                message: 'The remote scan job does not belong to the requested site.',
+                status: 403,
+                code: 'job_site_mismatch',
+                title: 'Remote scan job site mismatch'
+            );
+        }
+
+        $pageUid = (int)($scan['page_uid'] ?? 0);
+        $accessPageUid = $pageUid > 0 ? $pageUid : (int)$site->getRootPageId();
+        if ($accessPageUid > 0 && !$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $accessPageUid)) {
+            return $this->buildSimpleErrorResponse(
+                message: 'Access denied for this remote scan job.',
+                status: 403,
+                code: 'job_access_denied',
+                title: 'Access denied'
+            );
+        }
+
+        return $scan;
+    }
+
+    private function remoteJobIdMatches(?string $responseJobId, string $requestJobId): bool
+    {
+        $responseJobId = trim((string)$responseJobId);
+
+        return $responseJobId === '' || hash_equals($requestJobId, $responseJobId);
+    }
+
+    private function remoteSiteIdentifierMatches(?string $responseSiteIdentifier, string $siteIdentifier): bool
+    {
+        $responseSiteIdentifier = trim((string)$responseSiteIdentifier);
+
+        return $responseSiteIdentifier === '' || hash_equals($siteIdentifier, $responseSiteIdentifier);
+    }
+
+    private function buildRemoteJobResponseMismatchResponse(): ResponseInterface
+    {
+        return $this->buildSimpleErrorResponse(
+            message: 'Remote crawler response did not match the requested scan job.',
+            status: 409,
+            code: 'remote_job_response_mismatch',
+            title: 'Remote scan response mismatch'
+        );
     }
 
     /**
@@ -915,6 +1030,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
     private function buildTokenRefreshExceptionResponse(
         TokenRefreshException $exception,
         string $fallbackMessage,
+        ?ServerRequestInterface $request = null,
     ): ResponseInterface {
         foreach ($this->collectExceptionMessages($exception) as $message) {
             $normalized = strtolower($message);
@@ -928,7 +1044,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 || str_contains($normalized, 'remote crawler summary request failed:')
                 || str_contains($normalized, 'remote crawler cancel request failed:')
             ) {
-                return $this->buildCrawlerExceptionResponse($exception, $fallbackMessage);
+                return $this->buildCrawlerExceptionResponse($exception, $fallbackMessage, $request);
             }
         }
 
@@ -997,22 +1113,28 @@ final class ProCrawlerAjaxController extends AbstractApiController
         string $title,
         array $details = [],
     ): ResponseInterface {
-        return $this->jsonResponse([
+        $payload = [
             'success' => false,
             'code' => $code,
             'title' => $title,
             'message' => $message,
             'status' => $status,
-            'details' => $details,
             'error' => $message,
-        ], $status);
+        ];
+
+        if ($details !== []) {
+            $payload['details'] = $details;
+        }
+
+        return $this->jsonResponse($payload, $status);
     }
 
     private function buildCrawlerExceptionResponse(
         \Throwable $exception,
         string $fallbackMessage,
+        ?ServerRequestInterface $request = null,
     ): ResponseInterface {
-        $payload = $this->buildCrawlerExceptionPayload($exception, $fallbackMessage);
+        $payload = $this->buildCrawlerExceptionPayload($exception, $fallbackMessage, $request);
         $status = (int)($payload['status'] ?? 500);
 
         if ($status < 400 || $status > 599) {
@@ -1025,6 +1147,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
     private function buildCrawlerExceptionPayload(
         \Throwable $exception,
         string $fallbackMessage,
+        ?ServerRequestInterface $request = null,
     ): array {
         $rawMessage = $this->resolveCrawlerExceptionMessage($exception, $fallbackMessage);
         $status = 500;
@@ -1080,18 +1203,71 @@ final class ProCrawlerAjaxController extends AbstractApiController
             'title' => $this->resolveCrawlerErrorTitle($code, $status),
             'message' => $message,
             'status' => $status,
-            'details' => $details,
             'error' => $message,
         ];
 
         $debug = $this->extractCrawlerDebugFromRawMessage($rawMessage);
-        if ($debug !== []) {
-            $payload['debug'] = $debug;
+        if ($details !== [] || $debug !== []) {
+            $this->logRemoteCrawlerError($exception, [
+                'code' => $code,
+                'status' => $status,
+                'details' => $details,
+                'debug' => $debug,
+            ]);
+        }
+
+        if ($this->shouldExposeCrawlerDebug($request)) {
+            if ($details !== []) {
+                $payload['details'] = $details;
+            }
+            if ($debug !== []) {
+                $payload['debug'] = $debug;
+            }
         }
 
         return $payload;
     }
 
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logRemoteCrawlerError(
+        \Throwable $exception,
+        array $context,
+    ): void {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->warning('AQG remote crawler request failed', $this->sanitizeLogContext(array_merge(
+                    $context,
+                    [
+                        'exceptionClass' => $exception::class,
+                        'exceptionMessage' => $exception->getMessage(),
+                    ]
+                )));
+        } catch (\Throwable) {
+        }
+    }
+
+    private function shouldExposeCrawlerDebug(?ServerRequestInterface $request): bool
+    {
+        if (Environment::getContext()->isDevelopment()) {
+            return true;
+        }
+
+        if ($request === null) {
+            return false;
+        }
+
+        $params = array_merge($request->getQueryParams(), is_array($request->getParsedBody()) ? $request->getParsedBody() : []);
+        $debugRequested = (string)($params['debug'] ?? $params['aqgDebug'] ?? '') === '1';
+        if (!$debugRequested) {
+            return false;
+        }
+
+        return $this->accessControlService->canManageAdminOnlySettings($this->getBackendUser());
+    }
 
     /**
      * @return array<string, mixed>

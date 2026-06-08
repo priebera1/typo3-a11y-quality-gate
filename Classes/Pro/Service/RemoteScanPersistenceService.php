@@ -166,6 +166,18 @@ final class RemoteScanPersistenceService
             'startedAt' => $summaryResult->startedAt,
             'finishedAt' => $summaryResult->finishedAt,
             'pagesTotal' => $summaryResult->pagesScanned,
+            'contrast' => property_exists($summaryResult, 'contrast') ? $summaryResult->contrast : [],
+            'contrastDetails' => property_exists($summaryResult, 'contrastDetails') ? $summaryResult->contrastDetails : [],
+            'score' => property_exists($summaryResult, 'score') ? $summaryResult->score : [],
+            'keyboardSummary' => property_exists($summaryResult, 'keyboardSummary') ? $summaryResult->keyboardSummary : [],
+            'structureSummary' => property_exists($summaryResult, 'structureSummary') ? $summaryResult->structureSummary : [],
+            'remediationSummary' => property_exists($summaryResult, 'remediationSummary') ? $summaryResult->remediationSummary : [],
+            'componentSummary' => property_exists($summaryResult, 'componentSummary') ? $summaryResult->componentSummary : [],
+            'wcagSummary' => $summaryResult->wcagSummary,
+            'priorityFixes' => $summaryResult->priorityFixes,
+            'reportSummary' => property_exists($summaryResult, 'reportSummary') ? $summaryResult->reportSummary : [],
+            'manualReviewChecklist' => property_exists($summaryResult, 'manualReviewChecklist') ? $summaryResult->manualReviewChecklist : [],
+            'reportingGroups' => property_exists($summaryResult, 'reportingGroups') ? $summaryResult->reportingGroups : [],
             'pageUid' => $pageUid,
             'pages' => $resultsResult->pages,
             'languageUid' => -1,
@@ -206,9 +218,25 @@ final class RemoteScanPersistenceService
         $httpStatus = (int)($page['httpStatus'] ?? $page['http_status'] ?? 0);
         $failureReason = trim((string)($page['failureReason'] ?? $page['failure_reason'] ?? ''));
         $isFailed = $failureReason !== '' || $httpStatus >= 400;
+        $keyboardSummary = is_array($page['keyboardSummary'] ?? null)
+            ? $page['keyboardSummary']
+            : (is_array($page['keyboard_summary'] ?? null) ? $page['keyboard_summary'] : []);
+        $remediationSummary = is_array($page['remediationSummary'] ?? null)
+            ? $page['remediationSummary']
+            : (is_array($page['remediation_summary'] ?? null)
+                ? $page['remediation_summary']
+                : (is_array($page['remediation'] ?? null) ? $page['remediation'] : []));
+        $pageRecommendation = is_array($page['pageRecommendation'] ?? null)
+            ? $page['pageRecommendation']
+            : (is_array($page['page_recommendation'] ?? null)
+                ? $page['page_recommendation']
+                : (is_array($page['recommendation'] ?? null) ? $page['recommendation'] : []));
 
         $page['url'] = $resolvedUrl;
         $page['issues'] = $issues;
+        $page['keyboardSummary'] = $keyboardSummary;
+        $page['remediationSummary'] = $remediationSummary;
+        $page['pageRecommendation'] = $pageRecommendation;
         $page['isFailed'] = $isFailed ? 1 : 0;
         $page['failureReason'] = $failureReason;
         $page['issuesCount'] = isset($page['issuesCount'])

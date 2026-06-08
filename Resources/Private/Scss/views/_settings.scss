@@ -3555,7 +3555,7 @@
     gap: .45rem;
     margin-top: .5rem;
     font-size: .8125rem;
-    color: var(--aqg-text-muted, #6c757d);
+    color: var(--aqi-fg-muted, #6c757d);
 }
 
 .aqg-checkbox-line input[type="checkbox"] {
@@ -3563,7 +3563,7 @@
 }
 
 .aqg-checkbox-line--muted {
-    color: var(--aqg-text-muted, #6c757d);
+    color: var(--aqi-fg-muted, #6c757d);
 }
 
 /* Remote scan access tab — aligned with AQG settings design system */

@@ -34,23 +34,23 @@ final class CrawlerResultsResponseDto
     {
         $error = is_array($payload['error'] ?? null) ? $payload['error'] : [];
 
-        $sitemapUrl = isset($payload['sitemapUrl']) ? trim((string)$payload['sitemapUrl']) : null;
+        $sitemapUrl = isset($payload['sitemapUrl']) ? trim((string)$payload['sitemapUrl']) : (isset($payload['sitemap_url']) ? trim((string)$payload['sitemap_url']) : null);
         if ($sitemapUrl === '') {
             $sitemapUrl = null;
         }
 
         return new self(
-            success: isset($payload['jobId']),
-            jobId: isset($payload['jobId']) ? (string)$payload['jobId'] : null,
-            siteId: (string)($payload['siteId'] ?? ''),
-            startUrl: (string)($payload['startUrl'] ?? ''),
+            success: isset($payload['jobId']) || isset($payload['job_id']),
+            jobId: isset($payload['jobId']) ? (string)$payload['jobId'] : (isset($payload['job_id']) ? (string)$payload['job_id'] : null),
+            siteId: (string)($payload['siteId'] ?? $payload['site_id'] ?? ''),
+            startUrl: (string)($payload['startUrl'] ?? $payload['start_url'] ?? ''),
             sitemapUrl: $sitemapUrl,
-            sourceType: (string)($payload['sourceType'] ?? 'crawl'),
+            sourceType: (string)($payload['sourceType'] ?? $payload['source_type'] ?? 'crawl'),
             status: (string)($payload['status'] ?? ''),
-            pagesScanned: (int)($payload['pagesScanned'] ?? 0),
-            issuesTotal: (int)($payload['issuesTotal'] ?? 0),
-            issuesNew: (int)($payload['issuesNew'] ?? 0),
-            issuesResolved: (int)($payload['issuesResolved'] ?? 0),
+            pagesScanned: (int)($payload['pagesScanned'] ?? $payload['pages_scanned'] ?? 0),
+            issuesTotal: (int)($payload['issuesTotal'] ?? $payload['issues_total'] ?? 0),
+            issuesNew: (int)($payload['issuesNew'] ?? $payload['issues_new'] ?? 0),
+            issuesResolved: (int)($payload['issuesResolved'] ?? $payload['issues_resolved'] ?? 0),
             pages: is_array($payload['pages'] ?? null) ? array_values($payload['pages']) : [],
             errorCode: isset($error['code']) ? (string)$error['code'] : null,
             errorMessage: isset($error['message']) ? (string)$error['message'] : null,

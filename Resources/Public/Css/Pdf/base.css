@@ -3,7 +3,7 @@
 }
 
 body {
-    font-family: dejavusans, sans-serif;
+    font-family: helvetica, arial, sans-serif;
     font-size: 9.5px;
     color: #1e232a;
     line-height: 1.45;
@@ -13,7 +13,7 @@ body {
 .pdf-document,
 .aqgp-doc {
     color: #1e232a;
-    font-family: dejavusans, sans-serif;
+    font-family: helvetica, arial, sans-serif;
     font-size: 9.5px;
     line-height: 1.45;
 }
@@ -39,7 +39,7 @@ body {
 
 .aqgp-header-mpdf td.right {
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     letter-spacing: 0.04em;
 }
@@ -63,7 +63,7 @@ body {
     padding-top: 5px;
     border-top: 1px solid #d4d8de;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
 }
 
@@ -83,7 +83,7 @@ body {
     display: inline-block;
     padding-bottom: 4px;
     border-bottom: 1px solid #1e232a;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     font-weight: bold;
     letter-spacing: 0.22em;
@@ -92,7 +92,7 @@ body {
 
 .aqgp-header__date {
     text-align: right;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     color: #7c828d;
     letter-spacing: 0.04em;
@@ -158,7 +158,7 @@ h1 {
 .aqgp-meta__label {
     display: block;
     margin-bottom: 2px;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.12em;
@@ -175,7 +175,7 @@ h1 {
 
 .aqgp-meta__value--mono,
 .aqgp-mono {
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 8px;
 }
 
@@ -188,7 +188,7 @@ h1 {
     border: 1px solid #d4d8de;
     background: #ffffff;
     color: #545b66;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.04em;
@@ -216,7 +216,7 @@ h1 {
 .aqgp-section-title__right {
     text-align: right;
     color: #545b66 !important;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px !important;
     font-weight: bold;
     letter-spacing: 0.06em;
@@ -253,7 +253,7 @@ h1 {
     display: block;
     margin-bottom: 4px;
     color: #545b66;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.12em;
@@ -272,7 +272,7 @@ h1 {
     display: block;
     margin-top: 4px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
 }
 
@@ -311,7 +311,7 @@ table.aqgp-table {
 .aqgp-table th {
     background: #f5f6f8;
     color: #545b66;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.1em;
@@ -323,7 +323,7 @@ table.aqgp-table {
 .aqgp-table td.num {
     width: 64px;
     text-align: right;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
 }
 
 .aqgp-table__title {
@@ -337,7 +337,7 @@ table.aqgp-table {
     display: block;
     margin-top: 1px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     word-break: break-all;
 }
@@ -386,7 +386,7 @@ table.aqgp-table {
     display: block;
     margin-bottom: 2px;
     color: #8c5a00;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.12em;
@@ -409,7 +409,7 @@ table.aqgp-table {
     border: 0;
     border-top: 1px solid #d4d8de;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
 }
 
@@ -618,7 +618,7 @@ pre {
     display: inline-block;
     min-width: 23px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     font-weight: bold;
 }
@@ -632,7 +632,7 @@ pre {
 .aqgp-issue__sub {
     margin: 0 0 5px 23px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
 }
 
@@ -658,7 +658,7 @@ pre {
     display: block;
     margin-bottom: 2px;
     color: #1f519b;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.12em;
@@ -687,7 +687,7 @@ pre {
 .aqgp-kv td:first-child {
     width: 90px;
     color: #545b66;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.08em;
@@ -696,7 +696,7 @@ pre {
 
 .aqgp-kv td:last-child {
     color: #1e232a;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     word-break: break-all;
 }
@@ -709,7 +709,7 @@ pre {
     display: block;
     margin: 0 0 3px 0;
     color: #545b66;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.08em;
@@ -723,7 +723,7 @@ pre {
     border: 1px solid #e4e7ec;
     background: #f0f2f5;
     color: #1e232a;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     line-height: 1.45;
     white-space: pre-wrap;
@@ -745,7 +745,7 @@ pre {
 .aqgp-node__title {
     margin: 0 0 4px 0;
     color: #545b66;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.08em;
@@ -799,6 +799,7 @@ pre {
 .aqgp-screenshot-placeholder strong {
     color: #1f242b;
 }
+
 
 /* PDF refinement pass for remote overview/page detail */
 .aqgp-header__brand--large {
@@ -972,7 +973,7 @@ pre {
     width: 34px;
     padding: 9px 0 8px 10px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     font-weight: bold;
 }
@@ -994,7 +995,7 @@ pre {
     display: block;
     margin: 0 0 5px 0;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
 }
 
@@ -1057,7 +1058,7 @@ pre {
 
 .aqgp-header__date {
     text-align: right;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     color: #7c828d;
     letter-spacing: 0.04em;
@@ -1078,7 +1079,7 @@ pre {
     border: 0;
     border-top: 1px solid #d4d8de;
     color: #8b929d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.6px;
     line-height: 1.25;
 }
@@ -1149,7 +1150,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-meta__label,
 .aqgp-kv td:first-child {
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.10em;
@@ -1191,7 +1192,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     width: 40px;
     padding: 9px 0 8px 10px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     font-weight: bold;
 }
@@ -1213,7 +1214,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     display: block;
     margin: 0 0 5px 0;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
 }
 
@@ -1252,7 +1253,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 
 .aqgp-kv td:last-child {
     color: #1e232a;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     word-break: break-all;
 }
@@ -1282,7 +1283,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     border-bottom: 1px solid #e4e7ec;
     background: #f5f6f8;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.08em;
@@ -1326,7 +1327,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-header__context {
     margin: 0 0 2px 0;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: normal;
     letter-spacing: 0.12em;
@@ -1359,7 +1360,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     padding-top: 4px;
     border-top: 1px solid #d4d8de;
     color: #8b929d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.6px;
     line-height: 1.25;
 }
@@ -1427,11 +1428,29 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-occurrences-title {
     margin: 8px 0 5px 0;
     color: #8b929d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
+}
+
+
+.aqgp-compact-pdf-notice {
+    margin: -4px 0 8px 0;
+    padding: 6px 8px;
+    border: 1px solid #d4d8de;
+    background: #f8fafc;
+    color: #5f6670;
+    font-size: 7.6px;
+    line-height: 1.35;
+}
+
+.aqgp-occurrences-compact-note {
+    margin: -2px 0 5px 0;
+    color: #5f6670;
+    font-size: 7.4px;
+    line-height: 1.35;
 }
 
 .aqgp-node__title {
@@ -1459,7 +1478,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     border: 0;
     background: #f5f6f8;
     color: #7d858f;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.08em;
@@ -1480,7 +1499,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     border-left: 3px solid #9aa3ae;
     background: #eceff3;
     color: #333943;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     line-height: 1.45;
     white-space: pre-wrap;
@@ -1538,7 +1557,7 @@ table.aqgp-card-table .aqgp-card__foot {
     border-left: 3px solid #9aa3ae;
     background: #eceff3;
     color: #333943;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     line-height: 1.45;
     white-space: pre-wrap;
@@ -1591,7 +1610,7 @@ table.aqgp-card-table .aqgp-card__foot {
     width: 38px;
     padding: 9px 0 8px 10px;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     font-weight: bold;
     line-height: 1.3;
@@ -1612,7 +1631,7 @@ table.aqgp-card-table .aqgp-card__foot {
 .aqgp-local-issue__sub {
     margin: 0 0 6px 0;
     color: #7c828d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     line-height: 1.25;
 }
@@ -1639,7 +1658,7 @@ table.aqgp-card-table .aqgp-card__foot {
     display: block;
     margin: 0 0 3px 0;
     color: #1f519b;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.12em;
@@ -1672,7 +1691,7 @@ table.aqgp-card-table .aqgp-card__foot {
 .aqgp-local-kv td:first-child {
     width: 96px;
     color: #8b929d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.10em;
@@ -1681,7 +1700,7 @@ table.aqgp-card-table .aqgp-card__foot {
 
 .aqgp-local-kv td:last-child {
     color: #4f5661;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 7.2px;
     word-break: break-all;
 }
@@ -1695,7 +1714,7 @@ table.aqgp-card-table .aqgp-card__foot {
     display: block;
     margin: 0 0 4px 0;
     color: #8b929d;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     font-weight: bold;
     letter-spacing: 0.10em;
@@ -1709,7 +1728,7 @@ table.aqgp-card-table .aqgp-card__foot {
     border-left: 3px solid #9aa3ae;
     background: #eceff3;
     color: #333943;
-    font-family: dejavusansmono, monospace;
+    font-family: courier, monospace;
     font-size: 6.8px;
     line-height: 1.45;
     white-space: pre-wrap;
@@ -1728,3 +1747,435 @@ table.aqgp-card-table.aqgp-card--needs_review .aqgp-card__label { color: #7c3aed
 .aqgp-issue--needs_review { border-left-color: #7c3aed; }
 .aqgp-cards td { width: 20%; }
 .aqgp-cards > tbody > tr > td { width: 20%; }
+
+/* Remote PRO reporting summary PDF sections */
+.aqgp-cards--report {
+    margin-bottom: 10px;
+}
+
+.aqgp-card__value--text,
+table.aqgp-card-table .aqgp-card__value--text {
+    font-size: 12px;
+    line-height: 1.15;
+}
+
+.aqgp-notice,
+.aqgp-disclaimer {
+    margin: 0 0 12px 0;
+    padding: 7px 9px;
+    border: 1px solid #d4d8de;
+    background: #f7f8fa;
+    color: #545b66;
+    font-size: 7.6px;
+    line-height: 1.45;
+}
+
+.aqgp-notice--small {
+    font-size: 7.2px;
+}
+
+.aqgp-priority-fix {
+    margin: 0 0 9px 0;
+    padding: 8px 9px;
+    border: 1px solid #d4d8de;
+    border-left: 3px solid #5b6068;
+    background: #ffffff;
+}
+
+.aqgp-priority-fix--critical {
+    border-left-color: #a32016;
+}
+
+.aqgp-priority-fix--warning {
+    border-left-color: #8c5a00;
+}
+
+.aqgp-priority-fix--info {
+    border-left-color: #1f519b;
+}
+
+.aqgp-priority-fix__head {
+    width: 100%;
+    margin: 0 0 5px 0;
+    border-collapse: collapse;
+}
+
+.aqgp-priority-fix__head td {
+    padding: 0;
+    border: 0;
+    vertical-align: top;
+}
+
+.aqgp-priority-fix__rank {
+    width: 28px;
+    color: #7c828d;
+    font-family: courier, monospace;
+    font-size: 8px;
+    font-weight: bold;
+}
+
+.aqgp-priority-fix__title {
+    color: #1e232a;
+    font-size: 9px;
+    font-weight: bold;
+}
+
+.aqgp-priority-fix__sub {
+    margin: 1px 0 4px 0;
+    color: #7c828d;
+    font-family: courier, monospace;
+    font-size: 6.8px;
+}
+
+.aqgp-badge-row--pdf {
+    margin: 4px 0 5px 0;
+}
+
+.aqgp-badge--guidance {
+    color: #545b66;
+    background: #f7f8fa;
+    border-color: #d4d8de;
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+.aqgp-guidance-box {
+    margin: 6px 0 0 0;
+    padding: 7px 8px;
+    border: 1px solid #d4d8de;
+    background: #fafbfc;
+}
+
+.aqgp-guidance-box--issue {
+    margin: 7px 0 8px 23px;
+}
+
+.aqgp-guidance-box__label {
+    display: block;
+    margin: 0 0 2px 0;
+    color: #545b66;
+    font-family: courier, monospace;
+    font-size: 6.8px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.aqgp-guidance-box p {
+    margin: 0 0 5px 0;
+    color: #1e232a;
+    font-size: 7.8px;
+    line-height: 1.45;
+}
+
+.aqgp-guidance-note {
+    margin-top: 5px;
+    color: #7c828d;
+    font-size: 6.8px;
+    line-height: 1.35;
+}
+
+.aqgp-table--wcag th,
+.aqgp-table--wcag td {
+    font-size: 7.2px;
+}
+
+.aqgp-table--wcag th:nth-child(4),
+.aqgp-table--wcag td:nth-child(4) {
+    border-left: 1px solid #d8dce2;
+}
+
+.aqgp-rule-chip {
+    display: inline-block;
+    margin: 0 3px 2px 0;
+    padding: 1px 4px;
+    border: 1px solid #d4d8de;
+    background: #f7f8fa;
+    color: #545b66;
+    font-family: courier, monospace;
+    font-size: 6.6px;
+    white-space: nowrap;
+}
+
+table.aqgp-card-table.aqgp-card--none {
+    border-left-color: #7c828d;
+}
+
+.aqgp-callout--summary {
+    border-color: #c5d4ea;
+    border-left-color: #1f519b;
+    background: #ecf1fa;
+}
+
+.aqgp-callout--summary .aqgp-callout__label {
+    color: #1f519b;
+}
+
+/* Remote reporting PDF cleanup */
+.aqgp-table--wcag {
+    table-layout: fixed;
+}
+
+.aqgp-table--wcag th {
+    letter-spacing: 0.02em;
+    word-spacing: 0;
+}
+
+.aqgp-table--wcag th:nth-child(1),
+.aqgp-table--wcag td:nth-child(1) {
+    width: 76px;
+}
+
+.aqgp-table--wcag th:nth-child(2),
+.aqgp-table--wcag td:nth-child(2) {
+    width: 42px;
+}
+
+.aqgp-table--wcag th:nth-child(3),
+.aqgp-table--wcag td:nth-child(3) {
+    width: 120px;
+}
+
+.aqgp-table--wcag th:nth-child(4),
+.aqgp-table--wcag td:nth-child(4),
+.aqgp-table--wcag th:nth-child(5),
+.aqgp-table--wcag td:nth-child(5) {
+    width: 52px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.aqgp-table--wcag th:nth-child(6),
+.aqgp-table--wcag td:nth-child(6) {
+    padding-left: 12px;
+    padding-right: 4px;
+}
+
+.aqgp-rule-chip {
+    max-width: 130px;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.aqgp-priority-fix__sub,
+.aqgp-table__sub,
+.aqgp-node pre,
+.aqgp-snippet pre {
+    word-break: break-word;
+}
+
+
+/* PRO reporting contract: manual review + reporting aid */
+.aqgp-notice--manual {
+    border-left: 3px solid #7c828d;
+    background: #f6f7f9;
+    color: #3d444f;
+}
+
+.aqgp-table--manual-review,
+.aqgp-table--reporting-groups {
+    table-layout: fixed;
+}
+
+.aqgp-table--manual-review th,
+.aqgp-table--manual-review td,
+.aqgp-table--reporting-groups th,
+.aqgp-table--reporting-groups td {
+    font-size: 7.1px;
+    line-height: 1.35;
+}
+
+.aqgp-table--manual-review th:nth-child(1),
+.aqgp-table--manual-review td:nth-child(1) {
+    width: 120px;
+}
+
+.aqgp-table--manual-review th:nth-child(2),
+.aqgp-table--manual-review td:nth-child(2) {
+    width: 72px;
+}
+
+.aqgp-table--manual-review th:nth-child(3),
+.aqgp-table--manual-review td:nth-child(3) {
+    width: 78px;
+}
+
+.aqgp-table--reporting-groups th:nth-child(1),
+.aqgp-table--reporting-groups td:nth-child(1) {
+    width: 110px;
+}
+
+.aqgp-table--reporting-groups th:nth-child(2),
+.aqgp-table--reporting-groups td:nth-child(2) {
+    width: 70px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.aqgp-table--reporting-groups th:nth-child(3),
+.aqgp-table--reporting-groups td:nth-child(3) {
+    width: 96px;
+}
+
+.aqgp-table__muted {
+    color: #7c828d;
+    font-size: 6.7px;
+}
+
+.aqgp-callout--compact {
+  margin-top: 6px;
+  padding: 7px 9px;
+}
+
+.aqgp-callout--compact p {
+  margin: 3px 0 0;
+}
+
+
+.aqgp-contrast-details {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #d4d8de;
+  background: #f8fafc;
+  font-size: 8px;
+  line-height: 1.35;
+  page-break-inside: avoid;
+}
+
+.aqgp-contrast-suggestion {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #d4d8de;
+  border-left: 3px solid #5b6ee1;
+  background: #ffffff;
+  font-size: 8px;
+  line-height: 1.35;
+  page-break-inside: avoid;
+}
+
+.aqgp-contrast-table,
+.aqgp-contrast-candidates-table {
+  width: 100%;
+  margin: 4px 0 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.aqgp-contrast-table th,
+.aqgp-contrast-table td,
+.aqgp-contrast-candidates-table td {
+  border: 1px solid #dfe3ea;
+  padding: 3px 5px;
+  vertical-align: top;
+  font-size: 7.8px;
+  line-height: 1.32;
+}
+
+.aqgp-contrast-table th {
+  width: 38%;
+  color: #5f6670;
+  background: #f1f3f6;
+  font-weight: bold;
+  text-align: left;
+}
+
+.aqgp-contrast-table td,
+.aqgp-contrast-candidates-table td {
+  color: #1e232a;
+  background: #ffffff;
+}
+
+.aqgp-contrast-table code,
+.aqgp-contrast-candidates-table code {
+  display: inline-block;
+  padding: 1px 3px;
+  border: 1px solid #d4d8de;
+  background: #f8fafc;
+  font-family: courier, monospace;
+  font-size: 7.4px;
+}
+
+.aqgp-color-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border: 1px solid #aeb4bd;
+  vertical-align: -1px;
+}
+
+.aqgp-contrast-candidates-group {
+  margin-top: 6px;
+  page-break-inside: avoid;
+}
+
+.aqgp-contrast-candidates__title {
+  margin: 0 0 2px;
+  color: #545b66;
+  font-family: courier, monospace;
+  font-size: 6.8px;
+  font-weight: bold;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.aqgp-contrast-candidates-table td:first-child {
+  width: 68%;
+}
+
+.aqgp-contrast-candidates-table td:last-child {
+  width: 32%;
+  color: #545b66;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.aqgp-compact-list {
+  margin: 4px 0 0;
+  padding-left: 12px;
+  font-size: 8.1px;
+  line-height: 1.35;
+}
+
+.aqgp-compact-list li {
+  margin: 2px 0;
+}
+
+.aqgp-callout--remediation {
+  border-left: 3px solid #7c3aed;
+}
+
+.aqgp-compact-list--remediation {
+  margin-top: 4px;
+}
+
+.aqgp-note-small {
+  margin: 5px 0 0;
+  color: #7c828d;
+  font-size: 7.2px;
+  line-height: 1.35;
+}
+
+.aqgp-candidate-label,
+.aqgp-candidate-explanation {
+  display: block;
+  margin-top: 2px;
+  color: #545b66;
+  font-size: 7.1px;
+  line-height: 1.25;
+}
+
+.aqgp-candidate-explanation {
+  color: #7c828d;
+}
+
+.aqgp-node-remediation {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #d4d8de;
+  border-left: 3px solid #1b7fbf;
+  background: #ffffff;
+  font-size: 8px;
+  line-height: 1.35;
+  page-break-inside: avoid;
+}

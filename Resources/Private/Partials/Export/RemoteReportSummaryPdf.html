@@ -1,0 +1,161 @@
+<f:if condition="{hasReportSummary}">
+    <table class="aqgp-section-title">
+        <tbody><tr><td>Report summary</td><td class="aqgp-section-title__right">{reportSummary.overallImpactLabel}</td></tr></tbody>
+    </table>
+
+
+    <f:if condition="{hasScore}">
+        <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact">
+            <span class="aqgp-callout__label">AQG signal</span>
+            <p><strong>{score.value} / {score.max}</strong></p>
+            <f:if condition="{score.label}"><p>{score.label}</p></f:if>
+        </div>
+    </f:if>
+
+    <table class="aqgp-cards aqgp-cards--report">
+        <tbody><tr>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--{reportSummary.overallImpactTone}"><tbody>
+                    <tr><td class="aqgp-card__label">Overall impact</td></tr>
+                    <tr><td class="aqgp-card__value aqgp-card__value--text">{reportSummary.overallImpactLabel}</td></tr>
+                    <tr><td class="aqgp-card__foot">highest priority signal</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--total"><tbody>
+                    <tr><td class="aqgp-card__label">Issues</td></tr>
+                    <tr><td class="aqgp-card__value">{reportSummary.issuesTotal}</td></tr>
+                    <tr><td class="aqgp-card__foot">{reportSummary.issuesLabel}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--info"><tbody>
+                    <tr><td class="aqgp-card__label">Affected pages</td></tr>
+                    <tr><td class="aqgp-card__value">{reportSummary.affectedPagesTotal}</td></tr>
+                    <tr><td class="aqgp-card__foot">{reportSummary.affectedPagesLabel}</td></tr>
+                </tbody></table>
+            </td>
+            <td>
+                <table class="aqgp-card aqgp-card-table aqgp-card--warning"><tbody>
+                    <tr><td class="aqgp-card__label">WCAG / priorities</td></tr>
+                    <tr><td class="aqgp-card__value aqgp-card__value--text">{reportSummary.wcagCriteriaTotal} / {reportSummary.priorityFixesTotal}</td></tr>
+                    <tr><td class="aqgp-card__foot">criteria / priority fixes</td></tr>
+                </tbody></table>
+            </td>
+        </tr></tbody>
+    </table>
+
+    <f:if condition="{reportSummary.topRecommendation}">
+        <div class="aqgp-callout aqgp-callout--summary">
+            <span class="aqgp-callout__label">Top recommendation</span>
+            <p>{reportSummary.topRecommendation}</p>
+        </div>
+    </f:if>
+
+    <f:if condition="{reportSummary.automatedCheckNotice}">
+        <div class="aqgp-notice aqgp-notice--small">{reportSummary.automatedCheckNotice}</div>
+    </f:if>
+    <f:if condition="{reportSummary.manualReviewNotice}">
+        <div class="aqgp-notice aqgp-notice--small aqgp-notice--manual">{reportSummary.manualReviewNotice}</div>
+    </f:if>
+
+    <f:if condition="{hasPageRecommendation}">
+        <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact">
+            <span class="aqgp-callout__label">Start here</span>
+            <p><strong>Suggested first step based on automated findings</strong></p>
+            <f:if condition="{pageRecommendation.summary}">
+                <p>{pageRecommendation.summary}</p>
+            </f:if>
+            <f:if condition="{pageRecommendation.hasFirstSteps}">
+                <ol class="aqgp-compact-list">
+                    <f:for each="{pageRecommendation.firstSteps}" as="step"><li>{step}</li></f:for>
+                </ol>
+            </f:if>
+            <ul class="aqgp-compact-list">
+                <f:if condition="{pageRecommendation.primaryRuleId}"><li><strong>Primary rule:</strong> <code>{pageRecommendation.primaryRuleId}</code></li></f:if>
+                <f:if condition="{pageRecommendation.primaryFixTypeLabel}"><li><strong>Primary fix type:</strong> {pageRecommendation.primaryFixTypeLabel}</li></f:if>
+                <f:if condition="{pageRecommendation.primaryOwnerLabel}"><li><strong>Suggested owner:</strong> {pageRecommendation.primaryOwnerLabel}</li></f:if>
+                <f:if condition="{pageRecommendation.quickWinsLabel}"><li><strong>Quick wins:</strong> {pageRecommendation.quickWinsLabel}</li></f:if>
+                <f:if condition="{pageRecommendation.manualReviewRequired}"><li><strong>Manual review:</strong> {pageRecommendation.manualReviewLabel}</li></f:if>
+                <f:if condition="{pageRecommendation.contentIssuesLabel}"><li><strong>Content:</strong> {pageRecommendation.contentIssuesLabel}</li></f:if>
+                <f:if condition="{pageRecommendation.templateIssuesLabel}"><li><strong>Template/component:</strong> {pageRecommendation.templateIssuesLabel}</li></f:if>
+                <f:if condition="{pageRecommendation.designIssuesLabel}"><li><strong>Design:</strong> {pageRecommendation.designIssuesLabel}</li></f:if>
+            </ul>
+        </div>
+    </f:if>
+
+    <f:if condition="{hasRemediationSummary}">
+        <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact aqgp-callout--remediation">
+            <span class="aqgp-callout__label">Suggested remediation grouping</span>
+            <f:if condition="{remediationSummary.hasItems}">
+                <ul class="aqgp-compact-list aqgp-compact-list--remediation">
+                    <f:for each="{remediationSummary.items}" as="item">
+                        <li><strong>{item.label}:</strong> <f:if condition="{item.countLabel}"><f:then>{item.countLabel}</f:then><f:else>{item.description}</f:else></f:if></li>
+                    </f:for>
+                </ul>
+            </f:if>
+            <f:if condition="{remediationSummary.recommendation}">
+                <p><strong>Recommendation:</strong> {remediationSummary.recommendation}</p>
+            </f:if>
+            <f:if condition="{remediationSummary.note}">
+                <p class="aqgp-note-small">{remediationSummary.note}</p>
+            </f:if>
+        </div>
+    </f:if>
+
+    <f:if condition="{hasComponentSummary}">
+        <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact">
+            <span class="aqgp-callout__label">Likely shared template/component issue</span>
+            <p><strong>{componentSummary.likelyRepeatedTemplateIssuesLabel}</strong></p>
+            <f:if condition="{componentSummary.hasTopRepeatedRules}">
+                <ul class="aqgp-compact-list">
+                    <f:for each="{componentSummary.topRepeatedRules}" as="rule">
+                        <li>
+                            <code>{rule.ruleId}</code> — {rule.issuesLabel}<f:if condition="{rule.affectedPagesLabel}"> / {rule.affectedPagesLabel}</f:if>
+                            <f:if condition="{rule.recommendedOwnerLabel}"> · Suggested owner: {rule.recommendedOwnerLabel}</f:if>
+                            <f:if condition="{rule.componentHint}"><br />{rule.componentHint}</f:if>
+                            <f:if condition="{rule.suggestedAction}"><br />Suggested action: {rule.suggestedAction}</f:if>
+                        </li>
+                    </f:for>
+                </ul>
+            </f:if>
+            <f:if condition="{componentSummary.note}"><p class="aqgp-note-small">{componentSummary.note}</p></f:if>
+        </div>
+    </f:if>
+
+    <f:if condition="{hasStructureSummary}">
+        <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact">
+            <span class="aqgp-callout__label">Template / structure signal</span>
+            <p>{structureSummary.landmarkIssuesLabel} across {structureSummary.affectedPagesLabel}</p>
+            <f:if condition="{structureSummary.likelyTemplateIssue}">
+                <p>Likely template/layout issue — review main, nav, header and footer landmarks.</p>
+            </f:if>
+            <f:if condition="{structureSummary.recommendation}">
+                <p>{structureSummary.recommendation}</p>
+            </f:if>
+            <f:if condition="{structureSummary.topRules}">
+                <p><strong>Top structure rules:</strong></p>
+                <ul class="aqgp-compact-list">
+                    <f:for each="{structureSummary.topRules}" as="rule">
+                        <li><code>{rule.ruleId}</code> — {rule.issuesLabel}<f:if condition="{rule.affectedPagesLabel}"> / {rule.affectedPagesLabel}</f:if></li>
+                    </f:for>
+                </ul>
+            </f:if>
+        </div>
+    </f:if>
+
+    <f:if condition="{hasKeyboardSummary}">
+        <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact">
+            <span class="aqgp-callout__label">Automated keyboard exploration signal</span>
+            <f:if condition="{keyboardSummary.tested}">
+                <f:then>
+                    <p>{keyboardSummary.focusStepsTotal} focus steps · {keyboardSummary.uniqueFocusedElementsTotal} unique focused elements · {keyboardSummary.possibleKeyboardTrapLabel} · {keyboardSummary.invisibleFocusIssuesLabel}</p>
+                    <p>{keyboardSummary.manualReviewLabel}</p>
+                </f:then>
+                <f:else>
+                    <p>Keyboard exploration not available for this scan.</p>
+                </f:else>
+            </f:if>
+        </div>
+    </f:if>
+</f:if>

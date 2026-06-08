@@ -49,6 +49,17 @@ final class RemoteScanResponseService
             'startedAt' => $summaryResult->startedAt,
             'finishedAt' => $summaryResult->finishedAt,
             'pagesTotal' => $summaryResult->pagesScanned,
+            'contrast' => property_exists($summaryResult, 'contrast') ? $summaryResult->contrast : [],
+            'contrastDetails' => property_exists($summaryResult, 'contrastDetails') ? $summaryResult->contrastDetails : [],
+            'score' => property_exists($summaryResult, 'score') ? $summaryResult->score : [],
+            'keyboardSummary' => property_exists($summaryResult, 'keyboardSummary') ? $summaryResult->keyboardSummary : [],
+            'structureSummary' => property_exists($summaryResult, 'structureSummary') ? $summaryResult->structureSummary : [],
+            'remediationSummary' => property_exists($summaryResult, 'remediationSummary') ? $summaryResult->remediationSummary : [],
+            'wcagSummary' => property_exists($summaryResult, 'wcagSummary') ? $summaryResult->wcagSummary : [],
+            'priorityFixes' => property_exists($summaryResult, 'priorityFixes') ? $summaryResult->priorityFixes : [],
+            'reportSummary' => property_exists($summaryResult, 'reportSummary') ? $summaryResult->reportSummary : [],
+            'manualReviewChecklist' => property_exists($summaryResult, 'manualReviewChecklist') ? $summaryResult->manualReviewChecklist : [],
+            'reportingGroups' => property_exists($summaryResult, 'reportingGroups') ? $summaryResult->reportingGroups : [],
             'pageUid' => $existingScan !== null
                 ? (int)($existingScan['page_uid'] ?? 0)
                 : $pageUid,

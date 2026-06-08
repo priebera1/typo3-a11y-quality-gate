@@ -1,0 +1,167 @@
+<table class="aqgp-section-title">
+    <tbody><tr><td>Top issues to fix first</td><td class="aqgp-section-title__right">{priorityFixesShownLabel}</td></tr></tbody>
+</table>
+<f:if condition="{priorityFixes}">
+    <f:then>
+        <f:for each="{priorityFixes}" as="fix">
+            <div class="aqgp-priority-fix aqgp-priority-fix--{fix.tone}">
+                <table class="aqgp-priority-fix__head">
+                    <tbody><tr>
+                        <td class="aqgp-priority-fix__rank">#{fix.rank}</td>
+                        <td>
+                            <div class="aqgp-priority-fix__title">{fix.title}</div>
+                            <div class="aqgp-priority-fix__sub">{fix.ruleId}</div>
+                            <div class="aqgp-badge-row aqgp-badge-row--pdf">
+                                <span class="aqgp-badge aqgp-badge--{fix.tone}">Impact: {fix.impactLabel}</span>
+                                <f:if condition="{fix.wcagCriterion}">
+                                    <span class="aqgp-badge aqgp-badge--none">{fix.wcagText}</span>
+                                </f:if>
+                                <span class="aqgp-badge aqgp-badge--none">{fix.issuesLabel}</span>
+                                <span class="aqgp-badge aqgp-badge--none">{fix.affectedPagesLabel}</span>
+                            </div>
+                        </td>
+                    </tr></tbody>
+                </table>
+
+                <f:if condition="{fix.whoShouldFix}">
+                    <span class="aqgp-badge aqgp-badge--guidance">Suggested owner: {fix.whoShouldFixLabel}</span>
+                </f:if>
+                <f:if condition="{fix.fixType}">
+                    <span class="aqgp-badge aqgp-badge--guidance">Suggested fix type: {fix.fixTypeLabel}</span>
+                </f:if>
+                <f:if condition="{fix.confidence}">
+                    <span class="aqgp-badge aqgp-badge--guidance">Guidance confidence: {fix.confidenceLabel}</span>
+                </f:if>
+
+                <f:if condition="{fix.guidanceHowToFix}">
+                    <div class="aqgp-guidance-box">
+                        <span class="aqgp-guidance-box__label">{fix.guidanceHeading}</span>
+                        <p>{fix.guidanceHowToFix}</p>
+                    </div>
+                </f:if>
+            </div>
+        </f:for>
+    </f:then>
+    <f:else>
+        <div class="aqgp-empty">
+            <p class="aqgp-empty__title">No priority fixes available</p>
+            <p class="aqgp-empty__body">This scan has no priority fix data. Older scans without guidance still export safely.</p>
+        </div>
+    </f:else>
+</f:if>
+
+<table class="aqgp-section-title">
+    <tbody><tr><td>WCAG breakdown</td><td class="aqgp-section-title__right">{wcagSummaryShownLabel}</td></tr></tbody>
+</table>
+<f:if condition="{wcagSummary}">
+    <f:then>
+        <table class="aqgp-table aqgp-table--wcag">
+            <thead>
+            <tr>
+                <th>Criterion</th>
+                <th>Level</th>
+                <th>Label</th>
+                <th class="num">Issues</th>
+                <th class="num">Pages</th>
+                <th>Top rules</th>
+            </tr>
+            </thead>
+            <tbody>
+            <f:for each="{wcagSummary}" as="criterion">
+                <tr>
+                    <td><span class="aqgp-table__title">WCAG {criterion.criterion}</span></td>
+                    <td><span class="aqgp-badge aqgp-badge--none">{criterion.level}</span></td>
+                    <td>{criterion.label}</td>
+                    <td class="num"><span class="aqgp-count aqgp-count--total">{criterion.issuesTotal}</span></td>
+                    <td class="num"><span class="aqgp-count aqgp-count--total">{criterion.affectedPagesTotal}</span></td>
+                    <td>
+                        <f:for each="{criterion.topRules}" as="rule">
+                            <span class="aqgp-rule-chip">{rule.label}</span>
+                        </f:for>
+                    </td>
+                </tr>
+            </f:for>
+            </tbody>
+        </table>
+    </f:then>
+    <f:else>
+        <div class="aqgp-empty">
+            <p class="aqgp-empty__title">No WCAG-mapped findings available</p>
+            <p class="aqgp-empty__body">This scan may contain findings that are not mapped to a specific WCAG success criterion.</p>
+        </div>
+    </f:else>
+</f:if>
+
+
+<f:if condition="{manualReviewChecklist}">
+    <table class="aqgp-section-title">
+        <tbody><tr><td>Manual review checklist</td><td class="aqgp-section-title__right">{manualReviewChecklistShownLabel}</td></tr></tbody>
+    </table>
+    <table class="aqgp-table aqgp-table--manual-review">
+        <thead>
+        <tr>
+            <th>Item</th>
+            <th>Status</th>
+            <th>Suggested owner</th>
+            <th>What to check</th>
+        </tr>
+        </thead>
+        <tbody>
+        <f:for each="{manualReviewChecklist}" as="item">
+            <tr>
+                <td>
+                    <span class="aqgp-table__title">{item.title}</span>
+                    <f:if condition="{item.categoryLabel}">
+                        <br><span class="aqgp-table__muted">{item.categoryLabel}</span>
+                    </f:if>
+                </td>
+                <td><span class="aqgp-badge aqgp-badge--guidance">{item.statusLabel}</span></td>
+                <td>
+                    <f:if condition="{item.recommendedOwnerLabel}">
+                        <f:then><span class="aqgp-badge aqgp-badge--none">{item.recommendedOwnerLabel}</span></f:then>
+                        <f:else>—</f:else>
+                    </f:if>
+                </td>
+                <td>{item.description}</td>
+            </tr>
+        </f:for>
+        </tbody>
+    </table>
+</f:if>
+
+<f:if condition="{hasReportingGroups}">
+    <table class="aqgp-section-title">
+        <tbody><tr><td>WCAG / BFSG / BITV reporting aid</td><td class="aqgp-section-title__right">{reportingGroupsShownLabel}</td></tr></tbody>
+    </table>
+    <div class="aqgp-notice aqgp-notice--small aqgp-notice--manual">
+        {reportingGroups.automatedIssuesLabel}. This section is a reporting aid based on automated findings and does not confirm compliance.
+    </div>
+    <table class="aqgp-table aqgp-table--reporting-groups">
+        <thead>
+        <tr>
+            <th>Group</th>
+            <th class="num">Mapped findings</th>
+            <th>WCAG criteria</th>
+            <th>Manual review</th>
+        </tr>
+        </thead>
+        <tbody>
+        <f:for each="{reportingGroups.groups}" as="group">
+            <tr>
+                <td><span class="aqgp-table__title">{group.title}</span></td>
+                <td class="num"><span class="aqgp-count aqgp-count--total">{group.automatedIssuesTotal}</span></td>
+                <td>{group.wcagCriteriaText}</td>
+                <td>
+                    <f:if condition="{group.manualReviewRequired}">
+                        <f:then><span class="aqgp-badge aqgp-badge--guidance">{group.manualReviewLabel}</span></f:then>
+                        <f:else>—</f:else>
+                    </f:if>
+                </td>
+            </tr>
+        </f:for>
+        </tbody>
+    </table>
+    <f:if condition="{reportingGroups.disclaimer}">
+        <div class="aqgp-notice aqgp-notice--small aqgp-notice--manual">{reportingGroups.disclaimer}</div>
+    </f:if>
+</f:if>

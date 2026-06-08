@@ -164,11 +164,24 @@ final class ProCrawlerService
         try {
             $responseDto = $this->crawlerClient->summary($token->accessToken, $jobId);
         } catch (ApiRequestFailedException $exception) {
-            throw new TokenRefreshException(
-                'Remote crawler summary request failed: ' . $exception->getMessage(),
-                0,
-                $exception
-            );
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler summary request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                $responseDto = $this->crawlerClient->summary($token->accessToken, $jobId);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler summary request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
         }
 
         if (!$responseDto->success || $responseDto->jobId === null) {
@@ -178,6 +191,16 @@ final class ProCrawlerService
         }
 
         return CrawlerSummaryResult::fromResponseDto($responseDto);
+    }
+
+    private function isTokenExpiredCrawlerException(ApiRequestFailedException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, '401')
+            || str_contains($message, 'token_expired')
+            || str_contains($message, 'expired token')
+            || str_contains($message, 'invalid token');
     }
 
     /**

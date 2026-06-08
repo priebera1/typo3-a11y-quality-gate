@@ -23,7 +23,7 @@ final class ProTokenService
     ) {
     }
 
-    public function getValidToken(string $domain, string $version): AccessTokenResult
+    public function getValidToken(string $domain, string $version, bool $forceRefresh = false): AccessTokenResult
     {
         if (!$this->proSettings->isConfigured()) {
             throw new ProNotConfiguredException('AQG PRO licence key is not configured.');
@@ -35,8 +35,8 @@ final class ProTokenService
         $cacheKey = $this->buildCacheKey($domain, $allSites);
         $cached = $this->cacheManager->getToken($cacheKey);
 
-        if (
-            $cached !== null
+        if (!$forceRefresh
+            && $cached !== null
             && !$cached->isExpiringSoon(ProConstants::TOKEN_REFRESH_MARGIN)
         ) {
             return $cached;

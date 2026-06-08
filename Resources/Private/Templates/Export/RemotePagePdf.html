@@ -3,11 +3,11 @@
 <f:section name="Content">
 
     <htmlpageheader name="aqgRemotePageHeader">
-        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:7.2px;"><tbody><tr>
+        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:courier, monospace; font-size:7.2px;"><tbody><tr>
             <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
                 <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
             </td>
-            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:dejavusansmono, monospace; font-size:7.2px; letter-spacing:0.04em;">
+            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:courier, monospace; font-size:7.2px; letter-spacing:0.04em;">
                 <div class="aqgp-header__context" style="color:#7c828d; font-weight:bold; letter-spacing:0.08em;">REMOTE PAGE DETAIL</div>
                 <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
             </td>
@@ -16,7 +16,7 @@
     <sethtmlpageheader name="aqgRemotePageHeader" value="on" show-this-page="1" />
 
     <htmlpagefooter name="aqgRemotePageFooter">
-        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:dejavusansmono, monospace; font-size:6.8px;"><tbody><tr>
+        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:courier, monospace; font-size:6.8px;"><tbody><tr>
             <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:left; width:55%;">AQG · Remote page detail · {relativeUrl}</td>
             <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
         </tr></tbody></table>
@@ -70,6 +70,8 @@
                 </div>
             </f:if>
 
+            <f:render partial="Export/RemoteReportSummaryPdf" arguments="{_all}" />
+
             <f:if condition="{screenshotAvailable}">
                 <table class="aqgp-section-title">
                     <tr>
@@ -80,12 +82,17 @@
                 <f:format.raw>{screenshotPlaceholder}</f:format.raw>
             </f:if>
 
+            <f:render partial="Export/RemoteReportingPdf" arguments="{_all}" />
+
             <table class="aqgp-section-title">
                 <tr>
                     <td>Issues</td>
                     <td class="aqgp-section-title__right">{issuesShownLabel}</td>
                 </tr>
             </table>
+            <div class="aqgp-compact-pdf-notice">
+                Compact PDF: showing up to 2 occurrences per issue group. Full node details are available in the HTML detail view and CSV export.
+            </div>
 
             <f:if condition="{hasIssues}">
                 <f:then>
@@ -129,8 +136,37 @@
                                 </f:if>
                             </table>
 
+
+                            <f:if condition="{issue.hasGuidance}">
+                                <div class="aqgp-guidance-box aqgp-guidance-box--issue">
+                                    <f:if condition="{issue.guidanceWhyItMatters}">
+                                        <span class="aqgp-guidance-box__label">Why it matters</span>
+                                        <p>{issue.guidanceWhyItMatters}</p>
+                                    </f:if>
+                                    <f:if condition="{issue.guidanceHowToFix}">
+                                        <span class="aqgp-guidance-box__label">{issue.guidanceHeading}</span>
+                                        <p>{issue.guidanceHowToFix}</p>
+                                    </f:if>
+                                    <div class="aqgp-badge-row aqgp-badge-row--pdf">
+                                        <f:if condition="{issue.whoShouldFix}">
+                                            <span class="aqgp-badge aqgp-badge--guidance">Suggested owner: {issue.whoShouldFixLabel}</span>
+                                        </f:if>
+                                        <f:if condition="{issue.fixType}">
+                                            <span class="aqgp-badge aqgp-badge--guidance">Suggested fix type: {issue.fixTypeLabel}</span>
+                                        </f:if>
+                                        <f:if condition="{issue.confidence}">
+                                            <span class="aqgp-badge aqgp-badge--guidance">Guidance confidence: {issue.confidenceLabel}</span>
+                                        </f:if>
+                                    </div>
+                                    <div class="aqgp-guidance-note">AQG guidance is based on the rule type and scan context. Review the affected element before applying changes.</div>
+                                </div>
+                            </f:if>
+
                             <f:if condition="{issue.hasNodes}">
                                 <div class="aqgp-occurrences-title">Occurrences</div>
+                                <f:if condition="{issue.pdfNodesWereTruncated}">
+                                    <div class="aqgp-occurrences-compact-note">{issue.pdfNodesShownLabel}</div>
+                                </f:if>
                                 <div class="aqgp-node-list">
                                     <f:for each="{issue.nodes}" as="node">
                                         <div class="aqgp-node">
@@ -146,6 +182,53 @@
                                             <f:if condition="{node.html_snippet}">
                                                 <pre>{node.html_snippet}</pre>
                                             </f:if>
+                                            <f:if condition="{node.hasContrastDetails}">
+                                                <div class="aqgp-contrast-details">
+                                                    <span class="aqgp-guidance-box__label">Contrast details</span>
+                                                    <f:for each="{node.contrastDetails}" as="contrast">
+                                                        <div class="aqgp-contrast-details__row">
+                                                            <f:if condition="{contrast.actualRatio}"><span>Actual ratio: <strong>{contrast.actualRatio}</strong></span></f:if>
+                                                            <f:if condition="{contrast.requiredRatio}"><span>Required ratio: <strong>{contrast.requiredRatio}</strong></span></f:if>
+                                                            <f:if condition="{contrast.foreground}"><span>Foreground: <code>{contrast.foreground}</code></span></f:if>
+                                                            <f:if condition="{contrast.background}"><span>Background: <code>{contrast.background}</code></span></f:if>
+                                                        </div>
+                                                        <f:if condition="{contrast.hasContrastSuggestion}">
+                                                            <div class="aqgp-contrast-suggestion">
+                                                                <span class="aqgp-guidance-box__label">Candidate colors</span>
+                                                                <div class="aqgp-contrast-details__row">
+                                                                    <f:if condition="{contrast.contrastSuggestion.currentForeground}"><span>Current foreground: <code>{contrast.contrastSuggestion.currentForeground}</code></span></f:if>
+                                                                    <f:if condition="{contrast.contrastSuggestion.currentBackground}"><span>Current background: <code>{contrast.contrastSuggestion.currentBackground}</code></span></f:if>
+                                                                    <f:if condition="{contrast.contrastSuggestion.actualRatio}"><span>Actual ratio: <strong>{contrast.contrastSuggestion.actualRatio}</strong></span></f:if>
+                                                                    <f:if condition="{contrast.contrastSuggestion.requiredRatio}"><span>Required ratio: <strong>{contrast.contrastSuggestion.requiredRatio}</strong></span></f:if>
+                                                                </div>
+                                                                <f:if condition="{contrast.contrastSuggestion.hasPreferredCandidate}">
+                                                                    <div class="aqgp-contrast-preferred">
+                                                                        Suggested candidate: <code>{contrast.contrastSuggestion.preferredCandidate.color}</code>
+                                                                        <f:if condition="{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}">
+                                                                            · Estimated contrast ratio: <strong>{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}</strong>
+                                                                        </f:if>
+                                                                    </div>
+                                                                </f:if>
+                                                                <f:if condition="{contrast.contrastSuggestion.hasSuggestedForegroundCandidates}">
+                                                                    <div class="aqgp-contrast-candidates">Foreground candidates:
+                                                                        <f:for each="{contrast.contrastSuggestion.suggestedForegroundCandidateDetails}" as="candidate">
+                                                                            <span class="aqgp-contrast-candidate"><code>{candidate.color}</code><f:if condition="{candidate.estimatedRatio}"> <small>est. {candidate.estimatedRatio}</small></f:if></span>
+                                                                        </f:for>
+                                                                    </div>
+                                                                </f:if>
+                                                                <f:if condition="{contrast.contrastSuggestion.hasSuggestedBackgroundCandidates}">
+                                                                    <div class="aqgp-contrast-candidates">Background candidates:
+                                                                        <f:for each="{contrast.contrastSuggestion.suggestedBackgroundCandidateDetails}" as="candidate">
+                                                                            <span class="aqgp-contrast-candidate"><code>{candidate.color}</code><f:if condition="{candidate.estimatedRatio}"> <small>est. {candidate.estimatedRatio}</small></f:if></span>
+                                                                        </f:for>
+                                                                    </div>
+                                                                </f:if>
+                                                                <f:if condition="{contrast.contrastSuggestion.note}"><p class="aqgp-note-small">{contrast.contrastSuggestion.note}</p></f:if>
+                                                            </div>
+                                                        </f:if>
+                                                    </f:for>
+                                                </div>
+                                            </f:if>
                                         </div>
                                     </f:for>
                                 </div>
@@ -156,11 +239,19 @@
                 </f:then>
                 <f:else>
                     <div class="aqgp-empty">
-                        <div class="aqgp-empty__title">No scan data for this page</div>
-                        <div class="aqgp-empty__body">Once this URL responds successfully and a remote scan completes, page detail findings will appear here.</div>
+                        <div class="aqgp-empty__title">No automated findings are stored for this page</div>
+                        <div class="aqgp-empty__body">This does not confirm accessibility conformance. Use manual review and the HTML detail view for the full context.</div>
                     </div>
                 </f:else>
             </f:if>
+
+            <table class="aqgp-section-title">
+                <tr>
+                    <td>Disclaimer</td>
+                    <td class="aqgp-section-title__right">automated report</td>
+                </tr>
+            </table>
+            <div class="aqgp-disclaimer">{disclaimerText}</div>
         </f:then>
         <f:else>
             <table class="aqgp-meta">

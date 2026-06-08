@@ -82,6 +82,21 @@ final class IssueRepository extends AbstractRepository
         $message = $this->effectiveMessage($violation);
         $hint = $this->effectiveHint($violation);
         $existing = $this->findByFingerprint($fingerprint, $ctx->siteIdentifier);
+        $recoveredBySourceAndRule = false;
+
+        if ($existing === null) {
+            $existing = $this->findResolvedBySourceAndRule(
+                siteIdentifier: $ctx->siteIdentifier,
+                pageUid: $ctx->pageUid,
+                sourceLangUid: $ctx->sourceLangUid,
+                sourceTable: $sourceTable,
+                sourceUid: $sourceUid,
+                sourceField: $sourceField,
+                sourceType: $sourceType,
+                ruleId: $violation->ruleId,
+            );
+            $recoveredBySourceAndRule = $existing !== null;
+        }
 
         if ($existing === null) {
             $this->getConnection(Tables::ISSUE)->insert(Tables::ISSUE, [
@@ -117,6 +132,17 @@ final class IssueRepository extends AbstractRepository
             && (int)($existing['ignored_until'] ?? 0) <= $now;
 
         if ($status->isProtected() && !$isExpiredIgnore) {
+            $this->touchProtectedSeenIssue(
+                issueUid: (int)$existing['uid'],
+                violation: $violation,
+                message: $message,
+                hint: $hint,
+                frontendUrl: $frontendUrl,
+                cssSelector: $cssSelector,
+                scanUid: $scanUid,
+                now: $now,
+            );
+
             return 'protected';
         }
 
@@ -136,14 +162,22 @@ final class IssueRepository extends AbstractRepository
             $update['status'] = IssueStatus::Open->value;
         }
 
+        if ($recoveredBySourceAndRule) {
+            $update['fingerprint'] = $fingerprint;
+        }
+
         if ($isExpiredIgnore) {
             $update['ignored_reopened_at'] = $now;
         }
 
-        $this->getConnection(Tables::ISSUE)->update(Tables::ISSUE, $update, [
-            'site_identifier' => $ctx->siteIdentifier,
-            'fingerprint' => $fingerprint,
-        ]);
+        $where = $recoveredBySourceAndRule
+            ? ['uid' => (int)$existing['uid']]
+            : [
+                'site_identifier' => $ctx->siteIdentifier,
+                'fingerprint' => $fingerprint,
+            ];
+
+        $this->getConnection(Tables::ISSUE)->update(Tables::ISSUE, $update, $where);
 
         return 'updated';
     }
@@ -161,6 +195,7 @@ final class IssueRepository extends AbstractRepository
         string $backendUserName = '',
         string $backendUsername = '',
         array $excludeSourceTypes = [],
+        ?array $includeRuleIds = null,
     ): int {
         $now = time();
         $qb = $this->getQueryBuilder(Tables::ISSUE);
@@ -215,6 +250,24 @@ final class IssueRepository extends AbstractRepository
                 $qb->expr()->notIn(
                     'source_type',
                     $qb->createNamedParameter($excludeSourceTypes, Connection::PARAM_STR_ARRAY)
+                )
+            );
+        }
+
+        if ($includeRuleIds !== null) {
+            $includeRuleIds = array_values(array_unique(array_filter(array_map(
+                static fn (mixed $ruleId): string => trim((string)$ruleId),
+                $includeRuleIds
+            ), static fn (string $ruleId): bool => $ruleId !== '')));
+
+            if ($includeRuleIds === []) {
+                return 0;
+            }
+
+            $qb->andWhere(
+                $qb->expr()->in(
+                    'rule_id',
+                    $qb->createNamedParameter($includeRuleIds, Connection::PARAM_STR_ARRAY)
                 )
             );
         }
@@ -1049,6 +1102,68 @@ final class IssueRepository extends AbstractRepository
             ->fetchAllAssociative();
     }
 
+    private function touchProtectedSeenIssue(
+        int $issueUid,
+        RuleViolation $violation,
+        string $message,
+        string $hint,
+        string $frontendUrl,
+        string $cssSelector,
+        int $scanUid,
+        int $now,
+    ): void {
+        // Intentionally no-op. Ignored and muted issues are protected user
+        // decisions and must not be overwritten by later scans, even when the
+        // same finding is detected again. In particular, last_seen_scan_uid must
+        // keep the original value so protected issues do not look like active
+        // findings from the latest scan. Expired ignores are handled before this
+        // method and may be reopened explicitly.
+        if ($issueUid <= 0) {
+            return;
+        }
+    }
+
+    /**
+     * Finds an old resolved issue for the same source/rule when the scanner still
+     * detects the finding but the generated fingerprint changed because snippet
+     * or context-path normalization changed between releases. Ignored and muted
+     * issues remain protected and are intentionally not reopened by this fallback.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function findResolvedBySourceAndRule(
+        string $siteIdentifier,
+        int $pageUid,
+        int $sourceLangUid,
+        string $sourceTable,
+        int $sourceUid,
+        string $sourceField,
+        string $sourceType,
+        string $ruleId,
+    ): ?array {
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+
+        $qb->select('uid', 'status', 'first_seen_scan_uid', 'ignored_until')
+            ->from(Tables::ISSUE)
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_lang_uid', $qb->createNamedParameter($sourceLangUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_table', $qb->createNamedParameter($sourceTable)),
+                $qb->expr()->eq('source_uid', $qb->createNamedParameter($sourceUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_field', $qb->createNamedParameter($sourceField)),
+                $qb->expr()->eq('source_type', $qb->createNamedParameter($sourceType)),
+                $qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId)),
+                $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Resolved->value, Connection::PARAM_INT)),
+            )
+            ->orderBy('tstamp', 'DESC')
+            ->setMaxResults(1);
+
+        $row = $qb->executeQuery()->fetchAssociative();
+
+        return $row ?: null;
+    }
+
     /**
      * @return array<string, mixed>|null
      */
@@ -1094,7 +1209,7 @@ final class IssueRepository extends AbstractRepository
         $qb = $this->getQueryBuilder(Tables::ISSUE);
 
         $row = $qb
-            ->select('uid', 'status', 'first_seen_scan_uid')
+            ->select('uid', 'status', 'first_seen_scan_uid', 'ignored_until')
             ->from(Tables::ISSUE)
             ->where(
                 $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),

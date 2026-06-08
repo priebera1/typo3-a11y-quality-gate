@@ -436,50 +436,139 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
+
+    public function findLastCompletedPageScanByPage(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
+    {
+        if ($siteIdentifier === '' || $pageUid <= 0) {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+
+        $queryBuilder
+            ->select('*')
+            ->from(Tables::REMOTE_SCAN)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'scan_scope',
+                    $queryBuilder->createNamedParameter('page')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'page_uid',
+                    $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'status',
+                    $queryBuilder->createNamedParameter('completed')
+                )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $row = $queryBuilder
+            ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function findLastCompletedPageScanByPageOrUrl(
+        string $siteIdentifier,
+        int $pageUid,
+        int $languageUid = -1,
+        string $url = '',
+    ): ?array {
+        if ($siteIdentifier === '' || ($pageUid <= 0 && trim($url) === '')) {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+        $matchExpressions = [];
+
+        if ($pageUid > 0) {
+            $matchExpressions[] = $queryBuilder->expr()->eq(
+                'rs.page_uid',
+                $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)
+            );
+        }
+
+        $urlVariants = $this->buildUrlVariants($url);
+        if ($urlVariants !== []) {
+            $matchExpressions[] = $queryBuilder->expr()->in(
+                'rs.start_url',
+                $queryBuilder->createNamedParameter($urlVariants, Connection::PARAM_STR_ARRAY)
+            );
+            $matchExpressions[] = $queryBuilder->expr()->in(
+                'rsp.url',
+                $queryBuilder->createNamedParameter($urlVariants, Connection::PARAM_STR_ARRAY)
+            );
+        }
+
+        if ($matchExpressions === []) {
+            return null;
+        }
+
+        $queryBuilder
+            ->select('rs.*')
+            ->distinct()
+            ->from(Tables::REMOTE_SCAN, 'rs')
+            ->leftJoin(
+                'rs',
+                Tables::REMOTE_SCAN_PAGE,
+                'rsp',
+                $queryBuilder->expr()->eq('rsp.remote_scan', 'rs.uid')
+            )
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'rs.site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.scan_scope',
+                    $queryBuilder->createNamedParameter('page')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.status',
+                    $queryBuilder->createNamedParameter('completed')
+                )
+            )
+            ->andWhere($queryBuilder->expr()->or(...$matchExpressions));
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid, 'rs');
+
+        $row = $queryBuilder
+            ->orderBy('rs.finished_at', 'DESC')
+            ->addOrderBy('rs.uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
+
     public function findLastCompletedRelevantScan(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
     {
         if ($pageUid > 0) {
-            $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
-
-            $queryBuilder
-                ->select('*')
-                ->from(Tables::REMOTE_SCAN)
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        'site_identifier',
-                        $queryBuilder->createNamedParameter($siteIdentifier)
-                    )
-                )
-                ->andWhere(
-                    $queryBuilder->expr()->eq(
-                        'scan_scope',
-                        $queryBuilder->createNamedParameter('page')
-                    )
-                )
-                ->andWhere(
-                    $queryBuilder->expr()->eq(
-                        'page_uid',
-                        $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)
-                    )
-                )
-                ->andWhere(
-                    $queryBuilder->expr()->eq(
-                        'status',
-                        $queryBuilder->createNamedParameter('completed')
-                    )
-                );
-
-            $this->addLanguageConstraint($queryBuilder, $languageUid);
-
-            $row = $queryBuilder
-                ->orderBy('finished_at', 'DESC')
-                ->addOrderBy('uid', 'DESC')
-                ->setMaxResults(1)
-                ->executeQuery()
-                ->fetchAssociative();
-
-            if (is_array($row)) {
-                return $row;
+            $pageScan = $this->findLastCompletedPageScanByPage($siteIdentifier, $pageUid, $languageUid);
+            if (is_array($pageScan)) {
+                return $pageScan;
             }
         }
 
@@ -623,20 +712,22 @@ final class RemoteScanRepository extends AbstractRepository
         return $this->findLatestActiveSiteScanBySite($siteIdentifier, $languageUid);
     }
 
-    private function addLanguageConstraint(QueryBuilder $queryBuilder, int $languageUid): void
+    private function addLanguageConstraint(QueryBuilder $queryBuilder, int $languageUid, string $alias = ''): void
     {
         if ($languageUid < 0) {
             return;
         }
 
+        $field = $alias !== '' ? $alias . '.language_uid' : 'language_uid';
+
         $queryBuilder->andWhere(
             $queryBuilder->expr()->or(
                 $queryBuilder->expr()->eq(
-                    'language_uid',
+                    $field,
                     $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)
                 ),
                 $queryBuilder->expr()->eq(
-                    'language_uid',
+                    $field,
                     $queryBuilder->createNamedParameter(-1, Connection::PARAM_INT)
                 )
             )
@@ -691,6 +782,9 @@ final class RemoteScanRepository extends AbstractRepository
                 'failure_reason' => (string)($page['failureReason'] ?? ''),
                 'is_failed' => (int)($page['isFailed'] ?? 0),
                 'external_page_id' => (string)($page['pageId'] ?? ''),
+                'keyboard_summary_json' => $this->encodeJsonForColumn($page['keyboardSummary'] ?? $page['keyboard_summary'] ?? []),
+                'remediation_summary_json' => $this->encodeJsonForColumn($page['remediationSummary'] ?? $page['remediation_summary'] ?? $page['remediation'] ?? []),
+                'page_recommendation_json' => $this->encodeJsonForColumn($page['pageRecommendation'] ?? $page['page_recommendation'] ?? $page['recommendation'] ?? []),
                 'crdate' => $now,
                 'tstamp' => $now,
             ]);
@@ -699,6 +793,19 @@ final class RemoteScanRepository extends AbstractRepository
         }
 
         return $pageUidByUrl;
+    }
+
+    private function encodeJsonForColumn(mixed $value): string
+    {
+        if (!is_array($value) || $value === []) {
+            return '';
+        }
+
+        try {
+            return json_encode($value, JSON_THROW_ON_ERROR) ?: '';
+        } catch (\JsonException) {
+            return '';
+        }
     }
 
     public function countPagesForScan(int $remoteScanUid, bool $failed, string $search = ''): int

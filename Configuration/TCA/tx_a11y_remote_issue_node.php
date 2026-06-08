@@ -56,6 +56,13 @@ return [
                 'readOnly' => true,
             ],
         ],
+        'contrast_details_json' => [
+            'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_issue_node.field.contrast_details_json',
+            'config' => [
+                'type' => 'text',
+                'readOnly' => true,
+            ],
+        ],
         'mapped_table' => [
             'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_issue_node.field.mapped_table',
             'config' => [
@@ -93,7 +100,7 @@ return [
                 --div--;LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_issue_node.tab.mapping,
                     mapped_table, mapped_uid, mapped_cid, mapped_ctype,
                 --div--;LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_issue_node.tab.artifacts,
-                    screenshot_path, screenshot_url
+                    screenshot_path, screenshot_url, contrast_details_json
             ',
         ],
     ],

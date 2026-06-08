@@ -23,7 +23,9 @@ final class PdfGenerator
         $tempDir = $this->prepareTempDir();
 
         $mpdf = new Mpdf([
+            'mode' => 'c',
             'format' => 'A4',
+            'default_font' => 'helvetica',
             'margin_top' => 28,
             'margin_right' => 14,
             'margin_bottom' => 18,
@@ -33,6 +35,16 @@ final class PdfGenerator
             'tempDir' => $tempDir,
         ]);
 
+        $mpdf->autoScriptToLang = false;
+        $mpdf->autoLangToFont = false;
+        $mpdf->useSubstitutions = false;
+        if (property_exists($mpdf, 'simpleTables')) {
+            $mpdf->simpleTables = true;
+        }
+        if (property_exists($mpdf, 'packTableData')) {
+            $mpdf->packTableData = true;
+        }
+        $mpdf->SetDefaultFont('helvetica');
         $mpdf->SetTitle($title);
         $mpdf->SetAuthor('Accessibility Quality Gate');
 

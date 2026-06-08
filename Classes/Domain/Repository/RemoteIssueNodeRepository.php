@@ -51,6 +51,29 @@ final class RemoteIssueNodeRepository extends AbstractRepository
             $aqgMapping = [];
         }
 
+        $contrastDetails = $this->normalizeContrastDetailsForStorage(
+            $node['contrastDetails'] ?? $node['contrast_details'] ?? []
+        );
+        $contrastSuggestion = $this->normalizeContrastSuggestionForStorage(
+            $node['contrastSuggestion'] ?? $node['contrast_suggestion'] ?? []
+        );
+        if ($contrastSuggestion !== []) {
+            if ($contrastDetails === []) {
+                $contrastDetails[] = [
+                    'contrastSuggestion' => $contrastSuggestion,
+                ];
+            } else {
+                $firstKey = array_key_first($contrastDetails);
+                if ($firstKey !== null && is_array($contrastDetails[$firstKey])) {
+                    $contrastDetails[$firstKey]['contrastSuggestion'] ??= $contrastSuggestion;
+                }
+            }
+        }
+
+        $nodeRemediation = $this->normalizeNodeRemediationForStorage(
+            $node['nodeRemediation'] ?? $node['node_remediation'] ?? []
+        );
+
         $connection->insert(Tables::REMOTE_ISSUE_NODE, [
             'pid' => $pid,
             'remote_issue' => $remoteIssueUid,
@@ -59,6 +82,8 @@ final class RemoteIssueNodeRepository extends AbstractRepository
             'failure_summary' => (string)($node['failureSummary'] ?? ''),
             'screenshot_path' => (string)($node['screenshotPath'] ?? ''),
             'screenshot_url' => (string)($node['screenshotUrl'] ?? ''),
+            'contrast_details_json' => $this->encodeJsonForColumn($contrastDetails),
+            'node_remediation_json' => $this->encodeJsonForColumn($nodeRemediation),
             'mapped_table' => (string)($aqgMapping['table'] ?? ''),
             'mapped_uid' => (int)($aqgMapping['uid'] ?? 0),
             'mapped_cid' => (string)($aqgMapping['cid'] ?? ''),
@@ -66,6 +91,82 @@ final class RemoteIssueNodeRepository extends AbstractRepository
             'crdate' => $now,
             'tstamp' => $now,
         ]);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeContrastDetailsForStorage(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        if ($value !== [] && !array_is_list($value)) {
+            $value = [$value];
+        }
+
+        return array_values(array_filter($value, static fn (mixed $item): bool => is_array($item)));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeContrastSuggestionForStorage(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $hasCandidates = is_array($value['suggestedForegroundCandidates'] ?? null)
+            || is_array($value['suggested_foreground_candidates'] ?? null)
+            || is_array($value['suggestedBackgroundCandidates'] ?? null)
+            || is_array($value['suggested_background_candidates'] ?? null);
+        $hasRatios = isset($value['actualRatio']) || isset($value['actual_ratio']) || isset($value['requiredRatio']) || isset($value['required_ratio']);
+        $hasColors = isset($value['currentForeground']) || isset($value['current_foreground']) || isset($value['currentBackground']) || isset($value['current_background']);
+        $hasCandidateDetails = is_array($value['suggestedForegroundCandidateDetails'] ?? null)
+            || is_array($value['suggested_foreground_candidate_details'] ?? null)
+            || is_array($value['suggestedBackgroundCandidateDetails'] ?? null)
+            || is_array($value['suggested_background_candidate_details'] ?? null);
+        $hasPreferredCandidate = isset($value['preferredCandidate'])
+            || isset($value['preferred_candidate'])
+            || isset($value['preferredCandidateEstimatedRatio'])
+            || isset($value['preferred_candidate_estimated_ratio'])
+            || isset($value['estimatedRatio'])
+            || isset($value['estimated_ratio']);
+        $hasReviewFields = isset($value['riskLevel']) || isset($value['risk_level']) || isset($value['reviewHint']) || isset($value['review_hint']) || isset($value['candidateType']) || isset($value['candidate_type']);
+        $hasNote = trim((string)($value['note'] ?? '')) !== '';
+
+        return ($hasCandidates || $hasCandidateDetails || $hasPreferredCandidate || $hasRatios || $hasColors || $hasReviewFields || $hasNote) ? $value : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeNodeRemediationForStorage(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $hasText = trim((string)($value['summary'] ?? $value['documentationHint'] ?? $value['documentation_hint'] ?? '')) !== '';
+        $hasSteps = is_array($value['steps'] ?? null) && $value['steps'] !== [];
+        $hasMeta = trim((string)($value['recommendedOwner'] ?? $value['recommended_owner'] ?? $value['fixType'] ?? $value['fix_type'] ?? $value['confidence'] ?? '')) !== '';
+
+        return ($hasText || $hasSteps || $hasMeta) ? $value : [];
+    }
+
+    private function encodeJsonForColumn(mixed $value): string
+    {
+        if (!is_array($value) || $value === []) {
+            return '';
+        }
+
+        try {
+            return json_encode($value, JSON_THROW_ON_ERROR) ?: '';
+        } catch (\JsonException) {
+            return '';
+        }
     }
 
     public function findByRemoteIssue(int $remoteIssueUid): array

@@ -394,8 +394,8 @@ final class PageModuleIndicatorService
 
         if ($state === 'ok') {
             return $hasRemoteCompletedScan
-                ? $this->translate('pageModuleIndicator.body.okWithRemote', 'This page currently passes the configured accessibility checks. Review AQG for frontend results.')
-                : $this->translate('pageModuleIndicator.body.ok', 'This page currently passes the configured accessibility checks.');
+                ? $this->translate('pageModuleIndicator.body.okWithRemote', 'No automated local findings are currently stored for this page. Review AQG for frontend results.')
+                : $this->translate('pageModuleIndicator.body.ok', 'No automated local findings are currently stored for this page.');
         }
 
         if ($state === 'warning') {

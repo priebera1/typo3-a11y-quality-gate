@@ -13,14 +13,30 @@ final class ExportUrlBuilderService
     ) {
     }
 
-    public function buildOverviewCsvUrl(string $siteIdentifier, bool $remote = false): string
-    {
-        return $this->buildRouteUrl('web_a11y.exportCsv', $this->buildOverviewParameters($siteIdentifier, $remote));
+    public function buildOverviewCsvUrl(
+        string $siteIdentifier,
+        bool $remote = false,
+        ?int $pageUid = null,
+        int $languageUid = 0,
+        int $remoteScanUid = 0,
+    ): string {
+        return $this->buildRouteUrl(
+            'web_a11y.exportCsv',
+            $this->buildOverviewParameters($siteIdentifier, $remote, $pageUid, $languageUid, $remoteScanUid)
+        );
     }
 
-    public function buildOverviewPdfUrl(string $siteIdentifier, bool $remote = false): string
-    {
-        return $this->buildRouteUrl('web_a11y.exportPdf', $this->buildOverviewParameters($siteIdentifier, $remote));
+    public function buildOverviewPdfUrl(
+        string $siteIdentifier,
+        bool $remote = false,
+        ?int $pageUid = null,
+        int $languageUid = 0,
+        int $remoteScanUid = 0,
+    ): string {
+        return $this->buildRouteUrl(
+            'web_a11y.exportPdf',
+            $this->buildOverviewParameters($siteIdentifier, $remote, $pageUid, $languageUid, $remoteScanUid)
+        );
     }
 
     public function buildLocalPageCsvUrl(
@@ -70,14 +86,29 @@ final class ExportUrlBuilderService
         ]);
     }
 
-    private function buildOverviewParameters(string $siteIdentifier, bool $remote): array
-    {
+    private function buildOverviewParameters(
+        string $siteIdentifier,
+        bool $remote,
+        ?int $pageUid = null,
+        int $languageUid = 0,
+        int $remoteScanUid = 0,
+    ): array {
         $parameters = [
             'site' => $siteIdentifier,
         ];
 
+        if ($pageUid !== null && $pageUid > 0) {
+            $parameters['id'] = $pageUid;
+            $parameters['pageUid'] = $pageUid;
+        }
+
+        $parameters['language'] = $languageUid;
+
         if ($remote) {
             $parameters['scope'] = 'remote';
+            if ($remoteScanUid > 0) {
+                $parameters['remoteScanUid'] = $remoteScanUid;
+            }
         }
 
         return $parameters;

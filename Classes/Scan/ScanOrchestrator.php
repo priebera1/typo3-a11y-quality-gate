@@ -17,6 +17,30 @@ use Psr\Log\LoggerInterface;
 
 final class ScanOrchestrator
 {
+    /**
+     * Rendered checks are executed by the rendered HTML analyzer instead of the
+     * local RuleRegistry. Keep their rule IDs here so a completed rendered scan
+     * can still safely resolve stale rendered findings without allowing failed
+     * or skipped local rules to resolve unrelated issues.
+     *
+     * @var string[]
+     */
+    private const RENDERED_RULE_IDS = [
+        'rendered.duplicate_id',
+        'rendered.empty_button',
+        'rendered.empty_heading',
+        'rendered.empty_link',
+        'rendered.form_control_missing_label',
+        'rendered.html_lang_missing',
+        'rendered.iframe_missing_title',
+        'rendered.img_missing_alt',
+        'rendered.main_landmark_missing',
+        'rendered.page_title_missing',
+        'rendered.svg_missing_accessible_name',
+        'rendered.table_empty_header',
+        'rendered.table_missing_header',
+    ];
+
     public function __construct(
         private readonly PageCollector $pageCollector,
         private readonly ContentCollector $contentCollector,
@@ -206,6 +230,7 @@ final class ScanOrchestrator
         $result->pagesScanned++;
 
         $seenFingerprintsForPage = [];
+        $evaluatedRuleIdsForPage = [];
         $pendingHeaderLevelIsH1Violations = [];
         $renderedCheckCompleted = false;
         $suppressStructuredHeaderLevelIsH1 = false;
@@ -276,6 +301,7 @@ final class ScanOrchestrator
                     scanUid: $scanUid,
                     result: $result,
                     seenFingerprintsForPage: $seenFingerprintsForPage,
+                    evaluatedRuleIdsForPage: $evaluatedRuleIdsForPage,
                 );
 
                 $this->sourceStateRepository->upsertHash(
@@ -339,7 +365,7 @@ final class ScanOrchestrator
                     ),
                 );
 
-                $violations = $this->runRulesFor($ctx);
+                $violations = $this->runRulesFor($ctx, $evaluatedRuleIdsForPage);
                 $nonDeferredViolations = [];
                 foreach ($violations as $violation) {
                     if ($violation->ruleId === 'structured.header_level_is_h1') {
@@ -395,6 +421,7 @@ final class ScanOrchestrator
                     scanUid: $scanUid,
                     result: $result,
                     seenFingerprintsForPage: $seenFingerprintsForPage,
+                    evaluatedRuleIdsForPage: $evaluatedRuleIdsForPage,
                 );
 
                 $recordHadProcessedField = true;
@@ -458,6 +485,9 @@ final class ScanOrchestrator
                         $renderedSettings['allowPrivateHosts']
                     );
                     $renderedCheckCompleted = $renderedResult->completed;
+                    if ($renderedCheckCompleted) {
+                        array_push($evaluatedRuleIdsForPage, ...self::RENDERED_RULE_IDS);
+                    }
                     $suppressStructuredHeaderLevelIsH1 = $renderedCheckCompleted && $renderedResult->h1Count === 1;
                     $this->logger->debug('Rendered H1 suppression evaluation finished.', [
                         'siteIdentifier' => $siteIdentifier,
@@ -544,6 +574,7 @@ final class ScanOrchestrator
                 scanUid: $scanUid,
                 resolvedBy: $resolvedBy,
                 excludeSourceTypes: ($includeRenderedPageCheck && !$renderedCheckCompleted) ? ['rendered'] : [],
+                includeRuleIds: $evaluatedRuleIdsForPage,
             );
 
             $result->issuesResolved += $resolved;
@@ -576,8 +607,9 @@ final class ScanOrchestrator
         int $scanUid,
         ScanResult $result,
         array &$seenFingerprintsForPage,
+        array &$evaluatedRuleIdsForPage,
     ): void {
-        $violations = $this->runRulesFor($ctx);
+        $violations = $this->runRulesFor($ctx, $evaluatedRuleIdsForPage);
 
         $this->issuePersistenceCoordinator->persistViolations(
             violations: $violations,
@@ -591,21 +623,23 @@ final class ScanOrchestrator
     /**
      * @return array<int, \Priebera\A11yQualityGate\Rule\RuleViolation>
      */
-    private function runRulesFor(CheckContext $ctx): array
+    private function runRulesFor(CheckContext $ctx, array &$evaluatedRuleIds = []): array
     {
         $violations = [];
 
         foreach ($this->ruleRegistry->getRulesFor($ctx) as $rule) {
-            if (!$this->ruleConfigurationService->isRuleEnabledForSite($ctx->siteIdentifier, $rule->getRuleId())) {
+            $ruleId = $rule->getRuleId();
+            if (!$this->ruleConfigurationService->isRuleEnabledForSite($ctx->siteIdentifier, $ruleId)) {
                 continue;
             }
 
             try {
                 $ruleViolations = $rule->check($ctx);
+                $evaluatedRuleIds[] = $ruleId;
                 array_push($violations, ...$ruleViolations);
             } catch (\Throwable $e) {
                 $this->logger->warning('Rule check failed', [
-                    'ruleId' => $rule->getRuleId(),
+                    'ruleId' => $ruleId,
                     'sourceUid' => $ctx->sourceUid,
                     'field' => $ctx->sourceField,
                     'sourceTable' => $ctx->sourceTable,
