@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\Rte\DuplicateIdRule;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 
 final class DuplicateIdRuleTest extends TestCase
 {
@@ -17,7 +18,13 @@ final class DuplicateIdRuleTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->rule = new DuplicateIdRule();
+        $metadataPresentationService = $this->createStub(RuleMetadataPresentationService::class);
+        $metadataPresentationService->method('friendlyTitleForRule')->willReturn('Duplicate ID');
+        $metadataPresentationService->method('present')->willReturn([
+            'howToFix' => 'Use a unique ID for each element.',
+        ]);
+
+        $this->rule = new DuplicateIdRule($metadataPresentationService);
     }
 
     #[Test]

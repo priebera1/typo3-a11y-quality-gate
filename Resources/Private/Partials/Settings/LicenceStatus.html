@@ -43,7 +43,7 @@
                     </div>
 
                     <div class="aqg-licence-status__foot">
-                        <a href="{pricingUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.upgradeToPro" default="Upgrade to PRO" /></a>
+                        <a href="{pricingUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.upgradeToPro" default="Upgrade to PRO" /></a>
                     </div>
                 </section>
             </f:then>
@@ -74,7 +74,8 @@
                                 <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.prioritySupport" default="Priority support" /></div>
                             </div>
                             <div class="aqg-licence-status__foot">
-                                <a href="{portalUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                                <a href="{portalUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                                <a href="{supportUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
                             </div>
                         </section>
                     </f:then>
@@ -103,7 +104,8 @@
                                 <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.advancedRuleOverrides" default="Advanced rule overrides" /></div>
                             </div>
                             <div class="aqg-licence-status__foot">
-                                <a href="{portalUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                                <a href="{portalUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                                <a href="{supportUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
                             </div>
                         </section>
                     </f:else>
@@ -112,7 +114,7 @@
         </f:if>
     </f:then>
     <f:else>
-        <f:if condition="{licenceKey}">
+        <f:if condition="{hasLicenceKey}">
             <f:then>
                 <section class="aqg-licence-status tone-error">
                     <div class="aqg-licence-status__head">
@@ -126,7 +128,7 @@
                         <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.reason" default="Reason" /></dt><dd><f:if condition="{proStatus.reasonLabel}"><f:then>{proStatus.reasonLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Validation failed" /></f:else></f:if></dd>
                     </dl>
                     <div class="aqg-licence-status__foot">
-                        <a href="{contactUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
+                        <a href="{supportUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
                     </div>
                 </section>
             </f:then>
@@ -145,7 +147,7 @@
                         <div class="aqg-licence-status__feature aqg-licence-status__feature--off"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'minus'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.free.noBlockingGate" default="Block-on-publish gate" /></div>
                     </div>
                     <div class="aqg-licence-status__foot">
-                        <a href="{trialUrl}" class="btn btn-primary btn-sm" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.startTrial" default="Start trial" /></a>
+                        <a href="{trialUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.startTrial" default="Start trial" /></a>
                     </div>
                 </section>
             </f:else>

@@ -139,6 +139,207 @@ final class AqgCrawlerClient
         return CrawlerResultsResponseDto::fromArray($payload);
     }
 
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function history(
+        string $accessToken,
+        string $siteId,
+        int $limit = 10,
+        string $sourceType = '',
+        string $startUrl = '',
+        string $status = ''
+    ): array {
+        $queryParameters = [
+            'siteId' => $siteId,
+            'limit' => max(1, min(100, $limit)),
+        ];
+
+        if (trim($sourceType) !== '') {
+            $queryParameters['sourceType'] = trim($sourceType);
+        }
+
+        if (trim($startUrl) !== '') {
+            $queryParameters['startUrl'] = trim($startUrl);
+        }
+
+        if (trim($status) !== '') {
+            $queryParameters['status'] = trim($status);
+        }
+
+        $query = http_build_query($queryParameters, '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/history?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function latest(string $accessToken, string $siteId): array
+    {
+        $query = http_build_query([
+            'siteId' => $siteId,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/latest?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function compare(string $accessToken, string $fromJobId, string $toJobId): array
+    {
+        $query = http_build_query([
+            'fromJobId' => $fromJobId,
+            'toJobId' => $toJobId,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/compare?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function progressSummary(string $accessToken, string $siteId): array
+    {
+        $query = http_build_query([
+            'siteId' => $siteId,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/progress-summary?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function regressionAlert(
+        string $accessToken,
+        string $siteId,
+        string $sourceType,
+        string $startUrl = '',
+        string $language = 'en'
+    ): array {
+        $queryParameters = [
+            'siteId' => $siteId,
+            'sourceType' => $sourceType,
+            'language' => $language,
+        ];
+
+        if (trim($startUrl) !== '') {
+            $queryParameters['startUrl'] = trim($startUrl);
+        }
+
+        $query = http_build_query($queryParameters, '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/regression-alert?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function remediationPlan(string $accessToken, string $jobId): array
+    {
+        return $this->requestJson(
+            '/crawl/remediation-plan/' . rawurlencode($jobId),
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function latestRemediationPlan(
+        string $accessToken,
+        string $siteId,
+        string $sourceType,
+        ?string $startUrl = null
+    ): array {
+        $queryParameters = [
+            'siteId' => $siteId,
+            'sourceType' => $sourceType,
+        ];
+
+        if ($startUrl !== null && trim($startUrl) !== '') {
+            $queryParameters['startUrl'] = trim($startUrl);
+        }
+
+        $query = http_build_query($queryParameters, '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/remediation-plan/latest?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function accessibilityStatement(string $accessToken, string $jobId, string $language = 'en'): array
+    {
+        $query = http_build_query([
+            'language' => $language,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/accessibility-statement/' . rawurlencode($jobId) . '?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function latestAccessibilityStatement(
+        string $accessToken,
+        string $siteId,
+        string $sourceType,
+        string $startUrl = '',
+        string $language = 'en'
+    ): array {
+        $queryParameters = [
+            'siteId' => $siteId,
+            'sourceType' => $sourceType,
+            'language' => $language,
+        ];
+
+        if (trim($startUrl) !== '') {
+            $queryParameters['startUrl'] = trim($startUrl);
+        }
+
+        $query = http_build_query($queryParameters, '', '&', PHP_QUERY_RFC3986);
+
+        return $this->requestJson(
+            '/crawl/accessibility-statement/latest?' . $query,
+            'GET',
+            $accessToken
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -11,7 +11,9 @@ use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class RemoteExportBuilder
 {
@@ -40,6 +42,7 @@ final class RemoteExportBuilder
         private readonly ExtensionContextService $extensionContextService,
         private readonly PdfGenerator $pdfGenerator,
         private readonly PdfTemplateRenderer $pdfTemplateRenderer,
+        private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
     ) {
     }
 
@@ -142,7 +145,11 @@ final class RemoteExportBuilder
             return;
         }
 
-        $issueRows = $this->preparePageIssueRows($remotePageUid);
+        $issueRows = $this->preparePageIssueRows(
+            $remotePageUid,
+            (int)($remotePage['remote_scan'] ?? 0),
+            (string)($remotePage['url'] ?? '')
+        );
         foreach ($issueRows as $row) {
             if ($row['nodes'] === []) {
                 fputcsv($output, [
@@ -208,7 +215,11 @@ final class RemoteExportBuilder
             return '';
         }
 
-        $issueRows = $this->preparePageIssueRows($remotePageUid);
+        $issueRows = $this->preparePageIssueRows(
+            $remotePageUid,
+            (int)($remotePage['remote_scan'] ?? 0),
+            (string)($remotePage['url'] ?? '')
+        );
 
         $output = fopen('php://memory', 'r+b');
         if ($output === false) {
@@ -292,10 +303,15 @@ final class RemoteExportBuilder
     ): ?array {
         if ($remoteScanUid > 0) {
             $scan = $this->remoteScanRepository->findScanByUid($remoteScanUid);
+            $scanScope = is_array($scan) ? (string)($scan['scan_scope'] ?? '') : '';
+            $isPageContext = $pageUid !== null && $pageUid > 0;
+            $scopeMatchesContext = $isPageContext || $scanScope === 'site';
+
             if (
                 is_array($scan)
                 && (string)($scan['site_identifier'] ?? '') === $siteIdentifier
                 && (string)($scan['status'] ?? '') === 'completed'
+                && $scopeMatchesContext
             ) {
                 return $scan;
             }
@@ -320,17 +336,21 @@ final class RemoteExportBuilder
     ): string {
         $scan = $this->resolveOverviewExportScan($siteIdentifier, $remoteScanUid, $pageUid, $languageUid);
         $generatedAt = $this->formatPdfDate();
-        $siteLabel = $siteIdentifier !== '' ? $siteIdentifier : 'Remote scan';
+        $logoPath = $this->resolvePdfLogoPath();
+        $siteLabel = $this->formatPdfSiteLabel($siteIdentifier);
 
         if (!is_array($scan) || !isset($scan['uid'])) {
             $html = $this->pdfTemplateRenderer->render(
                 templateName: 'Export/RemoteOverviewPdf',
                 variables: [
-                    'title' => 'Remote accessibility report',
-                    'subtitle' => $siteLabel . ' · no completed scan',
+                    'title' => 'Frontend accessibility overview report',
+                    'subtitle' => $siteLabel . ' · no completed site scan',
                     'generatedAt' => $generatedAt,
+                    'logoPath' => $logoPath,
+                    'hasLogo' => $logoPath !== '',
                     'pageAlias' => 'PAGE {PAGENO} of {nbpg}',
                     'hasScan' => false,
+                    'overviewUsesPageScanFallback' => false,
                     'siteIdentifier' => $siteIdentifier,
                     'siteLabel' => $siteLabel,
                     'scanStartedAt' => '—',
@@ -346,12 +366,13 @@ final class RemoteExportBuilder
                     'pagesFailedFoot' => 'no failed pages',
                     'issuesTotal' => 0,
                     'runtimeLabel' => 'not available',
-                    'newResolvedLabel' => '+0 / −0',
+                    'newResolvedLabel' => '+0 / -0',
                     'failedPages' => [],
                     'failedPagesShown' => 0,
                     'topRules' => [],
                     'topRulesShown' => 0,
                     'topRulesTotal' => 0,
+                    'impactRows' => $this->buildPdfImpactRows([], []),
                     'reportSummary' => [],
                     'hasReportSummary' => false,
                     'priorityFixes' => [],
@@ -373,6 +394,10 @@ final class RemoteExportBuilder
                     'hasContrastDetails' => false,
                     'remediationSummary' => [],
                     'hasRemediationSummary' => false,
+                    'componentSummary' => [],
+                    'hasComponentSummary' => false,
+                    'pageRecommendation' => [],
+                    'hasPageRecommendation' => false,
                     'reportingGroupsShown' => 0,
                     'reportingGroupsShownLabel' => '0 reporting groups',
                     'disclaimerText' => self::PDF_REPORT_DISCLAIMER,
@@ -386,10 +411,7 @@ final class RemoteExportBuilder
             );
         }
 
-        $siteLabel = $this->resolveRootUrl(
-            (string)($scan['start_url'] ?? ''),
-            $siteLabel
-        );
+        $siteLabel = $this->formatPdfSiteLabel((string)($scan['site_identifier'] ?? $siteIdentifier));
         $pages = $this->remoteScanRepository->findPagesForScan((int)$scan['uid']);
         $failedPages = $this->remoteScanRepository->findFailedPagesForScan((int)$scan['uid']);
         $topRules = $this->buildOverviewTopRules($pages);
@@ -405,11 +427,14 @@ final class RemoteExportBuilder
         $html = $this->pdfTemplateRenderer->render(
             templateName: 'Export/RemoteOverviewPdf',
             variables: [
-                'title' => 'Remote accessibility report',
+                'title' => 'Frontend accessibility overview report',
                 'subtitle' => $siteLabel . ' · last completed scan',
                 'generatedAt' => $generatedAt,
+                'logoPath' => $logoPath,
+                'hasLogo' => $logoPath !== '',
                 'pageAlias' => 'PAGE {PAGENO} of {nbpg}',
                 'hasScan' => true,
+                'overviewUsesPageScanFallback' => false,
                 'siteIdentifier' => $siteIdentifier,
                 'siteLabel' => $siteLabel,
                 'scanStartedAt' => $this->formatPdfDateFromMixed($scan['started_at'] ?? null),
@@ -425,12 +450,13 @@ final class RemoteExportBuilder
                 'pagesFailedFoot' => $pagesFailed > 0 ? $pagesFailed . ' skipped or timed out' : 'no failed pages',
                 'issuesTotal' => $issuesTotal,
                 'runtimeLabel' => $this->buildRuntimeLabel($scan),
-                'newResolvedLabel' => '+' . $issuesNew . ' / −' . $issuesResolved,
+                'newResolvedLabel' => '+' . $issuesNew . ' / -' . $issuesResolved,
                 'failedPages' => array_slice($preparedFailedPages, 0, 10),
                 'failedPagesShown' => min(count($preparedFailedPages), 10),
                 'topRules' => $topRules,
                 'topRulesShown' => count($topRules),
                 'topRulesTotal' => count($topRules),
+                'impactRows' => $this->buildPdfImpactRows($reporting['priorityFixes'], $topRules),
                 'reportSummary' => $reporting['reportSummary'],
                 'hasReportSummary' => $reporting['hasReportSummary'],
                 'priorityFixes' => $reporting['priorityFixes'],
@@ -472,6 +498,7 @@ final class RemoteExportBuilder
     public function buildPagePdf(int $remotePageUid, ?ServerRequestInterface $request = null): string
     {
         $generatedAt = $this->formatPdfDate();
+        $logoPath = $this->resolvePdfLogoPath();
         $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
 
         if (!is_array($remotePage)) {
@@ -479,15 +506,21 @@ final class RemoteExportBuilder
                 templateName: 'Export/RemotePagePdf',
                 variables: [
                     'title' => 'Page not found',
-                    'subtitle' => 'Remote page',
+                    'subtitle' => 'Frontend page',
                     'generatedAt' => $generatedAt,
+                    'logoPath' => $logoPath,
+                    'hasLogo' => $logoPath !== '',
                     'pageAlias' => 'Page {PAGENO} of {nbpg}',
                     'hasPage' => false,
                     'remotePage' => null,
-                    'siteLabel' => 'Remote scan',
-                    'relativeUrl' => 'remote page',
+                    'siteLabel' => 'Frontend scan',
+                    'score' => [],
+                    'hasScore' => false,
+                    'relativeUrl' => 'frontend page',
                     'issues' => [],
                     'hasIssues' => false,
+                    'pageIssueGroupCount' => 0,
+                    'pageOccurrencesCount' => 0,
                     'issuesFoundLabel' => '0 issues',
                     'issuesShownLabel' => '0 matching issues',
                     'screenshotAvailable' => false,
@@ -534,13 +567,17 @@ final class RemoteExportBuilder
                 html: $html,
                 screenshot: ['html' => '', 'meta' => '', 'imageVars' => []],
                 remotePageUid: $remotePageUid,
-                pageUrl: 'remote page',
+                pageUrl: 'frontend page',
                 issueGroupCount: 0,
                 occurrencesCount: 0,
             );
         }
 
-        $allIssues = $this->preparePageIssueRows($remotePageUid);
+        $allIssues = $this->preparePageIssueRows(
+            $remotePageUid,
+            (int)($remotePage['remote_scan'] ?? 0),
+            (string)($remotePage['url'] ?? '')
+        );
         $issues = $this->preparePageIssueRowsForPdf($allIssues);
         $issueGroupCount = count($allIssues);
         $issueGroupsShown = count($issues);
@@ -548,12 +585,14 @@ final class RemoteExportBuilder
             static fn(array $issue): int => (int)($issue['nodes_count'] ?? 0),
             $allIssues
         ));
+        $pageSummaryIssuesCount = (int)($remotePage['issues_count'] ?? 0);
+        $issueDetailsUnavailable = $issueGroupCount === 0 && $pageSummaryIssuesCount > 0;
         $httpStatus = (int)($remotePage['http_status'] ?? 0);
         $failureReason = trim((string)($remotePage['failure_reason'] ?? ''));
         $pageUrl = (string)($remotePage['url'] ?? '');
         $siteLabel = $this->resolveRootUrl(
             $pageUrl,
-            (string)($remotePage['site_identifier'] ?? $remotePage['site'] ?? 'Remote scan')
+            (string)($remotePage['site_identifier'] ?? $remotePage['site'] ?? 'Frontend scan')
         );
         $relativeUrl = $this->relativePathFromUrl($pageUrl);
         $screenshot = $this->buildScreenshotBlock($remotePageUid);
@@ -571,9 +610,11 @@ final class RemoteExportBuilder
         $html = $this->pdfTemplateRenderer->render(
             templateName: 'Export/RemotePagePdf',
             variables: [
-                'title' => (string)($remotePage['title'] ?? 'Remote page report'),
+                'title' => (string)($remotePage['title'] ?? 'Frontend page report'),
                 'subtitle' => (string)($remotePage['url'] ?? ''),
                 'generatedAt' => $generatedAt,
+                'logoPath' => $logoPath,
+                'hasLogo' => $logoPath !== '',
                 'pageAlias' => 'Page {PAGENO} of {nbpg}',
                 'hasPage' => true,
                 'remotePage' => $remotePage,
@@ -581,6 +622,10 @@ final class RemoteExportBuilder
                 'relativeUrl' => $relativeUrl,
                 'issues' => $issues,
                 'hasIssues' => $issues !== [],
+                'issueDetailsUnavailable' => $issueDetailsUnavailable,
+                'pageSummaryIssuesCount' => $pageSummaryIssuesCount,
+                'pageIssueGroupCount' => $issueGroupCount,
+                'pageOccurrencesCount' => $occurrencesCount,
                 'issuesFoundLabel' => $issueGroupCount . ' ' . $this->pluralize('issue group', $issueGroupCount) . ' · ' . $occurrencesCount . ' ' . $this->pluralize('occurrence', $occurrencesCount),
                 'issuesShownLabel' => $issuesShownLabel,
                 'screenshotAvailable' => $screenshot['html'] !== '',
@@ -591,6 +636,8 @@ final class RemoteExportBuilder
                 'httpTone' => $this->httpTone($httpStatus),
                 'httpStatusLabel' => $httpStatus > 0 ? (string)$httpStatus : 'not available',
                 'scanCompletedAt' => $this->formatPdfDateFromMixed($remotePage['scan_completed_at'] ?? $remotePage['finished_at'] ?? $remotePage['tstamp'] ?? null),
+                'score' => $reporting['score'] ?? [],
+                'hasScore' => !empty(($reporting['score'] ?? [])['hasValue']),
                 'reportSummary' => $reporting['reportSummary'],
                 'hasReportSummary' => $reporting['hasReportSummary'],
                 'priorityFixes' => $reporting['priorityFixes'],
@@ -631,6 +678,17 @@ final class RemoteExportBuilder
             issueGroupCount: $issueGroupCount,
             occurrencesCount: $occurrencesCount,
         );
+    }
+
+    private function resolvePdfLogoPath(): string
+    {
+        try {
+            $path = GeneralUtility::getFileAbsFileName('EXT:a11y_quality_gate/Resources/Public/Images/logo-mark.svg');
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return $path !== '' && is_file($path) && is_readable($path) ? $path : '';
     }
 
     /**
@@ -683,12 +741,12 @@ final class RemoteExportBuilder
         \Throwable $failure,
     ): string {
         $lines = [
-            'AQG Remote Page Detail',
-            'Remote page UID: ' . $remotePageUid,
+            'AQG Frontend Page Detail',
+            'Frontend page UID: ' . $remotePageUid,
             'URL: ' . ($pageUrl !== '' ? $pageUrl : 'not available'),
             'Issue groups: ' . $issueGroupCount,
             'Occurrences: ' . $occurrencesCount,
-            'Detailed PDF rendering failed. This fallback PDF is not a complete accessibility report.',
+            'Detailed PDF rendering failed. This fallback PDF is not a complete frontend accessibility report.',
             'Use the HTML detail view or CSV export for full findings and node details.',
             'Error: ' . get_class($failure) . ' - ' . $failure->getMessage(),
         ];
@@ -804,7 +862,7 @@ final class RemoteExportBuilder
 
     /**
      * @param array<int, array<string, mixed>> $pages
-     * @return array<int, array{title:string,url:string,httpStatus:int,httpTone:string,issuesCount:int,issueTone:string}>
+     * @return array<int, array{title:string,url:string,httpStatus:int,httpTone:string,issuesCount:int,issueTone:string,scoreLabel:string,scoreTone:string}>
      */
     private function prepareOverviewPages(array $pages): array
     {
@@ -813,16 +871,20 @@ final class RemoteExportBuilder
         foreach ($pages as $page) {
             $title = trim((string)($page['title'] ?? ''));
             $url = trim((string)($page['url'] ?? ''));
+            $relativeUrl = $this->relativePathFromUrl($url);
             $issuesCount = (int)($page['issues_count'] ?? 0);
             $httpStatus = (int)($page['http_status'] ?? 0);
+            $scoreValue = $this->normalizeNullableInt($page['score'] ?? $page['signal'] ?? $page['page_score'] ?? null);
 
             $prepared[] = [
-                'title' => $title !== '' ? $title : ($url !== '' ? $url : 'Remote page'),
-                'url' => $url !== '' ? $url : 'URL not available',
+                'title' => $title !== '' ? $title : ($relativeUrl !== '' ? $relativeUrl : 'Frontend page'),
+                'url' => $relativeUrl !== '' ? $relativeUrl : 'URL not available',
                 'httpStatus' => $httpStatus,
                 'httpTone' => $this->httpTone($httpStatus),
                 'issuesCount' => $issuesCount,
                 'issueTone' => $issuesCount > 0 ? 'warning' : 'zero',
+                'scoreLabel' => $scoreValue !== null ? (string)$scoreValue : '',
+                'scoreTone' => $scoreValue !== null ? $this->scoreTone($scoreValue) : 'none',
             ];
         }
 
@@ -845,12 +907,13 @@ final class RemoteExportBuilder
         foreach ($failedPages as $page) {
             $title = trim((string)($page['title'] ?? ''));
             $url = trim((string)($page['url'] ?? ''));
+            $relativeUrl = $this->relativePathFromUrl($url);
             $httpStatus = (int)($page['http_status'] ?? 0);
             $reason = trim((string)($page['failure_reason'] ?? ''));
 
             $prepared[] = [
-                'title' => $title !== '' ? $title : ($url !== '' ? $url : 'Failed page'),
-                'url' => $url !== '' ? $url : 'URL not available',
+                'title' => $title !== '' ? $title : ($relativeUrl !== '' ? $relativeUrl : 'Failed page'),
+                'url' => $relativeUrl !== '' ? $relativeUrl : 'URL not available',
                 'httpStatus' => $httpStatus,
                 'httpTone' => $this->httpTone($httpStatus),
                 'failureReason' => $reason !== '' ? $reason : 'No failure reason stored',
@@ -870,7 +933,7 @@ final class RemoteExportBuilder
      *   nodes:array<int, array<string, mixed>>
      * }>
      */
-    private function preparePageIssueRows(int $remotePageUid): array
+    private function preparePageIssueRows(int $remotePageUid, int $remoteScanUid = 0, string $pageUrl = ''): array
     {
         $issues = $this->remoteIssueRepository->findByRemoteScanPage($remotePageUid);
         $groups = [];
@@ -887,10 +950,17 @@ final class RemoteExportBuilder
             $groupKey = $ruleId !== '' ? $ruleId : 'issue-' . $issueUid;
             $title = trim((string)($issue['help'] ?? ''));
             $helpUrl = trim((string)($issue['help_url'] ?? ''));
-            $guidanceWhyItMatters = $this->normalizeNullableString($issue['guidance_why_it_matters'] ?? null);
-            $guidanceHowToFix = $this->normalizeNullableString($issue['guidance_how_to_fix'] ?? null);
+            $metadata = $this->ruleMetadataPresentationService->present($issue);
+            $guidanceWhyItMatters = $this->normalizeNullableString($issue['guidance_why_it_matters'] ?? null) ?? $this->normalizeNullableString($metadata['whyItMatters'] ?? null);
+            $guidanceHowToFix = $this->normalizeNullableString($issue['guidance_how_to_fix'] ?? null) ?? $this->normalizeNullableString($metadata['howToFix'] ?? null);
             $whoShouldFix = $this->normalizeMachineValue($issue['who_should_fix'] ?? null);
+            if ($whoShouldFix === '') {
+                $whoShouldFix = (string)($metadata['owner'] ?? '');
+            }
             $fixType = $this->normalizeMachineValue($issue['fix_type'] ?? null);
+            if ($fixType === '') {
+                $fixType = (string)($metadata['fixType'] ?? '');
+            }
             $confidence = $this->normalizeMachineValue($issue['confidence'] ?? null);
 
             if (!isset($groups[$groupKey])) {
@@ -901,8 +971,19 @@ final class RemoteExportBuilder
                     'impactWeight' => $impactWeight,
                     'impactLabel' => $impact !== '' ? $impact : 'unknown',
                     'tone' => $this->toneFromImpact($impact),
-                    'title' => $title !== '' ? $title : $this->humanizeRuleId($ruleId),
+                    'title' => (string)($metadata['title'] ?? '') !== '' ? (string)$metadata['title'] : ($title !== '' ? $title : $this->humanizeRuleId($ruleId)),
                     'help' => $title,
+                    'affectedUsers' => $metadata['affectedUsers'] ?? [],
+                    'affectedUserItems' => $metadata['affectedUserItems'] ?? [],
+                    'affectedUsersLabel' => (string)($metadata['affectedUsersLabel'] ?? ''),
+                    'wcagReferences' => $metadata['wcagReferences'] ?? [],
+                    'wcagPrimaryLabel' => (string)($metadata['wcagPrimaryLabel'] ?? ''),
+                    'wcagCompactLabel' => (string)($metadata['wcagCompactLabel'] ?? ''),
+                    'techniques' => $metadata['techniques'] ?? [],
+                    'standards' => $metadata['standards'] ?? [],
+                    'documentationLinks' => $metadata['documentationLinks'] ?? [],
+                    'technicalTags' => $metadata['technicalTags'] ?? [],
+                    'hasStandardsAndImpact' => (bool)($metadata['hasStandardsAndImpact'] ?? false),
                     'help_url' => $helpUrl,
                     'help_url_display' => $this->stripSchemeFromUrl($helpUrl),
                     'nodes_count' => 0,
@@ -1402,7 +1483,7 @@ final class RemoteExportBuilder
             'manualReviewChecklist' => [],
             'reportingGroups' => [],
             'keyboardSummary' => $this->preparePdfKeyboardSummaryFromPage($remotePage),
-            'structureSummary' => [],
+            'structureSummary' => $this->preparePdfStructureSummaryFromPage($remotePage),
             'contrastDetails' => $this->collectContrastDetailsFromIssueRows($pageIssueRows),
             'remediationSummary' => $this->decodeRemediationSummary((string)($remotePage['remediation_summary_json'] ?? '')),
             'componentSummary' => [],
@@ -2088,6 +2169,80 @@ final class RemoteExportBuilder
     }
 
     /**
+     * @param array<string, mixed> $remotePage
+     * @return array<string, mixed>
+     */
+    private function preparePdfStructureSummaryFromPage(array $remotePage): array
+    {
+        $json = trim((string)($remotePage['keyboard_summary_json'] ?? ''));
+        if ($json === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $details = is_array($decoded['structureDetails'] ?? null)
+            ? $decoded['structureDetails']
+            : (is_array($decoded['structure_details'] ?? null) ? $decoded['structure_details'] : []);
+        if ($details === []) {
+            return [];
+        }
+
+        $warnings = is_array($details['warnings'] ?? null) ? $details['warnings'] : [];
+        $headings = is_array($details['headings'] ?? null) ? $details['headings'] : [];
+        $landmarks = is_array($details['landmarks'] ?? null) ? $details['landmarks'] : [];
+        $likelyTemplateIssue = (bool)($details['likelyTemplateIssue'] ?? $details['likely_template_issue'] ?? false);
+        $recommendation = $this->normalizeNullableString($details['recommendation'] ?? null);
+        $headingWarnings = 0;
+        foreach ($headings as $heading) {
+            if (is_array($heading) && ((bool)($heading['isEmpty'] ?? $heading['is_empty'] ?? false) || (bool)($heading['levelJump'] ?? $heading['level_jump'] ?? false))) {
+                $headingWarnings++;
+            }
+        }
+        $issuesTotal = count($warnings) + $headingWarnings;
+
+        if ($issuesTotal === 0 && !$likelyTemplateIssue && $recommendation === null && $headings === [] && $landmarks === []) {
+            return [];
+        }
+
+        return [
+            'landmarkIssuesTotal' => $issuesTotal,
+            'landmarkIssuesLabel' => $this->countLabel($issuesTotal, 'heading/outline warning'),
+            'affectedPagesLabel' => '1 page',
+            'outlineIssuesTotal' => count($warnings),
+            'outlineIssuesLabel' => $this->countLabel(count($warnings), 'structure warning'),
+            'headingIssuesTotal' => $headingWarnings,
+            'headingIssuesLabel' => $this->countLabel($headingWarnings, 'heading warning'),
+            'likelyTemplateIssue' => $likelyTemplateIssue,
+            'recommendation' => $recommendation,
+            'topWarnings' => array_slice(array_values(array_filter(array_map(static function (mixed $warning): array {
+                if (!is_array($warning)) {
+                    return [];
+                }
+                $type = trim((string)($warning['type'] ?? $warning['ruleId'] ?? $warning['rule_id'] ?? 'warning'));
+                if ($type === '') {
+                    return [];
+                }
+                return [
+                    'typeLabel' => ucwords(str_replace(['_', '-'], ' ', $type)),
+                    'issuesLabel' => '1 issue',
+                    'affectedPagesLabel' => '1 page',
+                    'recommendation' => trim((string)($warning['recommendation'] ?? $warning['summary'] ?? $warning['message'] ?? '')),
+                ];
+            }, $warnings))), 0, 5),
+            'hasTopWarnings' => $warnings !== [],
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $keyboardSummary
      * @return array<string, mixed>
      */
@@ -2102,6 +2257,32 @@ final class RemoteExportBuilder
         $manualReviewRequired = (bool)($keyboardSummary['manualReviewRequired'] ?? $keyboardSummary['manual_review_required'] ?? true);
         $invisibleFocusIssuesTotal = max(0, (int)($keyboardSummary['invisibleFocusIssuesTotal'] ?? $keyboardSummary['invisible_focus_issues_total'] ?? 0));
 
+        $topWarnings = [];
+        $warningItems = $keyboardSummary['topWarnings'] ?? $keyboardSummary['top_warnings'] ?? [];
+        if (is_array($warningItems)) {
+            if ($warningItems !== [] && !array_is_list($warningItems)) {
+                $warningItems = [$warningItems];
+            }
+            foreach ($warningItems as $warning) {
+                if (!is_array($warning)) {
+                    continue;
+                }
+                $type = trim((string)($warning['type'] ?? $warning['ruleId'] ?? $warning['rule_id'] ?? 'warning'));
+                if ($type === '') {
+                    continue;
+                }
+                $issuesTotal = max(0, (int)($warning['issuesTotal'] ?? $warning['issues_total'] ?? $warning['count'] ?? 0));
+                $affectedPagesTotal = max(0, (int)($warning['affectedPagesTotal'] ?? $warning['affected_pages_total'] ?? $warning['pagesTotal'] ?? $warning['pages_total'] ?? 0));
+                $topWarnings[] = [
+                    'typeLabel' => $this->formatBadgeLabel($type),
+                    'issuesLabel' => $this->countLabel($issuesTotal, 'issue'),
+                    'affectedPagesLabel' => $affectedPagesTotal > 0 ? $this->countLabel($affectedPagesTotal, 'page') : '',
+                    'recommendation' => $this->normalizeNullableString($warning['recommendation'] ?? null),
+                ];
+            }
+            $topWarnings = array_slice($topWarnings, 0, 5);
+        }
+
         return [
             'available' => true,
             'tested' => $tested,
@@ -2113,6 +2294,8 @@ final class RemoteExportBuilder
             'invisibleFocusIssuesLabel' => $this->countLabel($invisibleFocusIssuesTotal, 'invisible focus issue'),
             'manualReviewRequired' => $manualReviewRequired,
             'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : 'Manual review still recommended',
+            'topWarnings' => $topWarnings,
+            'hasTopWarnings' => $topWarnings !== [],
         ];
     }
 
@@ -2224,7 +2407,7 @@ final class RemoteExportBuilder
             $topRecommendation = 'Start with ' . $firstTitle . ' because it has the highest impact and reach in this scan.';
         }
         if ($topRecommendation === null && $issuesTotal === 0) {
-            $topRecommendation = 'No priority accessibility fixes were detected in this remote scan.';
+            $topRecommendation = 'No priority accessibility fixes were detected in this frontend scan.';
         }
 
         $automatedCheckNotice = $this->normalizeNullableString($reportSummary['automatedCheckNotice'] ?? $reportSummary['automated_check_notice'] ?? null)
@@ -2370,12 +2553,17 @@ final class RemoteExportBuilder
             }
 
             $help = trim((string)($item['help'] ?? ''));
+            $metadataPresentation = $this->ruleMetadataPresentationService->present($item + ['rule_id' => $ruleId, 'help' => $help]);
             $impact = strtolower(trim((string)($item['impact'] ?? '')));
             $issuesTotal = max(0, (int)($item['issuesTotal'] ?? $item['issues_total'] ?? 0));
             $affectedPagesTotal = max(0, (int)($item['affectedPagesTotal'] ?? $item['affected_pages_total'] ?? 0));
-            $wcagCriterion = $this->normalizeNullableString($item['wcagCriterion'] ?? $item['criterion'] ?? null);
-            $wcagLevel = $this->normalizeNullableString($item['wcagLevel'] ?? $item['level'] ?? null);
-            $wcagLabel = $this->normalizeNullableString($item['wcagLabel'] ?? $item['label'] ?? null);
+            $metadataWcag = is_array(($metadataPresentation['wcagReferences'] ?? [])[0] ?? null) ? ($metadataPresentation['wcagReferences'][0] ?? []) : [];
+            $wcagCriterion = $this->normalizeNullableString($item['wcagCriterion'] ?? $item['criterion'] ?? null)
+                ?? $this->normalizeNullableString($metadataWcag['criterion'] ?? null);
+            $wcagLevel = $this->normalizeNullableString($item['wcagLevel'] ?? $item['level'] ?? null)
+                ?? $this->normalizeNullableString($metadataWcag['level'] ?? null);
+            $wcagLabel = $this->normalizeNullableString($item['wcagLabel'] ?? $item['label'] ?? null)
+                ?? $this->normalizeNullableString($metadataWcag['name'] ?? $metadataWcag['label'] ?? null);
             $guidance = is_array($item['guidance'] ?? null) ? $item['guidance'] : [];
             $guidanceHowToFix = $this->normalizeNullableString(
                 $item['guidanceHowToFix']
@@ -2403,7 +2591,7 @@ final class RemoteExportBuilder
             $prepared[] = [
                 'rank' => max(1, (int)($item['rank'] ?? count($prepared) + 1)),
                 'ruleId' => $ruleId,
-                'title' => $help !== '' ? $help : $this->humanizeRuleId($ruleId),
+                'title' => $this->normalizeNullableString($metadataPresentation['title'] ?? null) ?? ($help !== '' ? $help : $this->humanizeRuleId($ruleId)),
                 'help' => $help,
                 'impact' => $impact,
                 'impactLabel' => $impact !== '' ? $this->formatBadgeLabel($impact) : 'Not rated',
@@ -2411,15 +2599,20 @@ final class RemoteExportBuilder
                 'wcagCriterion' => $wcagCriterion,
                 'wcagLevel' => $wcagLevel,
                 'wcagLabel' => $wcagLabel,
-                'wcagText' => $wcagCriterion !== null ? trim('WCAG ' . $wcagCriterion . ' ' . ($wcagLevel ?? '')) : '',
+                'wcagText' => $this->normalizeNullableString($metadataPresentation['wcagCompactLabel'] ?? null)
+                    ?? ($wcagCriterion !== null ? trim('WCAG ' . $wcagCriterion . ' ' . ($wcagLevel ?? '')) : ''),
+                'affectedUsers' => $metadataPresentation['affectedUsers'] ?? [],
+                'affectedUsersLabel' => (string)($metadataPresentation['affectedUsersLabel'] ?? ''),
+                'wcagReferences' => $metadataPresentation['wcagReferences'] ?? [],
+                'documentationLinks' => $metadataPresentation['documentationLinks'] ?? [],
                 'issuesTotal' => $issuesTotal,
                 'issuesLabel' => $this->countLabel($issuesTotal, 'issue'),
                 'affectedPagesTotal' => $affectedPagesTotal,
                 'affectedPagesLabel' => $this->countLabel($affectedPagesTotal, 'affected page'),
-                'whoShouldFix' => trim((string)($item['whoShouldFix'] ?? '')),
-                'whoShouldFixLabel' => trim((string)($item['whoShouldFixLabel'] ?? '')),
-                'fixType' => trim((string)($item['fixType'] ?? '')),
-                'fixTypeLabel' => trim((string)($item['fixTypeLabel'] ?? '')),
+                'whoShouldFix' => trim((string)($item['whoShouldFix'] ?? $metadataPresentation['owner'] ?? '')),
+                'whoShouldFixLabel' => trim((string)($item['whoShouldFixLabel'] ?? $metadataPresentation['ownerLabel'] ?? '')),
+                'fixType' => trim((string)($item['fixType'] ?? $metadataPresentation['fixType'] ?? '')),
+                'fixTypeLabel' => trim((string)($item['fixTypeLabel'] ?? $metadataPresentation['fixTypeLabel'] ?? '')),
                 'confidence' => trim((string)($item['confidence'] ?? '')),
                 'confidenceLabel' => trim((string)($item['confidenceLabel'] ?? '')),
                 'guidanceWhyItMatters' => $guidanceWhyItMatters,
@@ -2468,11 +2661,12 @@ final class RemoteExportBuilder
                     continue;
                 }
                 $ruleIssues = max(0, (int)($rule['issuesTotal'] ?? $rule['issues_total'] ?? 0));
+                $ruleTitle = $this->ruleMetadataPresentationService->friendlyTitleForRule($ruleId, trim((string)($rule['title'] ?? $rule['help'] ?? '')));
                 $topRules[] = [
                     'ruleId' => $ruleId,
                     'impact' => strtolower(trim((string)($rule['impact'] ?? ''))),
                     'issuesTotal' => $ruleIssues,
-                    'label' => $ruleIssues > 0 ? $ruleId . ' ×' . $ruleIssues : $ruleId,
+                    'label' => $ruleIssues > 0 ? $ruleTitle . ' ×' . $ruleIssues : $ruleTitle,
                 ];
             }
 
@@ -2711,11 +2905,109 @@ final class RemoteExportBuilder
     }
 
 
+    private function formatPdfSiteLabel(string $siteIdentifier): string
+    {
+        $siteIdentifier = trim($siteIdentifier);
+        if ($siteIdentifier === '') {
+            return 'Frontend site';
+        }
+
+        $label = str_replace(['-', '_'], ' ', $siteIdentifier);
+        $label = trim(preg_replace('/\s+/', ' ', $label) ?? $label);
+
+        return $label !== '' ? mb_convert_case($label, MB_CASE_TITLE, 'UTF-8') : $siteIdentifier;
+    }
+
+    private function normalizeNullableInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_numeric($value)) {
+            return max(0, min(100, (int)$value));
+        }
+
+        return null;
+    }
+
+    private function scoreTone(int $score): string
+    {
+        if ($score >= 90) {
+            return 'high';
+        }
+        if ($score >= 60) {
+            return 'mid';
+        }
+
+        return 'low';
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $priorityFixes
+     * @param array<int, array<string, mixed>> $topRules
+     * @return array<int, array{impact:string,impactClass:string,impactLabel:string,findings:int,pages:int,largestIssue:string}>
+     */
+    private function buildPdfImpactRows(array $priorityFixes, array $topRules): array
+    {
+        $rows = [];
+        foreach (['critical', 'serious', 'moderate', 'minor', 'needs review'] as $impact) {
+            $rows[$impact] = [
+                'impact' => $impact,
+                'impactClass' => $impact === 'needs review' ? 'review' : $impact,
+                'impactLabel' => $this->formatBadgeLabel($impact),
+                'findings' => 0,
+                'pages' => 0,
+                'largestIssue' => 'Manual confirmation suggested',
+            ];
+        }
+
+        foreach ($priorityFixes as $fix) {
+            $impact = strtolower(trim((string)($fix['impact'] ?? '')));
+            if ($impact === 'needs_review' || $impact === 'needs-review') {
+                $impact = 'needs review';
+            }
+            if (!isset($rows[$impact])) {
+                continue;
+            }
+
+            $findings = max(0, (int)($fix['issuesTotal'] ?? 0));
+            $pages = max(0, (int)($fix['affectedPagesTotal'] ?? 0));
+            if ($findings > $rows[$impact]['findings']) {
+                $rows[$impact]['largestIssue'] = trim((string)($fix['title'] ?? $fix['ruleId'] ?? 'Issue group'));
+            }
+            $rows[$impact]['findings'] += $findings;
+            $rows[$impact]['pages'] = max($rows[$impact]['pages'], $pages);
+        }
+
+        if ($priorityFixes === []) {
+            foreach ($topRules as $rule) {
+                $tone = strtolower(trim((string)($rule['tone'] ?? '')));
+                $impact = match ($tone) {
+                    'critical' => 'critical',
+                    'warning' => 'moderate',
+                    'info' => 'minor',
+                    default => 'needs review',
+                };
+                if (!isset($rows[$impact])) {
+                    continue;
+                }
+                $count = max(0, (int)($rule['count'] ?? 0));
+                if ($count > $rows[$impact]['findings']) {
+                    $rows[$impact]['largestIssue'] = trim((string)($rule['title'] ?? $rule['ruleId'] ?? 'Issue group'));
+                }
+                $rows[$impact]['findings'] += $count;
+            }
+        }
+
+        return array_values($rows);
+    }
+
+
     private function relativePathFromUrl(string $url): string
     {
         $url = trim($url);
         if ($url === '') {
-            return 'remote page';
+            return 'frontend page';
         }
 
         $parts = parse_url($url);
@@ -2757,7 +3049,7 @@ final class RemoteExportBuilder
             }
         }
 
-        return trim($fallback) !== '' ? trim($fallback) : 'Remote scan';
+        return trim($fallback) !== '' ? trim($fallback) : 'Frontend scan';
     }
 
 
@@ -2809,7 +3101,7 @@ final class RemoteExportBuilder
 
         return [
             'html' => '<div class="aqgp-screenshot">'
-                . '<img src="var:' . htmlspecialchars($varName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="Remote page screenshot" class="aqgp-screenshot__image" />'
+                . '<img src="var:' . htmlspecialchars($varName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="Frontend page screenshot" class="aqgp-screenshot__image" />'
                 . '</div>',
             'meta' => $optimized['meta'],
             'imageVars' => [

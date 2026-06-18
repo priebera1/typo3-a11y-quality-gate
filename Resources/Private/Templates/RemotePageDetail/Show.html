@@ -25,7 +25,7 @@
                         <div class="aqg-hero__eyebrow">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.eyebrow"
-                                    default="Remote · frontend audit"
+                                    default="Frontend audit"
                             />
                         </div>
 
@@ -35,7 +35,7 @@
                                 <f:else>
                                     <f:translate
                                             key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.title"
-                                            default="Remote page detail"
+                                            default="Frontend page detail"
                                     />
                                 </f:else>
                             </f:if>
@@ -189,7 +189,7 @@
                                     </div>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.issues" default="Issues" />
+                                            Issue groups
                                         </span>
                                         <span class="aqg-hero-stat__value">—</span>
                                     </div>
@@ -203,13 +203,19 @@
                                     </div>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.issues" default="Issues" />
+                                            Issue groups
                                         </span>
                                         <span class="aqg-hero-stat__value {f:if(condition: remotePage.issues_count, then: 'tone-critical', else: 'tone-ok')}">{remotePage.issues_count}</span>
                                     </div>
+                                    <f:if condition="{remoteScan.issues_total}">
+                                        <div class="aqg-hero-stat">
+                                            <span class="aqg-hero-stat__label">Findings</span>
+                                            <span class="aqg-hero-stat__value {f:if(condition: remoteScan.issues_total, then: 'tone-critical', else: 'tone-ok')}">{remoteScan.issues_total}</span>
+                                        </div>
+                                    </f:if>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.lastRemoteScan" default="Last remote scan" />
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.lastRemoteScan" default="Last frontend scan" />
                                         </span>
                                         <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
                                             <f:if condition="{remoteDetail.lastScanAt}">
@@ -255,7 +261,7 @@
                         <div class="aqg-notice__text">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.previousScanShown.text"
-                                    default="The numbers below are from the last completed remote scan. They will refresh once the running scan finishes."
+                                    default="The numbers below are from the last completed frontend scan. They will refresh once the running scan finishes."
                             />
                         </div>
                     </div>
@@ -316,7 +322,7 @@
                             <div class="aqg-notice__title">
                                 <f:translate
                                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanFailedTitle"
-                                        default="Remote scan failed for this page"
+                                        default="Frontend scan failed for this page"
                                 />
                             </div>
                             <div class="aqg-notice__text">
@@ -442,110 +448,120 @@
                                                 <f:if condition="{pageRecommendation.templateIssuesLabel}"><span>{pageRecommendation.templateIssuesLabel}</span></f:if>
                                                 <f:if condition="{pageRecommendation.designIssuesLabel}"><span>{pageRecommendation.designIssuesLabel}</span></f:if>
                                             </div>
-                                        </section>
-                                    </f:if>
-
-                                    <f:if condition="{hasPageRemediationSummary}">
-                                        <section class="aqg-remediation-summary" aria-label="Suggested remediation grouping">
-                                            <div class="aqg-remediation-summary__head">
-                                                <div>
-                                                    <div class="aqg-remediation-summary__kicker">Remediation</div>
-                                                    <h2 class="aqg-remediation-summary__title">Suggested remediation grouping</h2>
+                                            <f:if condition="{hasPageRemediationSummary}">
+                                                <div class="aqg-page-recommendation__strategy" aria-label="Fix strategy">
+                                                    <span class="aqg-page-recommendation__strategy-label">Fix strategy</span>
+                                                    <f:if condition="{pageRemediationSummary.recommendation}">
+                                                        <f:then>
+                                                            <p>{pageRemediationSummary.recommendation}</p>
+                                                        </f:then>
+                                                        <f:else>
+                                                            <f:if condition="{pageRemediationSummary.note}">
+                                                                <p>{pageRemediationSummary.note}</p>
+                                                            </f:if>
+                                                        </f:else>
+                                                    </f:if>
                                                 </div>
-                                            </div>
-                                            <f:if condition="{pageRemediationSummary.hasItems}">
-                                                <div class="aqg-remediation-summary__grid">
-                                                    <f:for each="{pageRemediationSummary.items}" as="item">
-                                                        <div class="aqg-remediation-summary__item">
-                                                            <span class="aqg-remediation-summary__label">{item.label}</span>
-                                                            <span class="aqg-remediation-summary__value">
-                                                                <f:if condition="{item.countLabel}">
-                                                                    <f:then>{item.countLabel}</f:then>
-                                                                    <f:else>{item.description}</f:else>
-                                                                </f:if>
-                                                            </span>
-                                                        </div>
-                                                    </f:for>
-                                                </div>
-                                            </f:if>
-                                            <f:if condition="{pageRemediationSummary.recommendation}">
-                                                <p class="aqg-remediation-summary__note">Recommendation: {pageRemediationSummary.recommendation}</p>
-                                            </f:if>
-                                            <f:if condition="{pageRemediationSummary.note}">
-                                                <p class="aqg-remediation-summary__note aqg-remediation-summary__note--muted">{pageRemediationSummary.note}</p>
                                             </f:if>
                                         </section>
                                     </f:if>
 
-                                    <f:for each="{issues}" as="issue">
-                                        <article class="aqg-rule">
-                                            <header class="aqg-rule__head">
+                                    <f:if condition="{regressionAlert.available} || {regressionAlert.message}">
+                                        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert}" />
+                                    </f:if>
+
+                                    <f:if condition="{remediationPlan.hasTasks}">
+                                        <f:render partial="Remote/RemediationPlan" arguments="{plan: remediationPlan, variant: 'page'}" />
+                                    </f:if>
+
+
+
+                                    <f:for each="{issues}" as="issue" iteration="issueIterator">
+                                        <details class="aqg-rule{f:if(condition: issue.isDefaultOpen, then: ' aqg-rule--primary')}" {f:if(condition: issue.isDefaultOpen, then: 'open="open"')}>
+                                            <summary class="aqg-rule__head aqg-rule__summary">
                                                 <f:render partial="Shared/ToneBadge" arguments="{tone: issue.impact_tone, name: issue.impact}" />
 
-                                                <div class="aqg-rule__title-block">
-                                                    <h2 class="aqg-rule__title">
-                                                        <f:if condition="{issue.help}">
-                                                            <f:then>{issue.help}</f:then>
-                                                            <f:else>{issue.rule_id}</f:else>
+                                                <span class="aqg-rule__title-block">
+                                                    <span class="aqg-rule__title">
+                                                        <f:if condition="{issue.friendlyTitle}">
+                                                            <f:then>{issue.friendlyTitle}</f:then>
+                                                            <f:else>
+                                                                <f:if condition="{issue.help}">
+                                                                    <f:then>{issue.help}</f:then>
+                                                                    <f:else>{issue.rule_id}</f:else>
+                                                                </f:if>
+                                                            </f:else>
                                                         </f:if>
-                                                    </h2>
-                                                    <f:if condition="{issue.description}">
-                                                        <p class="aqg-rule__help">{issue.description}</p>
-                                                    </f:if>
-                                                    <div class="aqg-rule__meta-row">
-                                                        <span>
-                                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" default="rule" />:
-                                                            <strong>{issue.rule_id}</strong>
-                                                        </span>
+                                                    </span>
+                                                    <span class="aqg-rule__meta-row">
                                                         <span>
                                                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.occurrences" default="occurrences" />:
                                                             <strong>{issue.count}</strong>
                                                         </span>
+                                                        <span>
+                                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" default="rule" />:
+                                                            <strong>{issue.rule_id}</strong>
+                                                        </span>
+                                                    </span>
+                                                    <span class="aqg-guidance-badges aqg-rule__summary-badges">
+                                                        <f:if condition="{issue.isPrimaryRecommendation}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">Top recommendation</span>
+                                                        </f:if>
+                                                        <f:if condition="{issue.whoShouldFix}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{issue.whoShouldFix}">{issue.whoShouldFixLabel}</span>
+                                                        </f:if>
+                                                        <f:if condition="{issue.fixType}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{issue.fixType}">{issue.fixTypeLabel}</span>
+                                                        </f:if>
+                                                        <f:if condition="{issue.confidence}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}">{issue.confidenceLabel} confidence</span>
+                                                        </f:if>
+                                                        <f:if condition="{issue.wcagPrimaryLabel}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{issue.wcagPrimaryLabel}</span>
+                                                        </f:if>
+                                                    </span>
+                                                    <f:if condition="{issue.affectedUserItems}">
+                                                        <span class="aqg-rule__affected-users">
+                                                            <span class="aqg-rule__affected-users-label">Affected users:</span>
+                                                            <span class="aqg-affected-user-badges">
+                                                                <f:for each="{issue.affectedUserItems}" as="affectedUser">
+                                                                    <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
+                                                                </f:for>
+                                                            </span>
+                                                        </span>
+                                                    </f:if>
+                                                    <f:if condition="{issue.primaryFixSummary}">
+                                                        <span class="aqg-rule__primary-fix">Primary fix: {issue.primaryFixSummary}</span>
+                                                    </f:if>
+                                                </span>
+
+                                                <span class="aqg-rule__toggle"><span class="aqg-rule__toggle-show">Show details</span><span class="aqg-rule__toggle-hide">Hide details</span></span>
+                                            </summary>
+
+                                            <div class="aqg-rule__body">
+                                                <f:if condition="{issue.highlightUids} || {issue.help_url}">
+                                                    <div class="aqg-rule__actions aqg-rule__actions--body">
+                                                        <f:if condition="{issue.highlightUids}">
+                                                            <button
+                                                                    type="button"
+                                                                    class="btn btn-sm btn-default"
+                                                                    data-action="a11y-highlight-node"
+                                                                    data-uid="{issue.highlightUids}"
+                                                                    data-url="{remotePage.url}"
+                                                            >
+                                                                <core:icon identifier="actions-eye" size="small" />
+                                                                <span>
+                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.highlightAllForRule" default="Highlight all" />
+                                                                </span>
+                                                            </button>
+                                                        </f:if>
                                                         <f:if condition="{issue.help_url}">
-                                                            <a href="{issue.help_url}" target="_blank" rel="noopener noreferrer">
+                                                            <a href="{issue.help_url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-default">
                                                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.ruleDocs" default="axe-core docs" />
                                                             </a>
                                                         </f:if>
                                                     </div>
-
-                                                    <div class="aqg-guidance-badges">
-                                                        <f:if condition="{issue.whoShouldFix}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{issue.whoShouldFix}">
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.whoShouldFix" default="Suggested owner" />: {issue.whoShouldFixLabel}
-                                                            </span>
-                                                        </f:if>
-                                                        <f:if condition="{issue.fixType}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{issue.fixType}">
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.fixType" default="Suggested fix type" />: {issue.fixTypeLabel}
-                                                            </span>
-                                                        </f:if>
-                                                        <f:if condition="{issue.confidence}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}">
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.confidence" default="Guidance confidence" />: {issue.confidenceLabel}
-                                                            </span>
-                                                        </f:if>
-                                                    </div>
-                                                </div>
-
-                                                <div class="aqg-rule__actions">
-                                                    <f:if condition="{issue.highlightUids}">
-                                                        <button
-                                                                type="button"
-                                                                class="btn btn-sm btn-default"
-                                                                data-action="a11y-highlight-node"
-                                                                data-uid="{issue.highlightUids}"
-                                                                data-url="{remotePage.url}"
-                                                        >
-                                                            <core:icon identifier="actions-eye" size="small" />
-                                                            <span>
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.highlightAllForRule" default="Highlight all" />
-                                                            </span>
-                                                        </button>
-                                                    </f:if>
-                                                </div>
-                                            </header>
-
-                                            <div class="aqg-rule__body">
+                                                </f:if>
                                                 <section class="aqg-rule-guidance" aria-label="Rule guidance">
                                                     <f:if condition="{issue.guidanceWhyItMatters}">
                                                         <div class="aqg-rule-guidance__item">
@@ -567,6 +583,80 @@
                                                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.note" default="AQG guidance is based on the rule type and scan context. Review the affected element before applying changes." />
                                                     </p>
                                                 </section>
+
+                                                <f:if condition="{issue.hasStandardsAndImpact}">
+                                                    <details class="aqg-rule-metadata">
+                                                        <summary>Standards and impact</summary>
+                                                        <div class="aqg-rule-metadata__body">
+                                                            <f:if condition="{issue.affectedUserItems}">
+                                                                <div class="aqg-rule-metadata__group">
+                                                                    <h3>Affected users</h3>
+                                                                    <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
+                                                                        <f:for each="{issue.affectedUserItems}" as="affectedUser">
+                                                                            <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
+                                                                        </f:for>
+                                                                    </div>
+                                                                </div>
+                                                            </f:if>
+                                                            <f:if condition="{issue.wcagReferences}">
+                                                                <div class="aqg-rule-metadata__group">
+                                                                    <h3>WCAG reference</h3>
+                                                                    <ul>
+                                                                        <f:for each="{issue.wcagReferences}" as="wcag">
+                                                                            <li>
+                                                                                <f:if condition="{wcag.url}">
+                                                                                    <f:then><a href="{wcag.url}" target="_blank" rel="noopener noreferrer">{wcag.label}</a></f:then>
+                                                                                    <f:else>{wcag.label}</f:else>
+                                                                                </f:if>
+                                                                            </li>
+                                                                        </f:for>
+                                                                    </ul>
+                                                                </div>
+                                                            </f:if>
+                                                            <f:if condition="{issue.techniques}">
+                                                                <div class="aqg-rule-metadata__group">
+                                                                    <h3>Technique</h3>
+                                                                    <ul>
+                                                                        <f:for each="{issue.techniques}" as="technique">
+                                                                            <li>
+                                                                                <f:if condition="{technique.url}">
+                                                                                    <f:then><a href="{technique.url}" target="_blank" rel="noopener noreferrer">{technique.label}</a></f:then>
+                                                                                    <f:else>{technique.label}</f:else>
+                                                                                </f:if>
+                                                                            </li>
+                                                                        </f:for>
+                                                                    </ul>
+                                                                </div>
+                                                            </f:if>
+                                                            <f:if condition="{issue.standards}">
+                                                                <div class="aqg-rule-metadata__group">
+                                                                    <h3>Standards</h3>
+                                                                    <div class="aqg-rule-metadata__chips">
+                                                                        <f:for each="{issue.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for>
+                                                                    </div>
+                                                                </div>
+                                                            </f:if>
+                                                            <f:if condition="{issue.documentationLinks}">
+                                                                <div class="aqg-rule-metadata__group">
+                                                                    <h3>Documentation</h3>
+                                                                    <ul>
+                                                                        <f:for each="{issue.documentationLinks}" as="doc">
+                                                                            <li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li>
+                                                                        </f:for>
+                                                                    </ul>
+                                                                </div>
+                                                            </f:if>
+                                                            <f:if condition="{issue.technicalTags}">
+                                                                <div class="aqg-rule-metadata__group aqg-rule-metadata__group--technical">
+                                                                    <h3>Technical tags</h3>
+                                                                    <div class="aqg-rule-metadata__chips aqg-rule-metadata__chips--tags">
+                                                                        <f:for each="{issue.technicalTags}" as="tag"><span class="aqg-rule-metadata__tag">{tag}</span></f:for>
+                                                                    </div>
+                                                                </div>
+                                                            </f:if>
+                                                        </div>
+                                                    </details>
+                                                </f:if>
 
                                                 <f:for each="{issue.nodes}" as="node" iteration="iterator">
                                                     <div class="aqg-node">
@@ -755,8 +845,10 @@
                                                     </div>
                                                 </f:for>
                                             </div>
-                                        </article>
+                                        </details>
                                     </f:for>
+
+
                                 </div>
 
                                 <aside class="aqg-stack">
@@ -764,27 +856,233 @@
                                     <f:render section="RemoteMetadata" arguments="{remotePage: remotePage, remoteScan: remoteScan, remoteDetail: remoteDetail}" />
                                 </aside>
                             </div>
+
+                                    <f:if condition="{remoteScanCompare.available} || {remoteScanCompare.message}">
+                                        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare}" />
+                                    </f:if>
+
+                                    <f:if condition="{hasKeyboardStructureReview}">
+                                        <details class="aqg-review-assistant" aria-label="Keyboard and structure review">
+                                            <summary class="aqg-review-assistant__head">
+                                                <span class="aqg-review-assistant__headline">
+                                                    <span class="aqg-review-assistant__kicker">Review assistant</span>
+                                                    <span class="aqg-review-assistant__title">{keyboardStructureReview.title}</span>
+                                                    <span class="aqg-review-assistant__intro">{keyboardStructureReview.subtitle}</span>
+                                                </span>
+                                                <span class="aqg-review-assistant__toggle">View review signals</span>
+                                            </summary>
+                                            <div class="aqg-review-assistant__body">
+
+                                            <f:if condition="{keyboardStructureReview.hasKeyboard}">
+                                                <article class="aqg-review-card aqg-review-card--keyboard">
+                                                    <header class="aqg-review-card__head">
+                                                        <div>
+                                                            <div class="aqg-review-card__kicker">Keyboard exploration</div>
+                                                            <h3 class="aqg-review-card__title">Automated keyboard exploration signal</h3>
+                                                        </div>
+                                                        <f:if condition="{keyboardStructureReview.keyboard.manualReviewRequired}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{keyboardStructureReview.keyboard.manualReviewLabel}</span>
+                                                        </f:if>
+                                                    </header>
+                                                    <div class="aqg-review-metrics">
+                                                        <span><strong>{keyboardStructureReview.keyboard.focusStepsTotal}</strong> focus steps</span>
+                                                        <span><strong>{keyboardStructureReview.keyboard.uniqueFocusedElementsTotal}</strong> unique focused elements</span>
+                                                        <span><strong>{keyboardStructureReview.keyboard.invisibleFocusIssuesTotal}</strong> focus visibility warnings</span>
+                                                        <span>{keyboardStructureReview.keyboard.possibleKeyboardTrapLabel}</span>
+                                                    </div>
+                                                    <f:if condition="{keyboardStructureReview.keyboard.recommendation}">
+                                                        <p class="aqg-review-card__note">{keyboardStructureReview.keyboard.recommendation}</p>
+                                                    </f:if>
+
+                                                    <details class="aqg-review-disclosure">
+                                                        <summary>Focus path</summary>
+                                                        <f:if condition="{keyboardStructureReview.keyboard.hasFocusPath}">
+                                                            <f:then>
+                                                                <div class="aqg-review-table-wrap">
+                                                                    <table class="aqg-review-table aqg-review-table--focus">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Step</th>
+                                                                                <th>Element</th>
+                                                                                <th>Name / visible text signal</th>
+                                                                                <th>Selector</th>
+                                                                                <th>Visible focus</th>
+                                                                                <th>Warning</th>
+                                                                                <th>Reliability</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            <f:for each="{keyboardStructureReview.keyboard.focusPath}" as="step">
+                                                                                <tr>
+                                                                                    <td>{step.step}</td>
+                                                                                    <td>{step.element}</td>
+                                                                                    <td>{step.accessibleName}</td>
+                                                                                    <td><code>{step.selector}</code></td>
+                                                                                    <td>{step.visibleFocusLabel}</td>
+                                                                                    <td>
+                                                                                        <f:if condition="{step.warning}">
+                                                                                            <f:then>{step.warning}</f:then>
+                                                                                            <f:else>—</f:else>
+                                                                                        </f:if>
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <f:if condition="{step.selectorReliabilityLabel}">
+                                                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{step.selectorReliabilityLabel}</span>
+                                                                                        </f:if>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            </f:for>
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                                <f:if condition="{keyboardStructureReview.keyboard.focusPathLimitLabel}">
+                                                                    <p class="aqg-review-card__note">{keyboardStructureReview.keyboard.focusPathLimitLabel}</p>
+                                                                </f:if>
+                                                            </f:then>
+                                                            <f:else>
+                                                                <p class="aqg-review-empty">No focus path details were returned for this scan.</p>
+                                                            </f:else>
+                                                        </f:if>
+                                                    </details>
+                                                </article>
+                                            </f:if>
+
+                                            <f:if condition="{keyboardStructureReview.hasStructure}">
+                                                <article class="aqg-review-card aqg-review-card--structure">
+                                                    <header class="aqg-review-card__head">
+                                                        <div>
+                                                            <div class="aqg-review-card__kicker">Structure outline</div>
+                                                            <h3 class="aqg-review-card__title">Automated structure signal</h3>
+                                                        </div>
+                                                        <f:if condition="{keyboardStructureReview.structure.likelyTemplateIssue}">
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{keyboardStructureReview.structure.likelyTemplateIssueLabel}</span>
+                                                        </f:if>
+                                                    </header>
+                                                    <f:if condition="{keyboardStructureReview.structure.recommendation}">
+                                                        <p class="aqg-review-card__note">{keyboardStructureReview.structure.recommendation}</p>
+                                                    </f:if>
+
+                                                    <f:if condition="{keyboardStructureReview.structure.hasHeadings}">
+                                                        <div class="aqg-review-subsection">
+                                                            <h4>Heading outline</h4>
+                                                            <ol class="aqg-heading-outline">
+                                                                <f:for each="{keyboardStructureReview.structure.headings}" as="heading">
+                                                                    <li class="aqg-heading-outline__item aqg-heading-outline__item--h{heading.level}">
+                                                                        <span class="aqg-heading-outline__level">{heading.levelLabel}</span>
+                                                                        <span class="aqg-heading-outline__text">{heading.text}</span>
+                                                                        <f:if condition="{heading.hasWarnings}">
+                                                                            <span class="aqg-heading-outline__badges">
+                                                                                <f:for each="{heading.warnings}" as="warning">
+                                                                                    <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{warning}</span>
+                                                                                </f:for>
+                                                                            </span>
+                                                                        </f:if>
+                                                                    </li>
+                                                                </f:for>
+                                                            </ol>
+                                                        </div>
+                                                    </f:if>
+
+                                                    <f:if condition="{keyboardStructureReview.structure.hasLandmarks}">
+                                                        <div class="aqg-review-subsection">
+                                                            <h4>Landmarks</h4>
+                                                            <div class="aqg-landmark-list">
+                                                                <f:for each="{keyboardStructureReview.structure.landmarks}" as="landmark">
+                                                                    <div class="aqg-landmark-list__item{f:if(condition: landmark.isMissing, then: ' is-missing')}">
+                                                                        <strong>{landmark.roleLabel}</strong>
+                                                                        <span>{landmark.countLabel}</span>
+                                                                        <f:if condition="{landmark.label}"><small>{landmark.label}</small></f:if>
+                                                                    </div>
+                                                                </f:for>
+                                                            </div>
+                                                        </div>
+                                                    </f:if>
+
+                                                    <f:if condition="{keyboardStructureReview.structure.hasWarnings}">
+                                                        <div class="aqg-review-subsection">
+                                                            <h4>Structure warnings</h4>
+                                                            <div class="aqg-review-warning-list">
+                                                                <f:for each="{keyboardStructureReview.structure.warnings}" as="warning">
+                                                                    <div class="aqg-review-warning">
+                                                                        <strong>{warning.typeLabel}</strong>
+                                                                        <div class="aqg-review-warning__meta">
+                                                                            <f:if condition="{warning.recommendedOwnerLabel}"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{warning.recommendedOwnerLabel}</span></f:if>
+                                                                            <f:if condition="{warning.fixTypeLabel}"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{warning.fixTypeLabel}</span></f:if>
+                                                                        </div>
+                                                                        <f:if condition="{warning.summary}"><p>{warning.summary}</p></f:if>
+                                                                        <f:if condition="{warning.recommendation}"><p>{warning.recommendation}</p></f:if>
+                                                                    </div>
+                                                                </f:for>
+                                                            </div>
+                                                        </div>
+                                                    </f:if>
+                                                </article>
+                                            </f:if>
+                                            </div>
+                                        </details>
+                                    </f:if>
+
+
+                                    <details class="aqg-history-panel aqg-history-panel--page" aria-label="Page scan history">
+                                        <summary class="aqg-history-panel__summary">
+                                            <span>
+                                                <span class="aqg-history-panel__kicker">Accessibility progress</span>
+                                                <strong>Page scan history</strong>
+                                                <small>Previous automated scans for this URL. Manual review may still be required.</small>
+                                            </span>
+                                            <span class="aqg-report-collapse__toggle aqg-history-panel__toggle"><span class="aqg-history-panel__toggle-show">Show history</span><span class="aqg-history-panel__toggle-hide">Hide history</span></span>
+                                        </summary>
+                                        <div class="aqg-history-panel__body">
+                                            <f:if condition="{remotePageHistory.items}">
+                                                <f:then>
+                                                    <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.items, compactPageHistory: 1}" />
+                                                </f:then>
+                                                <f:else>
+                                                    <div class="aqg-history-notice">
+                                                        <f:if condition="{remotePageHistory.message}">
+                                                            <f:then>{remotePageHistory.message}</f:then>
+                                                            <f:else>No frontend scan history available yet.</f:else>
+                                                        </f:if>
+                                                    </div>
+                                                </f:else>
+                                            </f:if>
+                                        </div>
+                                    </details>
+
                         </f:then>
 
                         <f:else>
                             <div class="aqg-twocol">
                                 <section class="aqg-section aqg-section--empty">
-                                    <div class="aqg-empty aqg-empty--ok">
+                                    <div class="aqg-empty {f:if(condition: issueDetailsUnavailable, then: 'aqg-empty--warning', else: 'aqg-empty--ok')}">
                                         <div class="aqg-empty__icon" aria-hidden="true">
-                                            <f:render partial="Overview/Icon" arguments="{name: 'ok'}" />
+                                            <f:if condition="{issueDetailsUnavailable}">
+                                                <f:then><f:render partial="Overview/Icon" arguments="{name: 'warning'}" /></f:then>
+                                                <f:else><f:render partial="Overview/Icon" arguments="{name: 'ok'}" /></f:else>
+                                            </f:if>
                                         </div>
-                                        <div class="aqg-empty__title">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noIssuesClean"
-                                                    default="No issues found by the remote scan"
-                                            />
-                                        </div>
-                                        <div class="aqg-empty__body">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noIssuesClean.text"
-                                                    default="No automated findings were detected for this frontend URL. Re-scan after publishing changes."
-                                            />
-                                        </div>
+                                        <f:if condition="{issueDetailsUnavailable}">
+                                            <f:then>
+                                                <div class="aqg-empty__title">Issue details are not available for this scan</div>
+                                                <div class="aqg-empty__body">
+                                                    The page summary reports {pageSummaryIssuesCount} automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.
+                                                </div>
+                                            </f:then>
+                                            <f:else>
+                                                <div class="aqg-empty__title">
+                                                    <f:translate
+                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noIssuesClean"
+                                                            default="No issues found by the frontend scan"
+                                                    />
+                                                </div>
+                                                <div class="aqg-empty__body">
+                                                    <f:translate
+                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noIssuesClean.text"
+                                                            default="No automated findings were detected for this frontend URL. Re-scan after publishing changes."
+                                                    />
+                                                </div>
+                                            </f:else>
+                                        </f:if>
                                         <div class="aqg-empty__actions">
                                             <f:if condition="{canScanRemotePage}">
                                                 <button
@@ -884,7 +1182,7 @@
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanMetadata" default="Scan metadata" />
                 </h2>
                 <div class="aqg-section__sub">
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.lastRemoteScan" default="Last remote scan" />
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.lastRemoteScan" default="Last frontend scan" />
                 </div>
             </div>
         </div>

@@ -58,38 +58,39 @@
     <table class="aqgp-section-title">
         <tbody><tr><td>Totals</td><td class="aqgp-section-title__right">open issues across all pages</td></tr></tbody>
     </table>
-    <table class="aqgp-cards">
+    <div class="aqgp-section-to-cards-gap">&nbsp;</div>
+    <table class="aqgp-cards aqgp-cards--local" cellspacing="4" cellpadding="0" style="width:100%; border-collapse:separate; border-spacing:4px 0;">
         <tbody><tr>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--critical{f:if(condition: totals.critical, else: ' is-zero')}"><tbody>
+            <td class="aqgp-card-slot">
+                <table width="100%" class="aqgp-card aqgp-card-table aqgp-card--critical{f:if(condition: totals.critical, else: ' is-zero')}"><tbody>
                     <tr><td class="aqgp-card__label">Critical</td></tr>
                     <tr><td class="aqgp-card__value">{totals.critical}</td></tr>
                     <tr><td class="aqgp-card__foot">{criticalFoot}</td></tr>
                 </tbody></table>
             </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--warning{f:if(condition: totals.warning, else: ' is-zero')}"><tbody>
+            <td class="aqgp-card-slot">
+                <table width="100%" class="aqgp-card aqgp-card-table aqgp-card--warning{f:if(condition: totals.warning, else: ' is-zero')}"><tbody>
                     <tr><td class="aqgp-card__label">Warnings</td></tr>
                     <tr><td class="aqgp-card__value">{totals.warning}</td></tr>
                     <tr><td class="aqgp-card__foot">{warningFoot}</td></tr>
                 </tbody></table>
             </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--info{f:if(condition: totals.info, else: ' is-zero')}"><tbody>
+            <td class="aqgp-card-slot">
+                <table width="100%" class="aqgp-card aqgp-card-table aqgp-card--info{f:if(condition: totals.info, else: ' is-zero')}"><tbody>
                     <tr><td class="aqgp-card__label">Info</td></tr>
                     <tr><td class="aqgp-card__value">{totals.info}</td></tr>
                     <tr><td class="aqgp-card__foot">{infoFoot}</td></tr>
                 </tbody></table>
             </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--needs_review{f:if(condition: totals.needs_review, else: ' is-zero')}"><tbody>
+            <td class="aqgp-card-slot">
+                <table width="100%" class="aqgp-card aqgp-card-table aqgp-card--needs_review{f:if(condition: totals.needs_review, else: ' is-zero')}"><tbody>
                     <tr><td class="aqgp-card__label">Needs review</td></tr>
                     <tr><td class="aqgp-card__value">{totals.needs_review}</td></tr>
                     <tr><td class="aqgp-card__foot">{needsReviewFoot}</td></tr>
                 </tbody></table>
             </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--total{f:if(condition: totals.total, else: ' is-zero')}"><tbody>
+            <td class="aqgp-card-slot">
+                <table width="100%" class="aqgp-card aqgp-card-table aqgp-card--total{f:if(condition: totals.total, else: ' is-zero')}"><tbody>
                     <tr><td class="aqgp-card__label">Total</td></tr>
                     <tr><td class="aqgp-card__value">{totals.total}</td></tr>
                     <tr><td class="aqgp-card__foot">{totalFoot}</td></tr>

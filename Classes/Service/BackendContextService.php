@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Service;
 
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
 final class BackendContextService
@@ -13,6 +14,7 @@ final class BackendContextService
         private readonly BackendLanguageService $backendLanguageService,
         private readonly BackendUserService $backendUserService,
         private readonly BackendFlashMessageService $backendFlashMessageService,
+        private readonly Context $context,
     ) {
     }
 
@@ -42,7 +44,15 @@ final class BackendContextService
 
     public function isAdmin(): bool
     {
-        return $this->backendUserService->isAdmin();
+        if ($this->backendUserService->isAdmin()) {
+            return true;
+        }
+
+        try {
+            return (bool)$this->context->getPropertyFromAspect('backend.user', 'isAdmin', false);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function addFlashMessage(

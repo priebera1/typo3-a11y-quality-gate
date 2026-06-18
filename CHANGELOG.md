@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.6.0] - 2026-06-18
+
+### Added
+
+* Added the Accessibility Statement Draft Assistant with English and German preview, HTML, TXT and PDF exports, configurable statement details and clear automated-draft disclaimers.
+* Added PRO frontend scan history for site and single-page scans, including scan comparison, regression signals and recommended remediation plans.
+* Added a centralized rule metadata presentation layer with friendly titles, plain-language guidance, affected user groups, WCAG references, techniques, documentation links, recommended owner and fix type.
+* Added the conservative `rendered.landmark_unique` check for duplicate or missing accessible landmark names.
+* Added the `rte.form_control_missing_label` check for form controls without an accessible label in RTE content.
+* Added presentation and reporting support for the WCAG 2.2 `target-size` axe-core rule and expanded `color-contrast` remediation metadata.
+* Added German translations for the new Accessibility Statement, reporting metadata and TYPO3 backend module labels introduced in this release.
+
+### Changed
+
+* Manual **Scan site** actions now run the FREE server-rendered HTML checks for every supported frontend page in the selected site scope. Scheduler, CLI and PRO crawler behavior remains unchanged.
+* Unified rule titles, guidance and metadata across Frontend Overview, Frontend Page Detail, priority fixes, Report Bundle data, remote PDF reports and Accessibility Statement known limitations.
+* Improved duplicate-ID guidance with clearer explanations for labels, links, ARIA references and affected users.
+* Redesigned local, frontend and Accessibility Statement PDF exports with consistent branding, dedicated layouts and page numbering.
+* Improved Settings links to product, documentation, pricing, trial, support and portal pages, using safe external-link handling and no background telemetry.
+* Updated Packagist, TER and GitHub discovery metadata, installation documentation and community contribution resources.
+
+### Fixed
+
+* Fixed TYPO3 13 and TYPO3 14 administrator detection in Settings so authorized administrators consistently see licence management controls.
+* Fixed the root Frontend Overview and its PDF/CSV exports so completed single-page scans are not presented as site-wide affected-page results.
+* Fixed site-scope reporting so root contexts use completed site scans while page contexts continue to use the corresponding single-page scan results.
+
+### Security
+
+* Stored AQG licence keys are no longer assigned to non-administrator Fluid views, and licence management actions remain restricted to administrators.
+* Hardened scanner preview-token validation so tokens remain site-specific and invalid or unresolved tokens fail closed without breaking normal frontend rendering.
+* Accessibility Statement generation remains server-side, and generated HTML, TXT and PDF exports contain no licence key, preview token, debug payload or raw API response.
+
 ## [1.5.0] - 2026-06-08
 
 ### Added

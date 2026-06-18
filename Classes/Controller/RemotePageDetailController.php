@@ -14,6 +14,8 @@ use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
+use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ResponseInterface;
@@ -46,8 +48,10 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly RemoteScanRecoveryService $remoteScanRecoveryService,
+        private readonly RemoteScanHistoryService $remoteScanHistoryService,
         private readonly ExportUrlBuilderService $exportUrlBuilderService,
         private readonly ProStatusResolverService $proStatusResolverService,
+        private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -169,22 +173,6 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             ? (string)($remoteScan['site_identifier'] ?? $siteIdentifier)
             : $siteIdentifier;
 
-        $latestRemotePage = $this->remoteScanRepository->findLatestPageByUrl(
-            (string)($remotePage['url'] ?? ''),
-            $resolvedSiteIdentifier
-        );
-
-        if (is_array($latestRemotePage) && (int)$latestRemotePage['uid'] !== $remotePageUid) {
-            return new RedirectResponse(
-                $this->buildRouteUrl('web_a11y.remotePageDetail', [
-                    'remotePageUid' => (int)$latestRemotePage['uid'],
-                    'site' => $resolvedSiteIdentifier,
-                    'id' => (int)($remoteScan['page_uid'] ?? 0),
-                    'language' => (int)($remoteScan['language_uid'] ?? 0),
-                ])
-            );
-        }
-
         $resolvedSite = $resolvedSiteIdentifier !== ''
             ? $this->siteResolutionService->resolveSiteByIdentifier($resolvedSiteIdentifier)
             : null;
@@ -280,9 +268,12 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             );
         }
 
-        $groupedIssues = $this->groupIssuesByRule($issuesWithNodes);
         $pageRemediationSummary = $this->decodeRemediationSummary((string)($remotePage['remediation_summary_json'] ?? ''));
         $pageRecommendation = $this->decodePageRecommendation((string)($remotePage['page_recommendation_json'] ?? ''));
+        $groupedIssues = $this->groupIssuesByRule($issuesWithNodes, $pageRecommendation);
+        $pageSummaryIssuesCount = (int)($remotePage['issues_count'] ?? 0);
+        $issueDetailsUnavailable = $groupedIssues === [] && $pageSummaryIssuesCount > 0;
+        $keyboardStructureReview = $this->decodeKeyboardStructureReview((string)($remotePage['keyboard_summary_json'] ?? ''));
         $remoteDetail = $this->buildRemoteDetailViewData($remotePage, $remoteScan, $activeRemoteScan);
         $backUrl = $this->buildRemoteOverviewBackUrl(
             $request,
@@ -301,6 +292,31 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $remotePageUid
         );
 
+        $remotePageHistory = $this->buildRemotePageHistory(
+            $request,
+            $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
+            $resolvedSiteIdentifier,
+            (string)($remotePage['url'] ?? ''),
+            is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
+            $remotePageUid,
+            (int)($remoteScan['page_uid'] ?? 0) ?: $scanPageUid,
+            (int)($remoteScan['language_uid'] ?? 0)
+        );
+        $remoteScanCompare = $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $remotePageHistory);
+        $regressionAlert = $this->buildRemotePageRegressionAlert(
+            $remotePageUid,
+            $scanPageUid,
+            (int)($remoteScan['language_uid'] ?? 0),
+            $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
+            $resolvedSiteIdentifier,
+            (string)($remotePage['url'] ?? '')
+        );
+        $remediationPlan = $this->remoteScanHistoryService->loadRemediationPlanByJobId(
+            $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
+            is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
+            5
+        );
+
         $this->configureDocHeader($moduleTemplate, $backUrl, $remotePageDebugUrl);
 
         $moduleTemplate->assignMultiple([
@@ -312,10 +328,14 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'remoteDetail' => $remoteDetail,
             'activeRemoteScan' => $activeRemoteScan,
             'issues' => $groupedIssues,
+            'issueDetailsUnavailable' => $issueDetailsUnavailable,
+            'pageSummaryIssuesCount' => $pageSummaryIssuesCount,
             'pageRemediationSummary' => $pageRemediationSummary,
             'hasPageRemediationSummary' => $pageRemediationSummary !== [],
             'pageRecommendation' => $pageRecommendation,
             'hasPageRecommendation' => $pageRecommendation !== [],
+            'keyboardStructureReview' => $keyboardStructureReview,
+            'hasKeyboardStructureReview' => $keyboardStructureReview !== [],
             'backUrl' => $backUrl,
             'remotePageDebugUrl' => $remotePageDebugUrl,
             'resolvedSiteIdentifier' => $resolvedSiteIdentifier,
@@ -327,9 +347,319 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'canScanRemotePage' => $canScanRemotePage,
             'usesSiteRootContext' => $usesSiteRootContext,
             'proStatus' => $proStatus,
+            'remotePageHistory' => $remotePageHistory,
+            'remoteScanCompare' => $remoteScanCompare,
+            'regressionAlert' => $regressionAlert,
+            'remediationPlan' => $remediationPlan,
         ]);
 
         return $moduleTemplate->renderResponse('RemotePageDetail/Show');
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRemotePageRegressionAlert(
+        int $remotePageUid,
+        int $pageUid,
+        int $languageUid,
+        string $siteBase,
+        string $siteIdentifier,
+        string $pageUrl
+    ): array {
+        $alert = $this->remoteScanHistoryService->loadRegressionAlert(
+            $siteBase,
+            $siteIdentifier,
+            'single_page',
+            $pageUrl
+        );
+
+        return $this->enrichRegressionAlertActionUrl(
+            $alert,
+            'web_a11y.remotePageDetail',
+            [
+                'remotePageUid' => $remotePageUid,
+                'site' => $siteIdentifier,
+                'id' => $pageUid,
+                'language' => $languageUid,
+            ]
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $alert
+     * @param array<string, mixed> $routeParameters
+     * @return array<string, mixed>
+     */
+    private function enrichRegressionAlertActionUrl(array $alert, string $routeName, array $routeParameters): array
+    {
+        $previousJobId = trim((string)($alert['previousJobId'] ?? ''));
+        $currentJobId = trim((string)($alert['currentJobId'] ?? ''));
+        $actionType = strtolower(trim((string)($alert['actionType'] ?? '')));
+
+        $alert = $this->enrichRegressionAlertWithLocalScanRows($alert);
+
+        if ($previousJobId === '' || $currentJobId === '' || ($actionType !== '' && $actionType !== 'compare')) {
+            $alert['actionUrl'] = '';
+            return $alert;
+        }
+
+        $routeParameters['compareFromJobId'] = $previousJobId;
+        $routeParameters['compareToJobId'] = $currentJobId;
+        $alert['actionUrl'] = $this->buildRouteUrl($routeName, $routeParameters) . '#scan-comparison';
+
+        return $alert;
+    }
+
+    /**
+     * @param array<string, mixed> $alert
+     * @return array<string, mixed>
+     */
+    private function enrichRegressionAlertWithLocalScanRows(array $alert): array
+    {
+        foreach ([
+            'previous' => 'previousScan',
+            'current' => 'currentScan',
+        ] as $prefix => $scanKey) {
+            if (!isset($alert[$scanKey]) || !is_array($alert[$scanKey])) {
+                $alert[$scanKey] = [];
+            }
+
+            $jobId = trim((string)($alert[$prefix . 'JobId'] ?? $alert[$scanKey]['jobId'] ?? ''));
+            if ($jobId === '') {
+                continue;
+            }
+
+            $scan = $this->remoteScanRepository->findScanByJobId($jobId);
+            if (!is_array($scan)) {
+                continue;
+            }
+
+            $alert[$scanKey]['jobId'] = $jobId;
+            $finishedAt = (int)($scan['finished_at'] ?? 0);
+            if ($finishedAt > 0 && trim((string)($alert[$scanKey]['finishedAtFormatted'] ?? '')) === '') {
+                $alert[$scanKey]['finishedAt'] = $finishedAt;
+                $alert[$scanKey]['finishedAtFormatted'] = BackendTimeUtility::formatDateTime($finishedAt, 'd.m.Y H:i');
+            }
+
+            if ((string)($alert[$scanKey]['findingsLabel'] ?? '—') === '—') {
+                $findings = max(0, (int)($scan['issues_total'] ?? 0));
+                $alert[$scanKey]['findings'] = $findings;
+                $alert[$scanKey]['findingsLabel'] = (string)$findings;
+            }
+        }
+
+        $previousFindings = $alert['previousScan']['findings'] ?? null;
+        $currentFindings = $alert['currentScan']['findings'] ?? null;
+        if (($alert['comparisonRows'] ?? []) === [] && is_int($previousFindings) && is_int($currentFindings)) {
+            $delta = $currentFindings - $previousFindings;
+            $alert['comparisonRows'] = [[
+                'label' => 'Findings change',
+                'value' => $delta > 0 ? '+' . $delta : (string)$delta,
+                'tone' => $delta > 0 ? 'warning' : ($delta < 0 ? 'positive' : 'neutral'),
+            ]];
+            $alert['hasComparisonRows'] = true;
+        }
+
+        $alert['hasScanComparison'] = trim((string)($alert['previousScan']['finishedAtFormatted'] ?? '')) !== ''
+            || trim((string)($alert['currentScan']['finishedAtFormatted'] ?? '')) !== ''
+            || (string)($alert['previousScan']['findingsLabel'] ?? '—') !== '—'
+            || (string)($alert['currentScan']['findingsLabel'] ?? '—') !== '—'
+            || (string)($alert['previousScan']['scoreLabel'] ?? '—') !== '—'
+            || (string)($alert['currentScan']['scoreLabel'] ?? '—') !== '—'
+            || ($alert['comparisonRows'] ?? []) !== [];
+
+        return $alert;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRemotePageHistory(
+        ServerRequestInterface $request,
+        string $siteBase,
+        string $siteIdentifier,
+        string $pageUrl,
+        string $currentJobId,
+        int $remotePageUid,
+        int $pageUid,
+        int $languageUid,
+    ): array {
+        $history = $this->remoteScanHistoryService->loadHistory(
+            $siteBase,
+            $siteIdentifier,
+            10,
+            'single_page',
+            $pageUrl,
+            'completed'
+        );
+        if (!($history['hasItems'] ?? false)) {
+            return $history;
+        }
+
+        $normalizedCurrentUrl = $this->normalizeComparableHistoryUrl($pageUrl);
+        $items = [];
+        foreach (($history['pageScans'] ?? []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            if ((string)($item['normalizedStartUrl'] ?? '') === '' || (string)($item['normalizedStartUrl'] ?? '') !== $normalizedCurrentUrl) {
+                continue;
+            }
+            $item = $this->enrichRemotePageHistoryItemUrls($request, $item, $siteIdentifier, $remotePageUid, $pageUid, $languageUid);
+            if ($currentJobId !== '' && (string)($item['jobId'] ?? '') !== $currentJobId) {
+                $item['compareUrl'] = '';
+                $item['compareLabel'] = 'Compare is available from the current scan only.';
+            }
+            $items[] = $item;
+        }
+
+        if ($items === []) {
+            return [
+                'available' => true,
+                'hasItems' => false,
+                'message' => 'No previous page scans for this URL were returned yet.',
+                'items' => [],
+            ];
+        }
+
+        return [
+            'available' => true,
+            'hasItems' => true,
+            'message' => '',
+            'items' => array_slice($items, 0, 10),
+            'currentJobId' => $currentJobId,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
+     */
+    private function enrichRemotePageHistoryItemUrls(
+        ServerRequestInterface $request,
+        array $item,
+        string $siteIdentifier,
+        int $remotePageUid,
+        int $pageUid,
+        int $languageUid,
+    ): array {
+        $item['viewReportUrl'] = '';
+        $item['viewReportLabel'] = 'Not available in TYPO3';
+
+        $jobId = trim((string)($item['jobId'] ?? ''));
+        $startUrl = trim((string)($item['startUrl'] ?? ''));
+        $sourceType = strtolower(trim((string)($item['sourceType'] ?? '')));
+        $isSinglePageHistoryRow = in_array($sourceType, ['single_page', 'page'], true);
+
+        $localPage = $jobId !== '' && $startUrl !== '' && $isSinglePageHistoryRow
+            ? $this->remoteScanRepository->findPageForJobIdAndUrl($jobId, $startUrl, $siteIdentifier, 'single_page')
+            : null;
+
+        if (is_array($localPage) && (int)($localPage['uid'] ?? 0) > 0 && (string)($localPage['remote_scan_job_id'] ?? '') === $jobId) {
+            $item['viewReportUrl'] = $this->buildRouteUrl('web_a11y.remotePageDetail', [
+                'remotePageUid' => (int)$localPage['uid'],
+                'site' => $siteIdentifier,
+                'id' => (int)($localPage['remote_scan_page_uid'] ?? $pageUid),
+                'language' => (int)($localPage['remote_scan_language_uid'] ?? $languageUid),
+            ]);
+            $item['viewReportLabel'] = 'View report';
+            $item['viewReportRemotePageUid'] = (int)$localPage['uid'];
+        }
+
+        if (!empty($item['hasComparablePrevious']) && (string)($item['compareFromJobId'] ?? '') !== '' && $jobId !== '') {
+            $parameters = [
+                'remotePageUid' => $remotePageUid,
+                'site' => $siteIdentifier,
+                'id' => $pageUid,
+                'language' => $languageUid,
+                'compareFromJobId' => (string)$item['compareFromJobId'],
+                'compareToJobId' => $jobId,
+            ];
+            $item['compareUrl'] = $this->buildRouteUrl('web_a11y.remotePageDetail', $parameters) . '#scan-comparison';
+        }
+
+        return $item;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRemotePageCompare(ServerRequestInterface $request, string $siteBase, array $remotePageHistory = []): array
+    {
+        $queryParams = $request->getQueryParams();
+        $fromJobId = trim((string)($queryParams['compareFromJobId'] ?? ''));
+        $toJobId = trim((string)($queryParams['compareToJobId'] ?? ''));
+        if ($fromJobId === '' || $toJobId === '') {
+            return ['available' => false, 'message' => ''];
+        }
+
+        $comparison = $this->remoteScanHistoryService->loadCompare($siteBase, $fromJobId, $toJobId);
+
+        return $this->enrichCompareWithHistoryMeta($comparison, $remotePageHistory, $fromJobId, $toJobId);
+    }
+
+    /**
+     * @param array<string, mixed> $comparison
+     * @param array<string, mixed> $remotePageHistory
+     * @return array<string, mixed>
+     */
+    private function enrichCompareWithHistoryMeta(array $comparison, array $remotePageHistory, string $fromJobId, string $toJobId): array
+    {
+        if (!($comparison['available'] ?? false) || empty($remotePageHistory['items']) || !is_array($remotePageHistory['items'])) {
+            return $comparison;
+        }
+
+        $historyByJob = [];
+        foreach ($remotePageHistory['items'] as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $jobId = trim((string)($item['jobId'] ?? ''));
+            if ($jobId !== '') {
+                $historyByJob[$jobId] = $item;
+            }
+        }
+
+        foreach ([
+            'previousScan' => $fromJobId,
+            'currentScan' => $toJobId,
+        ] as $targetKey => $jobId) {
+            if (!isset($historyByJob[$jobId]) || !is_array($historyByJob[$jobId])) {
+                continue;
+            }
+            if ((string)($comparison[$targetKey]['finishedAtFormatted'] ?? '') === '') {
+                $comparison[$targetKey]['finishedAtFormatted'] = (string)($historyByJob[$jobId]['finishedAtFormatted'] ?? '');
+            }
+            if ((string)($comparison[$targetKey]['jobId'] ?? '') === '') {
+                $comparison[$targetKey]['jobId'] = $jobId;
+            }
+        }
+
+        $comparison['hasScanMeta'] = (string)($comparison['previousScan']['finishedAtFormatted'] ?? '') !== ''
+            || (string)($comparison['currentScan']['finishedAtFormatted'] ?? '') !== '';
+
+        return $comparison;
+    }
+
+    private function normalizeComparableHistoryUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return strtolower(rtrim($url, '/'));
+        }
+
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = strtolower((string)($parts['host'] ?? ''));
+        $path = rtrim((string)($parts['path'] ?? ''), '/');
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . (string)$parts['query'] : '';
+
+        return ($scheme !== '' ? $scheme . '://' : '') . $host . $path . $query;
     }
 
     private function buildEditRecordUrl(
@@ -370,28 +700,61 @@ final class RemotePageDetailController extends AbstractBackendModuleController
      * @param array<int, array<string, mixed>> $issues
      * @return array<int, array<string, mixed>>
      */
-    private function groupIssuesByRule(array $issues): array
+    private function groupIssuesByRule(array $issues, array $pageRecommendation = []): array
     {
         $groups = [];
 
         foreach ($issues as $issue) {
             $ruleId = (string)($issue['rule_id'] ?? 'unknown');
+            $metadata = $this->ruleMetadataPresentationService->present($issue);
+            $helpUrl = trim((string)($issue['help_url'] ?? ''));
+            $documentationLinkCandidates = is_array($metadata['documentationLinks'] ?? null)
+                ? $metadata['documentationLinks']
+                : [];
+            $helpDocumentationLink = $this->createHelpDocumentationLink($helpUrl);
+            if ($helpDocumentationLink !== null) {
+                $documentationLinkCandidates[] = $helpDocumentationLink;
+            }
+            $documentationLinks = $this->filterDocumentationLinks(
+                $documentationLinkCandidates,
+                ''
+            );
 
             if (!isset($groups[$ruleId])) {
+                $whoShouldFix = $this->normalizeMachineValue($issue['who_should_fix'] ?? null);
+                if ($whoShouldFix === '') {
+                    $whoShouldFix = (string)($metadata['owner'] ?? '');
+                }
+                $fixType = $this->normalizeMachineValue($issue['fix_type'] ?? null);
+                if ($fixType === '') {
+                    $fixType = (string)($metadata['fixType'] ?? '');
+                }
                 $groups[$ruleId] = [
                     'rule_id' => $ruleId,
                     'impact' => (string)($issue['impact'] ?? ''),
                     'impact_tone' => $this->resolveImpactTone((string)($issue['impact'] ?? '')),
                     'help' => (string)($issue['help'] ?? ''),
-                    'help_url' => (string)($issue['help_url'] ?? ''),
-                    'guidanceWhyItMatters' => $this->normalizeNullableString($issue['guidance_why_it_matters'] ?? null),
-                    'guidanceHowToFix' => $this->normalizeNullableString($issue['guidance_how_to_fix'] ?? null),
+                    'help_url' => $helpUrl,
+                    'friendlyTitle' => (string)($metadata['title'] ?? ''),
+                    'affectedUsers' => $metadata['affectedUsers'] ?? [],
+                    'affectedUserItems' => $metadata['affectedUserItems'] ?? [],
+                    'affectedUsersLabel' => (string)($metadata['affectedUsersLabel'] ?? ''),
+                    'wcagReferences' => $metadata['wcagReferences'] ?? [],
+                    'wcagPrimaryLabel' => (string)($metadata['wcagPrimaryLabel'] ?? ''),
+                    'wcagCompactLabel' => (string)($metadata['wcagCompactLabel'] ?? ''),
+                    'techniques' => $metadata['techniques'] ?? [],
+                    'standards' => $metadata['standards'] ?? [],
+                    'documentationLinks' => $documentationLinks,
+                    'technicalTags' => $metadata['technicalTags'] ?? [],
+                    'hasStandardsAndImpact' => false,
+                    'guidanceWhyItMatters' => $this->normalizeNullableString($issue['guidance_why_it_matters'] ?? null) ?? $this->normalizeNullableString($metadata['whyItMatters'] ?? null),
+                    'guidanceHowToFix' => $this->normalizeNullableString($issue['guidance_how_to_fix'] ?? null) ?? $this->normalizeNullableString($metadata['howToFix'] ?? null),
                     'guidanceHasApiText' => false,
                     'guidanceIsFallback' => false,
-                    'whoShouldFix' => $this->normalizeMachineValue($issue['who_should_fix'] ?? null),
-                    'whoShouldFixLabel' => $this->formatBadgeLabel($this->normalizeMachineValue($issue['who_should_fix'] ?? null)),
-                    'fixType' => $this->normalizeMachineValue($issue['fix_type'] ?? null),
-                    'fixTypeLabel' => $this->formatBadgeLabel($this->normalizeMachineValue($issue['fix_type'] ?? null)),
+                    'whoShouldFix' => $whoShouldFix,
+                    'whoShouldFixLabel' => $this->formatBadgeLabel($whoShouldFix),
+                    'fixType' => $fixType,
+                    'fixTypeLabel' => $this->formatBadgeLabel($fixType),
                     'confidence' => $this->normalizeMachineValue($issue['confidence'] ?? null),
                     'confidenceLabel' => $this->formatBadgeLabel($this->normalizeMachineValue($issue['confidence'] ?? null)),
                     'count' => 0,
@@ -399,6 +762,15 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                     'mappedUids' => [],
                 ];
             }
+
+            if ((string)$groups[$ruleId]['help_url'] === '' && $helpUrl !== '') {
+                $groups[$ruleId]['help_url'] = $helpUrl;
+            }
+
+            $groups[$ruleId]['documentationLinks'] = $this->filterDocumentationLinks(
+                array_merge($groups[$ruleId]['documentationLinks'], $documentationLinks),
+                ''
+            );
 
             foreach ([
                 'guidanceWhyItMatters' => 'guidance_why_it_matters',
@@ -440,19 +812,144 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             }
         }
 
+        $primaryRuleId = strtolower(trim((string)($pageRecommendation['primaryRuleId'] ?? $pageRecommendation['primaryRule'] ?? '')));
+        $hasPrimaryMatch = false;
+
         foreach ($groups as &$group) {
+            $group['documentationLinks'] = $this->filterDocumentationLinks(
+                $group['documentationLinks'],
+                (string)$group['help_url']
+            );
+            $group['hasStandardsAndImpact'] = $this->hasStandardsAndImpact(
+                $group,
+                $group['documentationLinks']
+            );
             $uids = array_values($group['mappedUids']);
             $group['highlightUids'] = $uids !== [] ? implode(',', $uids) : '';
             $group['guidanceHasApiText'] = $group['guidanceWhyItMatters'] !== null || $group['guidanceHowToFix'] !== null;
             $group['guidanceIsFallback'] = $group['guidanceHowToFix'] === null;
             $group['guidanceHowToFix'] = $group['guidanceHowToFix'] ?? 'Review this finding in context.';
+            $group['primaryFixSummary'] = $this->buildPrimaryFixSummary($group['guidanceHowToFix']);
+            $group['isPrimaryRecommendation'] = $primaryRuleId !== '' && strtolower((string)$group['rule_id']) === $primaryRuleId;
+            $group['isDefaultOpen'] = false;
+            if ($group['isPrimaryRecommendation']) {
+                $hasPrimaryMatch = true;
+            }
             unset($group['mappedUids']);
         }
         unset($group);
 
-        return array_values($groups);
+        $groups = array_values($groups);
+        if ($hasPrimaryMatch) {
+            usort($groups, static function (array $left, array $right): int {
+                return ((int)!$left['isPrimaryRecommendation']) <=> ((int)!$right['isPrimaryRecommendation']);
+            });
+        }
+
+        if ($groups !== []) {
+            $groups[0]['isDefaultOpen'] = true;
+            if (!$hasPrimaryMatch) {
+                $groups[0]['isPrimaryRecommendation'] = true;
+            }
+        }
+
+        return $groups;
     }
 
+    /** @return array{label:string,url:string,type:string}|null */
+    private function createHelpDocumentationLink(string $helpUrl): ?array
+    {
+        if ($helpUrl === '') {
+            return null;
+        }
+
+        $urlParts = parse_url($helpUrl);
+        $scheme = is_array($urlParts)
+            ? strtolower((string)($urlParts['scheme'] ?? ''))
+            : '';
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        return [
+            'label' => $this->translate('module.remotePageDetail.ruleDocs'),
+            'url' => $helpUrl,
+            'type' => 'deque',
+        ];
+    }
+
+    /**
+     * @param mixed $documentationLinks
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterDocumentationLinks(mixed $documentationLinks, string $helpUrl): array
+    {
+        if (!is_array($documentationLinks)) {
+            return [];
+        }
+
+        $helpUrl = trim($helpUrl);
+        $filtered = [];
+        $seenUrls = [];
+
+        foreach ($documentationLinks as $documentationLink) {
+            if (!is_array($documentationLink)) {
+                continue;
+            }
+
+            $url = trim((string)($documentationLink['url'] ?? ''));
+            if ($url === '' || $url === $helpUrl || isset($seenUrls[$url])) {
+                continue;
+            }
+
+            $seenUrls[$url] = true;
+            $documentationLink['url'] = $url;
+            $filtered[] = $documentationLink;
+        }
+
+        return array_values($filtered);
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     * @param array<int, array<string, mixed>> $documentationLinks
+     */
+    private function hasStandardsAndImpact(array $metadata, array $documentationLinks): bool
+    {
+        if (trim((string)($metadata['wcagCompactLabel'] ?? '')) !== '') {
+            return true;
+        }
+
+        foreach ([
+            'affectedUsers',
+            'affectedUserItems',
+            'wcagReferences',
+            'techniques',
+            'standards',
+            'technicalTags',
+        ] as $key) {
+            if ($this->hasMetadataValue($metadata[$key] ?? null)) {
+                return true;
+            }
+        }
+
+        return $documentationLinks !== [];
+    }
+
+    private function hasMetadataValue(mixed $value): bool
+    {
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if ($this->hasMetadataValue($item)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return is_scalar($value) && trim((string)$value) !== '';
+    }
 
     private function normalizeNullableString(mixed $value): ?string
     {
@@ -603,6 +1100,337 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         return 0;
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeKeyboardStructureReview(string $json): array
+    {
+        if (trim($json) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return $this->normalizeKeyboardStructureReview($decoded);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeKeyboardStructureReview(array $payload): array
+    {
+        $keyboardDetails = is_array($payload['keyboardDetails'] ?? null)
+            ? $payload['keyboardDetails']
+            : (is_array($payload['keyboard_details'] ?? null) ? $payload['keyboard_details'] : []);
+        $structureDetails = is_array($payload['structureDetails'] ?? null)
+            ? $payload['structureDetails']
+            : (is_array($payload['structure_details'] ?? null) ? $payload['structure_details'] : []);
+
+        $keyboard = $this->normalizeKeyboardReview($payload, $keyboardDetails);
+        $structure = $this->normalizeStructureReview($structureDetails);
+
+        if ($keyboard === [] && $structure === []) {
+            return [];
+        }
+
+        return [
+            'title' => 'Keyboard & structure review',
+            'subtitle' => 'Automated helper signals for manual review. These checks do not replace a full accessibility audit.',
+            'keyboard' => $keyboard,
+            'hasKeyboard' => $keyboard !== [],
+            'structure' => $structure,
+            'hasStructure' => $structure !== [],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $summary
+     * @param array<string, mixed> $details
+     * @return array<string, mixed>
+     */
+    private function normalizeKeyboardReview(array $summary, array $details): array
+    {
+        if ($summary === [] && $details === []) {
+            return [];
+        }
+
+        $focusPath = $this->normalizeFocusPath($details['focusPath'] ?? $details['focus_path'] ?? []);
+        $focusWarnings = $this->normalizeReviewWarnings($details['focusWarnings'] ?? $details['focus_warnings'] ?? []);
+        $focusStepsTotal = max(0, (int)($summary['focusStepsTotal'] ?? $summary['focus_steps_total'] ?? count($focusPath)));
+        $uniqueFocusedElementsTotal = max(0, (int)($summary['uniqueFocusedElementsTotal'] ?? $summary['unique_focused_elements_total'] ?? 0));
+        $invisibleFocusIssuesTotal = max(0, (int)($summary['invisibleFocusIssuesTotal'] ?? $summary['invisible_focus_issues_total'] ?? count($focusWarnings)));
+        $possibleKeyboardTrap = (bool)($summary['possibleKeyboardTrap'] ?? $summary['possible_keyboard_trap'] ?? false);
+        $manualReviewRequired = (bool)($summary['manualReviewRequired'] ?? $summary['manual_review_required'] ?? true);
+        $recommendation = $this->normalizeNullableString($details['recommendation'] ?? $summary['recommendation'] ?? null);
+
+        if ($focusStepsTotal === 0 && $uniqueFocusedElementsTotal === 0 && $invisibleFocusIssuesTotal === 0 && $focusPath === [] && $focusWarnings === [] && $recommendation === null) {
+            return [];
+        }
+
+        return [
+            'focusStepsTotal' => $focusStepsTotal,
+            'uniqueFocusedElementsTotal' => $uniqueFocusedElementsTotal,
+            'invisibleFocusIssuesTotal' => $invisibleFocusIssuesTotal,
+            'invisibleFocusIssuesLabel' => $invisibleFocusIssuesTotal === 1 ? '1 focus visibility warning' : $invisibleFocusIssuesTotal . ' focus visibility warnings',
+            'possibleKeyboardTrap' => $possibleKeyboardTrap,
+            'possibleKeyboardTrapLabel' => $possibleKeyboardTrap ? 'Possible trap signal' : 'No trap signal',
+            'manualReviewRequired' => $manualReviewRequired,
+            'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : 'Manual review may still be required',
+            'recommendation' => $recommendation,
+            'focusPath' => $focusPath,
+            'hasFocusPath' => $focusPath !== [],
+            'focusPathLimitLabel' => count($focusPath) >= 50 ? 'Showing first 50 focus steps.' : '',
+            'focusWarnings' => $focusWarnings,
+            'hasFocusWarnings' => $focusWarnings !== [],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeFocusPath(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+        if ($items !== [] && !array_is_list($items)) {
+            $items = [$items];
+        }
+
+        $normalized = [];
+        $step = 1;
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $hasVisibleFocusRaw = $item['hasVisibleFocus'] ?? $item['has_visible_focus'] ?? null;
+            $hasVisibleFocus = is_bool($hasVisibleFocusRaw) ? $hasVisibleFocusRaw : null;
+            $warning = $this->normalizeNullableString($item['warning'] ?? $item['warningType'] ?? $item['warning_type'] ?? null);
+            if ($warning === null && $hasVisibleFocus === false) {
+                $warning = 'Review visible focus';
+            }
+            $tagName = $this->normalizeNullableString($item['tagName'] ?? $item['tag_name'] ?? $item['tag'] ?? null);
+            $role = $this->normalizeNullableString($item['role'] ?? null);
+            $normalized[] = [
+                'step' => max(1, (int)($item['step'] ?? $item['index'] ?? $step)),
+                'element' => $tagName ?? $role ?? 'element',
+                'accessibleName' => $this->truncateForUi($this->normalizeNullableString($item['accessibleName'] ?? $item['accessible_name'] ?? $item['text'] ?? null), 100),
+                'selector' => $this->truncateForUi($this->normalizeNullableString($item['selector'] ?? null), 160),
+                'hasVisibleFocus' => $hasVisibleFocus,
+                'visibleFocusLabel' => $hasVisibleFocus === true ? 'Visible focus' : ($hasVisibleFocus === false ? 'Review focus' : 'Not reported'),
+                'warning' => $warning,
+                'selectorReliability' => $this->normalizeMachineValue($item['selectorReliability'] ?? $item['selector_reliability'] ?? null),
+                'selectorReliabilityLabel' => $this->formatBadgeLabel($this->normalizeMachineValue($item['selectorReliability'] ?? $item['selector_reliability'] ?? null)),
+            ];
+            $step++;
+            if (count($normalized) >= 50) {
+                break;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @return array<string, mixed>
+     */
+    private function normalizeStructureReview(array $details): array
+    {
+        if ($details === []) {
+            return [];
+        }
+
+        $headings = $this->normalizeHeadingOutline($details['headings'] ?? []);
+        $landmarks = $this->normalizeLandmarks($details['landmarks'] ?? []);
+        $warnings = $this->normalizeReviewWarnings($details['warnings'] ?? []);
+        $likelyTemplateIssue = (bool)($details['likelyTemplateIssue'] ?? $details['likely_template_issue'] ?? false);
+        $recommendation = $this->normalizeNullableString($details['recommendation'] ?? null);
+
+        if ($headings === [] && $landmarks === [] && $warnings === [] && !$likelyTemplateIssue && $recommendation === null) {
+            return [];
+        }
+
+        return [
+            'headings' => $headings,
+            'hasHeadings' => $headings !== [],
+            'landmarks' => $landmarks,
+            'hasLandmarks' => $landmarks !== [],
+            'warnings' => $warnings,
+            'hasWarnings' => $warnings !== [],
+            'likelyTemplateIssue' => $likelyTemplateIssue,
+            'likelyTemplateIssueLabel' => $likelyTemplateIssue ? 'Likely template/layout issue' : '',
+            'recommendation' => $recommendation,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeHeadingOutline(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+        if ($items !== [] && !array_is_list($items)) {
+            $items = [$items];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $rawLevel = (int)($item['level'] ?? $item['headingLevel'] ?? $item['heading_level'] ?? 0);
+            if ($rawLevel < 1 || $rawLevel > 6) {
+                continue;
+            }
+            $level = $rawLevel;
+            $text = $this->normalizeNullableString($item['text'] ?? $item['name'] ?? $item['accessibleName'] ?? $item['accessible_name'] ?? null);
+            $isEmpty = (bool)($item['isEmpty'] ?? $item['is_empty'] ?? ($text === null));
+            $levelJump = (bool)($item['levelJump'] ?? $item['level_jump'] ?? $item['hasLevelJump'] ?? $item['has_level_jump'] ?? false);
+            $warnings = $this->normalizeStringList($item['warnings'] ?? []);
+            if ($isEmpty && !in_array('Empty heading', $warnings, true)) {
+                $warnings[] = 'Empty heading';
+            }
+            if ($levelJump && !in_array('Heading level jump', $warnings, true)) {
+                $warnings[] = 'Heading level jump';
+            }
+            $normalized[] = [
+                'level' => $level,
+                'levelLabel' => 'H' . $level,
+                'text' => $this->truncateForUi($text ?? '[empty heading]', 140),
+                'isEmpty' => $isEmpty,
+                'levelJump' => $levelJump,
+                'warnings' => array_slice($warnings, 0, 3),
+                'hasWarnings' => $warnings !== [],
+            ];
+        }
+
+        return array_slice($normalized, 0, 80);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeLandmarks(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+        if ($items !== [] && !array_is_list($items)) {
+            $items = [$items];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $role = $this->normalizeMachineValue($item['role'] ?? $item['landmark'] ?? $item['type'] ?? '');
+            if ($role === '') {
+                continue;
+            }
+            $count = max(0, (int)($item['count'] ?? $item['total'] ?? $item['foundTotal'] ?? $item['found_total'] ?? 1));
+            $isMissing = (bool)($item['missing'] ?? $item['isMissing'] ?? $item['is_missing'] ?? false) || $count === 0;
+            $normalized[] = [
+                'role' => $role,
+                'roleLabel' => $this->formatBadgeLabel($role),
+                'label' => $this->normalizeNullableString($item['label'] ?? $item['name'] ?? null),
+                'count' => $count,
+                'countLabel' => $isMissing ? 'missing' : ($count === 1 ? '1 found' : $count . ' found'),
+                'isMissing' => $isMissing,
+            ];
+        }
+
+        return array_slice($normalized, 0, 30);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeReviewWarnings(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+        if ($items !== [] && !array_is_list($items)) {
+            $items = [$items];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $type = $this->normalizeMachineValue($item['type'] ?? $item['ruleId'] ?? $item['rule_id'] ?? 'warning');
+            $owner = $this->normalizeMachineValue($item['recommendedOwner'] ?? $item['recommended_owner'] ?? $item['owner'] ?? null);
+            $fixType = $this->normalizeMachineValue($item['fixType'] ?? $item['fix_type'] ?? null);
+            $summary = $this->normalizeNullableString($item['summary'] ?? $item['message'] ?? $item['description'] ?? null);
+            $recommendation = $this->normalizeNullableString($item['recommendation'] ?? $item['suggestedAction'] ?? $item['suggested_action'] ?? null);
+            $normalized[] = [
+                'type' => $type,
+                'typeLabel' => $this->formatBadgeLabel($type),
+                'summary' => $summary,
+                'recommendation' => $recommendation,
+                'recommendedOwner' => $owner,
+                'recommendedOwnerLabel' => $this->formatBadgeLabel($owner),
+                'fixType' => $fixType,
+                'fixTypeLabel' => $this->formatBadgeLabel($fixType),
+            ];
+        }
+
+        return array_slice($normalized, 0, 20);
+    }
+
+
+    private function buildPrimaryFixSummary(?string $value): string
+    {
+        $value = $this->normalizeNullableString($value);
+        if ($value === null) {
+            return '';
+        }
+
+        $sentence = $value;
+        if (preg_match('/^(.+?[.!?])(?:\s|$)/u', $value, $matches) === 1) {
+            $sentence = trim((string)$matches[1]);
+        }
+
+        if (mb_strlen($sentence) <= 130) {
+            return $sentence;
+        }
+
+        $short = rtrim(mb_substr($sentence, 0, 127));
+        $lastSpace = mb_strrpos($short, ' ');
+        if ($lastSpace !== false && $lastSpace > 70) {
+            $short = rtrim(mb_substr($short, 0, $lastSpace));
+        }
+
+        return rtrim($short, ' ,;:.') . '.';
+    }
+
+    private function truncateForUi(?string $value, int $limit): string
+    {
+        if ($value === null) {
+            return '';
+        }
+        if ($limit <= 0 || mb_strlen($value) <= $limit) {
+            return $value;
+        }
+
+        return rtrim(mb_substr($value, 0, $limit - 1)) . '…';
     }
 
     /**
@@ -1158,7 +1986,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         $backButton = $buttonBar->makeLinkButton()
             ->setHref($backUrl)
-            ->setTitle($this->translate('settings.backToOverview'))
+            ->setTitle($this->translate('settings.backToOverview') ?: 'Back to overview')
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-view-go-back', IconSize::SMALL));
 
@@ -1167,7 +1995,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         if ($remotePageDebugUrl !== '') {
             $openFrontendButton = $buttonBar->makeLinkButton()
                 ->setHref($remotePageDebugUrl)
-                ->setTitle($this->translate('module.remotePageDetail.openFrontendDebug'))
+                ->setTitle($this->translate('module.remotePageDetail.openFrontendDebug') ?: 'Open frontend')
                 ->setShowLabelText(true)
                 ->setDataAttributes(['open-new-tab' => '1'])
                 ->setIcon($this->iconFactory->getIcon('actions-view-page', IconSize::SMALL));

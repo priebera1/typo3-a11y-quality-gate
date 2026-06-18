@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Questions and setup help
+    url: https://github.com/priebera1/typo3-a11y-quality-gate/discussions/categories/q-a
+    about: Ask questions about installation, configuration and usage.
+
+  - name: General feedback
+    url: https://github.com/priebera1/typo3-a11y-quality-gate/discussions/categories/feedback
+    about: Share workflow feedback and experiences from real TYPO3 projects.
+
+  - name: Report a security vulnerability
+    url: https://github.com/priebera1/typo3-a11y-quality-gate/security/advisories/new
+    about: Do not report security vulnerabilities in a public issue. Report them privately instead.

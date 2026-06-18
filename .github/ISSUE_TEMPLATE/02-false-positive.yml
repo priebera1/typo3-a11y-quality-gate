@@ -1,0 +1,76 @@
+name: False positive
+description: AQG reports an issue that you believe should not be flagged.
+labels: ["false-positive", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A false positive is when AQG flags something as an accessibility issue but you believe the result is incorrect.
+        Please include anonymised content — no real client data or domain names.
+
+  - type: input
+    id: aqg-version
+    attributes:
+      label: AQG version
+      placeholder: "e.g. 1.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: typo3-version
+    attributes:
+      label: TYPO3 version
+      placeholder: "e.g. 13.4.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scan-type
+    attributes:
+      label: Scan type
+      options:
+        - Local scan
+        - Rendered Page Check
+        - PRO Remote scan
+    validations:
+      required: true
+
+  - type: input
+    id: rule-id
+    attributes:
+      label: AQG rule or rule ID
+      placeholder: "e.g. rte.non_descriptive_link or rendered.duplicate_id"
+    validations:
+      required: true
+
+  - type: textarea
+    id: content
+    attributes:
+      label: Anonymised HTML or content input
+      description: Paste the content or HTML that triggered the false positive. Remove client data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why do you consider this a false positive?
+      description: Explain what is correct about this content and why AQG should not flag it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      placeholder: "AQG should not flag this because..."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: data-check
+    attributes:
+      label: Data confirmation
+      options:
+        - label: I have removed client domain names, email addresses and licence keys from this report.
+          required: true

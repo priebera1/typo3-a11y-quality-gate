@@ -146,8 +146,8 @@ final class RemoteScanPersistenceService
         string $startUrl,
         ?string $sitemapUrl,
         int $pageUid = 0,
-        callable $summaryFetcher = null,
-        callable $resultsFetcher = null,
+        ?callable $summaryFetcher = null,
+        ?callable $resultsFetcher = null,
     ): int {
         if ($summaryFetcher === null || $resultsFetcher === null) {
             throw new \InvalidArgumentException('Missing summary/results fetchers for recovery.');
@@ -221,6 +221,16 @@ final class RemoteScanPersistenceService
         $keyboardSummary = is_array($page['keyboardSummary'] ?? null)
             ? $page['keyboardSummary']
             : (is_array($page['keyboard_summary'] ?? null) ? $page['keyboard_summary'] : []);
+        if (is_array($page['keyboardDetails'] ?? null)) {
+            $keyboardSummary['keyboardDetails'] = $page['keyboardDetails'];
+        } elseif (is_array($page['keyboard_details'] ?? null)) {
+            $keyboardSummary['keyboardDetails'] = $page['keyboard_details'];
+        }
+        if (is_array($page['structureDetails'] ?? null)) {
+            $keyboardSummary['structureDetails'] = $page['structureDetails'];
+        } elseif (is_array($page['structure_details'] ?? null)) {
+            $keyboardSummary['structureDetails'] = $page['structure_details'];
+        }
         $remediationSummary = is_array($page['remediationSummary'] ?? null)
             ? $page['remediationSummary']
             : (is_array($page['remediation_summary'] ?? null)

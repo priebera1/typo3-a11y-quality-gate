@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+defined('TYPO3') || die();
+
 return [
     'ctrl' => [
         'title' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf:tx_a11y_remote_issue_node',
@@ -11,7 +13,7 @@ return [
         'delete' => 'deleted',
         'hideTable' => true,
         'rootLevel' => 1,
-        'iconfile' => 'EXT:a11y_quality_gate/Resources/Public/Icons/module.svg',
+        'iconfile' => 'EXT:a11y_quality_gate/Resources/Public/Icons/Extension.svg',
     ],
     'columns' => [
         'remote_issue' => [

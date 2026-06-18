@@ -9,6 +9,9 @@ use TYPO3\CMS\Core\Database\Connection;
 
 final class RemoteIssueRepository extends AbstractRepository
 {
+    /** @var array<string, array<string, bool>> */
+    private array $tableColumnCache = [];
+
     public function deleteByRemoteScan(int $remoteScanUid): void
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
@@ -55,14 +58,22 @@ final class RemoteIssueRepository extends AbstractRepository
         $connection = $this->getConnection(Tables::REMOTE_ISSUE);
         $now = time();
 
-        $connection->insert(Tables::REMOTE_ISSUE, [
+        $row = [
             'pid' => $pid,
             'remote_scan' => $remoteScanUid,
             'remote_scan_page' => $remoteScanPageUid,
-            'rule_id' => (string)($issue['ruleId'] ?? ''),
-            'impact' => (string)($issue['impact'] ?? ''),
-            'help' => (string)($issue['help'] ?? ''),
-            'help_url' => (string)($issue['helpUrl'] ?? ''),
+            'rule_id' => (string)($issue['ruleId'] ?? $issue['rule_id'] ?? $issue['id'] ?? $issue['rule'] ?? ''),
+            'impact' => (string)($issue['impact'] ?? $issue['severity'] ?? ''),
+            'help' => (string)($issue['help'] ?? $issue['description'] ?? $issue['title'] ?? ''),
+            'help_url' => (string)($issue['helpUrl'] ?? $issue['help_url'] ?? $issue['url'] ?? ''),
+            'plain_language_title' => $this->extractMetadataString($issue, 'plainLanguageTitle', 'plain_language_title', 255),
+            'plain_language_description' => $this->extractMetadataString($issue, 'plainLanguageDescription', 'plain_language_description', 2000),
+            'affected_users_json' => $this->extractMetadataJson($issue, 'affectedUsers', 'affected_users'),
+            'wcag_references_json' => $this->extractMetadataJson($issue, 'wcagReferences', 'wcag_references', 'wcag'),
+            'standards_json' => $this->extractMetadataJson($issue, 'standards', 'standards'),
+            'rule_documentation_json' => $this->extractMetadataJson($issue, 'ruleDocumentation', 'rule_documentation', 'documentation'),
+            'technical_tags_json' => $this->extractMetadataJson($issue, 'technicalTags', 'technical_tags', 'tags'),
+            'rule_metadata_json' => $this->encodeRuleMetadata($issue),
             'guidance_why_it_matters' => $this->extractGuidanceText($issue, 'whyItMatters', 'why_it_matters'),
             'guidance_how_to_fix' => $this->extractGuidanceText($issue, 'howToFix', 'how_to_fix'),
             'who_should_fix' => $this->extractGuidanceChoice($issue, 'whoShouldFix', 'who_should_fix'),
@@ -73,7 +84,13 @@ final class RemoteIssueRepository extends AbstractRepository
             'status' => (string)($issue['status'] ?? 'open'),
             'crdate' => $now,
             'tstamp' => $now,
-        ]);
+        ];
+
+        // Keep remote issue persistence backwards-compatible when code is deployed
+        // before TYPO3 database compare/schema update has added the optional rule
+        // metadata columns. One unknown metadata column must not abort the whole
+        // issue insert and make Page Detail/PDF look empty.
+        $connection->insert(Tables::REMOTE_ISSUE, $this->filterExistingColumns(Tables::REMOTE_ISSUE, $row));
 
         return (int)$connection->lastInsertId();
     }
@@ -103,6 +120,143 @@ final class RemoteIssueRepository extends AbstractRepository
 
         return substr($value, 0, 50);
     }
+
+
+    /**
+     * @param array<string, mixed> $issue
+     * @return array<string, mixed>
+     */
+    private function extractRuleMetadata(array $issue): array
+    {
+        $metadata = [];
+        foreach (['ruleMetadata', 'rule_metadata', 'metadata', 'normalizedMetadata', 'normalized_metadata'] as $key) {
+            if (is_array($issue[$key] ?? null)) {
+                $metadata = array_replace_recursive($metadata, $issue[$key]);
+            }
+        }
+
+        foreach ([
+            'plainLanguageTitle', 'plain_language_title',
+            'plainLanguageDescription', 'plain_language_description',
+            'affectedUsers', 'affected_users',
+            'wcagReferences', 'wcag_references', 'wcag',
+            'standards', 'tags', 'technicalTags', 'technical_tags',
+            'ruleDocumentation', 'rule_documentation', 'documentation',
+            'whyItMatters', 'why_it_matters',
+            'remediation', 'howToFix', 'how_to_fix',
+            'suggestedOwner', 'suggested_owner', 'fixType', 'fix_type',
+        ] as $key) {
+            if (array_key_exists($key, $issue) && !array_key_exists($key, $metadata)) {
+                $metadata[$key] = $issue[$key];
+            }
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * @param array<string, mixed> $issue
+     */
+    private function extractMetadataString(array $issue, string $camelKey, string $snakeKey, int $maxLength): string
+    {
+        $metadata = $this->extractRuleMetadata($issue);
+        $value = $issue[$camelKey] ?? $issue[$snakeKey] ?? $metadata[$camelKey] ?? $metadata[$snakeKey] ?? '';
+        if (is_array($value)) {
+            return '';
+        }
+
+        return substr(trim((string)$value), 0, $maxLength);
+    }
+
+    /**
+     * @param array<string, mixed> $issue
+     */
+    private function extractMetadataJson(array $issue, string $camelKey, string $snakeKey, string ...$aliases): string
+    {
+        $metadata = $this->extractRuleMetadata($issue);
+        $value = [];
+        foreach (array_merge([$camelKey, $snakeKey], $aliases) as $key) {
+            if (array_key_exists($key, $issue)) {
+                $value = $issue[$key];
+                break;
+            }
+            if (array_key_exists($key, $metadata)) {
+                $value = $metadata[$key];
+                break;
+            }
+        }
+        if ($value === null || $value === '' || $value === []) {
+            return '';
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } else {
+                $value = [$value];
+            }
+        }
+        if (!is_array($value)) {
+            return '';
+        }
+
+        return (string)json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @param array<string, mixed> $issue
+     */
+    private function encodeRuleMetadata(array $issue): string
+    {
+        $metadata = $this->extractRuleMetadata($issue);
+        if ($metadata === []) {
+            return '';
+        }
+
+        return (string)json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function filterExistingColumns(string $tableName, array $row): array
+    {
+        $columns = $this->getExistingColumns($tableName);
+        if ($columns === []) {
+            return $row;
+        }
+
+        return array_filter(
+            $row,
+            static fn (string $column): bool => isset($columns[$column]),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function getExistingColumns(string $tableName): array
+    {
+        if (isset($this->tableColumnCache[$tableName])) {
+            return $this->tableColumnCache[$tableName];
+        }
+
+        try {
+            $schemaManager = $this->getConnection($tableName)->createSchemaManager();
+            $columns = [];
+            foreach ($schemaManager->listTableColumns($tableName) as $column) {
+                $columns[$column->getName()] = true;
+            }
+
+            return $this->tableColumnCache[$tableName] = $columns;
+        } catch (\Throwable) {
+            // If schema introspection is not available, keep the previous behavior.
+            return $this->tableColumnCache[$tableName] = [];
+        }
+    }
+
 
     /**
      * @return array<int, array<string, mixed>>

@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+<?xml version='1.0' encoding='utf-8'?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
     <file source-language="en" datatype="plaintext" original="EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf">
         <body>
-
             <trans-unit id="action.back">
                 <source>Back</source>
             </trans-unit>
@@ -69,7 +68,6 @@
             <trans-unit id="action.viewIssues">
                 <source>View issues</source>
             </trans-unit>
-
             <trans-unit id="ignore.modal.reason.label">
                 <source>Reason for ignoring (required)</source>
             </trans-unit>
@@ -79,7 +77,6 @@
             <trans-unit id="ignore.modal.title">
                 <source>Ignore issue</source>
             </trans-unit>
-
             <trans-unit id="issue.status.ignored">
                 <source>Ignored</source>
             </trans-unit>
@@ -92,14 +89,12 @@
             <trans-unit id="issue.status.resolved">
                 <source>Resolved</source>
             </trans-unit>
-
             <trans-unit id="module.overview.description">
                 <source>Review the latest scan results and open page-level issue summaries.</source>
             </trans-unit>
             <trans-unit id="module.overview.title">
                 <source>Accessibility Overview</source>
             </trans-unit>
-
             <trans-unit id="module.pageDetail.description">
                 <source>Review accessibility issues for this page, edit affected records, or ignore intentional exceptions.</source>
             </trans-unit>
@@ -118,7 +113,6 @@
             <trans-unit id="pageDetail.noEditAccess">
                 <source>No edit access</source>
             </trans-unit>
-
             <trans-unit id="module.remotePageDetail.contentIdentifier">
                 <source>Identifier</source>
             </trans-unit>
@@ -129,10 +123,10 @@
                 <source>Duration</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.description">
-                <source>Review remote accessibility issues for this page, highlight affected content elements, or open the mapped records.</source>
+                <source>Review frontend scan findings for this page, highlight affected content elements, or open the mapped records.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.eyebrow">
-                <source>Remote · frontend audit</source>
+                <source>Frontend audit</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.error.missingRemotePageUid">
                 <source>Missing remote page UID.</source>
@@ -165,7 +159,7 @@
                 <source>Serious</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.issues">
-                <source>Remote accessibility issues</source>
+                <source>Frontend scan findings</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.jobId">
                 <source>Job ID</source>
@@ -174,7 +168,7 @@
                 <source>Last attempt</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.lastRemoteScan">
-                <source>Last remote scan</source>
+                <source>Last frontend scan</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.mapping">
                 <source>Mapping</source>
@@ -183,10 +177,10 @@
                 <source>No edit access</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.noIssues">
-                <source>No remote issues stored for this page.</source>
+                <source>No frontend scan findings stored for this page.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.noIssuesClean">
-                <source>No issues found by the remote scan</source>
+                <source>No findings found by the frontend scan</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.noIssuesClean.text">
                 <source>No automated findings were detected for this frontend URL. Re-scan after publishing changes.</source>
@@ -213,7 +207,7 @@
                 <source>Showing the previous scan while a new scan runs</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.previousScanShown.text">
-                <source>The numbers below are from the last completed remote scan. They will refresh once the running scan finishes.</source>
+                <source>The numbers below are from the last completed frontend scan. They will refresh once the running scan finishes.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.ruleDocs">
                 <source>Rule documentation</source>
@@ -234,7 +228,7 @@
                 <source>Scan is starting. Please keep this page open.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanFailedTitle">
-                <source>Remote scan failed for this page</source>
+                <source>Frontend scan failed for this page</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanFailedText">
                 <source>The crawler reached the URL but the server returned an error. Issue counts above are from the last successful scan and may be stale.</source>
@@ -243,7 +237,7 @@
                 <source>Scan disabled for this URL</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanDisabledText">
-                <source>This remote URL could not be resolved to a TYPO3 page, so Scan this page is disabled. Existing crawler results are still shown below.</source>
+                <source>This frontend URL could not be resolved to a TYPO3 page, so Scan this page is disabled. Existing crawler results are still shown below.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanUsesSiteRootTitle">
                 <source>Scan will use the site root context</source>
@@ -308,7 +302,6 @@
             <trans-unit id="module.remotePageDetail.userAgent">
                 <source>User agent</source>
             </trans-unit>
-
             <trans-unit id="pageDetail.filterSummary.open">
                 <source>open</source>
             </trans-unit>
@@ -324,11 +317,9 @@
             <trans-unit id="pageDetail.filterSummary.template.plural">
                 <source>Showing %d %sissues</source>
             </trans-unit>
-
             <trans-unit id="module.title">
                 <source>Accessibility</source>
             </trans-unit>
-
             <trans-unit id="notification.proScan.completed">
                 <source>Frontend scan complete — %d new, %d resolved.</source>
             </trans-unit>
@@ -383,7 +374,6 @@
             <trans-unit id="notification.title">
                 <source>Accessibility</source>
             </trans-unit>
-
             <trans-unit id="overview.lastScan.label">
                 <source>Last scan</source>
             </trans-unit>
@@ -399,9 +389,8 @@
             <trans-unit id="overview.lastScan.resolvedIssues">
                 <source>resolved</source>
             </trans-unit>
-
             <trans-unit id="overview.localActions.description">
-                <source>Scans the configured TYPO3 content fields.</source>
+                <source>Scans configured TYPO3 content fields and, when enabled, the server-rendered HTML.</source>
             </trans-unit>
             <trans-unit id="overview.localTable.pages">
                 <source>pages</source>
@@ -412,7 +401,6 @@
             <trans-unit id="overview.localTable.title">
                 <source>Pages with open issues</source>
             </trans-unit>
-
             <trans-unit id="overview.noOpenIssues">
                 <source>No open accessibility issues found.</source>
             </trans-unit>
@@ -431,25 +419,21 @@
             <trans-unit id="overview.noScanYet.text">
                 <source>Run a content scan to check this page tree for accessibility issues.</source>
             </trans-unit>
-
             <trans-unit id="overview.notice.settingsRequired.text">
                 <source>Open Settings, choose which fields should be scanned, save your changes, and then start the first scan.</source>
             </trans-unit>
             <trans-unit id="overview.notice.settingsRequired.title">
                 <source>Scanner fields are not configured yet.</source>
             </trans-unit>
-
             <trans-unit id="overview.pageHead.site">
                 <source>Site</source>
             </trans-unit>
-
             <trans-unit id="overview.proHint.text">
                 <source>AQG PRO adds frontend scans for published pages and advanced reporting.</source>
             </trans-unit>
             <trans-unit id="overview.proHint.title">
                 <source>Need frontend crawling?</source>
             </trans-unit>
-
             <trans-unit id="overview.proSummary.empty">
                 <source>No frontend scan has been run yet.</source>
             </trans-unit>
@@ -522,8 +506,6 @@
             <trans-unit id="overview.proSummary.topPages">
                 <source>Affected pages</source>
             </trans-unit>
-
-
             <trans-unit id="overview.remote.affectedPages.subtitle">
                 <source>Pages with the most accessibility issues. Open a page to review concrete findings.</source>
             </trans-unit>
@@ -570,7 +552,7 @@
                 <source>No priority fixes available yet</source>
             </trans-unit>
             <trans-unit id="overview.remote.priorityFixes.emptyBody">
-                <source>Run a remote scan to generate recommended fixes based on impact and reach.</source>
+                <source>Run a frontend scan to generate recommended fixes based on impact and reach.</source>
             </trans-unit>
             <trans-unit id="overview.remote.priorityFixes.emptyClearTitle">
                 <source>No priority fixes needed</source>
@@ -603,7 +585,7 @@
                 <source>No WCAG breakdown available</source>
             </trans-unit>
             <trans-unit id="overview.remote.wcagBreakdown.emptyBody">
-                <source>Run a remote scan to generate a breakdown by WCAG success criterion.</source>
+                <source>Run a frontend scan to generate a breakdown by WCAG success criterion.</source>
             </trans-unit>
             <trans-unit id="overview.remote.wcagBreakdown.emptyUnmappedTitle">
                 <source>No WCAG-mapped findings available</source>
@@ -611,15 +593,12 @@
             <trans-unit id="overview.remote.wcagBreakdown.emptyUnmappedBody">
                 <source>This scan found issues, but none of the current findings could be mapped to a specific WCAG success criterion.</source>
             </trans-unit>
-
             <trans-unit id="overview.remoteActions.description">
                 <source>Scan published frontend pages.</source>
             </trans-unit>
-
             <trans-unit id="overview.scanAll.hint">
                 <source>Full scan may take longer on larger sites.</source>
             </trans-unit>
-
             <trans-unit id="overview.search">
                 <source>Search in pages</source>
             </trans-unit>
@@ -635,7 +614,6 @@
             <trans-unit id="overview.search.placeholder">
                 <source>Page ID or title</source>
             </trans-unit>
-
             <trans-unit id="overview.source.local">
                 <source>Content scan</source>
             </trans-unit>
@@ -645,7 +623,6 @@
             <trans-unit id="overview.source.remote">
                 <source>Frontend scan</source>
             </trans-unit>
-
             <trans-unit id="overview.progress.backgroundHint">
                 <source>You can leave this page; the scan keeps running.</source>
             </trans-unit>
@@ -706,7 +683,6 @@
             <trans-unit id="overview.stats.sinceLastScan">
                 <source>since last scan</source>
             </trans-unit>
-
             <trans-unit id="overview.table.actions">
                 <source>Actions</source>
             </trans-unit>
@@ -716,11 +692,9 @@
             <trans-unit id="overview.table.total">
                 <source>Total</source>
             </trans-unit>
-
             <trans-unit id="overview.total">
                 <source>Total</source>
             </trans-unit>
-
             <trans-unit id="pageDetail.confirmIgnore">
                 <source>Confirm ignore</source>
             </trans-unit>
@@ -826,14 +800,12 @@
             <trans-unit id="pageDetail.technicalDetails">
                 <source>Technical details</source>
             </trans-unit>
-
             <trans-unit id="qualityGate.warn.linkText">
                 <source>View accessibility issues</source>
             </trans-unit>
             <trans-unit id="qualityGate.warn.message">
                 <source>This page has accessibility issues that exceed the configured thresholds. Please review them before publishing.</source>
             </trans-unit>
-
             <trans-unit id="scheduler.field.changedOnly">
                 <source>Changed-only mode</source>
             </trans-unit>
@@ -891,7 +863,6 @@
             <trans-unit id="scheduler.validation.rootNotFound">
                 <source>Configured root page UID %d does not exist.</source>
             </trans-unit>
-
             <trans-unit id="settings.backToOverview">
                 <source>Back to overview</source>
             </trans-unit>
@@ -1018,7 +989,6 @@
             <trans-unit id="settings.tab.rules">
                 <source>Rules</source>
             </trans-unit>
-
             <trans-unit id="settings.tab.remoteAccess">
                 <source>Remote scan access</source>
             </trans-unit>
@@ -1037,11 +1007,21 @@
             <trans-unit id="settings.remoteAccess.adminOnly">
                 <source>This section is only available to TYPO3 administrators.</source>
             </trans-unit>
-
+            <trans-unit id="settings.remoteAccess.locked.title">
+                <source>Remote scanning requires a valid remote-scanning licence</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.locked.description">
+                <source>Remote scan access is available with a valid Trial, PRO, Agency or Enterprise licence. Add a licence key or start a trial to configure remote crawling, scanner tokens and protected staging access.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.locked.text">
+                <source>The FREE edition keeps local TYPO3 content checks available, but browser-based remote crawling is gated. Configure a valid remote-scanning licence to unlock this setup.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.learnMore">
+                <source>Learn about remote scanning</source>
+            </trans-unit>
             <trans-unit id="settings.siteScope.allSites">
                 <source>All sites</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.title">
                 <source>Licence</source>
             </trans-unit>
@@ -1051,18 +1031,20 @@
             <trans-unit id="settings.licence.key">
                 <source>AQG licence key</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.keyHelp">
                 <source>Paste your AQG licence key here and save it to use paid AQG features.</source>
             </trans-unit>
             <trans-unit id="settings.licence.key.title">
                 <source>Licence key</source>
             </trans-unit>
+            <trans-unit id="settings.licence.adminOnly">
+                <source>Licence management is only available to TYPO3 administrators.</source>
+            </trans-unit>
             <trans-unit id="settings.licence.key.intro">
                 <source>Paste your AQG licence key to unlock PRO features for this installation.</source>
             </trans-unit>
             <trans-unit id="settings.licence.key.portalHelp">
-                <source>The key is bound to a single domain. Find it in your purchase email or the AQG customer portal at</source>
+                <source>The key is bound to a single domain. Find it in your purchase email or in the AQG customer portal:</source>
             </trans-unit>
             <trans-unit id="settings.licence.boundTo">
                 <source>bound to</source>
@@ -1145,13 +1127,18 @@
             <trans-unit id="settings.licence.openDocs">
                 <source>Open docs</source>
             </trans-unit>
+            <trans-unit id="settings.licence.openProductPage">
+                <source>Open product page</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.openCustomerPortal">
+                <source>Open AQG customer portal</source>
+            </trans-unit>
             <trans-unit id="settings.licence.help.title">
                 <source>Need help?</source>
             </trans-unit>
             <trans-unit id="settings.licence.help.text">
                 <source>Trouble validating your key? Check that the domain matches exactly and that your server can reach the licence host.</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.validation.emptyKey">
                 <source>Please enter a licence key first.</source>
             </trans-unit>
@@ -1227,15 +1214,12 @@
             <trans-unit id="settings.licence.type.trial">
                 <source>Trial</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.type.original">
                 <source>Original</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.originalPlan.pro">
                 <source>PRO</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.originalPlan.agency">
                 <source>Agency</source>
             </trans-unit>
@@ -1299,94 +1283,72 @@
             <trans-unit id="settings.licence.free.noBlockingGate">
                 <source>Block-on-publish gate</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.trial.description">
                 <source>Trial gives you frontend scan and the core paid workflow, but with trial limits.</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.original.description">
                 <source>A paid AQG licence is active for this TYPO3 instance.</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.trial.featuresTitle">
                 <source>What’s included in the trial</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.original.featuresTitle">
                 <source>What’s included in this licence</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.remoteCrawler">
                 <source>Frontend scan crawler</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.screenshotCapture">
                 <source>Screenshot capture per page</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.qualityGateBlocking">
                 <source>Quality gate blocking mode</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.csvExport">
                 <source>CSV export</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.pdfExport">
                 <source>PDF export</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.allRules">
                 <source>All 21 WCAG 2.1 AA rules</source>
             </trans-unit>
             <trans-unit id="settings.licence.feature.advancedRuleOverrides">
                 <source>Advanced rule overrides</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.localScanning">
                 <source>Local backend scanning</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.schedulerCli">
                 <source>Scheduler + CLI</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.multiSite">
                 <source>Multi-site usage</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.noPdfExport">
                 <source>No PDF export</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.feature.noDiffTracking">
                 <source>No diff tracking</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.limit.maxPages">
                 <source>Max 10 pages per frontend scan</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.limit.maxScans">
                 <source>Max 5 scans per day</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.trial.devExempt">
                 <source>Dev environments are exempt.</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.trial.devExemptText">
                 <source>Testing on localhost or *.ddev.site? The 24h timer only starts when you validate on a production domain.</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.trial.productionTimer">
                 <source>Production timer</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.trial.productionTimerText">
                 <source>The 24h trial window starts on first production validation.</source>
             </trans-unit>
-
             <trans-unit id="settings.licence.validation.trialValid">
                 <source>Trial licence is valid.</source>
             </trans-unit>
@@ -1405,7 +1367,6 @@
             <trans-unit id="settings.licence.validation.reason.trial_not_verified">
                 <source>This trial is not verified yet.</source>
             </trans-unit>
-
             <trans-unit id="severity.critical">
                 <source>Critical</source>
             </trans-unit>
@@ -1418,7 +1379,6 @@
             <trans-unit id="severity.warningPlural">
                 <source>Warnings</source>
             </trans-unit>
-
             <trans-unit id="toolbar.error">
                 <source>Error</source>
             </trans-unit>
@@ -1494,7 +1454,6 @@
             <trans-unit id="toolbar.triggeredBy">
                 <source>Triggered by</source>
             </trans-unit>
-
             <trans-unit id="settings.help.text">
                 <source>Your changes are applied after you save.</source>
             </trans-unit>
@@ -1519,18 +1478,15 @@
             <trans-unit id="settings.pageDescription">
                 <source>Choose what AQG should scan and how it should react during publishing.</source>
             </trans-unit>
-
             <trans-unit id="settings.scannedFields.title">
                 <source>Scanned fields</source>
             </trans-unit>
             <trans-unit id="settings.scannedFields.description">
                 <source>Choose which discovered fields should be included in future scans.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.title">
                 <source>Publishing rules</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.description">
                 <source>Choose how AQG should react when a page still contains accessibility issues during publishing.</source>
             </trans-unit>
@@ -1549,318 +1505,240 @@
             <trans-unit id="settings.publishingRules.freeGuidanceTitle">
                 <source>How the warning gate works on FREE</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.scope">
                 <source>Apply rules to</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.scopeHelp">
                 <source>Apply these publishing rules to all sites or only to the current site.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode">
                 <source>When issues exceed the limit</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode.disabled">
                 <source>Do nothing</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode.disabledHelp">
                 <source>AQG will not show any publishing warning.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode.warn">
                 <source>Show warning only</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode.warnHelp">
                 <source>Editors see a warning, but publishing is still allowed.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode.block">
                 <source>Block publishing</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.mode.blockHelp">
                 <source>Publishing is blocked until the number of issues is below the allowed limit.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.criticalThreshold">
                 <source>Maximum allowed critical issues</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.criticalThresholdHelp">
                 <source>Set to 0 to block publishing when any critical issue exists.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold">
                 <source>Maximum allowed warnings</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.ignore">
                 <source>Ignore warnings</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.0">
                 <source>0 warnings allowed</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.1">
                 <source>1 warning allowed</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.2">
                 <source>2 warnings allowed</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.3">
                 <source>3 warnings allowed</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.5">
                 <source>5 warnings allowed</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThreshold.10">
                 <source>10 warnings allowed</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.warningThresholdHelp">
                 <source>Choose how many warning-level issues may remain before the publishing rule is triggered.</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.howItWorksTitle">
                 <source>What happens during publishing?</source>
             </trans-unit>
-
             <trans-unit id="settings.publishingRules.howItWorksText">
                 <source>When an editor publishes or unhides a page, AQG checks the open issues for that page. Depending on these settings, AQG either shows a warning or blocks publishing.</source>
             </trans-unit>
-
             <trans-unit id="settings.freePublishing.title">
                 <source>Publishing check</source>
             </trans-unit>
-
             <trans-unit id="settings.freePublishing.description">
                 <source>In the free version, AQG shows publishing warnings automatically when accessibility issues are found.</source>
             </trans-unit>
-
             <trans-unit id="settings.freePublishing.warningTitle">
                 <source>Included in the free version</source>
             </trans-unit>
-
             <trans-unit id="settings.freePublishing.warningText">
                 <source>Editors see accessibility warnings during publishing. Blocking publishing and custom publishing rules are available in AQG PRO.</source>
             </trans-unit>
-
             <trans-unit id="pageType.folder">
                 <source>Folder</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.title">
                 <source>Accessibility Quality</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.status.ok">
                 <source>OK</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.status.warning">
                 <source>Warnings</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.status.error">
                 <source>Errors</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.status.running">
                 <source>Scanning</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.status.none">
                 <source>Not scanned</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.headline.running">
                 <source>Scan running</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.headline.none">
                 <source>Not scanned yet</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.headline.ok">
                 <source>No issues found</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.running">
                 <source>Checking this page for accessibility issues…</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.runningRemote">
                 <source>Checking this page for accessibility issues…</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.none">
                 <source>Run a scan to check this page for accessibility issues.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.ok">
                 <source>No automated local findings are currently stored for this page.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.okWithRemote">
                 <source>No automated local findings are currently stored for this page. Review AQG for frontend results.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.issues">
                 <source>This page has accessibility issues that should be reviewed before publishing.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.metric.errors">
                 <source>%d errors</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.metric.warnings">
                 <source>%d warnings</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.metric.notes">
                 <source>%d notes</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.metric.needsReview">
                 <source>%d needs review</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.remoteProgressTotal">
                 <source>Frontend scan: %d/%d pages processed.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.remoteProgress">
                 <source>Frontend scan: %d pages processed.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.localRunning">
                 <source>Started just now</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.running">
                 <source>Started just now</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.none">
                 <source>No scan on record</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.openTotal">
                 <source>%d open findings in local checks.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.lastScanned">
                 <source>Last scanned %s</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.remoteCompleted">
-                <source>Frontend scan available. Last remote sync: %s.</source>
+                <source>Frontend scan available. Last frontend sync: %s.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.meta.ok">
                 <source>Last scanned recently</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.openAqg">
                 <source>Scan this page</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.openReport">
                 <source>Open report</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.openOverview">
                 <source>Scan again</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.frontendReport">
                 <source>Frontend report</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.body.warning">
                 <source>Some accessibility checks need attention before publishing.</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.scanAgain">
                 <source>Scan again</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.scanThisPage">
                 <source>Scan this page</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.openIssues">
                 <source>Open issues</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.viewProgress">
                 <source>View progress</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.startRemoteScan">
                 <source>Start frontend scan</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.action.scanPro">
                 <source>Scan frontend</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.proHint.remoteScanAvailable">
                 <source>Frontend scan available — run a frontend scan</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.proHint.frontendScan">
                 <source>Frontend scan available in PRO</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.row.local">
                 <source>Local scan</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.row.frontend">
                 <source>Frontend</source>
             </trans-unit>
-
             <trans-unit id="pageModuleIndicator.row.remote">
                 <source>Frontend scan</source>
             </trans-unit>
-
             <trans-unit id="overview.remoteScannerTokenNotice.title">
                 <source>Hidden pages will not be scanned</source>
             </trans-unit>
-
             <trans-unit id="overview.remoteScannerTokenNotice.text">
                 <source>No Scanner Token is configured for this site. Remote scans can only access publicly visible pages.</source>
             </trans-unit>
-
             <trans-unit id="overview.remoteScannerTokenNotice.cta">
                 <source>Open Remote Scan Access settings</source>
             </trans-unit>
-
-
             <trans-unit id="severity.needsReview">
                 <source>Needs review</source>
             </trans-unit>
-
             <trans-unit id="rule.rte.img_alt_redundant_phrase.title">
                 <source>Image alternative text starts with a redundant phrase</source>
             </trans-unit>
             <trans-unit id="rule.rte.img_alt_redundant_phrase.howToFix">
-                <source>Remove the redundant opening phrase from the alt text. Before: alt=&quot;photo of our team&quot;. After: alt=&quot;Our team at the 2025 company retreat&quot;.</source>
+                <source>Remove the redundant opening phrase from the alt text. Before: alt="photo of our team". After: alt="Our team at the 2025 company retreat".</source>
             </trans-unit>
             <trans-unit id="rule.rte.img_alt_redundant_phrase.whyItMatters">
-                <source>Screen readers already announce images before reading alt text. Starting with phrases such as &quot;photo of&quot; makes the output repetitive.</source>
+                <source>Screen readers already announce images before reading alt text. Starting with phrases such as "photo of" makes the output repetitive.</source>
             </trans-unit>
-
             <trans-unit id="rule.rte.img_alt_too_long.title">
                 <source>Image alternative text is too long</source>
             </trans-unit>
@@ -1870,7 +1748,6 @@
             <trans-unit id="rule.rte.img_alt_too_long.whyItMatters">
                 <source>Long alt text makes screen reader navigation tedious. Alt text should convey meaning, not reproduce entire image descriptions.</source>
             </trans-unit>
-
             <trans-unit id="rule.rte.link_text_is_url_or_filename.title">
                 <source>Link text is a raw URL or filename</source>
             </trans-unit>
@@ -1880,7 +1757,6 @@
             <trans-unit id="rule.rte.link_text_is_url_or_filename.whyItMatters">
                 <source>Screen readers may read URLs character by character. Raw URLs and filenames often do not explain the link destination.</source>
             </trans-unit>
-
             <trans-unit id="rule.rte.link_to_document.title">
                 <source>Link points to a document file — verify accessibility</source>
             </trans-unit>
@@ -1890,7 +1766,6 @@
             <trans-unit id="rule.rte.link_to_document.whyItMatters">
                 <source>Documents linked from websites must also be accessible. Inaccessible PDFs and Office documents can exclude users with disabilities.</source>
             </trans-unit>
-
             <trans-unit id="rule.rte.link_to_document_missing_notice.title">
                 <source>Document link does not mention file type</source>
             </trans-unit>
@@ -1900,7 +1775,6 @@
             <trans-unit id="rule.rte.link_to_document_missing_notice.whyItMatters">
                 <source>Users need to know whether a link opens a file instead of a web page so they can prepare their assistive technology or document reader.</source>
             </trans-unit>
-
             <trans-unit id="rule.structured.file_reference_alt_quality.title">
                 <source>Image alternative text quality issue in media record</source>
             </trans-unit>
@@ -1910,7 +1784,6 @@
             <trans-unit id="rule.structured.file_reference_alt_quality.whyItMatters">
                 <source>Poor alternative text in a media reference affects every place where that image reference is rendered.</source>
             </trans-unit>
-
             <trans-unit id="rule.structured.form_field_label_missing.title">
                 <source>Form field has no label</source>
             </trans-unit>
@@ -1920,7 +1793,6 @@
             <trans-unit id="rule.structured.form_field_label_missing.whyItMatters">
                 <source>Form fields without labels cannot be identified by screen readers or other assistive technologies. This prevents users with disabilities from completing forms.</source>
             </trans-unit>
-
             <trans-unit id="rule.structured.form_placeholder_as_label.title">
                 <source>Form field uses placeholder text instead of a label</source>
             </trans-unit>
@@ -1930,9 +1802,6 @@
             <trans-unit id="rule.structured.form_placeholder_as_label.whyItMatters">
                 <source>Placeholder text disappears when users start typing and is not reliably announced by screen readers as a label.</source>
             </trans-unit>
-
-
-
             <trans-unit id="rule.rte.link_text_duplicate_different_targets.title">
                 <source>Same link text points to different destinations</source>
             </trans-unit>
@@ -1942,7 +1811,6 @@
             <trans-unit id="rule.rte.link_text_duplicate_different_targets.whyItMatters">
                 <source>Users who navigate by links need to understand where each link goes. Reusing the same text for different destinations can be confusing.</source>
             </trans-unit>
-
             <trans-unit id="rule.structured.header_level_is_h1.title">
                 <source>Header content element is configured as H1</source>
             </trans-unit>
@@ -1952,7 +1820,6 @@
             <trans-unit id="rule.structured.header_level_is_h1.whyItMatters">
                 <source>A clear heading structure helps users understand the page outline. Multiple or misplaced H1 headings can make navigation harder.</source>
             </trans-unit>
-
             <trans-unit id="rule.structured.media_no_transcript_hint.title">
                 <source>Media content should be reviewed for captions or transcripts</source>
             </trans-unit>
@@ -1962,7 +1829,6 @@
             <trans-unit id="rule.structured.media_no_transcript_hint.whyItMatters">
                 <source>Audio and video content may need captions, transcripts or audio descriptions so users with disabilities can access the information.</source>
             </trans-unit>
-
             <trans-unit id="rule.structured.form_autocomplete_missing.title">
                 <source>Personal data field is missing autocomplete attribute</source>
             </trans-unit>
@@ -1972,8 +1838,6 @@
             <trans-unit id="rule.structured.form_autocomplete_missing.whyItMatters">
                 <source>Autocomplete helps users with cognitive disabilities, motor impairments and anyone using browser autofill.</source>
             </trans-unit>
-
-
             <trans-unit id="rule.rendered.img_missing_alt.title">
                 <source>Rendered image is missing an alt attribute</source>
             </trans-unit>
@@ -1983,7 +1847,6 @@
             <trans-unit id="rule.rendered.img_missing_alt.whyItMatters">
                 <source>The rendered HTML is what assistive technologies consume. Meaningful images need text alternatives.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.empty_link.title">
                 <source>Rendered link has no accessible name</source>
             </trans-unit>
@@ -1993,7 +1856,6 @@
             <trans-unit id="rule.rendered.empty_link.whyItMatters">
                 <source>Links without accessible names cannot be understood by screen reader users.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.empty_button.title">
                 <source>Rendered button has no accessible name</source>
             </trans-unit>
@@ -2003,7 +1865,6 @@
             <trans-unit id="rule.rendered.empty_button.whyItMatters">
                 <source>Buttons need an accessible name so users understand the action before activating it.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.iframe_missing_title.title">
                 <source>Rendered iframe is missing a title</source>
             </trans-unit>
@@ -2013,7 +1874,6 @@
             <trans-unit id="rule.rendered.iframe_missing_title.whyItMatters">
                 <source>Iframe titles help assistive technology users understand embedded content.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.form_control_missing_label.title">
                 <source>Rendered form control has no accessible label</source>
             </trans-unit>
@@ -2023,7 +1883,6 @@
             <trans-unit id="rule.rendered.form_control_missing_label.whyItMatters">
                 <source>Users need labels to understand the purpose of form fields.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.empty_heading.title">
                 <source>Rendered heading is empty</source>
             </trans-unit>
@@ -2033,7 +1892,6 @@
             <trans-unit id="rule.rendered.empty_heading.whyItMatters">
                 <source>Empty headings create confusing landmarks in screen reader heading navigation.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.duplicate_id.title">
                 <source>Rendered HTML contains duplicate IDs</source>
             </trans-unit>
@@ -2043,7 +1901,6 @@
             <trans-unit id="rule.rendered.duplicate_id.whyItMatters">
                 <source>Duplicate IDs can break labels, descriptions, scripting and assistive technology references.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.table_missing_header.title">
                 <source>Rendered table has no header cells</source>
             </trans-unit>
@@ -2053,7 +1910,6 @@
             <trans-unit id="rule.rendered.table_missing_header.whyItMatters">
                 <source>Table headers help users understand relationships between cells.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.table_empty_header.title">
                 <source>Rendered table header cell is empty</source>
             </trans-unit>
@@ -2063,7 +1919,6 @@
             <trans-unit id="rule.rendered.table_empty_header.whyItMatters">
                 <source>Empty th cells provide no useful structure for assistive technologies.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.svg_missing_accessible_name.title">
                 <source>Rendered SVG has no accessible name</source>
             </trans-unit>
@@ -2073,7 +1928,6 @@
             <trans-unit id="rule.rendered.svg_missing_accessible_name.whyItMatters">
                 <source>Meaningful SVG graphics need an accessible name so their purpose can be understood.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.html_lang_missing.title">
                 <source>Rendered HTML is missing a lang attribute</source>
             </trans-unit>
@@ -2083,7 +1937,6 @@
             <trans-unit id="rule.rendered.html_lang_missing.whyItMatters">
                 <source>The lang attribute helps screen readers choose the correct pronunciation rules.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.page_title_missing.title">
                 <source>Rendered page has no title</source>
             </trans-unit>
@@ -2093,7 +1946,6 @@
             <trans-unit id="rule.rendered.page_title_missing.whyItMatters">
                 <source>Page titles help users identify where they are and distinguish browser tabs.</source>
             </trans-unit>
-
             <trans-unit id="rule.rendered.main_landmark_missing.title">
                 <source>Rendered page may be missing a main landmark</source>
             </trans-unit>
@@ -2103,14 +1955,12 @@
             <trans-unit id="rule.rendered.main_landmark_missing.whyItMatters">
                 <source>A main landmark helps keyboard and screen reader users jump directly to the primary content.</source>
             </trans-unit>
-
             <trans-unit id="overview.proSummary.emptyPageContext">
                 <source>Run Frontend scan for this page to create a page-level frontend audit.</source>
             </trans-unit>
             <trans-unit id="overview.remotePageInline.title">
                 <source>Frontend page audit</source>
             </trans-unit>
-
             <trans-unit id="overview.remote.reportSummary.title">
                 <source>Report summary</source>
             </trans-unit>
@@ -2129,7 +1979,6 @@
             <trans-unit id="overview.remote.reportSummary.priorityFixes">
                 <source>priority fixes</source>
             </trans-unit>
-
             <trans-unit id="overview.remote.manualReview.title">
                 <source>Manual review checklist</source>
             </trans-unit>
@@ -2178,7 +2027,6 @@
             <trans-unit id="module.remotePageDetail.guidance.note">
                 <source>AQG guidance is based on the rule type and scan context. Review the affected element before applying changes.</source>
             </trans-unit>
-
             <trans-unit id="overview.remote.signal.eyebrow">
                 <source>Automated accessibility signal</source>
             </trans-unit>
@@ -2192,10 +2040,10 @@
                 <source>Good automated signal</source>
             </trans-unit>
             <trans-unit id="overview.remote.signal.noScanTitle">
-                <source>No remote scan has been run yet</source>
+                <source>No frontend scan has been run yet</source>
             </trans-unit>
             <trans-unit id="overview.remote.signal.noScanBody">
-                <source>Run a remote scan to generate frontend accessibility findings.</source>
+                <source>Run a frontend scan to generate frontend findings.</source>
             </trans-unit>
             <trans-unit id="overview.remote.signal.scoreLabel">
                 <source>AQG signal</source>
@@ -2215,7 +2063,6 @@
             <trans-unit id="overview.remote.signal.goodNote">
                 <source>No priority fixes found by automated checks. Manual review may still be required.</source>
             </trans-unit>
-
             <trans-unit id="overview.remote.failedPages.title">
                 <source>Failed / unreachable pages</source>
             </trans-unit>
@@ -2229,7 +2076,7 @@
                 <source>Automated checks help prioritise issues, but they do not replace manual accessibility review.</source>
             </trans-unit>
             <trans-unit id="overview.remote.reportSupport.noSummary">
-                <source>Run a remote scan to generate reporting support.</source>
+                <source>Run a frontend scan to generate reporting support.</source>
             </trans-unit>
             <trans-unit id="overview.remote.reportSupport.viewChecklist">
                 <source>View checklist</source>
@@ -2245,6 +2092,1220 @@
             </trans-unit>
             <trans-unit id="overview.remote.manualReview.verificationTasks">
                 <source>generic verification tasks — not scan failures.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.title">
+                <source>Accessibility Statement Draft Assistant</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.intro">
+                <source>Generate a draft accessibility statement based on automated scan data. This draft must be reviewed, completed and approved before publication.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.form.aria">
+                <source>Accessibility Statement Draft Assistant</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.site">
+                <source>Site</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.scanScope">
+                <source>Scan scope</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.latestSiteScan">
+                <source>Latest site scan</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.latestPageScan">
+                <source>Latest page scan</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.pageUrl">
+                <source>Page URL</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.specificJobId">
+                <source>Specific job ID</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.advanced">
+                <source>advanced</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.specificJobHelp">
+                <source>Use this only when you want to generate a statement from a known completed scan job.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.jobId">
+                <source>Job ID</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.language">
+                <source>Statement language</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.language.english">
+                <source>English</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.language.german">
+                <source>Deutsch</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.language.help">
+                <source>Choose the language of the generated draft statement. This does not change the scanned site language.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.basic">
+                <source>Basic information</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.websiteName">
+                <source>Website / service name</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.websiteName.placeholder">
+                <source>Website or service name</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.organization">
+                <source>Organization name</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.requiredBeforePublishing">
+                <source>Required before publishing</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.organization.placeholder">
+                <source>Responsible organization</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.commitment">
+                <source>Short accessibility commitment</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.commitment.placeholder">
+                <source>[Organization] is committed to ensuring digital accessibility for people with disabilities.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.createdDate">
+                <source>Statement created date</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.createdDate.placeholder">
+                <source>Use generated date if left empty</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.warning.organizationMissing">
+                <source>Organization name should be completed before publication.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard">
+                <source>Accessibility standard</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.help">
+                <source>Choose the accessibility standard this draft should refer to. This does not confirm conformance.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.referenced">
+                <source>Referenced standard</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.wcag22aa">
+                <source>WCAG 2.2 Level AA</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.wcag21aa">
+                <source>WCAG 2.1 Level AA</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.en301549">
+                <source>EN 301 549 / WCAG-based requirements</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.custom">
+                <source>Custom</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.customLabel">
+                <source>Custom accessibility standard</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.customPlaceholder">
+                <source>Custom standard reference</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measures">
+                <source>Measures to support accessibility</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.qualityAssurance">
+                <source>Accessibility checks during content editing</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.training">
+                <source>Editor/developer accessibility training</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.releaseChecks">
+                <source>Accessibility considered in release process</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.automatedScans">
+                <source>Automated frontend accessibility scans</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.manualReviews">
+                <source>Manual accessibility reviews</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.feedbackChannel">
+                <source>Feedback channel for accessibility issues</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.custom">
+                <source>Custom measure</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.customPlaceholder">
+                <source>Describe an additional measure</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.knownLimitations">
+                <source>Known limitations from automated scan</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.knownLimitations.help">
+                <source>Known limitations are filled from the selected scan and use friendly labels where available.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.remediation">
+                <source>Alternatives or remediation notes</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.remediation.placeholder">
+                <source>Describe remediation plans or accessible alternatives</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance">
+                <source>Conformance status</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.help">
+                <source>The automated score may suggest a status, but it is not a legal or final conformance decision.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.notConfirmed">
+                <source>Not confirmed — automated draft only</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.notConformant">
+                <source>Not conformant</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.partiallyConformant">
+                <source>Partially conformant</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.mostlyConformant">
+                <source>Mostly conformant</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.confirm">
+                <source>I confirm that this conformance status was reviewed manually and is not based only on automated scan results.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact">
+                <source>Feedback and contact</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.warning">
+                <source>Contact details are required before publishing this statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.email">
+                <source>Contact email</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.email.placeholder">
+                <source>accessibility@example.org</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.phone">
+                <source>Phone</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.phone.placeholder">
+                <source>Optional phone number</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.address">
+                <source>Postal address</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.address.placeholder">
+                <source>Optional postal address</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.responseTime">
+                <source>Expected response time</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.responseTime.placeholder">
+                <source>5 business days</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.note">
+                <source>Additional contact note</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.note.placeholder">
+                <source>Optional note for users contacting you</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.compatibility">
+                <source>Compatibility with browsers and assistive technologies</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.compatible">
+                <source>Compatible environments</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.compatible.placeholder">
+                <source>This website is intended to work with current versions of major browsers and assistive technologies.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.incompatible">
+                <source>Known incompatible environments</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.incompatible.placeholder">
+                <source>Leave empty if none are known</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.technicalSpecifications">
+                <source>Technical specifications</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.html">
+                <source>HTML</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.waiAria">
+                <source>WAI-ARIA</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.css">
+                <source>CSS</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.javascript">
+                <source>JavaScript</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.pdf">
+                <source>PDF documents</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.media">
+                <source>Video/audio content</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.thirdParty">
+                <source>Embedded third-party content</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment">
+                <source>Assessment approach</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.aqg">
+                <source>Automated checks with Accessibility Quality Gate</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.axe">
+                <source>Automated frontend checks with axe-core / Playwright</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.manualRequired">
+                <source>Manual review required</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.manualReview">
+                <source>Manual review performed by organization</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.externalAudit">
+                <source>External audit performed</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.evaluationUrl">
+                <source>Evaluation report URL</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.evaluationUrl.placeholder">
+                <source>https://example.org/accessibility-report</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval">
+                <source>Formal approval</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.optionalBeforePublishing">
+                <source>Optional before publication</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.organization">
+                <source>Approved by organization/unit</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.person">
+                <source>Approved by person/name</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.role">
+                <source>Role/function</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.date">
+                <source>Approval date</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement">
+                <source>Complaints / enforcement procedure</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.none">
+                <source>Not included</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.generic">
+                <source>Generic complaints information</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.germany">
+                <source>Germany placeholder</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.austria">
+                <source>Austria placeholder</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.custom">
+                <source>Custom text</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.customLabel">
+                <source>Custom enforcement text</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.customPlaceholder">
+                <source>Enter custom complaints or enforcement text</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.generate">
+                <source>Generate statement</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.empty.title">
+                <source>No statement generated yet.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.empty.text">
+                <source>Choose a scan scope and click Generate statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.title">
+                <source>Draft accessibility statement</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.warning">
+                <source>This is an automated draft based on automated accessibility checks. Manual review is required before publishing.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.copyHtml">
+                <source>Copy as HTML</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.downloadTxt">
+                <source>Download .txt</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.downloadPdf">
+                <source>Download PDF</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.title">
+                <source>Accessibility Statement Draft Assistant</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.subtitle">
+                <source>Accessibility Statement Draft Assistant is available with PRO.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.text">
+                <source>Generate an automated draft statement from completed frontend scans with a PRO or Agency licence.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.button">
+                <source>View PRO options</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.pageUrl">
+                <source>Enter a page URL for the latest page scan statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.jobId">
+                <source>Enter a job ID before generating the statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.confirmStatus">
+                <source>Confirm the selected conformance status manually, or keep “Not confirmed — automated draft only”.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.customEnforcement">
+                <source>Enter custom enforcement text or choose another enforcement template.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidEmail">
+                <source>Enter a valid contact email address or leave it empty for a publication placeholder.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidUrl">
+                <source>Enter a valid http/https evaluation report URL or leave it empty.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.customStandard">
+                <source>Enter a custom accessibility standard or choose one of the predefined standards.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.generating">
+                <source>Generating statement…</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.generated">
+                <source>Statement generated.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.unavailable">
+                <source>Accessibility statement is not available right now.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.copied">
+                <source>Statement HTML copied.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.copyFailed">
+                <source>Copy failed. Please select and copy the statement manually.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.pdfUnavailable">
+                <source>Statement PDF is not available right now.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.pdfDownloaded">
+                <source>Statement PDF downloaded.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.generating">
+                <source>Generating…</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.copied">
+                <source>Copied</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.downloaded">
+                <source>Downloaded</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.preparingPdf">
+                <source>Preparing PDF…</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.generatedSourceFallback">
+                <source>Automated draft generated from frontend scan data.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.draftIssuesFound">
+                <source>Draft — issues found</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.draftNoIssuesFound">
+                <source>Draft — automated checks found no issues</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.scanIncomplete">
+                <source>Draft — scan incomplete</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.noScan">
+                <source>No scan available</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.requiresReview">
+                <source>Draft — requires review</source>
+            </trans-unit>
+            <trans-unit id="statement.error.validJobId">
+                <source>Choose a valid job ID.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.validSite">
+                <source>Choose a valid site.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.validDomain">
+                <source>Accessibility statement is not available without a valid domain context.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.invalidScanType">
+                <source>Invalid scan type for accessibility statement.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.pageUrlRequired">
+                <source>Enter a page URL for the latest page scan statement.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.unavailable">
+                <source>Accessibility statement is not available right now.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.licenceUnavailable">
+                <source>Accessibility Statement Draft Assistant is not available for this licence or environment.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.unsupportedLanguage">
+                <source>The selected language is not supported for accessibility statements.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.jobNotFound">
+                <source>The selected job ID was not found.</source>
+            </trans-unit>
+            <trans-unit id="statement.error.notAvailableForScan">
+                <source>Accessibility statement is not available for this scan.</source>
+            </trans-unit>
+            <trans-unit id="statement.pdf.noContentTitle">
+                <source>Draft Accessibility Statement</source>
+            </trans-unit>
+            <trans-unit id="statement.pdf.noContent">
+                <source>No statement content available.</source>
+            </trans-unit>
+            <trans-unit id="statement.pdf.footer">
+                <source>Accessibility Quality Gate - draft assistant - manual review required - page {page} / {pages}</source>
+            </trans-unit>
+            <trans-unit id="statement.audit.notClaimed">
+                <source>WCAG, EAA, BFSG or BITV compliance is not confirmed by this tool.</source>
+            </trans-unit>
+            <trans-unit id="statement.audit.manualReview">
+                <source>Manual review is required before publishing.</source>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.organisation">
+                <source>[Insert organization name]</source>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.website">
+                <source>[Insert website name]</source>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.websitePublication">
+                <source>[Insert website before publication]</source>
+            </trans-unit>
+            <trans-unit id="statement.default.commitment">
+                <source>[Organization] is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying relevant accessibility standards.</source>
+            </trans-unit>
+            <trans-unit id="statement.default.responseTime">
+                <source>5 business days</source>
+            </trans-unit>
+            <trans-unit id="statement.default.remediation">
+                <source>We are reviewing the identified issues and prioritizing fixes for critical and recurring barriers. If you need information in an accessible format, please use the contact details below.</source>
+            </trans-unit>
+            <trans-unit id="statement.default.compatible">
+                <source>This website is intended to work with current versions of major browsers and assistive technologies.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.warning">
+                <source>This status is a draft suggestion based on automated checks. It must be reviewed and confirmed before publication.</source>
+            </trans-unit>
+            <trans-unit id="statement.section.commitment">
+                <source>Accessibility commitment</source>
+            </trans-unit>
+            <trans-unit id="statement.section.measures">
+                <source>Measures to support accessibility</source>
+            </trans-unit>
+            <trans-unit id="statement.section.scope">
+                <source>Scope of this statement</source>
+            </trans-unit>
+            <trans-unit id="statement.section.standard">
+                <source>Accessibility standard</source>
+            </trans-unit>
+            <trans-unit id="statement.section.conformance">
+                <source>Accessibility and conformance status</source>
+            </trans-unit>
+            <trans-unit id="statement.section.knownLimitations">
+                <source>Known accessibility limitations</source>
+            </trans-unit>
+            <trans-unit id="statement.section.remediation">
+                <source>Alternatives and remediation note</source>
+            </trans-unit>
+            <trans-unit id="statement.section.feedback">
+                <source>Feedback</source>
+            </trans-unit>
+            <trans-unit id="statement.section.compatibility">
+                <source>Compatibility with browsers and assistive technology</source>
+            </trans-unit>
+            <trans-unit id="statement.section.technicalSpecifications">
+                <source>Technical specifications</source>
+            </trans-unit>
+            <trans-unit id="statement.section.assessment">
+                <source>Assessment approach</source>
+            </trans-unit>
+            <trans-unit id="statement.section.evaluationReport">
+                <source>Evaluation report</source>
+            </trans-unit>
+            <trans-unit id="statement.section.formalApproval">
+                <source>Formal approval of this draft statement</source>
+            </trans-unit>
+            <trans-unit id="statement.section.technicalScanSummary">
+                <source>Technical scan summary</source>
+            </trans-unit>
+            <trans-unit id="statement.section.limitations">
+                <source>Limitations of this automated draft</source>
+            </trans-unit>
+            <trans-unit id="statement.section.createdBy">
+                <source>Created with Accessibility Quality Gate</source>
+            </trans-unit>
+            <trans-unit id="statement.warning.organizationMissing">
+                <source>Organization name should be completed before publication.</source>
+            </trans-unit>
+            <trans-unit id="statement.warning.contactMissing">
+                <source>Contact details are required before publishing this statement.</source>
+            </trans-unit>
+            <trans-unit id="statement.body.measures">
+                <source>{organisation} takes the following measures to support accessibility of {website}:</source>
+            </trans-unit>
+            <trans-unit id="statement.body.standard">
+                <source>The Web Content Accessibility Guidelines (WCAG) define requirements for designers and developers to improve accessibility for people with disabilities. This draft refers to {standard}.</source>
+            </trans-unit>
+            <trans-unit id="statement.body.knownLimitations">
+                <source>Despite ongoing efforts to improve accessibility, some parts of the website may not yet be fully accessible. Automated checks identified the following recurring issue types:</source>
+            </trans-unit>
+            <trans-unit id="statement.body.noTopIssues">
+                <source>No recurring issue types were included in the API response.</source>
+            </trans-unit>
+            <trans-unit id="statement.body.knownLimitationsWarning">
+                <source>These findings were identified by automated testing. Manual review may identify additional barriers or confirm whether individual findings are applicable.</source>
+            </trans-unit>
+            <trans-unit id="statement.body.feedback">
+                <source>We welcome your feedback on the accessibility of {website}. Please let us know if you encounter accessibility barriers:</source>
+            </trans-unit>
+            <trans-unit id="statement.body.technicalSpecifications">
+                <source>Accessibility of {website} relies on the following technologies:</source>
+            </trans-unit>
+            <trans-unit id="statement.body.assessment">
+                <source>Accessibility of {website} was assessed using the following approaches:</source>
+            </trans-unit>
+            <trans-unit id="statement.body.evaluationReport">
+                <source>An evaluation report is available at: {url}</source>
+            </trans-unit>
+            <trans-unit id="statement.body.formalApproval">
+                <source>This draft accessibility statement was reviewed by:</source>
+            </trans-unit>
+            <trans-unit id="statement.body.limitations">
+                <source>This statement was generated from automated accessibility checks. Automated checks cannot cover all WCAG, EAA, BFSG or BITV requirements. This draft does not replace manual accessibility testing, screen reader testing, keyboard testing, legal review or a full accessibility audit. WCAG, EAA, BFSG or BITV compliance is not confirmed by this tool.</source>
+            </trans-unit>
+            <trans-unit id="statement.body.createdBy">
+                <source>This automated draft was generated by Accessibility Quality Gate and must be reviewed, completed and approved before publication.</source>
+            </trans-unit>
+            <trans-unit id="statement.scope.single">
+                <source>This accessibility statement draft applies to the selected page: {url}
+
+The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+            </trans-unit>
+            <trans-unit id="statement.scope.site">
+                <source>This draft accessibility statement applies to the website: {url}
+
+The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+            </trans-unit>
+            <trans-unit id="statement.title">
+                <source>Draft Accessibility Statement for {website}</source>
+            </trans-unit>
+            <trans-unit id="statement.lead">
+                <source>Automated draft - manual review required before publication.</source>
+            </trans-unit>
+            <trans-unit id="statement.meta.generated">
+                <source>Statement generated</source>
+            </trans-unit>
+            <trans-unit id="statement.meta.scanned">
+                <source>Last automated scan</source>
+            </trans-unit>
+            <trans-unit id="statement.audit.heading">
+                <source>Audit support notes</source>
+            </trans-unit>
+            <trans-unit id="statement.status.draftIssuesFound">
+                <source>Draft - issues found</source>
+            </trans-unit>
+            <trans-unit id="statement.status.draftNoIssuesFound">
+                <source>Draft - automated checks found no issues</source>
+            </trans-unit>
+            <trans-unit id="statement.status.scanIncomplete">
+                <source>Draft - scan incomplete</source>
+            </trans-unit>
+            <trans-unit id="statement.status.noScan">
+                <source>No scan available</source>
+            </trans-unit>
+            <trans-unit id="statement.status.requiresReview">
+                <source>Draft - requires review</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.notCompliant">
+                <source>Not compliant</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.partiallyCompliant">
+                <source>Partially compliant</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.mostlyCompliant">
+                <source>Mostly compliant</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.notConfirmed">
+                <source>Not confirmed - automated draft only</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.safe">
+                <source>Automated assessment: significant accessibility issues found.
+
+This draft is based on automated checks only. A manual review is required before any accessibility or conformity status can be confirmed.
+
+Automated checks found accessibility issues that require review and remediation. No final conformity status is confirmed by this automated draft.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.notCompliant">
+                <source>The selected draft status is: not conformant. This means that the content does not currently conform to the selected accessibility standard. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.partiallyCompliant">
+                <source>The selected draft status is: partially conformant. This means that some parts of the content do not fully conform to the selected accessibility standard. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.mostlyCompliant">
+                <source>The selected draft status is: mostly conformant. This means that most parts of the content appear to conform to the selected accessibility standard, but remaining issues require review. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.status">
+                <source>Selected status</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.confirmed">
+                <source>Status selection manually confirmed</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.suggestion">
+                <source>Suggested from automated signal</source>
+            </trans-unit>
+            <trans-unit id="statement.yes">
+                <source>Yes</source>
+            </trans-unit>
+            <trans-unit id="statement.no">
+                <source>No</source>
+            </trans-unit>
+            <trans-unit id="statement.warning.statusDiffers">
+                <source>The selected status differs from the automated signal. Please verify this manually before publication.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.optional">
+                <source>optional</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.draftStatus">
+                <source>Draft status</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.suggestionLabel">
+                <source>Suggested from automated signal</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.suggestionHelp">
+                <source>will be shown after generation as guidance only. It is not a confirmed accessibility or conformity status.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.confirmHelp">
+                <source>Without this confirmation, non-default statuses cannot be exported. Keep the default status for automated draft output.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.help">
+                <source>Insert the contact details of the responsible organisation or accessibility contact.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.remediation.note">
+                <source>Remediation note</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.template">
+                <source>Template</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.warningStrong">
+                <source>This is an automated draft based on automated accessibility checks.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.warningManual">
+                <source>Manual review is required before publishing.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.selectedDraftStatus">
+                <source>Selected draft status</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.noSafeDefault">
+                <source>No - safe default wording used</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.intro">
+                <source>If you find accessibility barriers on this website or need information in an accessible format, please contact:</source>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.accessibilityContact">
+                <source>[Insert accessibility contact before publication]</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.responsibleUnit">
+                <source>Responsible unit</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.email">
+                <source>Email</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.phone">
+                <source>Phone</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.postalAddress">
+                <source>Postal address</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.responseTime">
+                <source>Response time</source>
+            </trans-unit>
+            <trans-unit id="statement.contact.additionalNote">
+                <source>Additional contact note</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.noneText">
+                <source>No enforcement procedure has been included in this draft.</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.customPlaceholder">
+                <source>[Insert custom enforcement procedure text before publication]</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.germanyText">
+                <source>If you are not satisfied with the response to your accessibility feedback, you may contact the responsible conciliation or enforcement body. [Add the responsible body link or contact details before publication]</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.austriaText">
+                <source>If you are not satisfied with the response to your accessibility feedback, you may contact the responsible complaints or monitoring body. [Add the responsible body link or contact details before publication]</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.genericText">
+                <source>If you are not satisfied with the response to your accessibility feedback, you may contact the responsible enforcement or conciliation body in your country or region.</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.heading.germany">
+                <source>Conciliation procedure</source>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.heading.default">
+                <source>Formal complaints</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.testingMethod">
+                <source>Testing method</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.testingMethodValue">
+                <source>Automated accessibility check with Accessibility Quality Gate</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.testingEngine">
+                <source>Testing engine</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.scanScope">
+                <source>Scan scope</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.checkedPages">
+                <source>Checked pages</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.automatedFindings">
+                <source>Automated findings</source>
+            </trans-unit>
+            <trans-unit id="statement.technical.automatedSignal">
+                <source>Automated signal</source>
+            </trans-unit>
+            <trans-unit id="statement.source.websitePage">
+                <source>Website/page</source>
+            </trans-unit>
+            <trans-unit id="statement.source.scanDate">
+                <source>Scan date</source>
+            </trans-unit>
+            <trans-unit id="statement.source.generated">
+                <source>Generated</source>
+            </trans-unit>
+            <trans-unit id="statement.source.scannedPages">
+                <source>Scanned pages</source>
+            </trans-unit>
+            <trans-unit id="statement.source.singlePage">
+                <source>Single page scan</source>
+            </trans-unit>
+            <trans-unit id="statement.source.siteScan">
+                <source>Site scan</source>
+            </trans-unit>
+            <trans-unit id="statement.source.siteCrawl">
+                <source>Site crawl</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.critical">
+                <source>critical</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.serious">
+                <source>serious</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.moderate">
+                <source>moderate</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.minor">
+                <source>minor</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.total">
+                <source>total</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.finding">
+                <source>finding</source>
+            </trans-unit>
+            <trans-unit id="statement.findings.findings">
+                <source>findings</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.alt">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.button">
+                <source>Buttons without accessible names</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.form">
+                <source>Form fields without labels</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.iframe">
+                <source>Iframes without titles</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.link">
+                <source>Links without discernible text</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.contrast">
+                <source>Insufficient text contrast</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.landmark">
+                <source>Content outside landmark regions</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.marquee">
+                <source>Moving marquee content</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.select">
+                <source>Select fields without accessible names</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.oneMainLandmark">
+                <source>Use one main landmark</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.headingOne">
+                <source>Add a meaningful H1</source>
+            </trans-unit>
+            <trans-unit id="statement.issue.targetSize">
+                <source>Touch targets are too small or too close together</source>
+            </trans-unit>
+            <trans-unit id="statement.label.website">
+                <source>Website</source>
+            </trans-unit>
+            <trans-unit id="statement.label.status">
+                <source>Status</source>
+            </trans-unit>
+            <trans-unit id="statement.label.name">
+                <source>Name</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.unavailable">
+                <source>Accessibility statement is not available right now.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.pdfUnavailable">
+                <source>Accessibility statement PDF is not available right now.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.accessDenied">
+                <source>Access denied.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.unsupportedLanguage">
+                <source>The selected language is not supported for accessibility statements.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.chooseSite">
+                <source>Choose a site before generating the statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.siteNotResolved">
+                <source>The selected site could not be resolved.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.proOnly">
+                <source>Accessibility Statement Draft Assistant is available with PRO.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.enterJobId">
+                <source>Enter a job ID before generating the statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.enterPageUrl">
+                <source>Enter a page URL for the latest page scan statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.pdf.title">
+                <source>Draft Accessibility Statement</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.duplicate_id.guidance">
+                <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.duplicate_id.title">
+                <source>Duplicate element IDs</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.duplicate_id.guidance">
+                <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.landmark_unique.title">
+                <source>Landmarks of the same type need unique names</source>
+            </trans-unit>
+            <trans-unit id="rule.rendered.landmark_unique.guidance">
+                <source>Review repeated landmarks and give landmarks of the same type distinct accessible names when users need to tell them apart.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.form_control_missing_label.title">
+                <source>Form fields need accessible labels</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.form_control_missing_label.guidance">
+                <source>Associate the form control with a visible label. When a visible label cannot be used, provide a clear accessible name with aria-label or aria-labelledby.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.image_alt.title">
+                <source>Images without alternative text</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.image_alt.why">
+                <source>People using screen readers may miss important information conveyed by images.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.image_alt.fix">
+                <source>Add meaningful alternative text, or mark the image as decorative only when it does not convey content.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.input_image_alt.title">
+                <source>Image buttons without alternative text</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.input_image_alt.why">
+                <source>People using screen readers may not understand the purpose of the image button.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.input_image_alt.fix">
+                <source>Add alternative text that describes the button action.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.button_name.title">
+                <source>Buttons without accessible names</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.button_name.why">
+                <source>People using screen readers or voice control may not know what the button does.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.button_name.fix">
+                <source>Add visible button text or an accessible name that clearly describes the action.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.select_name.title">
+                <source>Select fields without accessible names</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.select_name.why">
+                <source>People using assistive technology may not know what information the select field asks for.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.select_name.fix">
+                <source>Connect the select field to a visible label or add an accessible name.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.label.title">
+                <source>Form fields without labels</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.label.why">
+                <source>People using assistive technology may not understand what information a field requires.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.label.fix">
+                <source>Add a visible label and associate it with the form field.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.frame_title.title">
+                <source>Iframes without descriptive titles</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.frame_title.why">
+                <source>Screen reader users may not understand what content the embedded frame contains.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.frame_title.fix">
+                <source>Add a short, descriptive title to the iframe that explains what content it contains.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_name.title">
+                <source>Links without discernible text</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_name.why">
+                <source>People using screen readers or keyboard navigation may not understand where the link goes.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_name.fix">
+                <source>Provide clear link text or an accessible name that describes the link destination or action.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.color_contrast.title">
+                <source>Insufficient text contrast</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.color_contrast.why">
+                <source>Low contrast can make text difficult to read for people with low vision or color vision deficiencies.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.color_contrast.fix">
+                <source>Start by adjusting foreground or background colors so visible text has sufficient contrast.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.target_size.title">
+                <source>Touch targets are too small or too close together</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.target_size.why">
+                <source>Small or closely spaced targets can be difficult to activate for people with motor impairments or touch device users.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.target_size.fix">
+                <source>Increase the target size or spacing so interactive controls can be activated reliably.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.region.title">
+                <source>Content outside landmark regions</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.region.why">
+                <source>Landmarks help assistive technology users understand and navigate the page structure.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.region.fix">
+                <source>Place page content inside appropriate landmark regions such as header, main, navigation and footer.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_unique.title">
+                <source>Duplicate or non-unique landmarks</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_unique.why">
+                <source>Repeated landmarks with the same name can make page navigation confusing for screen reader users.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_unique.fix">
+                <source>Give repeated landmarks unique accessible names or simplify the landmark structure.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.marquee.title">
+                <source>Moving marquee content</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.marquee.why">
+                <source>Moving content can distract users and may be difficult to read or pause.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.marquee.fix">
+                <source>Remove marquee content or provide controls to pause, stop or hide moving content.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_img_alt_is_filename.title">
+                <source>Image alt text looks like a filename</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_img_alt_is_filename.why">
+                <source>File names rarely describe the meaning of an image for people using screen readers.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_img_alt_is_filename.fix">
+                <source>Replace the filename-like alt text with a meaningful description of the image.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_non_descriptive_link.title">
+                <source>Link text is not descriptive</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_non_descriptive_link.why">
+                <source>Generic link text makes it hard to understand links out of context.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_non_descriptive_link.fix">
+                <source>Use link text that describes the destination or action.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.duplicate_id.title">
+                <source>Duplicate element IDs</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.duplicate_id.why">
+                <source>Duplicate IDs can break label associations, ARIA references, links and in-page navigation.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.duplicate_id.fix">
+                <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_control_missing_label.title">
+                <source>Form fields need accessible labels</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_control_missing_label.why">
+                <source>People using assistive technology need a programmatic label to understand the purpose of each form field.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_control_missing_label.fix">
+                <source>Associate the form control with a visible label. When a visible label cannot be used, provide a clear accessible name with aria-label or aria-labelledby. A title attribute is accepted only as a last programmatic fallback.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_too_long.title">
+                <source>Image alternative text is too long</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_too_long.why">
+                <source>Overly long alternative text can make content harder to understand and navigate.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_too_long.fix">
+                <source>Keep alternative text concise and describe only the information needed in context.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_redundant_phrase.title">
+                <source>Image alternative text contains redundant wording</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_redundant_phrase.why">
+                <source>Phrases such as “image of” repeat information already announced by assistive technology.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_redundant_phrase.fix">
+                <source>Remove redundant phrases and describe the image purpose directly.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_duplicate_different_targets.title">
+                <source>Identical link text points to different destinations</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_duplicate_different_targets.why">
+                <source>Identical link text for different destinations can be confusing out of context.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_duplicate_different_targets.fix">
+                <source>Use link text that distinguishes the destination or purpose of each link.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_is_url_or_filename.title">
+                <source>Link text is a URL or filename</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_is_url_or_filename.why">
+                <source>Raw URLs and filenames often do not explain the link purpose clearly.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_is_url_or_filename.fix">
+                <source>Replace the URL or filename with descriptive link text.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document.title">
+                <source>Link opens a document</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document.why">
+                <source>Users benefit from knowing that a link opens or downloads a document.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document.fix">
+                <source>Make the document type and purpose clear in the link text or nearby context.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document_missing_notice.title">
+                <source>Document link does not identify the file type</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document_missing_notice.why">
+                <source>Users may not know that a link opens a document or what format to expect.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document_missing_notice.fix">
+                <source>Add a short file type or document notice to the link text or adjacent text.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.file_reference_alt_quality.title">
+                <source>Image alternative text needs improvement</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.file_reference_alt_quality.why">
+                <source>Low-quality alternative text may not communicate the image purpose.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.file_reference_alt_quality.fix">
+                <source>Replace generic, redundant or filename-like text with a concise meaningful description.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_field_label_missing.title">
+                <source>Form field label is missing</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_field_label_missing.why">
+                <source>A clear label helps users understand what information a form field requires.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_field_label_missing.fix">
+                <source>Add a visible label and associate it with the form control.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_placeholder_as_label.title">
+                <source>Placeholder is used instead of a label</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_placeholder_as_label.why">
+                <source>Placeholder text disappears during input and is not a reliable replacement for a label.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_placeholder_as_label.fix">
+                <source>Add a persistent visible label and keep placeholder text only as optional guidance.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_autocomplete_missing.title">
+                <source>Personal data field is missing autocomplete information</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_autocomplete_missing.why">
+                <source>Autocomplete can reduce input effort and support users with cognitive or motor impairments.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_autocomplete_missing.fix">
+                <source>Add the appropriate autocomplete token for the requested personal information.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.media_no_transcript_hint.title">
+                <source>Media content may need a transcript</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.media_no_transcript_hint.why">
+                <source>A transcript provides access to spoken information for people who cannot hear the audio.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.media_no_transcript_hint.fix">
+                <source>Provide a transcript or equivalent text alternative when the media contains meaningful audio.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.header_level_is_h1.title">
+                <source>Content element uses an H1 heading</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.header_level_is_h1.why">
+                <source>Multiple or misplaced H1 headings can make the page structure harder to understand.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.header_level_is_h1.fix">
+                <source>Use the heading level that matches the content hierarchy and reserve the page H1 for the main page topic.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_one_main.title">
+                <source>Use one main landmark</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_one_main.why">
+                <source>A single main landmark helps screen reader and keyboard users find the primary page content quickly.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_one_main.fix">
+                <source>Keep exactly one main landmark on the page, using the main element or role="main".</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.page_has_heading_one.title">
+                <source>Add a meaningful H1</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.page_has_heading_one.why">
+                <source>A clear H1 helps people understand the page topic and navigate the content structure.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.page_has_heading_one.fix">
+                <source>Add one meaningful H1 heading that describes the main purpose of the page.</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.blind">
+                <source>Blind users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.deafblind">
+                <source>Deafblind users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.screenReader">
+                <source>Screen reader users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.keyboard">
+                <source>Keyboard users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.keyboardScreenReader">
+                <source>Keyboard/screen reader navigation users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.lowVision">
+                <source>Low vision users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.colorVision">
+                <source>Color vision deficiency</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.motor">
+                <source>Motor impairments</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.touch">
+                <source>Touch device users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.voiceControl">
+                <source>Voice control users</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.cognitive">
+                <source>Cognitive disabilities</source>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.deafHardOfHearing">
+                <source>Deaf or hard of hearing users</source>
+            </trans-unit>
+            <trans-unit id="rule.metadata.documentation.rule">
+                <source>Rule documentation</source>
+            </trans-unit>
+            <trans-unit id="rule.metadata.documentation.axe">
+                <source>axe-core rule documentation</source>
             </trans-unit>
         </body>
     </file>

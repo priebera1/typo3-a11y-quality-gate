@@ -73,7 +73,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
         $body = $request->getParsedBody();
         $data = is_array($body) ? $body : [];
 
+        $requestId = $this->buildRemoteSubmitRequestId($request);
         $rootPid = (int)($data['rootPid'] ?? 0);
+        $requestedRootPid = $rootPid;
+        $requestedPageUid = (int)($data['pageUid'] ?? $data['id'] ?? 0);
+        $requestedSiteIdentifier = trim((string)($data['siteIdentifier'] ?? ''));
         $maxPages = max(1, min(1000, (int)($data['maxPages'] ?? 200)));
         $axeLocale = trim((string)($data['axeLocale'] ?? 'en'));
         $cookieDismiss = array_key_exists('cookieDismiss', $data)
@@ -85,12 +89,52 @@ final class ProCrawlerAjaxController extends AbstractApiController
             return $this->badRequestResponse('Missing rootPid');
         }
 
-        if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
-            return $this->forbiddenResponse();
-        }
-
         try {
-            $site = $this->siteResolutionService->resolveSiteFromPageId($rootPid);
+            $siteFromRootPid = $this->siteResolutionService->resolveSiteByPageId($rootPid);
+            $site = null;
+
+            if ($requestedSiteIdentifier !== '') {
+                $site = $this->siteResolutionService->resolveSiteByIdentifier($requestedSiteIdentifier);
+                if (!$site instanceof Site) {
+                    return $this->badRequestResponse('Unknown siteIdentifier', [
+                        'code' => 'unknown_site_identifier',
+                        'requestId' => $requestId,
+                    ]);
+                }
+
+                if (
+                    $siteFromRootPid instanceof Site
+                    && $siteFromRootPid->getIdentifier() !== $site->getIdentifier()
+                ) {
+                    $this->logRemoteSubmitDebug('submit-site:explicit-site-overrides-root-pid', [
+                        'requestId' => $requestId,
+                        'requestRootPid' => $requestedRootPid,
+                        'requestPageId' => $requestedPageUid,
+                        'requestSiteIdentifier' => $requestedSiteIdentifier,
+                        'siteFromRootPidIdentifier' => $siteFromRootPid->getIdentifier(),
+                        'siteFromRootPidRootPid' => (int)$siteFromRootPid->getRootPageId(),
+                        'explicitSiteIdentifier' => $site->getIdentifier(),
+                        'explicitSiteRootPid' => (int)$site->getRootPageId(),
+                    ]);
+                }
+            }
+
+            $site ??= $siteFromRootPid;
+            if (!$site instanceof Site) {
+                return $this->badRequestResponse('Unknown site context for rootPid', [
+                    'code' => 'unknown_site_context',
+                    'requestId' => $requestId,
+                ]);
+            }
+
+            $rootPid = (int)$site->getRootPageId();
+            if ($rootPid <= 0) {
+                $rootPid = $requestedRootPid;
+            }
+
+            if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
+                return $this->forbiddenResponse();
+            }
 
             $languageContext = $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
             $resolved = $languageContext !== null
@@ -106,6 +150,24 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     axeLocale: $axeLocale !== '' ? $axeLocale : 'en',
                 );
             $languageCode = $this->siteLanguageService->resolveLanguageCode($languageContext);
+
+            $this->logRemoteSubmitDebug('submit-site:resolved-context', [
+                'requestId' => $requestId,
+                'requestedRootPid' => $requestedRootPid,
+                'requestPageId' => $requestedPageUid,
+                'requestedSiteIdentifier' => $requestedSiteIdentifier,
+                'resolvedSiteIdentifier' => $resolved->siteIdentifier,
+                'resolvedRootPid' => (int)$site->getRootPageId(),
+                'resolvedBaseUrl' => (string)$site->getBase(),
+                'resolvedStartUrl' => $resolved->startUrl,
+                'resolvedSitemapUrl' => (string)($resolved->sitemapUrl ?? ''),
+                'resolvedDomain' => $resolved->domain,
+                'apiPayloadSiteId' => $resolved->siteIdentifier,
+                'apiPayloadStartUrl' => $resolved->startUrl,
+                'apiPayloadSourceType' => $resolved->sourceType->value,
+                'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                'languageCode' => $languageCode,
+            ]);
 
             if (
                 $resolved->domain === ''
@@ -147,6 +209,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $scannerPreviewToken = $remoteAccessSettings['scannerPreviewToken'];
 
             $this->logRemoteSubmitDebug('submit-site:outbound', [
+                'requestId' => $requestId,
+                'requestedRootPid' => $requestedRootPid,
+                'requestPageId' => $requestedPageUid,
+                'requestedSiteIdentifier' => $requestedSiteIdentifier,
                 'resolvedRulesetUid' => $remoteAccessSettings['resolvedRulesetUid'],
                 'resolvedRulesetSiteIdentifier' => $remoteAccessSettings['resolvedRulesetSiteIdentifier'],
                 'scannerTokenExists' => $remoteAccessSettings['scannerPreviewToken'] !== '',
@@ -213,8 +279,27 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 languageUid: $languageContext !== null ? (int)$languageContext['languageId'] : -1,
             );
 
+            $persistedScan = $this->remoteScanRepository->findScanByJobId($result->jobId);
+
+            $this->logRemoteSubmitDebug('submit-site:persisted-local-scan', [
+                'requestId' => $requestId,
+                'jobId' => $result->jobId,
+                'sourceType' => $resolved->sourceType->value,
+                'siteIdentifier' => $resolved->siteIdentifier,
+                'startUrl' => $resolved->startUrl,
+                'sitemapUrl' => (string)($resolved->sitemapUrl ?? ''),
+                'scanScope' => 'site',
+                'pageUid' => 0,
+                'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                'localPersistedSiteIdentifier' => is_array($persistedScan) ? (string)($persistedScan['site_identifier'] ?? '') : '',
+                'localPersistedStartUrl' => is_array($persistedScan) ? (string)($persistedScan['start_url'] ?? '') : '',
+                'localPersistedScanScope' => is_array($persistedScan) ? (string)($persistedScan['scan_scope'] ?? '') : '',
+                'localPersistedSourceType' => is_array($persistedScan) ? (string)($persistedScan['source_type'] ?? '') : '',
+            ]);
+
             return $this->jsonResponse([
                 'success' => true,
+                'requestId' => $requestId,
                 'jobId' => $result->jobId,
                 'status' => $result->status,
                 'siteIdentifier' => $resolved->siteIdentifier,
@@ -975,6 +1060,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return $keys;
+    }
+
+    private function buildRemoteSubmitRequestId(ServerRequestInterface $request): string
+    {
+        return substr(sha1((string)microtime(true) . '-' . spl_object_id($request)), 0, 12);
     }
 
     /**

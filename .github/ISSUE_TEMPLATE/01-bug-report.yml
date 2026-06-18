@@ -1,0 +1,103 @@
+name: Bug report
+description: Report a reproducible bug in Accessibility Quality Gate.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting, please search existing issues to avoid duplicates.
+        Do not include real client data, domain names or licence keys.
+
+  - type: input
+    id: aqg-version
+    attributes:
+      label: AQG version
+      placeholder: "e.g. 1.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: typo3-version
+    attributes:
+      label: TYPO3 version
+      placeholder: "e.g. 13.4.3"
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: "e.g. 8.2.10"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation-mode
+    attributes:
+      label: Installation mode
+      options:
+        - Composer
+        - TER / manual
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scan-type
+    attributes:
+      label: Scan type where the bug occurs
+      options:
+        - Local scan
+        - Rendered Page Check
+        - PRO Remote scan
+        - Scheduler task
+        - CLI command
+        - Backend module (other)
+        - Not scan-related
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (if relevant)
+      placeholder: "e.g. Chrome 125, Firefox 126"
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to...
+        2. Click...
+        3. See...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots (optional)
+      description: Paste anonymised logs or attach a screenshot. Remove any client data.
+
+  - type: checkboxes
+    id: data-check
+    attributes:
+      label: Data confirmation
+      options:
+        - label: I have removed client domain names, email addresses and licence keys from this report.
+          required: true

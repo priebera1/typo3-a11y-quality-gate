@@ -78,6 +78,8 @@
                                         class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
                                         data-action="a11y-pro-scan-site"
                                         data-root-pid="{siteRootPid}"
+                                        data-current-page-uid="{currentPageUid}"
+                                        data-site-identifier="{siteIdentifier}"
                                         data-max-pages="{f:if(condition: proStatus.isTrial, then: '10', else: '500')}"
                                         data-language-uid="{currentLanguageUid}"
                                         data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
@@ -101,7 +103,7 @@
                         </div>
                     </div>
 
-                    <div class="aqg-signal__metrics" aria-label="Remote scan metrics">
+                    <div class="aqg-signal__metrics" aria-label="Frontend scan metrics">
                         <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">{remoteScan.issues_total}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal" default="total issues" /></span>
                         <span class="aqg-signal__metric-sep" aria-hidden="true">·</span>
                         <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">
@@ -175,7 +177,7 @@
                             <p class="aqg-signal__empty-text">
                                 <f:translate
                                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.noScanBody"
-                                        default="Run a remote scan to generate frontend accessibility findings."
+                                        default="Run a frontend scan to generate automated accessibility findings."
                                 />
                             </p>
                         </div>
@@ -202,6 +204,8 @@
                                         class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
                                         data-action="a11y-pro-scan-site"
                                         data-root-pid="{siteRootPid}"
+                                        data-current-page-uid="{currentPageUid}"
+                                        data-site-identifier="{siteIdentifier}"
                                         data-max-pages="{f:if(condition: proStatus.isTrial, then: '10', else: '500')}"
                                         data-language-uid="{currentLanguageUid}"
                                         data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
@@ -352,6 +356,33 @@
                                 <f:if condition="{fix.reason}">
                                     <p class="aqg-pfix-item__reason">{fix.reason}</p>
                                 </f:if>
+
+                                <f:if condition="{fix.hasStandardsAndImpact}">
+                                    <details class="aqg-rule-metadata aqg-rule-metadata--compact">
+                                        <summary>Standards and impact</summary>
+                                        <div class="aqg-rule-metadata__body">
+                                            <f:if condition="{fix.affectedUserItems}">
+                                                <div class="aqg-rule-metadata__group">
+                                                    <h3>Affected users</h3>
+                                                    <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
+                                                        <f:for each="{fix.affectedUserItems}" as="affectedUser">
+                                                            <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
+                                                        </f:for>
+                                                    </div>
+                                                </div>
+                                            </f:if>
+                                            <f:if condition="{fix.wcagReferences}">
+                                                <div class="aqg-rule-metadata__group"><h3>WCAG reference</h3><ul><f:for each="{fix.wcagReferences}" as="wcag"><li>{wcag.label}</li></f:for></ul></div>
+                                            </f:if>
+                                            <f:if condition="{fix.standards}">
+                                                <div class="aqg-rule-metadata__group"><h3>Standards</h3><div class="aqg-rule-metadata__chips"><f:for each="{fix.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for></div></div>
+                                            </f:if>
+                                            <f:if condition="{fix.documentationLinks}">
+                                                <div class="aqg-rule-metadata__group"><h3>Documentation</h3><ul><f:for each="{fix.documentationLinks}" as="doc"><li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li></f:for></ul></div>
+                                            </f:if>
+                                        </div>
+                                    </details>
+                                </f:if>
                             </div>
                         </article>
                     </f:for>
@@ -416,7 +447,7 @@
                                 <f:else>
                                     <f:translate
                                             key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.emptyBody"
-                                            default="Run a remote scan to generate recommended fixes based on impact and reach."
+                                            default="Run a frontend scan to generate recommended fixes based on impact and reach."
                                     />
                                 </f:else>
                             </f:if>
@@ -433,34 +464,22 @@
         <div class="aqg-toolbar-row">
             <div class="aqg-toolbar-row__left">
                 <div class="aqg-toolbar-row__title">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.topPages"
-                            default="Affected pages"
-                    />
+{remotePagesTitle}
                 </div>
                 <div class="aqg-toolbar-row__sub">
                     <span>
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.affectedPages.subtitle"
-                                default="Pages with the most accessibility issues. Open a page to review concrete findings."
-                        />
+{remotePagesSubtitle}
                     </span>
                     <span>·</span>
                     <span>
                         <f:if condition="{totalRemotePagesIsSingle}">
                             <f:then>
                                 1
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.page"
-                                        default="page"
-                                />
+{remotePagesCountLabel}
                             </f:then>
                             <f:else>
                                 {totalRemotePages}
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages"
-                                        default="pages"
-                                />
+{remotePagesCountLabel}
                             </f:else>
                         </f:if>
                     </span>
@@ -530,6 +549,13 @@
             </div>
         </div>
 
+        <f:if condition="{remotePagesArePageScanFallback}">
+            <div class="aqg-page-scan-fallback-note" role="status">
+                <strong>Page-scan fallback</strong>
+                <span>No completed site scan exists yet. Showing recently scanned pages from page-level frontend scans.</span>
+            </div>
+        </f:if>
+
         <div>
             <f:if condition="{remotePages}">
                 <f:then>
@@ -544,10 +570,7 @@
                                     />
                                 </th>
                                 <th scope="col" class="num">
-                                    <f:translate
-                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.issues"
-                                            default="Issues"
-                                    />
+                                    Findings
                                 </th>
                                 <th scope="col" class="num">
                                     <f:translate
@@ -585,7 +608,7 @@
                                             </div>
                                             <span class="aqg-page-cell__meta">{page.url}</span>
                                             <span class="visually-hidden">
-                                                Page UID {page.typo3_page_uid} · Remote page UID {page.uid} · Remote scan UID {page.remote_scan_uid}
+                                                Page UID {page.typo3_page_uid} · Frontend page UID {page.uid} · Frontend scan UID {page.remote_scan_uid}
                                             </span>
                                         </div>
                                     </td>
@@ -605,10 +628,7 @@
 
                                     <td class="actions">
                                         <a href="{page.detailUrl}" class="aqg-action-link">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.viewIssues"
-                                                    default="View issues"
-                                            />
+                                            View findings
                                         </a>
                                     </td>
                                 </tr>
@@ -621,13 +641,10 @@
                         <div class="aqg-pagination">
                             <div class="aqg-pagination__info">
                                 {remotePagination.totalItems}
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages"
-                                        default="pages"
-                                />
+{remotePagesCountLabel}
                             </div>
 
-                            <nav aria-label="Remote pages pagination">
+                            <nav aria-label="Frontend scanned pages pagination">
                                 <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
                                     <li class="page-item {f:if(condition: remotePagination.hasPrevious, then: '', else: 'disabled')}">
                                         <a class="page-link" href="{f:if(condition: remotePagination.hasPrevious, then: remotePagination.previousUrl, else: '#')}">‹</a>
@@ -682,18 +699,8 @@
                             <div class="aqg-empty__icon" aria-hidden="true">
                                 <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
                             </div>
-                            <div class="aqg-empty__title">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.empty.title"
-                                        default="No frontend scan yet"
-                                />
-                            </div>
-                            <div class="aqg-empty__body">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.emptyPages"
-                                        default="Run a frontend scan to load published page results."
-                                />
-                            </div>
+                            <div class="aqg-empty__title">{remotePagesEmptyTitle}</div>
+                            <div class="aqg-empty__body">{remotePagesEmptyBody}</div>
                         </div>
                     </f:if>
                 </f:else>
@@ -739,8 +746,36 @@
                 </summary>
 
                 <div class="aqg-report-collapse__body aqg-report-collapse__body--failed">
-                    <div class="aqg-failed-pages-toolbar">
-                        <form method="get" role="search" class="mb-0 a11y-overview-search-form">
+                    <div class="aqg-toolbar-row aqg-failed-pages-toolbar">
+                        <div class="aqg-toolbar-row__left">
+                            <div class="aqg-toolbar-row__title">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.failedPages.title"
+                                        default="Failed / unreachable pages"
+                                />
+                            </div>
+                            <div class="aqg-toolbar-row__sub">
+                                <span>
+                                    {totalRemoteFailedPages}
+                                    <f:translate
+                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages"
+                                            default="pages"
+                                    />
+                                </span>
+                                <f:if condition="{remoteFailedPagination.totalPages} > 1">
+                                    <span>·</span>
+                                    <span>
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.page"
+                                                default="Page"
+                                        />
+                                        {remoteFailedPagination.currentPage}/{remoteFailedPagination.totalPages}
+                                    </span>
+                                </f:if>
+                            </div>
+                        </div>
+                        <div class="a11y-overview-header-tools aqg-toolbar-row__right">
+<form method="get" role="search" class="mb-0 a11y-overview-search-form">
                                                 <f:if condition="{currentPageUid} > 0">
                                                     <f:then>
                                                         <input type="hidden" name="id" value="{currentPageUid}" />
@@ -789,6 +824,7 @@
                                                         autocomplete="off"
                                                 />
                                             </form>
+                        </div>
                     </div>
                     <div>
                         <f:if condition="{remoteFailedPages}">
@@ -1039,7 +1075,7 @@
                     <p class="aqg-report-summary-strip__notice">
                         <f:translate
                                 key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSupport.noSummary"
-                                default="Run a remote scan to generate reporting support."
+                                default="Run a frontend scan to generate reporting support."
                         />
                     </p>
                 </f:else>
@@ -1128,11 +1164,36 @@
                                 <strong>{remoteStructureSummary.landmarkIssuesLabel}</strong>
                                 <span>across {remoteStructureSummary.affectedPagesLabel}</span>
                             </div>
+                            <div class="aqg-metric-chips aqg-metric-chips--compact" aria-label="Structure signal metrics">
+                                <span class="aqg-metric-chip"><strong>{remoteStructureSummary.outlineIssuesTotal}</strong> outline issues</span>
+                                <span class="aqg-metric-chip"><strong>{remoteStructureSummary.headingIssuesTotal}</strong> heading issues</span>
+                            </div>
                             <f:if condition="{remoteStructureSummary.likelyTemplateIssue}">
-                                <p class="aqg-signal-chip-card__note">Likely template/layout issue — review main, nav, header and footer landmarks.</p>
+                                <f:then>
+                                    <p class="aqg-signal-chip-card__note">Likely template/layout issue — review shared landmarks and heading structure.</p>
+                                </f:then>
+                                <f:else>
+                                    <f:if condition="{remoteStructureSummary.recommendation}">
+                                        <p class="aqg-signal-chip-card__note">{remoteStructureSummary.recommendation}</p>
+                                    </f:if>
+                                </f:else>
                             </f:if>
-                            <f:if condition="{remoteStructureSummary.recommendation}">
-                                <p class="aqg-signal-chip-card__note">{remoteStructureSummary.recommendation}</p>
+                            <f:if condition="{remoteStructureSummary.hasTopWarnings}">
+                                <div class="aqg-structure-top-rules" aria-label="Top structure warnings">
+                                    <f:for each="{remoteStructureSummary.topWarnings}" as="warning">
+                                        <span class="aqg-structure-top-rule">
+                                            <strong>{warning.typeLabel}</strong>
+                                            <span class="aqg-structure-top-rule__sep" aria-hidden="true">—</span>
+                                            <span>{warning.issuesLabel}</span>
+                                            <f:if condition="{warning.affectedPagesLabel}">
+                                                <span class="aqg-structure-top-rule__pages">/ {warning.affectedPagesLabel}</span>
+                                            </f:if>
+                                            <f:if condition="{warning.recommendation}">
+                                                <small>{warning.recommendation}</small>
+                                            </f:if>
+                                        </span>
+                                    </f:for>
+                                </div>
                             </f:if>
                             <f:if condition="{remoteStructureSummary.topRules}">
                                 <div class="aqg-structure-top-rules" aria-label="Top structure rules">
@@ -1161,7 +1222,26 @@
                                 <span class="aqg-metric-chip aqg-metric-chip--{remoteKeyboardSummary.possibleKeyboardTrapTone}">{remoteKeyboardSummary.possibleKeyboardTrapLabel}</span>
                                 <span class="aqg-metric-chip">{remoteKeyboardSummary.invisibleFocusIssuesLabel}</span>
                             </div>
-                            <p class="aqg-signal-chip-card__note">Automated keyboard exploration is only a signal. Manual review is still required.</p>
+                            <f:if condition="{remoteKeyboardSummary.manualReviewRequired}">
+                                <p class="aqg-signal-chip-card__note">Manual review required. Automated keyboard exploration is only a signal.</p>
+                            </f:if>
+                            <f:if condition="{remoteKeyboardSummary.hasTopWarnings}">
+                                <div class="aqg-structure-top-rules" aria-label="Top keyboard warnings">
+                                    <f:for each="{remoteKeyboardSummary.topWarnings}" as="warning">
+                                        <span class="aqg-structure-top-rule">
+                                            <strong>{warning.typeLabel}</strong>
+                                            <span class="aqg-structure-top-rule__sep" aria-hidden="true">—</span>
+                                            <span>{warning.issuesLabel}</span>
+                                            <f:if condition="{warning.affectedPagesLabel}">
+                                                <span class="aqg-structure-top-rule__pages">/ {warning.affectedPagesLabel}</span>
+                                            </f:if>
+                                            <f:if condition="{warning.recommendation}">
+                                                <small>{warning.recommendation}</small>
+                                            </f:if>
+                                        </span>
+                                    </f:for>
+                                </div>
+                            </f:if>
                         </article>
                     </f:if>
 
@@ -1313,7 +1393,7 @@
                                     <div class="aqg-empty__body">
                                         <f:if condition="{remoteScanHasIssues}">
                                             <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyUnmappedBody" default="This scan found issues, but none of the current findings could be mapped to a specific WCAG success criterion." /></f:then>
-                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyBody" default="Run a remote scan to generate a breakdown by WCAG success criterion." /></f:else>
+                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyBody" default="Run a frontend scan to generate a breakdown by WCAG success criterion." /></f:else>
                                         </f:if>
                                     </div>
                                 </div>
@@ -1329,6 +1409,39 @@
         </details>
     </section>
 
+
+    <f:if condition="{remoteScanCompare.available} || {remoteScanCompare.message}">
+        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare}" />
+    </f:if>
+
+    <f:if condition="{regressionAlert.available}">
+        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert}" />
+    </f:if>
+
+
+    <details class="aqg-history-panel aqg-history-panel--overview" aria-label="Frontend scan history">
+        <summary class="aqg-history-panel__summary">
+            <span class="aqg-history-panel__summary-copy">
+                <span class="aqg-history-panel__kicker">Accessibility progress</span>
+                <strong class="aqg-history-panel__title">Frontend scan history</strong>
+                <small>Previous automated frontend scans. Manual review may still be required.</small>
+            </span>
+            <span class="aqg-report-collapse__toggle aqg-history-panel__toggle"><span class="aqg-history-panel__toggle-show">Show history</span><span class="aqg-history-panel__toggle-hide">Hide history</span></span>
+        </summary>
+        <div class="aqg-history-panel__body">
+            <f:if condition="{remoteScanHistory.siteScans}">
+                <f:then>
+                    <details class="aqg-history-group" open="open">
+                        <summary>Site scans</summary>
+                        <f:render partial="Remote/ScanHistoryTable" arguments="{items: remoteScanHistory.siteScans}" />
+                    </details>
+                </f:then>
+                <f:else>
+                    <div class="aqg-history-notice">No site frontend scan history available yet.</div>
+                </f:else>
+            </f:if>
+        </div>
+    </details>
 
 </div>
 </html>

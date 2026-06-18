@@ -89,6 +89,8 @@ html[data-theme="dark"] .a11y-page-detail.aqg-module,
 html[data-theme="dark"] .a11y-settings.aqg-module,
 html[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
 html[data-color-scheme="dark"] .a11y-settings.aqg-module,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-page-detail.aqg-module,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview.aqg-module,
 body[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
 body[data-bs-theme="dark"] .a11y-settings.aqg-module,
 body[data-theme="dark"] .a11y-page-detail.aqg-module,
@@ -139,4 +141,366 @@ body[data-color-scheme="dark"] .a11y-overview.aqg-module,
     --aqi-none-bg: var(--typo3-surface-container-low, #25292e);
     --aqi-none-border: var(--typo3-component-border-color, #3a4047);
     --aqi-focus: var(--typo3-state-primary-bg, #56b9f4);
+}
+
+/* Final runtime P0 overrides imported after all module views. Keep hardcoded colors because TYPO3 14 fresh/auto can resolve variables to the wrong palette on initial dark load. */
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal {
+    background: #111827 !important;
+    color: #e5e7eb !important;
+    border-color: #334155 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__metric,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__metric,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__metric,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__metric,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__metric,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric {
+    background: #1f2937 !important;
+    border-color: #475569 !important;
+    color: #e5e7eb !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__metric dt,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__metric dt,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__metric dt,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__metric dt,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__metric dt,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric dt {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__metric dd,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__metric dd,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__metric dd,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__metric dd,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__metric dd,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric dd {
+    color: #f8fafc !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__metric--warning dd,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__metric--warning dd,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__metric--warning dd,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__metric--warning dd,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__metric--warning dd,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric--warning dd {
+    color: #fbbf24 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__metric--positive dd,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__metric--positive dd,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__metric--positive dd,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__metric--positive dd,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__metric--positive dd,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric--positive dd {
+    color: #34d399 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__title,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__title,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__title,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__title,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__title,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__title,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-group summary,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-group summary,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-group summary {
+    color: #f8fafc !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal__context,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal__context,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal__context,
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module .aqg-regression-signal p,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module .aqg-regression-signal p,
+body[data-bs-theme="dark"] .aqg-module .aqg-regression-signal p,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-regression-signal__context,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-regression-signal__context,
+body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__context {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-group,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-group,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-group {
+    background: #111827 !important;
+    color: #e5e7eb !important;
+    border-color: #334155 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-notice,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-notice,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-notice {
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    border-color: #475569 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-panel,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-panel,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-panel {
+    background: #111827 !important;
+    color: #e5e7eb !important;
+    border-color: #334155 !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-panel__kicker,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-panel__kicker,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-panel__kicker,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-panel__title,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-panel__title,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-panel__title {
+    color: #f8fafc !important;
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-panel__summary small,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-panel__summary small,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-panel__summary small,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-history-panel__toggle,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-history-panel__toggle,
+body[data-bs-theme="dark"] .a11y-overview .aqg-history-panel__toggle {
+    color: #cbd5e1 !important;
+}
+
+/* Final P0 cleanup: canonical dark fallback for AQG PRO cards/tables.
+ * This is intentionally hardcoded and imported last. TYPO3 14 fresh mode can keep
+ * data-color-scheme="auto" on initial dark loads while CSS variables still resolve
+ * to light values. Keep this scoped to AQG module PRO/status blocks only.
+ */
+@mixin aqg-p0-pro-dark-cards() {
+    .aqg-regression-signal,
+    .aqg-remediation-plan,
+    .aqg-history-panel,
+    .aqg-history-group,
+    .aqg-pfix-item,
+    .aqg-page-recommendation__strategy {
+        background: #111827 !important;
+        border-color: #334155 !important;
+        color: #e5e7eb !important;
+        box-shadow: none !important;
+    }
+
+    .aqg-regression-signal__metric,
+    .aqg-remediation-plan__task {
+        background: #1f2937 !important;
+        border-color: #475569 !important;
+        color: #e5e7eb !important;
+        box-shadow: none !important;
+    }
+
+    .aqg-regression-signal__title,
+    .aqg-regression-signal__scan-label,
+    .aqg-regression-signal__metric dd,
+    .aqg-history-panel__title,
+    .aqg-history-group summary,
+    .aqg-history-table th,
+    .aqg-history-table td,
+    .aqg-pfix-item__title,
+    .aqg-pfix-item__meta strong,
+    .aqg-pfix-item__body strong,
+    .aqg-pfix-guidance-inline strong,
+    .aqg-remediation-plan__title,
+    .aqg-remediation-plan__task h3,
+    .aqg-remediation-plan__meta dd,
+    .aqg-remediation-plan__steps strong,
+    .aqg-remediation-plan__examples strong,
+    .aqg-page-recommendation__strategy-label {
+        color: #f8fafc !important;
+        -webkit-text-fill-color: #f8fafc !important;
+        opacity: 1 !important;
+    }
+
+    .aqg-regression-signal__kicker,
+    .aqg-regression-signal__context,
+    .aqg-regression-signal p,
+    .aqg-regression-signal__scan-row,
+    .aqg-regression-signal__metric dt,
+    .aqg-history-panel__kicker,
+    .aqg-history-panel__summary small,
+    .aqg-history-panel__toggle,
+    .aqg-history-notice,
+    .aqg-history-table,
+    .aqg-pfix-item__meta,
+    .aqg-pfix-item__ruleid,
+    .aqg-pfix-item__reason,
+    .aqg-pfix-guidance-inline,
+    .aqg-remediation-plan__kicker,
+    .aqg-remediation-plan__subtitle,
+    .aqg-remediation-plan__task p,
+    .aqg-remediation-plan__meta dt,
+    .aqg-remediation-plan__steps,
+    .aqg-remediation-plan__examples,
+    .aqg-page-recommendation__strategy,
+    .aqg-page-recommendation__strategy p {
+        color: #cbd5e1 !important;
+        -webkit-text-fill-color: #cbd5e1 !important;
+        opacity: 1 !important;
+    }
+
+    .aqg-regression-signal__metric--warning dd {
+        color: #fbbf24 !important;
+        -webkit-text-fill-color: #fbbf24 !important;
+    }
+
+    .aqg-regression-signal__metric--positive dd {
+        color: #34d399 !important;
+        -webkit-text-fill-color: #34d399 !important;
+    }
+
+    .aqg-history-table,
+    .aqg-history-table thead,
+    .aqg-history-table tbody,
+    .aqg-history-table tr {
+        background: transparent !important;
+        color: #e5e7eb !important;
+    }
+
+    .aqg-history-table th {
+        background: #1f2937 !important;
+        border-color: #475569 !important;
+    }
+
+    .aqg-history-table td {
+        background: #111827 !important;
+        border-color: #334155 !important;
+    }
+
+    .aqg-history-notice {
+        background: transparent !important;
+        border-color: #475569 !important;
+    }
+
+    .aqg-guidance-badge,
+    .aqg-wcag-pill,
+    .aqg-impact,
+    .aqg-issue-count {
+        color: #e5e7eb !important;
+        -webkit-text-fill-color: #e5e7eb !important;
+        border-color: #475569 !important;
+    }
+
+    .aqg-guidance-badge,
+    .aqg-guidance-badge--type,
+    .aqg-guidance-badge--owner,
+    .aqg-guidance-badge--neutral {
+        background: #1f2937 !important;
+        color: #e5e7eb !important;
+        -webkit-text-fill-color: #e5e7eb !important;
+        border-color: #64748b !important;
+    }
+
+    .aqg-guidance-badge--editor,
+    .aqg-guidance-badge--content {
+        background: #052e16 !important;
+        color: #bbf7d0 !important;
+        -webkit-text-fill-color: #bbf7d0 !important;
+        border-color: #16a34a !important;
+    }
+
+    .aqg-guidance-badge--developer,
+    .aqg-guidance-badge--template,
+    .aqg-guidance-badge--code,
+    .aqg-guidance-badge--technical {
+        background: #172554 !important;
+        color: #bfdbfe !important;
+        -webkit-text-fill-color: #bfdbfe !important;
+        border-color: #2563eb !important;
+    }
+
+    .aqg-guidance-badge--designer,
+    .aqg-guidance-badge--design {
+        background: #2e1065 !important;
+        color: #e9d5ff !important;
+        -webkit-text-fill-color: #e9d5ff !important;
+        border-color: #7c3aed !important;
+    }
+
+    .aqg-guidance-badge--mixed {
+        background: #422006 !important;
+        color: #fde68a !important;
+        -webkit-text-fill-color: #fde68a !important;
+        border-color: #b45309 !important;
+    }
+
+    .aqg-impact--critical,
+    .aqg-pill.tone-critical,
+    .aqg-pill--severity.tone-critical {
+        color: #fecaca !important;
+        -webkit-text-fill-color: #fecaca !important;
+        background: #450a0a !important;
+        border-color: #991b1b !important;
+    }
+
+    .aqg-impact--serious,
+    .aqg-pill.tone-serious,
+    .aqg-pill--severity.tone-serious {
+        color: #fed7aa !important;
+        -webkit-text-fill-color: #fed7aa !important;
+        background: #431407 !important;
+        border-color: #c2410c !important;
+    }
+
+    .aqg-impact--moderate,
+    .aqg-pill.tone-moderate,
+    .aqg-pill--severity.tone-moderate,
+    .aqg-pill.tone-warning,
+    .aqg-pill--severity.tone-warning {
+        color: #fde68a !important;
+        -webkit-text-fill-color: #fde68a !important;
+        background: #422006 !important;
+        border-color: #b45309 !important;
+    }
+
+    .aqg-impact--minor,
+    .aqg-pill.tone-minor,
+    .aqg-pill--severity.tone-minor,
+    .aqg-pill.tone-info,
+    .aqg-pill--severity.tone-info {
+        color: #bfdbfe !important;
+        -webkit-text-fill-color: #bfdbfe !important;
+        background: #172554 !important;
+        border-color: #2563eb !important;
+    }
+
+    .aqg-impact--needs-review,
+    .aqg-impact--needs_review,
+    .aqg-pill.tone-needs-review,
+    .aqg-pill.tone-needs_review,
+    .aqg-pill--severity.tone-needs-review,
+    .aqg-pill--severity.tone-needs_review {
+        color: #ddd6fe !important;
+        -webkit-text-fill-color: #ddd6fe !important;
+        background: #2e1065 !important;
+        border-color: #7c3aed !important;
+    }
+
+    .aqg-pfix-item__action {
+        color: #93c5fd !important;
+        -webkit-text-fill-color: #93c5fd !important;
+    }
+}
+
+html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module,
+html[data-theme="fresh"][data-color-scheme="dark"] .aqg-module,
+html[data-color-scheme="dark"] .aqg-module,
+body[data-bs-theme="dark"] .aqg-module,
+body[data-color-scheme="dark"] .aqg-module,
+.typo3-backend-dark .aqg-module,
+.theme-dark .aqg-module,
+.t3js-theme-dark .aqg-module {
+    @include aqg-p0-pro-dark-cards();
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module,
+    html[data-color-scheme="auto"] .aqg-module,
+    .aqg-module {
+        @include aqg-p0-pro-dark-cards();
+    }
 }

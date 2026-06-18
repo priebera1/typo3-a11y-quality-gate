@@ -1,0 +1,95 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:if condition="{comparison.available}">
+    <section id="scan-comparison" class="aqg-history-compare aqg-history-compare--{comparison.statusTone}" aria-label="Automated scan comparison">
+        <div class="aqg-history-compare__head">
+            <div>
+                <div class="aqg-history-compare__kicker">Accessibility progress signal</div>
+                <h3 class="aqg-history-compare__title">Automated scan comparison</h3>
+                <p class="aqg-history-compare__sub">Manual review may still be required. Changes are based on automated scan results.</p>
+                <p class="aqg-history-compare__context">{comparison.contextLabel}</p>
+            </div>
+            <span class="aqg-history-status aqg-history-status--{comparison.statusTone}">{comparison.statusLabel}</span>
+        </div>
+
+        <f:if condition="{comparison.hasScanMeta}">
+            <div class="aqg-history-compare__meta" aria-label="Compared scans">
+                <div class="aqg-history-compare__meta-item">
+                    <span>Previous scan</span>
+                    <strong>
+                        <f:if condition="{comparison.previousScan.finishedAtFormatted}">
+                            <f:then>{comparison.previousScan.finishedAtFormatted}</f:then>
+                            <f:else>Not reported</f:else>
+                        </f:if>
+                    </strong>
+                </div>
+                <div class="aqg-history-compare__meta-item">
+                    <span>Current scan</span>
+                    <strong>
+                        <f:if condition="{comparison.currentScan.finishedAtFormatted}">
+                            <f:then>{comparison.currentScan.finishedAtFormatted}</f:then>
+                            <f:else>Not reported</f:else>
+                        </f:if>
+                    </strong>
+                </div>
+            </div>
+        </f:if>
+
+        <div class="aqg-history-compare__metrics" aria-label="Scan comparison summary">
+            <span class="aqg-history-metric aqg-history-metric--warning"><strong>{comparison.summary.newIssues}</strong> new in automated scan</span>
+            <span class="aqg-history-metric aqg-history-metric--positive"><strong>{comparison.summary.resolvedIssues}</strong> resolved in automated scan</span>
+            <span class="aqg-history-metric"><strong>{comparison.summary.unchangedIssues}</strong> unchanged in automated scan</span>
+            <span class="aqg-history-metric"><strong>{comparison.summary.scoreDelta}</strong> score change</span>
+            <span class="aqg-history-metric"><strong>{comparison.summary.improvedPages}</strong> improved pages</span>
+            <span class="aqg-history-metric"><strong>{comparison.summary.worsenedPages}</strong> worsened pages</span>
+        </div>
+
+        <p class="aqg-history-compare__message">{comparison.statusMessage}</p>
+
+        <f:if condition="{comparison.hasByRule}">
+            <div class="aqg-history-compare__block">
+                <h4>Changes by rule</h4>
+                <div class="aqg-history-change-list">
+                    <f:for each="{comparison.byRule}" as="row">
+                        <div class="aqg-history-change aqg-history-change--{row.tone}">
+                            <strong>{row.label}</strong>
+                            <span>{row.issueSummaryLabel}</span>
+                            <f:if condition="{row.note}"><small>{row.note}</small></f:if>
+                        </div>
+                    </f:for>
+                </div>
+            </div>
+        </f:if>
+        <f:if condition="{comparison.hasByPage}">
+            <div class="aqg-history-compare__block">
+                <h4>Changes by page</h4>
+                <div class="aqg-history-change-list">
+                    <f:for each="{comparison.byPage}" as="row">
+                        <div class="aqg-history-change aqg-history-change--{row.tone}">
+                            <strong>{row.label}</strong>
+                            <span>{row.issueSummaryLabel}</span>
+                            <f:if condition="{row.note}"><small>{row.note}</small></f:if>
+                        </div>
+                    </f:for>
+                </div>
+            </div>
+        </f:if>
+        <f:if condition="{comparison.hasTopChanges}">
+            <div class="aqg-history-compare__block">
+                <h4>Top changes</h4>
+                <div class="aqg-history-change-list">
+                    <f:for each="{comparison.topChanges}" as="row">
+                        <div class="aqg-history-change aqg-history-change--{row.tone}">
+                            <strong>{row.label}</strong>
+                            <span>{row.statusLabel}</span>
+                            <f:if condition="{row.note}"><small>{row.note}</small></f:if>
+                        </div>
+                    </f:for>
+                </div>
+            </div>
+        </f:if>
+    </section>
+</f:if>
+<f:if condition="{comparison.message} && !{comparison.available}">
+    <div id="scan-comparison" class="aqg-history-notice aqg-history-notice--warning">{comparison.message}</div>
+</f:if>
+</html>

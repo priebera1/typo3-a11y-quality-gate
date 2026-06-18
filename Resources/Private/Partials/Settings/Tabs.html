@@ -64,4 +64,18 @@
         </a>
     </f:if>
 
+    <a
+            class="aqg-tab{f:if(condition: '{activeTab} == \'statement\'', then: ' is-active')}"
+            href="{settingsTabUrls.statement}"
+            role="tab"
+            aria-selected="{f:if(condition: '{activeTab} == \'statement\'', then: 'true', else: 'false')}"
+            aria-current="{f:if(condition: '{activeTab} == \'statement\'', then: 'page', else: '')}"
+    >
+        <span>Statement</span>
+        <f:if condition="{statementGeneratorAvailable}">
+            <f:then></f:then>
+            <f:else><span class="aqg-tab__badge aqg-tab__badge--pro">PRO</span></f:else>
+        </f:if>
+    </a>
+
 </nav>

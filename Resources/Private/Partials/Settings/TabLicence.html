@@ -17,105 +17,118 @@
         <input type="hidden" name="tab" value="licence" />
 
         <div class="aqg-stack">
-            <section class="aqg-card">
-                <header class="aqg-card__head">
-                    <div>
-                        <h3 class="aqg-card__title">
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.title" default="Licence key" /></span>
-                        </h3>
-                        <p class="aqg-card__sub">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.intro" default="Paste your AQG licence key to unlock PRO features for this installation." />
-                        </p>
-                    </div>
+            <f:if condition="{isAdmin}">
+                <f:then>
+                    <section class="aqg-card">
+                        <header class="aqg-card__head">
+                            <div>
+                                <h3 class="aqg-card__title">
+                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.title" default="Licence key" /></span>
+                                </h3>
+                                <p class="aqg-card__sub">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.intro" default="Paste your AQG licence key to unlock PRO features for this installation." />
+                                </p>
+                            </div>
 
-                    <div class="aqg-card__actions">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.save" default="Save" />
-                        </button>
-                    </div>
-                </header>
+                            <div class="aqg-card__actions">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.save" default="Save" />
+                                </button>
+                            </div>
+                        </header>
 
-                <div class="aqg-card__body">
-                    <div class="aqg-field">
-                        <label class="aqg-field__label" for="aqg-licence-key">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key" default="AQG licence key" />
-                        </label>
+                        <div class="aqg-card__body">
+                            <div class="aqg-field">
+                                <label class="aqg-field__label" for="aqg-licence-key">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key" default="AQG licence key" />
+                                </label>
 
-                        <div class="aqg-inputgroup">
-                            <span class="aqg-inputgroup__prefix" aria-hidden="true">KEY</span>
-                            <input
-                                    type="text"
-                                    class="form-control form-control-sm aqg-input aqg-input--mono"
-                                    id="aqg-licence-key"
-                                    name="licenceKey"
-                                    value="{licenceKey}"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                    placeholder="aqg_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                                    data-a11y-licence-key-input="true"
-                                    aria-describedby="aqg-licence-validation"
-                            />
+                                <div class="aqg-inputgroup">
+                                    <span class="aqg-inputgroup__prefix" aria-hidden="true">KEY</span>
+                                    <input
+                                            type="text"
+                                            class="form-control form-control-sm aqg-input aqg-input--mono"
+                                            id="aqg-licence-key"
+                                            name="licenceKey"
+                                            value="{licenceKey}"
+                                            autocomplete="off"
+                                            spellcheck="false"
+                                            placeholder="aqg_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                            data-a11y-licence-key-input="true"
+                                            aria-describedby="aqg-licence-validation"
+                                    />
 
-                            <button type="button" class="btn btn-primary btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validate" default="Validate" />
-                            </button>
-                        </div>
+                                    <button type="button" class="btn btn-primary btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validate" default="Validate" />
+                                    </button>
+                                </div>
 
-                        <div id="aqg-licence-validation" data-a11y-licence-validate-result="true" aria-live="polite">
-                            <f:if condition="{proStatus.valid}">
-                                <f:then>
-                                    <span class="aqg-validation tone-ok">
-                                        <f:render partial="Settings/Icon" arguments="{name: 'check'}" />
-                                        <span>
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.validated" default="Validated" />
-                                            <f:if condition="{proStatus.isTrial}"><f:then> · TRIAL</f:then><f:else> · <f:if condition="{proStatus.plan}"><f:then>{proStatus.plan}</f:then><f:else>PRO</f:else></f:if></f:else></f:if>
-                                            <f:if condition="{proStatus.domain}"> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.boundTo" default="bound to" /> <strong>{proStatus.domain}</strong></f:if>
-                                        </span>
-                                    </span>
-                                </f:then>
-                                <f:else>
-                                    <f:if condition="{licenceKey}">
+                                <div id="aqg-licence-validation" data-a11y-licence-validate-result="true" aria-live="polite">
+                                    <f:if condition="{proStatus.valid}">
                                         <f:then>
-                                            <span class="aqg-validation tone-error">
-                                                <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
-                                                <span><f:if condition="{proStatus.reasonLabel}"><f:then>{proStatus.reasonLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Licence validation failed." /></f:else></f:if></span>
+                                            <span class="aqg-validation tone-ok">
+                                                <f:render partial="Settings/Icon" arguments="{name: 'check'}" />
+                                                <span>
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.validated" default="Validated" />
+                                                    <f:if condition="{proStatus.isTrial}"><f:then> · TRIAL</f:then><f:else> · <f:if condition="{proStatus.plan}"><f:then>{proStatus.plan}</f:then><f:else>PRO</f:else></f:if></f:else></f:if>
+                                                    <f:if condition="{proStatus.domain}"> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.boundTo" default="bound to" /> <strong>{proStatus.domain}</strong></f:if>
+                                                </span>
                                             </span>
                                         </f:then>
                                         <f:else>
-                                            <div class="aqg-field__help">
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.portalHelp" default="The key is bound to a single domain. Find it in your purchase email or the AQG customer portal at" />
-                                                <a href="{portalUrl}" data-open-new-tab="1">typo3.priebera.sk/portal</a>.
-                                            </div>
+                                            <f:if condition="{licenceKey}">
+                                                <f:then>
+                                                    <span class="aqg-validation tone-error">
+                                                        <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
+                                                        <span><f:if condition="{proStatus.reasonLabel}"><f:then>{proStatus.reasonLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Licence validation failed." /></f:else></f:if></span>
+                                                    </span>
+                                                </f:then>
+                                                <f:else>
+                                                    <div class="aqg-field__help">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.portalHelp" default="The key is bound to a single domain. Find it in your purchase email or in the AQG customer portal:" />
+                                                        <a href="{portalUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.openCustomerPortal" default="Open AQG customer portal" /></a>.
+                                                    </div>
+                                                </f:else>
+                                            </f:if>
                                         </f:else>
                                     </f:if>
-                                </f:else>
-                            </f:if>
-                        </div>
-                    </div>
+                                </div>
+                            </div>
 
-                    <input type="hidden" name="showProHints" value="0" />
-                    <input
-                            type="checkbox"
-                            role="switch"
-                            class="aqg-switch__input"
-                            name="showProHints"
-                            id="aqg-show-pro-hints"
-                            value="1"
-                            {f:if(condition: showProHints, then: 'checked="checked"')}
-                    />
-                    <label class="aqg-switch" for="aqg-show-pro-hints">
-                        <span class="aqg-switch__track" aria-hidden="true"><span class="aqg-switch__thumb"></span></span>
-                        <span class="aqg-switch__body">
-                            <span class="aqg-switch__label">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" default="Show PRO hints in the AQG UI" />
-                            </span>
-                            <span class="aqg-switch__hint">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHintsHint" default="When off, PRO upgrade hints in Overview and Page Detail are hidden. Existing PRO features keep working if you have a licence." />
-                            </span>
-                        </span>
-                    </label>
-                </div>
-            </section>
+                            <input type="hidden" name="showProHints" value="0" />
+                            <input
+                                    type="checkbox"
+                                    role="switch"
+                                    class="aqg-switch__input"
+                                    name="showProHints"
+                                    id="aqg-show-pro-hints"
+                                    value="1"
+                                    {f:if(condition: showProHints, then: 'checked="checked"')}
+                            />
+                            <label class="aqg-switch" for="aqg-show-pro-hints">
+                                <span class="aqg-switch__track" aria-hidden="true"><span class="aqg-switch__thumb"></span></span>
+                                <span class="aqg-switch__body">
+                                    <span class="aqg-switch__label">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" default="Show PRO hints in the AQG UI" />
+                                    </span>
+                                    <span class="aqg-switch__hint">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHintsHint" default="When off, PRO upgrade hints in Overview and Page Detail are hidden. Existing PRO features keep working if you have a licence." />
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    </section>
+                </f:then>
+                <f:else>
+                    <section class="aqg-card">
+                        <div class="aqg-card__body">
+                            <p class="mb-0">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.adminOnly" default="Licence management is only available to TYPO3 administrators." />
+                            </p>
+                        </div>
+                    </section>
+                </f:else>
+            </f:if>
         </div>
 
         <aside class="aqg-aside">
@@ -129,8 +142,9 @@
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.help.text" default="Trouble validating your key? Check that the domain matches exactly and that your server can reach the licence host." />
                 </p>
                 <div class="aqg-aside__links">
-                    <a href="{licensingDocsUrl}" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.openDocs" default="Open docs" /></a>
-                    <a href="{contactUrl}" data-open-new-tab="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
+                    <a href="{productUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.openProductPage" default="Open product page" /></a>
+                    <a href="{documentationUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.openDocs" default="Open docs" /></a>
+                    <a href="{supportUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
                 </div>
             </div>
         </aside>

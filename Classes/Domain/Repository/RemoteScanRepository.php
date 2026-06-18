@@ -782,7 +782,7 @@ final class RemoteScanRepository extends AbstractRepository
                 'failure_reason' => (string)($page['failureReason'] ?? ''),
                 'is_failed' => (int)($page['isFailed'] ?? 0),
                 'external_page_id' => (string)($page['pageId'] ?? ''),
-                'keyboard_summary_json' => $this->encodeJsonForColumn($page['keyboardSummary'] ?? $page['keyboard_summary'] ?? []),
+                'keyboard_summary_json' => $this->encodeJsonForColumn($this->buildKeyboardSummaryPayload($page)),
                 'remediation_summary_json' => $this->encodeJsonForColumn($page['remediationSummary'] ?? $page['remediation_summary'] ?? $page['remediation'] ?? []),
                 'page_recommendation_json' => $this->encodeJsonForColumn($page['pageRecommendation'] ?? $page['page_recommendation'] ?? $page['recommendation'] ?? []),
                 'crdate' => $now,
@@ -793,6 +793,32 @@ final class RemoteScanRepository extends AbstractRepository
         }
 
         return $pageUidByUrl;
+    }
+
+
+    /**
+     * @param array<string, mixed> $page
+     * @return array<string, mixed>
+     */
+    private function buildKeyboardSummaryPayload(array $page): array
+    {
+        $keyboardSummary = is_array($page['keyboardSummary'] ?? null)
+            ? $page['keyboardSummary']
+            : (is_array($page['keyboard_summary'] ?? null) ? $page['keyboard_summary'] : []);
+
+        if (is_array($page['keyboardDetails'] ?? null)) {
+            $keyboardSummary['keyboardDetails'] = $page['keyboardDetails'];
+        } elseif (is_array($page['keyboard_details'] ?? null)) {
+            $keyboardSummary['keyboardDetails'] = $page['keyboard_details'];
+        }
+
+        if (is_array($page['structureDetails'] ?? null)) {
+            $keyboardSummary['structureDetails'] = $page['structureDetails'];
+        } elseif (is_array($page['structure_details'] ?? null)) {
+            $keyboardSummary['structureDetails'] = $page['structure_details'];
+        }
+
+        return $keyboardSummary;
     }
 
     private function encodeJsonForColumn(mixed $value): string
@@ -1131,26 +1157,123 @@ final class RemoteScanRepository extends AbstractRepository
 
     public function findPageForScanByUrl(int $remoteScanUid, string $url): ?array
     {
+        if ($remoteScanUid <= 0 || trim($url) === '') {
+            return null;
+        }
+
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
 
-        $row = $queryBuilder
-            ->select('*')
-            ->from(Tables::REMOTE_SCAN_PAGE)
+        $queryBuilder
+            ->select('rsp.*')
+            ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
             ->where(
                 $queryBuilder->expr()->eq(
-                    'remote_scan',
+                    'rsp.remote_scan',
                     $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    'url',
-                    $queryBuilder->createNamedParameter($url)
                 )
-            )
+            );
+
+        $this->addUrlVariantConstraint($queryBuilder, $url);
+
+        $row = $queryBuilder
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
 
         return is_array($row) ? $row : null;
+    }
+
+    /**
+     * Finds the locally persisted remote page report for one concrete API history row.
+     *
+     * This method intentionally does not fall back to the latest/current page report. A
+     * history row must only link to a TYPO3 report when the exact API jobId and URL can
+     * be mapped to a persisted tx_a11y_remote_scan_page row.
+     */
+    public function findPageForJobIdAndUrl(
+        string $jobId,
+        string $url,
+        string $siteIdentifier = '',
+        string $sourceType = ''
+    ): ?array {
+        $jobId = trim($jobId);
+        $url = trim($url);
+        $siteIdentifier = trim($siteIdentifier);
+        $sourceType = strtolower(trim($sourceType));
+        if ($jobId === '' || $url === '') {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
+
+        $queryBuilder
+            ->select(
+                'rsp.*',
+                'rs.uid AS remote_scan_uid',
+                'rs.job_id AS remote_scan_job_id',
+                'rs.site_identifier AS remote_scan_site_identifier',
+                'rs.page_uid AS remote_scan_page_uid',
+                'rs.language_uid AS remote_scan_language_uid',
+                'rs.finished_at AS remote_scan_finished_at',
+                'rs.started_at AS remote_scan_started_at',
+                'rs.scan_scope AS remote_scan_scope',
+                'rs.source_type AS remote_scan_source_type'
+            )
+            ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
+            ->innerJoin(
+                'rsp',
+                Tables::REMOTE_SCAN,
+                'rs',
+                $queryBuilder->expr()->eq('rs.uid', 'rsp.remote_scan')
+            )
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'rs.job_id',
+                    $queryBuilder->createNamedParameter($jobId)
+                )
+            );
+
+        if ($siteIdentifier !== '') {
+            $queryBuilder->andWhere(
+                $queryBuilder->expr()->eq(
+                    'rs.site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            );
+        }
+
+        if ($sourceType !== '') {
+            $allowedSourceTypes = match ($sourceType) {
+                'single_page', 'page' => ['single_page', 'page'],
+                'site', 'sitemap', 'crawl' => ['site', 'sitemap', 'crawl'],
+                default => [$sourceType],
+            };
+            $queryBuilder->andWhere(
+                $queryBuilder->expr()->in(
+                    'rs.source_type',
+                    $queryBuilder->createNamedParameter($allowedSourceTypes, Connection::PARAM_STR_ARRAY)
+                )
+            );
+        }
+
+        $this->addUrlVariantConstraint($queryBuilder, $url);
+
+        $row = $queryBuilder
+            ->orderBy('rs.finished_at', 'DESC')
+            ->addOrderBy('rsp.uid', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        if ((string)($row['remote_scan_job_id'] ?? '') !== $jobId) {
+            return null;
+        }
+
+        return $row;
     }
 
     public function findLatestPageByUrl(string $url, string $siteIdentifier): ?array
@@ -1331,6 +1454,62 @@ final class RemoteScanRepository extends AbstractRepository
             ->fetchAssociative();
 
         return is_array($row) ? $row : null;
+    }
+
+
+    /**
+     * @param list<string> $sourceTypes
+     * @return list<array<string, mixed>>
+     */
+    public function findCompletedHistoryScansBySiteAndSourceTypes(
+        string $siteIdentifier,
+        array $sourceTypes,
+        int $limit = 10,
+        int $languageUid = -1
+    ): array {
+        $siteIdentifier = trim($siteIdentifier);
+        $sourceTypes = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $sourceType): string => strtolower(trim((string)$sourceType)),
+            $sourceTypes
+        ))));
+
+        if ($siteIdentifier === '' || $sourceTypes === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+        $queryBuilder
+            ->select('*')
+            ->from(Tables::REMOTE_SCAN)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'site_identifier',
+                    $queryBuilder->createNamedParameter($siteIdentifier)
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->eq(
+                    'status',
+                    $queryBuilder->createNamedParameter('completed')
+                )
+            )
+            ->andWhere(
+                $queryBuilder->expr()->in(
+                    'source_type',
+                    $queryBuilder->createNamedParameter($sourceTypes, Connection::PARAM_STR_ARRAY)
+                )
+            );
+
+        $this->addLanguageConstraint($queryBuilder, $languageUid);
+
+        $rows = $queryBuilder
+            ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
+            ->setMaxResults(max(1, min(100, $limit)))
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return is_array($rows) ? $rows : [];
     }
 
     public function markFailed(string $jobId, string $message): void

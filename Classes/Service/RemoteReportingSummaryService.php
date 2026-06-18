@@ -11,6 +11,11 @@ final class RemoteReportingSummaryService
     private const PRIORITY_FIXES_LIMIT = 10;
     private const GUIDANCE_FALLBACK_TEXT = 'Review this finding in context.';
 
+    public function __construct(
+        private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
+        private readonly BackendLanguageService $backendLanguageService,
+    ) {
+    }
 
     /**
      * Use the API /crawl/summary payload as the canonical reporting source.
@@ -31,9 +36,9 @@ final class RemoteReportingSummaryService
      *   remediationSummary: array<string, mixed>
      * }
      */
-    public function buildFromApiSummary(array $wcagSummary, array $priorityFixes): array
+    public function buildFromApiSummary(array $wcagSummary, array $priorityFixes, string $language = ''): array
     {
-        return $this->buildFromApiSummaryWithFallback($wcagSummary, $priorityFixes);
+        return $this->buildFromApiSummaryWithFallback($wcagSummary, $priorityFixes, language: $language);
     }
 
     /**
@@ -74,11 +79,13 @@ final class RemoteReportingSummaryService
         array $contrastDetails = [],
         array $remediationSummary = [],
         array $componentSummary = [],
+        string $language = '',
     ): array
     {
-        $normalizedPriorityFixes = $this->normalizePriorityFixes($priorityFixes);
+        $language = $this->normalizeLanguage($language);
+        $normalizedPriorityFixes = $this->normalizePriorityFixes($priorityFixes, $language);
         if ($normalizedPriorityFixes === [] && is_array($fallbackSummary['priorityFixes'] ?? null)) {
-            $normalizedPriorityFixes = $this->normalizePriorityFixes($fallbackSummary['priorityFixes']);
+            $normalizedPriorityFixes = $this->normalizePriorityFixes($fallbackSummary['priorityFixes'], $language);
         }
 
         $normalizedWcagSummary = $this->normalizeWcagSummary($wcagSummary);
@@ -115,7 +122,7 @@ final class RemoteReportingSummaryService
      *   remediationSummary: array<string, mixed>
      * }
      */
-    public function buildForRemoteScan(?array $remoteScan, RemoteIssueRepository $remoteIssueRepository): array
+    public function buildForRemoteScan(?array $remoteScan, RemoteIssueRepository $remoteIssueRepository, string $language = ''): array
     {
         if (!is_array($remoteScan) || (int)($remoteScan['uid'] ?? 0) <= 0) {
             return [
@@ -134,10 +141,11 @@ final class RemoteReportingSummaryService
             ];
         }
 
+        $language = $this->normalizeLanguage($language);
         $rows = $remoteIssueRepository->findIssueRowsForRemoteScan((int)$remoteScan['uid']);
 
         return $this->buildResult(
-            $this->buildPriorityFixes($rows),
+            $this->buildPriorityFixes($rows, $language),
             $this->buildWcagSummary($rows),
             []
         );
@@ -195,6 +203,41 @@ final class RemoteReportingSummaryService
      * @param array<string, mixed> $score
      * @return array<string, mixed>
      */
+    private function normalizeLanguage(string $language): string
+    {
+        $language = trim($language);
+        if ($language === '') {
+            $language = $this->backendLanguageService->getCurrentLanguageCode();
+        }
+        $language = strtolower(str_replace('_', '-', $language));
+        return str_starts_with($language, 'de') ? 'de' : 'en';
+    }
+
+    /** @param array<string, mixed> $item */
+    private function metadataInputForPresentation(array $item, string $ruleId): array
+    {
+        $input = $item;
+        $input['rule_id'] = $ruleId;
+        foreach ([
+            'plainLanguageTitle' => ['plainLanguageTitle', 'plain_language_title'],
+            'wcagReferences' => ['wcagReferences', 'wcag_references'],
+            'affectedUsers' => ['affectedUsers', 'affected_users'],
+            'documentationLinks' => ['documentationLinks', 'ruleDocumentation', 'rule_documentation'],
+            'technicalTags' => ['technicalTags', 'technical_tags', 'tags'],
+        ] as $targetKey => $sourceKeys) {
+            if (array_key_exists($targetKey, $input)) {
+                continue;
+            }
+            foreach ($sourceKeys as $sourceKey) {
+                if (array_key_exists($sourceKey, $item)) {
+                    $input[$targetKey] = $item[$sourceKey];
+                    break;
+                }
+            }
+        }
+        return $input;
+    }
+
     private function normalizeScore(array $score): array
     {
         if ($score === []) {
@@ -243,6 +286,7 @@ final class RemoteReportingSummaryService
         $possibleKeyboardTrap = (bool)($keyboardSummary['possibleKeyboardTrap'] ?? $keyboardSummary['possible_keyboard_trap'] ?? false);
         $manualReviewRequired = (bool)($keyboardSummary['manualReviewRequired'] ?? $keyboardSummary['manual_review_required'] ?? true);
         $invisibleFocusIssuesTotal = max(0, (int)($keyboardSummary['invisibleFocusIssuesTotal'] ?? $keyboardSummary['invisible_focus_issues_total'] ?? 0));
+        $topWarnings = $this->normalizeSignalWarnings($keyboardSummary['topWarnings'] ?? $keyboardSummary['top_warnings'] ?? []);
 
         return [
             'available' => true,
@@ -251,12 +295,14 @@ final class RemoteReportingSummaryService
             'focusStepsTotal' => max(0, (int)($keyboardSummary['focusStepsTotal'] ?? $keyboardSummary['focus_steps_total'] ?? 0)),
             'uniqueFocusedElementsTotal' => max(0, (int)($keyboardSummary['uniqueFocusedElementsTotal'] ?? $keyboardSummary['unique_focused_elements_total'] ?? 0)),
             'possibleKeyboardTrap' => $possibleKeyboardTrap,
-            'possibleKeyboardTrapLabel' => $possibleKeyboardTrap ? 'Possible keyboard trap' : 'No trap signal',
+            'possibleKeyboardTrapLabel' => $possibleKeyboardTrap ? 'Possible trap signal' : 'No trap signal',
             'possibleKeyboardTrapTone' => $possibleKeyboardTrap ? 'critical' : 'neutral',
             'invisibleFocusIssuesTotal' => $invisibleFocusIssuesTotal,
-            'invisibleFocusIssuesLabel' => $invisibleFocusIssuesTotal === 1 ? '1 invisible focus issue' : $invisibleFocusIssuesTotal . ' invisible focus issues',
+            'invisibleFocusIssuesLabel' => $invisibleFocusIssuesTotal === 1 ? '1 invisible focus warning' : $invisibleFocusIssuesTotal . ' invisible focus warnings',
             'manualReviewRequired' => $manualReviewRequired,
-            'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : 'Manual review still recommended',
+            'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : 'Manual review may still be required',
+            'topWarnings' => $topWarnings,
+            'hasTopWarnings' => $topWarnings !== [],
         ];
     }
 
@@ -462,25 +508,75 @@ final class RemoteReportingSummaryService
         }
 
         $issuesTotal = max(0, (int)($structureSummary['landmarkIssuesTotal'] ?? $structureSummary['landmark_issues_total'] ?? 0));
+        $outlineIssuesTotal = max(0, (int)($structureSummary['outlineIssuesTotal'] ?? $structureSummary['outline_issues_total'] ?? 0));
+        $headingIssuesTotal = max(0, (int)($structureSummary['headingIssuesTotal'] ?? $structureSummary['heading_issues_total'] ?? 0));
         $affectedPagesTotal = max(0, (int)($structureSummary['affectedPagesTotal'] ?? $structureSummary['affected_pages_total'] ?? 0));
         $likelyTemplateIssue = (bool)($structureSummary['likelyTemplateIssue'] ?? $structureSummary['likely_template_issue'] ?? false);
         $recommendation = $this->normalizeNullableString($structureSummary['recommendation'] ?? null);
         $topRules = $this->normalizeStructureTopRules($structureSummary['topRules'] ?? $structureSummary['top_rules'] ?? []);
+        $topWarnings = $this->normalizeSignalWarnings($structureSummary['topWarnings'] ?? $structureSummary['top_warnings'] ?? []);
 
-        if ($issuesTotal === 0 && $affectedPagesTotal === 0 && $recommendation === null && !$likelyTemplateIssue && $topRules === []) {
+        if ($issuesTotal === 0 && $outlineIssuesTotal === 0 && $headingIssuesTotal === 0 && $affectedPagesTotal === 0 && $recommendation === null && !$likelyTemplateIssue && $topRules === [] && $topWarnings === []) {
             return [];
         }
 
         return [
             'landmarkIssuesTotal' => $issuesTotal,
             'landmarkIssuesLabel' => $issuesTotal === 1 ? '1 landmark/heading issue' : $issuesTotal . ' landmark/heading issues',
+            'outlineIssuesTotal' => $outlineIssuesTotal,
+            'outlineIssuesLabel' => $this->countLabel($outlineIssuesTotal, 'outline issue'),
+            'headingIssuesTotal' => $headingIssuesTotal,
+            'headingIssuesLabel' => $this->countLabel($headingIssuesTotal, 'heading issue'),
             'affectedPagesTotal' => $affectedPagesTotal,
             'affectedPagesLabel' => $affectedPagesTotal === 1 ? '1 page' : $affectedPagesTotal . ' pages',
             'likelyTemplateIssue' => $likelyTemplateIssue,
             'likelyTemplateIssueLabel' => $likelyTemplateIssue ? 'Likely template/layout issue' : 'Review structure in context',
             'recommendation' => $recommendation,
             'topRules' => $topRules,
+            'topWarnings' => $topWarnings,
+            'hasTopWarnings' => $topWarnings !== [],
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeSignalWarnings(mixed $items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        if ($items !== [] && !array_is_list($items)) {
+            $items = [$items];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $type = $this->normalizeMachineValue($item['type'] ?? $item['warningType'] ?? $item['warning_type'] ?? $item['ruleId'] ?? $item['rule_id'] ?? '');
+            if ($type === '') {
+                continue;
+            }
+
+            $issuesTotal = max(0, (int)($item['issuesTotal'] ?? $item['issues_total'] ?? $item['count'] ?? 0));
+            $affectedPagesTotal = max(0, (int)($item['affectedPagesTotal'] ?? $item['affected_pages_total'] ?? $item['pagesTotal'] ?? $item['pages_total'] ?? 0));
+
+            $normalized[] = [
+                'type' => $type,
+                'typeLabel' => $this->formatBadgeLabel($type),
+                'issuesTotal' => $issuesTotal,
+                'issuesLabel' => $this->countLabel($issuesTotal, 'issue'),
+                'affectedPagesTotal' => $affectedPagesTotal,
+                'affectedPagesLabel' => $affectedPagesTotal > 0 ? $this->countLabel($affectedPagesTotal, 'page') : '',
+                'recommendation' => $this->normalizeNullableString($item['recommendation'] ?? $item['suggestedAction'] ?? $item['suggested_action'] ?? null),
+            ];
+        }
+
+        return array_slice($normalized, 0, 5);
     }
 
     /**
@@ -633,7 +729,7 @@ final class RemoteReportingSummaryService
      * @param array<int, array<string, mixed>> $items
      * @return array<int, array<string, mixed>>
      */
-    private function normalizePriorityFixes(array $items): array
+    private function normalizePriorityFixes(array $items, string $language): array
     {
         $normalized = [];
         $rank = 1;
@@ -657,12 +753,22 @@ final class RemoteReportingSummaryService
                 ?? ($wcagFallback['label'] ?? null);
 
             $guidance = is_array($item['guidance'] ?? null) ? $item['guidance'] : [];
-            $guidanceTitle = $this->normalizeNullableString($item['title'] ?? $guidance['title'] ?? null);
+            $metadataInput = $this->metadataInputForPresentation($item, $ruleId);
+            $metadataPresentation = $this->ruleMetadataPresentationService->present($metadataInput, $language);
+            $guidanceTitle = $this->normalizeNullableString($metadataPresentation['title'] ?? null)
+                ?? $this->normalizeNullableString($item['plainLanguageTitle'] ?? $item['plain_language_title'] ?? $guidance['plainLanguageTitle'] ?? $guidance['plain_language_title'] ?? null)
+                ?? $this->normalizeNullableString($item['title'] ?? $guidance['title'] ?? null);
             $shortFix = $this->normalizeNullableString($item['shortFix'] ?? $item['short_fix'] ?? $guidance['shortFix'] ?? $guidance['short_fix'] ?? null);
             $whyItMatters = $this->normalizeNullableString($item['whyItMatters'] ?? $item['why_it_matters'] ?? $guidance['whyItMatters'] ?? $guidance['why_it_matters'] ?? null);
             $howToFix = $this->normalizeNullableString($item['howToFix'] ?? $item['how_to_fix'] ?? $guidance['howToFix'] ?? $guidance['how_to_fix'] ?? null);
             $whoShouldFix = $this->normalizeMachineValue($item['whoShouldFix'] ?? $item['who_should_fix'] ?? $guidance['whoShouldFix'] ?? $guidance['who_should_fix'] ?? null);
+            if ($whoShouldFix === '') {
+                $whoShouldFix = (string)($metadataPresentation['owner'] ?? '');
+            }
             $fixType = $this->normalizeMachineValue($item['fixType'] ?? $item['fix_type'] ?? $guidance['fixType'] ?? $guidance['fix_type'] ?? null);
+            if ($fixType === '') {
+                $fixType = (string)($metadataPresentation['fixType'] ?? '');
+            }
             $confidence = $this->normalizeMachineValue($item['confidence'] ?? $item['confidence_level'] ?? $guidance['confidence'] ?? $guidance['confidence_level'] ?? null);
             $quickWin = (bool)($item['quickWin'] ?? $item['quick_win'] ?? $guidance['quickWin'] ?? $guidance['quick_win'] ?? false);
 
@@ -672,6 +778,14 @@ final class RemoteReportingSummaryService
                 'wcagCriterion' => $wcagCriterion,
                 'wcagLevel' => $wcagLevel,
                 'wcagLabel' => $wcagLabel,
+                'affectedUsers' => $metadataPresentation['affectedUsers'] ?? [],
+                'affectedUserItems' => $metadataPresentation['affectedUserItems'] ?? [],
+                'affectedUsersLabel' => (string)($metadataPresentation['affectedUsersLabel'] ?? ''),
+                'wcagReferences' => $metadataPresentation['wcagReferences'] ?? [],
+                'standards' => $metadataPresentation['standards'] ?? [],
+                'documentationLinks' => $metadataPresentation['documentationLinks'] ?? [],
+                'technicalTags' => $metadataPresentation['technicalTags'] ?? [],
+                'hasStandardsAndImpact' => (bool)($metadataPresentation['hasStandardsAndImpact'] ?? false),
                 'impact' => strtolower(trim((string)($item['impact'] ?? ''))),
                 'issuesTotal' => max(0, (int)($item['issuesTotal'] ?? $item['issues_total'] ?? 0)),
                 'affectedPagesTotal' => max(0, (int)($item['affectedPagesTotal'] ?? $item['affected_pages_total'] ?? 0)),
@@ -947,7 +1061,7 @@ final class RemoteReportingSummaryService
      * @param array<int, array<string, mixed>> $rows
      * @return array<int, array<string, mixed>>
      */
-    private function buildPriorityFixes(array $rows): array
+    private function buildPriorityFixes(array $rows, string $language): array
     {
         $rules = [];
 
@@ -982,7 +1096,45 @@ final class RemoteReportingSummaryService
                     'fixTypeLabel' => '',
                     'confidence' => '',
                     'confidenceLabel' => '',
+                    'ruleMetadata' => [],
+                    'plainLanguageTitle' => null,
+                    'wcagReferencesRaw' => [],
+                    'affectedUsersRaw' => [],
+                    'documentationLinksRaw' => [],
+                    'technicalTagsRaw' => [],
                 ];
+            }
+
+            if ($rules[$ruleId]['ruleMetadata'] === []) {
+                foreach (['ruleMetadata', 'rule_metadata'] as $metadataKey) {
+                    if (is_array($row[$metadataKey] ?? null)) {
+                        $rules[$ruleId]['ruleMetadata'] = $row[$metadataKey];
+                        break;
+                    }
+                }
+                if ($rules[$ruleId]['ruleMetadata'] === [] && is_string($row['rule_metadata_json'] ?? null)) {
+                    $decodedMetadata = json_decode((string)$row['rule_metadata_json'], true);
+                    if (is_array($decodedMetadata)) {
+                        $rules[$ruleId]['ruleMetadata'] = $decodedMetadata;
+                    }
+                }
+            }
+            foreach ([
+                'plainLanguageTitle' => ['plainLanguageTitle', 'plain_language_title'],
+                'wcagReferencesRaw' => ['wcagReferences', 'wcag_references', 'wcag_references_json'],
+                'affectedUsersRaw' => ['affectedUsers', 'affected_users', 'affected_users_json'],
+                'documentationLinksRaw' => ['documentationLinks', 'ruleDocumentation', 'rule_documentation', 'rule_documentation_json'],
+                'technicalTagsRaw' => ['technicalTags', 'technical_tags', 'technical_tags_json'],
+            ] as $targetKey => $sourceKeys) {
+                if ($rules[$ruleId][$targetKey] !== [] && $rules[$ruleId][$targetKey] !== null) {
+                    continue;
+                }
+                foreach ($sourceKeys as $sourceKey) {
+                    if (array_key_exists($sourceKey, $row) && $row[$sourceKey] !== null && $row[$sourceKey] !== '' && $row[$sourceKey] !== []) {
+                        $rules[$ruleId][$targetKey] = $row[$sourceKey];
+                        break;
+                    }
+                }
             }
 
             $impact = strtolower(trim((string)($row['impact'] ?? '')));
@@ -1029,7 +1181,38 @@ final class RemoteReportingSummaryService
                 $rule['affectedPagesTotal'] = 1;
             }
             unset($rule['affectedPages']);
+            $metadataPresentation = $this->ruleMetadataPresentationService->present([
+                'rule_id' => (string)$rule['ruleId'],
+                'help' => (string)$rule['help'],
+                'guidance_why_it_matters' => $rule['guidanceWhyItMatters'],
+                'guidance_how_to_fix' => $rule['guidanceHowToFix'],
+                'who_should_fix' => $rule['whoShouldFix'],
+                'fix_type' => $rule['fixType'],
+                'ruleMetadata' => $rule['ruleMetadata'] ?? [],
+                'plainLanguageTitle' => $rule['plainLanguageTitle'] ?? null,
+                'wcagReferences' => $rule['wcagReferencesRaw'] ?? [],
+                'affectedUsers' => $rule['affectedUsersRaw'] ?? [],
+                'documentationLinks' => $rule['documentationLinksRaw'] ?? [],
+                'technicalTags' => $rule['technicalTagsRaw'] ?? [],
+            ], $language);
+            $rule['title'] = (string)($metadataPresentation['title'] ?? $rule['help'] ?? $rule['ruleId']);
+            $rule['displayTitle'] = $rule['title'];
+            $rule['wcagReferences'] = $metadataPresentation['wcagReferences'] ?? [];
+            $rule['wcagCompactLabel'] = (string)($metadataPresentation['wcagCompactLabel'] ?? '');
+            $rule['affectedUsers'] = $metadataPresentation['affectedUsers'] ?? [];
+            $rule['affectedUserItems'] = $metadataPresentation['affectedUserItems'] ?? [];
+            $rule['documentationLinks'] = $metadataPresentation['documentationLinks'] ?? [];
+            if ((string)$rule['whoShouldFix'] === '') {
+                $rule['whoShouldFix'] = (string)($metadataPresentation['owner'] ?? '');
+                $rule['whoShouldFixLabel'] = (string)($metadataPresentation['ownerLabel'] ?? '');
+            }
+            if ((string)$rule['fixType'] === '') {
+                $rule['fixType'] = (string)($metadataPresentation['fixType'] ?? '');
+                $rule['fixTypeLabel'] = (string)($metadataPresentation['fixTypeLabel'] ?? '');
+            }
             $rule['reason'] = $this->buildPriorityReason($rule);
+            $rule['guidanceWhyItMatters'] = $rule['guidanceWhyItMatters'] ?? ($metadataPresentation['whyItMatters'] ?? null);
+            $rule['guidanceHowToFix'] = $rule['guidanceHowToFix'] ?? ($metadataPresentation['howToFix'] ?? null);
             $rule['guidanceHasApiText'] = $rule['guidanceWhyItMatters'] !== null || $rule['guidanceHowToFix'] !== null;
             $rule['guidanceIsFallback'] = $rule['guidanceHowToFix'] === null;
             $rule['guidanceHowToFix'] = $rule['guidanceHowToFix'] ?? self::GUIDANCE_FALLBACK_TEXT;

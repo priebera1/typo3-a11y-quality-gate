@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Psr\Http\Message\ServerRequestInterface;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class PdfReportBuilder
 {
@@ -84,6 +85,7 @@ final class PdfReportBuilder
         return $this->pdfGenerator->render(
             html: $html,
             title: 'AQG Overview Report',
+            css: $this->readLocalPdfCss(),
         );
     }
 
@@ -155,7 +157,23 @@ final class PdfReportBuilder
         return $this->pdfGenerator->render(
             html: $html,
             title: 'AQG Page Report',
+            css: $this->readLocalPdfCss(),
         );
+    }
+
+    private function readLocalPdfCss(): string
+    {
+        $path = GeneralUtility::getFileAbsFileName(
+            'EXT:a11y_quality_gate/Resources/Public/Css/Pdf/local.css'
+        );
+
+        if ($path === '' || !is_file($path) || !is_readable($path)) {
+            return '';
+        }
+
+        $css = file_get_contents($path);
+
+        return is_string($css) ? $css : '';
     }
 
     /**

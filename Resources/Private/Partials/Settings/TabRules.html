@@ -194,7 +194,7 @@
             <header class="aqg-card__head aqg-card__head--quiet">
                 <div>
                     <h3 class="aqg-card__title">Rendered Page Check</h3>
-                    <p class="aqg-card__sub">Controls the FREE, manual HTML-only rendered check that runs only during Scan this page.</p>
+                    <p class="aqg-card__sub">Controls the FREE, manual HTML-only rendered check used by Scan this page and manual Scan site actions.</p>
                 </div>
             </header>
 
@@ -211,7 +211,7 @@
                         />
                         <span>
                             <span class="aqg-check-option__title">Enable rendered page checks</span>
-                            <span class="aqg-check-option__copy">Runs DOM-only checks against the final frontend HTML output of the current page. It is not used by Scan site, scheduler subtree scans or the PRO crawler.</span>
+                            <span class="aqg-check-option__copy">Runs DOM-only checks against the final frontend HTML output during manual page and site scans. It is not used by Scheduler/CLI subtree scans or the PRO crawler.</span>
                         </span>
                     </label>
 
@@ -236,10 +236,10 @@
                     <span class="aqg-guidance__body">
                         <span class="aqg-guidance__title">Rendered check scope</span>
                         <ol class="aqg-guidance__steps">
-                            <li>FREE rendered checks are manual and page-level only.</li>
+                            <li>FREE rendered checks run only when an editor manually starts Scan this page or Scan site.</li>
                             <li>They inspect the server-rendered HTML returned by TYPO3 and do not execute JavaScript.</li>
                             <li>They do not load AJAX or lazy-loaded content, run sitemap crawls, Playwright, axe-core or screenshots.</li>
-                            <li>Whole-site frontend crawling remains a PRO crawler feature.</li>
+                            <li>Manual Scan site fetches each TYPO3 page one by one; browser-based crawling, JavaScript execution and screenshots remain PRO crawler features.</li>
                         </ol>
                     </span>
                 </div>

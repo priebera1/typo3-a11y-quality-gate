@@ -1,0 +1,74 @@
+name: Missed accessibility issue
+description: AQG did not detect an accessibility problem that you expected it to find.
+labels: ["false-negative", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A missed issue is when AQG does not report a problem that you believe it should detect.
+        Please include anonymised content — no real client data or domain names.
+
+  - type: input
+    id: aqg-version
+    attributes:
+      label: AQG version
+      placeholder: "e.g. 1.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: typo3-version
+    attributes:
+      label: TYPO3 version
+      placeholder: "e.g. 13.4.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scan-type
+    attributes:
+      label: Scan type used
+      options:
+        - Local scan
+        - Rendered Page Check
+        - PRO Remote scan
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What accessibility problem was not detected?
+      description: Describe the issue you expected AQG to find.
+    validations:
+      required: true
+
+  - type: input
+    id: wcag-reference
+    attributes:
+      label: WCAG criterion (if known)
+      placeholder: "e.g. WCAG 1.1.1 or WCAG 1.3.1"
+
+  - type: textarea
+    id: content
+    attributes:
+      label: Anonymised HTML or content input
+      description: Paste the content or HTML that should have triggered a finding. Remove client data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      placeholder: "AQG should have reported..."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: data-check
+    attributes:
+      label: Data confirmation
+      options:
+        - label: I have removed client domain names, email addresses and licence keys from this report.
+          required: true

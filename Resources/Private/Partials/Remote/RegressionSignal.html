@@ -1,0 +1,50 @@
+<f:if condition="{alert.available} || {alert.message}">
+    <section class="aqg-regression-signal aqg-regression-signal--{alert.tone}" aria-label="Accessibility change signal" data-dedupe-key="{alert.dedupeKey}">
+        <div class="aqg-regression-signal__copy">
+            <div class="aqg-regression-signal__kicker">Accessibility change signal</div>
+            <f:if condition="{alert.available}">
+                <f:then>
+                    <h2 class="aqg-regression-signal__title">{alert.title}</h2>
+                    <p class="aqg-regression-signal__context">{alert.contextLabel}</p>
+                    <f:if condition="{alert.summary}">
+                        <p>{alert.summary}</p>
+                    </f:if>
+
+                    <f:if condition="{alert.hasScanComparison}">
+                        <div class="aqg-regression-signal__comparison" aria-label="Change since previous frontend scan">
+                            <div class="aqg-regression-signal__scan-row">
+                                <span class="aqg-regression-signal__scan-label">Previous scan</span>
+                                <span><f:if condition="{alert.previousScan.finishedAtFormatted}"><f:then>{alert.previousScan.finishedAtFormatted}</f:then><f:else>—</f:else></f:if></span>
+                                <span>{alert.previousScan.findingsLabel} findings</span>
+                                <span>Score {alert.previousScan.scoreLabel}</span>
+                            </div>
+                            <div class="aqg-regression-signal__scan-row">
+                                <span class="aqg-regression-signal__scan-label">Current scan</span>
+                                <span><f:if condition="{alert.currentScan.finishedAtFormatted}"><f:then>{alert.currentScan.finishedAtFormatted}</f:then><f:else>—</f:else></f:if></span>
+                                <span>{alert.currentScan.findingsLabel} findings</span>
+                                <span>Score {alert.currentScan.scoreLabel}</span>
+                            </div>
+                            <f:if condition="{alert.hasComparisonRows}">
+                                <dl class="aqg-regression-signal__metrics">
+                                    <f:for each="{alert.comparisonRows}" as="row">
+                                        <div class="aqg-regression-signal__metric aqg-regression-signal__metric--{row.tone}">
+                                            <dt>{row.label}</dt>
+                                            <dd>{row.value}</dd>
+                                        </div>
+                                    </f:for>
+                                </dl>
+                            </f:if>
+                        </div>
+                    </f:if>
+                </f:then>
+                <f:else>
+                    <h2 class="aqg-regression-signal__title">Regression signal unavailable</h2>
+                    <p>{alert.message}</p>
+                </f:else>
+            </f:if>
+        </div>
+        <f:if condition="{alert.actionUrl}">
+            <a class="btn btn-sm btn-default aqg-regression-signal__action" href="{alert.actionUrl}">{alert.actionLabel}</a>
+        </f:if>
+    </section>
+</f:if>

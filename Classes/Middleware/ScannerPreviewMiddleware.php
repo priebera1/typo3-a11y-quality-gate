@@ -24,7 +24,16 @@ final class ScannerPreviewMiddleware implements MiddlewareInterface
     {
         $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
 
-        if ($scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken)) {
+        $hasValidScannerToken = false;
+        if ($scannerToken !== '') {
+            try {
+                $hasValidScannerToken = $this->scannerAccessTokenService->isValidTokenForRequest($scannerToken, $request);
+            } catch (\Throwable) {
+                $hasValidScannerToken = false;
+            }
+        }
+
+        if ($hasValidScannerToken) {
             $this->context->setAspect(
                 'visibility',
                 new VisibilityAspect(

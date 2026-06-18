@@ -254,15 +254,8 @@ final class PublishHook
         $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier(), $languageUid);
 
         if ($verdict->isPassed()) {
-            if (!$verdict->isDisabled() && $verdict->hasAnyIssues()) {
-                $this->addFlashMessage(
-                    message: $verdict->toPassedFlashMessage(),
-                    title: 'AQG Quality Gate',
-                    severity: ContextualFeedbackSeverity::OK,
-                    deduplicationKey: 'page-pass:' . $pageUid,
-                );
-            }
-
+            // Passed and disabled checks are intentionally silent. Warning and
+            // blocking feedback is handled only in the branches below.
             return;
         }
 
@@ -309,6 +302,7 @@ final class PublishHook
             deduplicationKey: 'page-fallback-warning:' . $pageUid . ':' . md5($message),
         );
     }
+
 
     private function reHidePage(int $pageUid): void
     {

@@ -93,6 +93,13 @@
 
 .a11y-page-detail .aqg-twocol {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
     gap: 16px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.a11y-page-detail .aqg-twocol > .aqg-stack {
+    min-width: 0;
+    max-width: 100%;
 }

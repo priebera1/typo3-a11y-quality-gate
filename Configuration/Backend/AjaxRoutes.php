@@ -12,16 +12,19 @@ return [
     'a11y_issues' => [
         'path' => '/a11y/issues',
         'target' => IssueApiController::class . '::issuesAction',
+        'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_rte_validate' => [
         'path' => '/a11y/rte/validate',
         'target' => IssueApiController::class . '::validateRteAction',
         'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_ignore' => [
         'path' => '/a11y/ignore',
         'target' => IssueApiController::class . '::ignoreAction',
         'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_scan_page' => [
         'path' => '/a11y/scan/page',
@@ -110,6 +113,18 @@ return [
     'a11y_test_http_auth' => [
         'path' => '/a11y/settings/test-http-auth',
         'target' => SettingsController::class . '::testHttpAuthAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_statement_generate' => [
+        'path' => '/a11y/settings/statement/generate',
+        'target' => SettingsController::class . '::generateAccessibilityStatementAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_statement_pdf' => [
+        'path' => '/a11y/settings/statement/pdf',
+        'target' => SettingsController::class . '::generateAccessibilityStatementPdfAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],

@@ -203,6 +203,333 @@ final class ProCrawlerService
             || str_contains($message, 'invalid token');
     }
 
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getHistory(
+        string $domain,
+        string $version,
+        string $siteId,
+        int $limit = 10,
+        string $sourceType = '',
+        string $startUrl = '',
+        string $status = ''
+    ): array {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->history(
+                $token->accessToken,
+                $siteId,
+                $limit,
+                $sourceType,
+                $startUrl,
+                $status
+            );
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler history request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->history(
+                    $token->accessToken,
+                    $siteId,
+                    $limit,
+                    $sourceType,
+                    $startUrl,
+                    $status
+                );
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler history request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLatest(string $domain, string $version, string $siteId): array
+    {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->latest($token->accessToken, $siteId);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler latest request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->latest($token->accessToken, $siteId);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler latest request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function compareScans(string $domain, string $version, string $fromJobId, string $toJobId): array
+    {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->compare($token->accessToken, $fromJobId, $toJobId);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler compare request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->compare($token->accessToken, $fromJobId, $toJobId);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler compare request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRegressionAlert(
+        string $domain,
+        string $version,
+        string $siteId,
+        string $sourceType,
+        string $startUrl = '',
+        string $language = 'en'
+    ): array {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->regressionAlert($token->accessToken, $siteId, $sourceType, $startUrl);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler regression alert request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->regressionAlert($token->accessToken, $siteId, $sourceType, $startUrl);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler regression alert request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRemediationPlan(
+        string $domain,
+        string $version,
+        string $jobId,
+        string $language = 'en'
+    ): array {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->remediationPlan($token->accessToken, $jobId);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler remediation plan request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->remediationPlan($token->accessToken, $jobId);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler remediation plan request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLatestRemediationPlan(
+        string $domain,
+        string $version,
+        string $siteId,
+        string $sourceType,
+        ?string $startUrl = null
+    ): array {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->latestRemediationPlan($token->accessToken, $siteId, $sourceType, $startUrl);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler latest remediation plan request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->latestRemediationPlan($token->accessToken, $siteId, $sourceType, $startUrl);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler latest remediation plan request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getProgressSummary(string $domain, string $version, string $siteId): array
+    {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->progressSummary($token->accessToken, $siteId);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler progress summary request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->progressSummary($token->accessToken, $siteId);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler progress summary request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getAccessibilityStatement(
+        string $domain,
+        string $version,
+        string $jobId,
+        string $language = 'en'
+    ): array {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->accessibilityStatement($token->accessToken, $jobId, $language);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler accessibility statement request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->accessibilityStatement($token->accessToken, $jobId, $language);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler accessibility statement request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getLatestAccessibilityStatement(
+        string $domain,
+        string $version,
+        string $siteId,
+        string $sourceType,
+        string $startUrl = '',
+        string $language = 'en'
+    ): array {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+
+        try {
+            return $this->crawlerClient->latestAccessibilityStatement($token->accessToken, $siteId, $sourceType, $startUrl, $language);
+        } catch (ApiRequestFailedException $exception) {
+            if (!$this->isTokenExpiredCrawlerException($exception)) {
+                throw new TokenRefreshException(
+                    'Remote crawler latest accessibility statement request failed: ' . $exception->getMessage(),
+                    0,
+                    $exception
+                );
+            }
+
+            try {
+                $token = $this->proTokenService->getValidToken($domain, $version, true);
+                return $this->crawlerClient->latestAccessibilityStatement($token->accessToken, $siteId, $sourceType, $startUrl, $language);
+            } catch (ApiRequestFailedException $retryException) {
+                throw new TokenRefreshException(
+                    'Remote crawler latest accessibility statement request failed after token refresh: ' . $retryException->getMessage(),
+                    0,
+                    $retryException
+                );
+            }
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */

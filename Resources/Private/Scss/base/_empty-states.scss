@@ -136,3 +136,14 @@
         height: 20px;
     }
 }
+
+.a11y-page-detail .aqg-empty--warning .aqg-empty__icon {
+    color: var(--aqi-warn);
+    border-style: solid;
+    border-color: var(--aqi-warn-border);
+    background: var(--aqi-warn-bg);
+}
+
+.a11y-page-detail .aqg-empty--warning .aqg-empty__title {
+    color: var(--aqi-warn-fg);
+}

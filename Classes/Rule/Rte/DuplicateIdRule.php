@@ -7,9 +7,14 @@ namespace Priebera\A11yQualityGate\Rule\Rte;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 
 final class DuplicateIdRule extends AbstractRteRule
 {
+    public function __construct(
+        private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
+    ) {
+    }
     public function getRuleId(): string
     {
         return 'rte.duplicate_id';
@@ -22,14 +27,13 @@ final class DuplicateIdRule extends AbstractRteRule
 
     public function getMessage(): string
     {
-        return 'Duplicate id attribute found.';
+        return $this->ruleMetadataPresentationService->friendlyTitleForRule($this->getRuleId(), '', 'en');
     }
 
     public function getHint(): string
     {
-        return 'Each id attribute must be unique in the document. '
-            . 'Duplicate IDs break associations between labels, descriptions and anchors. '
-            . 'WCAG 1.3.1 Info and Relationships.';
+        $metadata = $this->ruleMetadataPresentationService->present(['rule_id' => $this->getRuleId()], 'en');
+        return (string)($metadata['howToFix'] ?? '');
     }
 
     /**

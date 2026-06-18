@@ -58,6 +58,8 @@
                         class="btn btn-primary btn-sm"
                         data-action="a11y-pro-scan-site"
                         data-root-pid="{siteRootPid}"
+                        data-current-page-uid="{currentPageUid}"
+                        data-site-identifier="{siteIdentifier}"
                         data-max-pages="{f:if(condition: proStatus.isTrial, then: '10', else: '500')}"
                         data-language-uid="{currentLanguageUid}"
                         data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"

@@ -1,0 +1,67 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:if condition="{items}">
+    <div class="aqg-history-table-wrap">
+        <table class="aqg-history-table{f:if(condition: compactPageHistory, then: ' aqg-history-table--page-detail')}">
+            <thead>
+                <tr>
+                    <th>Finished</th>
+                    <f:if condition="{compactPageHistory}">
+                        <f:then></f:then>
+                        <f:else>
+                            <th>Scope</th>
+                            <th>URL / Site</th>
+                            <th>Pages scanned</th>
+                        </f:else>
+                    </f:if>
+                    <th>Findings</th>
+                    <th>Score</th>
+                    <th>Impact</th>
+                    <th>Critical</th>
+                    <th>Serious</th>
+                    <th>Moderate</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <f:for each="{items}" as="item">
+                    <tr>
+                        <td title="Job: {item.jobId}">{item.finishedAtFormatted}<br /><span class="aqg-history-table__job">Job: {item.jobIdShort}</span></td>
+                        <f:if condition="{compactPageHistory}">
+                            <f:then></f:then>
+                            <f:else>
+                                <td>{item.sourceTypeLabel}</td>
+                                <td class="aqg-history-table__url">{item.urlLabel}</td>
+                                <td>{item.pagesScanned}</td>
+                            </f:else>
+                        </f:if>
+                        <td>{item.issuesTotal}</td>
+                        <td>{item.scoreLabel}</td>
+                        <td>{item.overallImpact}</td>
+                        <td>{item.critical}</td>
+                        <td>{item.serious}</td>
+                        <td>{item.moderate}</td>
+                        <td class="aqg-history-table__actions">
+                            <f:if condition="{item.viewReportUrl}">
+                                <f:then>
+                                    <a href="{item.viewReportUrl}" class="btn btn-sm btn-default" title="Job: {item.jobId} · Report UID: {item.viewReportRemotePageUid}">View report</a>
+                                </f:then>
+                                <f:else>
+                                    <span class="aqg-history-table__muted" title="Job: {item.jobId}">Not available in TYPO3</span>
+                                </f:else>
+                            </f:if>
+                            <f:if condition="{item.compareUrl}">
+                                <f:then>
+                                    <a href="{item.compareUrl}" class="btn btn-sm btn-default">Compare with previous compatible scan</a>
+                                </f:then>
+                                <f:else>
+                                    <span class="aqg-history-table__muted">{item.compareLabel}</span>
+                                </f:else>
+                            </f:if>
+                        </td>
+                    </tr>
+                </f:for>
+            </tbody>
+        </table>
+    </div>
+</f:if>
+</html>

@@ -66,12 +66,32 @@ final class PdfGenerator
 
         $pageChrome = $this->extractPageChrome($html);
         $hasPageChrome = $pageChrome['header'] !== '' || $pageChrome['footer'] !== '';
+        $body = $pageChrome['body'];
+        $coverWithoutHeader = str_contains($body, 'AQG_COVER_WITHOUT_HEADER');
+
+        if ($pageChrome['footer'] !== '') {
+            $mpdf->SetHTMLFooter($pageChrome['footer']);
+        }
+
+        if ($coverWithoutHeader && $hasPageChrome) {
+            // Remote frontend PDFs have a designed cover page. Keep the footer on
+            // the cover, but start the running header only after the first pagebreak.
+            $mpdf->AddPage('', '', '', '', '', 14, 14, 28, 18, 6, 6);
+            [$coverHtml, $restHtml] = $this->splitAtFirstPagebreak($body);
+            $mpdf->WriteHTML($coverHtml, HTMLParserMode::HTML_BODY);
+
+            if ($pageChrome['header'] !== '') {
+                $mpdf->SetHTMLHeader($pageChrome['header']);
+            }
+            if ($restHtml !== '') {
+                $mpdf->WriteHTML($restHtml, HTMLParserMode::HTML_BODY);
+            }
+
+            return $mpdf->Output('', Destination::STRING_RETURN);
+        }
 
         if ($pageChrome['header'] !== '') {
             $mpdf->SetHTMLHeader($pageChrome['header']);
-        }
-        if ($pageChrome['footer'] !== '') {
-            $mpdf->SetHTMLFooter($pageChrome['footer']);
         }
 
         // mPDF only writes the active header/footer when a page is created.
@@ -81,11 +101,29 @@ final class PdfGenerator
             $mpdf->AddPage('', '', '', '', '', 14, 14, 28, 18, 6, 6);
         }
 
-        $mpdf->WriteHTML($pageChrome['body'], HTMLParserMode::HTML_BODY);
+        $mpdf->WriteHTML($body, HTMLParserMode::HTML_BODY);
 
         return $mpdf->Output('', Destination::STRING_RETURN);
     }
 
+
+    /**
+     * @return array{0:string,1:string}
+     */
+    private function splitAtFirstPagebreak(string $html): array
+    {
+        if (!preg_match('/<pagebreak\b[^>]*\/?>(?:<\/pagebreak>)?/i', $html, $matches, PREG_OFFSET_CAPTURE)) {
+            return [$html, ''];
+        }
+
+        $offset = (int)$matches[0][1];
+        $length = strlen((string)$matches[0][0]);
+
+        return [
+            substr($html, 0, $offset),
+            substr($html, $offset, $length) . substr($html, $offset + $length),
+        ];
+    }
 
     /**
      * @return array{body:string, header:string, footer:string}

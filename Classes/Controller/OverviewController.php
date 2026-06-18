@@ -22,6 +22,7 @@ use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
+use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
@@ -70,6 +71,7 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly RemoteScanPersistenceService $remoteScanPersistenceService,
         private readonly RemoteIssueRepository $remoteIssueRepository,
         private readonly RemoteReportingSummaryService $remoteReportingSummaryService,
+        private readonly RemoteScanHistoryService $remoteScanHistoryService,
         private readonly ExtensionContextService $extensionContextService,
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly ProStatusResolverService $proStatusResolverService,
@@ -101,6 +103,7 @@ final class OverviewController extends AbstractBackendModuleController
         $siteBase = $site !== null ? (string)$site->getBase() : '';
         $returnParameters = $this->getA11yModuleReturnParameters($request);
         $queryParams = $request->getQueryParams();
+        $selectedRemoteScanUid = max(0, (int)($queryParams['remoteScanUid'] ?? 0));
 
         if ($currentPageUid <= 0 || $site === null) {
             $this->configureDocHeader(
@@ -216,7 +219,7 @@ final class OverviewController extends AbstractBackendModuleController
         }
 
         $remoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl)
+            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl, $selectedRemoteScanUid)
             : null;
         $remoteScan = $this->withFormattedScanTimestamps($remoteScan);
         $this->logRemoteReportingDebug('AQG remote reporting selected overview scan', [
@@ -322,6 +325,12 @@ final class OverviewController extends AbstractBackendModuleController
         $remoteFailedPages = [];
         $totalRemotePages = 0;
         $totalRemoteFailedPages = 0;
+        $remotePagesArePageScanFallback = false;
+        $remotePagesTitle = 'Affected pages';
+        $remotePagesSubtitle = 'Pages with the most accessibility findings. Open a page to review concrete findings.';
+        $remotePagesEmptyTitle = 'No completed site frontend scan yet';
+        $remotePagesEmptyBody = 'Run a site scan to generate affected pages for this site/root.';
+        $remotePagesCountLabel = 'pages';
 
         $remotePagination = PaginationUtility::buildPagination(0, $currentRemotePage, self::REMOTE_PER_PAGE);
         $remoteFailedPagination = PaginationUtility::buildPagination(0, $currentRemoteFailedPage, self::REMOTE_FAILED_PER_PAGE);
@@ -489,10 +498,6 @@ final class OverviewController extends AbstractBackendModuleController
             );
         }
 
-        // Do not merge completed single-page scans into the root/site overview
-        // when no site scan exists. Page contexts resolve their latest page scan
-        // as $remoteScan above; root/site contexts intentionally stay empty
-        // until a completed site scan exists.
 
         $remotePages = array_map(
             fn(array $page): array => $page + [
@@ -630,6 +635,27 @@ final class OverviewController extends AbstractBackendModuleController
         $remoteSignalLabel = $this->resolveRemoteSignalLabel($remoteSignalTone);
         $remoteSignalIcon = $remoteSignalTone === 'good' ? 'ok' : ($remoteSignalTone === 'no-scan' ? 'empty' : 'warning');
         $totalRemotePagesIsSingle = $totalRemotePages === 1;
+        $this->logRemoteHistoryDebug('AQG remote history overview context', [
+            'pageUid' => $currentPageUid,
+            'siteIdentifier' => $siteIdentifier,
+            'siteRootPid' => $siteRootPid,
+            'siteBase' => $siteBase,
+            'languageUid' => $currentLanguageUid,
+        ]);
+        $remoteScanHistory = $this->buildRemoteHistoryForOverview($request, $siteBase, $siteIdentifier, $currentPageUid, $currentLanguageUid);
+        $this->logRemoteHistoryDebug('AQG remote history overview result', [
+            'pageUid' => $currentPageUid,
+            'siteIdentifier' => (string)($remoteScanHistory['debugSiteIdentifier'] ?? $siteIdentifier),
+            'siteScansCount' => (int)($remoteScanHistory['siteScansCount'] ?? 0),
+            'pageScansCount' => (int)($remoteScanHistory['pageScansCount'] ?? 0),
+            'apiSiteCount' => (int)($remoteScanHistory['debugSiteApiCount'] ?? 0),
+            'apiPageCount' => (int)($remoteScanHistory['debugPageApiCount'] ?? 0),
+            'localSiteCount' => (int)($remoteScanHistory['debugLocalSiteCount'] ?? 0),
+            'localPageCount' => (int)($remoteScanHistory['debugLocalPageCount'] ?? 0),
+            'showGlobalEmpty' => (bool)($remoteScanHistory['showGlobalEmpty'] ?? true),
+        ]);
+        $remoteScanCompare = $this->buildRemoteScanCompare($request, $siteBase);
+        $regressionAlert = $this->buildOverviewRegressionAlert($request, $siteBase, $siteIdentifier, is_array($remoteScan) ? $remoteScan : null, $currentPageUid, $currentLanguageUid);
 
         $moduleTemplate->assignMultiple([
             'siteIdentifier' => $siteIdentifier,
@@ -681,7 +707,16 @@ final class OverviewController extends AbstractBackendModuleController
             'remoteRemediationSummary' => $remoteRemediationSummary,
             'remoteComponentSummary' => $remoteComponentSummary,
             'remoteHasAdditionalAutomatedSignals' => $remoteHasAdditionalAutomatedSignals,
+            'remoteScanHistory' => $remoteScanHistory,
+            'remoteScanCompare' => $remoteScanCompare,
+            'regressionAlert' => $regressionAlert,
             'remoteScanHasIssues' => $remoteScanHasIssues,
+            'remotePagesArePageScanFallback' => $remotePagesArePageScanFallback,
+            'remotePagesTitle' => $remotePagesTitle,
+            'remotePagesSubtitle' => $remotePagesSubtitle,
+            'remotePagesEmptyTitle' => $remotePagesEmptyTitle,
+            'remotePagesEmptyBody' => $remotePagesEmptyBody,
+            'remotePagesCountLabel' => $remotePagesCountLabel,
             'totalRemotePages' => $totalRemotePages,
             'totalRemotePagesIsSingle' => $totalRemotePagesIsSingle,
             'totalRemoteFailedPages' => $totalRemoteFailedPages,
@@ -1081,7 +1116,7 @@ final class OverviewController extends AbstractBackendModuleController
         if ($this->accessControlService->canShowSettings($backendUser)) {
             $settingsButton = $buttonBar->makeLinkButton()
                 ->setHref($this->buildRouteUrl('web_a11y.settings', $returnParameters))
-                ->setTitle($this->translate('settings.title'))
+                ->setTitle($this->translate('settings.title') ?: 'Settings')
                 ->setShowLabelText(true)
                 ->setIcon($this->iconFactory->getIcon('actions-cog', IconSize::SMALL));
 
@@ -1267,7 +1302,21 @@ final class OverviewController extends AbstractBackendModuleController
         int $currentPageUid,
         int $languageUid,
         string $currentPageUrl = '',
+        int $selectedRemoteScanUid = 0,
     ): ?array {
+        if ($selectedRemoteScanUid > 0) {
+            $selectedScan = $this->remoteScanRepository->findScanByUid($selectedRemoteScanUid);
+            $selectedScanScope = is_array($selectedScan) ? (string)($selectedScan['scan_scope'] ?? '') : '';
+            $scopeMatchesContext = $isPageContext || $selectedScanScope === 'site';
+
+            if (is_array($selectedScan)
+                && (string)($selectedScan['site_identifier'] ?? '') === $siteIdentifier
+                && strtolower((string)($selectedScan['status'] ?? '')) === 'completed'
+                && $scopeMatchesContext
+            ) {
+                return $selectedScan;
+            }
+        }
         if ($isPageContext && $currentPageUid > 0) {
             $pageScan = $this->remoteScanRepository->findLastCompletedPageScanByPageOrUrl(
                 $siteIdentifier,
@@ -1282,6 +1331,437 @@ final class OverviewController extends AbstractBackendModuleController
         }
 
         return $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
+    }
+
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRemoteHistoryForOverview(
+        ServerRequestInterface $request,
+        string $siteBase,
+        string $siteIdentifier,
+        int $currentPageUid,
+        int $languageUid,
+    ): array {
+        $sitemapHistory = $this->remoteScanHistoryService->loadHistory(
+            $siteBase,
+            $siteIdentifier,
+            10,
+            'sitemap',
+            '',
+            'completed'
+        );
+        $crawlHistory = $this->remoteScanHistoryService->loadHistory(
+            $siteBase,
+            $siteIdentifier,
+            10,
+            'crawl',
+            '',
+            'completed'
+        );
+        $pageHistory = $this->remoteScanHistoryService->loadHistory(
+            $siteBase,
+            $siteIdentifier,
+            10,
+            'single_page',
+            '',
+            'completed'
+        );
+
+        $apiSiteScans = $this->mergeHistoryItemsByJobId(
+            is_array($sitemapHistory['siteScans'] ?? null) ? $sitemapHistory['siteScans'] : [],
+            is_array($crawlHistory['siteScans'] ?? null) ? $crawlHistory['siteScans'] : []
+        );
+        $apiPageScans = is_array($pageHistory['pageScans'] ?? null) ? $pageHistory['pageScans'] : [];
+
+        // Local DB is the authoritative TYPO3-side persistence after a remote job was
+        // submitted/summarized. Always merge it into the history panel instead of only
+        // using it as a fallback. This prevents the Overview from showing the global
+        // empty state when the API history request is stale/unavailable while completed
+        // single_page scans already exist locally for the resolved site_identifier.
+        $localSiteScans = $this->buildLocalRemoteHistoryItems(
+            $siteIdentifier,
+            ['sitemap', 'crawl', 'site'],
+            10,
+            -1
+        );
+        $localPageScans = $this->buildLocalRemoteHistoryItems(
+            $siteIdentifier,
+            ['single_page', 'page'],
+            10,
+            -1
+        );
+
+        $siteScans = array_slice(
+            $this->mergeHistoryItemsByJobId($apiSiteScans, $localSiteScans),
+            0,
+            10
+        );
+        $pageScans = array_slice(
+            $this->mergeHistoryItemsByJobId($apiPageScans, $localPageScans),
+            0,
+            10
+        );
+
+        foreach ($siteScans as &$item) {
+            if (is_array($item)) {
+                $item = $this->enrichRemoteHistoryItemUrls($request, $item, $siteIdentifier, $currentPageUid, $languageUid);
+            }
+        }
+        unset($item);
+
+        foreach ($pageScans as &$item) {
+            if (is_array($item)) {
+                $item = $this->enrichRemoteHistoryItemUrls($request, $item, $siteIdentifier, $currentPageUid, $languageUid);
+            }
+        }
+        unset($item);
+
+        $items = array_values(array_merge($siteScans, $pageScans));
+        $siteScansCount = count($siteScans);
+        $pageScansCount = count($pageScans);
+        $hasSiteScans = $siteScansCount > 0;
+        $hasPageScans = $pageScansCount > 0;
+        $hasAnyRows = $siteScansCount > 0 || $pageScansCount > 0;
+        $showGlobalEmpty = $siteScansCount === 0 && $pageScansCount === 0;
+        $siteAvailable = (bool)($sitemapHistory['available'] ?? false) || (bool)($crawlHistory['available'] ?? false);
+        $pageAvailable = (bool)($pageHistory['available'] ?? false);
+
+        return [
+            'available' => $siteAvailable || $pageAvailable || $hasAnyRows,
+            'hasItems' => $hasAnyRows ? 1 : 0,
+            'hasAnyRows' => $hasAnyRows ? 1 : 0,
+            'showScopedHistory' => $hasAnyRows ? 1 : 0,
+            'showGlobalEmpty' => $showGlobalEmpty ? 1 : 0,
+            'message' => $showGlobalEmpty ? 'No remote scan history available yet.' : '',
+            'items' => $items,
+            'siteScans' => $siteScans,
+            'pageScans' => $pageScans,
+            'siteScansCount' => $siteScansCount,
+            'pageScansCount' => $pageScansCount,
+            'hasSiteScans' => $hasSiteScans ? 1 : 0,
+            'hasPageScans' => $hasPageScans ? 1 : 0,
+            'siteMessage' => $hasSiteScans ? '' : 'No site scan history available yet.',
+            'pageMessage' => $hasPageScans ? '' : 'No page scan history available yet.',
+            'debugSiteIdentifier' => $siteIdentifier,
+            'debugSiteApiCount' => count(is_array($sitemapHistory['items'] ?? null) ? $sitemapHistory['items'] : []) + count(is_array($crawlHistory['items'] ?? null) ? $crawlHistory['items'] : []),
+            'debugPageApiCount' => count(is_array($pageHistory['items'] ?? null) ? $pageHistory['items'] : []),
+            'debugLocalSiteCount' => count($localSiteScans),
+            'debugLocalPageCount' => count($localPageScans),
+        ];
+    }
+
+    /**
+     * @param list<string> $sourceTypes
+     * @return list<array<string, mixed>>
+     */
+    private function buildLocalRemoteHistoryItems(
+        string $siteIdentifier,
+        array $sourceTypes,
+        int $limit,
+        int $languageUid
+    ): array {
+        $rows = $this->remoteScanRepository->findCompletedHistoryScansBySiteAndSourceTypes(
+            $siteIdentifier,
+            $sourceTypes,
+            $limit,
+            $languageUid
+        );
+
+        $items = [];
+        foreach ($rows as $row) {
+            $jobId = trim((string)($row['job_id'] ?? ''));
+            if ($jobId === '') {
+                continue;
+            }
+
+            $sourceType = strtolower(trim((string)($row['source_type'] ?? '')));
+            $isPageScan = in_array($sourceType, ['single_page', 'page'], true);
+            $finishedAt = (int)($row['finished_at'] ?? 0);
+            $createdAt = (int)($row['started_at'] ?? $row['crdate'] ?? 0);
+            $startUrl = trim((string)($row['start_url'] ?? ''));
+            $items[] = [
+                'jobId' => $jobId,
+                'jobIdShort' => substr($jobId, 0, 8) . '…',
+                'siteId' => (string)($row['site_identifier'] ?? $siteIdentifier),
+                'status' => (string)($row['status'] ?? ''),
+                'sourceType' => $sourceType,
+                'sourceTypeLabel' => $isPageScan ? 'Page scan' : 'Site scan',
+                'isSiteScan' => !$isPageScan,
+                'isPageScan' => $isPageScan,
+                'startUrl' => $startUrl,
+                'normalizedStartUrl' => $this->normalizeHistoryUrl($startUrl),
+                'urlLabel' => $startUrl !== '' ? $startUrl : ($isPageScan ? 'Page scan' : 'Site scan'),
+                'createdAt' => $createdAt,
+                'createdAtFormatted' => BackendTimeUtility::formatDateTime($createdAt, 'd.m.Y H:i'),
+                'finishedAt' => $finishedAt,
+                'finishedAtFormatted' => BackendTimeUtility::formatDateTime($finishedAt, 'd.m.Y H:i'),
+                'pagesScanned' => max(0, (int)($row['pages_scanned'] ?? 0)),
+                'issuesTotal' => max(0, (int)($row['issues_total'] ?? 0)),
+                'score' => null,
+                'scoreLabel' => '—',
+                'overallImpact' => '',
+                'critical' => 0,
+                'serious' => 0,
+                'moderate' => 0,
+                'minor' => 0,
+                'contractVersion' => '',
+                'viewReportUrl' => '',
+                'viewReportRemotePageUid' => 0,
+                'compareFromJobId' => '',
+                'compareUrl' => '',
+                'compareLabel' => 'No comparable previous scan found.',
+                'hasComparablePrevious' => false,
+            ];
+        }
+
+        return $items;
+    }
+
+    private function normalizeHistoryUrl(string $url): string
+    {
+        $url = trim(strtolower($url));
+        if ($url === '') {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return rtrim($url, '/');
+        }
+
+        $scheme = (string)($parts['scheme'] ?? '');
+        $host = (string)($parts['host'] ?? '');
+        $path = '/' . ltrim((string)($parts['path'] ?? '/'), '/');
+        $query = isset($parts['query']) && (string)$parts['query'] !== '' ? '?' . (string)$parts['query'] : '';
+
+        return rtrim($scheme . '://' . $host . $path, '/') . $query;
+    }
+
+    /**
+     * @param array<int, mixed> ...$buckets
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeHistoryItemsByJobId(array ...$buckets): array
+    {
+        $merged = [];
+        foreach ($buckets as $bucket) {
+            foreach ($bucket as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $jobId = trim((string)($item['jobId'] ?? ''));
+                if ($jobId === '' || isset($merged[$jobId])) {
+                    continue;
+                }
+                $merged[$jobId] = $item;
+            }
+        }
+
+        $items = array_values($merged);
+        usort($items, static function (array $a, array $b): int {
+            $finished = (int)($b['finishedAt'] ?? 0) <=> (int)($a['finishedAt'] ?? 0);
+            if ($finished !== 0) {
+                return $finished;
+            }
+
+            return strcmp((string)($b['jobId'] ?? ''), (string)($a['jobId'] ?? ''));
+        });
+
+        return array_slice($items, 0, 10);
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
+     */
+    private function enrichRemoteHistoryItemUrls(
+        ServerRequestInterface $request,
+        array $item,
+        string $siteIdentifier,
+        int $currentPageUid,
+        int $languageUid,
+    ): array {
+        $jobId = trim((string)($item['jobId'] ?? ''));
+        $localScan = $jobId !== '' ? $this->remoteScanRepository->findScanByJobId($jobId) : null;
+        $remoteScanUid = is_array($localScan) ? (int)($localScan['uid'] ?? 0) : 0;
+        $startUrl = (string)($item['startUrl'] ?? '');
+
+        $item['viewReportUrl'] = '';
+        $item['viewReportLabel'] = 'Not available in TYPO3';
+
+        if (!empty($item['isPageScan'])) {
+            $page = $jobId !== '' && $startUrl !== ''
+                ? $this->remoteScanRepository->findPageForJobIdAndUrl($jobId, $startUrl, $siteIdentifier, 'single_page')
+                : null;
+            if (is_array($page) && (int)($page['uid'] ?? 0) > 0 && (string)($page['remote_scan_job_id'] ?? '') === $jobId) {
+                $item['viewReportUrl'] = $this->buildRouteUrl('web_a11y.remotePageDetail', [
+                    'remotePageUid' => (int)$page['uid'],
+                    'site' => $siteIdentifier,
+                    'id' => (int)($page['remote_scan_page_uid'] ?? $currentPageUid),
+                    'language' => (int)($page['remote_scan_language_uid'] ?? $languageUid),
+                ]);
+                $item['viewReportLabel'] = 'View report';
+                $item['viewReportRemotePageUid'] = (int)$page['uid'];
+            }
+        }
+
+        if ($remoteScanUid > 0 && empty($item['isPageScan']) && (string)($item['viewReportUrl'] ?? '') === '') {
+            $item['viewReportUrl'] = $this->buildRouteUrl('web_a11y', [
+                'id' => $currentPageUid,
+                'site' => $siteIdentifier,
+                'language' => $languageUid,
+                'remoteScanUid' => $remoteScanUid,
+            ]);
+            $item['viewReportLabel'] = 'View report';
+        }
+
+        if (!empty($item['hasComparablePrevious']) && (string)($item['compareFromJobId'] ?? '') !== '' && $jobId !== '') {
+            $parameters = $this->getA11yModuleReturnParameters($request);
+            $parameters['site'] = $siteIdentifier;
+            $parameters['language'] = $languageUid;
+            if ($currentPageUid > 0) {
+                $parameters['id'] = $currentPageUid;
+            }
+            $parameters['compareFromJobId'] = (string)$item['compareFromJobId'];
+            $parameters['compareToJobId'] = $jobId;
+            if ($remoteScanUid > 0) {
+                $parameters['remoteScanUid'] = $remoteScanUid;
+            }
+            $item['compareUrl'] = $this->buildRouteUrl('web_a11y', $parameters) . '#scan-comparison';
+        }
+
+        return $item;
+    }
+
+    /**
+     * @param array<string, mixed>|null $remoteScan
+     * @return array<string, mixed>
+     */
+    private function buildOverviewRegressionAlert(
+        ServerRequestInterface $request,
+        string $siteBase,
+        string $siteIdentifier,
+        ?array $remoteScan,
+        int $currentPageUid,
+        int $languageUid
+    ): array {
+        $sourceType = strtolower(trim((string)($remoteScan['source_type'] ?? 'sitemap')));
+        if (!in_array($sourceType, ['sitemap', 'crawl'], true)) {
+            $sourceType = 'sitemap';
+        }
+
+        $alert = $this->remoteScanHistoryService->loadRegressionAlert(
+            $siteBase,
+            $siteIdentifier,
+            $sourceType,
+            ''
+        );
+
+        $previousJobId = trim((string)($alert['previousJobId'] ?? ''));
+        $currentJobId = trim((string)($alert['currentJobId'] ?? ''));
+        $actionType = strtolower(trim((string)($alert['actionType'] ?? '')));
+        $alert = $this->enrichRegressionAlertWithLocalScanRows($alert);
+
+        if ($previousJobId === '' || $currentJobId === '' || ($actionType !== '' && $actionType !== 'compare')) {
+            $alert['actionUrl'] = '';
+            return $alert;
+        }
+
+        $parameters = $this->getA11yModuleReturnParameters($request);
+        $parameters['site'] = $siteIdentifier;
+        $parameters['language'] = $languageUid;
+        if ($currentPageUid > 0) {
+            $parameters['id'] = $currentPageUid;
+        }
+        $parameters['compareFromJobId'] = $previousJobId;
+        $parameters['compareToJobId'] = $currentJobId;
+
+        $currentLocalScan = $this->remoteScanRepository->findScanByJobId($currentJobId);
+        if (is_array($currentLocalScan) && (int)($currentLocalScan['uid'] ?? 0) > 0) {
+            $parameters['remoteScanUid'] = (int)$currentLocalScan['uid'];
+        }
+
+        $alert['actionUrl'] = $this->buildRouteUrl('web_a11y', $parameters) . '#scan-comparison';
+
+        return $alert;
+    }
+
+    /**
+     * @param array<string, mixed> $alert
+     * @return array<string, mixed>
+     */
+    private function enrichRegressionAlertWithLocalScanRows(array $alert): array
+    {
+        foreach ([
+            'previous' => 'previousScan',
+            'current' => 'currentScan',
+        ] as $prefix => $scanKey) {
+            if (!isset($alert[$scanKey]) || !is_array($alert[$scanKey])) {
+                $alert[$scanKey] = [];
+            }
+
+            $jobId = trim((string)($alert[$prefix . 'JobId'] ?? $alert[$scanKey]['jobId'] ?? ''));
+            if ($jobId === '') {
+                continue;
+            }
+
+            $scan = $this->remoteScanRepository->findScanByJobId($jobId);
+            if (!is_array($scan)) {
+                continue;
+            }
+
+            $alert[$scanKey]['jobId'] = $jobId;
+            $finishedAt = (int)($scan['finished_at'] ?? 0);
+            if ($finishedAt > 0 && trim((string)($alert[$scanKey]['finishedAtFormatted'] ?? '')) === '') {
+                $alert[$scanKey]['finishedAt'] = $finishedAt;
+                $alert[$scanKey]['finishedAtFormatted'] = BackendTimeUtility::formatDateTime($finishedAt, 'd.m.Y H:i');
+            }
+
+            if ((string)($alert[$scanKey]['findingsLabel'] ?? '—') === '—') {
+                $findings = max(0, (int)($scan['issues_total'] ?? 0));
+                $alert[$scanKey]['findings'] = $findings;
+                $alert[$scanKey]['findingsLabel'] = (string)$findings;
+            }
+        }
+
+        $previousFindings = $alert['previousScan']['findings'] ?? null;
+        $currentFindings = $alert['currentScan']['findings'] ?? null;
+        if (($alert['comparisonRows'] ?? []) === [] && is_int($previousFindings) && is_int($currentFindings)) {
+            $delta = $currentFindings - $previousFindings;
+            $alert['comparisonRows'] = [[
+                'label' => 'Findings change',
+                'value' => $delta > 0 ? '+' . $delta : (string)$delta,
+                'tone' => $delta > 0 ? 'warning' : ($delta < 0 ? 'positive' : 'neutral'),
+            ]];
+            $alert['hasComparisonRows'] = true;
+        }
+
+        $alert['hasScanComparison'] = trim((string)($alert['previousScan']['finishedAtFormatted'] ?? '')) !== ''
+            || trim((string)($alert['currentScan']['finishedAtFormatted'] ?? '')) !== ''
+            || (string)($alert['previousScan']['findingsLabel'] ?? '—') !== '—'
+            || (string)($alert['currentScan']['findingsLabel'] ?? '—') !== '—'
+            || (string)($alert['previousScan']['scoreLabel'] ?? '—') !== '—'
+            || (string)($alert['currentScan']['scoreLabel'] ?? '—') !== '—'
+            || ($alert['comparisonRows'] ?? []) !== [];
+
+        return $alert;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildRemoteScanCompare(ServerRequestInterface $request, string $siteBase): array
+    {
+        $queryParams = $request->getQueryParams();
+        $fromJobId = trim((string)($queryParams['compareFromJobId'] ?? ''));
+        $toJobId = trim((string)($queryParams['compareToJobId'] ?? ''));
+        if ($fromJobId === '' || $toJobId === '') {
+            return ['available' => false, 'message' => ''];
+        }
+
+        return $this->remoteScanHistoryService->loadCompare($siteBase, $fromJobId, $toJobId);
     }
 
     /**
@@ -1311,6 +1791,19 @@ final class OverviewController extends AbstractBackendModuleController
             'page_uid' => (int)($remoteScan['page_uid'] ?? 0),
             'language_uid' => (int)($remoteScan['language_uid'] ?? -1),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logRemoteHistoryDebug(string $message, array $context = []): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->debug($message, $context);
+        } catch (\Throwable) {
+        }
     }
 
     /**

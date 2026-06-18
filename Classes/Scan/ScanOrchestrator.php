@@ -69,6 +69,7 @@ final class ScanOrchestrator
         ?array $resolvedBy = null,
         ?\Closure $shouldCancel = null,
         ?\Closure $onRunStarted = null,
+        bool $includeRenderedPageCheck = false,
     ): ScanResult {
         $pageUids = $this->pageCollector->collectSubtree($rootPid, $depth);
 
@@ -82,7 +83,7 @@ final class ScanOrchestrator
             resolvedBy: $resolvedBy,
             shouldCancel: $shouldCancel,
             onRunStarted: $onRunStarted,
-            includeRenderedPageCheck: false,
+            includeRenderedPageCheck: $includeRenderedPageCheck,
         );
     }
 
@@ -155,7 +156,7 @@ final class ScanOrchestrator
                     changedOnly: $changedOnly,
                     resolvedBy: $resolvedBy,
                     shouldCancel: $shouldCancel,
-                    includeRenderedPageCheck: $includeRenderedPageCheck && $scope === 'page',
+                    includeRenderedPageCheck: $includeRenderedPageCheck,
                 );
             }
 

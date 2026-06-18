@@ -1,0 +1,81 @@
+body {
+    font-family: helvetica, arial, sans-serif;
+    font-size: 10.5pt;
+    color: #1f2937;
+}
+
+.aqg-statement-pdf h1 {
+    font-size: 22pt;
+    margin: 0 0 8mm 0;
+    color: #111827;
+}
+
+.aqg-statement-pdf h2 {
+    font-size: 13pt;
+    margin: 8mm 0 3mm 0;
+    color: #111827;
+    border-bottom: 0.2mm solid #e5e7eb;
+    padding-bottom: 1.5mm;
+}
+
+.aqg-statement-pdf p {
+    line-height: 1.45;
+    margin: 0 0 3mm 0;
+}
+
+.aqg-statement-pdf ul {
+    margin: 0 0 3mm 5mm;
+    padding: 0;
+}
+
+.aqg-statement-pdf li {
+    margin-bottom: 1.5mm;
+    line-height: 1.35;
+}
+
+.aqg-statement-pdf dl {
+    margin: 0;
+}
+
+.aqg-statement-pdf dt {
+    font-weight: bold;
+    color: #4b5563;
+    margin-top: 2mm;
+}
+
+.aqg-statement-pdf dd {
+    margin: 0 0 1mm 0;
+}
+
+.aqg-statement-meta,
+.aqg-warning-banner,
+.aqg-statement-contact-warning {
+    border: 0.2mm solid #e5e7eb;
+    background: #f9fafb;
+    padding: 4mm;
+    margin-bottom: 5mm;
+}
+
+.aqg-warning-banner,
+.aqg-statement-contact-warning {
+    border-color: #f59e0b;
+    background: #fff7ed;
+    color: #7c2d12;
+}
+
+.aqg-statement-status-badge {
+    display: inline-block;
+    border: 0.2mm solid #f59e0b;
+    background: #fff7ed;
+    color: #7c2d12;
+    padding: 1mm 2mm;
+    font-weight: bold;
+    font-size: 9pt;
+}
+
+.aqg-pdf-footer {
+    font-size: 8pt;
+    color: #6b7280;
+    border-top: 0.2mm solid #e5e7eb;
+    padding-top: 2mm;
+}

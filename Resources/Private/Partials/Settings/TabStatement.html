@@ -1,0 +1,342 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<div
+        class="aqg-statement"
+        data-aqg-statement="true"
+        data-generate-url="{statementGenerateUrl}"
+        data-pdf-url="{statementPdfUrl}"
+        data-i18n-page-url="{f:translate(key: 'settings.statement.validation.pageUrl', extensionName: 'A11yQualityGate')}"
+        data-i18n-job-id="{f:translate(key: 'settings.statement.validation.jobId', extensionName: 'A11yQualityGate')}"
+        data-i18n-confirm-status="{f:translate(key: 'settings.statement.validation.confirmStatus', extensionName: 'A11yQualityGate')}"
+        data-i18n-custom-enforcement="{f:translate(key: 'settings.statement.validation.customEnforcement', extensionName: 'A11yQualityGate')}"
+        data-i18n-invalid-email="{f:translate(key: 'settings.statement.validation.invalidEmail', extensionName: 'A11yQualityGate')}"
+        data-i18n-invalid-url="{f:translate(key: 'settings.statement.validation.invalidUrl', extensionName: 'A11yQualityGate')}"
+        data-i18n-custom-standard="{f:translate(key: 'settings.statement.validation.customStandard', extensionName: 'A11yQualityGate')}"
+        data-i18n-generating="{f:translate(key: 'settings.statement.status.generating', extensionName: 'A11yQualityGate')}"
+        data-i18n-generated="{f:translate(key: 'settings.statement.status.generated', extensionName: 'A11yQualityGate')}"
+        data-i18n-unavailable="{f:translate(key: 'settings.statement.status.unavailable', extensionName: 'A11yQualityGate')}"
+        data-i18n-button-generate="{f:translate(key: 'settings.statement.button.generate', extensionName: 'A11yQualityGate')}"
+        data-i18n-button-download-pdf="{f:translate(key: 'settings.statement.button.downloadPdf', extensionName: 'A11yQualityGate')}"
+        data-i18n-button-generating="{f:translate(key: 'settings.statement.button.generating', extensionName: 'A11yQualityGate')}"
+        data-i18n-copied="{f:translate(key: 'settings.statement.button.copied', extensionName: 'A11yQualityGate')}"
+        data-i18n-downloaded="{f:translate(key: 'settings.statement.button.downloaded', extensionName: 'A11yQualityGate')}"
+        data-i18n-copy-ok="{f:translate(key: 'settings.statement.status.copied', extensionName: 'A11yQualityGate')}"
+        data-i18n-copy-failed="{f:translate(key: 'settings.statement.status.copyFailed', extensionName: 'A11yQualityGate')}"
+        data-i18n-preparing-pdf="{f:translate(key: 'settings.statement.button.preparingPdf', extensionName: 'A11yQualityGate')}"
+        data-i18n-pdf-unavailable="{f:translate(key: 'settings.statement.status.pdfUnavailable', extensionName: 'A11yQualityGate')}"
+        data-i18n-pdf-downloaded="{f:translate(key: 'settings.statement.status.pdfDownloaded', extensionName: 'A11yQualityGate')}"
+        data-i18n-source-fallback="{f:translate(key: 'settings.statement.generatedSourceFallback', extensionName: 'A11yQualityGate')}"
+        data-i18n-status-draft-issues="{f:translate(key: 'settings.statement.status.draftIssuesFound', extensionName: 'A11yQualityGate')}"
+        data-i18n-status-no-issues="{f:translate(key: 'settings.statement.status.draftNoIssuesFound', extensionName: 'A11yQualityGate')}"
+        data-i18n-status-incomplete="{f:translate(key: 'settings.statement.status.scanIncomplete', extensionName: 'A11yQualityGate')}"
+        data-i18n-status-no-scan="{f:translate(key: 'settings.statement.status.noScan', extensionName: 'A11yQualityGate')}"
+        data-i18n-status-review="{f:translate(key: 'settings.statement.status.requiresReview', extensionName: 'A11yQualityGate')}"
+>
+    <f:if condition="{statementGeneratorAvailable}">
+        <f:then>
+            <section class="aqg-card aqg-statement-generator">
+                <div class="aqg-card__head">
+                    <div>
+                        <h3 class="aqg-card__title"><f:translate key="settings.statement.title" extensionName="A11yQualityGate" /></h3>
+                        <p class="aqg-card__sub"><f:translate key="settings.statement.intro" extensionName="A11yQualityGate" /></p>
+                    </div>
+                </div>
+
+                <div class="aqg-card__body">
+                    <div class="aqg-statement-form" role="group" aria-label="{f:translate(key: 'settings.statement.form.aria', extensionName: 'A11yQualityGate')}">
+                        <label class="aqg-field">
+                            <span class="aqg-field__label"><f:translate key="settings.statement.site" extensionName="A11yQualityGate" /></span>
+                            <select class="form-select js-aqg-statement-site" name="siteId">
+                                <f:for each="{siteOptionsWithoutDefault}" as="siteOption">
+                                    <f:if condition="{siteOption.identifier} == {statementDefaultSiteIdentifier}">
+                                        <f:then>
+                                            <option value="{siteOption.identifier}" selected="selected">{siteOption.label}</option>
+                                        </f:then>
+                                        <f:else>
+                                            <option value="{siteOption.identifier}">{siteOption.label}</option>
+                                        </f:else>
+                                    </f:if>
+                                </f:for>
+                            </select>
+                        </label>
+
+                        <fieldset class="aqg-fieldset aqg-statement-scope">
+                            <legend><f:translate key="settings.statement.scanScope" extensionName="A11yQualityGate" /></legend>
+
+                            <label class="aqg-radio-line">
+                                <input type="radio" name="statementScope" value="latest_site" class="js-aqg-statement-scope" checked="checked" />
+                                <span><f:translate key="settings.statement.latestSiteScan" extensionName="A11yQualityGate" /></span>
+                            </label>
+
+                            <label class="aqg-radio-line">
+                                <input type="radio" name="statementScope" value="latest_page" class="js-aqg-statement-scope" />
+                                <span><f:translate key="settings.statement.latestPageScan" extensionName="A11yQualityGate" /></span>
+                            </label>
+                            <div class="aqg-statement-dependent js-aqg-statement-page-panel" hidden="hidden">
+                                <label class="aqg-field">
+                                    <span class="aqg-field__label"><f:translate key="settings.statement.pageUrl" extensionName="A11yQualityGate" /></span>
+                                    <input type="url" class="form-control js-aqg-statement-page-url" placeholder="https://example.org/page" />
+                                </label>
+                            </div>
+
+                            <label class="aqg-radio-line">
+                                <input type="radio" name="statementScope" value="specific_job" class="js-aqg-statement-scope" />
+                                <span><f:translate key="settings.statement.specificJobId" extensionName="A11yQualityGate" /> <small class="aqg-muted">(<f:translate key="settings.statement.advanced" extensionName="A11yQualityGate" />)</small></span>
+                            </label>
+                            <div class="aqg-statement-dependent js-aqg-statement-job-panel" hidden="hidden">
+                                <p class="aqg-help-text"><f:translate key="settings.statement.specificJobHelp" extensionName="A11yQualityGate" /></p>
+                                <label class="aqg-field">
+                                    <span class="aqg-field__label"><f:translate key="settings.statement.jobId" extensionName="A11yQualityGate" /></span>
+                                    <input type="text" class="form-control js-aqg-statement-job-id" placeholder="00000000-0000-0000-0000-000000000000" />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-language">
+                            <legend><f:translate key="settings.statement.language" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-radio-line">
+                                <input type="radio" name="statementLanguage" value="en" class="js-aqg-statement-language" checked="checked" />
+                                <span><f:translate key="settings.statement.language.english" extensionName="A11yQualityGate" /></span>
+                            </label>
+                            <label class="aqg-radio-line">
+                                <input type="radio" name="statementLanguage" value="de" class="js-aqg-statement-language" />
+                                <span><f:translate key="settings.statement.language.german" extensionName="A11yQualityGate" /></span>
+                            </label>
+                            <p class="aqg-help-text"><f:translate key="settings.statement.language.help" extensionName="A11yQualityGate" /></p>
+                        </fieldset>
+
+
+
+                        <fieldset class="aqg-fieldset aqg-statement-basic-editor">
+                            <legend><f:translate key="settings.statement.basic" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.websiteName" extensionName="A11yQualityGate" /></span>
+                                <input type="text" class="form-control js-aqg-statement-website-name" placeholder="{f:translate(key: 'settings.statement.websiteName.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.organization" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.requiredBeforePublishing" extensionName="A11yQualityGate" /></small></span>
+                                <input type="text" class="form-control js-aqg-statement-organisation" placeholder="{f:translate(key: 'settings.statement.organization.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.commitment" extensionName="A11yQualityGate" /></span>
+                                <textarea class="form-control js-aqg-statement-commitment" rows="3" placeholder="{f:translate(key: 'settings.statement.commitment.placeholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.createdDate" extensionName="A11yQualityGate" /></span>
+                                <input type="text" class="form-control js-aqg-statement-created-date" placeholder="{f:translate(key: 'settings.statement.createdDate.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                            <p class="aqg-warning-text js-aqg-statement-organisation-warning" hidden="hidden"><f:translate key="settings.statement.warning.organizationMissing" extensionName="A11yQualityGate" /></p>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-standard-editor">
+                            <legend><f:translate key="settings.statement.standard" extensionName="A11yQualityGate" /></legend>
+                            <p class="aqg-help-text"><f:translate key="settings.statement.standard.help" extensionName="A11yQualityGate" /></p>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.standard.referenced" extensionName="A11yQualityGate" /></span>
+                                <select class="form-select js-aqg-statement-standard">
+                                    <option value="wcag22aa" selected="selected"><f:translate key="settings.statement.standard.wcag22aa" extensionName="A11yQualityGate" /></option>
+                                    <option value="wcag21aa"><f:translate key="settings.statement.standard.wcag21aa" extensionName="A11yQualityGate" /></option>
+                                    <option value="en301549"><f:translate key="settings.statement.standard.en301549" extensionName="A11yQualityGate" /></option>
+                                    <option value="custom"><f:translate key="settings.statement.standard.custom" extensionName="A11yQualityGate" /></option>
+                                </select>
+                            </label>
+                            <div class="aqg-statement-dependent js-aqg-statement-standard-custom-panel" hidden="hidden">
+                                <label class="aqg-field">
+                                    <span class="aqg-field__label"><f:translate key="settings.statement.standard.customLabel" extensionName="A11yQualityGate" /></span>
+                                    <input type="text" class="form-control js-aqg-statement-standard-custom" placeholder="{f:translate(key: 'settings.statement.standard.customPlaceholder', extensionName: 'A11yQualityGate')}" />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-measures-editor">
+                            <legend><f:translate key="settings.statement.measures" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-measure" value="quality_assurance" /> <span><f:translate key="settings.statement.measure.qualityAssurance" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-measure" value="training" /> <span><f:translate key="settings.statement.measure.training" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-measure" value="release_checks" /> <span><f:translate key="settings.statement.measure.releaseChecks" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-measure" value="automated_scans" checked="checked" /> <span><f:translate key="settings.statement.measure.automatedScans" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-measure" value="manual_reviews" /> <span><f:translate key="settings.statement.measure.manualReviews" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-measure" value="feedback_channel" checked="checked" /> <span><f:translate key="settings.statement.measure.feedbackChannel" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.measure.custom" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span>
+                                <textarea class="form-control js-aqg-statement-custom-measure" rows="2" placeholder="{f:translate(key: 'settings.statement.measure.customPlaceholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                        </fieldset>
+                        <fieldset class="aqg-fieldset aqg-statement-status-editor">
+                            <legend><f:translate key="settings.statement.conformance" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.conformance.draftStatus" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.requiredBeforePublishing" extensionName="A11yQualityGate" /></small></span>
+                                <select class="form-select js-aqg-statement-conformity-status">
+                                    <option value="not_confirmed" selected="selected"><f:translate key="settings.statement.conformance.notConfirmed" extensionName="A11yQualityGate" /></option>
+                                    <option value="not_compliant"><f:translate key="settings.statement.conformance.notConformant" extensionName="A11yQualityGate" /></option>
+                                    <option value="partially_compliant"><f:translate key="settings.statement.conformance.partiallyConformant" extensionName="A11yQualityGate" /></option>
+                                    <option value="mostly_compliant"><f:translate key="settings.statement.conformance.mostlyConformant" extensionName="A11yQualityGate" /></option>
+                                </select>
+                            </label>
+                            <p class="aqg-help-text"><strong><f:translate key="settings.statement.conformance.suggestionLabel" extensionName="A11yQualityGate" /></strong> <f:translate key="settings.statement.conformance.suggestionHelp" extensionName="A11yQualityGate" /></p>
+                            <label class="aqg-check-line aqg-statement-status-confirmation">
+                                <input type="checkbox" class="js-aqg-statement-status-confirmed" />
+                                <span><f:translate key="settings.statement.conformance.confirm" extensionName="A11yQualityGate" /></span>
+                            </label>
+                            <p class="aqg-help-text"><f:translate key="settings.statement.conformance.confirmHelp" extensionName="A11yQualityGate" /></p>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-contact-editor">
+                            <legend><f:translate key="settings.statement.contact" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.requiredBeforePublishing" extensionName="A11yQualityGate" /></small></legend>
+                            <p class="aqg-help-text"><f:translate key="settings.statement.contact.help" extensionName="A11yQualityGate" /></p>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.contact.email" extensionName="A11yQualityGate" /></span>
+                                <input type="email" class="form-control js-aqg-statement-contact-email" placeholder="{f:translate(key: 'settings.statement.contact.email.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.contact.phone" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span>
+                                <input type="text" class="form-control js-aqg-statement-phone" placeholder="{f:translate(key: 'settings.statement.contact.phone.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.contact.address" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span>
+                                <textarea class="form-control js-aqg-statement-address" rows="2" placeholder="{f:translate(key: 'settings.statement.contact.address.placeholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.contact.responseTime" extensionName="A11yQualityGate" /></span>
+                                <input type="text" class="form-control js-aqg-statement-response-time" placeholder="{f:translate(key: 'settings.statement.contact.responseTime.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.contact.note" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span>
+                                <textarea class="form-control js-aqg-statement-response-note" rows="2" placeholder="{f:translate(key: 'settings.statement.contact.note.placeholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                            <p class="aqg-warning-text js-aqg-statement-contact-warning" hidden="hidden"><f:translate key="settings.statement.contact.warning" extensionName="A11yQualityGate" /></p>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-known-limitations-editor">
+                            <legend><f:translate key="settings.statement.knownLimitations" extensionName="A11yQualityGate" /></legend>
+                            <p class="aqg-help-text"><f:translate key="settings.statement.knownLimitations.help" extensionName="A11yQualityGate" /></p>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-remediation-editor">
+                            <legend><f:translate key="settings.statement.remediation" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.remediation.note" extensionName="A11yQualityGate" /></span>
+                                <textarea class="form-control js-aqg-statement-remediation" rows="3" placeholder="{f:translate(key: 'settings.statement.remediation.placeholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-compatibility-editor">
+                            <legend><f:translate key="settings.statement.compatibility" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.compatible" extensionName="A11yQualityGate" /></span>
+                                <textarea class="form-control js-aqg-statement-compatible" rows="2" placeholder="{f:translate(key: 'settings.statement.compatible.placeholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.incompatible" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span>
+                                <textarea class="form-control js-aqg-statement-incompatible" rows="2" placeholder="{f:translate(key: 'settings.statement.incompatible.placeholder', extensionName: 'A11yQualityGate')}"></textarea>
+                            </label>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-technology-editor">
+                            <legend><f:translate key="settings.statement.technicalSpecifications" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="html" checked="checked" /> <span><f:translate key="settings.statement.tech.html" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="wai_aria" /> <span><f:translate key="settings.statement.tech.waiAria" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="css" checked="checked" /> <span><f:translate key="settings.statement.tech.css" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="javascript" checked="checked" /> <span><f:translate key="settings.statement.tech.javascript" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="pdf" /> <span><f:translate key="settings.statement.tech.pdf" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="media" /> <span><f:translate key="settings.statement.tech.media" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-technology" value="third_party" /> <span><f:translate key="settings.statement.tech.thirdParty" extensionName="A11yQualityGate" /></span></label>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-assessment-editor">
+                            <legend><f:translate key="settings.statement.assessment" extensionName="A11yQualityGate" /></legend>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-assessment" value="aqg_automated" checked="checked" /> <span><f:translate key="settings.statement.assessment.aqg" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-assessment" value="axe_playwright" checked="checked" /> <span><f:translate key="settings.statement.assessment.axe" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-assessment" value="manual_required" checked="checked" /> <span><f:translate key="settings.statement.assessment.manualRequired" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-assessment js-aqg-statement-manual-review" value="manual_review" /> <span><f:translate key="settings.statement.assessment.manualReview" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-check-line"><input type="checkbox" class="js-aqg-statement-assessment" value="external_audit" /> <span><f:translate key="settings.statement.assessment.externalAudit" extensionName="A11yQualityGate" /></span></label>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.evaluationUrl" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span>
+                                <input type="url" class="form-control js-aqg-statement-evaluation-url" placeholder="{f:translate(key: 'settings.statement.evaluationUrl.placeholder', extensionName: 'A11yQualityGate')}" />
+                            </label>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-approval-editor">
+                            <legend><f:translate key="settings.statement.approval" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optionalBeforePublishing" extensionName="A11yQualityGate" /></small></legend>
+                            <label class="aqg-field"><span class="aqg-field__label"><f:translate key="settings.statement.approval.organization" extensionName="A11yQualityGate" /></span><input type="text" class="form-control js-aqg-statement-approval-organisation" /></label>
+                            <label class="aqg-field"><span class="aqg-field__label"><f:translate key="settings.statement.approval.person" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span><input type="text" class="form-control js-aqg-statement-approval-person" /></label>
+                            <label class="aqg-field"><span class="aqg-field__label"><f:translate key="settings.statement.approval.role" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span><input type="text" class="form-control js-aqg-statement-approval-role" /></label>
+                            <label class="aqg-field"><span class="aqg-field__label"><f:translate key="settings.statement.approval.date" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.optional" extensionName="A11yQualityGate" /></small></span><input type="text" class="form-control js-aqg-statement-approval-date" /></label>
+                        </fieldset>
+
+                        <fieldset class="aqg-fieldset aqg-statement-enforcement-editor">
+                            <legend><f:translate key="settings.statement.enforcement" extensionName="A11yQualityGate" /> <small class="aqg-muted"><f:translate key="settings.statement.requiredBeforePublishing" extensionName="A11yQualityGate" /></small></legend>
+                            <label class="aqg-field">
+                                <span class="aqg-field__label"><f:translate key="settings.statement.enforcement.template" extensionName="A11yQualityGate" /></span>
+                                <select class="form-select js-aqg-statement-enforcement">
+                                    <option value="generic" selected="selected"><f:translate key="settings.statement.enforcement.generic" extensionName="A11yQualityGate" /></option>
+                                    <option value="none"><f:translate key="settings.statement.enforcement.none" extensionName="A11yQualityGate" /></option>
+                                    <option value="germany"><f:translate key="settings.statement.enforcement.germany" extensionName="A11yQualityGate" /></option>
+                                    <option value="austria"><f:translate key="settings.statement.enforcement.austria" extensionName="A11yQualityGate" /></option>
+                                    <option value="custom"><f:translate key="settings.statement.enforcement.custom" extensionName="A11yQualityGate" /></option>
+                                </select>
+                            </label>
+                            <div class="aqg-statement-dependent js-aqg-statement-enforcement-custom-panel" hidden="hidden">
+                                <label class="aqg-field">
+                                    <span class="aqg-field__label"><f:translate key="settings.statement.enforcement.customLabel" extensionName="A11yQualityGate" /></span>
+                                    <textarea class="form-control js-aqg-statement-enforcement-custom" rows="4" placeholder="{f:translate(key: 'settings.statement.enforcement.customPlaceholder', extensionName: 'A11yQualityGate')}"></textarea>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="aqg-statement-actions">
+                            <button type="button" class="btn btn-primary js-aqg-statement-generate"><f:translate key="settings.statement.button.generate" extensionName="A11yQualityGate" /></button>
+                            <span class="aqg-inline-status js-aqg-statement-status" hidden="hidden"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="aqg-card aqg-statement-empty js-aqg-statement-empty">
+                <div class="aqg-card__body">
+                    <p class="aqg-muted"><strong><f:translate key="settings.statement.result.empty.title" extensionName="A11yQualityGate" /></strong></p>
+                    <p class="aqg-muted"><f:translate key="settings.statement.result.empty.text" extensionName="A11yQualityGate" /></p>
+                </div>
+            </section>
+
+            <section class="aqg-card aqg-statement-result js-aqg-statement-result" hidden="hidden">
+                <div class="aqg-card__head">
+                    <div>
+                        <h3 class="aqg-card__title"><f:translate key="settings.statement.result.title" extensionName="A11yQualityGate" /></h3>
+                        <p class="aqg-card__sub js-aqg-statement-source"><f:translate key="settings.statement.generatedSourceFallback" extensionName="A11yQualityGate" /></p>
+                    </div>
+                    <div class="aqg-card__actions">
+                        <button type="button" class="btn btn-default js-aqg-statement-copy" disabled="disabled"><f:translate key="settings.statement.button.copyHtml" extensionName="A11yQualityGate" /></button>
+                        <button type="button" class="btn btn-default js-aqg-statement-download" disabled="disabled"><f:translate key="settings.statement.button.downloadTxt" extensionName="A11yQualityGate" /></button>
+                        <button type="button" class="btn btn-default js-aqg-statement-pdf" disabled="disabled"><f:translate key="settings.statement.button.downloadPdf" extensionName="A11yQualityGate" /></button>
+                    </div>
+                </div>
+                <div class="aqg-card__body">
+                    <div class="aqg-warning-banner">
+                        <span class="aqg-status-badge aqg-status-badge--warning js-aqg-statement-status-badge"><f:translate key="settings.statement.status.requiresReview" extensionName="A11yQualityGate" /></span>
+                        <strong><f:translate key="settings.statement.result.warningStrong" extensionName="A11yQualityGate" /></strong>
+                        <span><f:translate key="settings.statement.result.warningManual" extensionName="A11yQualityGate" /></span>
+                    </div>
+
+                    <div class="aqg-statement-preview js-aqg-statement-preview"></div>
+                </div>
+            </section>
+        </f:then>
+        <f:else>
+            <section class="aqg-card aqg-card--locked">
+                <div class="aqg-card__head">
+                    <div>
+                        <h3 class="aqg-card__title"><f:translate key="settings.statement.title" extensionName="A11yQualityGate" /></h3>
+                        <p class="aqg-card__sub"><f:translate key="settings.statement.locked.subtitle" extensionName="A11yQualityGate" /></p>
+                    </div>
+                </div>
+                <div class="aqg-card__body">
+                    <p class="aqg-muted"><f:translate key="settings.statement.locked.text" extensionName="A11yQualityGate" /></p>
+                    <p><a class="btn btn-primary" href="{pricingUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="settings.statement.locked.button" extensionName="A11yQualityGate" /></a></p>
+                </div>
+            </section>
+        </f:else>
+    </f:if>
+</div>
+</html>

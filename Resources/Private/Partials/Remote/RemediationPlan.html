@@ -1,0 +1,62 @@
+<f:if condition="{plan.hasTasks}">
+    <section class="aqg-remediation-plan aqg-remediation-plan--{variant}" aria-label="Recommended remediation plan">
+        <div class="aqg-remediation-plan__head">
+            <div>
+                <div class="aqg-remediation-plan__kicker">Recommended remediation plan</div>
+                <h2 class="aqg-remediation-plan__title">What to fix first</h2>
+                <p class="aqg-remediation-plan__subtitle">Automated remediation plan. Manual review may still be required.</p>
+            </div>
+        </div>
+
+        <f:if condition="{plan.hasTasks}">
+            <f:then>
+                <ol class="aqg-remediation-plan__tasks">
+                    <f:for each="{plan.tasks}" as="task" iteration="taskIterator">
+                        <li class="aqg-remediation-plan__task">
+                            <div class="aqg-remediation-plan__task-head">
+                                <span class="aqg-remediation-plan__priority">{taskIterator.cycle}</span>
+                                <div>
+                                    <h3>{task.title}</h3>
+                                    <f:if condition="{task.summary}">
+                                        <p>{task.summary}</p>
+                                    </f:if>
+                                </div>
+                            </div>
+                            <dl class="aqg-remediation-plan__meta">
+                                <div><dt>Suggested owner</dt><dd>{task.ownerLabel}</dd></div>
+                                <div><dt>Fix type</dt><dd>{task.fixTypeLabel}</dd></div>
+                                <div><dt>Impact</dt><dd>{task.impactLabel}</dd></div>
+                                <div><dt>Findings</dt><dd>{task.findingsTotalLabel}</dd></div>
+                                <div><dt>Affected pages</dt><dd>{task.affectedPagesTotalLabel}</dd></div>
+                                <div><dt>Estimated effort</dt><dd>{task.estimatedEffortLabel}</dd></div>
+                            </dl>
+                            <f:if condition="{task.quickWinLabel}">
+                                <span class="aqg-remediation-plan__badge">{task.quickWinLabel}</span>
+                            </f:if>
+                            <f:if condition="{task.hasSteps}">
+                                <div class="aqg-remediation-plan__steps">
+                                    <strong>Recommended steps</strong>
+                                    <ol>
+                                        <f:for each="{task.steps}" as="step">
+                                            <li>{step}</li>
+                                        </f:for>
+                                    </ol>
+                                </div>
+                            </f:if>
+                            <f:if condition="{task.hasExamples}">
+                                <div class="aqg-remediation-plan__examples">
+                                    <strong>Examples</strong>
+                                    <ul>
+                                        <f:for each="{task.examples}" as="example">
+                                            <li>{example}</li>
+                                        </f:for>
+                                    </ul>
+                                </div>
+                            </f:if>
+                        </li>
+                    </f:for>
+                </ol>
+            </f:then>
+        </f:if>
+    </section>
+</f:if>

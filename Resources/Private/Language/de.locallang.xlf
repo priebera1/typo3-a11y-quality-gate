@@ -1,0 +1,1703 @@
+<?xml version='1.0' encoding='utf-8'?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="de" datatype="plaintext" original="EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf">
+        <body>
+            <trans-unit id="overview.localActions.description">
+                <source>Scans configured TYPO3 content fields and, when enabled, the server-rendered HTML.</source>
+                <target>Prüft konfigurierte TYPO3-Inhaltsfelder und, falls aktiviert, das serverseitig gerenderte HTML.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.ruleDocs">
+                <source>Rule documentation</source>
+                <target>Regeldokumentation</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.title">
+                <source>Accessibility Statement Draft Assistant</source>
+                <target>Assistent für den Entwurf einer Barrierefreiheitserklärung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.intro">
+                <source>Generate a draft accessibility statement based on automated scan data. This draft must be reviewed, completed and approved before publication.</source>
+                <target>Erstellen Sie einen Entwurf einer Barrierefreiheitserklärung auf Basis automatisierter Prüfdaten. Dieser Entwurf muss vor der Veröffentlichung geprüft, ergänzt und freigegeben werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.form.aria">
+                <source>Accessibility Statement Draft Assistant</source>
+                <target>Assistent für den Entwurf einer Barrierefreiheitserklärung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.site">
+                <source>Site</source>
+                <target>Website</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.scanScope">
+                <source>Scan scope</source>
+                <target>Prüfquelle</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.latestSiteScan">
+                <source>Latest site scan</source>
+                <target>Letzte Website-Prüfung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.latestPageScan">
+                <source>Latest page scan</source>
+                <target>Letzte Seitenprüfung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.pageUrl">
+                <source>Page URL</source>
+                <target>Seiten-URL</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.specificJobId">
+                <source>Specific job ID</source>
+                <target>Bestimmte Job-ID</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.advanced">
+                <source>advanced</source>
+                <target>erweitert</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.specificJobHelp">
+                <source>Use this only when you want to generate a statement from a known completed scan job.</source>
+                <target>Nur verwenden, wenn ein Entwurf aus einem bekannten abgeschlossenen Scan-Job erzeugt werden soll.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.jobId">
+                <source>Job ID</source>
+                <target>Job-ID</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.language">
+                <source>Statement language</source>
+                <target>Sprache der Erklärung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.language.english">
+                <source>English</source>
+                <target>Englisch</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.language.german">
+                <source>Deutsch</source>
+                <target>Deutsch</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.language.help">
+                <source>Choose the language of the generated draft statement. This does not change the scanned site language.</source>
+                <target>Wählen Sie die Sprache des generierten Entwurfs. Dies ändert nicht die Sprache der geprüften Website.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.basic">
+                <source>Basic information</source>
+                <target>Basisinformationen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.websiteName">
+                <source>Website / service name</source>
+                <target>Website-/Dienstname</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.websiteName.placeholder">
+                <source>Website or service name</source>
+                <target>Website oder Dienstname</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.organization">
+                <source>Organization name</source>
+                <target>Name der Organisation</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.requiredBeforePublishing">
+                <source>Required before publishing</source>
+                <target>Vor Veröffentlichung erforderlich</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.organization.placeholder">
+                <source>Responsible organization</source>
+                <target>Zuständige Organisation</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.commitment">
+                <source>Short accessibility commitment</source>
+                <target>Kurzer Barrierefreiheits-Leitsatz</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.commitment.placeholder">
+                <source>[Organization] is committed to ensuring digital accessibility for people with disabilities.</source>
+                <target>[Organisation] bemüht sich, ihre digitalen Angebote barrierefrei zugänglich zu machen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.createdDate">
+                <source>Statement created date</source>
+                <target>Erstellungsdatum der Erklärung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.createdDate.placeholder">
+                <source>Use generated date if left empty</source>
+                <target>Bei leerem Feld wird das Generierungsdatum verwendet</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.warning.organizationMissing">
+                <source>Organization name should be completed before publication.</source>
+                <target>Der Name der Organisation sollte vor der Veröffentlichung ergänzt werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard">
+                <source>Accessibility standard</source>
+                <target>Barrierefreiheitsstandard</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.help">
+                <source>Choose the accessibility standard this draft should refer to. This does not confirm conformance.</source>
+                <target>Wählen Sie den Standard, auf den sich dieser Entwurf beziehen soll. Dies bestätigt keine Konformität.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.referenced">
+                <source>Referenced standard</source>
+                <target>Referenzierter Standard</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.wcag22aa">
+                <source>WCAG 2.2 Level AA</source>
+                <target>WCAG 2.2 Level AA</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.wcag21aa">
+                <source>WCAG 2.1 Level AA</source>
+                <target>WCAG 2.1 Level AA</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.en301549">
+                <source>EN 301 549 / WCAG-based requirements</source>
+                <target>EN 301 549 / WCAG-basierte Anforderungen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.custom">
+                <source>Custom</source>
+                <target>Benutzerdefiniert</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.customLabel">
+                <source>Custom accessibility standard</source>
+                <target>Benutzerdefinierter Barrierefreiheitsstandard</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.standard.customPlaceholder">
+                <source>Custom standard reference</source>
+                <target>Benutzerdefinierte Standardreferenz</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measures">
+                <source>Measures to support accessibility</source>
+                <target>Maßnahmen zur Unterstützung der Barrierefreiheit</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.qualityAssurance">
+                <source>Accessibility checks during content editing</source>
+                <target>Barrierefreiheitsprüfungen während der Inhaltspflege</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.training">
+                <source>Editor/developer accessibility training</source>
+                <target>Schulungen zur Barrierefreiheit für Redaktion/Entwicklung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.releaseChecks">
+                <source>Accessibility considered in release process</source>
+                <target>Barrierefreiheit im Release-Prozess berücksichtigen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.automatedScans">
+                <source>Automated frontend accessibility scans</source>
+                <target>Automatisierte Frontend-Prüfungen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.manualReviews">
+                <source>Manual accessibility reviews</source>
+                <target>Manuelle Barrierefreiheitsprüfungen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.feedbackChannel">
+                <source>Feedback channel for accessibility issues</source>
+                <target>Kontaktkanal für Barrierefreiheitsprobleme</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.custom">
+                <source>Custom measure</source>
+                <target>Benutzerdefinierte Maßnahme</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.measure.customPlaceholder">
+                <source>Describe an additional measure</source>
+                <target>Zusätzliche Maßnahme beschreiben</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.knownLimitations">
+                <source>Known limitations from automated scan</source>
+                <target>Bekannte Einschränkungen aus der automatisierten Prüfung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.knownLimitations.help">
+                <source>Known limitations are filled from the selected scan and use friendly labels where available.</source>
+                <target>Bekannte Einschränkungen werden aus der ausgewählten Prüfung übernommen und verwenden möglichst verständliche Bezeichnungen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.remediation">
+                <source>Alternatives or remediation notes</source>
+                <target>Alternativen oder Hinweise zur Behebung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.remediation.placeholder">
+                <source>Describe remediation plans or accessible alternatives</source>
+                <target>Beschreiben Sie geplante Behebung oder barrierefreie Alternativen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance">
+                <source>Conformance status</source>
+                <target>Konformitätsstatus</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.help">
+                <source>The automated score may suggest a status, but it is not a legal or final conformance decision.</source>
+                <target>Das automatisierte Signal kann einen Status vorschlagen, ist aber keine rechtliche oder finale Konformitätsentscheidung.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.notConfirmed">
+                <source>Not confirmed — automated draft only</source>
+                <target>Nicht bestätigt — nur automatisierter Entwurf</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.notConformant">
+                <source>Not conformant</source>
+                <target>Nicht konform</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.partiallyConformant">
+                <source>Partially conformant</source>
+                <target>Teilweise konform</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.mostlyConformant">
+                <source>Mostly conformant</source>
+                <target>Überwiegend konform</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.confirm">
+                <source>I confirm that this conformance status was reviewed manually and is not based only on automated scan results.</source>
+                <target>Ich bestätige, dass dieser Konformitätsstatus manuell geprüft wurde und nicht nur auf automatisierten Prüfergebnissen basiert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact">
+                <source>Feedback and contact</source>
+                <target>Rückmeldung und Kontakt</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.warning">
+                <source>Contact details are required before publishing this statement.</source>
+                <target>Kontaktdaten müssen vor der Veröffentlichung dieser Erklärung ergänzt werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.email">
+                <source>Contact email</source>
+                <target>Kontakt-E-Mail</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.email.placeholder">
+                <source>accessibility@example.org</source>
+                <target>barrierefreiheit@example.org</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.phone">
+                <source>Phone</source>
+                <target>Telefon</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.phone.placeholder">
+                <source>Optional phone number</source>
+                <target>Optionale Telefonnummer</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.address">
+                <source>Postal address</source>
+                <target>Postanschrift</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.address.placeholder">
+                <source>Optional postal address</source>
+                <target>Optionale Postanschrift</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.responseTime">
+                <source>Expected response time</source>
+                <target>Erwartete Antwortzeit</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.responseTime.placeholder">
+                <source>5 business days</source>
+                <target>5 Werktage</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.note">
+                <source>Additional contact note</source>
+                <target>Zusätzlicher Kontakthinweis</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.note.placeholder">
+                <source>Optional note for users contacting you</source>
+                <target>Optionaler Hinweis für Nutzerinnen und Nutzer</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.compatibility">
+                <source>Compatibility with browsers and assistive technologies</source>
+                <target>Kompatibilität mit Browsern und assistiven Technologien</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.compatible">
+                <source>Compatible environments</source>
+                <target>Kompatible Umgebungen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.compatible.placeholder">
+                <source>This website is intended to work with current versions of major browsers and assistive technologies.</source>
+                <target>Diese Website ist für die Nutzung mit aktuellen Versionen gängiger Browser und assistiver Technologien vorgesehen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.incompatible">
+                <source>Known incompatible environments</source>
+                <target>Bekannte inkompatible Umgebungen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.incompatible.placeholder">
+                <source>Leave empty if none are known</source>
+                <target>Leer lassen, wenn keine bekannt sind</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.technicalSpecifications">
+                <source>Technical specifications</source>
+                <target>Technische Spezifikationen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.html">
+                <source>HTML</source>
+                <target>HTML</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.waiAria">
+                <source>WAI-ARIA</source>
+                <target>WAI-ARIA</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.css">
+                <source>CSS</source>
+                <target>CSS</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.javascript">
+                <source>JavaScript</source>
+                <target>JavaScript</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.pdf">
+                <source>PDF documents</source>
+                <target>PDF-Dokumente</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.media">
+                <source>Video/audio content</source>
+                <target>Video-/Audioinhalte</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.tech.thirdParty">
+                <source>Embedded third-party content</source>
+                <target>Eingebettete Inhalte von Drittanbietern</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment">
+                <source>Assessment approach</source>
+                <target>Bewertungsmethode</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.aqg">
+                <source>Automated checks with Accessibility Quality Gate</source>
+                <target>Automatisierte Prüfungen mit Accessibility Quality Gate</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.axe">
+                <source>Automated frontend checks with axe-core / Playwright</source>
+                <target>Automatisierte Frontend-Prüfungen mit axe-core / Playwright</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.manualRequired">
+                <source>Manual review required</source>
+                <target>Manuelle Prüfung erforderlich</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.manualReview">
+                <source>Manual review performed by organization</source>
+                <target>Manuelle Prüfung durch die Organisation durchgeführt</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.assessment.externalAudit">
+                <source>External audit performed</source>
+                <target>Externer Audit durchgeführt</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.evaluationUrl">
+                <source>Evaluation report URL</source>
+                <target>URL des Evaluierungsberichts</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.evaluationUrl.placeholder">
+                <source>https://example.org/accessibility-report</source>
+                <target>https://example.org/barrierefreiheitsbericht</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval">
+                <source>Formal approval</source>
+                <target>Formale Freigabe</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.optionalBeforePublishing">
+                <source>Optional before publication</source>
+                <target>Optional vor Veröffentlichung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.organization">
+                <source>Approved by organization/unit</source>
+                <target>Freigegeben durch Organisation/Stelle</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.person">
+                <source>Approved by person/name</source>
+                <target>Freigegeben durch Person/Name</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.role">
+                <source>Role/function</source>
+                <target>Rolle/Funktion</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.approval.date">
+                <source>Approval date</source>
+                <target>Freigabedatum</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement">
+                <source>Complaints / enforcement procedure</source>
+                <target>Beschwerde-/Durchsetzungsverfahren</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.none">
+                <source>Not included</source>
+                <target>Nicht enthalten</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.generic">
+                <source>Generic complaints information</source>
+                <target>Allgemeine Beschwerdeinformationen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.germany">
+                <source>Germany placeholder</source>
+                <target>Deutschland-Platzhalter</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.austria">
+                <source>Austria placeholder</source>
+                <target>Österreich-Platzhalter</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.custom">
+                <source>Custom text</source>
+                <target>Benutzerdefinierter Text</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.customLabel">
+                <source>Custom enforcement text</source>
+                <target>Benutzerdefinierter Durchsetzungstext</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.customPlaceholder">
+                <source>Enter custom complaints or enforcement text</source>
+                <target>Benutzerdefinierten Beschwerde- oder Durchsetzungstext eingeben</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.generate">
+                <source>Generate statement</source>
+                <target>Statement generieren</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.empty.title">
+                <source>No statement generated yet.</source>
+                <target>Noch kein Statement generiert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.empty.text">
+                <source>Choose a scan scope and click Generate statement.</source>
+                <target>Wählen Sie eine Prüfquelle und klicken Sie auf „Entwurf erstellen“.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.title">
+                <source>Draft accessibility statement</source>
+                <target>Entwurf einer Barrierefreiheitserklärung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.warning">
+                <source>This is an automated draft based on automated accessibility checks. Manual review is required before publishing.</source>
+                <target>Dies ist ein automatisierter Entwurf auf Basis automatisierter Barrierefreiheitsprüfungen. Vor der Veröffentlichung ist eine manuelle Prüfung erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.copyHtml">
+                <source>Copy as HTML</source>
+                <target>Als HTML kopieren</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.downloadTxt">
+                <source>Download .txt</source>
+                <target>.txt herunterladen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.downloadPdf">
+                <source>Download PDF</source>
+                <target>PDF herunterladen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.title">
+                <source>Accessibility Statement Draft Assistant</source>
+                <target>Assistent für den Entwurf einer Barrierefreiheitserklärung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.subtitle">
+                <source>Accessibility Statement Draft Assistant is available with PRO.</source>
+                <target>Der Assistent für den Entwurf einer Barrierefreiheitserklärung ist mit PRO verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.text">
+                <source>Generate an automated draft statement from completed frontend scans with a PRO or Agency licence.</source>
+                <target>Erstellen Sie mit einer PRO- oder Agency-Lizenz einen automatisierten Entwurf aus abgeschlossenen Frontend-Scans.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.locked.button">
+                <source>View PRO options</source>
+                <target>PRO-Optionen ansehen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.pageUrl">
+                <source>Enter a page URL for the latest page scan statement.</source>
+                <target>Geben Sie eine Seiten-URL für das Statement zur letzten Seitenprüfung ein.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.jobId">
+                <source>Enter a job ID before generating the statement.</source>
+                <target>Geben Sie vor dem Generieren des Statements eine Job-ID ein.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.confirmStatus">
+                <source>Confirm the selected conformance status manually, or keep “Not confirmed — automated draft only”.</source>
+                <target>Bestätigen Sie den ausgewählten Konformitätsstatus manuell oder behalten Sie „Nicht bestätigt — nur automatisierter Entwurf“ bei.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.customEnforcement">
+                <source>Enter custom enforcement text or choose another enforcement template.</source>
+                <target>Geben Sie einen benutzerdefinierten Durchsetzungstext ein oder wählen Sie eine andere Vorlage.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidEmail">
+                <source>Enter a valid contact email address or leave it empty for a publication placeholder.</source>
+                <target>Geben Sie eine gültige Kontakt-E-Mail-Adresse ein oder lassen Sie das Feld für einen Veröffentlichungsplatzhalter leer.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidUrl">
+                <source>Enter a valid http/https evaluation report URL or leave it empty.</source>
+                <target>Geben Sie eine gültige http/https-URL für den Evaluierungsbericht ein oder lassen Sie das Feld leer.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.customStandard">
+                <source>Enter a custom accessibility standard or choose one of the predefined standards.</source>
+                <target>Geben Sie einen benutzerdefinierten Standard ein oder wählen Sie einen vordefinierten Standard.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.generating">
+                <source>Generating statement…</source>
+                <target>Statement wird generiert…</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.generated">
+                <source>Statement generated.</source>
+                <target>Statement generiert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.unavailable">
+                <source>Accessibility statement is not available right now.</source>
+                <target>Die Barrierefreiheitserklärung ist derzeit nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.copied">
+                <source>Statement HTML copied.</source>
+                <target>Statement-HTML kopiert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.copyFailed">
+                <source>Copy failed. Please select and copy the statement manually.</source>
+                <target>Kopieren fehlgeschlagen. Bitte wählen und kopieren Sie das Statement manuell.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.pdfUnavailable">
+                <source>Statement PDF is not available right now.</source>
+                <target>Das Statement-PDF ist derzeit nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.pdfDownloaded">
+                <source>Statement PDF downloaded.</source>
+                <target>Statement-PDF heruntergeladen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.generating">
+                <source>Generating…</source>
+                <target>Wird generiert…</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.copied">
+                <source>Copied</source>
+                <target>Kopiert</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.downloaded">
+                <source>Downloaded</source>
+                <target>Heruntergeladen</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.button.preparingPdf">
+                <source>Preparing PDF…</source>
+                <target>PDF wird vorbereitet…</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.generatedSourceFallback">
+                <source>Automated draft generated from frontend scan data.</source>
+                <target>Automatisierter Entwurf aus Frontend-Scandaten generiert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.draftIssuesFound">
+                <source>Draft — issues found</source>
+                <target>Entwurf — Probleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.draftNoIssuesFound">
+                <source>Draft — automated checks found no issues</source>
+                <target>Entwurf — automatisierte Prüfungen fanden keine Probleme</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.scanIncomplete">
+                <source>Draft — scan incomplete</source>
+                <target>Entwurf — Prüfung unvollständig</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.noScan">
+                <source>No scan available</source>
+                <target>Keine Prüfung verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.status.requiresReview">
+                <source>Draft — requires review</source>
+                <target>Entwurf — Prüfung erforderlich</target>
+            </trans-unit>
+            <trans-unit id="statement.error.validJobId">
+                <source>Choose a valid job ID.</source>
+                <target>Wählen Sie eine gültige Job-ID.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.validSite">
+                <source>Choose a valid site.</source>
+                <target>Wählen Sie eine gültige Website.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.validDomain">
+                <source>Accessibility statement is not available without a valid domain context.</source>
+                <target>Ohne gültigen Domain-Kontext ist keine Barrierefreiheitserklärung verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.invalidScanType">
+                <source>Invalid scan type for accessibility statement.</source>
+                <target>Ungültiger Scan-Typ für die Barrierefreiheitserklärung.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.pageUrlRequired">
+                <source>Enter a page URL for the latest page scan statement.</source>
+                <target>Geben Sie eine Seiten-URL für das Statement zur letzten Seitenprüfung ein.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.unavailable">
+                <source>Accessibility statement is not available right now.</source>
+                <target>Die Barrierefreiheitserklärung ist derzeit nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.licenceUnavailable">
+                <source>Accessibility Statement Draft Assistant is not available for this licence or environment.</source>
+                <target>Der Assistent für den Entwurf einer Barrierefreiheitserklärung ist für diese Lizenz oder Umgebung nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.unsupportedLanguage">
+                <source>The selected language is not supported for accessibility statements.</source>
+                <target>Die ausgewählte Sprache wird für Barrierefreiheitserklärungen nicht unterstützt.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.jobNotFound">
+                <source>The selected job ID was not found.</source>
+                <target>Die ausgewählte Job-ID wurde nicht gefunden.</target>
+            </trans-unit>
+            <trans-unit id="statement.error.notAvailableForScan">
+                <source>Accessibility statement is not available for this scan.</source>
+                <target>Für diesen Scan ist keine Barrierefreiheitserklärung verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="statement.pdf.noContentTitle">
+                <source>Draft Accessibility Statement</source>
+                <target>Entwurf einer Barrierefreiheitserklärung</target>
+            </trans-unit>
+            <trans-unit id="statement.pdf.noContent">
+                <source>No statement content available.</source>
+                <target>Kein Statement-Inhalt verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="statement.pdf.footer">
+                <source>Accessibility Quality Gate - draft assistant - manual review required - page {page} / {pages}</source>
+                <target>Accessibility Quality Gate - Entwurfsassistent - manuelle Prüfung erforderlich - Seite {page} / {pages}</target>
+            </trans-unit>
+            <trans-unit id="statement.audit.notClaimed">
+                <source>WCAG, EAA, BFSG or BITV compliance is not confirmed by this tool.</source>
+                <target>Eine WCAG-, EAA-, BFSG- oder BITV-Konformität wird durch dieses Werkzeug nicht bestätigt.</target>
+            </trans-unit>
+            <trans-unit id="statement.audit.manualReview">
+                <source>Manual review is required before publishing.</source>
+                <target>Eine manuelle Prüfung ist vor der Veröffentlichung erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.organisation">
+                <source>[Insert organization name]</source>
+                <target>[Name der Organisation ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.website">
+                <source>[Insert website name]</source>
+                <target>[Website ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.websitePublication">
+                <source>[Insert website before publication]</source>
+                <target>[Website vor Veröffentlichung ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.default.commitment">
+                <source>[Organization] is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying relevant accessibility standards.</source>
+                <target>[Organisation] bemüht sich, ihre digitalen Angebote barrierefrei zugänglich zu machen. Wir verbessern die Nutzungserfahrung kontinuierlich und orientieren uns an den relevanten Barrierefreiheitsstandards.</target>
+            </trans-unit>
+            <trans-unit id="statement.default.responseTime">
+                <source>5 business days</source>
+                <target>5 Werktage</target>
+            </trans-unit>
+            <trans-unit id="statement.default.remediation">
+                <source>We are reviewing the identified issues and prioritizing fixes for critical and recurring barriers. If you need information in an accessible format, please use the contact details below.</source>
+                <target>Wir prüfen die festgestellten Probleme und priorisieren die Behebung kritischer und wiederkehrender Barrieren. Wenn Sie Informationen in einer barrierefreien Form benötigen, nutzen Sie bitte die unten angegebenen Kontaktmöglichkeiten.</target>
+            </trans-unit>
+            <trans-unit id="statement.default.compatible">
+                <source>This website is intended to work with current versions of major browsers and assistive technologies.</source>
+                <target>Diese Website ist für die Nutzung mit aktuellen Versionen gängiger Browser und assistiver Technologien vorgesehen.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.warning">
+                <source>This status is a draft suggestion based on automated checks. It must be reviewed and confirmed before publication.</source>
+                <target>Dieser Status ist ein Entwurf auf Basis automatisierter Prüfungen. Er muss vor der Veröffentlichung geprüft und bestätigt werden.</target>
+            </trans-unit>
+            <trans-unit id="statement.section.commitment">
+                <source>Accessibility commitment</source>
+                <target>Verpflichtung zur Barrierefreiheit</target>
+            </trans-unit>
+            <trans-unit id="statement.section.measures">
+                <source>Measures to support accessibility</source>
+                <target>Maßnahmen zur Unterstützung der Barrierefreiheit</target>
+            </trans-unit>
+            <trans-unit id="statement.section.scope">
+                <source>Scope of this statement</source>
+                <target>Geltungsbereich dieser Erklärung</target>
+            </trans-unit>
+            <trans-unit id="statement.section.standard">
+                <source>Accessibility standard</source>
+                <target>Verwendeter Barrierefreiheitsstandard</target>
+            </trans-unit>
+            <trans-unit id="statement.section.conformance">
+                <source>Accessibility and conformance status</source>
+                <target>Barrierefreiheits- und Konformitätsstatus</target>
+            </trans-unit>
+            <trans-unit id="statement.section.knownLimitations">
+                <source>Known accessibility limitations</source>
+                <target>Bekannte Barrieren und Einschränkungen</target>
+            </trans-unit>
+            <trans-unit id="statement.section.remediation">
+                <source>Alternatives and remediation note</source>
+                <target>Alternativen und geplante Behebung</target>
+            </trans-unit>
+            <trans-unit id="statement.section.feedback">
+                <source>Feedback</source>
+                <target>Rückmeldung und Kontakt</target>
+            </trans-unit>
+            <trans-unit id="statement.section.compatibility">
+                <source>Compatibility with browsers and assistive technology</source>
+                <target>Kompatibilität mit Browsern und assistiven Technologien</target>
+            </trans-unit>
+            <trans-unit id="statement.section.technicalSpecifications">
+                <source>Technical specifications</source>
+                <target>Technische Spezifikationen</target>
+            </trans-unit>
+            <trans-unit id="statement.section.assessment">
+                <source>Assessment approach</source>
+                <target>Bewertungsmethode</target>
+            </trans-unit>
+            <trans-unit id="statement.section.evaluationReport">
+                <source>Evaluation report</source>
+                <target>Evaluierungsbericht</target>
+            </trans-unit>
+            <trans-unit id="statement.section.formalApproval">
+                <source>Formal approval of this draft statement</source>
+                <target>Formale Freigabe dieses Entwurfs</target>
+            </trans-unit>
+            <trans-unit id="statement.section.technicalScanSummary">
+                <source>Technical scan summary</source>
+                <target>Technische Prüfübersicht</target>
+            </trans-unit>
+            <trans-unit id="statement.section.limitations">
+                <source>Limitations of this automated draft</source>
+                <target>Einschränkungen dieses automatisierten Entwurfs</target>
+            </trans-unit>
+            <trans-unit id="statement.section.createdBy">
+                <source>Created with Accessibility Quality Gate</source>
+                <target>Erstellt mit Accessibility Quality Gate</target>
+            </trans-unit>
+            <trans-unit id="statement.warning.organizationMissing">
+                <source>Organization name should be completed before publication.</source>
+                <target>Der Name der Organisation sollte vor der Veröffentlichung ergänzt werden.</target>
+            </trans-unit>
+            <trans-unit id="statement.warning.contactMissing">
+                <source>Contact details are required before publishing this statement.</source>
+                <target>Kontaktdaten müssen vor der Veröffentlichung dieser Erklärung ergänzt werden.</target>
+            </trans-unit>
+            <trans-unit id="statement.body.measures">
+                <source>{organisation} takes the following measures to support accessibility of {website}:</source>
+                <target>{organisation} ergreift folgende Maßnahmen zur Unterstützung der Barrierefreiheit von {website}:</target>
+            </trans-unit>
+            <trans-unit id="statement.body.standard">
+                <source>The Web Content Accessibility Guidelines (WCAG) define requirements for designers and developers to improve accessibility for people with disabilities. This draft refers to {standard}.</source>
+                <target>Die Web Content Accessibility Guidelines (WCAG) definieren Anforderungen zur Verbesserung der Barrierefreiheit digitaler Inhalte. Dieser Entwurf bezieht sich auf {standard}.</target>
+            </trans-unit>
+            <trans-unit id="statement.body.knownLimitations">
+                <source>Despite ongoing efforts to improve accessibility, some parts of the website may not yet be fully accessible. Automated checks identified the following recurring issue types:</source>
+                <target>Trotz laufender Bemühungen zur Verbesserung der Barrierefreiheit sind einige Bereiche der Website möglicherweise noch nicht vollständig barrierefrei. Automatisierte Prüfungen haben die folgenden wiederkehrenden Problemtypen festgestellt:</target>
+            </trans-unit>
+            <trans-unit id="statement.body.noTopIssues">
+                <source>No recurring issue types were included in the API response.</source>
+                <target>Keine wiederkehrenden Problemtypen im API-Ergebnis enthalten.</target>
+            </trans-unit>
+            <trans-unit id="statement.body.knownLimitationsWarning">
+                <source>These findings were identified by automated testing. Manual review may identify additional barriers or confirm whether individual findings are applicable.</source>
+                <target>Diese Befunde wurden durch automatisierte Prüfungen festgestellt. Eine manuelle Prüfung kann weitere Barrieren aufdecken oder einzelne Befunde bestätigen.</target>
+            </trans-unit>
+            <trans-unit id="statement.body.feedback">
+                <source>We welcome your feedback on the accessibility of {website}. Please let us know if you encounter accessibility barriers:</source>
+                <target>Wir freuen uns über Ihre Rückmeldung zur Barrierefreiheit von {website}. Bitte informieren Sie uns, wenn Sie auf Barrieren stoßen:</target>
+            </trans-unit>
+            <trans-unit id="statement.body.technicalSpecifications">
+                <source>Accessibility of {website} relies on the following technologies:</source>
+                <target>Die Barrierefreiheit von {website} hängt von den folgenden Technologien ab:</target>
+            </trans-unit>
+            <trans-unit id="statement.body.assessment">
+                <source>Accessibility of {website} was assessed using the following approaches:</source>
+                <target>Die Barrierefreiheit von {website} wurde mit folgenden Methoden bewertet:</target>
+            </trans-unit>
+            <trans-unit id="statement.body.evaluationReport">
+                <source>An evaluation report is available at: {url}</source>
+                <target>Ein Evaluierungsbericht ist verfügbar unter: {url}</target>
+            </trans-unit>
+            <trans-unit id="statement.body.formalApproval">
+                <source>This draft accessibility statement was reviewed by:</source>
+                <target>Dieser Entwurf wurde geprüft von:</target>
+            </trans-unit>
+            <trans-unit id="statement.body.limitations">
+                <source>This statement was generated from automated accessibility checks. Automated checks cannot cover all WCAG, EAA, BFSG or BITV requirements. This draft does not replace manual accessibility testing, screen reader testing, keyboard testing, legal review or a full accessibility audit. WCAG, EAA, BFSG or BITV compliance is not confirmed by this tool.</source>
+                <target>Diese Erklärung wurde auf Basis automatisierter Barrierefreiheitsprüfungen erstellt. Automatisierte Prüfungen können nicht alle Anforderungen aus WCAG, EAA, BFSG oder BITV abdecken. Dieser Entwurf ersetzt keine manuelle Barrierefreiheitsprüfung, keine Screenreader-Prüfung, keine Tastaturprüfung, keine rechtliche Prüfung und keinen vollständigen Barrierefreiheitsaudit. Eine WCAG-, EAA-, BFSG- oder BITV-Konformität wird durch dieses Werkzeug nicht bestätigt.</target>
+            </trans-unit>
+            <trans-unit id="statement.body.createdBy">
+                <source>This automated draft was generated by Accessibility Quality Gate and must be reviewed, completed and approved before publication.</source>
+                <target>Dieser automatisierte Entwurf wurde mit Accessibility Quality Gate erstellt und muss vor der Veröffentlichung geprüft, ergänzt und freigegeben werden.</target>
+            </trans-unit>
+            <trans-unit id="statement.scope.single">
+                <source>This accessibility statement draft applies to the selected page: {url}
+
+The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+                <target>Dieser Entwurf bezieht sich auf die ausgewählte Seite: {url}
+
+Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Quality Gate.</target>
+            </trans-unit>
+            <trans-unit id="statement.scope.site">
+                <source>This draft accessibility statement applies to the website: {url}
+
+The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+                <target>Dieser Entwurf einer Barrierefreiheitserklärung bezieht sich auf die Website: {url}
+
+Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Quality Gate.</target>
+            </trans-unit>
+            <trans-unit id="statement.title">
+                <source>Draft Accessibility Statement for {website}</source>
+                <target>Entwurf einer Barrierefreiheitserklärung für {website}</target>
+            </trans-unit>
+            <trans-unit id="statement.lead">
+                <source>Automated draft - manual review required before publication.</source>
+                <target>Automatisierter Entwurf - manuelle Prüfung vor Veröffentlichung erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="statement.meta.generated">
+                <source>Statement generated</source>
+                <target>Erstellt am</target>
+            </trans-unit>
+            <trans-unit id="statement.meta.scanned">
+                <source>Last automated scan</source>
+                <target>Letzte automatisierte Prüfung</target>
+            </trans-unit>
+            <trans-unit id="statement.audit.heading">
+                <source>Audit support notes</source>
+                <target>Hinweise zum Audit</target>
+            </trans-unit>
+            <trans-unit id="statement.status.draftIssuesFound">
+                <source>Draft - issues found</source>
+                <target>Entwurf - Probleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="statement.status.draftNoIssuesFound">
+                <source>Draft - automated checks found no issues</source>
+                <target>Entwurf - automatisierte Prüfungen fanden keine Probleme</target>
+            </trans-unit>
+            <trans-unit id="statement.status.scanIncomplete">
+                <source>Draft - scan incomplete</source>
+                <target>Entwurf - Prüfung unvollständig</target>
+            </trans-unit>
+            <trans-unit id="statement.status.noScan">
+                <source>No scan available</source>
+                <target>Keine Prüfung verfügbar</target>
+            </trans-unit>
+            <trans-unit id="statement.status.requiresReview">
+                <source>Draft - requires review</source>
+                <target>Entwurf - Prüfung erforderlich</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.notCompliant">
+                <source>Not compliant</source>
+                <target>Nicht konform</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.partiallyCompliant">
+                <source>Partially compliant</source>
+                <target>Teilweise konform</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.mostlyCompliant">
+                <source>Mostly compliant</source>
+                <target>Überwiegend konform</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.label.notConfirmed">
+                <source>Not confirmed - automated draft only</source>
+                <target>Nicht bestätigt - nur automatisierter Entwurf</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.safe">
+                <source>Automated assessment: significant accessibility issues found.
+
+This draft is based on automated checks only. A manual review is required before any accessibility or conformity status can be confirmed.
+
+Automated checks found accessibility issues that require review and remediation. No final conformity status is confirmed by this automated draft.</source>
+                <target>Automatisierte Einschätzung: Es wurden erhebliche Barrierefreiheitsprobleme gefunden.
+
+Dieser Entwurf basiert ausschließlich auf automatisierten Prüfungen. Eine manuelle Prüfung ist erforderlich, bevor ein Barrierefreiheits- oder Konformitätsstatus bestätigt werden kann.
+
+Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die geprüft und behoben werden sollten. Durch diesen automatisierten Entwurf wird kein finaler Konformitätsstatus bestätigt.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.notCompliant">
+                <source>The selected draft status is: not conformant. This means that the content does not currently conform to the selected accessibility standard. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>
+                <target>Der ausgewählte Entwurfsstatus lautet: nicht konform. Das bedeutet, dass die Inhalte derzeit nicht dem ausgewählten Barrierefreiheitsstandard entsprechen. Dieser Status wurde von der bearbeitenden Person ausgewählt und wurde nicht durch einen vollständigen manuellen Audit bestätigt, sofern nicht separat angegeben.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.partiallyCompliant">
+                <source>The selected draft status is: partially conformant. This means that some parts of the content do not fully conform to the selected accessibility standard. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>
+                <target>Der ausgewählte Entwurfsstatus lautet: teilweise konform. Das bedeutet, dass einige Teile der Inhalte nicht vollständig dem ausgewählten Barrierefreiheitsstandard entsprechen. Dieser Status wurde von der bearbeitenden Person ausgewählt und wurde nicht durch einen vollständigen manuellen Audit bestätigt, sofern nicht separat angegeben.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.mostlyCompliant">
+                <source>The selected draft status is: mostly conformant. This means that most parts of the content appear to conform to the selected accessibility standard, but remaining issues require review. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>
+                <target>Der ausgewählte Entwurfsstatus lautet: überwiegend konform. Das bedeutet, dass große Teile der Inhalte dem ausgewählten Barrierefreiheitsstandard entsprechen können, aber verbleibende Probleme geprüft werden müssen. Dieser Status wurde von der bearbeitenden Person ausgewählt und wurde nicht durch einen vollständigen manuellen Audit bestätigt, sofern nicht separat angegeben.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.status">
+                <source>Selected status</source>
+                <target>Ausgewählter Status</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.confirmed">
+                <source>Status selection manually confirmed</source>
+                <target>Statusauswahl manuell bestätigt</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.suggestion">
+                <source>Suggested from automated signal</source>
+                <target>Vorschlag aus automatisiertem Signal</target>
+            </trans-unit>
+            <trans-unit id="statement.yes">
+                <source>Yes</source>
+                <target>Ja</target>
+            </trans-unit>
+            <trans-unit id="statement.no">
+                <source>No</source>
+                <target>Nein</target>
+            </trans-unit>
+            <trans-unit id="statement.warning.statusDiffers">
+                <source>The selected status differs from the automated signal. Please verify this manually before publication.</source>
+                <target>Der ausgewählte Status weicht vom automatisierten Signal ab. Bitte prüfen Sie dies vor der Veröffentlichung manuell.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.optional">
+                <source>optional</source>
+                <target>optional</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.draftStatus">
+                <source>Draft status</source>
+                <target>Entwurfsstatus</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.suggestionLabel">
+                <source>Suggested from automated signal</source>
+                <target>Vorschlag aus automatisiertem Signal</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.suggestionHelp">
+                <source>will be shown after generation as guidance only. It is not a confirmed accessibility or conformity status.</source>
+                <target>wird nach der Generierung nur als Orientierung angezeigt. Es ist kein bestätigter Barrierefreiheits- oder Konformitätsstatus.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.conformance.confirmHelp">
+                <source>Without this confirmation, non-default statuses cannot be exported. Keep the default status for automated draft output.</source>
+                <target>Ohne diese Bestätigung können nicht-standardmäßige Status nicht exportiert werden. Behalten Sie den Standardstatus für automatisierte Entwurfs-Ausgaben bei.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.contact.help">
+                <source>Insert the contact details of the responsible organisation or accessibility contact.</source>
+                <target>Geben Sie die Kontaktdaten der zuständigen Organisation oder Kontaktstelle für Barrierefreiheit ein.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.remediation.note">
+                <source>Remediation note</source>
+                <target>Hinweis zur Behebung</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.enforcement.template">
+                <source>Template</source>
+                <target>Vorlage</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.warningStrong">
+                <source>This is an automated draft based on automated accessibility checks.</source>
+                <target>Dies ist ein automatisierter Entwurf auf Basis automatisierter Barrierefreiheitsprüfungen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.warningManual">
+                <source>Manual review is required before publishing.</source>
+                <target>Vor der Veröffentlichung ist eine manuelle Prüfung erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.selectedDraftStatus">
+                <source>Selected draft status</source>
+                <target>Ausgewählter Entwurfsstatus</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.row.noSafeDefault">
+                <source>No - safe default wording used</source>
+                <target>Nein - sicherer Standardtext verwendet</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.intro">
+                <source>If you find accessibility barriers on this website or need information in an accessible format, please contact:</source>
+                <target>Wenn Sie Barrieren auf dieser Website finden oder Informationen in einer barrierefreien Form benötigen, wenden Sie sich bitte an:</target>
+            </trans-unit>
+            <trans-unit id="statement.placeholder.accessibilityContact">
+                <source>[Insert accessibility contact before publication]</source>
+                <target>[Kontaktstelle für Barrierefreiheit vor Veröffentlichung ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.responsibleUnit">
+                <source>Responsible unit</source>
+                <target>Zuständige Stelle</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.email">
+                <source>Email</source>
+                <target>E-Mail</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.phone">
+                <source>Phone</source>
+                <target>Telefon</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.postalAddress">
+                <source>Postal address</source>
+                <target>Postanschrift</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.responseTime">
+                <source>Response time</source>
+                <target>Antwortfrist</target>
+            </trans-unit>
+            <trans-unit id="statement.contact.additionalNote">
+                <source>Additional contact note</source>
+                <target>Zusätzlicher Hinweis</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.noneText">
+                <source>No enforcement procedure has been included in this draft.</source>
+                <target>Kein Durchsetzungsverfahren wurde in diesen Entwurf aufgenommen.</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.customPlaceholder">
+                <source>[Insert custom enforcement procedure text before publication]</source>
+                <target>[Eigenen Text zum Durchsetzungsverfahren vor Veröffentlichung ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.germanyText">
+                <source>If you are not satisfied with the response to your accessibility feedback, you may contact the responsible conciliation or enforcement body. [Add the responsible body link or contact details before publication]</source>
+                <target>Wenn Sie der Meinung sind, dass Ihre Rückmeldung zur Barrierefreiheit nicht ausreichend beantwortet wurde, können Sie sich an die zuständige Schlichtungsstelle oder Durchsetzungsstelle wenden. [Link oder Kontaktdaten der zuständigen Stelle vor Veröffentlichung ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.austriaText">
+                <source>If you are not satisfied with the response to your accessibility feedback, you may contact the responsible complaints or monitoring body. [Add the responsible body link or contact details before publication]</source>
+                <target>Wenn Sie der Meinung sind, dass Ihre Rückmeldung zur Barrierefreiheit nicht ausreichend beantwortet wurde, können Sie sich an die zuständige Beschwerde- oder Monitoringstelle wenden. [Link oder Kontaktdaten der zuständigen Stelle vor Veröffentlichung ergänzen]</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.genericText">
+                <source>If you are not satisfied with the response to your accessibility feedback, you may contact the responsible enforcement or conciliation body in your country or region.</source>
+                <target>Wenn Sie der Meinung sind, dass Ihre Rückmeldung zur Barrierefreiheit nicht ausreichend beantwortet wurde, können Sie sich an die zuständige Durchsetzungs- oder Schlichtungsstelle wenden.</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.heading.germany">
+                <source>Conciliation procedure</source>
+                <target>Schlichtungsverfahren</target>
+            </trans-unit>
+            <trans-unit id="statement.enforcement.heading.default">
+                <source>Formal complaints</source>
+                <target>Durchsetzungsverfahren</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.testingMethod">
+                <source>Testing method</source>
+                <target>Prüfmethode</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.testingMethodValue">
+                <source>Automated accessibility check with Accessibility Quality Gate</source>
+                <target>Automatisierte Barrierefreiheitsprüfung mit Accessibility Quality Gate</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.testingEngine">
+                <source>Testing engine</source>
+                <target>Prüfwerkzeug</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.scanScope">
+                <source>Scan scope</source>
+                <target>Prüfumfang</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.checkedPages">
+                <source>Checked pages</source>
+                <target>Geprüfte Seiten</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.automatedFindings">
+                <source>Automated findings</source>
+                <target>Automatisierte Befunde</target>
+            </trans-unit>
+            <trans-unit id="statement.technical.automatedSignal">
+                <source>Automated signal</source>
+                <target>Automatisiertes Signal</target>
+            </trans-unit>
+            <trans-unit id="statement.source.websitePage">
+                <source>Website/page</source>
+                <target>Website/Seite</target>
+            </trans-unit>
+            <trans-unit id="statement.source.scanDate">
+                <source>Scan date</source>
+                <target>Prüfdatum</target>
+            </trans-unit>
+            <trans-unit id="statement.source.generated">
+                <source>Generated</source>
+                <target>Erstellt am</target>
+            </trans-unit>
+            <trans-unit id="statement.source.scannedPages">
+                <source>Scanned pages</source>
+                <target>Geprüfte Seiten</target>
+            </trans-unit>
+            <trans-unit id="statement.source.singlePage">
+                <source>Single page scan</source>
+                <target>Einzelseiten-Prüfung</target>
+            </trans-unit>
+            <trans-unit id="statement.source.siteScan">
+                <source>Site scan</source>
+                <target>Website-Prüfung</target>
+            </trans-unit>
+            <trans-unit id="statement.source.siteCrawl">
+                <source>Site crawl</source>
+                <target>Website-Crawl</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.critical">
+                <source>critical</source>
+                <target>kritisch</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.serious">
+                <source>serious</source>
+                <target>schwerwiegend</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.moderate">
+                <source>moderate</source>
+                <target>moderat</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.minor">
+                <source>minor</source>
+                <target>gering</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.total">
+                <source>total</source>
+                <target>gesamt</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.finding">
+                <source>finding</source>
+                <target>Fundstelle</target>
+            </trans-unit>
+            <trans-unit id="statement.findings.findings">
+                <source>findings</source>
+                <target>Fundstellen</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.alt">
+                <source>Images without alternative text</source>
+                <target>Bilder ohne Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.button">
+                <source>Buttons without accessible names</source>
+                <target>Schaltflächen ohne zugängliche Beschriftung</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.form">
+                <source>Form fields without labels</source>
+                <target>Formularfelder ohne Beschriftung</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.iframe">
+                <source>Iframes without titles</source>
+                <target>Iframes ohne Titel</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.link">
+                <source>Links without discernible text</source>
+                <target>Links ohne erkennbaren Text</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.contrast">
+                <source>Insufficient text contrast</source>
+                <target>Unzureichender Textkontrast</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.landmark">
+                <source>Content outside landmark regions</source>
+                <target>Inhalte außerhalb von Landmark-Bereichen</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.marquee">
+                <source>Moving marquee content</source>
+                <target>Lauftext/Marquee-Inhalte</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.select">
+                <source>Select fields without accessible names</source>
+                <target>Auswahlfelder ohne zugängliche Bezeichnung</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.oneMainLandmark">
+                <source>Use one main landmark</source>
+                <target>Genau einen Hauptbereich verwenden</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.headingOne">
+                <source>Add a meaningful H1</source>
+                <target>Aussagekräftige H1-Überschrift ergänzen</target>
+            </trans-unit>
+            <trans-unit id="statement.issue.targetSize">
+                <source>Touch targets are too small or too close together</source>
+                <target>Touch-Ziele sind zu klein oder zu nah beieinander</target>
+            </trans-unit>
+            <trans-unit id="statement.label.website">
+                <source>Website</source>
+                <target>Website</target>
+            </trans-unit>
+            <trans-unit id="statement.label.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="statement.label.name">
+                <source>Name</source>
+                <target>Name</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.unavailable">
+                <source>Accessibility statement is not available right now.</source>
+                <target>Die Barrierefreiheitserklärung ist derzeit nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.pdfUnavailable">
+                <source>Accessibility statement PDF is not available right now.</source>
+                <target>Das PDF der Barrierefreiheitserklärung ist derzeit nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.accessDenied">
+                <source>Access denied.</source>
+                <target>Zugriff verweigert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.unsupportedLanguage">
+                <source>The selected language is not supported for accessibility statements.</source>
+                <target>Die ausgewählte Sprache wird für Barrierefreiheitserklärungen nicht unterstützt.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.chooseSite">
+                <source>Choose a site before generating the statement.</source>
+                <target>Wählen Sie eine Website aus, bevor Sie die Erklärung erstellen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.siteNotResolved">
+                <source>The selected site could not be resolved.</source>
+                <target>Die ausgewählte Website konnte nicht ermittelt werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.proOnly">
+                <source>Accessibility Statement Draft Assistant is available with PRO.</source>
+                <target>Der Entwurfsassistent für Barrierefreiheitserklärungen ist mit PRO verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.enterJobId">
+                <source>Enter a job ID before generating the statement.</source>
+                <target>Geben Sie eine Job-ID ein, bevor Sie die Erklärung erstellen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.enterPageUrl">
+                <source>Enter a page URL for the latest page scan statement.</source>
+                <target>Geben Sie eine Seiten-URL für die Erklärung aus dem letzten Seitenscan ein.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.pdf.title">
+                <source>Draft Accessibility Statement</source>
+                <target>Entwurf einer Barrierefreiheitserklärung</target>
+            </trans-unit>
+            <trans-unit id="rule.rendered.duplicate_id.title">
+                <source>Rendered HTML contains duplicate IDs</source>
+                <target>Das gerenderte HTML enthält doppelte IDs</target>
+            </trans-unit>
+            <trans-unit id="rule.rendered.duplicate_id.guidance">
+                <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
+                <target>Verwenden Sie jede id auf der Seite nur einmal und aktualisieren Sie alle Beschriftungen, Links und ARIA-Referenzen, die auf die geänderte ID verweisen.</target>
+            </trans-unit>
+            <trans-unit id="rule.rte.duplicate_id.title">
+                <source>Duplicate element IDs</source>
+                <target>Doppelte Element-IDs</target>
+            </trans-unit>
+            <trans-unit id="rule.rte.duplicate_id.guidance">
+                <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
+                <target>Verwenden Sie jede id auf der Seite nur einmal und aktualisieren Sie alle Beschriftungen, Links und ARIA-Referenzen, die auf die geänderte ID verweisen.</target>
+            </trans-unit>
+            <trans-unit id="rule.rendered.landmark_unique.title">
+                <source>Landmarks of the same type need unique names</source>
+                <target>Landmark-Bereiche desselben Typs benötigen eindeutige Bezeichnungen</target>
+            </trans-unit>
+            <trans-unit id="rule.rendered.landmark_unique.guidance">
+                <source>Review repeated landmarks and give landmarks of the same type distinct accessible names when users need to tell them apart.</source>
+                <target>Prüfen Sie wiederholte Landmark-Bereiche und vergeben Sie eindeutige zugängliche Namen, wenn Benutzer sie unterscheiden müssen.</target>
+            </trans-unit>
+            <trans-unit id="rule.rte.form_control_missing_label.title">
+                <source>Form fields need accessible labels</source>
+                <target>Formularfelder benötigen zugängliche Beschriftungen</target>
+            </trans-unit>
+            <trans-unit id="rule.rte.form_control_missing_label.guidance">
+                <source>Associate the form control with a visible label. When a visible label cannot be used, provide a clear accessible name with aria-label or aria-labelledby.</source>
+                <target>Verknüpfen Sie das Formularfeld mit einer sichtbaren Beschriftung. Wenn keine sichtbare Beschriftung möglich ist, verwenden Sie einen eindeutigen zugänglichen Namen mit aria-label oder aria-labelledby.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.image_alt.title">
+                <source>Images without alternative text</source>
+                <target>Bilder ohne Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.image_alt.why">
+                <source>People using screen readers may miss important information conveyed by images.</source>
+                <target>Menschen, die Screenreader verwenden, können wichtige Informationen übersehen, die durch Bilder vermittelt werden.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.image_alt.fix">
+                <source>Add meaningful alternative text, or mark the image as decorative only when it does not convey content.</source>
+                <target>Fügen Sie einen aussagekräftigen Alternativtext hinzu oder kennzeichnen Sie das Bild nur dann als dekorativ, wenn es keine inhaltliche Information vermittelt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.input_image_alt.title">
+                <source>Image buttons without alternative text</source>
+                <target>Bild-Schaltflächen ohne Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.input_image_alt.why">
+                <source>People using screen readers may not understand the purpose of the image button.</source>
+                <target>Menschen, die Screenreader verwenden, können den Zweck der Bild-Schaltfläche möglicherweise nicht erkennen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.input_image_alt.fix">
+                <source>Add alternative text that describes the button action.</source>
+                <target>Fügen Sie einen Alternativtext hinzu, der die Aktion der Schaltfläche beschreibt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.button_name.title">
+                <source>Buttons without accessible names</source>
+                <target>Schaltflächen ohne zugängliche Beschriftung</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.button_name.why">
+                <source>People using screen readers or voice control may not know what the button does.</source>
+                <target>Menschen, die Screenreader oder Sprachsteuerung verwenden, können möglicherweise nicht erkennen, was die Schaltfläche bewirkt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.button_name.fix">
+                <source>Add visible button text or an accessible name that clearly describes the action.</source>
+                <target>Fügen Sie sichtbaren Schaltflächentext oder einen zugänglichen Namen hinzu, der die Aktion eindeutig beschreibt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.select_name.title">
+                <source>Select fields without accessible names</source>
+                <target>Auswahlfelder ohne zugängliche Bezeichnung</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.select_name.why">
+                <source>People using assistive technology may not know what information the select field asks for.</source>
+                <target>Menschen, die assistive Technologien verwenden, können möglicherweise nicht erkennen, welche Information das Auswahlfeld abfragt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.select_name.fix">
+                <source>Connect the select field to a visible label or add an accessible name.</source>
+                <target>Verknüpfen Sie das Auswahlfeld mit einer sichtbaren Beschriftung oder ergänzen Sie einen zugänglichen Namen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.label.title">
+                <source>Form fields without labels</source>
+                <target>Formularfelder ohne Beschriftung</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.label.why">
+                <source>People using assistive technology may not understand what information a field requires.</source>
+                <target>Menschen, die assistive Technologien verwenden, können möglicherweise nicht verstehen, welche Information ein Feld erfordert.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.label.fix">
+                <source>Add a visible label and associate it with the form field.</source>
+                <target>Fügen Sie eine sichtbare Beschriftung hinzu und verknüpfen Sie sie mit dem Formularfeld.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.frame_title.title">
+                <source>Iframes without descriptive titles</source>
+                <target>Iframes ohne beschreibenden Titel</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.frame_title.why">
+                <source>Screen reader users may not understand what content the embedded frame contains.</source>
+                <target>Screenreader-Nutzende können möglicherweise nicht erkennen, welche Inhalte der eingebettete Frame enthält.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.frame_title.fix">
+                <source>Add a short, descriptive title to the iframe that explains what content it contains.</source>
+                <target>Fügen Sie dem iframe einen kurzen, beschreibenden Titel hinzu, der seinen Inhalt erklärt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_name.title">
+                <source>Links without discernible text</source>
+                <target>Links ohne erkennbaren Text</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_name.why">
+                <source>People using screen readers or keyboard navigation may not understand where the link goes.</source>
+                <target>Menschen, die Screenreader oder Tastaturnavigation verwenden, können möglicherweise nicht erkennen, wohin der Link führt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_name.fix">
+                <source>Provide clear link text or an accessible name that describes the link destination or action.</source>
+                <target>Verwenden Sie einen klaren Linktext oder einen zugänglichen Namen, der Ziel oder Aktion des Links beschreibt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.color_contrast.title">
+                <source>Insufficient text contrast</source>
+                <target>Unzureichender Textkontrast</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.color_contrast.why">
+                <source>Low contrast can make text difficult to read for people with low vision or color vision deficiencies.</source>
+                <target>Ein geringer Kontrast kann Texte für Menschen mit Sehbehinderungen oder Farbsehschwächen schwer lesbar machen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.color_contrast.fix">
+                <source>Start by adjusting foreground or background colors so visible text has sufficient contrast.</source>
+                <target>Passen Sie zunächst die Vorder- oder Hintergrundfarben so an, dass sichtbarer Text einen ausreichenden Kontrast aufweist.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.target_size.title">
+                <source>Touch targets are too small or too close together</source>
+                <target>Touch-Ziele sind zu klein oder zu nah beieinander</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.target_size.why">
+                <source>Small or closely spaced targets can be difficult to activate for people with motor impairments or touch device users.</source>
+                <target>Kleine oder eng beieinanderliegende Ziele können für Menschen mit motorischen Einschränkungen oder bei der Nutzung von Touch-Geräten schwer zu bedienen sein.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.target_size.fix">
+                <source>Increase the target size or spacing so interactive controls can be activated reliably.</source>
+                <target>Vergrößern Sie das Bedienelement oder den Abstand, damit interaktive Steuerelemente zuverlässig aktiviert werden können.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.region.title">
+                <source>Content outside landmark regions</source>
+                <target>Inhalte außerhalb von Landmark-Bereichen</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.region.why">
+                <source>Landmarks help assistive technology users understand and navigate the page structure.</source>
+                <target>Landmark-Bereiche helfen Nutzenden assistiver Technologien, die Seitenstruktur zu verstehen und darin zu navigieren.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.region.fix">
+                <source>Place page content inside appropriate landmark regions such as header, main, navigation and footer.</source>
+                <target>Ordnen Sie Seiteninhalte passenden Landmark-Bereichen wie Kopfbereich, Hauptinhalt, Navigation und Fußbereich zu.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_unique.title">
+                <source>Duplicate or non-unique landmarks</source>
+                <target>Doppelte oder nicht eindeutige Landmarken</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_unique.why">
+                <source>Repeated landmarks with the same name can make page navigation confusing for screen reader users.</source>
+                <target>Wiederholte Landmark-Bereiche mit demselben Namen können die Seitennavigation für Screenreader-Nutzende erschweren.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_unique.fix">
+                <source>Give repeated landmarks unique accessible names or simplify the landmark structure.</source>
+                <target>Geben Sie gleichartigen Landmark-Bereichen eindeutige zugängliche Namen mit aria-label oder aria-labelledby.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.marquee.title">
+                <source>Moving marquee content</source>
+                <target>Lauftext/Marquee-Inhalte</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.marquee.why">
+                <source>Moving content can distract users and may be difficult to read or pause.</source>
+                <target>Bewegte Inhalte können ablenken und schwer zu lesen oder anzuhalten sein.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.marquee.fix">
+                <source>Remove marquee content or provide controls to pause, stop or hide moving content.</source>
+                <target>Entfernen Sie Laufschrift oder stellen Sie Steuerelemente zum Pausieren, Stoppen oder Ausblenden bewegter Inhalte bereit.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_img_alt_is_filename.title">
+                <source>Image alt text looks like a filename</source>
+                <target>Alternativtext wirkt wie ein Dateiname</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_img_alt_is_filename.why">
+                <source>File names rarely describe the meaning of an image for people using screen readers.</source>
+                <target>Dateinamen beschreiben die Bedeutung eines Bildes für Screenreader-Nutzende in der Regel nicht.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_img_alt_is_filename.fix">
+                <source>Replace the filename-like alt text with a meaningful description of the image.</source>
+                <target>Ersetzen Sie den dateinamenähnlichen Alternativtext durch eine aussagekräftige Bildbeschreibung.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_non_descriptive_link.title">
+                <source>Link text is not descriptive</source>
+                <target>Linktext ist nicht aussagekräftig</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_non_descriptive_link.why">
+                <source>Generic link text makes it hard to understand links out of context.</source>
+                <target>Allgemeine Linktexte erschweren es, Links außerhalb ihres unmittelbaren Kontexts zu verstehen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.rte_non_descriptive_link.fix">
+                <source>Use link text that describes the destination or action.</source>
+                <target>Verwenden Sie einen Linktext, der Ziel oder Aktion beschreibt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.duplicate_id.title">
+                <source>Duplicate element IDs</source>
+                <target>Doppelte Element-IDs</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.duplicate_id.why">
+                <source>Duplicate IDs can break label associations, ARIA references, links and in-page navigation.</source>
+                <target>Doppelte IDs können Beschriftungen, ARIA-Referenzen, Links und die Navigation innerhalb der Seite beeinträchtigen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.duplicate_id.fix">
+                <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
+                <target>Verwenden Sie jedes id-Attribut auf der Seite nur einmal und aktualisieren Sie alle Beschriftungen, Links und ARIA-Referenzen, die auf die geänderte ID verweisen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_control_missing_label.title">
+                <source>Form fields need accessible labels</source>
+                <target>Formularfelder benötigen zugängliche Beschriftungen</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_control_missing_label.why">
+                <source>People using assistive technology need a programmatic label to understand the purpose of each form field.</source>
+                <target>Menschen, die assistive Technologien verwenden, benötigen eine programmatisch ermittelbare Beschriftung, um den Zweck eines Formularfelds zu verstehen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_control_missing_label.fix">
+                <source>Associate the form control with a visible label. When a visible label cannot be used, provide a clear accessible name with aria-label or aria-labelledby. A title attribute is accepted only as a last programmatic fallback.</source>
+                <target>Verknüpfen Sie das Formularfeld mit einer sichtbaren Beschriftung. Wenn keine sichtbare Beschriftung möglich ist, verwenden Sie einen eindeutigen zugänglichen Namen mit aria-label oder aria-labelledby. Ein title-Attribut wird nur als letzter programmatischer Fallback akzeptiert.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_too_long.title">
+                <source>Image alternative text is too long</source>
+                <target>Bildalternativtext ist zu lang</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_too_long.why">
+                <source>Overly long alternative text can make content harder to understand and navigate.</source>
+                <target>Zu lange Alternativtexte können Inhalte schwerer verständlich und navigierbar machen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_too_long.fix">
+                <source>Keep alternative text concise and describe only the information needed in context.</source>
+                <target>Halten Sie Alternativtexte kurz und beschreiben Sie nur die im Kontext benötigten Informationen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_redundant_phrase.title">
+                <source>Image alternative text contains redundant wording</source>
+                <target>Bildalternativtext enthält redundante Formulierungen</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_redundant_phrase.why">
+                <source>Phrases such as “image of” repeat information already announced by assistive technology.</source>
+                <target>Formulierungen wie „Bild von“ wiederholen Informationen, die assistive Technologien bereits ausgeben.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.img_alt_redundant_phrase.fix">
+                <source>Remove redundant phrases and describe the image purpose directly.</source>
+                <target>Entfernen Sie redundante Formulierungen und beschreiben Sie den Zweck des Bildes direkt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_duplicate_different_targets.title">
+                <source>Identical link text points to different destinations</source>
+                <target>Gleicher Linktext führt zu unterschiedlichen Zielen</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_duplicate_different_targets.why">
+                <source>Identical link text for different destinations can be confusing out of context.</source>
+                <target>Gleicher Linktext für unterschiedliche Ziele kann außerhalb des Kontexts verwirrend sein.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_duplicate_different_targets.fix">
+                <source>Use link text that distinguishes the destination or purpose of each link.</source>
+                <target>Verwenden Sie Linktexte, die Ziel oder Zweck der einzelnen Links voneinander unterscheiden.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_is_url_or_filename.title">
+                <source>Link text is a URL or filename</source>
+                <target>Linktext ist eine URL oder ein Dateiname</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_is_url_or_filename.why">
+                <source>Raw URLs and filenames often do not explain the link purpose clearly.</source>
+                <target>Reine URLs und Dateinamen erklären den Zweck eines Links häufig nicht verständlich.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_text_is_url_or_filename.fix">
+                <source>Replace the URL or filename with descriptive link text.</source>
+                <target>Ersetzen Sie URL oder Dateinamen durch einen beschreibenden Linktext.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document.title">
+                <source>Link opens a document</source>
+                <target>Link öffnet ein Dokument</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document.why">
+                <source>Users benefit from knowing that a link opens or downloads a document.</source>
+                <target>Nutzende profitieren davon, vorab zu wissen, dass ein Link ein Dokument öffnet oder herunterlädt.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document.fix">
+                <source>Make the document type and purpose clear in the link text or nearby context.</source>
+                <target>Machen Sie Dokumenttyp und Zweck im Linktext oder im unmittelbaren Kontext deutlich.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document_missing_notice.title">
+                <source>Document link does not identify the file type</source>
+                <target>Dokumentlink nennt den Dateityp nicht</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document_missing_notice.why">
+                <source>Users may not know that a link opens a document or what format to expect.</source>
+                <target>Nutzende erkennen möglicherweise nicht, dass ein Link ein Dokument öffnet oder welches Format sie erwartet.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.link_to_document_missing_notice.fix">
+                <source>Add a short file type or document notice to the link text or adjacent text.</source>
+                <target>Ergänzen Sie im Linktext oder daneben einen kurzen Hinweis auf Dateityp oder Dokument.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.file_reference_alt_quality.title">
+                <source>Image alternative text needs improvement</source>
+                <target>Bildalternativtext muss verbessert werden</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.file_reference_alt_quality.why">
+                <source>Low-quality alternative text may not communicate the image purpose.</source>
+                <target>Ein unzureichender Alternativtext vermittelt möglicherweise nicht den Zweck des Bildes.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.file_reference_alt_quality.fix">
+                <source>Replace generic, redundant or filename-like text with a concise meaningful description.</source>
+                <target>Ersetzen Sie allgemeine, redundante oder dateinamenähnliche Texte durch eine kurze, aussagekräftige Beschreibung.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_field_label_missing.title">
+                <source>Form field label is missing</source>
+                <target>Beschriftung des Formularfelds fehlt</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_field_label_missing.why">
+                <source>A clear label helps users understand what information a form field requires.</source>
+                <target>Eine klare Beschriftung hilft Nutzenden zu verstehen, welche Information ein Formularfeld erwartet.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_field_label_missing.fix">
+                <source>Add a visible label and associate it with the form control.</source>
+                <target>Fügen Sie eine sichtbare Beschriftung hinzu und verknüpfen Sie sie mit dem Formularfeld.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_placeholder_as_label.title">
+                <source>Placeholder is used instead of a label</source>
+                <target>Platzhalter wird statt einer Beschriftung verwendet</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_placeholder_as_label.why">
+                <source>Placeholder text disappears during input and is not a reliable replacement for a label.</source>
+                <target>Platzhaltertext verschwindet während der Eingabe und ist kein zuverlässiger Ersatz für eine Beschriftung.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_placeholder_as_label.fix">
+                <source>Add a persistent visible label and keep placeholder text only as optional guidance.</source>
+                <target>Fügen Sie eine dauerhaft sichtbare Beschriftung hinzu und verwenden Sie Platzhalter nur als optionale Hilfestellung.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_autocomplete_missing.title">
+                <source>Personal data field is missing autocomplete information</source>
+                <target>Feld für personenbezogene Daten hat keine Autocomplete-Angabe</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_autocomplete_missing.why">
+                <source>Autocomplete can reduce input effort and support users with cognitive or motor impairments.</source>
+                <target>Autocomplete kann den Eingabeaufwand reduzieren und Menschen mit kognitiven oder motorischen Einschränkungen unterstützen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.form_autocomplete_missing.fix">
+                <source>Add the appropriate autocomplete token for the requested personal information.</source>
+                <target>Fügen Sie für die abgefragte personenbezogene Information das passende autocomplete-Token hinzu.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.media_no_transcript_hint.title">
+                <source>Media content may need a transcript</source>
+                <target>Medieninhalt benötigt möglicherweise ein Transkript</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.media_no_transcript_hint.why">
+                <source>A transcript provides access to spoken information for people who cannot hear the audio.</source>
+                <target>Ein Transkript macht gesprochene Informationen für Menschen zugänglich, die Audioinhalte nicht hören können.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.media_no_transcript_hint.fix">
+                <source>Provide a transcript or equivalent text alternative when the media contains meaningful audio.</source>
+                <target>Stellen Sie ein Transkript oder eine gleichwertige Textalternative bereit, wenn das Medium relevante Audioinhalte enthält.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.header_level_is_h1.title">
+                <source>Content element uses an H1 heading</source>
+                <target>Inhaltselement verwendet eine H1-Überschrift</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.header_level_is_h1.why">
+                <source>Multiple or misplaced H1 headings can make the page structure harder to understand.</source>
+                <target>Mehrere oder falsch platzierte H1-Überschriften können die Seitenstruktur schwerer verständlich machen.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.header_level_is_h1.fix">
+                <source>Use the heading level that matches the content hierarchy and reserve the page H1 for the main page topic.</source>
+                <target>Verwenden Sie die Überschriftenebene entsprechend der Inhaltshierarchie und reservieren Sie die Seiten-H1 für das Hauptthema.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_one_main.title">
+                <source>Use one main landmark</source>
+                <target>Genau einen Hauptbereich verwenden</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_one_main.why">
+                <source>A single main landmark helps screen reader and keyboard users find the primary page content quickly.</source>
+                <target>Ein einzelner Hauptbereich hilft Screenreader- und Tastaturnutzenden, den primären Seiteninhalt schnell zu finden.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.landmark_one_main.fix">
+                <source>Keep exactly one main landmark on the page, using the main element or role="main".</source>
+                <target>Verwenden Sie genau einen Hauptbereich auf der Seite, mit dem main-Element oder role="main".</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.page_has_heading_one.title">
+                <source>Add a meaningful H1</source>
+                <target>Aussagekräftige H1-Überschrift ergänzen</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.page_has_heading_one.why">
+                <source>A clear H1 helps people understand the page topic and navigate the content structure.</source>
+                <target>Eine klare H1-Überschrift hilft, das Seitenthema zu verstehen und durch die Inhaltsstruktur zu navigieren.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.page_has_heading_one.fix">
+                <source>Add one meaningful H1 heading that describes the main purpose of the page.</source>
+                <target>Fügen Sie eine aussagekräftige H1-Überschrift hinzu, die den Hauptzweck der Seite beschreibt.</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.blind">
+                <source>Blind users</source>
+                <target>Blinde Nutzende</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.deafblind">
+                <source>Deafblind users</source>
+                <target>Taubblinde Nutzende</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.screenReader">
+                <source>Screen reader users</source>
+                <target>Screenreader-Nutzende</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.keyboard">
+                <source>Keyboard users</source>
+                <target>Tastaturnutzende</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.keyboardScreenReader">
+                <source>Keyboard/screen reader navigation users</source>
+                <target>Nutzende von Tastatur- und Screenreader-Navigation</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.lowVision">
+                <source>Low vision users</source>
+                <target>Nutzende mit Sehbehinderung</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.colorVision">
+                <source>Color vision deficiency</source>
+                <target>Menschen mit Farbsehschwäche</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.motor">
+                <source>Motor impairments</source>
+                <target>Menschen mit motorischen Einschränkungen</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.touch">
+                <source>Touch device users</source>
+                <target>Nutzende von Touch-Geräten</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.voiceControl">
+                <source>Voice control users</source>
+                <target>Nutzende von Sprachsteuerung</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.cognitive">
+                <source>Cognitive disabilities</source>
+                <target>Menschen mit kognitiven Einschränkungen</target>
+            </trans-unit>
+            <trans-unit id="rule.affectedUsers.deafHardOfHearing">
+                <source>Deaf or hard of hearing users</source>
+                <target>Gehörlose und schwerhörige Nutzende</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.key.portalHelp">
+                <source>The key is bound to a single domain. Find it in your purchase email or in the AQG customer portal:</source>
+                <target>Der Schlüssel ist an eine einzelne Domain gebunden. Sie finden ihn in Ihrer Kauf-E-Mail oder im AQG-Kundenportal:</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.adminOnly">
+                <source>This section is only available to TYPO3 administrators.</source>
+                <target>Dieser Bereich ist nur für TYPO3-Administratoren verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.openDocs">
+                <source>Open documentation</source>
+                <target>Dokumentation öffnen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.adminOnly">
+                <source>Licence management is only available to TYPO3 administrators.</source>
+                <target>Die Lizenzverwaltung ist nur für TYPO3-Administratoren verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.openProductPage">
+                <source>Open product page</source>
+                <target>Produktseite öffnen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.openDocs">
+                <source>Open docs</source>
+                <target>Dokumentation öffnen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.startTrial">
+                <source>Start trial</source>
+                <target>Testphase starten</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.upgradeToPro">
+                <source>Upgrade to PRO</source>
+                <target>Auf PRO upgraden</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.manageLicence">
+                <source>Manage licence</source>
+                <target>Lizenz verwalten</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.contactSupport">
+                <source>Contact support</source>
+                <target>Support kontaktieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.openCustomerPortal">
+                <source>Open AQG customer portal</source>
+                <target>AQG-Kundenportal öffnen</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.locked.title">
+                <source>Remote scanning requires a valid remote-scanning licence</source>
+                <target>Für Remote-Scans ist eine gültige Lizenz erforderlich</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.locked.description">
+                <source>Remote scan access is available with a valid Trial, PRO, Agency or Enterprise licence. Add a licence key or start a trial to configure remote crawling, scanner tokens and protected staging access.</source>
+                <target>Remote-Scans sind mit einer gültigen Test-, PRO-, Agency- oder Enterprise-Lizenz verfügbar. Hinterlegen Sie einen Lizenzschlüssel oder starten Sie eine Testphase, um Remote-Crawling, Scanner-Tokens und geschützte Staging-Zugänge zu konfigurieren.</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.locked.text">
+                <source>The FREE edition keeps local TYPO3 content checks available, but browser-based remote crawling is gated. Configure a valid remote-scanning licence to unlock this setup.</source>
+                <target>Die FREE-Edition behält lokale TYPO3-Inhaltsprüfungen bei, browserbasiertes Remote-Crawling ist jedoch lizenzpflichtig. Hinterlegen Sie eine gültige Remote-Scan-Lizenz, um diese Konfiguration freizuschalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.learnMore">
+                <source>Learn about remote scanning</source>
+                <target>Mehr über Remote-Scans erfahren</target>
+            </trans-unit>
+            <trans-unit id="rule.metadata.documentation.rule">
+                <source>Rule documentation</source>
+                <target>Regeldokumentation</target>
+            </trans-unit>
+            <trans-unit id="rule.metadata.documentation.axe">
+                <source>axe-core rule documentation</source>
+                <target>axe-core-Regeldokumentation</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

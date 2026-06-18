@@ -1,0 +1,67 @@
+name: Feature or UX feedback
+description: Suggest an improvement or share UX feedback about Accessibility Quality Gate.
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for feature suggestions and UX observations.
+        For bugs and false positives, please use the appropriate template instead.
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Who would benefit most?
+      options:
+        - Editor
+        - Integrator / developer
+        - Agency / maintenance team
+        - All users
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation where AQG falls short or is unclear.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Suggested solution or improvement
+      description: Describe a possible solution if you have one. This field is optional.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround (if any)
+      description: How are you handling this today?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area this relates to
+      options:
+        - Local scan
+        - Rendered Page Check
+        - PRO Remote scan
+        - CKEditor feedback
+        - Backend module UI
+        - Scheduler task
+        - CLI command
+        - PDF report
+        - Accessibility Statement
+        - Licensing / activation
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: aqg-version
+    attributes:
+      label: AQG version you are using
+      placeholder: "e.g. 1.6.0"

@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
 use Priebera\A11yQualityGate\Domain\Repository\FieldConfigRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
+use Priebera\A11yQualityGate\Export\PdfGenerator;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
 use Priebera\A11yQualityGate\Pro\Service\ProLicenceService;
 use Priebera\A11yQualityGate\Pro\Service\ProSiteFingerprintService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
+use Priebera\A11yQualityGate\Service\AccessibilityStatementService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
@@ -22,8 +25,10 @@ use Priebera\A11yQualityGate\Service\SecretEncryptionService;
 use Priebera\A11yQualityGate\Service\ScannerAccessTokenService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\TcaFieldDiscoveryService;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
@@ -54,6 +59,7 @@ final class SettingsController extends AbstractBackendModuleController
         'gate',
         'rules',
         'remote_access',
+        'statement',
     ];
 
     /**
@@ -80,6 +86,8 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly PageRenderer $pageRenderer,
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly AccessControlService $accessControlService,
+        private readonly AccessibilityStatementService $accessibilityStatementService,
+        private readonly PdfGenerator $pdfGenerator,
         private readonly RulesetRepository $rulesetRepository,
         private readonly RuleRegistry $ruleRegistry,
         private readonly RuleConfigurationService $ruleConfigurationService,
@@ -92,8 +100,11 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly ProSiteFingerprintService $proSiteFingerprintService,
         private readonly SecretEncryptionService $secretEncryptionService,
         private readonly ScannerAccessTokenService $scannerAccessTokenService,
+        private readonly PublicLinkProvider $publicLinkProvider,
         private readonly RequestFactory $requestFactory,
         private readonly CacheManager $cacheManager,
+        private readonly ResponseFactoryInterface $responseFactory,
+        private readonly StreamFactoryInterface $streamFactory,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -122,6 +133,7 @@ final class SettingsController extends AbstractBackendModuleController
         );
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-quality-gate.js');
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-remote-access.js');
+        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-statement.js');
 
         $fieldGroups = $this->fieldConfigRepository->findGroupedForSettings();
         $returnParameters = $this->getA11yModuleReturnParameters($request);
@@ -136,7 +148,7 @@ final class SettingsController extends AbstractBackendModuleController
         $currentSiteIdentifier = $site?->getIdentifier() ?? '';
         $selectedRulesetSite = trim((string)($request->getQueryParams()['rulesetSite'] ?? $currentSiteIdentifier));
         $activeTab = $this->resolveActiveTab((string)($request->getQueryParams()['tab'] ?? 'licence'));
-        $isAdmin = $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser());
+        $isAdmin = $this->backendContextService->isAdmin();
         if ($activeTab === 'remote_access' && !$isAdmin) {
             $activeTab = 'licence';
         }
@@ -168,6 +180,18 @@ final class SettingsController extends AbstractBackendModuleController
             $siteOptions,
             static fn (array $siteOption): bool => (string)($siteOption['identifier'] ?? '') !== ''
         ));
+        $statementDefaultSiteIdentifier = $this->resolveDefaultStatementSiteIdentifier($siteOptionsWithoutDefault, $currentSiteIdentifier);
+        $statementProStatus = $statementDefaultSiteIdentifier !== ''
+            ? $this->proStatusResolverService->resolveForSiteIdentifier($statementDefaultSiteIdentifier)
+            : $proStatus;
+        if (!$this->hasStatementGeneratorCapability($statementProStatus)) {
+            $capableStatementSiteIdentifier = $this->resolveFirstStatementCapableSiteIdentifier($siteOptionsWithoutDefault);
+            if ($capableStatementSiteIdentifier !== '') {
+                $statementDefaultSiteIdentifier = $capableStatementSiteIdentifier;
+                $statementProStatus = $this->proStatusResolverService->resolveForSiteIdentifier($statementDefaultSiteIdentifier);
+            }
+        }
+        $statementGeneratorAvailable = $this->hasStatementGeneratorCapability($statementProStatus);
         $usedSiteIdentifiers = array_map(
             static fn (array $ruleset): string => (string)($ruleset['site_identifier'] ?? ''),
             $siteRulesets
@@ -177,10 +201,14 @@ final class SettingsController extends AbstractBackendModuleController
             static fn (array $siteOption): bool => !in_array((string)($siteOption['identifier'] ?? ''), $usedSiteIdentifiers, true)
         ));
 
-        $licenceKey = $this->getExtensionConfigurationString('licenceKey');
+        $licenceViewData = $this->buildLicenceViewData(
+            $this->getExtensionConfigurationString('licenceKey'),
+            $isAdmin,
+        );
         $showProHints = $this->ruleConfigurationService->getShowProHintsFromRuleset(
             $qualityGateRuleset,
         ) ?? $this->getExtensionConfigurationBool('showProHints', true);
+        $publicLinks = $this->publicLinkProvider->getBackendLinks();
 
         $moduleTemplate->assignMultiple([
             'fieldGroups' => $fieldGroups,
@@ -206,6 +234,11 @@ final class SettingsController extends AbstractBackendModuleController
             'remoteAccessSaveUrl' => $saveUrl,
             'remoteAccessRegenerateTokenUrl' => $this->buildRouteUrl('ajax_a11y_regenerate_scanner_token'),
             'remoteAccessTestHttpAuthUrl' => $this->buildRouteUrl('ajax_a11y_test_http_auth'),
+            'statementGenerateUrl' => $this->buildRouteUrl('ajax_a11y_statement_generate'),
+            'statementPdfUrl' => $this->buildRouteUrl('ajax_a11y_statement_pdf'),
+            'statementGeneratorAvailable' => $statementGeneratorAvailable,
+            'statementDefaultSiteIdentifier' => $statementDefaultSiteIdentifier,
+            'statementProStatus' => $statementProStatus,
             'remoteAccessSiteUrl' => $this->resolveRemoteAccessSiteUrl($site),
             'backendUserDisplayName' => $this->resolveBackendUserDisplayName(),
             'siteRulesets' => $siteRulesets,
@@ -219,13 +252,15 @@ final class SettingsController extends AbstractBackendModuleController
             'currentPageUid' => $pageUid,
             'activeTab' => $activeTab,
             'isAdmin' => $isAdmin,
-            'licenceKey' => $licenceKey,
+            'licenceKey' => $licenceViewData['licenceKey'],
+            'hasLicenceKey' => $licenceViewData['hasLicenceKey'],
             'showProHints' => $showProHints,
-            'pricingUrl' => 'https://typo3.priebera.sk/pricing',
-            'trialUrl' => 'https://typo3.priebera.sk/trial',
-            'portalUrl' => 'https://typo3.priebera.sk/portal',
-            'licensingDocsUrl' => 'https://typo3.priebera.sk/docs',
-            'contactUrl' => 'https://typo3.priebera.sk/contact',
+            'productUrl' => $publicLinks[PublicLinkProvider::PRODUCT],
+            'documentationUrl' => $publicLinks[PublicLinkProvider::DOCUMENTATION],
+            'pricingUrl' => $publicLinks[PublicLinkProvider::PRICING],
+            'trialUrl' => $publicLinks[PublicLinkProvider::TRIAL],
+            'supportUrl' => $publicLinks[PublicLinkProvider::SUPPORT],
+            'portalUrl' => $publicLinks[PublicLinkProvider::PORTAL],
             'settingsTabUrls' => $this->buildSettingsTabUrls($request, $selectedRulesetSite),
         ]);
 
@@ -543,6 +578,181 @@ final class SettingsController extends AbstractBackendModuleController
         ]);
     }
 
+    public function generateAccessibilityStatementAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $result = $this->buildAccessibilityStatementFromRequest($request);
+        if (!($result['success'] ?? false)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => (string)($result['message'] ?? $this->translate('settings.statement.error.unavailable')),
+                'statement' => $result['statement'] ?? null,
+            ], (int)($result['statusCode'] ?? 200));
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'statement' => $result['statement'],
+        ]);
+    }
+
+    public function generateAccessibilityStatementPdfAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $result = $this->buildAccessibilityStatementFromRequest($request);
+        if (!($result['success'] ?? false)) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => (string)($result['message'] ?? $this->translate('settings.statement.error.pdfUnavailable')),
+            ], (int)($result['statusCode'] ?? 200));
+        }
+
+        $statement = is_array($result['statement'] ?? null) ? $result['statement'] : [];
+        $title = $this->translate('settings.statement.pdf.title');
+        $pdf = $this->pdfGenerator->render(
+            $this->accessibilityStatementService->buildPdfHtml($statement),
+            $title,
+            [],
+            $this->accessibilityStatementService->buildPdfCss(),
+        );
+
+        $stream = $this->streamFactory->createStream($pdf);
+
+        return $this->responseFactory
+            ->createResponse(200)
+            ->withHeader('Content-Type', 'application/pdf')
+            ->withHeader('Content-Disposition', 'attachment; filename="accessibility-statement-draft.pdf"')
+            ->withHeader('Content-Length', (string)mb_strlen($pdf, '8bit'))
+            ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->withHeader('Pragma', 'no-cache')
+            ->withBody($stream);
+    }
+
+    /**
+     * @return array{success:bool,message?:string,statusCode?:int,statement?:array<string,mixed>}
+     */
+    private function buildAccessibilityStatementFromRequest(ServerRequestInterface $request): array
+    {
+        $backendUser = $this->backendContextService->getBackendUser();
+        if (!$this->accessControlService->canShowSettings($backendUser)) {
+            return [
+                'success' => false,
+                'message' => $this->translate('settings.statement.error.accessDenied'),
+                'statusCode' => 403,
+            ];
+        }
+
+        $body = $this->parseRequestBody($request);
+        $siteIdentifier = trim((string)($body['siteId'] ?? $body['siteIdentifier'] ?? ''));
+        $scope = trim((string)($body['scope'] ?? 'latest_site'));
+        $sourceType = strtolower(trim((string)($body['sourceType'] ?? '')));
+        $startUrl = trim((string)($body['startUrl'] ?? ''));
+        $jobId = trim((string)($body['jobId'] ?? ''));
+        $language = strtolower(trim((string)($body['language'] ?? 'en')));
+        if (!in_array($language, ['en', 'de'], true)) {
+            return [
+                'success' => false,
+                'message' => $this->translate('settings.statement.error.unsupportedLanguage'),
+                'statusCode' => 400,
+            ];
+        }
+
+        if ($siteIdentifier === '') {
+            return [
+                'success' => false,
+                'message' => $this->translate('settings.statement.error.chooseSite'),
+                'statusCode' => 400,
+            ];
+        }
+
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        if (!$site instanceof Site) {
+            return [
+                'success' => false,
+                'message' => $this->translate('settings.statement.error.siteNotResolved'),
+                'statusCode' => 400,
+            ];
+        }
+
+        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+        if (!$this->hasStatementGeneratorCapability($proStatus)) {
+            return [
+                'success' => false,
+                'message' => $this->translate('settings.statement.error.proOnly'),
+                'statusCode' => 403,
+            ];
+        }
+
+        $draftOptions = is_array($body['draftOptions'] ?? null) ? $body['draftOptions'] : [];
+        // Accept flat payloads too, so JS and tests do not need to mirror an
+        // internal request shape exactly.
+        foreach ([
+            'conformityStatus',
+            'organisation',
+            'organization',
+            'contactEmail',
+            'phone',
+            'postalAddress',
+            'address',
+            'responseNote',
+            'enforcementProcedure',
+            'customEnforcementText',
+            'statusConfirmed',
+            'conformityStatusConfirmed',
+        ] as $key) {
+            if (array_key_exists($key, $body) && !array_key_exists($key, $draftOptions)) {
+                $draftOptions[$key] = $body[$key];
+            }
+        }
+
+        $siteBase = (string)$site->getBase();
+        if ($scope === 'specific_job') {
+            if ($jobId === '') {
+                return [
+                    'success' => false,
+                    'message' => $this->translate('settings.statement.error.enterJobId'),
+                    'statusCode' => 400,
+                ];
+            }
+
+            $statement = $this->accessibilityStatementService->loadByJobId($siteBase, $jobId, $language, $draftOptions);
+        } else {
+            if ($scope === 'latest_page') {
+                $sourceType = 'single_page';
+                if ($startUrl === '') {
+                    return [
+                        'success' => false,
+                        'message' => $this->translate('settings.statement.error.enterPageUrl'),
+                        'statusCode' => 400,
+                    ];
+                }
+            } else {
+                $sourceType = in_array($sourceType, ['sitemap', 'crawl'], true) ? $sourceType : 'sitemap';
+                $startUrl = '';
+            }
+
+            $statement = $this->accessibilityStatementService->loadLatest(
+                siteBase: $siteBase,
+                siteId: $siteIdentifier,
+                sourceType: $sourceType,
+                startUrl: $startUrl,
+                language: $language,
+                draftOptions: $draftOptions,
+            );
+        }
+
+        if (!($statement['available'] ?? false)) {
+            return [
+                'success' => false,
+                'message' => (string)($statement['message'] ?? $this->translate('settings.statement.error.unavailable')),
+                'statement' => $statement,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'statement' => $statement,
+        ];
+    }
+
     public function regenerateScannerTokenAction(ServerRequestInterface $request): ResponseInterface
     {
         $backendUser = $this->backendContextService->getBackendUser();
@@ -670,6 +880,7 @@ final class SettingsController extends AbstractBackendModuleController
     private function configureDocHeader(ModuleTemplate $moduleTemplate, string $overviewUrl): void
     {
         $buttonBar = $moduleTemplate->getDocHeaderComponent()->getButtonBar();
+        $overviewUrl = trim($overviewUrl);
 
         $this->setModuleTitle(
             $moduleTemplate,
@@ -677,9 +888,18 @@ final class SettingsController extends AbstractBackendModuleController
             'settings.title'
         );
 
+        if ($overviewUrl === '') {
+            return;
+        }
+
+        $overviewTitle = trim($this->translate('settings.backToOverview'));
+        if ($overviewTitle === '' || $overviewTitle === 'settings.backToOverview' || str_starts_with($overviewTitle, 'LLL:')) {
+            $overviewTitle = 'Back to overview';
+        }
+
         $overviewButton = $buttonBar->makeLinkButton()
             ->setHref($overviewUrl)
-            ->setTitle($this->translate('settings.backToOverview'))
+            ->setTitle($overviewTitle)
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-view-go-back', IconSize::SMALL));
 
@@ -870,6 +1090,96 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         return rtrim($message, '.');
+    }
+
+    /**
+     * @param list<array<string, mixed>> $siteOptions
+     */
+    private function resolveDefaultStatementSiteIdentifier(array $siteOptions, string $currentSiteIdentifier): string
+    {
+        $currentSiteIdentifier = trim($currentSiteIdentifier);
+        if ($currentSiteIdentifier !== '') {
+            foreach ($siteOptions as $siteOption) {
+                $identifier = trim((string)($siteOption['identifier'] ?? ''));
+                if ($identifier !== '' && $identifier === $currentSiteIdentifier) {
+                    return $identifier;
+                }
+            }
+        }
+
+        foreach ($siteOptions as $siteOption) {
+            $identifier = trim((string)($siteOption['identifier'] ?? ''));
+            if ($identifier !== '') {
+                return $identifier;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $siteOptions
+     */
+    private function resolveFirstStatementCapableSiteIdentifier(array $siteOptions): string
+    {
+        foreach ($siteOptions as $siteOption) {
+            $identifier = trim((string)($siteOption['identifier'] ?? ''));
+            if ($identifier === '') {
+                continue;
+            }
+
+            if ($this->hasStatementGeneratorCapability($this->proStatusResolverService->resolveForSiteIdentifier($identifier))) {
+                return $identifier;
+            }
+        }
+
+        return '';
+    }
+
+    private function hasStatementGeneratorCapability(mixed $proStatus): bool
+    {
+        if (!is_object($proStatus)) {
+            return false;
+        }
+
+        if (!(bool)($proStatus->valid ?? false)) {
+            return false;
+        }
+
+        if ((bool)($proStatus->isTrial ?? false)) {
+            return false;
+        }
+
+        // The Statement Generator consumes completed remote/frontend scan data.
+        // Reuse the already established PRO/Agency remote crawler capability so
+        // Agency licences with non-canonical plan labels (for example billing
+        // interval suffixes) do not get hidden by an overly strict plan-name check.
+        if ((bool)($proStatus->hasCrawler ?? false)) {
+            return true;
+        }
+
+        $plan = strtolower(trim((string)($proStatus->plan ?? '')));
+        if ($plan !== '' && preg_match('/(^|[_\-])(pro|agency|enterprise)($|[_\-])/', $plan) === 1) {
+            return true;
+        }
+
+        if ((bool)($proStatus->hasExportPdf ?? false) || (bool)($proStatus->hasMultiSite ?? false)) {
+            return true;
+        }
+
+        $features = is_array($proStatus->features ?? null) ? $proStatus->features : [];
+        $features = array_map(static fn (mixed $feature): string => strtolower(trim((string)$feature)), $features);
+
+        return array_intersect($features, [
+            'accessibility_statement',
+            'accessibility_statement_generator',
+            'statement_generator',
+            'crawler',
+            'remote_crawler',
+            'frontend_crawler',
+            'export_pdf',
+            'multi_site',
+        ]) !== [];
     }
 
     /**
@@ -1375,6 +1685,19 @@ final class SettingsController extends AbstractBackendModuleController
         // AJAX requests such as scanner-token generation may not carry a page id.
         // In that case, accept any configured site that has the remote crawler capability.
         return $this->proStatusResolverService->hasCrawlerForAnySite();
+    }
+
+    /**
+     * @return array{licenceKey:string,hasLicenceKey:bool}
+     */
+    private function buildLicenceViewData(string $storedLicenceKey, bool $isAdmin): array
+    {
+        $storedLicenceKey = trim($storedLicenceKey);
+
+        return [
+            'licenceKey' => $isAdmin ? $storedLicenceKey : '',
+            'hasLicenceKey' => $storedLicenceKey !== '',
+        ];
     }
 
     private function looksLikeTrialKey(string $licenceKey): bool

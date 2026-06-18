@@ -14,6 +14,7 @@ use Priebera\A11yQualityGate\Rendered\Rule\DuplicateIdRule;
 use Priebera\A11yQualityGate\Rendered\Rule\FormControlMissingLabelRule;
 use Priebera\A11yQualityGate\Rendered\Rule\IframeMissingTitleRule;
 use Priebera\A11yQualityGate\Rendered\Rule\SvgMissingAccessibleNameRule;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 
 final class RenderedNoiseReductionRuleTest extends TestCase
 {
@@ -151,7 +152,10 @@ final class RenderedNoiseReductionRuleTest extends TestCase
 
     private function evaluateDuplicateId(string $bodyHtml): array
     {
-        return iterator_to_array((new DuplicateIdRule($this->issueFactory()))->evaluate($this->context($bodyHtml)), false);
+        return iterator_to_array((new DuplicateIdRule(
+            $this->issueFactory(),
+            $this->ruleMetadataPresentationService()
+        ))->evaluate($this->context($bodyHtml)), false);
     }
 
     private function context(string $bodyHtml): RenderedHtmlContext
@@ -175,6 +179,17 @@ final class RenderedNoiseReductionRuleTest extends TestCase
             document: $document,
             xpath: new \DOMXPath($document),
         );
+    }
+
+    private function ruleMetadataPresentationService(): RuleMetadataPresentationService
+    {
+        $service = $this->createStub(RuleMetadataPresentationService::class);
+        $service->method('friendlyTitleForRule')->willReturn('Duplicate ID');
+        $service->method('present')->willReturn([
+            'howToFix' => 'Use a unique ID for each element.',
+        ]);
+
+        return $service;
     }
 
     private function issueFactory(): RenderedHtmlIssueFactory

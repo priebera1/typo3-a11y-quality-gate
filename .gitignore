@@ -9,9 +9,12 @@
 /.DS_Store
 /.idea/
 /.fleet/
+*.scss.map
+/.sass-cache/
 /var/
 /.vscode/
 /node_modules/
+/.npm/
 /composer.lock
 /composer.json.orig
 /composer.json.testing

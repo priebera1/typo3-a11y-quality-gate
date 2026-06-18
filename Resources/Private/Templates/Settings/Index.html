@@ -12,13 +12,15 @@
             <div>
                 <h2 class="aqg-page-head__title">
                 <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title"
+                        key="settings.title"
+                        extensionName="A11yQualityGate"
                         default="Settings"
                 />
             </h2>
                 <p class="aqg-page-head__sub">
                 <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.pageDescription"
+                        key="settings.pageDescription"
+                        extensionName="A11yQualityGate"
                         default="Choose what AQG should scan and how it should react during publishing."
                 />
             </p>
@@ -53,6 +55,10 @@
 
                 <f:case value="remote_access">
                     <f:render partial="Settings/TabRemoteScanAccess" arguments="{_all}" />
+                </f:case>
+
+                <f:case value="statement">
+                    <f:render partial="Settings/TabStatement" arguments="{_all}" />
                 </f:case>
 
                 <f:defaultCase>

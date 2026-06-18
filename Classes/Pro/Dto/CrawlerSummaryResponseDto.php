@@ -161,7 +161,7 @@ final class CrawlerSummaryResponseDto
             sourceType: (string)($payload['sourceType'] ?? $payload['source_type'] ?? 'crawl'),
             status: (string)($payload['status'] ?? ''),
             contractVersion: trim((string)($payload['contractVersion'] ?? $payload['contract_version'] ?? '')),
-            features: array_values(array_filter(array_map('strval', is_array($payload['features'] ?? null) ? $payload['features'] : []), static fn (string $feature): bool => trim($feature) !== '')),
+            features: is_array($payload['features'] ?? null) ? $payload['features'] : [],
             pagesScanned: (int)($payload['pagesScanned'] ?? $payload['pages_scanned'] ?? 0),
             pagesFailed: (int)($payload['pagesFailed'] ?? $payload['pages_failed'] ?? 0),
             issuesTotal: (int)($payload['issuesTotal'] ?? $payload['issues_total'] ?? ($contrast['issuesTotal'] ?? $contrast['issues_total'] ?? 0)),

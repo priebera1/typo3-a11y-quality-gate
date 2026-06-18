@@ -127,11 +127,20 @@
         <div class="aqgp-callout aqgp-callout--summary aqgp-callout--compact">
             <span class="aqgp-callout__label">Template / structure signal</span>
             <p>{structureSummary.landmarkIssuesLabel} across {structureSummary.affectedPagesLabel}</p>
+            <p>{structureSummary.outlineIssuesLabel} · {structureSummary.headingIssuesLabel}</p>
             <f:if condition="{structureSummary.likelyTemplateIssue}">
                 <p>Likely template/layout issue — review main, nav, header and footer landmarks.</p>
             </f:if>
             <f:if condition="{structureSummary.recommendation}">
                 <p>{structureSummary.recommendation}</p>
+            </f:if>
+            <f:if condition="{structureSummary.hasTopWarnings}">
+                <p><strong>Top structure warnings:</strong></p>
+                <ul class="aqgp-compact-list">
+                    <f:for each="{structureSummary.topWarnings}" as="warning">
+                        <li>{warning.typeLabel} — {warning.issuesLabel}<f:if condition="{warning.affectedPagesLabel}"> / {warning.affectedPagesLabel}</f:if><f:if condition="{warning.recommendation}"> · {warning.recommendation}</f:if></li>
+                    </f:for>
+                </ul>
             </f:if>
             <f:if condition="{structureSummary.topRules}">
                 <p><strong>Top structure rules:</strong></p>
@@ -151,6 +160,13 @@
                 <f:then>
                     <p>{keyboardSummary.focusStepsTotal} focus steps · {keyboardSummary.uniqueFocusedElementsTotal} unique focused elements · {keyboardSummary.possibleKeyboardTrapLabel} · {keyboardSummary.invisibleFocusIssuesLabel}</p>
                     <p>{keyboardSummary.manualReviewLabel}</p>
+                    <f:if condition="{keyboardSummary.hasTopWarnings}">
+                        <ul class="aqgp-compact-list">
+                            <f:for each="{keyboardSummary.topWarnings}" as="warning">
+                                <li>{warning.typeLabel} — {warning.issuesLabel}<f:if condition="{warning.affectedPagesLabel}"> / {warning.affectedPagesLabel}</f:if><f:if condition="{warning.recommendation}"> · {warning.recommendation}</f:if></li>
+                            </f:for>
+                        </ul>
+                    </f:if>
                 </f:then>
                 <f:else>
                     <p>Keyboard exploration not available for this scan.</p>

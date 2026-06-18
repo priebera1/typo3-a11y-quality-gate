@@ -435,6 +435,17 @@ final class ScanAjaxControllerTest extends TestCase
         $this->orchestrator
             ->expects($this->once())
             ->method('scanSubtree')
+            ->with(
+                'main',
+                123,
+                99,
+                0,
+                false,
+                null,
+                $this->isInstanceOf(\Closure::class),
+                $this->isInstanceOf(\Closure::class),
+                true,
+            )
             ->willReturn($result);
 
         $this->scanStatusService

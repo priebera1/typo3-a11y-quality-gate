@@ -25,7 +25,14 @@ final class FrontendDebugMarkerService
 
         $queryParams = $request->getQueryParams();
         $scannerToken = trim($request->getHeaderLine('X-AQG-Scanner-Token'));
-        $hasValidScannerToken = $scannerToken !== '' && $this->scannerAccessTokenService->isValidToken($scannerToken);
+        $hasValidScannerToken = false;
+        if ($scannerToken !== '') {
+            try {
+                $hasValidScannerToken = $this->scannerAccessTokenService->isValidTokenForRequest($scannerToken, $request);
+            } catch (\Throwable) {
+                $hasValidScannerToken = false;
+            }
+        }
 
         if ($hasValidScannerToken || $request->getAttribute('aqgScannerPreviewTokenValid', false) === true) {
             return true;

@@ -203,6 +203,7 @@ final class ScanAjaxController extends AbstractApiController
                 onRunStarted: function (int $scanUid): void {
                     $this->scanStatusService->markScanRunStarted($scanUid);
                 },
+                includeRenderedPageCheck: true,
             );
 
             $this->scanStatusService->markFinished($result);

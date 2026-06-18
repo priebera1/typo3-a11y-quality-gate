@@ -90,19 +90,29 @@ final class SiteResolutionService
         int $pageUid = 0,
     ): ?Site {
         $queryParams = $request->getQueryParams();
+        $siteIdentifier = trim((string)($queryParams['site'] ?? $queryParams['siteIdentifier'] ?? ''));
 
         if ($pageUid <= 0) {
             $pageUid = (int)($queryParams['pageUid'] ?? $queryParams['id'] ?? 0);
         }
 
-        $site = $this->resolveSiteByPageId($pageUid);
-        if ($site instanceof Site) {
-            return $site;
+        $siteByPage = $this->resolveSiteByPageId($pageUid);
+
+        // Backend module links can carry both an id/pageUid and an explicit site
+        // context. For multi-site setups, especially nested site roots, the
+        // explicit site context is the authoritative context for site-wide actions
+        // and history rendering. The selected page id may be a stale tree context
+        // or may resolve to a parent site in TYPO3's rootline lookup. Returning the
+        // explicit site here keeps siteIdentifier, siteRootPid and site base URL in
+        // one consistent context.
+        if ($siteIdentifier !== '') {
+            $explicitSite = $this->resolveSiteByIdentifier($siteIdentifier);
+            if ($explicitSite instanceof Site) {
+                return $explicitSite;
+            }
         }
 
-        $siteIdentifier = trim((string)($queryParams['site'] ?? $queryParams['siteIdentifier'] ?? ''));
-
-        return $this->resolveSiteByIdentifier($siteIdentifier);
+        return $siteByPage;
     }
 
     public function resolveSiteBaseByIdentifier(string $siteIdentifier): string

@@ -205,7 +205,9 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const submitEndpoint = ajaxUrls.a11y_pro_crawl_submit || '';
 
         const rootPid = Number.parseInt(button.dataset.rootPid || '0', 10);
+        const currentPageUid = Number.parseInt(button.dataset.currentPageUid || String(rootPid), 10);
         const maxPages = Number.parseInt(button.dataset.maxPages || '20', 10);
+        const siteIdentifier = String(button.dataset.siteIdentifier || '').trim();
         const languageUid = this.resolveScanLanguageUid(button);
 
         if (!submitEndpoint || rootPid <= 0) {
@@ -223,7 +225,9 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         try {
             const submitResponse = await new AjaxRequest(submitEndpoint).post({
                 rootPid,
+                pageUid: currentPageUid > 0 ? currentPageUid : rootPid,
                 maxPages,
+                siteIdentifier,
                 languageUid,
                 followLinks: true,
                 axeLocale: 'en',
