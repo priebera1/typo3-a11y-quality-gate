@@ -451,7 +451,6 @@ table.aqgp-table {
     border-color: #d6d9de;
 }
 
-/* Legacy PDF styles kept for page/detail templates until they are migrated. */
 h2 {
     font-size: 12px;
     margin: 18px 0 8px 0;
@@ -1096,9 +1095,14 @@ pre {
 }
 
 .aqgp-cards > tbody > tr > td {
-    padding: 0;
+    width: 25%;
+    padding: 0 5px 0 0;
     border: 0;
     vertical-align: top;
+}
+
+.aqgp-cards > tbody > tr > td:last-child {
+    padding-right: 0;
 }
 
 table.aqgp-card-table {
@@ -1740,35 +1744,8 @@ table.aqgp-card-table.aqgp-card--needs_review .aqgp-card__label { color: #7c3aed
 .aqgp-badge--needs_review { color: #5b21b6; background: #f3e8ff; border-color: #d8b4fe; }
 .aqgp-local-issue--needs_review { border-left-color: #7c3aed; }
 .aqgp-issue--needs_review { border-left-color: #7c3aed; }
-
-/* Local summary cards: use mPDF table cell spacing instead of spacer columns.
- * This keeps each card border independent while the full row stays inside
- * the same content width as the surrounding report sections. */
-.aqgp-section-to-cards-gap {
-    height: 5px;
-    line-height: 5px;
-    font-size: 1px;
-}
-
-.aqgp-cards--local {
-    width: 100%;
-    margin-top: 0;
-    border-collapse: separate;
-    border-spacing: 4px 0;
-    table-layout: fixed;
-}
-
-.aqgp-cards--local > tbody > tr > td.aqgp-card-slot {
-    width: 20%;
-    padding: 0;
-    border: 0;
-    vertical-align: top;
-}
-
-.aqgp-cards--local > tbody > tr > td.aqgp-card-slot > table.aqgp-card-table {
-    width: 100%;
-    margin: 0;
-}
+.aqgp-cards td { width: 20%; }
+.aqgp-cards > tbody > tr > td { width: 20%; }
 
 /* Remote PRO reporting summary PDF sections */
 .aqgp-cards--report {

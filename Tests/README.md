@@ -272,3 +272,29 @@ composer dump-autoload
 
 ddev exec ./vendor/bin/phpunit -c packages/a11y_quality_gate/phpunit.xml
 ```
+### DDEV grant for isolated functional databases
+
+TYPO3 Testing Framework creates databases with a dynamic suffix, for example
+`aqg_functional_ft...`. First verify the actual MySQL account host used by the
+DDEV database server:
+
+```bash
+ddev exec mysql -uroot -proot -NBe \
+  "SELECT User, Host FROM mysql.user WHERE User = 'db';" \
+  | pbcopy
+```
+
+When the account is `db`@`%`, grant access with a quoted heredoc so the shell
+does not interpret the SQL backticks:
+
+```bash
+cat <<'SQL' | ddev exec mysql -uroot -proot
+GRANT ALL PRIVILEGES ON `aqg_functional_%`.* TO 'db'@'%';
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'db'@'%';
+SQL
+```
+
+If the query reports another host, such as `db`, replace `%` in both SQL lines
+with that exact host. Keep the Testing Framework's isolated-database behavior
+enabled; do not point functional tests at the live project database.

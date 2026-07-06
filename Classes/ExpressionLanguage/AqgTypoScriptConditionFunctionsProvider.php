@@ -18,9 +18,6 @@ final class AqgTypoScriptConditionFunctionsProvider implements ExpressionFunctio
             new ExpressionFunction(
                 'aqgDebugMarkers',
                 static function (string $request = 'null'): string {
-                    // Keep an optional argument for backwards compatibility.
-                    // The runtime evaluator resolves the current PSR-7 request,
-                    // including attributes set by AQG frontend middleware.
                     return '\\' . self::class . '::evaluate(' . $request . ')';
                 },
                 static function (array $arguments, mixed $request = null): bool {

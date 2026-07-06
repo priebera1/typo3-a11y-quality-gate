@@ -64,6 +64,20 @@
         </a>
     </f:if>
 
+
+    <f:if condition="{isAdmin}">
+        <a
+                class="aqg-tab{f:if(condition: '{activeTab} == \'ai\'', then: ' is-active')}"
+                href="{settingsTabUrls.ai}"
+                role="tab"
+                aria-selected="{f:if(condition: '{activeTab} == \'ai\'', then: 'true', else: 'false')}"
+                aria-current="{f:if(condition: '{activeTab} == \'ai\'', then: 'page', else: '')}"
+        >
+            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.ai" default="AI alt text" /></span>
+            <span class="aqg-tab__badge aqg-tab__badge--pro">PRO</span>
+        </a>
+    </f:if>
+
     <a
             class="aqg-tab{f:if(condition: '{activeTab} == \'statement\'', then: ' is-active')}"
             href="{settingsTabUrls.statement}"

@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Priebera\A11yQualityGate\Tests\Unit\Configuration;
+
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+final class SettingsResponsiveStylesTest extends TestCase
+{
+    #[Test]
+    public function settingsTabsWrapForExplicitNarrowModuleState(): void
+    {
+        $scss = file_get_contents(
+            dirname(__DIR__, 3) . '/Resources/Private/Scss/views/_settings.scss',
+        );
+        self::assertIsString($scss);
+
+        self::assertStringContainsString(
+            '.aqg-narrow .a11y-settings.aqg-module .aqg-tabs,',
+            $scss,
+        );
+        self::assertStringContainsString(
+            '.a11y-settings.aqg-module.aqg-narrow .aqg-tabs',
+            $scss,
+        );
+        self::assertStringContainsString('flex-wrap: wrap;', $scss);
+        self::assertStringContainsString('row-gap: 2px;', $scss);
+        self::assertStringContainsString('min-width: 0;', $scss);
+        self::assertStringContainsString('white-space: normal;', $scss);
+        self::assertStringContainsString('overflow-wrap: anywhere;', $scss);
+    }
+
+    #[Test]
+    public function compiledSettingsCssContainsMobileWrapFallbackWithoutOverflowMasking(): void
+    {
+        $css = file_get_contents(
+            dirname(__DIR__, 3) . '/Resources/Public/Css/backend.css',
+        );
+        self::assertIsString($css);
+
+        self::assertStringContainsString('@media (max-width: 575.98px)', $css);
+        self::assertStringContainsString(
+            '.a11y-settings.aqg-module .aqg-tabs {',
+            $css,
+        );
+        self::assertStringContainsString('flex-wrap: wrap;', $css);
+        self::assertStringContainsString('white-space: normal;', $css);
+        self::assertStringNotContainsString(
+            '.a11y-settings.aqg-module .aqg-tabs {\n  overflow-x: hidden;',
+            $css,
+        );
+    }
+}

@@ -4,12 +4,35 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Domain\Repository;
 
+use Priebera\A11yQualityGate\Domain\Repository\Contract\FileReferenceRepositoryInterface;
+
 use Priebera\A11yQualityGate\Database\Tables;
 use TYPO3\CMS\Core\Database\Connection;
 
-final class FileReferenceRepository extends AbstractRepository
+final class FileReferenceRepository extends AbstractRepository implements FileReferenceRepositoryInterface
 {
     private const SYS_FILE_TYPE_IMAGE = 2;
+
+    public function findByUid(int $uid): ?array
+    {
+        if ($uid <= 0) {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::SYS_FILE_REFERENCE);
+        $row = $queryBuilder
+            ->select('*')
+            ->from(Tables::SYS_FILE_REFERENCE)
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($uid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
 
     /**
      * @return array<int, array<string, mixed>>
@@ -21,14 +44,10 @@ final class FileReferenceRepository extends AbstractRepository
     ): array {
         $referenceQueryBuilder = $this->getQueryBuilder(Tables::SYS_FILE_REFERENCE);
 
+        $selectFields = ['uid', 'uid_local', 'alternative', 'title', 'tx_a11y_is_decorative'];
+
         $references = $referenceQueryBuilder
-            ->select(
-                'uid',
-                'uid_local',
-                'alternative',
-                'title',
-                'tx_a11y_is_decorative'
-            )
+            ->select(...$selectFields)
             ->from(Tables::SYS_FILE_REFERENCE)
             ->where(
                 $referenceQueryBuilder->expr()->eq(

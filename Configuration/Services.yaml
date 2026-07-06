@@ -13,6 +13,14 @@ services:
       tags:
         - name: a11y_quality_gate.rendered_rule
 
+    Priebera\A11yQualityGate\Ai\Contract\AiProviderInterface:
+      tags:
+        - name: a11y_quality_gate.ai_provider
+
+    Priebera\A11yQualityGate\Ai\Contract\AiModelDiscoveryProviderInterface:
+      tags:
+        - name: a11y_quality_gate.ai_model_discovery_provider
+
   Priebera\A11yQualityGate\:
     resource: '../Classes/*'
 
@@ -24,6 +32,10 @@ services:
 
   Priebera\A11yQualityGate\Hook\PublishHook:
     public: true
+
+  Priebera\A11yQualityGate\Hook\FileReferenceDecorativeHook:
+    public: true
+    autowire: true
 
   Priebera\A11yQualityGate\Rule\RuleRegistry:
     arguments:
@@ -108,3 +120,69 @@ services:
         command: 'a11y:scan'
         description: 'Scan TYPO3 content for accessibility issues.'
         schedulable: false
+
+  Priebera\A11yQualityGate\Ai\Service\AiAltSuggestionService:
+    arguments:
+      $providers: !tagged_iterator a11y_quality_gate.ai_provider
+
+  Priebera\A11yQualityGate\Ai\Service\AiModelDiscoveryService:
+    arguments:
+      $providers: !tagged_iterator a11y_quality_gate.ai_model_discovery_provider
+
+  Priebera\A11yQualityGate\Controller\AiSettingsAjaxController:
+    arguments:
+      $providers: !tagged_iterator a11y_quality_gate.ai_provider
+
+  Priebera\A11yQualityGate\Controller\ImageRemediationAjaxController:
+    arguments:
+      $service: '@Priebera\A11yQualityGate\Remediation\ImageRemediationService'
+      $permissionService: '@Priebera\A11yQualityGate\Remediation\ImageRemediationPermissionService'
+
+  Priebera\A11yQualityGate\Remediation\ImageRemediationServiceInterface:
+    alias: Priebera\A11yQualityGate\Remediation\ImageRemediationService
+
+  Priebera\A11yQualityGate\Ai\Contract\AiAltSuggestionServiceInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiAltSuggestionService
+
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiConfigurationRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiConfigurationRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiRateLimitRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiRateLimitRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\FileReferenceRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\IssueRemediationRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\IssueRepository
+  Priebera\A11yQualityGate\Contract\AccessControlServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\AccessControlService
+  Priebera\A11yQualityGate\Contract\BackendContextServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\BackendContextService
+  Priebera\A11yQualityGate\Contract\SiteResolutionServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\SiteResolutionService
+  Priebera\A11yQualityGate\Contract\SecretEncryptionServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\SecretEncryptionService
+  Priebera\A11yQualityGate\Contract\BackendUserServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\BackendUserService
+  Priebera\A11yQualityGate\Contract\BackendRecordAccessServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\BackendRecordAccessService
+  Priebera\A11yQualityGate\Remediation\Contract\FileReferenceSchemaServiceInterface:
+    alias: Priebera\A11yQualityGate\Remediation\FileReferenceSchemaService
+  Priebera\A11yQualityGate\Remediation\Contract\ImageFindingVersionTokenServiceInterface:
+    alias: Priebera\A11yQualityGate\Remediation\ImageFindingVersionTokenService
+  Priebera\A11yQualityGate\Remediation\Contract\ImageRemediationPermissionServiceInterface:
+    alias: Priebera\A11yQualityGate\Remediation\ImageRemediationPermissionService
+  Priebera\A11yQualityGate\Remediation\Contract\ImageRemediationTransactionManagerInterface:
+    alias: Priebera\A11yQualityGate\Remediation\ImageRemediationTransactionManager
+  Priebera\A11yQualityGate\Ai\Contract\AiConfigurationManagerInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiConfigurationManager
+  Priebera\A11yQualityGate\Ai\Contract\AiConfigurationResolverInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiConfigurationResolver
+  Priebera\A11yQualityGate\Ai\Contract\AiModelDiscoveryServiceInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiModelDiscoveryService
+  Priebera\A11yQualityGate\Ai\Contract\AiFeatureAccessServiceInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiFeatureAccessService
+  Priebera\A11yQualityGate\Ai\Contract\AiProcessedImageMaterializerInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\CoreAiProcessedImageMaterializer
+  Priebera\A11yQualityGate\Remediation\Contract\ImageFindingContextResolverInterface:
+    alias: Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver
+  Priebera\A11yQualityGate\Remediation\Contract\ImageReferenceWriterInterface:
+    alias: Priebera\A11yQualityGate\Remediation\DataHandlerImageReferenceWriter

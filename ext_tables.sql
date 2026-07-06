@@ -319,6 +319,51 @@ CREATE TABLE tx_a11y_remote_issue_node (
 CREATE TABLE sys_file_reference (
     tx_a11y_is_decorative tinyint(1) unsigned DEFAULT '0' NOT NULL
 );
+
+#
+# Per-site encrypted AI provider configuration
+#
+CREATE TABLE tx_a11y_ai_configuration (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    deleted tinyint(1) NOT NULL DEFAULT 0,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    provider varchar(32) NOT NULL DEFAULT 'openai',
+    encrypted_api_key text,
+    key_hint varchar(32) NOT NULL DEFAULT '',
+    enabled tinyint(1) NOT NULL DEFAULT 1,
+    model varchar(100) NOT NULL DEFAULT '',
+    selected_model_id varchar(100) NOT NULL DEFAULT '',
+    discovered_models_cache mediumtext,
+    discovered_models_at int(11) NOT NULL DEFAULT 0,
+    verified_key_fingerprint varchar(64) NOT NULL DEFAULT '',
+    verified_model_id varchar(100) NOT NULL DEFAULT '',
+    verified_prompt_version varchar(64) NOT NULL DEFAULT '',
+    verified_connection_contract_version varchar(64) NOT NULL DEFAULT '',
+    last_tested_at int(11) NOT NULL DEFAULT 0,
+    last_verified_at int(11) NOT NULL DEFAULT 0,
+    last_test_error_code varchar(64) NOT NULL DEFAULT '',
+    crdate int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY site_provider_active (site_identifier, provider, deleted),
+    KEY deleted (deleted)
+);
+
+
+#
+# Shared server-side AI rate-limit buckets
+#
+CREATE TABLE tx_a11y_ai_rate_limit (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    bucket_hash varchar(64) NOT NULL DEFAULT '',
+    window_started int(11) NOT NULL DEFAULT 0,
+    request_count int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY bucket_hash (bucket_hash)
+);
+
 #
 # Native TYPO3 14 Scheduler task fields for EXT:a11y_quality_gate
 #

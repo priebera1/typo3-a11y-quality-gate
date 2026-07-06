@@ -14,7 +14,12 @@ use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
+use Priebera\A11yQualityGate\Ai\Contract\AiFeatureAccessServiceInterface;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Remediation\ImageAltTextValidator;
+use Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver;
+use Priebera\A11yQualityGate\Remediation\ImageFindingVersionTokenService;
+use Priebera\A11yQualityGate\Remediation\ImageRemediationPreviewService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -60,7 +65,12 @@ final class PageDetailController extends AbstractBackendModuleController
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly ProStatusResolverService $proStatusResolverService,
+        private readonly AiFeatureAccessServiceInterface $aiFeatureAccessService,
         private readonly ExportUrlBuilderService $exportUrlBuilderService,
+        private readonly ImageFindingContextResolver $imageFindingContextResolver,
+        private readonly ImageFindingVersionTokenService $imageFindingVersionTokenService,
+        private readonly ImageAltTextValidator $imageAltTextValidator,
+        private readonly ImageRemediationPreviewService $imageRemediationPreviewService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -82,6 +92,7 @@ final class PageDetailController extends AbstractBackendModuleController
             $this->pageRenderer,
             $site
         );
+        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/image-remediation.js');
 
         $siteIdentifier = $site?->getIdentifier() ?? '';
         $activeStatus = $this->requestParameterService->getStatus($request, 'open');
@@ -99,6 +110,7 @@ final class PageDetailController extends AbstractBackendModuleController
         $currentLanguageOption = $this->resolveCurrentLanguageOption($languageOptions);
 
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
+        $aiAltSuggestionAvailable = $this->aiFeatureAccessService->isAvailable($siteIdentifier);
 
         $pageRecord = $pageUid > 0
             ? (BackendUtility::getRecord('pages', $pageUid, 'uid,title,slug,doktype') ?: [])
@@ -135,7 +147,8 @@ final class PageDetailController extends AbstractBackendModuleController
             $activeSeverity,
             $currentPage,
             $openRuleCountsOnPage,
-            $openRuleCountsOnSite
+            $openRuleCountsOnSite,
+            $aiAltSuggestionAvailable
         ): array {
             $sourceTable = (string)($row['source_table'] ?? '');
             $sourceUid = (int)($row['source_uid'] ?? 0);
@@ -185,6 +198,31 @@ final class PageDetailController extends AbstractBackendModuleController
                     $activeSeverity,
                     $currentPage,
                 );
+            }
+
+            $row['imageRemediationAvailable'] = false;
+            $row['imageRemediationVersion'] = '';
+            $row['imageIsDecorative'] = false;
+            $row['imageAlternative'] = '';
+            $row['aiAltSuggestionAvailable'] = false;
+            $row['imageAlternativeMaxLength'] = $this->imageAltTextValidator->storageLimit();
+            $row['imagePreviewAvailable'] = false;
+            $row['imagePreviewUrl'] = '';
+            $row['imagePreviewPath'] = '';
+            if ($row['hasEditAccess'] && $this->imageFindingContextResolver->supportsIssueRow($row)) {
+                try {
+                    $imageContext = $this->imageFindingContextResolver->resolve((int)$row['uid']);
+                    $row['imageRemediationAvailable'] = true;
+                    $row['imageRemediationVersion'] = $this->imageFindingVersionTokenService->create($imageContext);
+                    $row['imageIsDecorative'] = (int)($imageContext->fileReference['tx_a11y_is_decorative'] ?? 0) === 1;
+                    $row['imageAlternative'] = trim((string)($imageContext->fileReference['alternative'] ?? ''));
+                    $preview = $this->imageRemediationPreviewService->build($imageContext);
+                    $row['imagePreviewAvailable'] = $preview['available'];
+                    $row['imagePreviewUrl'] = $preview['url'];
+                    $row['imagePreviewPath'] = $preview['displayPath'];
+                    $row['aiAltSuggestionAvailable'] = $aiAltSuggestionAvailable;
+                } catch (\Throwable) {
+                }
             }
 
             return $row;
@@ -404,6 +442,10 @@ final class PageDetailController extends AbstractBackendModuleController
             'hasLanguageOptions' => $languageOptions !== [],
             'languageOptionCount' => count($languageOptions),
             'availableLanguageCount' => count($languageOptions),
+            'imageMarkDecorativeUrl' => $this->buildRouteUrl('ajax_a11y_image_mark_decorative'),
+            'imageMarkInformativeUrl' => $this->buildRouteUrl('ajax_a11y_image_mark_informative'),
+            'imageApplyAltUrl' => $this->buildRouteUrl('ajax_a11y_image_apply_alt'),
+            'imageSuggestAltUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_alt'),
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');

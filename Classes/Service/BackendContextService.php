@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\Contract\BackendContextServiceInterface;
+
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 
-final class BackendContextService
+final class BackendContextService implements BackendContextServiceInterface
 {
     public function __construct(
         private readonly BackendLanguageService $backendLanguageService,

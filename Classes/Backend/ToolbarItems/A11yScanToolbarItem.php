@@ -140,11 +140,6 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     }
 
     /**
-     * Backend-module scans write a live status snapshot into the TYPO3 registry.
-     * Scheduler and CLI scans are intentionally left untouched and are detected
-     * from tx_a11y_scan instead. This keeps TYPO3 13 legacy Scheduler execution
-     * stable while still showing Scheduler/CLI scan activity in the toolbar.
-     *
      * @param array<string, mixed> $status
      * @return array<string, mixed>
      */

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
-final class SecretEncryptionService
+use Priebera\A11yQualityGate\Contract\SecretEncryptionServiceInterface;
+
+final class SecretEncryptionService implements SecretEncryptionServiceInterface
 {
     private const PREFIX = 'sodium:v1:';
 
@@ -21,7 +23,7 @@ final class SecretEncryptionService
 
         if (!function_exists('sodium_crypto_secretbox')) {
             throw new \RuntimeException(
-                'sodium extension is required for AQG HTTP auth encryption. Enable ext-sodium in PHP.',
+                'sodium extension is required for AQG secret encryption. Enable ext-sodium in PHP.',
                 1763630001
             );
         }
@@ -45,7 +47,7 @@ final class SecretEncryptionService
 
         if (!function_exists('sodium_crypto_secretbox_open')) {
             throw new \RuntimeException(
-                'sodium extension is required for AQG HTTP auth decryption. Enable ext-sodium in PHP.',
+                'sodium extension is required for AQG secret decryption. Enable ext-sodium in PHP.',
                 1763630002
             );
         }

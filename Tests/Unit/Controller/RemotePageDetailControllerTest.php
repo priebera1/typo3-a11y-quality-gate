@@ -30,7 +30,7 @@ final class RemotePageDetailControllerTest extends TestCase
         $subject = $reflection->newInstanceWithoutConstructor();
         self::assertInstanceOf(RemotePageDetailController::class, $subject);
 
-        $backendLanguageService = new BackendLanguageService();
+        $backendLanguageService = $this->createBackendLanguageService();
         $backendFlashMessageService = (new ReflectionClass(BackendFlashMessageService::class))
             ->newInstanceWithoutConstructor();
         self::assertInstanceOf(BackendFlashMessageService::class, $backendFlashMessageService);
@@ -59,6 +59,28 @@ final class RemotePageDetailControllerTest extends TestCase
         );
 
         $this->subject = $subject;
+    }
+
+
+    private function createBackendLanguageService(): BackendLanguageService
+    {
+        $service = new BackendLanguageService();
+        $catalogues = new ReflectionProperty(
+            BackendLanguageService::class,
+            'explicitLanguageCatalogues'
+        );
+        $catalogues->setValue($service, [
+            'en:locallang.xlf' => [
+                'rule.metadata.documentation.rule' => 'Rule documentation',
+                'rule.metadata.documentation.axe' => 'axe-core rule documentation',
+            ],
+            'de:locallang.xlf' => [
+                'rule.metadata.documentation.rule' => 'Regeldokumentation',
+                'rule.metadata.documentation.axe' => 'axe-core-Regeldokumentation',
+            ],
+        ]);
+
+        return $service;
     }
 
     #[Test]

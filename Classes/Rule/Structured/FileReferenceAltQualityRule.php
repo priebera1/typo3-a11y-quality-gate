@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Rule\Structured;
 
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
-use Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository;
+use Priebera\A11yQualityGate\Domain\Repository\Contract\FileReferenceRepositoryInterface;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleInterface;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
@@ -17,7 +17,7 @@ final class FileReferenceAltQualityRule implements RuleInterface
     private const SUPPORTED_FILE_FIELDS = ['image', 'assets', 'media'];
 
     public function __construct(
-        private readonly FileReferenceRepository $fileReferenceRepository,
+        private readonly FileReferenceRepositoryInterface $fileReferenceRepository,
         private readonly DictionaryRegistry $dictionaryRegistry,
         private readonly int $defaultMaxLength = 120,
     ) {
@@ -75,6 +75,11 @@ final class FileReferenceAltQualityRule implements RuleInterface
         $violations = [];
 
         foreach ($references as $reference) {
+            $isDecorative = (int)($reference['tx_a11y_is_decorative'] ?? 0) === 1;
+            if ($isDecorative) {
+                continue;
+            }
+
             $alt = $this->resolveEffectiveAlt($reference);
             if ($alt === null || $alt === '') {
                 continue;

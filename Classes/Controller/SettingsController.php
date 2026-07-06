@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Ai\Service\AiSettingsUiStateBuilder;
 use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
 use Priebera\A11yQualityGate\Domain\Repository\FieldConfigRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
@@ -59,6 +60,7 @@ final class SettingsController extends AbstractBackendModuleController
         'gate',
         'rules',
         'remote_access',
+        'ai',
         'statement',
     ];
 
@@ -101,6 +103,7 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly SecretEncryptionService $secretEncryptionService,
         private readonly ScannerAccessTokenService $scannerAccessTokenService,
         private readonly PublicLinkProvider $publicLinkProvider,
+        private readonly AiSettingsUiStateBuilder $aiSettingsUiStateBuilder,
         private readonly RequestFactory $requestFactory,
         private readonly CacheManager $cacheManager,
         private readonly ResponseFactoryInterface $responseFactory,
@@ -134,6 +137,7 @@ final class SettingsController extends AbstractBackendModuleController
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-quality-gate.js');
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-remote-access.js');
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-statement.js');
+        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-ai.js');
 
         $fieldGroups = $this->fieldConfigRepository->findGroupedForSettings();
         $returnParameters = $this->getA11yModuleReturnParameters($request);
@@ -149,7 +153,7 @@ final class SettingsController extends AbstractBackendModuleController
         $selectedRulesetSite = trim((string)($request->getQueryParams()['rulesetSite'] ?? $currentSiteIdentifier));
         $activeTab = $this->resolveActiveTab((string)($request->getQueryParams()['tab'] ?? 'licence'));
         $isAdmin = $this->backendContextService->isAdmin();
-        if ($activeTab === 'remote_access' && !$isAdmin) {
+        if (in_array($activeTab, ['remote_access', 'ai'], true) && !$isAdmin) {
             $activeTab = 'licence';
         }
 
@@ -209,6 +213,10 @@ final class SettingsController extends AbstractBackendModuleController
             $qualityGateRuleset,
         ) ?? $this->getExtensionConfigurationBool('showProHints', true);
         $publicLinks = $this->publicLinkProvider->getBackendLinks();
+        $aiSiteIdentifier = $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier;
+        $aiConfigurationStatus = ($isAdmin && $aiSiteIdentifier !== '')
+            ? $this->aiSettingsUiStateBuilder->build($aiSiteIdentifier)
+            : $this->aiSettingsUiStateBuilder->build('');
 
         $moduleTemplate->assignMultiple([
             'fieldGroups' => $fieldGroups,
@@ -262,6 +270,12 @@ final class SettingsController extends AbstractBackendModuleController
             'supportUrl' => $publicLinks[PublicLinkProvider::SUPPORT],
             'portalUrl' => $publicLinks[PublicLinkProvider::PORTAL],
             'settingsTabUrls' => $this->buildSettingsTabUrls($request, $selectedRulesetSite),
+            'aiConfigurationStatus' => $aiConfigurationStatus,
+            'aiSiteIdentifier' => $aiSiteIdentifier,
+            'aiSettingsSaveUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_save'),
+            'aiSettingsRefreshModelsUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_refresh_models'),
+            'aiSettingsSelectModelUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_select_model'),
+            'aiSettingsTestUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_test'),
         ]);
 
         return $moduleTemplate->renderResponse('Settings/Index');
@@ -329,7 +343,7 @@ final class SettingsController extends AbstractBackendModuleController
 
         $selectedRulesetSite = trim((string)($body['rulesetSite'] ?? ''));
         $activeTab = $this->resolveActiveTab((string)($body['tab'] ?? 'fields'));
-        if ($activeTab === 'remote_access' && !$isAdmin) {
+        if (in_array($activeTab, ['remote_access', 'ai'], true) && !$isAdmin) {
             $activeTab = 'licence';
         }
 
@@ -682,8 +696,6 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         $draftOptions = is_array($body['draftOptions'] ?? null) ? $body['draftOptions'] : [];
-        // Accept flat payloads too, so JS and tests do not need to mirror an
-        // internal request shape exactly.
         foreach ([
             'conformityStatus',
             'organisation',
@@ -1478,7 +1490,6 @@ final class SettingsController extends AbstractBackendModuleController
     {
         $this->extensionConfiguration->set('a11y_quality_gate', $configuration);
 
-        // Keep the runtime value in sync for services created later in the same request.
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate'] = $configuration;
     }
 

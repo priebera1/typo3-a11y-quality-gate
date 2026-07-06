@@ -81,8 +81,6 @@ final class ProStatusResolverService
             try {
                 $this->appendNormalizedDomain($domains, (string)$language->getBase());
             } catch (\Throwable) {
-                // Broken language base configuration should not hide the PRO UI
-                // for otherwise valid site domains.
             }
         }
 

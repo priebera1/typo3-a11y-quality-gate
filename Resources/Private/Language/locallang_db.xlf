@@ -572,7 +572,7 @@
                 <source>Decorative image</source>
             </trans-unit>
             <trans-unit id="sys_file_reference.tx_a11y_is_decorative.description">
-                <source>Mark this image as decorative when it does not convey meaningful content and should use empty alt text.</source>
+                <source>Mark this image as decorative only when it conveys no meaningful information. TYPO3 will render an empty alternative text.</source>
             </trans-unit>
         </body>
     </file>

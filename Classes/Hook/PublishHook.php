@@ -254,8 +254,6 @@ final class PublishHook
         $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier(), $languageUid);
 
         if ($verdict->isPassed()) {
-            // Passed and disabled checks are intentionally silent. Warning and
-            // blocking feedback is handled only in the branches below.
             return;
         }
 

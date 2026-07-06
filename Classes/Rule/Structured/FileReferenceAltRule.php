@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Rule\Structured;
 
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
-use Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository;
+use Priebera\A11yQualityGate\Domain\Repository\Contract\FileReferenceRepositoryInterface;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleInterface;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
@@ -18,7 +18,7 @@ final class FileReferenceAltRule implements RuleInterface
     private const GROUPED_CONTEXT_PREVIEW_LIMIT = 5;
 
     public function __construct(
-        private readonly FileReferenceRepository $fileReferenceRepository,
+        private readonly FileReferenceRepositoryInterface $fileReferenceRepository,
     ) {
     }
 
@@ -76,7 +76,7 @@ final class FileReferenceAltRule implements RuleInterface
         foreach ($references as $reference) {
             $referenceUid = (int)($reference['uid'] ?? 0);
             $fileName = basename((string)($reference['identifier'] ?? 'unknown'));
-            $isDecorative = (bool)($reference['tx_a11y_is_decorative'] ?? false);
+            $isDecorative = (int)($reference['tx_a11y_is_decorative'] ?? 0) === 1;
 
             $rawReferenceAlt = $reference['alternative'] ?? null;
             $rawReferenceTitle = $reference['title'] ?? null;
@@ -122,10 +122,6 @@ final class FileReferenceAltRule implements RuleInterface
             }
 
             if ($effectiveAlt !== null && $effectiveAlt !== '') {
-                continue;
-            }
-
-            if (is_string($rawReferenceAlt) && trim($rawReferenceAlt) === '') {
                 continue;
             }
 

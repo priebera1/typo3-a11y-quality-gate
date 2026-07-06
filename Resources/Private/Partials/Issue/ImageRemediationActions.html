@@ -1,0 +1,99 @@
+<div class="aqg-image-remediation"
+     data-aqg-image-remediation-card="true"
+     data-finding-id="{issue.uid}"
+     data-expected-version="{issue.imageRemediationVersion}">
+    <f:if condition="{issue.imageIsDecorative}">
+        <f:then>
+            <section class="aqg-rem aqg-rem--decorative" aria-labelledby="aqg-rem-title-{issue.uid}">
+                <div class="aqg-rem__decorative-head">
+                    <span class="aqg-rem__decorative-icon" aria-hidden="true">✓</span>
+                    <div class="aqg-rem__decorative-body">
+                        <h3 class="aqg-rem__title" id="aqg-rem-title-{issue.uid}">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.decorativeTitle" default="Decorative image" />
+                        </h3>
+                        <p class="aqg-rem__desc">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.decorativeDescription" default="This image is intentionally ignored by screen readers and uses alt=&quot;&quot;." />
+                        </p>
+                        <div class="aqg-rem__actions">
+                            <button type="button" class="btn btn-default btn-sm" data-action="aqg-mark-informative" data-loading-label="…">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.markInformative" default="Mark as informative" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="aqg-rem__status" aria-live="polite" aria-atomic="true">
+                    <div class="aqg-statusline" data-aqg-remediation-status="true" hidden="hidden"></div>
+                </div>
+            </section>
+        </f:then>
+        <f:else>
+            <section class="aqg-rem" aria-labelledby="aqg-rem-title-{issue.uid}">
+                <div class="aqg-rem__head">
+                    <div class="aqg-rem__thumb" aria-hidden="true">
+                        <f:if condition="{issue.imagePreviewAvailable}">
+                            <f:then>
+                                <img src="{issue.imagePreviewUrl}" alt="" loading="lazy" />
+                            </f:then>
+                            <f:else>
+                                <span class="aqg-rem__thumb-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.noPreview" default="No preview" /></span>
+                            </f:else>
+                        </f:if>
+                    </div>
+                    <div class="aqg-rem__head-body">
+                        <h3 class="aqg-rem__title" id="aqg-rem-title-{issue.uid}">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.manualAlt" default="Alternative text" />
+                        </h3>
+                        <p class="aqg-rem__desc">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.fieldDescription" default="Describe the image’s purpose or content for people who cannot see it." />
+                        </p>
+                        <f:if condition="{issue.imagePreviewPath}">
+                            <p class="aqg-rem__file" title="{issue.imagePreviewPath}">
+                                <span class="aqg-rem__file-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.file" default="File" />:</span>
+                                <span class="aqg-rem__file-path">{issue.imagePreviewPath}</span>
+                            </p>
+                        </f:if>
+                    </div>
+                </div>
+
+                <div class="aqg-rem__field">
+                    <label class="aqg-rem__label" for="aqg-alt-text-{issue.uid}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.manualAlt" default="Alternative text" />
+                    </label>
+                    <textarea id="aqg-alt-text-{issue.uid}" class="form-control aqg-textarea" rows="3" maxlength="{issue.imageAlternativeMaxLength}" data-aqg-alt-text="true" aria-describedby="aqg-alt-help-{issue.uid}">{issue.imageAlternative}</textarea>
+                    <div id="aqg-alt-help-{issue.uid}" class="aqg-rem__help">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.fieldHelp" default="Aim for a short, specific description. Leave decorative images to Mark as decorative." />
+                    </div>
+                    <div class="aqg-rem__ai-note" data-aqg-ai-note="true" hidden="hidden">
+                        <span aria-hidden="true">✦</span>
+                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.aiSuggestionInserted" default="AI-generated suggestion. Review and edit it before applying." /></span>
+                    </div>
+                </div>
+
+                <div class="aqg-rem__actions">
+                    <button type="button" class="btn btn-primary btn-sm" data-action="aqg-apply-alt" data-loading-label="…">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.applyAlt" default="Apply reviewed text" />
+                    </button>
+                    <button type="button" class="btn btn-default btn-sm" data-action="aqg-mark-decorative" data-loading-label="…">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.markDecorative" default="Mark as decorative" />
+                    </button>
+                    <f:if condition="{issue.aiAltSuggestionAvailable}">
+                        <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-alt" data-loading-label="…">
+                            <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.suggestAlt" default="Suggest alt text with AI" /></span>
+                            <span class="aqg-btn-pro" aria-hidden="true">PRO</span>
+                        </button>
+                        <button type="button" class="btn btn-default btn-sm" data-action="aqg-discard-ai" hidden="hidden">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.discardSuggestion" default="Discard suggestion" />
+                        </button>
+                    </f:if>
+                </div>
+                <p class="aqg-rem__help aqg-rem__help--actions">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.help" default="Mark an image decorative only when it conveys no meaningful information. Decorative images use empty alternative text." />
+                </p>
+                <div class="aqg-rem__status" aria-live="polite" aria-atomic="true">
+                    <div class="aqg-statusline" data-aqg-remediation-status="true" hidden="hidden"></div>
+                </div>
+            </section>
+        </f:else>
+    </f:if>
+</div>

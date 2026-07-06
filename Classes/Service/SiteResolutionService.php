@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\Contract\SiteResolutionServiceInterface;
+
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
-final class SiteResolutionService
+final class SiteResolutionService implements SiteResolutionServiceInterface
 {
     public function __construct(
         private readonly SiteFinder $siteFinder,
