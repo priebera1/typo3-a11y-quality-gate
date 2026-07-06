@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\Contract\AccessControlServiceInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
-final class AccessControlService
+final class AccessControlService implements AccessControlServiceInterface
 {
     public function canShowToolbarItem(?BackendUserAuthentication $backendUser = null): bool
     {
@@ -38,6 +39,23 @@ final class AccessControlService
         $backendUser ??= $GLOBALS['BE_USER'] ?? null;
 
         return $backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin();
+    }
+
+    public function canRemediateImages(?BackendUserAuthentication $backendUser = null): bool
+    {
+        $backendUser ??= $GLOBALS['BE_USER'] ?? null;
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return false;
+        }
+
+        if ($backendUser->isAdmin()) {
+            return true;
+        }
+
+        $userTsConfig = $backendUser->getTSConfig();
+        $value = $userTsConfig['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? null;
+
+        return $value === 1 || $value === '1';
     }
 
     private function resolveVisibilityFlag(

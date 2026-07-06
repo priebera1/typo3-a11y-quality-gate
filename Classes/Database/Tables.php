@@ -11,6 +11,8 @@ final class Tables
     public const RULESET = 'tx_a11y_ruleset';
     public const SOURCE_STATE = 'tx_a11y_source_state';
     public const FIELD_CONFIG = 'tx_a11y_field_config';
+    public const AI_CONFIGURATION = 'tx_a11y_ai_configuration';
+    public const AI_RATE_LIMIT = 'tx_a11y_ai_rate_limit';
 
     public const REMOTE_SCAN = 'tx_a11y_remote_scan';
     public const REMOTE_SCAN_PAGE = 'tx_a11y_remote_scan_page';

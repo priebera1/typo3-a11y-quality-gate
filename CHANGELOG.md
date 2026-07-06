@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.7.0] - 2026-07-06
+
+### Added
+
+* Added AI-assisted alt-text suggestions for local FAL image findings, covering missing and low-quality alternative text with mandatory editor review before anything is written.
+* Added site-specific encrypted OpenAI project key configuration for AI alt-text suggestions, with masked key display and support for the global `AQG_OPENAI_API_KEY` environment fallback.
+* Added dynamic OpenAI model discovery for the configured project key. AQG loads project-available models, filters them through an AQG compatibility registry and lets administrators select a supported model.
+* Added connection verification for the current key, selected model, prompt version and AQG connection-test contract before AI suggestions can be used.
+* Added support for showing OpenAI models that are available to the project but not yet supported by AQG.
+* Added editor workflows for marking image findings as decorative, marking them as informative and applying reviewed alt text to the related FAL reference.
+* Added an explicit non-admin image-remediation capability via User TSConfig:
+  `options.a11y_quality_gate.allowImageRemediation = 1`.
+
+### Changed
+
+* AI alt-text suggestions now use OpenAI Responses API requests with strict Structured Outputs, bounded server-derived context, selected model profiles, `store=false` and the final `aqg_alt_text_v3` prompt.
+* AI Settings now use a shared server-derived UI state for model discovery, model selection, verification status, timestamps, safe error codes and action availability.
+* The selected OpenAI model is now site-specific and verification is valid only for the current key fingerprint, selected model, prompt version and connection-test contract.
+* FREE and PRO backend local page-scan handling now share an idempotent JavaScript initializer so “Scan this page” behaves consistently across backend module variants.
+* Settings navigation and AI Settings layouts were improved for narrow TYPO3 backend viewports, light mode, dark mode, keyboard focus and responsive wrapping.
+* Image remediation permission handling now combines the explicit AQG capability with TYPO3 page, record, table, field, workspace and language checks before any write operation.
+
+### Fixed
+
+* Fixed the PRO Page Detail “Scan this page” action so the enabled button triggers the local page-scan request instead of remaining inert.
+* Fixed AI Settings refresh handling so disappeared OpenAI models, stale options and stale selected models cannot survive a model-discovery refresh.
+* Fixed AI Settings state rendering so non-2xx model-discovery and connection-test responses update the visible status, safe error code, timestamps and button states without relying on a page reload.
+* Fixed unsupported OpenAI model rendering so server-rendered and AJAX-rendered Settings views stay consistent.
+* Fixed responsive overflow in the AQG Settings tab navigation on narrow backend viewports.
+* Fixed image-remediation write endpoints so non-admin users without the explicit AQG image-remediation capability receive `permission_denied` before any FAL reference or finding state is mutated.
+* Fixed permission-denied image-remediation requests so `sys_file_reference` values and finding metadata remain unchanged.
+
+### Security
+
+* Image-remediation write endpoints now require server-side authorization before changing FAL reference data or resolving findings.
+* Non-admin image remediation is denied by default unless explicitly enabled through User TSConfig.
+* Permission failures return HTTP 403 with `permission_denied` and fail before database mutation.
+* OpenAI API keys remain encrypted at rest and are never displayed after saving.
+* OpenAI diagnostics expose only bounded technical status codes and do not expose API keys, authorization headers, image payloads or full provider responses.
+* AI suggestions are never applied automatically; editors must review and explicitly apply the suggested text.
+
 ## [1.6.0] - 2026-06-18
 
 ### Added

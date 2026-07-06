@@ -32,6 +32,8 @@ defined('TYPO3') || die();
 
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\PublishHook::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
+        = \Priebera\A11yQualityGate\Hook\FileReferenceDecorativeHook::class;
 
     // Rendered page checks use an internal debug URL with no_cache=1 and short-lived AQG
     // parameters. Keep them out of cHash validation so TYPO3 does not reject the

@@ -394,6 +394,15 @@ final class ScanAjaxControllerTest extends TestCase
     public function scanSiteActionRunsScanAndReturnsResult(): void
     {
         $backendUser = $this->mockLoggedInUser(1, 'tester');
+        $resolvedBy = [
+            'uid' => 1,
+            'username' => 'tester',
+            'name' => 'tester',
+        ];
+        $this->backendUserService
+            ->expects($this->once())
+            ->method('getBackendUserSnapshot')
+            ->willReturn($resolvedBy);
 
         $this->request->method('getParsedBody')->willReturn(['rootPid' => 123]);
 
@@ -441,7 +450,7 @@ final class ScanAjaxControllerTest extends TestCase
                 99,
                 0,
                 false,
-                null,
+                $resolvedBy,
                 $this->isInstanceOf(\Closure::class),
                 $this->isInstanceOf(\Closure::class),
                 true,

@@ -3094,6 +3094,347 @@ details[open] .a11y-details-summary__toggle {
     grid-template-columns: 1fr;
   }
 }
+.a11y-page-detail .aqg-image-remediation {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------
+   1 · IMAGE REMEDIATION BLOCK
+   --------------------------------------------------------- */
+/* sits inside .aqg-issue, below the how-to-fix callout */
+.a11y-page-detail .aqg-rem {
+  background: var(--aqi-surface-2);
+  border: 1px solid var(--aqi-border);
+  border-radius: 8px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* header: small thumbnail + title/intro */
+.a11y-page-detail .aqg-rem__head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.a11y-page-detail .aqg-rem__thumb {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  border-radius: 6px;
+  border: 1px solid var(--aqi-border);
+  background: repeating-linear-gradient(45deg, color-mix(in oklch, var(--aqi-fg) 5%, transparent) 0 7px, transparent 7px 14px), var(--aqi-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.a11y-page-detail .aqg-rem__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.a11y-page-detail .aqg-rem__thumb-label {
+  font-family: var(--aqi-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aqi-fg-subtle);
+  text-align: center;
+  padding: 0 4px;
+}
+
+.a11y-page-detail .aqg-rem__head-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.a11y-page-detail .aqg-rem__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--aqi-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.a11y-page-detail .aqg-rem__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--aqi-fg-muted);
+  text-wrap: pretty;
+  max-width: 60ch;
+}
+
+.a11y-page-detail .aqg-rem__filename {
+  font-family: var(--aqi-font-mono);
+  font-size: 11px;
+  color: var(--aqi-fg-subtle);
+  word-break: break-all;
+}
+
+/* the editable field — comfortable readable width, never full bleed */
+.a11y-page-detail .aqg-rem__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 620px;
+}
+
+.a11y-page-detail .aqg-rem__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--aqi-fg);
+}
+
+.a11y-page-detail .aqg-rem .aqg-textarea {
+  min-height: 72px;
+  max-width: 620px;
+  width: 100%;
+}
+
+.a11y-page-detail .aqg-rem__help {
+  font-size: 11px;
+  color: var(--aqi-fg-muted);
+  text-wrap: pretty;
+  max-width: 60ch;
+}
+
+/* inline AI-suggestion note that rides just under the textarea */
+.a11y-page-detail .aqg-rem__ai-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--aqi-run);
+  background: color-mix(in oklch, var(--aqi-run-bg) 55%, var(--aqi-surface));
+  border: 1px solid var(--aqi-run-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  max-width: 620px;
+  text-wrap: pretty;
+}
+
+.a11y-page-detail .aqg-rem__ai-note .a11y-page-detail .aqg-rem__ai-note-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* action bar */
+.a11y-page-detail .aqg-rem__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* reserved status lane — fixed min-height so success/error never shifts layout */
+.a11y-page-detail .aqg-rem__status {
+  min-height: 34px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.a11y-page-detail .aqg-rem__status:empty {
+  min-height: 34px;
+}
+
+.a11y-page-detail .aqg-statusline {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 7px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--aqi-border);
+  background: var(--aqi-surface);
+  color: var(--aqi-fg-muted);
+  max-width: 100%;
+  text-wrap: pretty;
+}
+
+.a11y-page-detail .aqg-statusline__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.a11y-page-detail .aqg-statusline__text {
+  min-width: 0;
+}
+
+.a11y-page-detail .aqg-statusline__text strong {
+  color: var(--aqi-fg);
+  font-weight: 600;
+}
+
+.a11y-page-detail .aqg-statusline.tone-ok {
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border-color: var(--aqi-ok-border);
+}
+
+.a11y-page-detail .aqg-statusline.tone-ok .a11y-page-detail .aqg-statusline__text strong {
+  color: var(--aqi-ok);
+}
+
+.a11y-page-detail .aqg-statusline.tone-info {
+  color: var(--aqi-run);
+  background: var(--aqi-run-bg);
+  border-color: var(--aqi-run-border);
+}
+
+.a11y-page-detail .aqg-statusline.tone-error {
+  color: var(--aqi-err);
+  background: var(--aqi-err-bg);
+  border-color: var(--aqi-err-border);
+}
+
+.a11y-page-detail .aqg-statusline.tone-warning {
+  color: var(--aqi-warn);
+  background: var(--aqi-warn-bg);
+  border-color: var(--aqi-warn-border);
+}
+
+/* stale finding — deliberately stronger than a plain validation error:
+   editor must reload, so it reads as a heavier, attention-demanding bar */
+.a11y-page-detail .aqg-statusline--stale {
+  font-weight: 500;
+  border-width: 1px;
+  border-left-width: 4px;
+  background: color-mix(in oklch, var(--aqi-err-bg) 80%, var(--aqi-surface));
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--aqi-err) 18%, transparent);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+}
+
+.a11y-page-detail .aqg-statusline--stale .a11y-page-detail .aqg-statusline__reload {
+  margin-left: 4px;
+}
+
+/* decorative state — calm, single action, no textarea, not an error */
+.a11y-page-detail .aqg-rem--decorative {
+  background: color-mix(in oklch, var(--aqi-ok-bg) 28%, var(--aqi-surface));
+  border-color: color-mix(in oklch, var(--aqi-ok-border) 55%, var(--aqi-border));
+}
+
+.a11y-page-detail .aqg-rem__decorative-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.a11y-page-detail .aqg-rem__decorative-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--aqi-surface);
+  border: 1px solid var(--aqi-ok-border);
+  color: var(--aqi-ok);
+}
+
+.a11y-page-detail .aqg-rem__decorative-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.a11y-page-detail .aqg-rem__decorative-code {
+  font-family: var(--aqi-font-mono);
+  font-size: 11px;
+  color: var(--aqi-fg);
+  background: var(--aqi-surface);
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+/* ---------------------------------------------------------
+   PRO affordance on the "Suggest with AI" button
+   — recognisable as PRO, but visually quieter than the primary
+   --------------------------------------------------------- */
+.a11y-page-detail .aqi-btn--ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.a11y-page-detail .aqi-btn--ai .aqg-btn-pro {
+  font-family: var(--aqi-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border: 1px solid var(--aqi-ok-border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  line-height: 1.4;
+}
+
+.a11y-page-detail .aqi-btn--ai .aqg-btn-ai-glyph {
+  display: inline-flex;
+  color: var(--aqi-fg-muted);
+}
+
+.a11y-page-detail .aqi-btn--ai:disabled .aqg-btn-ai-glyph,
+.a11y-page-detail .aqi-btn--ai.is-disabled .aqg-btn-ai-glyph {
+  color: var(--aqi-fg-subtle);
+}
+
+/* a button that is mid-request: spinner + label, kept same width feel */
+.a11y-page-detail .aqi-btn__spin {
+  display: inline-flex;
+  margin-right: 6px;
+  color: currentColor;
+}
+
+/* AQG 1.7 image remediation preview metadata */
+.a11y-page-detail .aqg-rem__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--aqi-surface);
+}
+
+.a11y-page-detail .aqg-rem__file {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  margin: 2px 0 0;
+  color: var(--aqi-fg-subtle);
+  font-family: var(--aqi-font-mono);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.a11y-page-detail .aqg-rem__file-label {
+  flex: 0 0 auto;
+  font-weight: 600;
+  color: var(--aqi-fg-muted);
+}
+
+.a11y-page-detail .aqg-rem__file-path {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .a11y-page-detail .aqg-rule {
   display: block;
   overflow: hidden;
@@ -4614,7 +4955,6 @@ html[data-theme=fresh][data-color-scheme=auto] .a11y-page-detail.aqg-module .aqg
   font-size: 12px;
 }
 
-/* Final PRO 1.6 regression signal: explain change since previous compatible frontend scan. */
 .a11y-page-detail.aqg-module .aqg-regression-signal__context {
   margin: 0 0 4px;
   color: var(--aqi-fg-muted, var(--aqg-muted, #475569));
@@ -9789,7 +10129,6 @@ body[data-bs-theme=dark] .a11y-overview .aqg-history-panel__summary-copy small {
     align-items: flex-start;
   }
 }
-/* Final PRO 1.6 P0 Overview runtime fixes: site-level history only + TYPO3 14 fresh/dark readability. */
 .a11y-overview .aqg-page-scan-fallback-note {
   border-radius: 0 !important;
   border: 0 !important;
@@ -14505,6 +14844,827 @@ body[data-bs-theme=dark] .a11y-settings.aqg-module .aqg-statement-result {
 .aqg-statement-standard-editor,
 .aqg-statement-known-limitations-editor {
   border-style: dashed;
+}
+
+/* AQG 1.7 — AI settings uses the same card/form primitives as the other tabs. */
+.a11y-settings.aqg-module .aqg-ai-settings {
+  width: 100%;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__card {
+  width: min(100%, 920px);
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__card .aqg-card__title {
+  flex-wrap: wrap;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__notice {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__notice p {
+  margin: 4px 0 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: var(--aqi-radius-sm);
+  background: var(--aqi-surface-2);
+  overflow: hidden;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 180px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 42px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--aqi-border-soft);
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary-row:last-child {
+  border-bottom: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary dt,
+.a11y-settings.aqg-module .aqg-ai-settings__summary dd {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary dt {
+  color: var(--aqi-fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary dd {
+  min-width: 0;
+  color: var(--aqi-fg);
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__summary code {
+  overflow-wrap: anywhere;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__form {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 760px);
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__form .form-control {
+  width: 100%;
+  max-width: 760px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__feedback {
+  width: min(100%, 760px);
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__card .aqg-card__foot {
+  flex-wrap: wrap;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__card .aqg-card__actions {
+  justify-content: flex-start;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__card button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 760px) {
+  .a11y-settings.aqg-module .aqg-ai-settings__summary-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .a11y-settings.aqg-module .aqg-ai-settings__card .aqg-card__foot,
+  .a11y-settings.aqg-module .aqg-ai-settings__card .aqg-card__actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+  .a11y-settings.aqg-module .aqg-ai-settings__card .btn {
+    width: 100%;
+  }
+}
+/* AQG 1.7 image AI design alignment */
+/* ---------------------------------------------------------
+   2 · AI ALT-TEXT SETTINGS CARD
+   --------------------------------------------------------- */
+/* the whole tab is constrained — not stretched across the module */
+.a11y-settings.aqg-module .aqg-ai-wrap {
+  max-width: 880px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-card .aqg-card__body {
+  gap: 16px;
+}
+
+/* header line: title + PRO badge on the right */
+.a11y-settings.aqg-module .aqg-ai-headtag {
+  font-family: var(--aqi-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border: 1px solid var(--aqi-ok-border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  align-self: center;
+}
+
+/* compact privacy / info alert */
+.a11y-settings.aqg-module .aqg-ai-privacy {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--aqi-run-bg) 40%, var(--aqi-surface));
+  border: 1px solid color-mix(in oklch, var(--aqi-run-border) 65%, var(--aqi-border-soft));
+  font-size: 12px;
+  color: var(--aqi-fg-muted);
+  text-wrap: pretty;
+  max-width: 760px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__icon {
+  display: inline-flex;
+  color: var(--aqi-run);
+  padding-top: 1px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy strong {
+  color: var(--aqi-fg);
+  font-weight: 600;
+}
+
+/* summary block — compact two-column key/value, wraps under .aqg-narrow */
+.a11y-settings.aqg-module .aqg-ai-summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0;
+  border: 1px solid var(--aqi-border);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 760px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row {
+  display: contents;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dt,
+.a11y-settings.aqg-module .aqg-ai-summary dd {
+  margin: 0;
+  padding: 9px 14px;
+  border-top: 1px solid var(--aqi-divider);
+  font-size: 12px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary > :nth-child(1),
+.a11y-settings.aqg-module .aqg-ai-summary > :nth-child(2) {
+  border-top: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dt {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aqi-fg-subtle);
+  background: var(--aqi-surface-2);
+  white-space: nowrap;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dd {
+  color: var(--aqi-fg);
+  font-family: var(--aqi-font-mono);
+  word-break: break-all;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dd.is-plain {
+  font-family: var(--aqi-font);
+}
+
+/* masked key value */
+.a11y-settings.aqg-module .aqg-ai-keymask {
+  font-family: var(--aqi-font-mono);
+  letter-spacing: 0.04em;
+  color: var(--aqi-fg);
+}
+
+.a11y-settings.aqg-module .aqg-ai-keymask__dots {
+  color: var(--aqi-fg-subtle);
+}
+
+/* form fields constrained to a readable width */
+.a11y-settings.aqg-module .aqg-ai-field {
+  max-width: 720px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-field .aqg-input {
+  width: 100%;
+  max-width: 720px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-field .aqg-select {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* settings action row */
+.a11y-settings.aqg-module .aqg-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-actions__status {
+  min-height: 0;
+  margin-left: 2px;
+}
+
+/* environment-override callout — prominent but not aggressive */
+.a11y-settings.aqg-module .aqg-ai-envbar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--aqi-warn-border);
+  border-left: 3px solid var(--aqi-warn);
+  background: color-mix(in oklch, var(--aqi-warn-bg) 45%, var(--aqi-surface));
+  max-width: 760px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-envbar__icon {
+  display: inline-flex;
+  color: var(--aqi-warn);
+  padding-top: 1px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-envbar__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--aqi-fg);
+  margin: 0 0 3px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-envbar__text {
+  font-size: 12px;
+  color: var(--aqi-fg-muted);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.a11y-settings.aqg-module .aqg-ai-envbar__text code {
+  font-family: var(--aqi-font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  background: var(--aqi-surface);
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: 3px;
+  color: var(--aqi-fg);
+}
+
+/* status badge used in the summary "Status" row */
+.aqg-ai-statusbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--aqi-font);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--aqi-border);
+  background: var(--aqi-surface);
+  color: var(--aqi-fg-muted);
+  white-space: nowrap;
+}
+
+.aqg-ai-statusbadge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.aqg-ai-statusbadge.tone-none {
+  color: var(--aqi-none);
+  background: var(--aqi-none-bg);
+  border-color: var(--aqi-none-border);
+}
+
+.aqg-ai-statusbadge.tone-ok {
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border-color: var(--aqi-ok-border);
+}
+
+.aqg-ai-statusbadge.tone-error {
+  color: var(--aqi-err);
+  background: var(--aqi-err-bg);
+  border-color: var(--aqi-err-border);
+}
+
+.aqg-ai-statusbadge.tone-info {
+  color: var(--aqi-run);
+  background: var(--aqi-run-bg);
+  border-color: var(--aqi-run-border);
+}
+
+.aqg-ai-statusbadge.tone-warning {
+  color: var(--aqi-warn);
+  background: var(--aqi-warn-bg);
+  border-color: var(--aqi-warn-border);
+}
+
+/* ---------------------------------------------------------
+   NARROW BACKEND WINDOW — explicit opt-in (no viewport media query)
+   Apply .aqg-narrow to the frame/module to simulate a docked,
+   narrow TYPO3 content area.
+   --------------------------------------------------------- */
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-wrap {
+  max-width: 100%;
+}
+
+.aqg-narrow .aqg-rem__head {
+  flex-direction: column;
+}
+
+.aqg-narrow .aqg-rem__thumb {
+  width: 72px;
+  height: 72px;
+}
+
+/* Settings navigation wraps inside a narrow TYPO3 module instead of widening the document. */
+.aqg-narrow .a11y-settings.aqg-module .aqg-tabs,
+.a11y-settings.aqg-module.aqg-narrow .aqg-tabs {
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: stretch;
+  row-gap: 2px;
+}
+
+.aqg-narrow .a11y-settings.aqg-module .aqg-tab,
+.a11y-settings.aqg-module.aqg-narrow .aqg-tab {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* summary collapses to stacked rows */
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-summary {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-summary dt {
+  border-top: 1px solid var(--aqi-divider);
+  padding-bottom: 2px;
+}
+
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-summary dd {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-summary > :nth-child(2) {
+  border-top: 0;
+}
+
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-summary dt:first-child {
+  border-top: 0;
+}
+
+/* actions wrap to multiple rows, never overflow */
+.aqg-narrow .aqg-rem__actions,
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-actions {
+  gap: 6px;
+}
+
+.aqg-narrow .aqg-rem__field,
+.aqg-narrow .aqg-rem .aqg-textarea,
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-field,
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-field .aqg-input,
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-privacy,
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-envbar {
+  max-width: 100%;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__heading {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__form {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 720px);
+}
+
+.a11y-settings.aqg-module .aqg-ai-key-panel__summary {
+  margin-bottom: 12px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-key-panel__summary p,
+.a11y-settings.aqg-module .aqg-ai-envbar p {
+  margin: 3px 0 0;
+  color: var(--aqi-fg-muted);
+  font-size: 12px;
+}
+
+.a11y-settings.aqg-module .aqg-status-badge--success {
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border-color: var(--aqi-ok-border);
+}
+
+.a11y-settings.aqg-module .aqg-status-badge--danger {
+  color: var(--aqi-err);
+  background: var(--aqi-err-bg);
+  border-color: var(--aqi-err-border);
+}
+
+.a11y-settings.aqg-module .aqg-ai-actions__status {
+  min-height: 38px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.a11y-settings.aqg-module .aqg-statusline {
+  display: inline-flex;
+  max-width: 760px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--aqi-border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.a11y-settings.aqg-module .aqg-statusline.tone-ok {
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border-color: var(--aqi-ok-border);
+}
+
+.a11y-settings.aqg-module .aqg-statusline.tone-error {
+  color: var(--aqi-err);
+  background: var(--aqi-err-bg);
+  border-color: var(--aqi-err-border);
+}
+
+.a11y-settings.aqg-module button[aria-busy=true] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 575.98px) {
+  .a11y-settings.aqg-module .aqg-tabs {
+    width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: stretch;
+    row-gap: 2px;
+  }
+  .a11y-settings.aqg-module .aqg-tab {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+@media (max-width: 760px) {
+  .a11y-settings.aqg-module .aqg-ai-settings__heading {
+    align-items: flex-start;
+  }
+  .a11y-settings.aqg-module .aqg-ai-actions {
+    align-items: stretch;
+  }
+  .a11y-settings.aqg-module .aqg-ai-actions .btn {
+    width: auto;
+  }
+}
+.a11y-settings.aqg-module .aqg-ai-settings .is-hidden {
+  display: none !important;
+}
+
+/* AQG 1.7 AI configuration information hierarchy */
+.a11y-settings.aqg-module .aqg-ai-privacy__icon {
+  align-items: flex-start;
+  color: var(--aqi-run);
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__content {
+  min-width: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__primary,
+.a11y-settings.aqg-module .aqg-ai-privacy__secondary {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__primary {
+  color: var(--aqi-fg);
+  font-weight: 500;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__secondary {
+  margin-top: 5px;
+  color: var(--aqi-fg-subtle);
+  font-size: 11px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-site-scope {
+  max-width: 760px;
+  margin: -2px 0 0;
+  color: var(--aqi-fg-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.a11y-settings.aqg-module .aqg-ai-field .form-select {
+  width: 100%;
+  max-width: 420px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model dd {
+  font-family: var(--aqi-font);
+  word-break: normal;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model .form-select {
+  width: min(100%, 560px);
+  min-width: 280px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model .aqg-field__help {
+  max-width: 660px;
+  margin-top: 6px;
+  color: var(--aqi-fg-muted);
+  line-height: 1.45;
+}
+
+.a11y-settings.aqg-module .aqg-ai-unsupported-models {
+  max-width: 660px;
+  margin-top: 8px;
+  color: var(--aqi-fg-muted);
+  font-family: var(--aqi-font);
+  font-size: 11px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-unsupported-models summary {
+  cursor: pointer;
+  color: var(--aqi-fg-muted);
+}
+
+.a11y-settings.aqg-module .aqg-ai-unsupported-models ul {
+  max-height: 160px;
+  margin: 8px 0 0;
+  padding-left: 20px;
+  overflow: auto;
+}
+
+.a11y-settings.aqg-module .aqg-ai-unsupported-models code {
+  color: var(--aqi-fg);
+  overflow-wrap: anywhere;
+}
+
+.aqg-narrow .a11y-settings.aqg-module .aqg-ai-summary__row--model .form-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-wrap,
+.a11y-settings.aqg-module .aqg-ai-settings__card {
+  width: 100%;
+  max-width: none;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__body {
+  width: 100%;
+  min-width: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy,
+.a11y-settings.aqg-module .aqg-ai-envbar,
+.a11y-settings.aqg-module .aqg-ai-summary,
+.a11y-settings.aqg-module .aqg-ai-site-scope,
+.a11y-settings.aqg-module .aqg-ai-settings__form,
+.a11y-settings.aqg-module .aqg-ai-statusline,
+.a11y-settings.aqg-module .aqg-statusline {
+  width: 100%;
+  max-width: none;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy {
+  padding: 14px 16px;
+  gap: 12px;
+  line-height: 1.5;
+}
+
+.a11y-settings.aqg-module .aqg-ai-provider-badge {
+  flex: 0 0 auto;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary {
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  background: var(--aqi-surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--aqi-fg) 6%, transparent);
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dt,
+.a11y-settings.aqg-module .aqg-ai-summary dd {
+  min-width: 0;
+  padding: 11px 16px;
+  line-height: 1.45;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dt {
+  display: flex;
+  align-items: flex-start;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary dt label {
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model dd {
+  display: grid;
+  gap: 6px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model .form-select {
+  width: 100%;
+  min-width: 0;
+  max-width: 680px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model .form-select:focus-visible,
+.a11y-settings.aqg-module .aqg-ai-actions .btn:focus-visible,
+.a11y-settings.aqg-module .aqg-ai-key-panel .form-control:focus-visible,
+.a11y-settings.aqg-module .aqg-ai-unsupported-models summary:focus-visible {
+  outline: 2px solid var(--aqi-run);
+  outline-offset: 2px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-summary__row--model .aqg-field__help,
+.a11y-settings.aqg-module .aqg-ai-unsupported-models {
+  max-width: 760px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-site-scope {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-persistent-status:empty {
+  display: none;
+}
+
+.a11y-settings.aqg-module .aqg-ai-persistent-status {
+  width: 100%;
+}
+
+.a11y-settings.aqg-module .aqg-statusline {
+  display: flex;
+  padding: 12px 14px;
+  line-height: 1.45;
+}
+
+.a11y-settings.aqg-module .aqg-statusline__icon {
+  display: inline-flex;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.a11y-settings.aqg-module .aqg-statusline__content {
+  min-width: 0;
+}
+
+.a11y-settings.aqg-module .aqg-statusline__message,
+.a11y-settings.aqg-module .aqg-statusline__code {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-statusline__code {
+  margin-top: 5px;
+  color: currentColor;
+  font-size: 11px;
+  opacity: 0.82;
+}
+
+.a11y-settings.aqg-module .aqg-statusline__code code {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.a11y-settings.aqg-module .aqg-ai-settings__form,
+.a11y-settings.aqg-module .aqg-ai-key-panel,
+.a11y-settings.aqg-module .aqg-ai-key-panel__field,
+.a11y-settings.aqg-module .aqg-ai-field,
+.a11y-settings.aqg-module .aqg-ai-field .form-control {
+  width: 100%;
+  max-width: none;
+}
+
+.a11y-settings.aqg-module .aqg-ai-actions {
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-actions .btn {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.a11y-settings.aqg-module .aqg-ai-actions__status {
+  min-height: 0;
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-actions__status .aqg-statusline:not([hidden]) {
+  margin-top: 2px;
+}
+
+.a11y-settings.aqg-module .aqg-statusline[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .a11y-settings.aqg-module .aqg-ai-settings__heading {
+    flex-wrap: wrap;
+  }
+  .a11y-settings.aqg-module .aqg-ai-summary {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  .a11y-settings.aqg-module .aqg-ai-summary dt {
+    padding: 10px 14px 3px;
+    border-top: 1px solid var(--aqi-divider);
+  }
+  .a11y-settings.aqg-module .aqg-ai-summary dd {
+    padding: 3px 14px 11px;
+    border-top: 0;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+  .a11y-settings.aqg-module .aqg-ai-summary dt:first-child {
+    border-top: 0;
+  }
+  .a11y-settings.aqg-module .aqg-ai-privacy,
+  .a11y-settings.aqg-module .aqg-ai-envbar {
+    grid-template-columns: 1fr;
+  }
+  .a11y-settings.aqg-module .aqg-ai-actions {
+    align-items: stretch;
+  }
+  .a11y-settings.aqg-module .aqg-ai-actions .btn {
+    width: 100%;
+  }
+}
+.a11y-settings.aqg-module .aqg-statusline.tone-info {
+  color: var(--aqi-run);
+  background: var(--aqi-run-bg);
+  border-color: var(--aqi-run-border);
 }
 
 html[data-bs-theme=dark] .a11y-page-detail.aqg-module,

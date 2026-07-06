@@ -57,6 +57,17 @@
                     <f:render partial="Settings/TabRemoteScanAccess" arguments="{_all}" />
                 </f:case>
 
+                <f:case value="ai">
+                    <f:if condition="{isAdmin}">
+                        <f:then>
+                            <f:render partial="Settings/TabAi" arguments="{_all}" />
+                        </f:then>
+                        <f:else>
+                            <f:render partial="Settings/TabLicence" arguments="{_all}" />
+                        </f:else>
+                    </f:if>
+                </f:case>
+
                 <f:case value="statement">
                     <f:render partial="Settings/TabStatement" arguments="{_all}" />
                 </f:case>

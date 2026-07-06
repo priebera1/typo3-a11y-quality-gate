@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Domain\Repository;
 
+use Priebera\A11yQualityGate\Domain\Repository\Contract\IssueRemediationRepositoryInterface;
+
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
@@ -14,7 +16,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
-final class IssueRepository extends AbstractRepository
+final class IssueRepository extends AbstractRepository implements IssueRemediationRepositoryInterface
 {
     public function __construct(
         ConnectionPool $connectionPool,
@@ -1025,6 +1027,71 @@ final class IssueRepository extends AbstractRepository
             ->addOrderBy('rule_id', 'ASC')
             ->executeQuery()
             ->fetchAllAssociative();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findByUid(int $issueUid): ?array
+    {
+        if ($issueUid <= 0) {
+            return null;
+        }
+
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $row = $qb
+            ->select('*')
+            ->from(Tables::ISSUE)
+            ->where(
+                $qb->expr()->eq('uid', $qb->createNamedParameter($issueUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function markOpenAfterRemediation(int $issueUid): void
+    {
+        if ($issueUid <= 0) {
+            return;
+        }
+
+        $this->getConnection(Tables::ISSUE)->update(Tables::ISSUE, [
+            'status' => IssueStatus::Open->value,
+            'resolved_at' => 0,
+            'tstamp' => time(),
+        ], [
+            'uid' => $issueUid,
+            'deleted' => 0,
+        ]);
+    }
+
+    public function markResolvedAfterRemediation(
+        int $issueUid,
+        int $resolvedBy = 0,
+        string $resolvedByName = '',
+        string $resolvedByUsername = '',
+    ): void
+    {
+        if ($issueUid <= 0) {
+            return;
+        }
+
+        $now = time();
+        $this->getConnection(Tables::ISSUE)->update(Tables::ISSUE, [
+            'status' => IssueStatus::Resolved->value,
+            'resolved_at' => $now,
+            'resolved_by' => $resolvedBy,
+            'resolved_by_name' => $resolvedByName,
+            'resolved_by_username' => $resolvedByUsername,
+            'tstamp' => $now,
+        ], [
+            'uid' => $issueUid,
+            'deleted' => 0,
+        ]);
     }
 
     public function findAccessContextByUid(int $issueUid): ?array

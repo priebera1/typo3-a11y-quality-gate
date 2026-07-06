@@ -1,7 +1,9 @@
 import { A11yFreeBackendModule } from './free/free-module.js';
+import { initializeLocalPageScan } from './core/local-page-scan.js';
 
 const bootstrapA11yBackendModule = () => {
-    new A11yFreeBackendModule();
+    const module = new A11yFreeBackendModule();
+    initializeLocalPageScan(module);
 };
 
 if (document.readyState === 'loading') {

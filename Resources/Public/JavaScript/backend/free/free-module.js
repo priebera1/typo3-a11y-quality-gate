@@ -98,13 +98,6 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 return;
             }
 
-            const rescanButton = event.target.closest(FREE_SELECTORS.rescanButton);
-            if (rescanButton) {
-                event.preventDefault();
-                await this.handleRescan(rescanButton);
-                return;
-            }
-
             const scanAllButton = event.target.closest(FREE_SELECTORS.scanAllButton);
             if (scanAllButton) {
                 event.preventDefault();

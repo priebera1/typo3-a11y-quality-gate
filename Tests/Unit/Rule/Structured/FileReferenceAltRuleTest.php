@@ -10,13 +10,13 @@ use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\Structured\FileReferenceAltRule;
-use Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository;
+use Priebera\A11yQualityGate\Domain\Repository\Contract\FileReferenceRepositoryInterface;
 
 final class FileReferenceAltRuleTest extends TestCase
 {
     private function makeRule(): FileReferenceAltRule
     {
-        return new FileReferenceAltRule($this->createMock(FileReferenceRepository::class));
+        return new FileReferenceAltRule($this->createMock(FileReferenceRepositoryInterface::class));
     }
 
     #[Test]
@@ -81,6 +81,77 @@ final class FileReferenceAltRuleTest extends TestCase
         );
 
         self::assertTrue($this->makeRule()->supports($ctx));
+    }
+
+
+    #[Test]
+    public function explicitDecorativeFlagAllowsEmptyAlternativeText(): void
+    {
+        $rule = $this->makeRuleWithReferences([
+            $this->reference(alternative: '', decorative: true),
+        ]);
+
+        self::assertSame([], $rule->check($this->ctx()));
+    }
+
+    #[Test]
+    public function emptyAlternativeWithoutDecorativeFlagProducesFinding(): void
+    {
+        $rule = $this->makeRuleWithReferences([
+            $this->reference(alternative: '', decorative: false),
+        ]);
+
+        $violations = $rule->check($this->ctx());
+
+        self::assertCount(1, $violations);
+        self::assertSame('structured.file_reference_alt', $violations[0]->ruleId);
+    }
+
+    #[Test]
+    public function canonicalDecorativeFlagSuppressesFinding(): void
+    {
+        $reference = $this->reference(alternative: '', decorative: false);
+        $reference['tx_a11y_is_decorative'] = 1;
+        $rule = $this->makeRuleWithReferences([$reference]);
+
+        self::assertSame([], $rule->check($this->ctx()));
+    }
+
+    #[Test]
+    public function reviewedAlternativeTextKeepsImageInformative(): void
+    {
+        $rule = $this->makeRuleWithReferences([
+            $this->reference(alternative: 'A cyclist crossing a bridge', decorative: false),
+        ]);
+
+        self::assertSame([], $rule->check($this->ctx()));
+    }
+
+    /** @param list<array<string, mixed>> $references */
+    private function makeRuleWithReferences(array $references): FileReferenceAltRule
+    {
+        $repository = $this->createMock(FileReferenceRepositoryInterface::class);
+        $repository->expects(self::once())
+            ->method('findVisibleImageReferencesWithMetadata')
+            ->with(Tables::TT_CONTENT, 42, 'image')
+            ->willReturn($references);
+
+        return new FileReferenceAltRule($repository);
+    }
+
+    /** @return array<string, mixed> */
+    private function reference(string $alternative, bool $decorative): array
+    {
+        return [
+            'uid' => 10,
+            'uid_local' => 20,
+            'identifier' => '/images/example.jpg',
+            'alternative' => $alternative,
+            'title' => null,
+            'metadata_alternative' => 'Metadata fallback must not override an explicit reference value.',
+            'metadata_title' => null,
+            'tx_a11y_is_decorative' => $decorative ? 1 : 0,
+        ];
     }
 
     private function ctx(string $field = 'image', mixed $content = 42): CheckContext

@@ -86,10 +86,6 @@ final class RemoteIssueRepository extends AbstractRepository
             'tstamp' => $now,
         ];
 
-        // Keep remote issue persistence backwards-compatible when code is deployed
-        // before TYPO3 database compare/schema update has added the optional rule
-        // metadata columns. One unknown metadata column must not abort the whole
-        // issue insert and make Page Detail/PDF look empty.
         $connection->insert(Tables::REMOTE_ISSUE, $this->filterExistingColumns(Tables::REMOTE_ISSUE, $row));
 
         return (int)$connection->lastInsertId();
@@ -252,7 +248,6 @@ final class RemoteIssueRepository extends AbstractRepository
 
             return $this->tableColumnCache[$tableName] = $columns;
         } catch (\Throwable) {
-            // If schema introspection is not available, keep the previous behavior.
             return $this->tableColumnCache[$tableName] = [];
         }
     }

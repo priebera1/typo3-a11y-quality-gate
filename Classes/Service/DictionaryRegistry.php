@@ -142,7 +142,6 @@ final class DictionaryRegistry
                 return $this->normalizeLanguageCode((string)$language->getLocale());
             }
         } catch (\Throwable) {
-            // Fall back to iterating languages below.
         }
 
         foreach ($site->getLanguages() as $language) {

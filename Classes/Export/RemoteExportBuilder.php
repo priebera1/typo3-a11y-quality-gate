@@ -1186,7 +1186,6 @@ final class RemoteExportBuilder
             }
 
             $suggestion = $detail['contrastSuggestion'];
-            // Keep the PDF wording short and stable. Full API notes/reasons remain available in HTML detail and CSV.
             $suggestion['note'] = 'Automated color suggestions must be reviewed in the brand/design context. They do not confirm WCAG, BFSG or BITV compliance.';
             $suggestion['reviewHint'] = null;
 
@@ -1232,7 +1231,6 @@ final class RemoteExportBuilder
     private function compactContrastCandidateForPdf(array $candidate): array
     {
         $candidate['label'] = $this->truncatePdfText((string)($candidate['label'] ?? $candidate['color'] ?? ''), 96);
-        // Keep the PDF compact. Full candidate explanation/reason remains available in HTML and CSV.
         $candidate['explanation'] = '';
         $candidate['reason'] = '';
 
@@ -1814,10 +1812,6 @@ final class RemoteExportBuilder
             return [];
         }
 
-        // Older runtime rows and some API/debug payloads can contain one
-        // contrast detail object instead of a list of detail objects. Treat
-        // that shape as a single item so page detail/PDF stays backwards
-        // compatible and does not silently hide contrastSuggestion data.
         if ($decoded !== [] && !array_is_list($decoded)) {
             $decoded = [$decoded];
         }

@@ -53,7 +53,6 @@ final class ProSettings
                 }
             }
         } catch (\Throwable) {
-            // Keep ExtensionConfiguration as the backwards-compatible source below.
         }
 
         try {

@@ -3,12 +3,64 @@
 declare(strict_types=1);
 
 use Priebera\A11yQualityGate\Controller\IssueApiController;
+use Priebera\A11yQualityGate\Controller\AiAltSuggestionAjaxController;
+use Priebera\A11yQualityGate\Controller\AiSettingsAjaxController;
+use Priebera\A11yQualityGate\Controller\ImageRemediationAjaxController;
 use Priebera\A11yQualityGate\Controller\ProCrawlerAjaxController;
 use Priebera\A11yQualityGate\Controller\ScanAjaxController;
 use Priebera\A11yQualityGate\Controller\SettingsController;
 use Priebera\A11yQualityGate\Controller\ToolbarScanController;
 
 return [
+    'a11y_image_mark_decorative' => [
+        'path' => '/a11y/image-remediation/mark-decorative',
+        'target' => ImageRemediationAjaxController::class . '::markDecorativeAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_image_mark_informative' => [
+        'path' => '/a11y/image-remediation/mark-informative',
+        'target' => ImageRemediationAjaxController::class . '::markInformativeAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_image_apply_alt' => [
+        'path' => '/a11y/image-remediation/apply-alt',
+        'target' => ImageRemediationAjaxController::class . '::applyAltAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_suggest_alt' => [
+        'path' => '/a11y/image-remediation/suggest-alt',
+        'target' => AiAltSuggestionAjaxController::class . '::suggestAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_save' => [
+        'path' => '/a11y/settings/ai/save',
+        'target' => AiSettingsAjaxController::class . '::saveAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_test' => [
+        'path' => '/a11y/settings/ai/test',
+        'target' => AiSettingsAjaxController::class . '::testAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_refresh_models' => [
+        'path' => '/a11y/settings/ai/models/refresh',
+        'target' => AiSettingsAjaxController::class . '::refreshModelsAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_select_model' => [
+        'path' => '/a11y/settings/ai/model/select',
+        'target' => AiSettingsAjaxController::class . '::selectModelAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+
     'a11y_issues' => [
         'path' => '/a11y/issues',
         'target' => IssueApiController::class . '::issuesAction',

@@ -17,9 +17,6 @@ final class PageDoktypes
     public const SPACER = PageRepository::DOKTYPE_SPACER; // 199, also labelled Menu Separator in the page tree
     public const SYS_FOLDER = PageRepository::DOKTYPE_SYSFOLDER; // 254
 
-    /**
-     * Backwards-compatible aliases used by older AQG code.
-     */
     public const MENU_SEPARATOR = self::SPACER;
 
     /**

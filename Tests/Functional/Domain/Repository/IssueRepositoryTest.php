@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Functional\Domain\Repository;
 
+use PHPUnit\Framework\Attributes\Test;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
@@ -41,9 +42,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
     // upsert() — new issue
     // -------------------------------------------------------------------------
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertInsertsNewIssueWithStatusOpen(): void
     {
         [$violation, $ctx] = $this->makeViolationAndContext('rte.img_alt_missing', '<img src="x.jpg">');
@@ -59,9 +58,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, (int)$row['last_seen_scan_uid']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertOnRescanUpdatesLastSeenWithoutDuplicate(): void
     {
         [$violation, $ctx] = $this->makeViolationAndContext('rte.img_alt_missing', '<img src="x.jpg">');
@@ -83,9 +80,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
     // upsert() — re-open resolved
     // -------------------------------------------------------------------------
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertReOpensResolvedIssueWhenFoundAgain(): void
     {
         [$violation, $ctx] = $this->makeViolationAndContext('rte.empty_link', '<a href="#">click</a>');
@@ -108,9 +103,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
     // upsert() — isProtected contract
     // -------------------------------------------------------------------------
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertNeverOverwritesIgnoredIssue(): void
     {
         [$violation, $ctx] = $this->makeViolationAndContext('rte.empty_heading', '<h2></h2>');
@@ -127,9 +120,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, (int)$row['last_seen_scan_uid'], 'last_seen must NOT be updated for protected issues');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertNeverOverwritesMutedIssue(): void
     {
         [$violation, $ctx] = $this->makeViolationAndContext('rte.non_descriptive_link', '<a href="#">click here</a>');
@@ -148,9 +139,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
     // resolveUnseen()
     // -------------------------------------------------------------------------
 
-    /**
-     * @test
-     */
+    #[Test]
     public function resolveUnseenMarksOpenIssuesAsResolvedWhenNotInSeenList(): void
     {
         [$v1, $ctx1] = $this->makeViolationAndContext('rte.img_alt_missing', '<img src="a.jpg">');
@@ -177,9 +166,7 @@ final class IssueRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(IssueStatus::Open->value, (int)$row1['status'], 'Still-seen issue must remain Open');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function resolveUnseenDoesNotTouchIgnoredIssues(): void
     {
         [$violation, $ctx] = $this->makeViolationAndContext('rte.empty_heading', '<h3></h3>');

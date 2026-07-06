@@ -6,7 +6,31 @@
 <f:layout name="Module" />
 
 <f:section name="Content">
-    <div class="a11y-page-detail aqg-module aqg-stack container-fluid">
+    <div class="a11y-page-detail aqg-module aqg-stack container-fluid"
+         data-aqg-image-remediation="true"
+         data-mark-decorative-url="{imageMarkDecorativeUrl}"
+         data-mark-informative-url="{imageMarkInformativeUrl}"
+         data-apply-alt-url="{imageApplyAltUrl}"
+         data-suggest-alt-url="{imageSuggestAltUrl}"
+         data-message-confirm-decorative="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.confirmDecorative')}"
+         data-message-suggestion-ready="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.suggestionReady')}"
+         data-message-needs-review="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.needsReview')}"
+         data-message-suggestion-discarded="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.suggestionDiscarded')}"
+         data-message-alt-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.altSaved')}"
+         data-message-decorative-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.decorativeSaved')}"
+         data-message-informative-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.informativeSaved')}"
+         data-message-stale="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.stale')}"
+         data-message-invalid-token="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.invalidToken')}"
+         data-message-permission-denied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.permissionDenied')}"
+         data-message-invalid-input="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.invalidInput')}"
+         data-message-update-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.updateFailed')}"
+         data-message-ai-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.aiUnavailable')}"
+         data-message-rate-limited="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.rateLimited')}"
+         data-message-provider-failure="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.providerFailure')}"
+         data-message-image-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.imageUnavailable')}"
+         data-message-internal-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.internalError')}"
+         data-message-invalid-response="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.invalidResponse')}"
+         data-message-request-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.requestFailed')}">
 
         <f:if condition="{hasLanguageOptions}">
             <div class="aqg-page-detail__languagebar">
@@ -788,6 +812,10 @@
                                         </div>
                                     </div>
                                 </f:if>
+                            </f:if>
+
+                            <f:if condition="{issue.imageRemediationAvailable}">
+                                <f:render partial="Issue/ImageRemediationActions" arguments="{issue: issue}" />
                             </f:if>
 
                             <div class="aqg-issue__actions">

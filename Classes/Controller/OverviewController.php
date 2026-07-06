@@ -908,9 +908,6 @@ final class OverviewController extends AbstractBackendModuleController
 
         $fallbackSummary = [];
 
-        // Empty arrays are a valid API result only for scans without issues.
-        // If an older API still reports issues but does not include wcagSummary,
-        // fill the missing WCAG breakdown from locally persisted issue rows.
         if ($summaryResult->wcagSummary === [] && $summaryResult->issuesTotal > 0) {
             $fallbackSummary = $this->remoteReportingSummaryService->buildForRemoteScan(
                 $remoteScan,

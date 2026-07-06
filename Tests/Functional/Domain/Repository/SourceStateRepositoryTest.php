@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Functional\Domain\Repository;
 
+use PHPUnit\Framework\Attributes\Test;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
 use Priebera\A11yQualityGate\Tests\Functional\AbstractFunctionalTestCase;
@@ -36,9 +37,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isUnchangedReturnsFalseWhenNoRowExists(): void
     {
         $result = $this->subject->isUnchanged(self::SITE, self::TABLE, 1, self::FIELD, 0, 'abc123');
@@ -46,9 +45,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         self::assertFalse($result, 'Unknown source must be treated as changed (safe default)');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isUnchangedReturnsTrueAfterSameHashStored(): void
     {
         $hash = sha1('<p>Hello world</p>');
@@ -69,9 +66,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function isUnchangedReturnsFalseAfterContentChanges(): void
     {
         $oldHash = sha1('<p>Old content</p>');
@@ -93,9 +88,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertHashInsertsOnFirstCall(): void
     {
         $hash = sha1('content');
@@ -117,9 +110,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1, (int)$rows[0]['last_scan_uid']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertHashUpdatesOnSubsequentCall(): void
     {
         $hash1 = sha1('first');
@@ -153,9 +144,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(2, (int)$rows[0]['last_scan_uid']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function upsertHashIsolatedByLanguage(): void
     {
         $hash = sha1('content');
@@ -186,9 +175,7 @@ final class SourceStateRepositoryTest extends AbstractFunctionalTestCase
         self::assertCount(1, $this->fetchRows(7, 1));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function deleteForPageRemovesAllRowsForPage(): void
     {
         foreach ([10, 11, 12] as $uid) {

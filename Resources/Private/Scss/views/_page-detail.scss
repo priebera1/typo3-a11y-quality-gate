@@ -1371,3 +1371,260 @@ details[open] .a11y-details-summary__toggle {
 .aqg-ignore-form .aqg-expiry { margin-top: 10px; }
 .aqg-issue-state-card--reopened { border-color: var(--aqi-run-border); background: color-mix(in oklch, var(--aqi-run-bg) 24%, var(--aqi-surface)); }
 @media (max-width: 700px) { .aqg-bulkconfirm__row-expiry { grid-template-columns: 1fr; } .aqg-expiry__custom { grid-template-columns: 1fr; } }
+
+.a11y-page-detail .aqg-image-remediation {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------
+   1 · IMAGE REMEDIATION BLOCK
+   --------------------------------------------------------- */
+
+/* sits inside .aqg-issue, below the how-to-fix callout */
+.a11y-page-detail .aqg-rem {
+  background: var(--aqi-surface-2);
+  border: 1px solid var(--aqi-border);
+  border-radius: 8px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* header: small thumbnail + title/intro */
+.a11y-page-detail .aqg-rem__head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.a11y-page-detail .aqg-rem__thumb {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  border-radius: 6px;
+  border: 1px solid var(--aqi-border);
+  background:
+    repeating-linear-gradient(45deg,
+      color-mix(in oklch, var(--aqi-fg) 5%, transparent) 0 7px,
+      transparent 7px 14px),
+    var(--aqi-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.a11y-page-detail .aqg-rem__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.a11y-page-detail .aqg-rem__thumb-label {
+  font-family: var(--aqi-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aqi-fg-subtle);
+  text-align: center;
+  padding: 0 4px;
+}
+.a11y-page-detail .aqg-rem__head-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.a11y-page-detail .aqg-rem__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--aqi-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.a11y-page-detail .aqg-rem__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--aqi-fg-muted);
+  text-wrap: pretty;
+  max-width: 60ch;
+}
+.a11y-page-detail .aqg-rem__filename {
+  font-family: var(--aqi-font-mono);
+  font-size: 11px;
+  color: var(--aqi-fg-subtle);
+  word-break: break-all;
+}
+
+/* the editable field — comfortable readable width, never full bleed */
+.a11y-page-detail .aqg-rem__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 620px;
+}
+.a11y-page-detail .aqg-rem__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--aqi-fg);
+}
+.a11y-page-detail .aqg-rem .aqg-textarea {
+  min-height: 72px;
+  max-width: 620px;
+  width: 100%;
+}
+.a11y-page-detail .aqg-rem__help {
+  font-size: 11px;
+  color: var(--aqi-fg-muted);
+  text-wrap: pretty;
+  max-width: 60ch;
+}
+
+/* inline AI-suggestion note that rides just under the textarea */
+.a11y-page-detail .aqg-rem__ai-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--aqi-run);
+  background: color-mix(in oklch, var(--aqi-run-bg) 55%, var(--aqi-surface));
+  border: 1px solid var(--aqi-run-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  max-width: 620px;
+  text-wrap: pretty;
+}
+.a11y-page-detail .aqg-rem__ai-note .a11y-page-detail .aqg-rem__ai-note-icon { display: inline-flex; flex-shrink: 0; }
+
+/* action bar */
+.a11y-page-detail .aqg-rem__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* reserved status lane — fixed min-height so success/error never shifts layout */
+.a11y-page-detail .aqg-rem__status {
+  min-height: 34px;
+  display: flex;
+  align-items: flex-start;
+}
+.a11y-page-detail .aqg-rem__status:empty { min-height: 34px; }
+
+.a11y-page-detail .aqg-statusline {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 7px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--aqi-border);
+  background: var(--aqi-surface);
+  color: var(--aqi-fg-muted);
+  max-width: 100%;
+  text-wrap: pretty;
+}
+.a11y-page-detail .aqg-statusline__icon { display: inline-flex; flex-shrink: 0; padding-top: 1px; }
+.a11y-page-detail .aqg-statusline__text { min-width: 0; }
+.a11y-page-detail .aqg-statusline__text strong { color: var(--aqi-fg); font-weight: 600; }
+
+.a11y-page-detail .aqg-statusline.tone-ok    { color: var(--aqi-ok);   background: var(--aqi-ok-bg);   border-color: var(--aqi-ok-border); }
+.a11y-page-detail .aqg-statusline.tone-ok    .a11y-page-detail .aqg-statusline__text strong { color: var(--aqi-ok); }
+.a11y-page-detail .aqg-statusline.tone-info  { color: var(--aqi-run);  background: var(--aqi-run-bg);  border-color: var(--aqi-run-border); }
+.a11y-page-detail .aqg-statusline.tone-error { color: var(--aqi-err);  background: var(--aqi-err-bg);  border-color: var(--aqi-err-border); }
+.a11y-page-detail .aqg-statusline.tone-warning { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+
+/* stale finding — deliberately stronger than a plain validation error:
+   editor must reload, so it reads as a heavier, attention-demanding bar */
+.a11y-page-detail .aqg-statusline--stale {
+  font-weight: 500;
+  border-width: 1px;
+  border-left-width: 4px;
+  background: color-mix(in oklch, var(--aqi-err-bg) 80%, var(--aqi-surface));
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--aqi-err) 18%, transparent);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+}
+.a11y-page-detail .aqg-statusline--stale .a11y-page-detail .aqg-statusline__reload { margin-left: 4px; }
+
+/* decorative state — calm, single action, no textarea, not an error */
+.a11y-page-detail .aqg-rem--decorative {
+  background: color-mix(in oklch, var(--aqi-ok-bg) 28%, var(--aqi-surface));
+  border-color: color-mix(in oklch, var(--aqi-ok-border) 55%, var(--aqi-border));
+}
+.a11y-page-detail .aqg-rem__decorative-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.a11y-page-detail .aqg-rem__decorative-icon {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--aqi-surface);
+  border: 1px solid var(--aqi-ok-border);
+  color: var(--aqi-ok);
+}
+.a11y-page-detail .aqg-rem__decorative-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.a11y-page-detail .aqg-rem__decorative-code {
+  font-family: var(--aqi-font-mono);
+  font-size: 11px;
+  color: var(--aqi-fg);
+  background: var(--aqi-surface);
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+/* ---------------------------------------------------------
+   PRO affordance on the "Suggest with AI" button
+   — recognisable as PRO, but visually quieter than the primary
+   --------------------------------------------------------- */
+.a11y-page-detail .aqi-btn--ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.a11y-page-detail .aqi-btn--ai .aqg-btn-pro {
+  font-family: var(--aqi-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--aqi-ok);
+  background: var(--aqi-ok-bg);
+  border: 1px solid var(--aqi-ok-border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  line-height: 1.4;
+}
+.a11y-page-detail .aqi-btn--ai .aqg-btn-ai-glyph { display: inline-flex; color: var(--aqi-fg-muted); }
+.a11y-page-detail .aqi-btn--ai:disabled .aqg-btn-ai-glyph,
+.a11y-page-detail .aqi-btn--ai.is-disabled .aqg-btn-ai-glyph { color: var(--aqi-fg-subtle); }
+
+/* a button that is mid-request: spinner + label, kept same width feel */
+.a11y-page-detail .aqi-btn__spin { display: inline-flex; margin-right: 6px; color: currentColor; }
+
+/* AQG 1.7 image remediation preview metadata */
+.a11y-page-detail .aqg-rem__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--aqi-surface);
+}
+.a11y-page-detail .aqg-rem__file {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  margin: 2px 0 0;
+  color: var(--aqi-fg-subtle);
+  font-family: var(--aqi-font-mono);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.a11y-page-detail .aqg-rem__file-label {
+  flex: 0 0 auto;
+  font-weight: 600;
+  color: var(--aqi-fg-muted);
+}
+.a11y-page-detail .aqg-rem__file-path {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

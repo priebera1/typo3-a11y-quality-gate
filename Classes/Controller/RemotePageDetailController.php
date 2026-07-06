@@ -1622,10 +1622,6 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             return [];
         }
 
-        // Older runtime rows and some API/debug payloads can contain one
-        // contrast detail object instead of a list of detail objects. Treat
-        // that shape as a single item so page detail/PDF stays backwards
-        // compatible and does not silently hide contrastSuggestion data.
         if ($decoded !== [] && !array_is_list($decoded)) {
             $decoded = [$decoded];
         }

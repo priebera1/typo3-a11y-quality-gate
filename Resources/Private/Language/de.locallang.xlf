@@ -1698,6 +1698,442 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>axe-core rule documentation</source>
                 <target>axe-core-Regeldokumentation</target>
             </trans-unit>
+            <trans-unit id="imageRemediation.title">
+                <source>Image remediation</source>
+                <target>Bildkorrektur</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.help">
+                <source>Mark an image decorative only when it conveys no meaningful information. Decorative images use empty alternative text.</source>
+                <target>Markieren Sie ein Bild nur dann als dekorativ, wenn es keine inhaltlich relevante Information vermittelt. Dekorative Bilder verwenden einen leeren Alternativtext.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.markDecorative">
+                <source>Mark as decorative</source>
+                <target>Als dekorativ markieren</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.markInformative">
+                <source>Mark as informative</source>
+                <target>Als informativ markieren</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.manualAlt">
+                <source>Alternative text</source>
+                <target>Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.applyAlt">
+                <source>Apply reviewed text</source>
+                <target>Geprüften Text übernehmen</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.suggestAlt">
+                <source>Suggest alt text with AI</source>
+                <target>Alternativtext mit KI vorschlagen</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.aiNotice">
+                <source>AI-generated suggestion. Review and edit it before applying. Provider data handling policies apply.</source>
+                <target>KI-generierter Vorschlag. Prüfen und bearbeiten Sie ihn vor dem Übernehmen. Es gelten die Richtlinien des Anbieters zur Datenverarbeitung.</target>
+            </trans-unit>
+            <trans-unit id="settings.tab.ai">
+                <source>AI alt text</source>
+                <target>KI-Alternativtext</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.title">
+                <source>AI-assisted alt-text suggestions</source>
+                <target>KI-gestützte Alternativtext-Vorschläge</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.description">
+                <source>Configure your own OpenAI project key for this site. Suggestions are never applied automatically; an editor must review and confirm them.</source>
+                <target>Konfigurieren Sie Ihren eigenen OpenAI-Projektschlüssel für diese Website. Vorschläge werden nie automatisch übernommen; eine Redakteurin oder ein Redakteur muss sie prüfen und bestätigen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.privacy">
+                <source>When an editor requests an AI suggestion, the selected image and limited page context are sent to the configured OpenAI API account. No content is sent automatically. OpenAI does not use API data to train its models by default unless the account owner has explicitly opted in. Depending on the OpenAI account and data-retention configuration, submitted content may be retained for up to 30 days for service operation and abuse monitoring. Review the applicable OpenAI API data controls and confirm that this use is acceptable for your project and client data.</source>
+                <target>Wenn eine Redakteurin oder ein Redakteur einen KI-Vorschlag anfordert, werden das ausgewählte Bild und ein begrenzter Seitenkontext an das konfigurierte OpenAI-API-Konto gesendet. Inhalte werden nicht automatisch übertragen. OpenAI verwendet API-Daten standardmäßig nicht zum Trainieren seiner Modelle, sofern die Kontoinhaberin oder der Kontoinhaber nicht ausdrücklich zugestimmt hat. Abhängig vom OpenAI-Konto und der Konfiguration zur Datenaufbewahrung können übermittelte Inhalte für den Betrieb des Dienstes und die Missbrauchsüberwachung bis zu 30 Tage gespeichert werden. Prüfen Sie die geltenden OpenAI-API-Datenkontrollen und bestätigen Sie, dass diese Nutzung für Ihr Projekt und die Kundendaten akzeptabel ist.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.confirmDecorative">
+                <source>Mark this image as decorative and clear its alternative text?</source>
+                <target>Dieses Bild als dekorativ markieren und den Alternativtext leeren?</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.suggestionReady">
+                <source>Suggestion ready. Review it before applying.</source>
+                <target>Der Vorschlag ist bereit. Prüfen Sie ihn vor dem Übernehmen.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.needsReview">
+                <source>The AI was unable to generate a reliable suggestion for this image. Please write the alternative text manually.</source>
+                <target>Die KI konnte für dieses Bild keinen verlässlichen Vorschlag erzeugen. Bitte verfassen Sie den Alternativtext manuell.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.discardSuggestion">
+                <source>Discard suggestion</source>
+                <target>Vorschlag verwerfen</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.suggestionDiscarded">
+                <source>The AI suggestion was discarded. No content was saved.</source>
+                <target>Der KI-Vorschlag wurde verworfen. Es wurden keine Inhalte gespeichert.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.altSaved">
+                <source>Alternative text saved. The decorative flag was cleared.</source>
+                <target>Der Alternativtext wurde gespeichert. Die dekorative Markierung wurde entfernt.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.decorativeSaved">
+                <source>Image marked as decorative. TYPO3 will render an empty alt attribute.</source>
+                <target>Das Bild wurde als dekorativ markiert. TYPO3 rendert ein leeres alt-Attribut.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.informativeSaved">
+                <source>Image marked as informative. Add meaningful alternative text if it is still missing.</source>
+                <target>Das Bild wurde als informativ markiert. Ergänzen Sie einen aussagekräftigen Alternativtext, falls er weiterhin fehlt.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.stale">
+                <source>This finding changed. Refresh the page and try again.</source>
+                <target>Dieser Fund hat sich geändert. Laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.invalidResponse">
+                <source>Invalid server response.</source>
+                <target>Ungültige Serverantwort.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.requestFailed">
+                <source>Request failed.</source>
+                <target>Anfrage fehlgeschlagen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.site">
+                <source>Site</source>
+                <target>Website</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.configuration">
+                <source>Configuration</source>
+                <target>Konfiguration</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.configured">
+                <source>Not verified</source>
+                <target>Nicht verifiziert</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.notConfigured">
+                <source>Not configured</source>
+                <target>Nicht konfiguriert</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.key">
+                <source>Key</source>
+                <target>Schlüssel</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.projectKey">
+                <source>OpenAI project key</source>
+                <target>OpenAI-Projektschlüssel</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.model">
+                <source>Model</source>
+                <target>Modell</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.save">
+                <source>Save encrypted key</source>
+                <target>Verschlüsselten Schlüssel speichern</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.testConnection">
+                <source>Test connection</source>
+                <target>Verbindung testen</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.saved">
+                <source>The encrypted OpenAI project key was saved.</source>
+                <target>Der verschlüsselte OpenAI-Projektschlüssel wurde gespeichert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connectionSuccessful">
+                <source>Connection verified for the selected model.</source>
+                <target>Verbindung für das ausgewählte Modell verifiziert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.requestFailed">
+                <source>Request failed.</source>
+                <target>Anfrage fehlgeschlagen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.environmentOverrideTitle">
+                <source>Environment configuration active</source>
+                <target>Umgebungskonfiguration aktiv</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.environmentOverrideDescription">
+                <source>Der OpenAI-Schlüssel ist global über die Umgebung konfiguriert. Er überschreibt standortspezifische Schlüssel für alle Sites in dieser TYPO3-Installation.</source>
+            </trans-unit>
+
+            <trans-unit id="imageRemediation.invalidToken">
+                <source>The remediation token is invalid. Refresh the page and try again.</source>
+                <target>Das Korrektur-Token ist ungültig. Laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.permissionDenied">
+                <source>You do not have permission to update this image reference.</source>
+                <target>Sie haben keine Berechtigung, diese Bildreferenz zu ändern.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.invalidInput">
+                <source>The submitted image remediation data is invalid.</source>
+                <target>Die übermittelten Daten zur Bildkorrektur sind ungültig.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.updateFailed">
+                <source>TYPO3 could not update the image reference.</source>
+                <target>TYPO3 konnte die Bildreferenz nicht aktualisieren.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.aiUnavailable">
+                <source>AI alt-text suggestions are not available for this site or licence.</source>
+                <target>KI-Vorschläge für Alternativtexte sind für diese Site oder Lizenz nicht verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.rateLimited">
+                <source>Too many AI requests. Please wait and try again.</source>
+                <target>Zu viele KI-Anfragen. Bitte warten Sie und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.providerFailure">
+                <source>The AI provider could not generate a reliable suggestion.</source>
+                <target>Der KI-Anbieter konnte keinen verlässlichen Vorschlag erzeugen.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.imageUnavailable">
+                <source>The selected image could not be prepared safely. Check that the file exists and is a supported JPEG, PNG or WebP image.</source>
+                <target>Das ausgewählte Bild konnte nicht sicher vorbereitet werden. Prüfen Sie, ob die Datei existiert und ein unterstütztes JPEG-, PNG- oder WebP-Bild ist.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.internalError">
+                <source>The request could not be completed due to an internal error.</source>
+                <target>Die Anfrage konnte wegen eines internen Fehlers nicht abgeschlossen werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.permissionDenied">
+                <source>Administrator access is required.</source>
+                <target>Administratorzugriff ist erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.siteNotFound">
+                <source>The selected TYPO3 site does not exist.</source>
+                <target>Die ausgewählte TYPO3-Site existiert nicht.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.invalidConfiguration">
+                <source>The AI configuration is incomplete or invalid.</source>
+                <target>Die KI-Konfiguration ist unvollständig oder ungültig.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.saveFailed">
+                <source>The AI configuration could not be saved.</source>
+                <target>Die KI-Konfiguration konnte nicht gespeichert werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.providerUnavailable">
+                <source>No compatible AI provider is available.</source>
+                <target>Es ist kein kompatibler KI-Anbieter verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connectionFailed">
+                <source>Connection test failed. The saved configuration was not changed.</source>
+                <target>Der Verbindungstest ist fehlgeschlagen. Die gespeicherte Konfiguration wurde nicht geändert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.environmentOverrideStatus">
+                <source>Umgebungsüberschreibung</source>
+                <target>Umgebungsüberschreibung</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.globalEnvironmentKey">
+                <source>Globaler Umgebungsschlüssel</source>
+                <target>Globaler Umgebungsschlüssel</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.siteSpecificKey">
+                <source>Standortspezifischer Schlüssel</source>
+                <target>Standortspezifischer Schlüssel</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.lastTested">
+                <source>Zuletzt getestet</source>
+                <target>Zuletzt getestet</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.never">
+                <source>Nie</source>
+                <target>Nie</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.keyHelp">
+                <source>A site-specific OpenAI project key is stored encrypted and is never displayed again after saving. The key needs read access to Models and use access to Responses.</source>
+                <target>Ein standortspezifischer OpenAI-Projektschlüssel wird verschlüsselt gespeichert und nach dem Speichern nie wieder angezeigt. Der Schlüssel benötigt Lesezugriff auf Models und Nutzungszugriff auf Responses.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelHelp">
+                <source>Models are loaded from the configured OpenAI project and filtered to models supported by AQG. Choose the model whose cost and quality fit this site.</source>
+                <target>Modelle werden aus dem konfigurierten OpenAI-Projekt geladen und auf von AQG unterstützte Modelle gefiltert. Wählen Sie das Modell, dessen Kosten und Qualität zu dieser Site passen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.reviewNotice">
+                <source>KI-Vorschläge müssen immer redaktionell geprüft werden.</source>
+                <target>KI-Vorschläge müssen immer redaktionell geprüft werden.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.aiSuggestionInserted">
+                <source>AI-generated suggestion. Review and edit it before applying.</source>
+                <target>KI-generierter Vorschlag. Prüfen und bearbeiten Sie ihn vor dem Übernehmen.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.decorativeDescription">
+                <source>This image is intentionally ignored by screen readers and uses alt=&quot;&quot;.</source>
+                <target>Dieses Bild wird von Screenreadern absichtlich ignoriert und verwendet alt=&quot;&quot;.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.decorativeTitle">
+                <source>Decorative image</source>
+                <target>Dekoratives Bild</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.fieldDescription">
+                <source>Describe the image’s purpose or content for people who cannot see it.</source>
+                <target>Beschreiben Sie Zweck oder Inhalt des Bildes für Personen, die es nicht sehen können.</target>
+            </trans-unit>
+            <trans-unit id="imageRemediation.fieldHelp">
+                <source>Aim for a short, specific description. Leave decorative images to Mark as decorative.</source>
+                <target>Verwenden Sie eine kurze, konkrete Beschreibung. Rein dekorative Bilder können als dekorativ markiert werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connected">
+                <source>Connected</source>
+                <target>Verbunden</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connectionFailedPersistent">
+                <source>The last verification or model-discovery request failed. The saved key was not removed.</source>
+                <target>Die letzte Verifizierung oder Modellabfrage ist fehlgeschlagen. Der gespeicherte Schlüssel wurde nicht entfernt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connectionFailedStatus">
+                <source>Connection failed</source>
+                <target>Verbindung fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connectionVerified">
+                <source>Connection verified for the current key, selected model, prompt and AQG connection contract.</source>
+                <target>Verbindung für den aktuellen Schlüssel, das ausgewählte Modell, den Prompt und den AQG-Verbindungsvertrag verifiziert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.keyStoredNotice">
+                <source>A site-specific key is stored and encrypted. For security it is never shown again.</source>
+                <target>Ein standortspezifischer Schlüssel ist verschlüsselt gespeichert. Aus Sicherheitsgründen wird er nicht erneut angezeigt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.lastVerified">
+                <source>Last verified</source>
+                <target>Zuletzt bestätigt</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.replaceKey">
+                <source>Replace key</source>
+                <target>Schlüssel ersetzen</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.siteSpecificEncryptedKey">
+                <source>Site-specific encrypted key</source>
+                <target>Standortspezifischer verschlüsselter Schlüssel</target>
+            </trans-unit>
+
+            <trans-unit id="settings.ai.keySecurity">
+                <source>Your key is encrypted before it is stored and is only used to request alt-text suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them.</source>
+                <target>Ihr Schlüssel wird vor dem Speichern verschlüsselt und nur verwendet, um Alternativtext-Vorschläge für diese TYPO3-Website anzufordern. Vorschläge werden nie automatisch übernommen — eine Redakteurin oder ein Redakteur prüft und bestätigt sie immer.</target>
+            </trans-unit>
+
+            <trans-unit id="settings.ai.siteScopeHelp">
+                <source>This key and selected model are used only for the selected TYPO3 site. A global environment key may be shared, while model selection and verification remain site-specific.</source>
+                <target>Dieser Schlüssel und das ausgewählte Modell werden nur für die gewählte TYPO3-Site verwendet. Ein globaler Umgebungsschlüssel kann gemeinsam genutzt werden; Modellauswahl und Verifizierung bleiben sitespezifisch.</target>
+            </trans-unit>
+
+            <trans-unit id="imageRemediation.noPreview">
+                <source>No preview</source>
+                <target>Keine Vorschau</target>
+            </trans-unit>
+
+            <trans-unit id="imageRemediation.file">
+                <source>File</source>
+                <target>Datei</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.technicalModelId">
+                <source>Technical model ID</source>
+                <target>Technische Modell-ID</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.apiKeyRejected">
+                <source>The API key was rejected by OpenAI.</source>
+                <target>Der API-Schlüssel wurde von OpenAI abgelehnt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelUnavailable">
+                <source>The configured OpenAI project does not have access to the AQG model.</source>
+                <target>Das konfigurierte OpenAI-Projekt hat keinen Zugriff auf das AQG-Modell.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.connectionRateLimited">
+                <source>OpenAI rate-limited the connection test. Try again later.</source>
+                <target>OpenAI hat den Verbindungstest begrenzt. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.invalidTestResponse">
+                <source>OpenAI returned an invalid test response.</source>
+                <target>OpenAI hat eine ungültige Testantwort zurückgegeben.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.selectedModel">
+                <source>Selected model</source>
+                <target>Ausgewähltes Modell</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.selectModel">
+                <source>Select an OpenAI model</source>
+                <target>OpenAI-Modell auswählen</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.refreshModels">
+                <source>Refresh available models</source>
+                <target>Verfügbare Modelle aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelsRefreshed">
+                <source>Available OpenAI models were refreshed.</source>
+                <target>Die verfügbaren OpenAI-Modelle wurden aktualisiert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelSelected">
+                <source>The selected model was saved. Test the connection to verify this configuration.</source>
+                <target>Das ausgewählte Modell wurde gespeichert. Testen Sie die Verbindung, um diese Konfiguration zu verifizieren.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.unsupportedModels">
+                <source>Available from OpenAI, but not yet supported by AQG</source>
+                <target>Bei OpenAI verfügbar, aber noch nicht von AQG unterstützt</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.environmentKey">
+                <source>Environment key</source>
+                <target>Umgebungsschlüssel</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.insufficientQuota">
+                <source>The OpenAI project has insufficient quota.</source>
+                <target>Das OpenAI-Projekt verfügt nicht über ausreichendes Kontingent.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelNotPermitted">
+                <source>The selected model is not permitted by this OpenAI project.</source>
+                <target>Das ausgewählte Modell ist für dieses OpenAI-Projekt nicht erlaubt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelNotSelected">
+                <source>Select an OpenAI model before testing the connection.</source>
+                <target>Wählen Sie ein OpenAI-Modell aus, bevor Sie die Verbindung testen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.invalidModelSelection">
+                <source>The selected model is not available and supported for this project.</source>
+                <target>Das ausgewählte Modell ist für dieses Projekt nicht verfügbar und unterstützt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelSelectionFailed">
+                <source>The selected model could not be saved.</source>
+                <target>Das ausgewählte Modell konnte nicht gespeichert werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelsPermissionDenied">
+                <source>AQG could not load the models available to this OpenAI project. Allow read access to the Models endpoint or use a key with the required project permissions.</source>
+                <target>AQG konnte die für dieses OpenAI-Projekt verfügbaren Modelle nicht laden. Erlauben Sie Lesezugriff auf den Models-Endpunkt oder verwenden Sie einen Schlüssel mit den erforderlichen Projektberechtigungen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelsRateLimited">
+                <source>OpenAI rate-limited model discovery. Try again later.</source>
+                <target>OpenAI hat die Modellabfrage begrenzt. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelsInvalidResponse">
+                <source>OpenAI returned an invalid model list.</source>
+                <target>OpenAI hat eine ungültige Modellliste zurückgegeben.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.modelsRequestFailed">
+                <source>AQG could not load the models available to this OpenAI project.</source>
+                <target>AQG konnte die für dieses OpenAI-Projekt verfügbaren Modelle nicht laden.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.noSupportedModels">
+                <source>No OpenAI model available to this project is currently supported by AQG.</source>
+                <target>Kein für dieses Projekt verfügbares OpenAI-Modell wird derzeit von AQG unterstützt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.invalidProviderRequest">
+                <source>OpenAI rejected the AQG request contract for the selected model.</source>
+                <target>OpenAI hat den AQG-Anfragevertrag für das ausgewählte Modell abgelehnt.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.structuredOutputTestFailed">
+                <source>The structured-output connection test failed.</source>
+                <target>Der Verbindungstest mit strukturierter Ausgabe ist fehlgeschlagen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.transportFailure">
+                <source>AQG could not reach OpenAI.</source>
+                <target>AQG konnte OpenAI nicht erreichen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.openAiServiceFailure">
+                <source>OpenAI could not complete the request.</source>
+                <target>OpenAI konnte die Anfrage nicht abschließen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.errorCode">
+                <source>Error code</source>
+                <target>Fehlercode</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.savingKey">
+                <source>Saving the encrypted OpenAI project key…</source>
+                <target>Der verschlüsselte OpenAI-Projektschlüssel wird gespeichert…</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.refreshingModels">
+                <source>Loading models available to this OpenAI project…</source>
+                <target>Die für dieses OpenAI-Projekt verfügbaren Modelle werden geladen…</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.testingConnection">
+                <source>Testing the selected model and AQG connection contract…</source>
+                <target>Das ausgewählte Modell und der AQG-Verbindungsvertrag werden getestet…</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
