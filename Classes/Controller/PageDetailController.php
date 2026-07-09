@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Domain\Repository\Contract\AiConfigurationRepositoryInterface;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
@@ -20,6 +21,7 @@ use Priebera\A11yQualityGate\Remediation\ImageAltTextValidator;
 use Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver;
 use Priebera\A11yQualityGate\Remediation\ImageFindingVersionTokenService;
 use Priebera\A11yQualityGate\Remediation\ImageRemediationPreviewService;
+use Priebera\A11yQualityGate\Service\LocalIssueGuidanceService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -71,6 +73,8 @@ final class PageDetailController extends AbstractBackendModuleController
         private readonly ImageFindingVersionTokenService $imageFindingVersionTokenService,
         private readonly ImageAltTextValidator $imageAltTextValidator,
         private readonly ImageRemediationPreviewService $imageRemediationPreviewService,
+        private readonly LocalIssueGuidanceService $localIssueGuidanceService,
+        private readonly AiConfigurationRepositoryInterface $aiConfigurationRepository,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -93,6 +97,8 @@ final class PageDetailController extends AbstractBackendModuleController
             $site
         );
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/image-remediation.js');
+        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/ai-link-text-suggestion.js');
+        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/ai-iframe-title-suggestion.js');
 
         $siteIdentifier = $site?->getIdentifier() ?? '';
         $activeStatus = $this->requestParameterService->getStatus($request, 'open');
@@ -111,6 +117,9 @@ final class PageDetailController extends AbstractBackendModuleController
 
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
         $aiAltSuggestionAvailable = $this->aiFeatureAccessService->isAvailable($siteIdentifier);
+        $aiLinkTextSuggestionAvailable = $aiAltSuggestionAvailable
+            && $this->aiConfigurationRepository->isLinkTextSuggestionsEnabled($siteIdentifier);
+        $aiIframeTitleSuggestionAvailable = $aiLinkTextSuggestionAvailable;
 
         $pageRecord = $pageUid > 0
             ? (BackendUtility::getRecord('pages', $pageUid, 'uid,title,slug,doktype') ?: [])
@@ -148,7 +157,9 @@ final class PageDetailController extends AbstractBackendModuleController
             $currentPage,
             $openRuleCountsOnPage,
             $openRuleCountsOnSite,
-            $aiAltSuggestionAvailable
+            $aiAltSuggestionAvailable,
+            $aiLinkTextSuggestionAvailable,
+            $aiIframeTitleSuggestionAvailable
         ): array {
             $sourceTable = (string)($row['source_table'] ?? '');
             $sourceUid = (int)($row['source_uid'] ?? 0);
@@ -182,6 +193,9 @@ final class PageDetailController extends AbstractBackendModuleController
             $row['sourceHint'] = $sourceType === 'rendered' && $sourceTable === 'pages'
                 ? 'Likely: template, layout or plugin output'
                 : '';
+            $row['guidance'] = $this->localIssueGuidanceService->present($row);
+            $row['aiLinkTextSuggestionAvailable'] = false;
+            $row['aiIframeTitleSuggestionAvailable'] = false;
 
             if (
                 $sourceTable !== ''
@@ -189,6 +203,10 @@ final class PageDetailController extends AbstractBackendModuleController
                 && $this->backendRecordAccessService->canEditRecord($sourceTable, $sourceUid)
             ) {
                 $row['hasEditAccess'] = true;
+                $row['aiLinkTextSuggestionAvailable'] = $aiLinkTextSuggestionAvailable
+                    && in_array($ruleId, ['rte.non_descriptive_link', 'rte.empty_link', 'rendered.empty_link'], true);
+                $row['aiIframeTitleSuggestionAvailable'] = $aiIframeTitleSuggestionAvailable
+                    && $ruleId === 'rendered.iframe_missing_title';
                 $row['editLink'] = $this->buildEditLink(
                     $sourceTable,
                     $sourceUid,
@@ -198,6 +216,22 @@ final class PageDetailController extends AbstractBackendModuleController
                     $activeSeverity,
                     $currentPage,
                 );
+            }
+
+            if (!$row['aiLinkTextSuggestionAvailable']
+                && $aiLinkTextSuggestionAvailable
+                && $ruleId === 'rendered.empty_link'
+                && $pageUid > 0
+                && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+                $row['aiLinkTextSuggestionAvailable'] = true;
+            }
+
+            if (!$row['aiIframeTitleSuggestionAvailable']
+                && $aiIframeTitleSuggestionAvailable
+                && $ruleId === 'rendered.iframe_missing_title'
+                && $pageUid > 0
+                && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+                $row['aiIframeTitleSuggestionAvailable'] = true;
             }
 
             $row['imageRemediationAvailable'] = false;
@@ -446,6 +480,8 @@ final class PageDetailController extends AbstractBackendModuleController
             'imageMarkInformativeUrl' => $this->buildRouteUrl('ajax_a11y_image_mark_informative'),
             'imageApplyAltUrl' => $this->buildRouteUrl('ajax_a11y_image_apply_alt'),
             'imageSuggestAltUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_alt'),
+            'aiSuggestLinkTextUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_link_text'),
+            'aiSuggestIframeTitleUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_iframe_title'),
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Priebera\A11yQualityGate\Controller\IssueApiController;
 use Priebera\A11yQualityGate\Controller\AiAltSuggestionAjaxController;
+use Priebera\A11yQualityGate\Controller\AiIframeTitleSuggestionAjaxController;
+use Priebera\A11yQualityGate\Controller\AiLinkTextSuggestionAjaxController;
 use Priebera\A11yQualityGate\Controller\AiSettingsAjaxController;
 use Priebera\A11yQualityGate\Controller\ImageRemediationAjaxController;
 use Priebera\A11yQualityGate\Controller\ProCrawlerAjaxController;
@@ -36,6 +38,18 @@ return [
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],
+    'a11y_ai_suggest_link_text' => [
+        'path' => '/a11y/ai/link-text-suggestion',
+        'target' => AiLinkTextSuggestionAjaxController::class . '::suggestAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_suggest_iframe_title' => [
+        'path' => '/a11y/ai/iframe-title-suggestion',
+        'target' => AiIframeTitleSuggestionAjaxController::class . '::suggestAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
     'a11y_ai_settings_save' => [
         'path' => '/a11y/settings/ai/save',
         'target' => AiSettingsAjaxController::class . '::saveAction',
@@ -57,6 +71,12 @@ return [
     'a11y_ai_settings_select_model' => [
         'path' => '/a11y/settings/ai/model/select',
         'target' => AiSettingsAjaxController::class . '::selectModelAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_link_text_toggle' => [
+        'path' => '/a11y/settings/ai/link-text-suggestions/toggle',
+        'target' => AiSettingsAjaxController::class . '::toggleLinkTextSuggestionsAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],

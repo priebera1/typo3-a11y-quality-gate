@@ -9,4 +9,6 @@ interface AiConfigurationManagerInterface
     public function save(string $siteIdentifier, #[\SensitiveParameter] string $apiKey): void;
 
     public function selectModel(string $siteIdentifier, string $modelId): void;
+
+    public function setLinkTextSuggestionsEnabled(string $siteIdentifier, bool $enabled): void;
 }

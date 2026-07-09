@@ -2027,6 +2027,36 @@
             <trans-unit id="module.remotePageDetail.guidance.note">
                 <source>AQG guidance is based on the rule type and scan context. Review the affected element before applying changes.</source>
             </trans-unit>
+            <trans-unit id="module.localGuidance.ariaLabel">
+                <source>Local issue guidance</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.owner">
+                <source>Owner</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.fixType">
+                <source>Fix type</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.affectedUsers">
+                <source>Affected users</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.standardsAndImpact">
+                <source>Standards and impact</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.wcagReference">
+                <source>WCAG reference</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.technique">
+                <source>Technique</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.standards">
+                <source>Standards</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.documentation">
+                <source>Documentation</source>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.technicalTags">
+                <source>Technical tags</source>
+            </trans-unit>
             <trans-unit id="overview.remote.signal.eyebrow">
                 <source>Automated accessibility signal</source>
             </trans-unit>
@@ -3247,6 +3277,15 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="rule.presentation.header_level_is_h1.fix">
                 <source>Use the heading level that matches the content hierarchy and reserve the page H1 for the main page topic.</source>
             </trans-unit>
+            <trans-unit id="rule.presentation.empty_heading.title">
+                <source>Remove empty headings</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.empty_heading.why">
+                <source>Empty headings create confusing stops in screen reader heading navigation and make the page structure harder to understand.</source>
+            </trans-unit>
+            <trans-unit id="rule.presentation.empty_heading.fix">
+                <source>Remove the empty heading element or add meaningful heading text that describes the following section.</source>
+            </trans-unit>
             <trans-unit id="rule.presentation.landmark_one_main.title">
                 <source>Use one main landmark</source>
             </trans-unit>
@@ -3635,6 +3674,108 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="settings.ai.testingConnection">
                 <source>Testing the selected model and AQG connection contract…</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.title">
+                <source>AI link text suggestion</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.description">
+                <source>This sends the link target URL and limited server-derived context to the configured AI provider. Nothing is changed automatically.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.usage">
+                <source>Estimated usage: Low text request</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.button">
+                <source>Suggest link text</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.suggestedLabel">
+                <source>Suggested link text</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.copy">
+                <source>Copy text</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.reviewOnly">
+                <source>Nothing has been changed. Review the suggestion and update the link text manually in the RTE editor or source template.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.ready">
+                <source>AI suggested a link text. Review it before using it.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.copied">
+                <source>Suggested link text copied.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.noSuggestion">
+                <source>No safe link text could be suggested.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.reasonLabel">
+                <source>Reason:</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.unsupportedContext">
+                <source>AQG could not safely identify one exact link in this finding.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.disabled">
+                <source>AI link-text suggestions are disabled for this site.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.notConfigured">
+                <source>AI link-text suggestions are not configured for this site.</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.providerError">
+                <source>The AI provider could not return a suggestion. Please try again later.</source>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsTitle">
+                <source>Enable AI link and iframe title suggestions</source>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsHelp">
+                <source>Allow editors to request AI suggestions for non-descriptive links, empty links and rendered iframe titles. This sends only the minimal server-derived text context to the configured AI provider. No content is changed automatically.</source>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsEnabledMessage">
+                <source>AI link and iframe title suggestions are enabled.</source>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsDisabledMessage">
+                <source>AI link and iframe title suggestions are disabled.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.title">
+                <source>AI iframe title suggestion</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.description">
+                <source>This sends the iframe source URL and limited rendered context to the configured AI provider. Nothing is changed automatically.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.usage">
+                <source>Estimated usage: Low text request</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.button">
+                <source>Suggest iframe title</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.suggestedLabel">
+                <source>Suggested iframe title</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.copy">
+                <source>Copy text</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.noSuggestion">
+                <source>No safe iframe title could be suggested.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.reasonLabel">
+                <source>Reason:</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.reviewOnly">
+                <source>Nothing has been changed. Review the suggestion and update the template, plugin or content source manually.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.ready">
+                <source>AI suggested an iframe title. Review it before using it.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.copied">
+                <source>Suggested iframe title copied.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.unsupportedContext">
+                <source>AQG could not safely identify one exact iframe source in this rendered finding.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.disabled">
+                <source>AI iframe-title suggestions are disabled for this site.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.notConfigured">
+                <source>AI iframe-title suggestions are not configured for this site.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.providerError">
+                <source>The AI provider could not return an iframe title. Please try again later.</source>
             </trans-unit>
         </body>
     </file>

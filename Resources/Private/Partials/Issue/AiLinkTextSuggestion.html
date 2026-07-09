@@ -1,0 +1,49 @@
+<f:if condition="{issue.aiLinkTextSuggestionAvailable}">
+    <section class="aqg-ai-link-text" data-aqg-ai-link-text-card="true" data-finding-id="{issue.uid}">
+        <div class="aqg-ai-link-text__head">
+            <div>
+                <h3 class="aqg-ai-link-text__title">
+                    <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.title" default="AI link text suggestion" />
+                </h3>
+                <p class="aqg-ai-link-text__description">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.description" default="This sends the link target URL and limited server-derived context to the configured AI provider. Nothing is changed automatically." />
+                </p>
+            </div>
+            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.usage" default="Estimated usage: Low text request" />
+            </span>
+        </div>
+
+        <div class="aqg-ai-link-text__actions">
+            <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-link-text" data-loading-label="…">
+                <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.button" default="Suggest link text" /></span>
+                <span class="aqg-btn-pro" aria-hidden="true">PRO</span>
+            </button>
+        </div>
+
+        <div class="aqg-ai-link-text__review" data-aqg-ai-link-text-review="true" hidden="hidden">
+            <label class="aqg-ai-link-text__label" for="aqg-link-text-suggestion-{issue.uid}" data-aqg-ai-link-text-label="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.suggestedLabel" default="Suggested link text" />
+            </label>
+            <p class="aqg-ai-link-text__empty" data-aqg-ai-link-text-no-suggestion="true" hidden="hidden">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.noSuggestion" default="No safe link text could be suggested." /></strong>
+            </p>
+            <div class="aqg-ai-link-text__field-row" data-aqg-ai-link-text-field-row="true">
+                <input id="aqg-link-text-suggestion-{issue.uid}" class="form-control aqg-ai-link-text__input" type="text" data-aqg-ai-link-text-suggestion="true" />
+                <button type="button" class="btn btn-default btn-sm" data-action="aqg-copy-link-text" data-aqg-ai-link-text-copy="true" data-copy-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.copy', default: 'Copy text')}">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.copy" default="Copy text" />
+                </button>
+            </div>
+            <p class="aqg-ai-link-text__reason"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.reasonLabel" default="Reason:" /></strong> <span data-aqg-ai-link-text-reason="true"></span></p>
+            <p class="aqg-ai-link-text__note">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.reviewOnly" default="Nothing has been changed. Review the suggestion and update the link text manually in the RTE editor or source template." />
+            </p>
+        </div>
+
+        <div class="aqg-ai-link-text__status" aria-live="polite" aria-atomic="true">
+            <div class="aqg-statusline" data-aqg-ai-link-text-status="true" hidden="hidden"></div>
+        </div>
+    </section>
+</f:if>

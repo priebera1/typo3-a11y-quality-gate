@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.8.0] - 2026-07-08
+
+### Added
+
+* Added a local issue guidance panel for Page Detail findings, reusing AQG rule metadata for owner, fix type, WCAG references, affected users, why-it-matters and how-to-fix guidance.
+* Added read-only AI link-text suggestions for `rte.non_descriptive_link`, `rte.empty_link` and `rendered.empty_link` findings.
+* Added read-only AI iframe-title suggestions for `rendered.iframe_missing_title` findings.
+* Added review-only AI suggestion UI states with suggested text, reason, copy action and safe no-suggestion handling.
+* Added an administrator-controlled AI text suggestion toggle for link-text and iframe-title suggestions, disabled by default.
+
+### Changed
+
+* Local Page Detail now shows AI link-text controls only for supported link findings when AI access, AI configuration and the AI text suggestion toggle are available.
+* Local Page Detail now shows AI iframe-title controls only for supported rendered iframe-title findings.
+* Local Page Detail now keeps the existing issue hint as the “How to fix” fallback when no richer rule metadata is available.
+* AI link-text and iframe-title suggestions now use only server-derived finding context from the submitted `findingId`; the browser request does not send bodytext, rendered HTML, href, model, API key or provider payload.
+* AI suggestion workflows remain review-only: AQG suggests text and provides copy support, but does not automatically write to RTE bodytext, rendered HTML or FAL data.
+* Rendered scan cHash handling no longer excludes TYPO3’s generic `no_cache` parameter globally; AQG keeps only its own rendered-scan parameters excluded.
+
+### Fixed
+
+* Fixed TYPO3 13 image-remediation payload preparation so FAL files are resolved through `sys_file.uid`, storage and identifier instead of relying on public file paths.
+* Fixed valid TYPO3 13 FAL image originals being rejected during AI image payload preparation when they could be sent safely without unnecessary derivative processing.
+* Fixed PRO remote scan submission race conditions by adding a per-site TYPO3 Core lock around the active-scan check and remote submit.
+* Fixed remote submit lock contention so parallel submit requests fail closed with a safe `409` conflict instead of continuing without a lock.
+* Fixed remote crawler debug log sanitizing to mask authorization headers, cookies, API keys, bearer tokens, client secrets and related sensitive keys.
+* Fixed ambiguous AI link-text contexts so AQG returns `unsupported_context` unless it can identify one exact supported link from the stored finding context, rendered snippet metadata or source field.
+* Fixed the AI link-text endpoint so oversized or unusually dense runtime HTML is rejected before DOM parsing.
+* Fixed unexpected AI link-text resolver and provider failures so they return bounded AQG JSON instead of an HTTP 502 / invalid server response.
+* Fixed local-to-metadata rule key resolution so rendered and RTE rules can reuse existing guidance metadata instead of falling back to the raw issue hint only.
+* Fixed affected-users-only guidance so it no longer opens an empty “Standards and impact” details block.
+* Fixed static labels in the local issue guidance partial by moving them to localization files.
+* Fixed local guidance unit-test isolation by depending on a metadata presenter contract instead of constructing the full TYPO3 localization-dependent presentation service in pure unit tests.
+
+### Security
+
+* AI link-text and iframe-title requests send only `findingId` from the browser; all link, iframe and page context is resolved server-side.
+* AI link-text and iframe-title suggestions are opt-in, disabled by default and controlled by administrator AI Settings.
+* AI link-text and iframe-title suggestions never apply changes automatically and never mutate RTE bodytext, rendered HTML or database records.
+* Unsafe AI outputs such as HTML, encoded HTML, raw URLs, multiline text, control characters and generic link text are rejected before being shown as usable suggestions.
+* Remote scan submit locking prevents duplicate remote crawler submissions from parallel backend requests for the same site.
+* Sensitive remote crawler debug values are masked before logging.
+
 ## [1.7.1] - 2026-07-06
 
 ### Added

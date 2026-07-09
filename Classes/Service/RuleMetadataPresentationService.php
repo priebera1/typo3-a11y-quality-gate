@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
-final class RuleMetadataPresentationService
+use Priebera\A11yQualityGate\Service\Contract\RuleMetadataPresentationServiceInterface;
+
+final class RuleMetadataPresentationService implements RuleMetadataPresentationServiceInterface
 {
+    private readonly RuleMetadataKeyResolver $ruleMetadataKeyResolver;
+
     public function __construct(
         private readonly BackendLanguageService $backendLanguageService,
     ) {
+        $this->ruleMetadataKeyResolver = new RuleMetadataKeyResolver(array_keys(self::FRIENDLY_RULES));
     }
 
 
@@ -256,6 +261,14 @@ final class RuleMetadataPresentationService
             'fixType' => 'content',
             'affected' => ['Blind users', 'screen reader users', 'cognitive disabilities'],
         ],
+        'empty_heading' => [
+            'titleKey' => 'rule.presentation.empty_heading.title',
+            'whyKey' => 'rule.presentation.empty_heading.why',
+            'fixKey' => 'rule.presentation.empty_heading.fix',
+            'owner' => 'editor',
+            'fixType' => 'content',
+            'affected' => ['Blind users', 'screen reader users', 'cognitive disabilities'],
+        ],
         'landmark_unique' => [
             'titleKey' => 'rule.presentation.landmark_unique.title',
             'whyKey' => 'rule.presentation.landmark_unique.why',
@@ -300,6 +313,7 @@ final class RuleMetadataPresentationService
         'landmark_unique' => ['criterion' => '1.3.1', 'level' => 'A', 'name' => 'Info and Relationships', 'standards' => ['WCAG 2.1 A', 'WCAG 2.2 A', 'EN 301 549'], 'tags' => ['wcag2a', 'wcag131']],
         'landmark-one-main' => ['criterion' => '1.3.1', 'level' => 'A', 'name' => 'Info and Relationships', 'standards' => ['WCAG 2.1 A', 'WCAG 2.2 A', 'EN 301 549'], 'tags' => ['wcag2a', 'wcag131']],
         'page-has-heading-one' => ['criterion' => '1.3.1', 'level' => 'A', 'name' => 'Info and Relationships', 'standards' => ['WCAG 2.1 A', 'WCAG 2.2 A', 'EN 301 549'], 'tags' => ['wcag2a', 'wcag131']],
+        'empty_heading' => ['criterion' => '1.3.1', 'level' => 'A', 'name' => 'Info and Relationships', 'standards' => ['WCAG 2.1 A', 'WCAG 2.2 A', 'EN 301 549'], 'tags' => ['wcag2a', 'wcag131']],
     ];
 
     /** @return array<string, mixed> */
@@ -308,7 +322,7 @@ final class RuleMetadataPresentationService
         $language = $this->normalizeLanguage($language);
         $ruleId = $this->normalizeRuleId((string)($issue['rule_id'] ?? $issue['ruleId'] ?? ''));
         $metadata = $this->extractMetadata($issue);
-        $friendlyKey = $this->resolveFriendlyRuleKey($ruleId);
+        $friendlyKey = $this->ruleMetadataKeyResolver->resolveFriendlyRuleKey($ruleId);
         $friendly = $friendlyKey !== '' ? (self::FRIENDLY_RULES[$friendlyKey] ?? null) : null;
         $wcagFallback = $friendlyKey !== '' ? (self::WCAG_MAP[$friendlyKey] ?? null) : null;
 
@@ -441,33 +455,9 @@ final class RuleMetadataPresentationService
         return strtolower(trim($ruleId));
     }
 
-    private function stripPrefix(string $ruleId): string
-    {
-        return preg_replace('/^(axe|remote|rte|rendered|structured)\./', '', $ruleId) ?? $ruleId;
-    }
-
-    private function resolveFriendlyRuleKey(string $ruleId): string
-    {
-        $stripped = $this->stripPrefix($ruleId);
-        if (isset(self::FRIENDLY_RULES[$stripped])) {
-            return $stripped;
-        }
-        if (isset(self::FRIENDLY_RULES[$ruleId])) {
-            return $ruleId;
-        }
-
-        foreach (array_keys(self::FRIENDLY_RULES) as $knownRuleId) {
-            if ($knownRuleId !== '' && str_contains($stripped, $knownRuleId)) {
-                return $knownRuleId;
-            }
-        }
-
-        return '';
-    }
-
     private function humanizeRuleId(string $ruleId): string
     {
-        $ruleId = $this->stripPrefix($ruleId);
+        $ruleId = $this->ruleMetadataKeyResolver->stripPrefix($ruleId);
         $ruleId = str_replace(['_', '-'], ' ', $ruleId);
         $ruleId = trim($ruleId);
         return $ruleId !== '' ? ucfirst($ruleId) : 'Accessibility issue';

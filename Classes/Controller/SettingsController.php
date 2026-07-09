@@ -276,6 +276,7 @@ final class SettingsController extends AbstractBackendModuleController
             'aiSettingsRefreshModelsUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_refresh_models'),
             'aiSettingsSelectModelUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_select_model'),
             'aiSettingsTestUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_test'),
+            'aiSettingsLinkTextToggleUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_link_text_toggle'),
         ]);
 
         return $moduleTemplate->renderResponse('Settings/Index');

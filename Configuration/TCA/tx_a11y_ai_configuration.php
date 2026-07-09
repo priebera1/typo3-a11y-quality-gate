@@ -33,10 +33,11 @@ return [
         'last_tested_at' => ['config' => ['type' => 'datetime', 'readOnly' => true]],
         'last_verified_at' => ['config' => ['type' => 'datetime', 'readOnly' => true]],
         'last_test_error_code' => ['config' => ['type' => 'input', 'readOnly' => true]],
+        'link_text_suggestions_enabled' => ['config' => ['type' => 'check', 'readOnly' => true]],
     ],
     'types' => [
         '1' => [
-            'showitem' => 'site_identifier,provider,key_hint,enabled,selected_model_id,discovered_models_at,verified_model_id,verified_prompt_version,verified_connection_contract_version,last_tested_at,last_verified_at,last_test_error_code',
+            'showitem' => 'site_identifier,provider,key_hint,enabled,selected_model_id,discovered_models_at,verified_model_id,verified_prompt_version,verified_connection_contract_version,last_tested_at,last_verified_at,last_test_error_code,link_text_suggestions_enabled',
         ],
     ],
 ];

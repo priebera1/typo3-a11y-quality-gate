@@ -50,6 +50,7 @@ final class AiConfigurationRepository extends AbstractRepository implements AiCo
             'last_tested_at' => 0,
             'last_verified_at' => 0,
             'last_test_error_code' => '',
+            'link_text_suggestions_enabled' => (int)($existing['link_text_suggestions_enabled'] ?? 0),
             'tstamp' => $now,
         ];
 
@@ -149,6 +150,36 @@ final class AiConfigurationRepository extends AbstractRepository implements AiCo
             ->update(Tables::AI_CONFIGURATION, $values, ['uid' => (int)$row['uid']]);
     }
 
+    public function setLinkTextSuggestionsEnabled(string $siteIdentifier, bool $enabled): void
+    {
+        $siteIdentifier = trim($siteIdentifier);
+        if ($siteIdentifier === '') {
+            throw new \InvalidArgumentException('Site identifier is required.');
+        }
+
+        $row = $this->findBySiteIdentifier($siteIdentifier);
+        $now = time();
+        $values = [
+            'link_text_suggestions_enabled' => $enabled ? 1 : 0,
+            'tstamp' => $now,
+        ];
+
+        if ($row === null) {
+            $this->insertEnvironmentMetadataRow($siteIdentifier, $values, $now);
+            return;
+        }
+
+        $this->getConnection(Tables::AI_CONFIGURATION)
+            ->update(Tables::AI_CONFIGURATION, $values, ['uid' => (int)$row['uid']]);
+    }
+
+    public function isLinkTextSuggestionsEnabled(string $siteIdentifier): bool
+    {
+        $row = $this->findBySiteIdentifier(trim($siteIdentifier));
+
+        return is_array($row) && (int)($row['link_text_suggestions_enabled'] ?? 0) === 1;
+    }
+
     public function markTested(
         string $siteIdentifier,
         bool $verified,
@@ -227,6 +258,7 @@ final class AiConfigurationRepository extends AbstractRepository implements AiCo
             'last_tested_at' => 0,
             'last_verified_at' => 0,
             'last_test_error_code' => '',
+            'link_text_suggestions_enabled' => 0,
             'crdate' => $now,
             'tstamp' => $now,
         ];

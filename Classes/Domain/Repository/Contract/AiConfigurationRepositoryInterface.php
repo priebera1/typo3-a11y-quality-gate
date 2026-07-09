@@ -27,6 +27,10 @@ interface AiConfigurationRepositoryInterface
 
     public function selectModel(string $siteIdentifier, string $modelId): void;
 
+    public function setLinkTextSuggestionsEnabled(string $siteIdentifier, bool $enabled): void;
+
+    public function isLinkTextSuggestionsEnabled(string $siteIdentifier): bool;
+
     public function markTested(
         string $siteIdentifier,
         bool $verified,

@@ -8,6 +8,8 @@
 <f:section name="Content">
     <div class="a11y-page-detail aqg-module aqg-stack container-fluid"
          data-aqg-image-remediation="true"
+         data-aqg-ai-link-text-url="{aiSuggestLinkTextUrl}"
+         data-aqg-ai-iframe-title-url="{aiSuggestIframeTitleUrl}"
          data-mark-decorative-url="{imageMarkDecorativeUrl}"
          data-mark-informative-url="{imageMarkInformativeUrl}"
          data-apply-alt-url="{imageApplyAltUrl}"
@@ -30,7 +32,21 @@
          data-message-image-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.imageUnavailable')}"
          data-message-internal-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.internalError')}"
          data-message-invalid-response="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.invalidResponse')}"
-         data-message-request-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.requestFailed')}">
+         data-message-request-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.requestFailed')}"
+         data-message-link-text-ready="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.ready', default: 'AI suggested a link text. Review it before using it.')}"
+         data-message-link-text-copied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.copied', default: 'Suggested link text copied.')}"
+         data-message-link-text-no-suggestion="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.noSuggestion', default: 'No safe link text could be suggested.')}"
+         data-message-link-text-unsupported="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.unsupportedContext', default: 'AQG could not safely identify one exact link in this finding.')}"
+         data-message-link-text-disabled="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.disabled', default: 'AI link-text suggestions are disabled for this site.')}"
+         data-message-link-text-not-configured="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.notConfigured', default: 'AI link-text suggestions are not configured for this site.')}"
+         data-message-link-text-provider-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.providerError', default: 'The AI provider could not return a suggestion. Please try again later.')}"
+         data-message-iframe-title-ready="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.ready', default: 'AI suggested an iframe title. Review it before using it.')}"
+         data-message-iframe-title-copied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.copied', default: 'Suggested iframe title copied.')}"
+         data-message-iframe-title-no-suggestion="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.noSuggestion', default: 'No safe iframe title could be suggested.')}"
+         data-message-iframe-title-unsupported="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.unsupportedContext', default: 'AQG could not safely identify one exact iframe source in this rendered finding.')}"
+         data-message-iframe-title-disabled="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.disabled', default: 'AI iframe-title suggestions are disabled for this site.')}"
+         data-message-iframe-title-not-configured="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.notConfigured', default: 'AI iframe-title suggestions are not configured for this site.')}"
+         data-message-iframe-title-provider-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.providerError', default: 'The AI provider could not return an iframe title. Please try again later.')}">
 
         <f:if condition="{hasLanguageOptions}">
             <div class="aqg-page-detail__languagebar">
@@ -707,18 +723,10 @@
                                 <h2 class="aqg-issue__title">{issue.message}</h2>
                             </header>
 
-                            <f:if condition="{issue.hint}">
-                                <f:if condition="{issue.statusEnum.value} != 2">
-                                    <div class="aqg-callout">
-                                        <div class="aqg-callout__label">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.howToFix"
-                                                    default="How to fix"
-                                            />
-                                        </div>
-                                        <div class="aqg-callout__text">{issue.hint}</div>
-                                    </div>
-                                </f:if>
+                            <f:if condition="{issue.statusEnum.value} != 2">
+                                <f:render partial="Issue/LocalGuidance" arguments="{guidance: issue.guidance}" />
+                                <f:render partial="Issue/AiLinkTextSuggestion" arguments="{issue: issue}" />
+                                <f:render partial="Issue/AiIframeTitleSuggestion" arguments="{issue: issue}" />
                             </f:if>
 
                             <f:if condition="{issue.statusEnum.value} == 2 && {issue.ignored_reason}">

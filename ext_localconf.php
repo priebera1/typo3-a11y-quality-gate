@@ -35,14 +35,12 @@ defined('TYPO3') || die();
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\FileReferenceDecorativeHook::class;
 
-    // Rendered page checks use an internal debug URL with no_cache=1 and short-lived AQG
-    // parameters. Keep them out of cHash validation so TYPO3 does not reject the
-    // manual scan request, but strip them again before persisted/displayed URLs are stored.
+    // Rendered page checks use internal short-lived AQG parameters. Keep only AQG-owned
+    // parameters out of cHash validation and avoid changing TYPO3's global cache-disabling handling.
     foreach ([
         'aqgDebug',
         'aqgh',
         'tx_aqg_rendered_check',
-        'no_cache',
         '_aqg_page',
         '_aqg_lang',
         '_aqg_nonce',

@@ -129,6 +129,14 @@ services:
     arguments:
       $providers: !tagged_iterator a11y_quality_gate.ai_model_discovery_provider
 
+  Priebera\A11yQualityGate\Ai\Service\AiLinkTextSuggestionService:
+    arguments:
+      $providers: !tagged_iterator a11y_quality_gate.ai_provider
+
+  Priebera\A11yQualityGate\Ai\Service\AiIframeTitleSuggestionService:
+    arguments:
+      $providers: !tagged_iterator a11y_quality_gate.ai_provider
+
   Priebera\A11yQualityGate\Controller\AiSettingsAjaxController:
     arguments:
       $providers: !tagged_iterator a11y_quality_gate.ai_provider
@@ -143,6 +151,10 @@ services:
 
   Priebera\A11yQualityGate\Ai\Contract\AiAltSuggestionServiceInterface:
     alias: Priebera\A11yQualityGate\Ai\Service\AiAltSuggestionService
+  Priebera\A11yQualityGate\Ai\Contract\AiLinkTextSuggestionServiceInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiLinkTextSuggestionService
+  Priebera\A11yQualityGate\Ai\Contract\AiIframeTitleSuggestionServiceInterface:
+    alias: Priebera\A11yQualityGate\Ai\Service\AiIframeTitleSuggestionService
 
   Priebera\A11yQualityGate\Domain\Repository\Contract\AiConfigurationRepositoryInterface:
     alias: Priebera\A11yQualityGate\Domain\Repository\AiConfigurationRepository
@@ -154,6 +166,8 @@ services:
     alias: Priebera\A11yQualityGate\Domain\Repository\IssueRepository
   Priebera\A11yQualityGate\Contract\AccessControlServiceInterface:
     alias: Priebera\A11yQualityGate\Service\AccessControlService
+  Priebera\A11yQualityGate\Service\Contract\RuleMetadataPresentationServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\RuleMetadataPresentationService
   Priebera\A11yQualityGate\Contract\BackendContextServiceInterface:
     alias: Priebera\A11yQualityGate\Service\BackendContextService
   Priebera\A11yQualityGate\Contract\SiteResolutionServiceInterface:

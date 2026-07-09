@@ -343,6 +343,7 @@ CREATE TABLE tx_a11y_ai_configuration (
     last_tested_at int(11) NOT NULL DEFAULT 0,
     last_verified_at int(11) NOT NULL DEFAULT 0,
     last_test_error_code varchar(64) NOT NULL DEFAULT '',
+    link_text_suggestions_enabled tinyint(1) NOT NULL DEFAULT 0,
     crdate int(11) NOT NULL DEFAULT 0,
     tstamp int(11) NOT NULL DEFAULT 0,
     PRIMARY KEY (uid),

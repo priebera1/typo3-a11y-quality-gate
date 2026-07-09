@@ -32,6 +32,7 @@ final class AiSettingsUiStateBuilder
 
         $state = $status;
         $state['configured'] = $configured;
+        $state['linkTextSuggestionsEnabled'] = (bool)($status['linkTextSuggestionsEnabled'] ?? false);
         $state['modelSelected'] = $selectedModelAvailable;
         $state['selectedModelAvailable'] = $selectedModelAvailable;
         $state['status'] = $connectionStatus;

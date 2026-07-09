@@ -24,6 +24,59 @@ final class AiImagePayloadBuilderTest extends TestCase
     private const ONE_PIXEL_JPEG = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EB//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/EB//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EB//2Q==';
 
     #[Test]
+    public function typo313FalFileUidIsUsedInsteadOfDisplayPathIdentifier(): void
+    {
+        $resourceFactory = $this->createMock(ResourceFactory::class);
+        $imageService = $this->createMock(ImageService::class);
+        $file = $this->createMock(File::class);
+        $contents = base64_decode(self::ONE_PIXEL_JPEG, true);
+        self::assertIsString($contents);
+
+        $resourceFactory->expects(self::once())
+            ->method('getFileObject')
+            ->with(51)
+            ->willReturn($file);
+        $resourceFactory->expects(self::never())->method('getFileReferenceObject');
+
+        $file->method('getUid')->willReturn(51);
+        $file->method('getMimeType')->willReturn('image/jpeg');
+        $file->method('getSize')->willReturn(839511);
+        $file->expects(self::once())->method('getContents')->willReturn($contents);
+        $imageService->expects(self::never())->method('applyProcessingInstructions');
+
+        $result = $this->builder($resourceFactory, $imageService)->build($this->context(2006, 51));
+
+        self::assertSame('data:image/jpeg;base64,' . base64_encode($contents), $result->dataUrl);
+        self::assertSame('image/jpeg', $result->mimeType);
+    }
+
+    #[Test]
+    public function smallByteOriginalWithLongEdgeIsUsedWithoutCreatingDerivative(): void
+    {
+        $resourceFactory = $this->createMock(ResourceFactory::class);
+        $imageService = $this->createMock(ImageService::class);
+        $file = $this->createMock(File::class);
+        $contents = $this->minimalJpegWithDimensions(1920, 1080);
+
+        $resourceFactory->expects(self::once())
+            ->method('getFileObject')
+            ->with(51)
+            ->willReturn($file);
+        $resourceFactory->expects(self::never())->method('getFileReferenceObject');
+
+        $file->method('getUid')->willReturn(51);
+        $file->method('getMimeType')->willReturn('image/jpeg');
+        $file->method('getSize')->willReturn(839511);
+        $file->expects(self::once())->method('getContents')->willReturn($contents);
+        $imageService->expects(self::never())->method('applyProcessingInstructions');
+
+        $result = $this->builder($resourceFactory, $imageService)->build($this->context(2006, 51));
+
+        self::assertSame('data:image/jpeg;base64,' . base64_encode($contents), $result->dataUrl);
+        self::assertSame('image/jpeg', $result->mimeType);
+    }
+
+    #[Test]
     public function boundedOriginalImageIsUsedWithoutCreatingDerivative(): void
     {
         $resourceFactory = $this->createMock(ResourceFactory::class);
@@ -440,7 +493,17 @@ final class AiImagePayloadBuilderTest extends TestCase
         );
     }
 
-    private function context(): ImageFindingContext
+    private function minimalJpegWithDimensions(int $width, int $height): string
+    {
+        return "\xFF\xD8"
+            . "\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00\x60\x00\x60\x00\x00"
+            . "\xFF\xC0\x00\x11\x08"
+            . pack('nn', $height, $width)
+            . "\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00"
+            . "\xFF\xD9";
+    }
+
+    private function context(int $fileReferenceUid = 2006, int $fileUid = 0): ImageFindingContext
     {
         return new ImageFindingContext(
             issue: [],
@@ -451,8 +514,8 @@ final class AiImagePayloadBuilderTest extends TestCase
             sourceTable: '__unit_test_table_without_tca',
             sourceUid: 1535,
             sourceField: 'image',
-            fileReferenceUid: 2006,
-            fileUid: 60,
+            fileReferenceUid: $fileReferenceUid,
+            fileUid: $fileUid,
             fingerprint: 'test-fingerprint',
             issueTimestamp: 0,
             fileReferenceTimestamp: 0,

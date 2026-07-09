@@ -40,16 +40,16 @@ final class SettingsResponsiveStylesTest extends TestCase
         );
         self::assertIsString($css);
 
-        self::assertStringContainsString('@media (max-width: 575.98px)', $css);
-        self::assertStringContainsString(
-            '.a11y-settings.aqg-module .aqg-tabs {',
+        $normalizedCss = preg_replace('/\s+/', ' ', $css) ?? $css;
+
+        self::assertMatchesRegularExpression('/@media\s*\(max-width:\s*575\.98px\)/', $css);
+        self::assertMatchesRegularExpression(
+            '/@media\s*\(max-width:\s*575\.98px\)\s*\{(?=[\s\S]*?\.a11y-settings\.aqg-module\s+\.aqg-tabs\s*\{[^}]*flex-wrap:\s*wrap;)(?=[\s\S]*?\.a11y-settings\.aqg-module\s+\.aqg-tab\s*\{[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere;?)/',
             $css,
         );
-        self::assertStringContainsString('flex-wrap: wrap;', $css);
-        self::assertStringContainsString('white-space: normal;', $css);
         self::assertStringNotContainsString(
-            '.a11y-settings.aqg-module .aqg-tabs {\n  overflow-x: hidden;',
-            $css,
+            '.a11y-settings.aqg-module .aqg-tabs { overflow-x: hidden;',
+            $normalizedCss,
         );
     }
 }

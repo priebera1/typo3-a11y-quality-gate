@@ -1628,3 +1628,164 @@ details[open] .a11y-details-summary__toggle {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+.a11y-page-detail .aqg-local-guidance {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 14px;
+  min-width: 0;
+}
+.a11y-page-detail .aqg-local-guidance__badges {
+  margin-top: 0;
+}
+.a11y-page-detail .aqg-local-guidance__affected-users {
+  margin: 0;
+}
+.a11y-page-detail .aqg-local-guidance__body {
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: var(--aqi-radius);
+}
+.a11y-page-detail .aqg-local-guidance__metadata {
+  margin: 0;
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: var(--aqi-radius);
+  background: var(--aqi-surface-2);
+}
+.a11y-page-detail .aqg-local-guidance__metadata > summary {
+  padding: 9px 12px;
+}
+.a11y-page-detail .aqg-local-guidance__metadata .aqg-rule-metadata__body {
+  margin: 0;
+  background: var(--aqi-surface);
+}
+
+@media (max-width: 575.98px) {
+  .a11y-page-detail .aqg-local-guidance__body {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+
+  .a11y-page-detail .aqg-local-guidance__badges,
+  .a11y-page-detail .aqg-local-guidance__affected-users,
+  .a11y-page-detail .aqg-local-guidance__metadata {
+    max-width: 100%;
+  }
+}
+
+.a11y-page-detail .aqg-ai-link-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 12px 0 14px;
+  padding: 12px;
+  border: 1px solid color-mix(in oklch, var(--aqi-run) 28%, var(--aqi-border-soft));
+  border-radius: var(--aqi-radius);
+  background: color-mix(in oklch, var(--aqi-run-bg) 36%, var(--aqi-surface));
+}
+.a11y-page-detail .aqg-ai-link-text__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.a11y-page-detail .aqg-ai-link-text__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 4px;
+  color: var(--aqi-fg);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.a11y-page-detail .aqg-ai-link-text__description,
+.a11y-page-detail .aqg-ai-link-text__note,
+.a11y-page-detail .aqg-ai-link-text__reason {
+  margin: 0;
+  color: var(--aqi-fg-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.a11y-page-detail .aqg-ai-link-text__actions,
+.a11y-page-detail .aqg-ai-link-text__field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.a11y-page-detail .aqg-ai-link-text__review {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: var(--aqi-radius-sm);
+  background: var(--aqi-surface);
+}
+.a11y-page-detail .aqg-ai-link-text__review[hidden] {
+  display: none;
+}
+.a11y-page-detail .aqg-ai-link-text__label {
+  margin: 0;
+  color: var(--aqi-fg);
+  font-size: 12px;
+  font-weight: 600;
+}
+.a11y-page-detail .aqg-ai-link-text__input {
+  min-width: min(100%, 280px);
+  max-width: 100%;
+  flex: 1 1 280px;
+}
+.a11y-page-detail .aqg-ai-link-text__status .aqg-statusline {
+  margin: 0;
+}
+
+.aqg-module .aqg-ai-feature-toggle {
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: var(--aqi-radius);
+  background: var(--aqi-surface-2);
+}
+.aqg-module .aqg-ai-feature-toggle__label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  color: var(--aqi-fg);
+}
+.aqg-module .aqg-ai-feature-toggle__label input {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.aqg-module .aqg-ai-feature-toggle__label span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.aqg-module .aqg-ai-feature-toggle__label span span {
+  display: block;
+  color: var(--aqi-fg-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 575.98px) {
+  .a11y-page-detail .aqg-ai-link-text__head {
+    flex-direction: column;
+  }
+
+  .a11y-page-detail .aqg-ai-link-text__field-row,
+  .a11y-page-detail .aqg-ai-link-text__field-row .btn {
+    width: 100%;
+  }
+
+  .a11y-page-detail .aqg-ai-link-text__input {
+    flex-basis: 100%;
+  }
+}
