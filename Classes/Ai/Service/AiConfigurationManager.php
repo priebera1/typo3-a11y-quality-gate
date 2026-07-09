@@ -56,6 +56,13 @@ final class AiConfigurationManager implements AiConfigurationManagerInterface
         $this->repository->selectModel($siteIdentifier, $modelId);
     }
 
+
+    public function setLinkTextSuggestionsEnabled(string $siteIdentifier, bool $enabled): void
+    {
+        $this->assertSiteExists($siteIdentifier);
+        $this->repository->setLinkTextSuggestionsEnabled($siteIdentifier, $enabled);
+    }
+
     private function assertSiteExists(string $siteIdentifier): void
     {
         if ($siteIdentifier === '' || $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier) === null) {

@@ -161,6 +161,7 @@ final class AiConfigurationResolver implements AiConfigurationResolverInterface
             'lastTestErrorCode' => $lastTestErrorCode,
             'connectionStatus' => $connectionStatus,
             'environmentOverride' => $environmentOverride,
+            'linkTextSuggestionsEnabled' => (int)($row['link_text_suggestions_enabled'] ?? 0) === 1,
         ];
     }
 
@@ -191,6 +192,7 @@ final class AiConfigurationResolver implements AiConfigurationResolverInterface
             'lastTestErrorCode' => '',
             'connectionStatus' => 'not_configured',
             'environmentOverride' => false,
+            'linkTextSuggestionsEnabled' => false,
         ];
     }
 }

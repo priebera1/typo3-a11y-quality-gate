@@ -39,17 +39,7 @@ final class AiImagePayloadBuilder
             'originalFileUid' => $context->fileUid,
         ];
 
-        try {
-            $fileReference = $this->resourceFactory->getFileReferenceObject($context->fileReferenceUid);
-            $file = $fileReference->getOriginalFile();
-        } catch (\Throwable $exception) {
-            throw new AiImagePayloadException(
-                'The selected image is no longer available.',
-                1771002200,
-                $exception,
-                $baseDiagnostics,
-            );
-        }
+        $file = $this->resolveOriginalFile($context, $baseDiagnostics);
 
         $baseDiagnostics['originalFileUid'] = $file->getUid();
         $mimeType = strtolower(trim($file->getMimeType()));
@@ -77,7 +67,7 @@ final class AiImagePayloadBuilder
             try {
                 $originalContents = $file->getContents();
                 $originalInspection = $this->inspectPayload($originalContents);
-                if ($originalInspection['valid']) {
+                if ($originalInspection['valid'] || $this->canUseOriginalPayload($originalInspection)) {
                     return $this->createPayload($originalContents, $originalInspection['mimeType']);
                 }
             } catch (\Throwable) {
@@ -109,6 +99,42 @@ final class AiImagePayloadBuilder
             $lastException,
             $lastDiagnostics,
         );
+    }
+
+    /**
+     * Resolve the original FAL file by sys_file.uid first. This keeps TYPO3 13/14 image
+     * preparation independent from display/public paths such as fileadmin/user_upload/foo.jpg.
+     * The file UID comes from sys_file_reference.uid_local and lets ResourceFactory use the
+     * real storage + identifier tuple, for example storage=1 and /user_upload/foo.jpg.
+     *
+     * @param array<string, bool|int|string|null> $baseDiagnostics
+     */
+    private function resolveOriginalFile(ImageFindingContext $context, array $baseDiagnostics): File
+    {
+        $fileObjectException = null;
+
+        if ($context->fileUid > 0) {
+            try {
+                return $this->resourceFactory->getFileObject($context->fileUid);
+            } catch (\Throwable $exception) {
+                $fileObjectException = $exception;
+            }
+        }
+
+        try {
+            $fileReference = $this->resourceFactory->getFileReferenceObject($context->fileReferenceUid);
+            return $fileReference->getOriginalFile();
+        } catch (\Throwable $exception) {
+            throw new AiImagePayloadException(
+                'The selected image is no longer available.',
+                1771002200,
+                $fileObjectException ?? $exception,
+                $baseDiagnostics + [
+                    'fileUidResolutionAttempted' => $context->fileUid > 0,
+                    'fileReferenceUidResolutionAttempted' => $context->fileReferenceUid > 0,
+                ],
+            );
+        }
     }
 
     /**
@@ -482,6 +508,16 @@ final class AiImagePayloadBuilder
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /** @param array{valid:bool,mimeType:string,width:int,height:int,reason:string} $inspection */
+    private function canUseOriginalPayload(array $inspection): bool
+    {
+        return $inspection['reason'] === 'edge_limit'
+            && in_array($inspection['mimeType'], self::ALLOWED_MIME_TYPES, true)
+            && $inspection['width'] > 0
+            && $inspection['height'] > 0
+            && ($inspection['width'] * $inspection['height']) <= self::MAX_PAYLOAD_PIXELS;
     }
 
     /**

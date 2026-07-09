@@ -1,0 +1,113 @@
+<f:if condition="{guidance.hasAny}">
+    <section class="aqg-local-guidance" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.ariaLabel', default: 'Local issue guidance')}" data-aqg-local-guidance="true">
+        <f:if condition="{guidance.hasBadges}">
+            <div class="aqg-guidance-badges aqg-local-guidance__badges">
+                <f:if condition="{guidance.owner}">
+                    <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{guidance.owner}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.owner" default="Owner" />: {guidance.ownerLabel}</span>
+                </f:if>
+                <f:if condition="{guidance.fixType}">
+                    <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{guidance.fixType}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.fixType" default="Fix type" />: {guidance.fixTypeLabel}</span>
+                </f:if>
+                <f:if condition="{guidance.wcagPrimaryLabel}">
+                    <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{guidance.wcagPrimaryLabel}</span>
+                </f:if>
+            </div>
+        </f:if>
+
+        <f:if condition="{guidance.hasAffectedUsers}">
+            <div class="aqg-rule__affected-users aqg-local-guidance__affected-users">
+                <span class="aqg-rule__affected-users-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" />:</span>
+                <span class="aqg-affected-user-badges">
+                    <f:for each="{guidance.affectedUserItems}" as="affectedUser">
+                        <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
+                    </f:for>
+                </span>
+            </div>
+        </f:if>
+
+        <f:if condition="{guidance.hasGuidanceText}">
+            <div class="aqg-rule-guidance aqg-local-guidance__body">
+                <f:if condition="{guidance.whyItMatters}">
+                    <div class="aqg-rule-guidance__item">
+                        <h3>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.whyItMatters" default="Why it matters" />
+                        </h3>
+                        <p>{guidance.whyItMatters}</p>
+                    </div>
+                </f:if>
+                <f:if condition="{guidance.howToFix}">
+                    <div class="aqg-rule-guidance__item">
+                        <h3>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.howToFix" default="How to fix" />
+                        </h3>
+                        <p>{guidance.howToFix}</p>
+                    </div>
+                </f:if>
+            </div>
+        </f:if>
+
+        <f:if condition="{guidance.hasStandardsAndImpact}">
+            <details class="aqg-rule-metadata aqg-local-guidance__metadata">
+                <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standardsAndImpact" default="Standards and impact" /></summary>
+                <div class="aqg-rule-metadata__body">
+                    <f:if condition="{guidance.wcagReferences}">
+                        <div class="aqg-rule-metadata__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3>
+                            <ul>
+                                <f:for each="{guidance.wcagReferences}" as="wcag">
+                                    <li>
+                                        <f:if condition="{wcag.url}">
+                                            <f:then><a href="{wcag.url}" target="_blank" rel="noopener noreferrer">{wcag.label}</a></f:then>
+                                            <f:else>{wcag.label}</f:else>
+                                        </f:if>
+                                    </li>
+                                </f:for>
+                            </ul>
+                        </div>
+                    </f:if>
+                    <f:if condition="{guidance.techniques}">
+                        <div class="aqg-rule-metadata__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technique" default="Technique" /></h3>
+                            <ul>
+                                <f:for each="{guidance.techniques}" as="technique">
+                                    <li>
+                                        <f:if condition="{technique.url}">
+                                            <f:then><a href="{technique.url}" target="_blank" rel="noopener noreferrer">{technique.label}</a></f:then>
+                                            <f:else>{technique.label}</f:else>
+                                        </f:if>
+                                    </li>
+                                </f:for>
+                            </ul>
+                        </div>
+                    </f:if>
+                    <f:if condition="{guidance.standards}">
+                        <div class="aqg-rule-metadata__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3>
+                            <div class="aqg-rule-metadata__chips">
+                                <f:for each="{guidance.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for>
+                            </div>
+                        </div>
+                    </f:if>
+                    <f:if condition="{guidance.documentationLinks}">
+                        <div class="aqg-rule-metadata__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3>
+                            <ul>
+                                <f:for each="{guidance.documentationLinks}" as="doc">
+                                    <li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li>
+                                </f:for>
+                            </ul>
+                        </div>
+                    </f:if>
+                    <f:if condition="{guidance.technicalTags}">
+                        <div class="aqg-rule-metadata__group aqg-rule-metadata__group--technical">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technicalTags" default="Technical tags" /></h3>
+                            <div class="aqg-rule-metadata__chips aqg-rule-metadata__chips--tags">
+                                <f:for each="{guidance.technicalTags}" as="tag"><span class="aqg-rule-metadata__tag">{tag}</span></f:for>
+                            </div>
+                        </div>
+                    </f:if>
+                </div>
+            </details>
+        </f:if>
+    </section>
+</f:if>

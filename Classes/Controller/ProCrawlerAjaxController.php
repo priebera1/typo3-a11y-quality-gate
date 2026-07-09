@@ -33,6 +33,8 @@ use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -84,6 +86,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             ? (bool)$data['cookieDismiss']
             : true;
         $languageUid = $this->requestParameterService->getLanguageUidFromParameters($data);
+        $submitLock = null;
 
         if ($rootPid <= 0) {
             return $this->badRequestResponse('Missing rootPid');
@@ -181,6 +184,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $crawlerAccessResponse = $this->ensureCrawlerAccess($proStatus);
             if ($crawlerAccessResponse !== null) {
                 return $crawlerAccessResponse;
+            }
+
+            $submitLock = $this->acquireRemoteSubmitLock($resolved->siteIdentifier);
+            if (!$submitLock instanceof LockingStrategyInterface) {
+                return $this->buildRemoteSubmitLockConflictResponse($resolved->siteIdentifier);
             }
 
             $activeScan = $this->remoteScanRepository->findLatestActiveScanBySite($resolved->siteIdentifier);
@@ -326,6 +334,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'Remote crawler scan failed.',
                 $request
             );
+        } finally {
+            if ($submitLock instanceof LockingStrategyInterface) {
+                $this->releaseRemoteSubmitLock($submitLock);
+            }
         }
     }
 
@@ -347,6 +359,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             ? (bool)$data['cookieDismiss']
             : true;
         $languageUid = $this->requestParameterService->getLanguageUidFromParameters($data);
+        $submitLock = null;
 
         if ($pageUid <= 0 || $pageUrl === '' || $siteIdentifier === '') {
             return $this->badRequestResponse('Missing pageUid, pageUrl or siteIdentifier');
@@ -383,6 +396,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
             if ($crawlerAccessResponse !== null) {
                 return $crawlerAccessResponse;
+            }
+
+            $submitLock = $this->acquireRemoteSubmitLock($resolved->siteIdentifier);
+            if (!$submitLock instanceof LockingStrategyInterface) {
+                return $this->buildRemoteSubmitLockConflictResponse($resolved->siteIdentifier);
             }
 
             $activeScan = $this->remoteScanRepository->findLatestActiveScanBySite($resolved->siteIdentifier);
@@ -507,6 +525,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'Remote page scan failed.',
                 $request
             );
+        } finally {
+            if ($submitLock instanceof LockingStrategyInterface) {
+                $this->releaseRemoteSubmitLock($submitLock);
+            }
         }
     }
 
@@ -1087,8 +1109,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
     private function sanitizeLogContext(array $context): array
     {
         foreach ($context as $key => $value) {
-            $lowerKey = strtolower((string)$key);
-            if (str_contains($lowerKey, 'token') || str_contains($lowerKey, 'password') || str_contains($lowerKey, 'licencekey')) {
+            if ($this->isSensitiveLogContextKey((string)$key)) {
                 if (is_int($value) || is_bool($value) || $value === null) {
                     continue;
                 }
@@ -1101,6 +1122,71 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return $context;
+    }
+
+    private function isSensitiveLogContextKey(string $key): bool
+    {
+        $normalizedKey = strtolower(str_replace(['-', '_'], '', $key));
+
+        foreach ([
+            'token',
+            'password',
+            'licencekey',
+            'authorization',
+            'auth',
+            'apikey',
+            'secret',
+            'cookie',
+            'setcookie',
+            'bearer',
+            'clientsecret',
+        ] as $sensitiveKey) {
+            if (str_contains($normalizedKey, $sensitiveKey)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function acquireRemoteSubmitLock(string $siteIdentifier): ?LockingStrategyInterface
+    {
+        try {
+            $lockFactory = GeneralUtility::makeInstance(LockFactory::class);
+            $lock = $lockFactory->createLocker(
+                'aqg_remote_scan:' . sha1($siteIdentifier),
+                LockingStrategyInterface::LOCK_CAPABILITY_EXCLUSIVE
+            );
+
+            return $lock->acquire() ? $lock : null;
+        } catch (\Throwable $exception) {
+            $this->logRemoteSubmitDebug('submit:lock-unavailable', [
+                'siteIdentifier' => $siteIdentifier,
+                'exception' => $exception::class,
+            ]);
+
+            return null;
+        }
+    }
+
+
+    private function buildRemoteSubmitLockConflictResponse(string $siteIdentifier): ResponseInterface
+    {
+        return $this->jsonResponse([
+            'success' => false,
+            'error' => 'A remote scan submit is already in progress for this site.',
+            'message' => 'A remote scan submit is already in progress for this site. Please wait a moment and try again.',
+            'code' => 'remote_scan_submit_in_progress',
+            'siteIdentifier' => $siteIdentifier,
+        ], 409);
+    }
+
+    private function releaseRemoteSubmitLock(LockingStrategyInterface $lock): void
+    {
+        try {
+            $lock->release();
+        } catch (\Throwable) {
+        }
     }
 
     private function canCaptureScreenshot(object $proStatus): bool

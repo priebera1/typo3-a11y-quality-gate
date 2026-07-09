@@ -9,9 +9,12 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Ai\Dto\AiAltSuggestionRequest;
 use Priebera\A11yQualityGate\Ai\Dto\AiAltSuggestionResult;
+use Priebera\A11yQualityGate\Ai\Dto\AiIframeTitleSuggestionRequest;
+use Priebera\A11yQualityGate\Ai\Dto\AiIframeTitleSuggestionResult;
 use Priebera\A11yQualityGate\Ai\Dto\AiProviderConfiguration;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
 use Priebera\A11yQualityGate\Ai\OpenAi\OpenAiResponsesProvider;
+use Priebera\A11yQualityGate\Ai\Service\AiIframeTitleSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiModelCompatibilityRegistry;
 use Priebera\A11yQualityGate\Ai\Service\AiPromptDefinition;
 use Psr\Http\Message\ResponseInterface;
@@ -215,6 +218,47 @@ final class OpenAiResponsesProviderTest extends TestCase
             self::assertNull($exception->getPrevious());
             self::assertStringNotContainsString('secret-key', $exception->getMessage());
         }
+    }
+
+    #[Test]
+    public function iframeTitleSuggestionUsesTextOnlyStructuredOutputContract(): void
+    {
+        $captured = [];
+        $factory = $this->capturingFactory($captured, $this->completed([
+            'status' => 'suggestion',
+            'suggested_iframe_title' => 'Product introduction video',
+            'reason' => 'The source indicates an embedded video.',
+            'needs_review' => true,
+        ]));
+
+        $result = $this->provider($factory)->suggestIframeTitle(
+            new AiIframeTitleSuggestionRequest(
+                targetLocale: 'en-US',
+                ruleId: 'rendered.iframe_missing_title',
+                iframeSrc: 'https://www.youtube.com/embed/abc123',
+                contextPath: 'main > iframe',
+                cssSelector: 'main > iframe:nth-of-type(1)',
+                frontendUrl: 'https://example.test/products',
+                pageTitle: 'Product video',
+            ),
+            $this->configuration(),
+        );
+
+        self::assertSame(AiIframeTitleSuggestionResult::STATUS_SUGGESTION, $result->status);
+        self::assertSame('Product introduction video', $result->suggestedIframeTitle);
+        self::assertSame('gpt-5.4-mini', $captured['model']);
+        self::assertFalse($captured['store']);
+        self::assertSame(260, $captured['max_output_tokens']);
+        self::assertSame(AiIframeTitleSuggestionRequestBuilder::PROMPT_VERSION, $captured['metadata']['aqg_prompt_version']);
+        self::assertSame(AiIframeTitleSuggestionRequestBuilder::DEVELOPER_INSTRUCTIONS, $captured['instructions']);
+        self::assertSame(AiIframeTitleSuggestionRequestBuilder::structuredOutputFormat(), $captured['text']['format']);
+        self::assertCount(1, $captured['input'][0]['content']);
+        self::assertSame('input_text', $captured['input'][0]['content'][0]['type']);
+
+        $contextText = $captured['input'][0]['content'][0]['text'];
+        self::assertStringStartsWith(AiPromptDefinition::CONTEXT_WRAPPER_PREFIX . "\n", $contextText);
+        self::assertStringContainsString('"iframe_src":"https://www.youtube.com/embed/abc123"', $contextText);
+        self::assertStringNotContainsString('secret-key', $contextText);
     }
 
     #[Test]

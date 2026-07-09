@@ -1,0 +1,49 @@
+<f:if condition="{issue.aiIframeTitleSuggestionAvailable}">
+    <section class="aqg-ai-link-text aqg-ai-iframe-title" data-aqg-ai-iframe-title-card="true" data-finding-id="{issue.uid}">
+        <div class="aqg-ai-link-text__head">
+            <div>
+                <h3 class="aqg-ai-link-text__title">
+                    <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.title" default="AI iframe title suggestion" />
+                </h3>
+                <p class="aqg-ai-link-text__description">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.description" default="This sends the iframe source URL and limited rendered context to the configured AI provider. Nothing is changed automatically." />
+                </p>
+            </div>
+            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.usage" default="Estimated usage: Low text request" />
+            </span>
+        </div>
+
+        <div class="aqg-ai-link-text__actions">
+            <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-iframe-title" data-loading-label="…">
+                <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.button" default="Suggest iframe title" /></span>
+                <span class="aqg-btn-pro" aria-hidden="true">PRO</span>
+            </button>
+        </div>
+
+        <div class="aqg-ai-link-text__review" data-aqg-ai-iframe-title-review="true" hidden="hidden">
+            <label class="aqg-ai-link-text__label" for="aqg-iframe-title-suggestion-{issue.uid}" data-aqg-ai-iframe-title-label="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.suggestedLabel" default="Suggested iframe title" />
+            </label>
+            <p class="aqg-ai-link-text__empty" data-aqg-ai-iframe-title-no-suggestion="true" hidden="hidden">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.noSuggestion" default="No safe iframe title could be suggested." /></strong>
+            </p>
+            <div class="aqg-ai-link-text__field-row" data-aqg-ai-iframe-title-field-row="true">
+                <input id="aqg-iframe-title-suggestion-{issue.uid}" class="form-control aqg-ai-link-text__input" type="text" data-aqg-ai-iframe-title-suggestion="true" />
+                <button type="button" class="btn btn-default btn-sm" data-action="aqg-copy-iframe-title" data-aqg-ai-iframe-title-copy="true" data-copy-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.copy', default: 'Copy text')}">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.copy" default="Copy text" />
+                </button>
+            </div>
+            <p class="aqg-ai-link-text__reason"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.reasonLabel" default="Reason:" /></strong> <span data-aqg-ai-iframe-title-reason="true"></span></p>
+            <p class="aqg-ai-link-text__note">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.reviewOnly" default="Nothing has been changed. Review the suggestion and update the template, plugin or content source manually." />
+            </p>
+        </div>
+
+        <div class="aqg-ai-link-text__status" aria-live="polite" aria-atomic="true">
+            <div class="aqg-statusline" data-aqg-ai-iframe-title-status="true" hidden="hidden"></div>
+        </div>
+    </section>
+</f:if>

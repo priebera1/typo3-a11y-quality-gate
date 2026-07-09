@@ -8,9 +8,15 @@ use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Ai\Contract\AiProviderInterface;
 use Priebera\A11yQualityGate\Ai\Dto\AiAltSuggestionRequest;
 use Priebera\A11yQualityGate\Ai\Dto\AiAltSuggestionResult;
+use Priebera\A11yQualityGate\Ai\Dto\AiIframeTitleSuggestionRequest;
+use Priebera\A11yQualityGate\Ai\Dto\AiIframeTitleSuggestionResult;
+use Priebera\A11yQualityGate\Ai\Dto\AiLinkTextSuggestionRequest;
+use Priebera\A11yQualityGate\Ai\Dto\AiLinkTextSuggestionResult;
 use Priebera\A11yQualityGate\Ai\Dto\AiProviderConfiguration;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
+use Priebera\A11yQualityGate\Ai\Service\AiIframeTitleSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiModelCompatibilityRegistry;
+use Priebera\A11yQualityGate\Ai\Service\AiLinkTextSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiPromptDefinition;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
@@ -21,6 +27,8 @@ final class OpenAiResponsesProvider implements AiProviderInterface
 {
     private const ENDPOINT = 'https://api.openai.com/v1/responses';
     private const MAX_OUTPUT_TOKENS = 180;
+    private const LINK_TEXT_MAX_OUTPUT_TOKENS = 260;
+    private const IFRAME_TITLE_MAX_OUTPUT_TOKENS = 260;
     private const IMAGE_DETAIL = 'low';
     private const CONNECTION_TEST_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGklEQVR42mP8//8/AymAiYFEMKphVMPQ0QAAVW0DHfeH1GIAAAAASUVORK5CYII=';
 
@@ -72,6 +80,90 @@ final class OpenAiResponsesProvider implements AiProviderInterface
             provider: 'openai',
             model: $model,
             promptVersion: AiPromptDefinition::AI_PROMPT_VERSION,
+        );
+    }
+
+    public function suggestLinkText(
+        AiLinkTextSuggestionRequest $request,
+        AiProviderConfiguration $configuration,
+    ): AiLinkTextSuggestionResult {
+        $model = trim($configuration->model);
+        $profile = $this->modelRegistry->require($model);
+
+        try {
+            $contextJson = Utils::jsonEncode(
+                $request->contextPayload(),
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+            );
+        } catch (\JsonException $exception) {
+            throw new AiProviderException('The AI link-text request context could not be encoded.', 1771002830, $exception);
+        }
+
+        $payload = $this->buildTextOnlyRequestPayload(
+            model: $model,
+            profile: $profile,
+            instructions: AiLinkTextSuggestionRequestBuilder::DEVELOPER_INSTRUCTIONS,
+            inputText: AiPromptDefinition::CONTEXT_WRAPPER_PREFIX . "\n" . $contextJson,
+            metadata: [
+                'aqg_prompt_version' => AiLinkTextSuggestionRequestBuilder::PROMPT_VERSION,
+                'aqg_model_registry_version' => AiModelCompatibilityRegistry::VERSION,
+            ],
+            structuredOutputFormat: AiLinkTextSuggestionRequestBuilder::structuredOutputFormat(),
+        );
+
+        $decoded = $this->request($payload, $configuration->apiKey(), $model);
+        $structured = $this->parseAndValidateLinkTextStructuredResponse($decoded, $model);
+
+        return new AiLinkTextSuggestionResult(
+            status: $structured['status'],
+            suggestedLinkText: $structured['suggested_link_text'],
+            reason: $structured['reason'],
+            needsReview: $structured['needs_review'],
+            provider: 'openai',
+            model: $model,
+            promptVersion: AiLinkTextSuggestionRequestBuilder::PROMPT_VERSION,
+        );
+    }
+
+    public function suggestIframeTitle(
+        AiIframeTitleSuggestionRequest $request,
+        AiProviderConfiguration $configuration,
+    ): AiIframeTitleSuggestionResult {
+        $model = trim($configuration->model);
+        $profile = $this->modelRegistry->require($model);
+
+        try {
+            $contextJson = Utils::jsonEncode(
+                $request->contextPayload(),
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+            );
+        } catch (\JsonException $exception) {
+            throw new AiProviderException('The AI iframe-title request context could not be encoded.', 1771002930, $exception);
+        }
+
+        $payload = $this->buildIframeTitleRequestPayload(
+            model: $model,
+            profile: $profile,
+            instructions: AiIframeTitleSuggestionRequestBuilder::DEVELOPER_INSTRUCTIONS,
+            inputText: AiPromptDefinition::CONTEXT_WRAPPER_PREFIX . "\n" . $contextJson,
+            metadata: [
+                'aqg_prompt_version' => AiIframeTitleSuggestionRequestBuilder::PROMPT_VERSION,
+                'aqg_model_registry_version' => AiModelCompatibilityRegistry::VERSION,
+            ],
+            structuredOutputFormat: AiIframeTitleSuggestionRequestBuilder::structuredOutputFormat(),
+        );
+
+        $decoded = $this->request($payload, $configuration->apiKey(), $model);
+        $structured = $this->parseAndValidateIframeTitleStructuredResponse($decoded, $model);
+
+        return new AiIframeTitleSuggestionResult(
+            status: $structured['status'],
+            suggestedIframeTitle: $structured['suggested_iframe_title'],
+            reason: $structured['reason'],
+            needsReview: $structured['needs_review'],
+            provider: 'openai',
+            model: $model,
+            promptVersion: AiIframeTitleSuggestionRequestBuilder::PROMPT_VERSION,
         );
     }
 
@@ -154,6 +246,76 @@ final class OpenAiResponsesProvider implements AiProviderInterface
             }
             $payload['reasoning'] = ['effort' => 'none'];
         }
+
+        return $payload;
+    }
+
+    /**
+     * @param array<string,mixed> $profile
+     * @param array<string,string> $metadata
+     * @param array<string,mixed> $structuredOutputFormat
+     * @return array<string,mixed>
+     */
+    private function buildTextOnlyRequestPayload(
+        string $model,
+        array $profile,
+        string $instructions,
+        string $inputText,
+        array $metadata,
+        array $structuredOutputFormat,
+    ): array {
+        $payload = [
+            'model' => $model,
+            'store' => false,
+            'metadata' => $metadata,
+            'instructions' => $instructions,
+            'max_output_tokens' => self::LINK_TEXT_MAX_OUTPUT_TOKENS,
+            'text' => [
+                'format' => $structuredOutputFormat,
+            ],
+            'input' => [[
+                'role' => 'user',
+                'content' => [[
+                    'type' => 'input_text',
+                    'text' => $inputText,
+                ]],
+            ]],
+        ];
+
+        if (($profile['reasoningParameter'] ?? false) === true) {
+            $efforts = (array)($profile['supportedReasoningEfforts'] ?? []);
+            if (!in_array('none', $efforts, true)) {
+                throw new \InvalidArgumentException('The selected model does not support the AQG reasoning profile.');
+            }
+            $payload['reasoning'] = ['effort' => 'none'];
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param array<string,mixed> $profile
+     * @param array<string,string> $metadata
+     * @param array<string,mixed> $structuredOutputFormat
+     * @return array<string,mixed>
+     */
+    private function buildIframeTitleRequestPayload(
+        string $model,
+        array $profile,
+        string $instructions,
+        string $inputText,
+        array $metadata,
+        array $structuredOutputFormat,
+    ): array {
+        $payload = $this->buildTextOnlyRequestPayload(
+            model: $model,
+            profile: $profile,
+            instructions: $instructions,
+            inputText: $inputText,
+            metadata: $metadata,
+            structuredOutputFormat: $structuredOutputFormat,
+        );
+        $payload['max_output_tokens'] = self::IFRAME_TITLE_MAX_OUTPUT_TOKENS;
 
         return $payload;
     }
@@ -253,6 +415,92 @@ final class OpenAiResponsesProvider implements AiProviderInterface
             ]);
             throw new AiProviderException('OpenAI returned an invalid structured-output test response.', 1771002314);
         }
+    }
+
+    /** @param array<string,mixed> $response @return array{status:string,suggested_link_text:string,reason:string,needs_review:bool} */
+    private function parseAndValidateLinkTextStructuredResponse(array $response, string $model): array
+    {
+        $this->assertCompletedWithoutRefusal($response, $model);
+        $raw = $this->extractOutputText($response);
+        if ($raw === '') {
+            $this->logSafeFailure('openai_empty_link_text_structured_output', $model);
+            throw new AiProviderException('OpenAI returned an invalid link-text structured-output response.', 1771002831);
+        }
+
+        try {
+            $structured = Utils::jsonDecode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            $this->logSafeFailure('openai_invalid_link_text_structured_output', $model);
+            throw new AiProviderException('OpenAI returned an invalid link-text structured-output response.', 1771002832, $exception);
+        }
+
+        $keys = is_array($structured) ? array_keys($structured) : [];
+        sort($keys);
+        if (!is_array($structured)
+            || $keys !== ['needs_review', 'reason', 'status', 'suggested_link_text']
+            || !is_string($structured['status'] ?? null)
+            || !is_string($structured['suggested_link_text'] ?? null)
+            || !is_string($structured['reason'] ?? null)
+            || !is_bool($structured['needs_review'] ?? null)
+            || !in_array($structured['status'], [
+                AiLinkTextSuggestionResult::STATUS_SUGGESTION,
+                AiLinkTextSuggestionResult::STATUS_NEEDS_REVIEW,
+                AiLinkTextSuggestionResult::STATUS_UNSUPPORTED_CONTEXT,
+                AiLinkTextSuggestionResult::STATUS_REFUSAL,
+            ], true)) {
+            $this->logSafeFailure('openai_link_text_schema_mismatch', $model);
+            throw new AiProviderException('OpenAI returned an invalid link-text structured-output response.', 1771002833);
+        }
+
+        return [
+            'status' => $structured['status'],
+            'suggested_link_text' => $structured['suggested_link_text'],
+            'reason' => $structured['reason'],
+            'needs_review' => $structured['needs_review'],
+        ];
+    }
+
+    /** @param array<string,mixed> $response @return array{status:string,suggested_iframe_title:string,reason:string,needs_review:bool} */
+    private function parseAndValidateIframeTitleStructuredResponse(array $response, string $model): array
+    {
+        $this->assertCompletedWithoutRefusal($response, $model);
+        $raw = $this->extractOutputText($response);
+        if ($raw === '') {
+            $this->logSafeFailure('openai_empty_iframe_title_structured_output', $model);
+            throw new AiProviderException('OpenAI returned an invalid iframe-title structured-output response.', 1771002931);
+        }
+
+        try {
+            $structured = Utils::jsonDecode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            $this->logSafeFailure('openai_invalid_iframe_title_structured_output', $model);
+            throw new AiProviderException('OpenAI returned an invalid iframe-title structured-output response.', 1771002932, $exception);
+        }
+
+        $keys = is_array($structured) ? array_keys($structured) : [];
+        sort($keys);
+        if (!is_array($structured)
+            || $keys !== ['needs_review', 'reason', 'status', 'suggested_iframe_title']
+            || !is_string($structured['status'] ?? null)
+            || !is_string($structured['suggested_iframe_title'] ?? null)
+            || !is_string($structured['reason'] ?? null)
+            || !is_bool($structured['needs_review'] ?? null)
+            || !in_array($structured['status'], [
+                AiIframeTitleSuggestionResult::STATUS_SUGGESTION,
+                AiIframeTitleSuggestionResult::STATUS_NEEDS_REVIEW,
+                AiIframeTitleSuggestionResult::STATUS_UNSUPPORTED_CONTEXT,
+                AiIframeTitleSuggestionResult::STATUS_REFUSAL,
+            ], true)) {
+            $this->logSafeFailure('openai_iframe_title_schema_mismatch', $model);
+            throw new AiProviderException('OpenAI returned an invalid iframe-title structured-output response.', 1771002933);
+        }
+
+        return [
+            'status' => $structured['status'],
+            'suggested_iframe_title' => $structured['suggested_iframe_title'],
+            'reason' => $structured['reason'],
+            'needs_review' => $structured['needs_review'],
+        ];
     }
 
     /** @param array<string,mixed> $response @return array{status:string,alt_text:string} */

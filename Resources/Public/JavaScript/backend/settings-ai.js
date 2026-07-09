@@ -76,6 +76,7 @@ export const normalizeAiSettingsUiState = (rawState, fallbackState = {}) => {
         unsupportedModels: normalizeUnsupportedModelList(
             raw.unsupportedModels ?? fallback.unsupportedModels ?? [],
         ),
+        linkTextSuggestionsEnabled: Boolean(raw.linkTextSuggestionsEnabled ?? fallback.linkTextSuggestionsEnabled ?? false),
         actions: {
             refreshModelsEnabled: Boolean(
                 rawActions.refreshModelsEnabled
@@ -113,6 +114,7 @@ export const initializeAiSettings = (root) => {
     const saveButton = root.querySelector('[data-action="aqg-ai-save"]');
     const replaceButton = root.querySelector('[data-action="aqg-ai-replace"]');
     const keyField = root.querySelector('[data-aqg-ai-key-field="true"]');
+    const linkTextToggle = root.querySelector('[data-aqg-ai-link-text-toggle="true"]');
 
     const messageForCode = (code) => ({
         permission_denied: root.dataset.messagePermissionDenied,
@@ -161,6 +163,7 @@ export const initializeAiSettings = (root) => {
         errorCode: root.dataset.errorCode || '',
         lastTestedAt: root.dataset.lastTestedAt || 0,
         lastVerifiedAt: root.dataset.lastVerifiedAt || 0,
+        linkTextSuggestionsEnabled: root.dataset.linkTextSuggestionsEnabled === '1',
         actions: {
             refreshModelsEnabled: root.dataset.refreshEnabled === '1',
             testConnectionEnabled: root.dataset.testEnabled === '1',
@@ -353,6 +356,10 @@ export const initializeAiSettings = (root) => {
         root.dataset.lastTestedAt = String(uiState.lastTestedAt);
         root.dataset.lastVerifiedAt = String(uiState.lastVerifiedAt);
         root.dataset.responseStatus = String(uiState.responseStatus);
+        root.dataset.linkTextSuggestionsEnabled = uiState.linkTextSuggestionsEnabled ? '1' : '0';
+        if (linkTextToggle instanceof HTMLInputElement) {
+            linkTextToggle.checked = uiState.linkTextSuggestionsEnabled;
+        }
         root.dataset.refreshEnabled = uiState.actions.refreshModelsEnabled ? '1' : '0';
         root.dataset.testEnabled = uiState.actions.testConnectionEnabled ? '1' : '0';
 
@@ -504,6 +511,32 @@ export const initializeAiSettings = (root) => {
             } finally {
                 modelSelect.removeAttribute('aria-busy');
                 applyEnabledState();
+            }
+        });
+    }
+
+
+    if (linkTextToggle instanceof HTMLInputElement) {
+        linkTextToggle.addEventListener('change', async () => {
+            linkTextToggle.disabled = true;
+            try {
+                const enabled = linkTextToggle.checked;
+                const data = await send(root.dataset.linkTextToggleUrl, {
+                    siteIdentifier: siteIdentifier(),
+                    enabled: enabled ? '1' : '0',
+                });
+                renderSummaryState({
+                    ...(isRecord(data.uiState) ? data.uiState : uiState),
+                    linkTextSuggestionsEnabled: enabled,
+                });
+                show(enabled
+                    ? (root.dataset.messageLinkTextSuggestionsEnabled || '')
+                    : (root.dataset.messageLinkTextSuggestionsDisabled || ''), 'ok');
+            } catch (error) {
+                linkTextToggle.checked = uiState.linkTextSuggestionsEnabled;
+                show(error instanceof Error ? error.message : messageForCode('internal_error'), 'error');
+            } finally {
+                linkTextToggle.disabled = false;
             }
         });
     }

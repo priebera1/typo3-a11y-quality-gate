@@ -1558,6 +1558,18 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Use the heading level that matches the content hierarchy and reserve the page H1 for the main page topic.</source>
                 <target>Verwenden Sie die Überschriftenebene entsprechend der Inhaltshierarchie und reservieren Sie die Seiten-H1 für das Hauptthema.</target>
             </trans-unit>
+            <trans-unit id="rule.presentation.empty_heading.title">
+                <source>Remove empty headings</source>
+                <target>Leere Überschriften entfernen</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.empty_heading.why">
+                <source>Empty headings create confusing stops in screen reader heading navigation and make the page structure harder to understand.</source>
+                <target>Leere Überschriften erzeugen verwirrende Sprungpunkte in der Überschriftennavigation von Screenreadern und erschweren das Verständnis der Seitenstruktur.</target>
+            </trans-unit>
+            <trans-unit id="rule.presentation.empty_heading.fix">
+                <source>Remove the empty heading element or add meaningful heading text that describes the following section.</source>
+                <target>Entfernen Sie das leere Überschriftselement oder ergänzen Sie einen aussagekräftigen Überschriftstext, der den folgenden Abschnitt beschreibt.</target>
+            </trans-unit>
             <trans-unit id="rule.presentation.landmark_one_main.title">
                 <source>Use one main landmark</source>
                 <target>Genau einen Hauptbereich verwenden</target>
@@ -2133,6 +2145,182 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="settings.ai.testingConnection">
                 <source>Testing the selected model and AQG connection contract…</source>
                 <target>Das ausgewählte Modell und der AQG-Verbindungsvertrag werden getestet…</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.ariaLabel">
+                <source>Local issue guidance</source>
+                <target>Lokale Hinweisführung zum Problem</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.owner">
+                <source>Owner</source>
+                <target>Zuständig</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.fixType">
+                <source>Fix type</source>
+                <target>Korrekturtyp</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.affectedUsers">
+                <source>Affected users</source>
+                <target>Betroffene Nutzergruppen</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.standardsAndImpact">
+                <source>Standards and impact</source>
+                <target>Standards und Auswirkung</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.wcagReference">
+                <source>WCAG reference</source>
+                <target>WCAG-Referenz</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.technique">
+                <source>Technique</source>
+                <target>Technik</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.standards">
+                <source>Standards</source>
+                <target>Standards</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.documentation">
+                <source>Documentation</source>
+                <target>Dokumentation</target>
+            </trans-unit>
+            <trans-unit id="module.localGuidance.technicalTags">
+                <source>Technical tags</source>
+                <target>Technische Tags</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.title">
+                <source>AI link text suggestion</source>
+                <target>KI-Vorschlag für Linktext</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.description">
+                <source>This sends the link target URL and limited server-derived context to the configured AI provider. Nothing is changed automatically.</source>
+                <target>Dabei werden die Link-Ziel-URL und ein begrenzter serverseitig ermittelter Kontext an den konfigurierten KI-Anbieter gesendet. Es wird nichts automatisch geändert.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.usage">
+                <source>Estimated usage: Low text request</source>
+                <target>Geschätzte Nutzung: kleine Textanfrage</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.button">
+                <source>Suggest link text</source>
+                <target>Linktext vorschlagen</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.suggestedLabel">
+                <source>Suggested link text</source>
+                <target>Vorgeschlagener Linktext</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.copy">
+                <source>Copy text</source>
+                <target>Text kopieren</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.reviewOnly">
+                <source>Nothing has been changed. Review the suggestion and update the link text manually in the RTE editor or source template.</source>
+                <target>Es wurde nichts geändert. Prüfen Sie den Vorschlag und aktualisieren Sie den Linktext manuell im RTE-Editor oder Quelltemplate.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.ready">
+                <source>AI suggested a link text. Review it before using it.</source>
+                <target>Die KI hat einen Linktext vorgeschlagen. Bitte vor der Verwendung prüfen.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.copied">
+                <source>Suggested link text copied.</source>
+                <target>Vorgeschlagener Linktext kopiert.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.noSuggestion">
+                <source>No safe link text could be suggested.</source>
+                <target>Es konnte kein sicherer Linktext vorgeschlagen werden.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.reasonLabel">
+                <source>Reason:</source>
+                <target>Grund:</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.unsupportedContext">
+                <source>AQG could not safely identify one exact link in this finding.</source>
+                <target>AQG konnte in diesem Befund keinen eindeutigen Link sicher identifizieren.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.disabled">
+                <source>AI link-text suggestions are disabled for this site.</source>
+                <target>KI-Linktextvorschläge sind für diese Site deaktiviert.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.notConfigured">
+                <source>AI link-text suggestions are not configured for this site.</source>
+                <target>KI-Linktextvorschläge sind für diese Site nicht konfiguriert.</target>
+            </trans-unit>
+            <trans-unit id="aiLinkText.providerError">
+                <source>The AI provider could not return a suggestion. Please try again later.</source>
+                <target>Der KI-Anbieter konnte keinen Vorschlag zurückgeben. Bitte später erneut versuchen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsTitle">
+                <source>Enable AI link and iframe title suggestions</source>
+                <target>KI-Link- und Iframe-Titelvorschläge aktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsHelp">
+                <source>Allow editors to request AI suggestions for non-descriptive links, empty links and rendered iframe titles. This sends only the minimal server-derived text context to the configured AI provider. No content is changed automatically.</source>
+                <target>Erlaubt Redakteuren, KI-Vorschläge für nicht aussagekräftige Links, leere Links und gerenderte Iframe-Titel anzufordern. Dabei wird nur der minimale serverseitig ermittelte Textkontext an den konfigurierten KI-Anbieter gesendet. Es wird kein Inhalt automatisch geändert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsEnabledMessage">
+                <source>AI link and iframe title suggestions are enabled.</source>
+                <target>KI-Link- und Iframe-Titelvorschläge sind aktiviert.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.linkTextSuggestionsDisabledMessage">
+                <source>AI link and iframe title suggestions are disabled.</source>
+                <target>KI-Link- und Iframe-Titelvorschläge sind deaktiviert.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.title">
+                <source>AI iframe title suggestion</source>
+                <target>KI-Iframe-Titelvorschlag</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.description">
+                <source>This sends the iframe source URL and limited rendered context to the configured AI provider. Nothing is changed automatically.</source>
+                <target>Dies sendet die Iframe-Quell-URL und begrenzten gerenderten Kontext an den konfigurierten KI-Anbieter. Es wird nichts automatisch geändert.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.usage">
+                <source>Estimated usage: Low text request</source>
+                <target>Geschätzte Nutzung: kleine Textanfrage</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.button">
+                <source>Suggest iframe title</source>
+                <target>Iframe-Titel vorschlagen</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.suggestedLabel">
+                <source>Suggested iframe title</source>
+                <target>Vorgeschlagener Iframe-Titel</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.copy">
+                <source>Copy text</source>
+                <target>Text kopieren</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.noSuggestion">
+                <source>No safe iframe title could be suggested.</source>
+                <target>Es konnte kein sicherer Iframe-Titel vorgeschlagen werden.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.reasonLabel">
+                <source>Reason:</source>
+                <target>Grund:</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.reviewOnly">
+                <source>Nothing has been changed. Review the suggestion and update the template, plugin or content source manually.</source>
+                <target>Es wurde nichts geändert. Prüfen Sie den Vorschlag und aktualisieren Sie Template, Plugin oder Inhaltsquelle manuell.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.ready">
+                <source>AI suggested an iframe title. Review it before using it.</source>
+                <target>Die KI hat einen Iframe-Titel vorgeschlagen. Bitte vor der Verwendung prüfen.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.copied">
+                <source>Suggested iframe title copied.</source>
+                <target>Vorgeschlagener Iframe-Titel kopiert.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.unsupportedContext">
+                <source>AQG could not safely identify one exact iframe source in this rendered finding.</source>
+                <target>AQG konnte in diesem gerenderten Finding keine eindeutige Iframe-Quelle sicher identifizieren.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.disabled">
+                <source>AI iframe-title suggestions are disabled for this site.</source>
+                <target>KI-Iframe-Titelvorschläge sind für diese Site deaktiviert.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.notConfigured">
+                <source>AI iframe-title suggestions are not configured for this site.</source>
+                <target>KI-Iframe-Titelvorschläge sind für diese Site nicht konfiguriert.</target>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.providerError">
+                <source>The AI provider could not return an iframe title. Please try again later.</source>
+                <target>Der KI-Anbieter konnte keinen Iframe-Titel zurückgeben. Bitte später erneut versuchen.</target>
             </trans-unit>
         </body>
     </file>

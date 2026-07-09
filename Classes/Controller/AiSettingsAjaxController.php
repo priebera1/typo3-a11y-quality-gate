@@ -112,6 +112,27 @@ final class AiSettingsAjaxController
         }
     }
 
+
+    public function toggleLinkTextSuggestionsAction(ServerRequestInterface $request): ResponseInterface
+    {
+        if (!$this->isAdmin()) {
+            return $this->error('permission_denied', 403, $this->siteIdentifier($request));
+        }
+
+        $body = is_array($request->getParsedBody()) ? $request->getParsedBody() : [];
+        $siteIdentifier = trim((string)($body['siteIdentifier'] ?? ''));
+        $enabled = (int)($body['enabled'] ?? 0) === 1;
+        try {
+            $this->manager->setLinkTextSuggestionsEnabled($siteIdentifier, $enabled);
+
+            return $this->success($enabled ? 'link_text_suggestions_enabled' : 'link_text_suggestions_disabled', $siteIdentifier);
+        } catch (\InvalidArgumentException) {
+            return $this->error('invalid_configuration', 422, $siteIdentifier);
+        } catch (\Throwable) {
+            return $this->error('configuration_save_failed', 500, $siteIdentifier);
+        }
+    }
+
     public function testAction(ServerRequestInterface $request): ResponseInterface
     {
         if (!$this->isAdmin()) {
@@ -312,6 +333,7 @@ final class AiSettingsAjaxController
                 'lastVerifiedAt' => 0,
                 'availableModels' => [],
                 'unsupportedModels' => [],
+                'linkTextSuggestionsEnabled' => false,
                 'actions' => [
                     'refreshModelsEnabled' => false,
                     'testConnectionEnabled' => false,

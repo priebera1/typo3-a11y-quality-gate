@@ -6,6 +6,7 @@
          data-refresh-models-url="{aiSettingsRefreshModelsUrl}"
          data-select-model-url="{aiSettingsSelectModelUrl}"
          data-test-url="{aiSettingsTestUrl}"
+         data-link-text-toggle-url="{aiSettingsLinkTextToggleUrl}"
          data-configured="{f:if(condition: aiConfigurationStatus.configured, then: '1', else: '0')}"
          data-model-selected="{f:if(condition: aiConfigurationStatus.modelSelected, then: '1', else: '0')}"
          data-connection-status="{aiConfigurationStatus.status}"
@@ -14,10 +15,13 @@
          data-last-verified-at="{aiConfigurationStatus.lastVerifiedAt}"
          data-refresh-enabled="{f:if(condition: aiConfigurationStatus.actions.refreshModelsEnabled, then: '1', else: '0')}"
          data-test-enabled="{f:if(condition: aiConfigurationStatus.actions.testConnectionEnabled, then: '1', else: '0')}"
+         data-link-text-suggestions-enabled="{f:if(condition: aiConfigurationStatus.linkTextSuggestionsEnabled, then: '1', else: '0')}"
          data-message-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.saved', default: 'The encrypted OpenAI project key was saved.')}"
          data-message-models-refreshed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsRefreshed', default: 'Available OpenAI models were refreshed.')}"
          data-message-model-selected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelSelected', default: 'The selected model was saved. Test the connection to verify this configuration.')}"
          data-message-connection-successful="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionSuccessful', default: 'Connection verified for the selected model.')}"
+         data-message-link-text-suggestions-enabled="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsEnabledMessage', default: 'AI link and iframe title suggestions are enabled.')}"
+         data-message-link-text-suggestions-disabled="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsDisabledMessage', default: 'AI link and iframe title suggestions are disabled.')}"
          data-message-permission-denied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.permissionDenied', default: 'Administrator permissions are required.')}"
          data-message-site-not-found="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteNotFound', default: 'The selected TYPO3 site does not exist.')}"
          data-message-invalid-configuration="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidConfiguration', default: 'The OpenAI configuration is invalid.')}"
@@ -162,6 +166,22 @@
                 </dl>
 
                 <p class="aqg-ai-site-scope"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteScopeHelp" default="This key and selected model are used only for the selected TYPO3 site. A global environment key may be shared, while model selection and verification remain site-specific." /></p>
+
+                <div class="aqg-ai-feature-toggle aqg-ai-feature-toggle--link-text">
+                    <label class="aqg-ai-feature-toggle__label" for="aqg-ai-link-text-suggestions">
+                        <input
+                                id="aqg-ai-link-text-suggestions"
+                                type="checkbox"
+                                data-aqg-ai-link-text-toggle="true"
+                                value="1"
+                                {f:if(condition: aiConfigurationStatus.linkTextSuggestionsEnabled, then: 'checked="checked"')}
+                        />
+                        <span>
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsTitle" default="Enable AI link and iframe title suggestions" /></strong>
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsHelp" default="Allow editors to request AI suggestions for non-descriptive RTE links and rendered iframe titles. This sends only the minimal server-derived text context to the configured AI provider. No content is changed automatically." /></span>
+                        </span>
+                    </label>
+                </div>
 
                 <div class="aqg-ai-persistent-status" data-aqg-ai-persistent-status="true">
                     <f:if condition="{aiConfigurationStatus.status} == 'connected'">
