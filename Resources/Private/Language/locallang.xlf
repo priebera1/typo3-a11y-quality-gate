@@ -1269,7 +1269,7 @@
                 <source>Running the free edition</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.text">
-                <source>AQG works without a licence. Frontend crawling, block-on-publish gate and exports require PRO.</source>
+                <source>AQG works without a licence. Free includes local accessibility checks and up to 5 remote single-page scans per day. Full-site crawling and advanced remote features require PRO.</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.featuresTitle">
                 <source>Included on FREE</source>
@@ -1277,11 +1277,107 @@
             <trans-unit id="settings.licence.free.warningGate">
                 <source>Warning gate on publish</source>
             </trans-unit>
+            <trans-unit id="settings.licence.free.remotePreview">
+                <source>Free Remote Preview — 5 single-page scans per day</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.free.proFeaturesTitle">
+                <source>Available in PRO</source>
+            </trans-unit>
             <trans-unit id="settings.licence.free.noFrontendCrawler">
-                <source>Frontend crawler</source>
+                <source>Full-site frontend crawler</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.noBlockingGate">
                 <source>Block-on-publish gate</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.free.advancedRemote">
+                <source>Screenshots, record mapping, history and PDF exports</source>
+            </trans-unit>
+            <trans-unit id="freePreview.title">
+                <source>Free Remote Preview</source>
+            </trans-unit>
+            <trans-unit id="freePreview.usedTitle">
+                <source>Free Remote Preview used today</source>
+            </trans-unit>
+            <trans-unit id="freePreview.description">
+                <source>Scan the currently selected page with AQG's remote frontend checks.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.freeScansToday">
+                <source>Free scans today</source>
+            </trans-unit>
+            <trans-unit id="freePreview.todayUsage">
+                <source>Today's usage</source>
+            </trans-unit>
+            <trans-unit id="freePreview.scanUsage">
+                <source>%1$d of %2$d used</source>
+            </trans-unit>
+            <trans-unit id="freePreview.scansRemaining">
+                <source>%1$d free scans remaining today</source>
+            </trans-unit>
+            <trans-unit id="freePreview.limitReached">
+                <source>Free scan limit reached for today.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.pagesScanned">
+                <source>Pages scanned</source>
+            </trans-unit>
+            <trans-unit id="freePreview.pageUsage">
+                <source>%1$d of %2$d pages scanned</source>
+            </trans-unit>
+            <trans-unit id="freePreview.scanUsedToday">
+                <source>scan used today</source>
+            </trans-unit>
+            <trans-unit id="freePreview.pages">
+                <source>pages</source>
+            </trans-unit>
+            <trans-unit id="freePreview.nextReset">
+                <source>Next reset</source>
+            </trans-unit>
+            <trans-unit id="freePreview.nextScan">
+                <source>Next free scan</source>
+            </trans-unit>
+            <trans-unit id="freePreview.resets">
+                <source>Resets</source>
+            </trans-unit>
+            <trans-unit id="freePreview.nextScans">
+                <source>Next free scans</source>
+            </trans-unit>
+            <trans-unit id="freePreview.countdown.hm">
+                <source>in %dh %dm</source>
+            </trans-unit>
+            <trans-unit id="freePreview.countdown.m">
+                <source>in %dm</source>
+            </trans-unit>
+            <trans-unit id="freePreview.screenshotsLocked">
+                <source>Screenshots available in PRO</source>
+            </trans-unit>
+            <trans-unit id="freePreview.run">
+                <source>Scan this page — Free</source>
+            </trans-unit>
+            <trans-unit id="freePreview.running">
+                <source>Scanning selected page…</source>
+            </trans-unit>
+            <trans-unit id="freePreview.viewTodayResults">
+                <source>View today's results</source>
+            </trans-unit>
+            <trans-unit id="freePreview.viewPageResult">
+                <source>View this page's result</source>
+            </trans-unit>
+            <trans-unit id="freePreview.retry">
+                <source>Retry</source>
+            </trans-unit>
+            <trans-unit id="freePreview.upsell">
+                <source>Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.proLabel">
+                <source>PRO</source>
+            </trans-unit>
+            <trans-unit id="freePreview.startTrial">
+                <source>Start PRO trial</source>
+            </trans-unit>
+            <trans-unit id="freePreview.viewPricing">
+                <source>View pricing</source>
+            </trans-unit>
+            <trans-unit id="freePreview.recordMappingLocked">
+                <source>Record mapping is available in PRO</source>
             </trans-unit>
             <trans-unit id="settings.licence.trial.description">
                 <source>Trial gives you frontend scan and the core paid workflow, but with trial limits.</source>

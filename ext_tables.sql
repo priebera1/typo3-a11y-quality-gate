@@ -188,6 +188,7 @@ CREATE TABLE tx_a11y_remote_scan (
     start_url varchar(2048) DEFAULT '' NOT NULL,
     sitemap_url varchar(2048) DEFAULT NULL,
     status varchar(50) DEFAULT '' NOT NULL,
+    is_free_preview tinyint(4) unsigned DEFAULT '0' NOT NULL,
 
     pages_scanned int(11) DEFAULT '0' NOT NULL,
     pages_total int(11) DEFAULT '0' NOT NULL,
@@ -206,6 +207,7 @@ CREATE TABLE tx_a11y_remote_scan (
     KEY site_identifier (site_identifier),
     KEY job_id (job_id),
     KEY status (status),
+    KEY is_free_preview (is_free_preview),
     KEY scan_scope (scan_scope),
     KEY page_uid (page_uid),
     KEY language_uid (language_uid),

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0] - 2026-08-18
+
+### Added
+
+* Added Free Remote Preview for Free-tier installations. Users can run up to 5 remote single-page scans per day without a licence key, registration or email address. The daily limit resets at 00:00 UTC.
+* Added a Free Remote Preview status in the Frontend scan tab showing daily usage, remaining scans and the next reset time.
+* Added direct scanning of the currently selected TYPO3 page from the backend.
+* Added PRO upgrade hints for remote features that are not included in Free Remote Preview, including page screenshots and TYPO3 record mapping.
+
+### Changed
+
+* Remote scan results are now kept separate between Free Remote Preview and PRO/Agency scans.
+
 ## [1.8.0] - 2026-07-08
 
 ### Added

@@ -8,6 +8,7 @@ final class AccessTokenResponseDto
 {
     /**
      * @param list<string> $features
+     * @param list<string> $capabilities
      */
     public function __construct(
         public readonly bool $success,
@@ -17,6 +18,8 @@ final class AccessTokenResponseDto
         public readonly array $features,
         public readonly ?string $errorCode,
         public readonly ?string $errorMessage,
+        public readonly string $entitlement = '',
+        public readonly array $capabilities = [],
     ) {
     }
 
@@ -35,6 +38,14 @@ final class AccessTokenResponseDto
             static fn(string $value): bool => $value !== ''
         ));
 
+        $capabilities = array_values(array_filter(
+            array_map(
+                static fn(mixed $value): string => trim((string)$value),
+                is_array($payload['capabilities'] ?? null) ? $payload['capabilities'] : []
+            ),
+            static fn(string $value): bool => $value !== ''
+        ));
+
         $accessToken = isset($payload['access_token']) ? trim((string)$payload['access_token']) : null;
         if ($accessToken === '') {
             $accessToken = null;
@@ -48,6 +59,8 @@ final class AccessTokenResponseDto
             features: $features,
             errorCode: isset($error['code']) ? (string)$error['code'] : null,
             errorMessage: isset($error['message']) ? (string)$error['message'] : null,
+            entitlement: trim((string)($payload['entitlement'] ?? '')),
+            capabilities: $capabilities,
         );
     }
 }

@@ -33,6 +33,7 @@ final class RemoteScanRepository extends AbstractRepository
         string $syncError = '',
         int $languageUid = -1,
         int $pid = 0,
+        ?bool $isFreePreview = null,
     ): int {
         $connection = $this->getConnection(Tables::REMOTE_SCAN);
         $now = time();
@@ -64,6 +65,10 @@ final class RemoteScanRepository extends AbstractRepository
             'tstamp' => $now,
         ];
 
+        if ($isFreePreview !== null) {
+            $data['is_free_preview'] = $isFreePreview ? 1 : 0;
+        }
+
         if (is_array($existing)) {
             $connection->update(
                 Tables::REMOTE_SCAN,
@@ -93,6 +98,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $pageUid = 0,
         int $languageUid = -1,
         int $pid = 0,
+        bool $isFreePreview = false,
     ): int {
         $now = time();
 
@@ -118,6 +124,7 @@ final class RemoteScanRepository extends AbstractRepository
             syncError: '',
             languageUid: $languageUid,
             pid: $pid,
+            isFreePreview: $isFreePreview,
         );
     }
 
@@ -356,7 +363,7 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLastCompletedSiteScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
+    public function findLastCompletedSiteScanBySite(string $siteIdentifier, int $languageUid = -1, ?bool $isFreePreview = null): ?array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
@@ -383,6 +390,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
+        $this->addFreePreviewConstraint($queryBuilder, $isFreePreview);
 
         $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
@@ -394,7 +402,7 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLastCompletedPageScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
+    public function findLastCompletedPageScanBySite(string $siteIdentifier, int $languageUid = -1, ?bool $isFreePreview = null): ?array
     {
         if ($siteIdentifier === '') {
             return null;
@@ -425,6 +433,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
+        $this->addFreePreviewConstraint($queryBuilder, $isFreePreview);
 
         $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
@@ -490,6 +499,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $pageUid,
         int $languageUid = -1,
         string $url = '',
+        ?bool $isFreePreview = null,
     ): ?array {
         if ($siteIdentifier === '' || ($pageUid <= 0 && trim($url) === '')) {
             return null;
@@ -552,6 +562,7 @@ final class RemoteScanRepository extends AbstractRepository
             ->andWhere($queryBuilder->expr()->or(...$matchExpressions));
 
         $this->addLanguageConstraint($queryBuilder, $languageUid, 'rs');
+        $this->addFreePreviewConstraint($queryBuilder, $isFreePreview, 'rs');
 
         $row = $queryBuilder
             ->orderBy('rs.finished_at', 'DESC')
@@ -710,6 +721,28 @@ final class RemoteScanRepository extends AbstractRepository
         }
 
         return $this->findLatestActiveSiteScanBySite($siteIdentifier, $languageUid);
+    }
+
+    /**
+     * Scopes a "last completed scan" lookup to the caller's entitlement context so a
+     * free-tier viewer's free preview scan can never surface as a paid user's PRO scan
+     * result, and vice versa. Pass null to leave the query entitlement-agnostic
+     * (existing callers that predate this distinction).
+     */
+    private function addFreePreviewConstraint(QueryBuilder $queryBuilder, ?bool $isFreePreview, string $alias = ''): void
+    {
+        if ($isFreePreview === null) {
+            return;
+        }
+
+        $field = $alias !== '' ? $alias . '.is_free_preview' : 'is_free_preview';
+
+        $queryBuilder->andWhere(
+            $queryBuilder->expr()->eq(
+                $field,
+                $queryBuilder->createNamedParameter($isFreePreview ? 1 : 0, Connection::PARAM_INT)
+            )
+        );
     }
 
     private function addLanguageConstraint(QueryBuilder $queryBuilder, int $languageUid, string $alias = ''): void

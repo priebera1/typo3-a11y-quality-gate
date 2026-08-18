@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Pro\Service;
 
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\Pro\Enum\CrawlerJobStatus;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Service\DateTimeService;
@@ -20,6 +21,8 @@ final class RemoteScanRecoveryService
         private readonly RemoteScanPersistenceService $remoteScanPersistenceService,
         private readonly ExtensionContextService $extensionContextService,
         private readonly DateTimeService $dateTimeService,
+        private readonly ProCapabilityService $proCapabilityService,
+        private readonly FreeRemotePreviewService $freeRemotePreviewService,
     ) {
     }
 
@@ -50,13 +53,23 @@ final class RemoteScanRecoveryService
         }
 
         $version = $this->extensionContextService->getExtensionVersion();
+        $siteIdentifier = trim((string)($remoteScan['site_identifier'] ?? ''));
+        $proStatus = $this->proCapabilityService->getStatus($domain, $version);
+        $isFreePreview = !(bool)($proStatus->valid ?? false) || !(bool)($proStatus->hasCrawler ?? false);
 
         try {
-            $statusResult = $this->proCrawlerService->getStatus(
-                domain: $domain,
-                version: $version,
-                jobId: $jobId,
-            );
+            $statusResult = $isFreePreview
+                ? $this->freeRemotePreviewService->getStatus(
+                    siteUrl: rtrim($siteBase, '/') . '/',
+                    siteIdentifier: $siteIdentifier,
+                    version: $version,
+                    jobId: $jobId,
+                )
+                : $this->proCrawlerService->getStatus(
+                    domain: $domain,
+                    version: $version,
+                    jobId: $jobId,
+                );
         } catch (\Throwable $exception) {
             return $this->handleRecoveryFailure($remoteScan, $jobId, $exception);
         }
@@ -76,6 +89,9 @@ final class RemoteScanRecoveryService
                 jobId: $jobId,
                 domain: $domain,
                 version: $version,
+                siteBase: $siteBase,
+                siteIdentifier: $siteIdentifier,
+                isFreePreview: $isFreePreview,
             );
         }
 
@@ -100,19 +116,36 @@ final class RemoteScanRecoveryService
         string $jobId,
         string $domain,
         string $version,
+        string $siteBase,
+        string $siteIdentifier,
+        bool $isFreePreview,
     ): ?array {
         try {
-            $summaryResult = $this->proCrawlerService->getSummary(
-                domain: $domain,
-                version: $version,
-                jobId: $jobId,
-            );
+            $summaryResult = $isFreePreview
+                ? $this->freeRemotePreviewService->getSummary(
+                    siteUrl: rtrim($siteBase, '/') . '/',
+                    siteIdentifier: $siteIdentifier,
+                    version: $version,
+                    jobId: $jobId,
+                )
+                : $this->proCrawlerService->getSummary(
+                    domain: $domain,
+                    version: $version,
+                    jobId: $jobId,
+                );
 
-            $resultsResult = $this->proCrawlerService->getResults(
-                domain: $domain,
-                version: $version,
-                jobId: $jobId,
-            );
+            $resultsResult = $isFreePreview
+                ? $this->freeRemotePreviewService->getResults(
+                    siteUrl: rtrim($siteBase, '/') . '/',
+                    siteIdentifier: $siteIdentifier,
+                    version: $version,
+                    jobId: $jobId,
+                )
+                : $this->proCrawlerService->getResults(
+                    domain: $domain,
+                    version: $version,
+                    jobId: $jobId,
+                );
 
             $sourceType = RemoteScanSourceType::tryFrom((string)($remoteScan['source_type'] ?? ''))
                 ?? RemoteScanSourceType::Crawl;

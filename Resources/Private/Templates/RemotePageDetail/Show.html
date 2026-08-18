@@ -466,11 +466,11 @@
                                         </section>
                                     </f:if>
 
-                                    <f:if condition="{regressionAlert.available} || {regressionAlert.message}">
+                                    <f:if condition="!{isFreePreview} &amp;&amp; ({regressionAlert.available} || {regressionAlert.message})">
                                         <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert}" />
                                     </f:if>
 
-                                    <f:if condition="{remediationPlan.hasTasks}">
+                                    <f:if condition="!{isFreePreview} &amp;&amp; {remediationPlan.hasTasks}">
                                         <f:render partial="Remote/RemediationPlan" arguments="{plan: remediationPlan, variant: 'page'}" />
                                     </f:if>
 
@@ -798,14 +798,26 @@
                                                                     </div>
                                                                 </f:then>
                                                                 <f:else>
-                                                                    <div class="aqg-node__mapped">
-                                                                        <span class="aqg-node__mapped-label">
-                                                                            <f:translate
-                                                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noMappedRecord"
-                                                                                    default="No mapped TYPO3 record · could not locate source content"
-                                                                            />
-                                                                        </span>
-                                                                    </div>
+                                                                    <f:if condition="{isFreePreview}">
+                                                                        <f:then>
+                                                                            <div class="aqg-node__mapped aqg-pro-card">
+                                                                                <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
+                                                                                <span class="aqg-pro-card__body aqg-node__mapped-label">
+                                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.recordMappingLocked" default="Record mapping is available in PRO" />
+                                                                                </span>
+                                                                            </div>
+                                                                        </f:then>
+                                                                        <f:else>
+                                                                            <div class="aqg-node__mapped">
+                                                                                <span class="aqg-node__mapped-label">
+                                                                                    <f:translate
+                                                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noMappedRecord"
+                                                                                            default="No mapped TYPO3 record · could not locate source content"
+                                                                                    />
+                                                                                </span>
+                                                                            </div>
+                                                                        </f:else>
+                                                                    </f:if>
                                                                 </f:else>
                                                             </f:if>
 
@@ -852,12 +864,12 @@
                                 </div>
 
                                 <aside class="aqg-stack">
-                                    <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage}" />
+                                    <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, freePreviewTrialUrl: freePreviewTrialUrl}" />
                                     <f:render section="RemoteMetadata" arguments="{remotePage: remotePage, remoteScan: remoteScan, remoteDetail: remoteDetail}" />
                                 </aside>
                             </div>
 
-                                    <f:if condition="{remoteScanCompare.available} || {remoteScanCompare.message}">
+                                    <f:if condition="!{isFreePreview} &amp;&amp; ({remoteScanCompare.available} || {remoteScanCompare.message})">
                                         <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare}" />
                                     </f:if>
 
@@ -1023,6 +1035,7 @@
                                     </f:if>
 
 
+                                    <f:if condition="!{isFreePreview}">
                                     <details class="aqg-history-panel aqg-history-panel--page" aria-label="Page scan history">
                                         <summary class="aqg-history-panel__summary">
                                             <span>
@@ -1048,6 +1061,7 @@
                                             </f:if>
                                         </div>
                                     </details>
+                                    </f:if>
 
                         </f:then>
 
@@ -1110,7 +1124,7 @@
                                         </div>
                                     </div>
                                 </section>
-                                <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage}" />
+                                <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, freePreviewTrialUrl: freePreviewTrialUrl}" />
                             </div>
                         </f:else>
                     </f:if>
@@ -1121,6 +1135,26 @@
 </f:section>
 
 <f:section name="RemoteScreenshot">
+    <f:if condition="{isFreePreview}">
+        <f:then>
+            <div class="aqg-shot aqg-pro-card">
+                <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
+                <div class="aqg-pro-card__body">
+                    <div class="aqg-pro-card__title">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.pageScreenshot" default="Page screenshot" />
+                    </div>
+                    <div class="aqg-pro-card__text">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.screenshotsLocked" default="Screenshots available in PRO" />
+                    </div>
+                </div>
+                <div class="aqg-pro-card__actions">
+                    <a href="{freePreviewTrialUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start PRO trial" />
+                    </a>
+                </div>
+            </div>
+        </f:then>
+        <f:else>
     <section class="aqg-shot">
         <div class="aqg-shot__head">
             <div>
@@ -1172,6 +1206,8 @@
             <div class="aqg-shot__caption">{remotePage.screenshot_path}</div>
         </f:if>
     </section>
+        </f:else>
+    </f:if>
 </f:section>
 
 <f:section name="RemoteMetadata">

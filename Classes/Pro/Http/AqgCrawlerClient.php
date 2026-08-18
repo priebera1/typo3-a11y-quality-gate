@@ -106,6 +106,52 @@ final class AqgCrawlerClient
         return CrawlerSubmitResponseDto::fromArray($payload);
     }
 
+    public function submitFree(
+        string $accessToken,
+        string $installationId,
+        string $siteUrl,
+        string $siteIdentifier,
+        string $startUrl,
+        string $idempotencyKey,
+    ): CrawlerSubmitResponseDto {
+        $payload = $this->requestJson(
+            '/crawl/submit',
+            'POST',
+            $accessToken,
+            [
+                'installationId' => $installationId,
+                'siteUrl' => $siteUrl,
+                'siteIdentifier' => $siteIdentifier,
+                'startUrl' => $startUrl,
+                'maxPages' => 1,
+            ],
+            ['Idempotency-Key' => $idempotencyKey],
+        );
+
+        return CrawlerSubmitResponseDto::fromArray($payload);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function entitlementStatus(
+        string $accessToken,
+        string $installationId,
+        string $siteUrl,
+        string $siteIdentifier,
+    ): array {
+        return $this->requestJson(
+            '/entitlement/status',
+            'POST',
+            $accessToken,
+            [
+                'installationId' => $installationId,
+                'siteUrl' => $siteUrl,
+                'siteIdentifier' => $siteIdentifier,
+            ],
+        );
+    }
+
     public function status(string $accessToken, string $jobId): CrawlerStatusResponseDto
     {
         $payload = $this->requestJson(
@@ -356,7 +402,13 @@ final class AqgCrawlerClient
     /**
      * @return array<string, mixed>
      */
-    private function requestJson(string $path, string $method, string $accessToken, array $payload = []): array
+    private function requestJson(
+        string $path,
+        string $method,
+        string $accessToken,
+        array $payload = [],
+        array $additionalHeaders = [],
+    ): array
     {
         $url = rtrim(ProSettings::resolveCrawlerBaseUrl(), '/') . $path;
 
@@ -364,7 +416,7 @@ final class AqgCrawlerClient
             'headers' => [
                 'Accept' => 'application/json',
                 'Authorization' => 'Bearer ' . $accessToken,
-            ],
+            ] + $additionalHeaders,
             'timeout' => ProConstants::REQUEST_TIMEOUT,
             'http_errors' => false,
             'allow_redirects' => false,
@@ -474,7 +526,31 @@ final class AqgCrawlerClient
             $message .= ' | auth=' . json_encode($this->buildAuthDebug($accessToken, $payload));
             $message .= ' | body=' . $this->sanitizeBodyForLog($body);
 
-            throw new ApiRequestFailedException($message);
+            $errorPayload = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+            $details = is_array($errorPayload['details'] ?? null) ? $errorPayload['details'] : [];
+            $retryAfterHeader = trim($response->getHeaderLine('Retry-After'));
+            $errorCode = trim((string)($errorPayload['code'] ?? ''));
+            if ($errorCode === '' && $statusCode === 404) {
+                $errorCode = 'route_not_found';
+            } elseif ($errorCode === '' && $statusCode === 429) {
+                $errorCode = 'rate_limit_exceeded';
+            }
+
+            $this->logCrawlerRequest('bounded-error', [
+                'endpoint' => $path,
+                'method' => $method,
+                'status' => $statusCode,
+                'errorCode' => $errorCode !== '' ? $errorCode : 'http_error',
+            ], 'warning');
+
+            throw new ApiRequestFailedException(
+                $message,
+                $statusCode,
+                null,
+                $errorCode,
+                $details,
+                ctype_digit($retryAfterHeader) ? (int)$retryAfterHeader : null,
+            );
         }
 
         if ((bool)($decoded['success'] ?? true) === false) {
@@ -491,7 +567,22 @@ final class AqgCrawlerClient
             $message .= ' | auth=' . json_encode($this->buildAuthDebug($accessToken, $payload));
             $message .= ' | body=' . $this->sanitizeBodyForLog($body);
 
-            throw new ApiRequestFailedException($message);
+            $errorPayload = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+            $errorCode = trim((string)($errorPayload['code'] ?? 'logical_error'));
+            $this->logCrawlerRequest('bounded-error', [
+                'endpoint' => $path,
+                'method' => $method,
+                'status' => $statusCode,
+                'errorCode' => $errorCode,
+            ], 'warning');
+
+            throw new ApiRequestFailedException(
+                $message,
+                $statusCode,
+                null,
+                $errorCode,
+                is_array($errorPayload['details'] ?? null) ? $errorPayload['details'] : [],
+            );
         }
 
         return $decoded;
@@ -552,6 +643,10 @@ final class AqgCrawlerClient
      */
     private function sanitizePayloadForLog(array $payload): array
     {
+        if (isset($payload['installationId'])) {
+            $payload['installationId'] = '***';
+        }
+
         if (isset($payload['scannerToken']) && $payload['scannerToken'] !== '') {
             $payload['scannerToken'] = '***';
         }

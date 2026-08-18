@@ -37,24 +37,20 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 - Stable issue fingerprints across rescans
 - Batch ignore workflow with required reason confirmation
 - Per-rule enable / disable in Settings
-- Manual local scans via backend module and CLI
+- Manual scans via backend module and CLI
 - Automated local scans via TYPO3 Scheduler
 - Changed-only scan mode for incremental rescans
 - Quality gate warning mode on page publish / unhide; editors can continue after reviewing the warning
-- FREE rendered page checks for manual **Scan this page** and **Scan site** actions, inspecting TYPO3 server-rendered HTML without executing JavaScript
+- FREE rendered page check — inspects the live server-rendered HTML of the current page
 - CSV export
 - TCA-based field discovery for `tt_content` RTE and file fields
 - Settings module for enabling and disabling scanned fields
-- Built-in rules that help identify common WCAG-related accessibility issues in RTE content, structured fields and rendered HTML
+- Built-in rules that help identify common WCAG 2.1 AA-related accessibility issues in RTE content, structured fields and rendered HTML
 
 ### Trial / PRO / Agency
 
 - Remote browser accessibility scans via Playwright + axe-core
 - Remote browser scan results with issue breakdown and screenshot preview
-- Frontend scan history for site and single-page scans, including scan comparison and regression signals
-- Recommended remediation plans with friendly rule metadata, affected user groups, WCAG references and suggested ownership
-- Accessibility Statement Draft Assistant with English and German preview plus HTML, TXT and PDF exports
-- WCAG 2.2 target-size reporting and expanded color-contrast remediation guidance
 - PDF export for overview and page detail reports
 - Remote CSV export
 - Per-site quality gate configuration
@@ -135,7 +131,6 @@ mappings and fix guidance see the documentation:
 | `rte.empty_heading` | Critical | 1.3.1 |
 | `rte.empty_link` | Critical | 2.4.4 / 4.1.2 |
 | `rte.button_label_missing` | Critical | 4.1.2 |
-| `rte.form_control_missing_label` | Critical | 1.3.1 / 3.3.2 |
 | `rte.table_missing_header` | Warning | 1.3.1 |
 | `rte.table_th_missing_scope` | Warning | 1.3.1 |
 | `rte.table_missing_caption` | Info | 1.3.1 |
@@ -172,7 +167,9 @@ Some structured rules may adjust severity depending on the detected case, for ex
 
 ### Rendered HTML rules — FREE, manual, server-rendered HTML only
 
-Rendered checks run when an editor manually starts **Scan this page** or **Scan site**. They inspect the final server-rendered HTML returned by TYPO3 and do not execute JavaScript, AJAX or lazy-loaded browser interactions. Manual **Scan site** applies these checks to supported frontend pages in the selected site scope. CLI and Scheduler scans continue to use the Local scan workflow. Browser-based crawling, JavaScript execution and screenshots remain Trial / PRO / Agency features.
+Rendered checks run during **Scan this page** only. They inspect the final
+server-rendered HTML returned by TYPO3 and do not execute JavaScript, AJAX
+or lazy-loaded content.
 
 | Rule ID | Severity | WCAG |
 |---------|----------|------|
@@ -189,7 +186,6 @@ Rendered checks run when an editor manually starts **Scan this page** or **Scan 
 | `rendered.html_lang_missing` | Critical | 3.1.1 |
 | `rendered.page_title_missing` | Warning | 2.4.2 |
 | `rendered.main_landmark_missing` | Needs review | 1.3.6 |
-| `rendered.landmark_unique` | Needs review | 1.3.6 |
 
 ---
 
@@ -260,8 +256,6 @@ configuration identifier.
 ./vendor/bin/typo3 a11y:scan --root-pid=1 --language=1
 ```
 
-CLI and Scheduler commands run the Local scan workflow. FREE rendered page checks are started manually from the backend through **Scan this page** or **Scan site**.
-
 ---
 
 ## Backend User TSconfig
@@ -288,7 +282,7 @@ AQG helps teams identify common accessibility issues early in the TYPO3 editoria
 
 The Free rendered page check analyzes server-rendered HTML only. It does not execute JavaScript, wait for AJAX or lazy-loaded content, interact with cookie banners or take screenshots. Browser-based crawling, screenshots and axe-core checks are part of the Trial / PRO remote scanner.
 
-Accessibility Quality Gate does not replace a full accessibility audit, keyboard testing, assistive technology testing or a professional WCAG review. Some rules reflect best practices and may not always correspond to a hard WCAG failure in every context. All findings should be reviewed in context.
+Accessibility Quality Gate does not replace a full accessibility audit, keyboard testing, assistive technology testing or a professional WCAG review. Some rules reflect best practices and may not always correspond to a hard WCAG 2.1 failure in every context. All findings should be reviewed in context.
 
 ---
 

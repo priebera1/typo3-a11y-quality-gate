@@ -25,6 +25,8 @@ final class DomainNormalizer
             return '';
         }
 
+        $normalizedHost = rtrim($normalizedHost, '.');
+
         if (str_starts_with($normalizedHost, 'www.')) {
             $normalizedHost = substr($normalizedHost, 4);
         }

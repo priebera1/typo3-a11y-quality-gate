@@ -2322,6 +2322,142 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>The AI provider could not return an iframe title. Please try again later.</source>
                 <target>Der KI-Anbieter konnte keinen Iframe-Titel zurückgeben. Bitte später erneut versuchen.</target>
             </trans-unit>
+            <trans-unit id="settings.licence.free.text">
+                <source>AQG works without a licence. Free includes local accessibility checks and up to 5 remote single-page scans per day. Full-site crawling and advanced remote features require PRO.</source>
+                <target>AQG funktioniert ohne Lizenz. FREE umfasst lokale Barrierefreiheitsprüfungen und bis zu 5 Remote-Scans einzelner Seiten pro Tag. Website-weites Crawling und erweiterte Remote-Funktionen erfordern PRO.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.free.remotePreview">
+                <source>Free Remote Preview — 5 single-page scans per day</source>
+                <target>Free Remote Preview — 5 Scans einzelner Seiten pro Tag</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.free.proFeaturesTitle">
+                <source>Available in PRO</source>
+                <target>In PRO verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.free.noFrontendCrawler">
+                <source>Full-site frontend crawler</source>
+                <target>Frontend-Crawler für die gesamte Website</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.free.advancedRemote">
+                <source>Screenshots, record mapping, history and PDF exports</source>
+                <target>Screenshots, Datensatzzuordnung, Verlauf und PDF-Exporte</target>
+            </trans-unit>
+            <trans-unit id="freePreview.title">
+                <source>Free Remote Preview</source>
+                <target>Free Remote Preview</target>
+            </trans-unit>
+            <trans-unit id="freePreview.usedTitle">
+                <source>Free Remote Preview used today</source>
+                <target>Free Remote Preview heute verwendet</target>
+            </trans-unit>
+            <trans-unit id="freePreview.description">
+                <source>Scan the currently selected page with AQG's remote frontend checks.</source>
+                <target>Scannen Sie die aktuell ausgewählte Seite mit den Remote-Frontend-Prüfungen von AQG.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.freeScansToday">
+                <source>Free scans today</source>
+                <target>Heutige Free-Scans</target>
+            </trans-unit>
+            <trans-unit id="freePreview.todayUsage">
+                <source>Today's usage</source>
+                <target>Heutige Nutzung</target>
+            </trans-unit>
+            <trans-unit id="freePreview.scanUsage">
+                <source>%1$d of %2$d used</source>
+                <target>%1$d von %2$d verwendet</target>
+            </trans-unit>
+            <trans-unit id="freePreview.scansRemaining">
+                <source>%1$d free scans remaining today</source>
+                <target>Heute sind noch %1$d Free-Scans verfügbar</target>
+            </trans-unit>
+            <trans-unit id="freePreview.limitReached">
+                <source>Free scan limit reached for today.</source>
+                <target>Das heutige Free-Scan-Limit ist erreicht.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.pagesScanned">
+                <source>Pages scanned</source>
+                <target>Gescannte Seiten</target>
+            </trans-unit>
+            <trans-unit id="freePreview.pageUsage">
+                <source>%1$d of %2$d pages scanned</source>
+                <target>%1$d von %2$d Seiten gescannt</target>
+            </trans-unit>
+            <trans-unit id="freePreview.scanUsedToday">
+                <source>scan used today</source>
+                <target>Scan heute verwendet</target>
+            </trans-unit>
+            <trans-unit id="freePreview.pages">
+                <source>pages</source>
+                <target>Seiten</target>
+            </trans-unit>
+            <trans-unit id="freePreview.nextReset">
+                <source>Next reset</source>
+                <target>Nächster Reset</target>
+            </trans-unit>
+            <trans-unit id="freePreview.nextScan">
+                <source>Next free scan</source>
+                <target>Nächster kostenloser Scan</target>
+            </trans-unit>
+            <trans-unit id="freePreview.resets">
+                <source>Resets</source>
+                <target>Zurücksetzung</target>
+            </trans-unit>
+            <trans-unit id="freePreview.nextScans">
+                <source>Next free scans</source>
+                <target>Nächste Free-Scans</target>
+            </trans-unit>
+            <trans-unit id="freePreview.countdown.hm">
+                <source>in %dh %dm</source>
+                <target>in %dh %dm</target>
+            </trans-unit>
+            <trans-unit id="freePreview.countdown.m">
+                <source>in %dm</source>
+                <target>in %dm</target>
+            </trans-unit>
+            <trans-unit id="freePreview.screenshotsLocked">
+                <source>Screenshots available in PRO</source>
+                <target>Screenshots verfügbar in PRO</target>
+            </trans-unit>
+            <trans-unit id="freePreview.run">
+                <source>Scan this page — Free</source>
+                <target>Diese Seite scannen — Free</target>
+            </trans-unit>
+            <trans-unit id="freePreview.running">
+                <source>Scanning selected page…</source>
+                <target>Ausgewählte Seite wird gescannt…</target>
+            </trans-unit>
+            <trans-unit id="freePreview.viewTodayResults">
+                <source>View today's results</source>
+                <target>Heutige Ergebnisse anzeigen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.viewPageResult">
+                <source>View this page's result</source>
+                <target>Ergebnis dieser Seite anzeigen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.retry">
+                <source>Retry</source>
+                <target>Erneut versuchen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.upsell">
+                <source>Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO.</source>
+                <target>Website-weites Crawling, Screenshots, Datensatzzuordnung, Verlauf und PDF-Exporte sind in PRO verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.proLabel">
+                <source>PRO</source>
+                <target>PRO</target>
+            </trans-unit>
+            <trans-unit id="freePreview.startTrial">
+                <source>Start PRO trial</source>
+                <target>PRO-Testphase starten</target>
+            </trans-unit>
+            <trans-unit id="freePreview.viewPricing">
+                <source>View pricing</source>
+                <target>Preise anzeigen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.recordMappingLocked">
+                <source>Record mapping is available in PRO</source>
+                <target>Datensatzzuordnung ist in PRO verfügbar</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

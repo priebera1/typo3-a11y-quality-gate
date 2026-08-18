@@ -3,6 +3,21 @@
         data-namespace-typo3-fluid="true"
 >
 <div class="aqg-panel-stack aqg-remote-overview-redesign">
+    <f:if condition="{freePreview.isFree}">
+        <f:render
+                partial="Overview/FreeRemotePreview"
+                arguments="{
+                    freePreview: freePreview,
+                    freeSubmitIntent: freeSubmitIntent,
+                    canScanAll: canScanAll,
+                    siteRootPid: siteRootPid,
+                    currentPageUid: currentPageUid,
+                    siteIdentifier: siteIdentifier,
+                    remoteScan: remoteScan
+                }"
+        />
+    </f:if>
+
     <f:if condition="{showRemoteScannerTokenNotice}">
         <f:render
                 partial="Overview/RemoteScannerTokenNotice"
@@ -41,6 +56,7 @@
                             </div>
                         </div>
 
+                        <f:if condition="!{freePreview.isFree}">
                         <div class="aqg-signal__actions">
                             <f:if condition="{currentPageUid}">
                                 <f:if condition="{currentPageUrl}">
@@ -101,6 +117,7 @@
                                     }"
                             />
                         </div>
+                        </f:if>
                     </div>
 
                     <div class="aqg-signal__metrics" aria-label="Frontend scan metrics">
@@ -181,6 +198,7 @@
                                 />
                             </p>
                         </div>
+                        <f:if condition="!{freePreview.isFree}">
                         <div class="aqg-signal__actions">
                             <f:if condition="{currentPageUid}">
                                 <f:if condition="{currentPageUrl}">
@@ -214,6 +232,7 @@
                                 </button>
                             </f:if>
                         </div>
+                        </f:if>
                     </div>
                 </article>
             </f:else>
@@ -1092,7 +1111,7 @@
                 </div>
 
                 <div class="aqg-additional-signals__grid">
-                    <f:if condition="{remoteRemediationSummary}">
+                    <f:if condition="{remoteRemediationSummary} &amp;&amp; !{freePreview.isFree}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--remediation">
                             <div class="aqg-signal-chip-card__kicker">Remediation</div>
                             <div class="aqg-signal-chip-card__title">Suggested remediation grouping</div>
@@ -1410,15 +1429,16 @@
     </section>
 
 
-    <f:if condition="{remoteScanCompare.available} || {remoteScanCompare.message}">
+    <f:if condition="!{freePreview.isFree} &amp;&amp; ({remoteScanCompare.available} || {remoteScanCompare.message})">
         <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare}" />
     </f:if>
 
-    <f:if condition="{regressionAlert.available}">
+    <f:if condition="!{freePreview.isFree} &amp;&amp; {regressionAlert.available}">
         <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert}" />
     </f:if>
 
 
+    <f:if condition="!{freePreview.isFree}">
     <details class="aqg-history-panel aqg-history-panel--overview" aria-label="Frontend scan history">
         <summary class="aqg-history-panel__summary">
             <span class="aqg-history-panel__summary-copy">
@@ -1442,6 +1462,7 @@
             </f:if>
         </div>
     </details>
+    </f:if>
 
 </div>
 </html>

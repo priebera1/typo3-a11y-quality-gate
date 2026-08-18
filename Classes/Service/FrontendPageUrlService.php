@@ -30,6 +30,15 @@ final class FrontendPageUrlService
             }
         }
 
+        return $this->resolvePublicForPage($site, $pageUid, $languageUid);
+    }
+
+    public function resolvePublicForPage(Site $site, int $pageUid, int $languageUid): string
+    {
+        if ($pageUid <= 0 || $languageUid < 0) {
+            return '';
+        }
+
         $base = $this->resolveLanguageBase($site, $languageUid);
         if ($base === '') {
             return '';

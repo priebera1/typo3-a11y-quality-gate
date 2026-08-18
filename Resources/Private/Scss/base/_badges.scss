@@ -19,3 +19,44 @@
     letter-spacing: .08em;
     line-height: 1;
 }
+
+.a11y-page-detail .aqg-pro-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+    background: var(--aqi-surface);
+}
+
+.a11y-page-detail .aqg-pro-card .aqg-pro-card__badge {
+    margin-left: 0;
+}
+
+.a11y-page-detail .aqg-pro-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.a11y-page-detail .aqg-pro-card__title {
+    color: var(--aqi-fg);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.a11y-page-detail .aqg-pro-card__text {
+    color: var(--aqi-fg-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.a11y-page-detail .aqg-pro-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 0 0 auto;
+}

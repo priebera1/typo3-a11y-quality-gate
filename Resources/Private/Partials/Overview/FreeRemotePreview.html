@@ -1,0 +1,106 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<section
+        class="aqg-section aqg-section--scan aqg-free-preview"
+        data-aqg-free-preview="true"
+        data-aqg-free-preview-state="{freePreview.state}"
+>
+    <div class="aqg-section__head">
+        <div>
+            <h2 class="aqg-section__title">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote"
+                        default="Frontend scan"
+                />
+            </h2>
+            <p class="aqg-section__sub">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.title" default="Free Remote Preview" />
+                —
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.description" default="Scan the currently selected page with AQG's remote frontend checks." />
+            </p>
+        </div>
+
+        <div class="aqg-section__actions">
+            <f:if condition="{freePreview.submitCapable} &amp;&amp; {freePreview.state} == 'FREE_AVAILABLE' &amp;&amp; {canScanAll}">
+                <button
+                        type="button"
+                        class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
+                        data-action="a11y-pro-scan-site"
+                        data-aqg-free-preview-submit="true"
+                        data-root-pid="{siteRootPid}"
+                        data-current-page-uid="{currentPageUid}"
+                        data-site-identifier="{siteIdentifier}"
+                        data-free-submit-intent="{freeSubmitIntent}"
+                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running', default: 'Scanning selected page…')}"
+                ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.run" default="Scan this page — Free" /></button>
+            </f:if>
+
+            <f:if condition="{freePreview.hasTodayResult}">
+                <a href="#a11y-remote-top-pages" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPageResult" default="View this page's result" /></a>
+            </f:if>
+
+            <button
+                    type="button"
+                    class="btn btn-default btn-sm"
+                    data-action="a11y-free-preview-retry"
+                    {f:if(condition: freePreview.retryable, else: 'hidden="hidden"')}
+            ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.retry" default="Retry" /></button>
+        </div>
+    </div>
+
+    <div class="aqg-section__body">
+        <div data-aqg-free-preview-message="true">
+            <f:if condition="{freePreview.message}">
+                <div class="aqg-notice aqg-tone-warning mb-3" role="status">
+                    <div class="aqg-notice__body">
+                        <div class="aqg-notice__text">{freePreview.message}</div>
+                    </div>
+                </div>
+            </f:if>
+        </div>
+
+        <f:if condition="{freePreview.jobsLimit}">
+            <div class="aqg-section__meta-row">
+                <div class="aqg-meta-item">
+                    <span class="aqg-meta-item__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.freeScansToday" default="Free scans today" /></span>
+                    <span class="aqg-meta-item__value"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.scanUsage" default="%1$d of %2$d used" arguments="{0: freePreview.jobsUsed, 1: freePreview.jobsLimit}" /></span>
+                    <f:if condition="{freePreview.jobsUsed}">
+                        <f:if condition="{freePreview.scansRemaining}">
+                            <span class="aqg-meta-item__hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.scansRemaining" default="%1$d free scans remaining today" arguments="{0: freePreview.scansRemaining}" /></span>
+                        </f:if>
+                    </f:if>
+                    <f:if condition="!{freePreview.available}">
+                        <span class="aqg-meta-item__hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.limitReached" default="Free scan limit reached for today." /></span>
+                    </f:if>
+                </div>
+                <f:if condition="{freePreview.resetsAt}">
+                    <div class="aqg-meta-item">
+                        <span class="aqg-meta-item__label">
+                            <f:if condition="{freePreview.available}">
+                                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.resets" default="Resets" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.nextScans" default="Next free scans" /></f:else>
+                            </f:if>
+                        </span>
+                        <time
+                                class="aqg-meta-item__value"
+                                datetime="{freePreview.resetsAt}"
+                                data-aqg-free-preview-countdown="true"
+                                data-aqg-free-preview-resets-at="{freePreview.resetsAt}"
+                        >{freePreview.resetsAt -> f:format.date(format: 'd.m.Y H:i')}</time>
+                    </div>
+                </f:if>
+            </div>
+        </f:if>
+    </div>
+</section>
+
+<div class="aqg-pro-card">
+    <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
+    <div class="aqg-pro-card__body">
+        <div class="aqg-pro-card__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.upsell" default="Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO." /></div>
+    </div>
+    <div class="aqg-pro-card__actions">
+        <a href="{freePreview.trialUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start PRO trial" /></a>
+        <a href="{freePreview.upgradeUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPricing" default="View pricing" /></a>
+    </div>
+</div>
+</html>

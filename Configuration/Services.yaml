@@ -166,6 +166,8 @@ services:
     alias: Priebera\A11yQualityGate\Domain\Repository\IssueRepository
   Priebera\A11yQualityGate\Contract\AccessControlServiceInterface:
     alias: Priebera\A11yQualityGate\Service\AccessControlService
+  Priebera\A11yQualityGate\Contract\InstallationIdentityServiceInterface:
+    alias: Priebera\A11yQualityGate\Service\InstallationIdentityService
   Priebera\A11yQualityGate\Service\Contract\RuleMetadataPresentationServiceInterface:
     alias: Priebera\A11yQualityGate\Service\RuleMetadataPresentationService
   Priebera\A11yQualityGate\Contract\BackendContextServiceInterface:

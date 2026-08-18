@@ -6,9 +6,12 @@ namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Contract\AccessControlServiceInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 
 final class AccessControlService implements AccessControlServiceInterface
 {
+    public function __construct(private readonly ConnectionPool $connectionPool) {}
+
     public function canShowToolbarItem(?BackendUserAuthentication $backendUser = null): bool
     {
         return $this->resolveVisibilityFlag($backendUser, 'showToolbarItem', true);
@@ -37,8 +40,27 @@ final class AccessControlService implements AccessControlServiceInterface
     public function canManageAdminOnlySettings(?BackendUserAuthentication $backendUser = null): bool
     {
         $backendUser ??= $GLOBALS['BE_USER'] ?? null;
+        if (!$backendUser instanceof BackendUserAuthentication || !$backendUser->isAdmin()) {
+            return false;
+        }
 
-        return $backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin();
+        $backendUserId = (int)($backendUser->user['uid'] ?? 0);
+        if ($backendUserId <= 0) {
+            return false;
+        }
+
+        try {
+            $adminFlag = $this->connectionPool
+                ->getConnectionForTable('be_users')
+                ->fetchOne(
+                    'SELECT admin FROM be_users WHERE uid = ? AND deleted = 0 AND disable = 0',
+                    [$backendUserId],
+                );
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return (int)$adminFlag === 1;
     }
 
     public function canRemediateImages(?BackendUserAuthentication $backendUser = null): bool

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
@@ -52,6 +53,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         private readonly ExportUrlBuilderService $exportUrlBuilderService,
         private readonly ProStatusResolverService $proStatusResolverService,
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
+        private readonly PublicLinkProvider $publicLinkProvider,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -183,11 +185,12 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         );
 
         $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($resolvedSiteIdentifier);
+        $isFreePreview = !(bool)($proStatus->valid ?? false) || !(bool)($proStatus->hasCrawler ?? false);
 
         $remotePageDebugUrl = $this->buildRemotePageDebugUrl((string)($remotePage['url'] ?? ''));
 
         $remoteScreenshotProxyUrl = '';
-        if (!empty($remotePage['screenshot_path']) && $remotePageUid > 0) {
+        if (!$isFreePreview && !empty($remotePage['screenshot_path']) && $remotePageUid > 0) {
             $remoteScreenshotProxyUrl = $this->buildRemoteScreenshotProxyUrl(
                 $resolvedSiteIdentifier,
                 $remotePageUid
@@ -196,13 +199,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         $issues = $this->remoteIssueRepository->findByRemoteScanPage($remotePageUid);
 
-        $issuesWithNodes = array_map(function (array $issue) use ($resolvedSiteIdentifier, $remotePageUid): array {
+        $issuesWithNodes = array_map(function (array $issue) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview): array {
             $issueUid = (int)($issue['uid'] ?? 0);
             $nodes = $issueUid > 0
                 ? $this->remoteIssueNodeRepository->findByRemoteIssue($issueUid)
                 : [];
 
-            $nodes = array_map(function (array $node) use ($resolvedSiteIdentifier, $remotePageUid): array {
+            $nodes = array_map(function (array $node) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview): array {
                 $mappedTable = trim((string)($node['mapped_table'] ?? ''));
                 $mappedUid = (int)($node['mapped_uid'] ?? 0);
 
@@ -211,7 +214,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 $node['hasEditAccess'] = false;
                 $node['contrastDetails'] = $this->decodeContrastDetails((string)($node['contrast_details_json'] ?? ''));
                 $node['hasContrastDetails'] = $node['contrastDetails'] !== [];
-                $node['nodeRemediation'] = $this->decodeNodeRemediation((string)($node['node_remediation_json'] ?? ''));
+                $node['nodeRemediation'] = $isFreePreview
+                    ? []
+                    : $this->decodeNodeRemediation((string)($node['node_remediation_json'] ?? ''));
                 $node['hasNodeRemediation'] = $node['nodeRemediation'] !== [];
 
                 if ($mappedTable !== '' && $mappedUid > 0) {
@@ -242,7 +247,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         $siteRootPid = $resolvedSite !== null ? (int)$resolvedSite->getRootPageId() : 0;
         $resolvedTypo3PageUid = $this->resolveTypo3PageUid($remoteScan, $issuesWithNodes);
         $scanPageUid = $resolvedTypo3PageUid > 0 ? $resolvedTypo3PageUid : $siteRootPid;
-        $canScanRemotePage = $scanPageUid > 0;
+        $canScanRemotePage = !$isFreePreview && $scanPageUid > 0;
         $usesSiteRootContext = $canScanRemotePage && $resolvedTypo3PageUid <= 0;
 
         $activeRemoteScan = null;
@@ -268,8 +273,12 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             );
         }
 
-        $pageRemediationSummary = $this->decodeRemediationSummary((string)($remotePage['remediation_summary_json'] ?? ''));
-        $pageRecommendation = $this->decodePageRecommendation((string)($remotePage['page_recommendation_json'] ?? ''));
+        $pageRemediationSummary = $isFreePreview
+            ? []
+            : $this->decodeRemediationSummary((string)($remotePage['remediation_summary_json'] ?? ''));
+        $pageRecommendation = $isFreePreview
+            ? []
+            : $this->decodePageRecommendation((string)($remotePage['page_recommendation_json'] ?? ''));
         $groupedIssues = $this->groupIssuesByRule($issuesWithNodes, $pageRecommendation);
         $pageSummaryIssuesCount = (int)($remotePage['issues_count'] ?? 0);
         $issueDetailsUnavailable = $groupedIssues === [] && $pageSummaryIssuesCount > 0;
@@ -282,17 +291,17 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             (int)($remoteScan['language_uid'] ?? 0)
         );
 
-        $exportCsvUrl = $this->exportUrlBuilderService->buildRemotePageCsvUrl(
+        $exportCsvUrl = $isFreePreview ? '' : $this->exportUrlBuilderService->buildRemotePageCsvUrl(
             $resolvedSiteIdentifier,
             $remotePageUid
         );
 
-        $exportPdfUrl = $this->exportUrlBuilderService->buildRemotePagePdfUrl(
+        $exportPdfUrl = $isFreePreview ? '' : $this->exportUrlBuilderService->buildRemotePagePdfUrl(
             $resolvedSiteIdentifier,
             $remotePageUid
         );
 
-        $remotePageHistory = $this->buildRemotePageHistory(
+        $remotePageHistory = $isFreePreview ? ['available' => false, 'items' => []] : $this->buildRemotePageHistory(
             $request,
             $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
             $resolvedSiteIdentifier,
@@ -302,8 +311,10 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             (int)($remoteScan['page_uid'] ?? 0) ?: $scanPageUid,
             (int)($remoteScan['language_uid'] ?? 0)
         );
-        $remoteScanCompare = $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $remotePageHistory);
-        $regressionAlert = $this->buildRemotePageRegressionAlert(
+        $remoteScanCompare = $isFreePreview
+            ? ['available' => false, 'message' => '']
+            : $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $remotePageHistory);
+        $regressionAlert = $isFreePreview ? ['available' => false, 'message' => ''] : $this->buildRemotePageRegressionAlert(
             $remotePageUid,
             $scanPageUid,
             (int)($remoteScan['language_uid'] ?? 0),
@@ -311,7 +322,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $resolvedSiteIdentifier,
             (string)($remotePage['url'] ?? '')
         );
-        $remediationPlan = $this->remoteScanHistoryService->loadRemediationPlanByJobId(
+        $remediationPlan = $isFreePreview ? ['available' => false, 'hasTasks' => false] : $this->remoteScanHistoryService->loadRemediationPlanByJobId(
             $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
             is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
             5
@@ -347,6 +358,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'canScanRemotePage' => $canScanRemotePage,
             'usesSiteRootContext' => $usesSiteRootContext,
             'proStatus' => $proStatus,
+            'isFreePreview' => $isFreePreview,
+            'freePreviewTrialUrl' => $isFreePreview ? $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::TRIAL) : '',
             'remotePageHistory' => $remotePageHistory,
             'remoteScanCompare' => $remoteScanCompare,
             'regressionAlert' => $regressionAlert,
