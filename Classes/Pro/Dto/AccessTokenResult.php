@@ -8,6 +8,7 @@ final class AccessTokenResult
 {
     /**
      * @param list<string> $features
+     * @param list<string> $capabilities
      */
     public function __construct(
         public readonly string $accessToken,
@@ -15,6 +16,8 @@ final class AccessTokenResult
         public readonly int $issuedAt,
         public readonly string $plan,
         public readonly array $features,
+        public readonly string $entitlement = '',
+        public readonly array $capabilities = [],
     ) {
     }
 
@@ -26,6 +29,8 @@ final class AccessTokenResult
             issuedAt: time(),
             plan: $dto->plan,
             features: $dto->features,
+            entitlement: $dto->entitlement,
+            capabilities: $dto->capabilities,
         );
     }
 
@@ -50,6 +55,8 @@ final class AccessTokenResult
             'issuedAt' => $this->issuedAt,
             'plan' => $this->plan,
             'features' => $this->features,
+            'entitlement' => $this->entitlement,
+            'capabilities' => $this->capabilities,
         ];
     }
 
@@ -66,12 +73,22 @@ final class AccessTokenResult
             static fn(string $value): bool => $value !== ''
         ));
 
+        $capabilities = array_values(array_filter(
+            array_map(
+                static fn(mixed $value): string => trim((string)$value),
+                is_array($payload['capabilities'] ?? null) ? $payload['capabilities'] : []
+            ),
+            static fn(string $value): bool => $value !== ''
+        ));
+
         return new self(
             accessToken: trim((string)($payload['accessToken'] ?? '')),
             expiresIn: max(0, (int)($payload['expiresIn'] ?? 0)),
             issuedAt: max(0, (int)($payload['issuedAt'] ?? 0)),
             plan: trim((string)($payload['plan'] ?? '')),
             features: $features,
+            entitlement: trim((string)($payload['entitlement'] ?? '')),
+            capabilities: $capabilities,
         );
     }
 }

@@ -17,24 +17,36 @@
     <div class="aqg-progress-block__head">
         <div class="aqg-progress-block__title">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <f:translate
-                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scan"
-                    default="Frontend scan"
-            />
+            <f:if condition="{activeRemoteScan.is_free_preview}">
+                <f:then>
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running"
+                            default="Running free preview…"
+                    />
+                </f:then>
+                <f:else>
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scan"
+                            default="Frontend scan"
+                    />
+                </f:else>
+            </f:if>
         </div>
 
         <div class="aqg-progress-block__head-actions">
             <span class="aqg-status-badge aqg-status-badge--running" data-a11y-remote-scan-status="true"></span>
-            <button
-                    type="button"
-                    class="btn btn-sm aqg-btn-danger-outline aqg-progress-block__cancel"
-                    data-action="a11y-pro-cancel-scan"
-                    data-job-id="{activeRemoteScan.job_id}"
-                    data-site-identifier="{activeRemoteScan.site_identifier}"
-                    data-loading-text="Cancelling..."
-            >
-                Cancel
-            </button>
+            <f:if condition="!{activeRemoteScan.is_free_preview}">
+                <button
+                        type="button"
+                        class="btn btn-sm aqg-btn-danger-outline aqg-progress-block__cancel"
+                        data-action="a11y-pro-cancel-scan"
+                        data-job-id="{activeRemoteScan.job_id}"
+                        data-site-identifier="{activeRemoteScan.site_identifier}"
+                        data-loading-text="Cancelling..."
+                >
+                    Cancel
+                </button>
+            </f:if>
         </div>
     </div>
 

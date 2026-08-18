@@ -44,7 +44,7 @@
         "mpdf/mpdf": "^8.2"
     },
     "suggest": {
-        "ext-sodium": "Required when saving encrypted HTTP authentication passwords for remote scan access."
+        "ext-sodium": "Required for encrypted remote-access passwords and per-site AI provider keys."
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5 || ^12.0",
@@ -68,7 +68,7 @@
             "Package": {
                 "providesPackages": {}
             },
-            "version": "1.8.0"
+            "version": "1.9.0"
         }
     },
     "config": {

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
 use Priebera\A11yQualityGate\Domain\Repository\FieldConfigRepository;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
+use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
+use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
@@ -77,6 +80,9 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly ProStatusResolverService $proStatusResolverService,
         private readonly ExportUrlBuilderService $exportUrlBuilderService,
         private readonly FrontendPageUrlService $frontendPageUrlService,
+        private readonly FreeRemotePreviewService $freeRemotePreviewService,
+        private readonly FreeSubmitIntentService $freeSubmitIntentService,
+        private readonly PublicLinkProvider $publicLinkProvider,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -177,6 +183,9 @@ final class OverviewController extends AbstractBackendModuleController
         $siteRootPid = $site !== null ? (int)$site->getRootPageId() : 0;
         $isPageContext = $currentPageUid > 0 && $siteRootPid > 0 && $currentPageUid !== $siteRootPid;
 
+        $proStatus = $this->proStatusResolverService->resolveForSite($site);
+        $isFreePreview = !(bool)($proStatus->valid ?? false) || !(bool)($proStatus->hasCrawler ?? false);
+
         $currentPageIssueCounts = [
             'critical' => 0,
             'warning' => 0,
@@ -214,12 +223,15 @@ final class OverviewController extends AbstractBackendModuleController
             ]);
 
             if ($site !== null) {
-                $currentPageUrl = $this->frontendPageUrlService->resolveForPage($site, $currentPageUid, $currentLanguageUid);
+                $currentPageUrl = $isFreePreview
+                    ? $this->frontendPageUrlService->resolvePublicForPage($site, $currentPageUid, $currentLanguageUid)
+                    : $this->frontendPageUrlService->resolveForPage($site, $currentPageUid, $currentLanguageUid);
             }
         }
 
+        $remoteIsPageContext = $isPageContext || ($isFreePreview && $currentPageUid > 0);
         $remoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl, $selectedRemoteScanUid)
+            ? $this->resolveOverviewRemoteScan($siteIdentifier, $remoteIsPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl, $selectedRemoteScanUid, $isFreePreview)
             : null;
         $remoteScan = $this->withFormattedScanTimestamps($remoteScan);
         $this->logRemoteReportingDebug('AQG remote reporting selected overview scan', [
@@ -232,23 +244,24 @@ final class OverviewController extends AbstractBackendModuleController
 
         $latestRemotePageScan = null;
         if ($siteIdentifier !== '') {
-            if ($isPageContext && $currentPageUid > 0) {
+            if ($remoteIsPageContext && $currentPageUid > 0) {
                 $latestRemotePageScan = is_array($remoteScan) && (string)($remoteScan['scan_scope'] ?? '') === 'page'
                     ? $remoteScan
                     : $this->remoteScanRepository->findLastCompletedPageScanByPageOrUrl(
                         $siteIdentifier,
                         $currentPageUid,
                         $currentLanguageUid,
-                        $currentPageUrl
+                        $currentPageUrl,
+                        $isFreePreview
                     );
             } else {
-                $latestRemotePageScan = $this->remoteScanRepository->findLastCompletedPageScanBySite($siteIdentifier, $currentLanguageUid);
+                $latestRemotePageScan = $this->remoteScanRepository->findLastCompletedPageScanBySite($siteIdentifier, $currentLanguageUid, $isFreePreview);
             }
         }
         $latestRemotePageScan = $this->withFormattedScanTimestamps($latestRemotePageScan);
 
         $activeRemoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $isPageContext, $currentPageUid, $currentLanguageUid)
+            ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $remoteIsPageContext, $currentPageUid, $currentLanguageUid)
             : null;
 
         $pageStats = [];
@@ -559,8 +572,33 @@ final class OverviewController extends AbstractBackendModuleController
 
         $scanStatus = $this->scanStatusService->getStatus();
         $isRelevantLocalScanRunning = $this->isRelevantLocalScanRunning($scanStatus, $siteRootPid, $currentPageUid);
-        $proStatus = $this->proStatusResolverService->resolveForSite($site);
-        $remoteUiAvailable = $this->shouldShowRemoteOverviewPanel(
+        $freePreview = $isFreePreview
+            ? $this->freeRemotePreviewService->getEntitlementStatus(
+                rtrim($siteBase, '/') . '/',
+                $siteIdentifier,
+                $this->extensionContextService->getExtensionVersion(),
+            )
+            : [
+                'isFree' => false,
+                'entitlement' => $this->resolvePaidEntitlement($proStatus),
+                'state' => strtoupper($this->resolvePaidEntitlement($proStatus)),
+                'remoteCrawlerVisible' => true,
+            ];
+        if ($isFreePreview && is_array($activeRemoteScan)) {
+            $freePreview['state'] = 'REMOTE_SCAN_ACTIVE';
+        }
+        $freePreview['hasTodayResult'] = $isFreePreview
+            && $this->isTodayFreePreviewResult(is_array($remoteScan) ? $remoteScan : null);
+        $freePreview['trialUrl'] = $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::TRIAL);
+        if (trim((string)($freePreview['upgradeUrl'] ?? '')) === '') {
+            $freePreview['upgradeUrl'] = $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::PRICING);
+        }
+        $freeSubmitIntent = $isFreePreview && $currentPageUid > 0 && $currentPageUrl !== ''
+            ? $this->freeSubmitIntentService->create($siteIdentifier, $currentPageUid)
+            : '';
+        $freePreview['submitCapable'] = (bool)($freePreview['available'] ?? false)
+            && $freeSubmitIntent !== '';
+        $remoteUiAvailable = $isFreePreview || $this->shouldShowRemoteOverviewPanel(
             $proStatus,
             is_array($remoteScan) ? $remoteScan : null,
             is_array($latestRemotePageScan) ? $latestRemotePageScan : null,
@@ -572,7 +610,7 @@ final class OverviewController extends AbstractBackendModuleController
         $exportLocalCsvUrl = $this->exportUrlBuilderService->buildOverviewCsvUrl($siteIdentifier);
         $exportLocalPdfUrl = $this->exportUrlBuilderService->buildOverviewPdfUrl($siteIdentifier);
         $remoteScanUidForExport = is_array($remoteScan) ? (int)($remoteScan['uid'] ?? 0) : 0;
-        $exportRemoteCsvUrl = $remoteScanUidForExport > 0
+        $exportRemoteCsvUrl = !$isFreePreview && $remoteScanUidForExport > 0
             ? $this->exportUrlBuilderService->buildOverviewCsvUrl(
                 $siteIdentifier,
                 true,
@@ -581,7 +619,7 @@ final class OverviewController extends AbstractBackendModuleController
                 $remoteScanUidForExport
             )
             : '';
-        $exportRemotePdfUrl = $remoteScanUidForExport > 0
+        $exportRemotePdfUrl = !$isFreePreview && $remoteScanUidForExport > 0
             ? $this->exportUrlBuilderService->buildOverviewPdfUrl(
                 $siteIdentifier,
                 true,
@@ -599,7 +637,8 @@ final class OverviewController extends AbstractBackendModuleController
         $backendUser = $this->backendContextService->getBackendUser();
         $canScanAll = $this->accessControlService->canShowScanAll($backendUser);
         $canManageRemoteAccessSettings = $this->accessControlService->canManageAdminOnlySettings($backendUser);
-        $showRemoteScannerTokenNotice = $canManageRemoteAccessSettings
+        $showRemoteScannerTokenNotice = !$isFreePreview
+            && $canManageRemoteAccessSettings
             && $siteIdentifier !== ''
             && !$this->hasEffectiveScannerToken($siteIdentifier);
         $remoteScanAccessSettingsUrl = $this->buildRouteUrl(
@@ -642,7 +681,9 @@ final class OverviewController extends AbstractBackendModuleController
             'siteBase' => $siteBase,
             'languageUid' => $currentLanguageUid,
         ]);
-        $remoteScanHistory = $this->buildRemoteHistoryForOverview($request, $siteBase, $siteIdentifier, $currentPageUid, $currentLanguageUid);
+        $remoteScanHistory = $isFreePreview
+            ? ['available' => false, 'items' => [], 'siteScans' => [], 'pageScans' => []]
+            : $this->buildRemoteHistoryForOverview($request, $siteBase, $siteIdentifier, $currentPageUid, $currentLanguageUid);
         $this->logRemoteHistoryDebug('AQG remote history overview result', [
             'pageUid' => $currentPageUid,
             'siteIdentifier' => (string)($remoteScanHistory['debugSiteIdentifier'] ?? $siteIdentifier),
@@ -654,8 +695,12 @@ final class OverviewController extends AbstractBackendModuleController
             'localPageCount' => (int)($remoteScanHistory['debugLocalPageCount'] ?? 0),
             'showGlobalEmpty' => (bool)($remoteScanHistory['showGlobalEmpty'] ?? true),
         ]);
-        $remoteScanCompare = $this->buildRemoteScanCompare($request, $siteBase);
-        $regressionAlert = $this->buildOverviewRegressionAlert($request, $siteBase, $siteIdentifier, is_array($remoteScan) ? $remoteScan : null, $currentPageUid, $currentLanguageUid);
+        $remoteScanCompare = $isFreePreview
+            ? ['available' => false, 'message' => '']
+            : $this->buildRemoteScanCompare($request, $siteBase);
+        $regressionAlert = $isFreePreview
+            ? ['available' => false, 'message' => '']
+            : $this->buildOverviewRegressionAlert($request, $siteBase, $siteIdentifier, is_array($remoteScan) ? $remoteScan : null, $currentPageUid, $currentLanguageUid);
 
         $moduleTemplate->assignMultiple([
             'siteIdentifier' => $siteIdentifier,
@@ -725,6 +770,8 @@ final class OverviewController extends AbstractBackendModuleController
             'remoteFailedPagination' => $remoteFailedPagination,
             'remoteFailedPaginationItems' => $remoteFailedPaginationItems,
             'proStatus' => $proStatus,
+            'freePreview' => $freePreview,
+            'freeSubmitIntent' => $freeSubmitIntent,
             'remoteUiAvailable' => $remoteUiAvailable,
             'exportLocalCsvUrl' => $exportLocalCsvUrl,
             'exportLocalPdfUrl' => $exportLocalPdfUrl,
@@ -778,6 +825,39 @@ final class OverviewController extends AbstractBackendModuleController
             || $activeRemoteScan !== null
             || $totalRemotePages > 0
             || $totalRemoteFailedPages > 0;
+    }
+
+    private function resolvePaidEntitlement(object $proStatus): string
+    {
+        if ((bool)($proStatus->isTrial ?? false)) {
+            return 'trial';
+        }
+
+        return in_array(strtolower(trim((string)($proStatus->plan ?? ''))), ['agency', 'enterprise'], true)
+            ? 'agency'
+            : 'pro';
+    }
+
+    /** @param array<string, mixed>|null $remoteScan */
+    private function isTodayFreePreviewResult(?array $remoteScan): bool
+    {
+        if (
+            $remoteScan === null
+            || (int)($remoteScan['is_free_preview'] ?? 0) !== 1
+            || (int)($remoteScan['persisted_at'] ?? 0) <= 0
+            || strtolower(trim((string)($remoteScan['status'] ?? ''))) !== 'completed'
+        ) {
+            return false;
+        }
+
+        $resultTimestamp = max(
+            (int)($remoteScan['finished_at'] ?? 0),
+            (int)($remoteScan['started_at'] ?? 0),
+            (int)($remoteScan['crdate'] ?? 0),
+        );
+        $todayUtc = (new \DateTimeImmutable('today', new \DateTimeZone('UTC')))->getTimestamp();
+
+        return $resultTimestamp >= $todayUtc;
     }
 
     /**
@@ -1300,16 +1380,19 @@ final class OverviewController extends AbstractBackendModuleController
         int $languageUid,
         string $currentPageUrl = '',
         int $selectedRemoteScanUid = 0,
+        bool $isFreePreview = false,
     ): ?array {
         if ($selectedRemoteScanUid > 0) {
             $selectedScan = $this->remoteScanRepository->findScanByUid($selectedRemoteScanUid);
             $selectedScanScope = is_array($selectedScan) ? (string)($selectedScan['scan_scope'] ?? '') : '';
             $scopeMatchesContext = $isPageContext || $selectedScanScope === 'site';
+            $selectedScanIsFreePreview = is_array($selectedScan) && (int)($selectedScan['is_free_preview'] ?? 0) === 1;
 
             if (is_array($selectedScan)
                 && (string)($selectedScan['site_identifier'] ?? '') === $siteIdentifier
                 && strtolower((string)($selectedScan['status'] ?? '')) === 'completed'
                 && $scopeMatchesContext
+                && $selectedScanIsFreePreview === $isFreePreview
             ) {
                 return $selectedScan;
             }
@@ -1319,15 +1402,20 @@ final class OverviewController extends AbstractBackendModuleController
                 $siteIdentifier,
                 $currentPageUid,
                 $languageUid,
-                $currentPageUrl
+                $currentPageUrl,
+                $isFreePreview
             );
 
             if (is_array($pageScan)) {
                 return $pageScan;
             }
+
+            if ($isFreePreview) {
+                return null;
+            }
         }
 
-        return $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
+        return $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, $isFreePreview);
     }
 
 

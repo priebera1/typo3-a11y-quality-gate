@@ -4,6 +4,13 @@ import Severity from '@typo3/backend/severity.js';
 import { A11yFreeBackendModule } from '../free/free-module.js';
 import { FREE_SELECTORS, PRO_SELECTORS, LS_SOURCE_KEY } from '../core/constants.js';
 
+const FREE_PREVIEW_SUBMIT_CAPABLE_STATES = new Set(['FREE_AVAILABLE']);
+const FREE_PREVIEW_RETRYABLE_STATES = new Set([
+    'API_UNAVAILABLE',
+    'TOKEN_ERROR',
+    'ENDPOINT_NOT_FOUND',
+]);
+
 export class A11yProBackendModule extends A11yFreeBackendModule {
     constructor() {
         super();
@@ -34,10 +41,65 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         this.initRemoteScanProgress();
         this.restoreRemoteScanStateFromDom();
         this.bindProEvents();
+        this.initFreePreviewCountdown();
+    }
+
+    initFreePreviewCountdown() {
+        const elements = Array.from(document.querySelectorAll('[data-aqg-free-preview-countdown="true"]'));
+        if (elements.length === 0) {
+            return;
+        }
+
+        const tick = () => {
+            let anyElementReachedZero = false;
+
+            elements.forEach((element) => {
+                const resetsAt = Date.parse(element.dataset.aqgFreePreviewResetsAt || '');
+                if (Number.isNaN(resetsAt)) {
+                    return;
+                }
+
+                const remainingMs = resetsAt - Date.now();
+                if (remainingMs <= 0) {
+                    anyElementReachedZero = true;
+                    return;
+                }
+
+                const totalMinutes = Math.ceil(remainingMs / 60000);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+
+                element.textContent = hours > 0
+                    ? this.format(
+                        this.translate('freePreview.countdown.hm', 'in %dh %dm'),
+                        hours,
+                        minutes
+                    )
+                    : this.format(
+                        this.translate('freePreview.countdown.m', 'in %dm'),
+                        minutes
+                    );
+            });
+
+            if (anyElementReachedZero) {
+                window.clearInterval(this.freePreviewCountdownTimer);
+                this.reloadCurrentModule(1000);
+            }
+        };
+
+        tick();
+        this.freePreviewCountdownTimer = window.setInterval(tick, 60000);
     }
 
     bindProEvents() {
         document.addEventListener('click', async (event) => {
+            const freePreviewRetry = event.target.closest(PRO_SELECTORS.freePreviewRetry);
+            if (freePreviewRetry) {
+                event.preventDefault();
+                this.retryFreePreview();
+                return;
+            }
+
             const sourceTrigger = event.target.closest(PRO_SELECTORS.overviewSourceTrigger);
             if (sourceTrigger) {
                 event.preventDefault();
@@ -78,6 +140,10 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 await this.handleProScanSite(button);
             });
         });
+    }
+
+    retryFreePreview() {
+        window.location.reload();
     }
 
     initOverviewSourceTabs() {
@@ -209,6 +275,8 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const maxPages = Number.parseInt(button.dataset.maxPages || '20', 10);
         const siteIdentifier = String(button.dataset.siteIdentifier || '').trim();
         const languageUid = this.resolveScanLanguageUid(button);
+        const isFreePreview = button.dataset.aqgFreePreviewSubmit === 'true';
+        const freeSubmitIntent = String(button.dataset.freeSubmitIntent || '').trim();
 
         if (!submitEndpoint || rootPid <= 0) {
             this.showNotification(
@@ -223,20 +291,28 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         this.remoteSubmitInProgress = true;
 
         try {
-            const submitResponse = await new AjaxRequest(submitEndpoint).post({
-                rootPid,
-                pageUid: currentPageUid > 0 ? currentPageUid : rootPid,
-                maxPages,
-                siteIdentifier,
-                languageUid,
-                followLinks: true,
-                axeLocale: 'en',
-            });
+            const payload = isFreePreview
+                ? {
+                    rootPid,
+                    pageUid: currentPageUid > 0 ? currentPageUid : rootPid,
+                    siteIdentifier,
+                    freeSubmitIntent,
+                }
+                : {
+                    rootPid,
+                    pageUid: currentPageUid > 0 ? currentPageUid : rootPid,
+                    maxPages,
+                    siteIdentifier,
+                    languageUid,
+                    followLinks: true,
+                    axeLocale: 'en',
+                };
+            const submitResponse = await new AjaxRequest(submitEndpoint).post(payload);
 
             const submitData = await submitResponse.resolve();
             await this.handleProSubmitPayload(button, submitData, {
-                fallbackScope: 'site',
-                fallbackPageUid: null,
+                fallbackScope: isFreePreview ? 'page' : 'site',
+                fallbackPageUid: isFreePreview ? currentPageUid : null,
                 fallbackLanguageUid: languageUid,
             });
         } catch (error) {
@@ -244,8 +320,8 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
             if (errorPayload && errorPayload.code === 'remote_scan_already_active') {
                 await this.handleProSubmitPayload(button, errorPayload, {
-                    fallbackScope: 'site',
-                    fallbackPageUid: null,
+                    fallbackScope: isFreePreview ? 'page' : 'site',
+                    fallbackPageUid: isFreePreview ? currentPageUid : null,
                     fallbackLanguageUid: languageUid,
                 });
                 return;
@@ -270,6 +346,50 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             this.remoteSubmitInProgress = false;
             this.setScanInProgress(false);
             this.setLoadingState(button, false);
+
+            if (isFreePreview) {
+                // Loading cleanup enables the button. Apply the bounded Free
+                // state afterwards so terminal errors stay locked.
+                this.applyFreePreviewErrorState(errorPayload, message);
+            }
+        }
+    }
+
+    applyFreePreviewErrorState(errorPayload, fallbackMessage) {
+        const preview = document.querySelector('[data-aqg-free-preview="true"]');
+        if (!preview) {
+            return;
+        }
+
+        const state = String(errorPayload?.state || '').trim() || 'API_UNAVAILABLE';
+        const message = this.extractReadableRemoteError(errorPayload, null, fallbackMessage);
+        preview.dataset.aqgFreePreviewState = state;
+
+        const messageContainer = preview.querySelector('[data-aqg-free-preview-message="true"]');
+        if (messageContainer) {
+            messageContainer.replaceChildren();
+            const notice = document.createElement('div');
+            notice.className = 'aqg-notice aqg-tone-warning mb-3';
+            notice.setAttribute('role', 'status');
+
+            const body = document.createElement('div');
+            body.className = 'aqg-notice__body';
+            const text = document.createElement('div');
+            text.className = 'aqg-notice__text';
+            text.textContent = message;
+            body.appendChild(text);
+            notice.appendChild(body);
+            messageContainer.appendChild(notice);
+        }
+
+        const isSubmitCapable = FREE_PREVIEW_SUBMIT_CAPABLE_STATES.has(state);
+        preview.querySelectorAll('[data-aqg-free-preview-submit="true"]').forEach((button) => {
+            button.disabled = !isSubmitCapable;
+        });
+
+        const retryButton = preview.querySelector(PRO_SELECTORS.freePreviewRetry);
+        if (retryButton) {
+            retryButton.hidden = !FREE_PREVIEW_RETRYABLE_STATES.has(state);
         }
     }
 

@@ -52,6 +52,7 @@ export const FREE_SELECTORS = {
 };
 
 export const PRO_SELECTORS = {
+    freePreviewRetry: '[data-action="a11y-free-preview-retry"]',
     proScanSiteButton: '[data-action="a11y-pro-scan-site"]',
     overviewSourceTrigger: '[data-a11y-overview-source-trigger]',
     overviewSourcePanel: '[data-a11y-overview-panel]',

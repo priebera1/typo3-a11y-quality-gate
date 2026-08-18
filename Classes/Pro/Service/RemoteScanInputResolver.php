@@ -43,6 +43,11 @@ final class RemoteScanInputResolver
         );
     }
 
+    public function resolveForFreePreview(Site $site, string $pageUrl): RemoteScanRequestData
+    {
+        return $this->resolveForSinglePage($site, $pageUrl);
+    }
+
 
     /**
      * @param array{languageId:int,title:string,locale:string,flagIdentifier:string,base:string,sitemapUrl:string,isAll:bool} $language

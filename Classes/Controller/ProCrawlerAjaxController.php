@@ -7,6 +7,9 @@ namespace Priebera\A11yQualityGate\Controller;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
+use Priebera\A11yQualityGate\FreePreview\FreePreviewException;
+use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
+use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
 use Priebera\A11yQualityGate\Pro\Enum\FeatureFlag;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
@@ -20,6 +23,7 @@ use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\DateTimeService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RemoteScanResponseService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\SecretEncryptionService;
@@ -58,6 +62,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
         private readonly SecretEncryptionService $secretEncryptionService,
         private readonly SiteLanguageService $siteLanguageService,
         private readonly RequestParameterService $requestParameterService,
+        private readonly FreeRemotePreviewService $freeRemotePreviewService,
+        private readonly FreeSubmitIntentService $freeSubmitIntentService,
+        private readonly FrontendPageUrlService $frontendPageUrlService,
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         BackendUserService $backendUserService,
@@ -135,12 +142,49 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 $rootPid = $requestedRootPid;
             }
 
-            if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
+            $proStatus = $this->resolveProStatus(
+                $this->resolveDomainFromSiteBase((string)$site->getBase())
+            );
+            $isFreePreview = !$this->hasPaidCrawlerAccess($proStatus);
+            $freePageUrl = '';
+
+            if ($isFreePreview) {
+                if ($requestedPageUid <= 0) {
+                    return $this->badRequestResponse('Missing pageUid', [
+                        'code' => 'missing_page_uid',
+                        'requestId' => $requestId,
+                    ]);
+                }
+
+                $pageSite = $this->siteResolutionService->resolveSiteByPageId($requestedPageUid);
+                if (!$pageSite instanceof Site || $pageSite->getIdentifier() !== $site->getIdentifier()) {
+                    return $this->badRequestResponse('Selected page does not belong to the requested site', [
+                        'code' => 'invalid_page_context',
+                        'requestId' => $requestId,
+                    ]);
+                }
+
+                if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $requestedPageUid)) {
+                    return $this->forbiddenResponse();
+                }
+
+                $freePageUrl = trim($this->frontendPageUrlService->resolvePublicForPage($site, $requestedPageUid, 0));
+                if ($freePageUrl === '') {
+                    return $this->badRequestResponse('Unable to resolve selected page URL', [
+                        'code' => 'unresolved_page_url',
+                        'requestId' => $requestId,
+                    ]);
+                }
+            } elseif (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
                 return $this->forbiddenResponse();
             }
 
-            $languageContext = $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
-            $resolved = $languageContext !== null
+            $languageContext = $isFreePreview
+                ? null
+                : $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
+            $resolved = $isFreePreview
+                ? $this->remoteScanInputResolver->resolveForFreePreview($site, $freePageUrl)
+                : ($languageContext !== null
                 ? $this->remoteScanInputResolver->resolveForOverviewLanguage(
                     site: $site,
                     language: $languageContext,
@@ -151,7 +195,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     site: $site,
                     maxPages: $maxPages,
                     axeLocale: $axeLocale !== '' ? $axeLocale : 'en',
-                );
+                ));
             $languageCode = $this->siteLanguageService->resolveLanguageCode($languageContext);
 
             $this->logRemoteSubmitDebug('submit-site:resolved-context', [
@@ -180,12 +224,6 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 return $this->badRequestResponse('Missing site configuration');
             }
 
-            $proStatus = $this->resolveProStatus($resolved->domain);
-            $crawlerAccessResponse = $this->ensureCrawlerAccess($proStatus);
-            if ($crawlerAccessResponse !== null) {
-                return $crawlerAccessResponse;
-            }
-
             $submitLock = $this->acquireRemoteSubmitLock($resolved->siteIdentifier);
             if (!$submitLock instanceof LockingStrategyInterface) {
                 return $this->buildRemoteSubmitLockConflictResponse($resolved->siteIdentifier);
@@ -212,8 +250,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 }
             }
 
-            $captureScreenshot = $this->canCaptureScreenshot($proStatus);
-            $remoteAccessSettings = $this->buildRemoteAccessSettingsForCrawl($resolved->siteIdentifier);
+            $captureScreenshot = !$isFreePreview && $this->canCaptureScreenshot($proStatus);
+            $remoteAccessSettings = $isFreePreview
+                ? $this->emptyRemoteAccessSettings()
+                : $this->buildRemoteAccessSettingsForCrawl($resolved->siteIdentifier);
             $scannerPreviewToken = $remoteAccessSettings['scannerPreviewToken'];
 
             $this->logRemoteSubmitDebug('submit-site:outbound', [
@@ -229,8 +269,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'licenceValid' => (bool)($proStatus->valid ?? false),
                 'licencePlan' => (string)($proStatus->plan ?? ''),
                 'remoteCapability' => (bool)($proStatus->hasCrawler ?? false),
-                'pageUid' => 0,
-                'pageUrl' => '',
+                'pageUid' => $isFreePreview ? $requestedPageUid : 0,
+                'pageUrl' => $isFreePreview ? $freePageUrl : '',
                 'startUrl' => $resolved->startUrl,
                 'targetDomain' => $resolved->domain,
                 'siteIdentifier' => $resolved->siteIdentifier,
@@ -253,7 +293,19 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 ),
             ]);
 
-            $result = $this->proCrawlerService->submit(
+            $result = $isFreePreview
+                ? $this->freeRemotePreviewService->submit(
+                    siteUrl: rtrim((string)$site->getBase(), '/') . '/',
+                    siteIdentifier: $resolved->siteIdentifier,
+                    startUrl: $resolved->startUrl,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    idempotencyKey: $this->freeSubmitIntentService->buildIdempotencyKey(
+                        trim((string)($data['freeSubmitIntent'] ?? '')),
+                        $resolved->siteIdentifier,
+                        $requestedPageUid,
+                    ),
+                )
+                : $this->proCrawlerService->submit(
                 domain: $resolved->domain,
                 version: $this->extensionContextService->getExtensionVersion(),
                 siteId: $resolved->siteIdentifier,
@@ -275,17 +327,21 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 languageCode: $languageCode,
             );
 
-            $this->remoteScanRepository->markSubmitted(
-                siteIdentifier: $resolved->siteIdentifier,
-                jobId: $result->jobId,
-                sourceType: $resolved->sourceType,
-                startUrl: $resolved->startUrl,
-                sitemapUrl: $resolved->sitemapUrl,
-                status: $result->status,
-                scanScope: 'site',
-                pageUid: 0,
-                languageUid: $languageContext !== null ? (int)$languageContext['languageId'] : -1,
-            );
+            $existingSubmittedScan = $this->remoteScanRepository->findScanByJobId($result->jobId);
+            if (!is_array($existingSubmittedScan) || (int)($existingSubmittedScan['persisted_at'] ?? 0) <= 0) {
+                $this->remoteScanRepository->markSubmitted(
+                    siteIdentifier: $resolved->siteIdentifier,
+                    jobId: $result->jobId,
+                    sourceType: $resolved->sourceType,
+                    startUrl: $resolved->startUrl,
+                    sitemapUrl: $resolved->sitemapUrl,
+                    status: $result->status,
+                    scanScope: $isFreePreview ? 'page' : 'site',
+                    pageUid: $isFreePreview ? $requestedPageUid : 0,
+                    languageUid: $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                    isFreePreview: $isFreePreview,
+                );
+            }
 
             $persistedScan = $this->remoteScanRepository->findScanByJobId($result->jobId);
 
@@ -296,8 +352,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'siteIdentifier' => $resolved->siteIdentifier,
                 'startUrl' => $resolved->startUrl,
                 'sitemapUrl' => (string)($resolved->sitemapUrl ?? ''),
-                'scanScope' => 'site',
-                'pageUid' => 0,
+                'scanScope' => $isFreePreview ? 'page' : 'site',
+                'pageUid' => $isFreePreview ? $requestedPageUid : 0,
                 'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
                 'localPersistedSiteIdentifier' => is_array($persistedScan) ? (string)($persistedScan['site_identifier'] ?? '') : '',
                 'localPersistedStartUrl' => is_array($persistedScan) ? (string)($persistedScan['start_url'] ?? '') : '',
@@ -317,11 +373,24 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'languageId' => $languageContext !== null ? (int)$languageContext['languageId'] : null,
                 'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
                 'languageCode' => $languageCode,
+                'scanScope' => $isFreePreview ? 'page' : 'site',
+                'pageUid' => $isFreePreview ? $requestedPageUid : 0,
                 'captureScreenshot' => $captureScreenshot,
                 'cookieDismiss' => $cookieDismiss,
                 'cookieSelectorsConfigured' => $remoteAccessSettings['cookieSelectors'] !== [],
                 'cookieSelectorsCount' => count($remoteAccessSettings['cookieSelectors']),
+                'freePreview' => $isFreePreview,
+                'maxPages' => $resolved->maxPages,
             ]);
+        } catch (FreePreviewException $exception) {
+            return $this->buildFreePreviewExceptionResponse($exception);
+        } catch (\InvalidArgumentException $exception) {
+            return $this->buildSimpleErrorResponse(
+                message: $exception->getMessage(),
+                status: 400,
+                code: 'invalid_free_submit_intent',
+                title: 'Free Remote Preview request expired',
+            );
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
@@ -644,16 +713,18 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
             $proStatus = $this->resolveProStatus($domain);
-            $crawlerAccessResponse = $this->ensureCrawlerAccess($proStatus);
-            if ($crawlerAccessResponse !== null) {
-                return $crawlerAccessResponse;
-            }
-
-            $result = $this->proCrawlerService->getStatus(
-                domain: $domain,
-                version: $this->extensionContextService->getExtensionVersion(),
-                jobId: $jobId,
-            );
+            $result = $this->hasPaidCrawlerAccess($proStatus)
+                ? $this->proCrawlerService->getStatus(
+                    domain: $domain,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    jobId: $jobId,
+                )
+                : $this->freeRemotePreviewService->getStatus(
+                    siteUrl: rtrim((string)$site->getBase(), '/') . '/',
+                    siteIdentifier: $siteIdentifier,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    jobId: $jobId,
+                );
 
             if (!$this->remoteJobIdMatches($result->jobId, $jobId)) {
                 return $this->buildRemoteJobResponseMismatchResponse();
@@ -696,6 +767,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'persisted' => is_array($scan) && (int)($scan['persisted_at'] ?? 0) > 0,
                 'languageUid' => is_array($scan) ? (int)($scan['language_uid'] ?? -1) : -1,
             ]);
+        } catch (FreePreviewException $exception) {
+            return $this->buildFreePreviewExceptionResponse($exception);
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
@@ -749,16 +822,19 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
             $proStatus = $this->resolveProStatus($domain);
-            $crawlerAccessResponse = $this->ensureCrawlerAccess($proStatus);
-            if ($crawlerAccessResponse !== null) {
-                return $crawlerAccessResponse;
-            }
-
-            $summaryResult = $this->proCrawlerService->getSummary(
-                domain: $domain,
-                version: $this->extensionContextService->getExtensionVersion(),
-                jobId: $jobId,
-            );
+            $isFreePreview = !$this->hasPaidCrawlerAccess($proStatus);
+            $summaryResult = $isFreePreview
+                ? $this->freeRemotePreviewService->getSummary(
+                    siteUrl: rtrim((string)$site->getBase(), '/') . '/',
+                    siteIdentifier: $siteIdentifier,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    jobId: $jobId,
+                )
+                : $this->proCrawlerService->getSummary(
+                    domain: $domain,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    jobId: $jobId,
+                );
 
             if (!$this->remoteJobIdMatches($summaryResult->jobId, $jobId)) {
                 return $this->buildRemoteJobResponseMismatchResponse();
@@ -768,11 +844,18 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 return $this->buildRemoteJobResponseMismatchResponse();
             }
 
-            $resultsResult = $this->proCrawlerService->getResults(
-                domain: $domain,
-                version: $this->extensionContextService->getExtensionVersion(),
-                jobId: $jobId,
-            );
+            $resultsResult = $isFreePreview
+                ? $this->freeRemotePreviewService->getResults(
+                    siteUrl: rtrim((string)$site->getBase(), '/') . '/',
+                    siteIdentifier: $siteIdentifier,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    jobId: $jobId,
+                )
+                : $this->proCrawlerService->getResults(
+                    domain: $domain,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    jobId: $jobId,
+                );
 
             $existingScan = $this->remoteScanRepository->findScanByJobId($jobId);
 
@@ -830,6 +913,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'startedAt' => $summaryResult->startedAt,
                 'finishedAt' => $summaryResult->finishedAt,
             ]);
+        } catch (FreePreviewException $exception) {
+            return $this->buildFreePreviewExceptionResponse($exception);
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
                 $exception,
@@ -930,6 +1015,29 @@ final class ProCrawlerAjaxController extends AbstractApiController
             code: 'pro_crawler_required',
             title: 'Remote-scanning licence required'
         );
+    }
+
+    private function hasPaidCrawlerAccess(object $proStatus): bool
+    {
+        return (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
+    }
+
+    /**
+     * @return array{scannerPreviewToken:string,scannerTokenLength:int,resolvedRulesetUid:int,resolvedRulesetSiteIdentifier:string,httpAuthUser:string,httpAuthPass:string,excludedPatterns:list<string>,priorityUrls:list<string>,cookieSelectors:list<string>}
+     */
+    private function emptyRemoteAccessSettings(): array
+    {
+        return [
+            'scannerPreviewToken' => '',
+            'scannerTokenLength' => 0,
+            'resolvedRulesetUid' => 0,
+            'resolvedRulesetSiteIdentifier' => '',
+            'httpAuthUser' => '',
+            'httpAuthPass' => '',
+            'excludedPatterns' => [],
+            'priorityUrls' => [],
+            'cookieSelectors' => [],
+        ];
     }
 
 
@@ -1140,6 +1248,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             'setcookie',
             'bearer',
             'clientsecret',
+            'installationid',
         ] as $sensitiveKey) {
             if (str_contains($normalizedKey, $sensitiveKey)) {
                 return true;
@@ -1230,6 +1339,36 @@ final class ProCrawlerAjaxController extends AbstractApiController
             code: 'token_refresh_failed',
             title: 'PRO authentication failed'
         );
+    }
+
+    private function buildFreePreviewExceptionResponse(FreePreviewException $exception): ResponseInterface
+    {
+        $payload = [
+            'success' => false,
+            'code' => $exception->errorCode,
+            'state' => $exception->state,
+            'title' => match ($exception->state) {
+                'FREE_LIMIT_REACHED' => 'Free scan limit reached',
+                'FEATURE_NOT_AVAILABLE' => 'Available in PRO',
+                'PROOF_ERROR' => 'Free Preview proof could not be verified',
+                'IDEMPOTENCY_CONFLICT' => 'Free Preview submit conflict',
+                'TOKEN_ERROR' => 'Free Preview authentication failed',
+                'MISSING_INSTALLATION_ID' => 'Free Preview installation identity missing',
+                'INSTALLATION_IDENTITY_MISMATCH' => 'Free Preview installation identity mismatch',
+                'SITE_IDENTITY_MISMATCH' => 'Free Preview site identity mismatch',
+                'INVALID_SITE' => 'Free Preview site configuration invalid',
+                'ENDPOINT_NOT_FOUND' => 'Free Preview API route unavailable',
+                'TOKEN_CONTRACT_ERROR', 'API_CONTRACT_ERROR' => 'Free Preview API contract rejected',
+                default => 'Free Remote Preview unavailable',
+            },
+            'message' => $exception->getMessage(),
+            'status' => $exception->httpStatus,
+        ];
+        if ($exception->freeDaily !== []) {
+            $payload['freeDaily'] = $exception->freeDaily;
+        }
+
+        return $this->jsonResponse($payload, $exception->httpStatus);
     }
 
     /**

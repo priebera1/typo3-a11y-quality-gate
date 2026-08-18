@@ -43,7 +43,10 @@ final class ExportController
         $context = $this->parseExportContext($request);
 
         if ($context['scope'] === 'remote') {
-            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])) {
+            if (
+                !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
+                || !$this->hasPaidRemoteAccess($context['siteIdentifier'])
+            ) {
                 return $this->downloadResponse(
                     content: 'Access denied.',
                     filename: 'aqg-export-access-denied.txt',
@@ -346,6 +349,13 @@ final class ExportController
         return $proStatus->valid
             && !$proStatus->isTrial
             && $proStatus->hasExportPdf;
+    }
+
+    private function hasPaidRemoteAccess(string $siteIdentifier): bool
+    {
+        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+
+        return (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
     }
 
     private function resolveSiteForExport(
