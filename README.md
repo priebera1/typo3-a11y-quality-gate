@@ -41,7 +41,7 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 - Automated local scans via TYPO3 Scheduler
 - Changed-only scan mode for incremental rescans
 - Quality gate warning mode on page publish / unhide; editors can continue after reviewing the warning
-- FREE rendered page check — inspects the live server-rendered HTML of the current page
+- FREE rendered page check — inspects the server-rendered HTML of a page; runs for backend page and site scans and for single-page CLI/Scheduler runs
 - CSV export
 - TCA-based field discovery for `tt_content` RTE and file fields
 - Settings module for enabling and disabling scanned fields
@@ -118,7 +118,7 @@ Plan details, trial access and pricing:
 
 AQG includes rules across three categories. For the full reference with WCAG
 mappings and fix guidance see the documentation:
-**https://typo3.priebera.sk/docs/rules**
+**https://typo3.priebera.sk/docs/rules-reference**
 
 ### RTE rules — CKEditor and RTE HTML content
 
@@ -129,8 +129,9 @@ mappings and fix guidance see the documentation:
 | `rte.img_alt_too_long` | Warning | 1.1.1 |
 | `rte.img_alt_redundant_phrase` | Warning | 1.1.1 |
 | `rte.empty_heading` | Critical | 1.3.1 |
-| `rte.empty_link` | Critical | 2.4.4 / 4.1.2 |
+| `rte.empty_link` | Critical | 2.4.4 |
 | `rte.button_label_missing` | Critical | 4.1.2 |
+| `rte.form_control_missing_label` | Critical | 4.1.2 / 3.3.2 |
 | `rte.table_missing_header` | Warning | 1.3.1 |
 | `rte.table_th_missing_scope` | Warning | 1.3.1 |
 | `rte.table_missing_caption` | Info | 1.3.1 |
@@ -165,11 +166,16 @@ mappings and fix guidance see the documentation:
 
 Some structured rules may adjust severity depending on the detected case, for example missing alternative text versus title-only fallback.
 
-### Rendered HTML rules — FREE, manual, server-rendered HTML only
+### Rendered HTML rules — FREE, server-rendered HTML only
 
-Rendered checks run during **Scan this page** only. They inspect the final
-server-rendered HTML returned by TYPO3 and do not execute JavaScript, AJAX
-or lazy-loaded content.
+Rendered checks run for **Scan this page** and **Scan site** in the backend, and
+for CLI or Scheduler runs that target a single page (`--page-uid` / page UID).
+Subtree CLI and Scheduler runs apply the local rules only. They are always
+skipped in changed-only mode, when the rendered check is disabled in the
+ruleset, and for page doktypes that do not deliver a frontend page.
+
+They inspect the final server-rendered HTML returned by TYPO3 and do not
+execute JavaScript, AJAX or lazy-loaded content.
 
 | Rule ID | Severity | WCAG |
 |---------|----------|------|
@@ -178,14 +184,15 @@ or lazy-loaded content.
 | `rendered.empty_button` | Critical | 4.1.2 |
 | `rendered.empty_heading` | Critical | 1.3.1 |
 | `rendered.iframe_missing_title` | Critical | 4.1.2 |
-| `rendered.form_control_missing_label` | Critical | 1.3.1 / 3.3.2 |
+| `rendered.form_control_missing_label` | Critical | 4.1.2 / 3.3.2 |
 | `rendered.duplicate_id` | Warning | 1.3.1 |
 | `rendered.table_missing_header` | Warning | 1.3.1 |
 | `rendered.table_empty_header` | Warning | 1.3.1 |
 | `rendered.svg_missing_accessible_name` | Warning | 1.1.1 |
-| `rendered.html_lang_missing` | Critical | 3.1.1 |
+| `rendered.html_lang_missing` | Warning | 3.1.1 |
 | `rendered.page_title_missing` | Warning | 2.4.2 |
-| `rendered.main_landmark_missing` | Needs review | 1.3.6 |
+| `rendered.main_landmark_missing` | Needs review | 1.3.1 |
+| `rendered.landmark_unique` | Needs review | 1.3.1 |
 
 ---
 

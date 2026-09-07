@@ -1,0 +1,30 @@
+name: tests documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Documentation/**'
+      - '.github/workflows/tests-documentation.yml'
+  pull_request:
+    paths:
+      - 'Documentation/**'
+      - '.github/workflows/tests-documentation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Render documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test documentation rendering
+        run: |
+          docker run --rm --pull always -v "$(pwd)":/project \
+            ghcr.io/typo3-documentation/render-guides:latest \
+            --config=Documentation --no-progress --minimal-test --fail-on-log
