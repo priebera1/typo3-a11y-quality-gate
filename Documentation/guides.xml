@@ -1,0 +1,25 @@
+<!-- See https://docs.typo3.org/permalink/h2document:guides-xml for documentation on this file -->
+<guides
+    xmlns="https://www.phpdoc.org/guides"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://www.phpdoc.org/guides ../vendor/phpdocumentor/guides-cli/resources/schema/guides.xsd"
+    input-format="rst"
+    >
+    <project
+        title="Accessibility Quality Gate"
+        copyright="since 2026 by PPPriebera, s.r.o. and contributors"
+    />
+    <extension
+        class="\T3Docs\Typo3DocsTheme\DependencyInjection\Typo3DocsThemeExtension"
+        interlink-shortcode="priebera/typo3-a11y-quality-gate"
+        project-home="https://typo3.priebera.sk/products/accessibility-quality-gate"
+        project-contact="https://typo3.priebera.sk/contact"
+        project-repository="https://github.com/priebera1/typo3-a11y-quality-gate"
+        project-issues="https://github.com/priebera1/typo3-a11y-quality-gate/issues"
+        project-discussions="https://github.com/priebera1/typo3-a11y-quality-gate/discussions"
+        edit-on-github="priebera1/typo3-a11y-quality-gate"
+        edit-on-github-branch="main"
+        edit-on-github-directory="Documentation"
+        typo3-core-preferred="stable"
+    />
+</guides>

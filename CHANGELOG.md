@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.9.1] - 2026-09-07
+
+### Added
+
+* Added the official TYPO3 extension manual under `Documentation/`, rendered with the TYPO3 `render-guides` toolchain and configured through `Documentation/guides.xml`.
+* Added a GitHub Actions workflow that renders the documentation on pull requests and on documentation pushes to `main`, and fails on rendering warnings.
+
+### Changed
+
+* Documented the rendered page check accurately: it runs for the backend page and site scans and for single-page CLI and Scheduler runs, and is skipped for subtree CLI and Scheduler runs, in changed-only mode, when disabled in the ruleset and for page doktypes without a frontend page.
+* Documented CSV export scope: local findings export in all editions, frontend scan results export with a licence that includes the remote crawler.
+* Documented that licensed frontend scans support both site scans and single-page scans.
+* Documented that `options.a11y_quality_gate.*` is read from User TSconfig only, and that the visibility options apply to non-administrators.
+* Documented finding-to-record mapping accurately, including the page and URL fallback for rendered and crawler findings.
+* Documented that AI suggestions and the Free Remote Preview allowance are governed by the AQG service rather than by fixed values in the extension.
+* Documented that the CKEditor plugin highlights a supported subset of the `rte.*` rules.
+* Clarified the privacy wording for local and rendered checks: no scan data is sent to AQG-hosted services, while the rendered page check performs a real request to the configured site frontend.
+
+### Fixed
+
+* Fixed the README rule table so that rule identifiers, default severities and WCAG references match the current rule implementations and rule metadata.
+* Fixed the README link to the rule reference on the product website.
+
 ## [1.9.0] - 2026-08-18
 
 ### Added
