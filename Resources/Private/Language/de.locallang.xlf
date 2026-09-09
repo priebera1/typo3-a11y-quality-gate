@@ -2458,6 +2458,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Record mapping is available in PRO</source>
                 <target>Datensatzzuordnung ist in PRO verfügbar</target>
             </trans-unit>
+            <trans-unit id="settings.flash.configurationNotWritable">
+                <source>The settings could not be stored because the TYPO3 configuration file is not writable. Ask an administrator to make config/system/settings.php writable, then save again.</source>
+                <target>Die Einstellungen konnten nicht gespeichert werden, da die TYPO3-Konfigurationsdatei nicht beschreibbar ist. Bitte lassen Sie config/system/settings.php durch einen Administrator beschreibbar machen und speichern Sie anschließend erneut.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

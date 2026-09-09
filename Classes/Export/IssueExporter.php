@@ -30,7 +30,7 @@ final class IssueExporter
             return '';
         }
 
-        fputcsv($output, [
+        fputcsv($output, CsvValueSanitizer::sanitizeRow([
             'Page UID',
             'Page Title',
             'Rule ID',
@@ -48,10 +48,10 @@ final class IssueExporter
             'Last Seen',
             'Ignored By',
             'Ignored Reason',
-        ], ';');
+        ]), ';');
 
         foreach ($issues as $issue) {
-            fputcsv($output, [
+            fputcsv($output, CsvValueSanitizer::sanitizeRow([
                 $issue['page_uid'] ?? 0,
                 $issue['page_title'] ?? '',
                 $issue['rule_id'] ?? '',
@@ -69,7 +69,7 @@ final class IssueExporter
                 !empty($issue['tstamp']) ? date('Y-m-d H:i:s', (int)$issue['tstamp']) : '',
                 $issue['ignored_by'] ?: '',
                 $issue['ignored_reason'] ?? '',
-            ], ';');
+            ]), ';');
         }
 
         rewind($output);

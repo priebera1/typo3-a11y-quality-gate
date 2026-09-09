@@ -9,8 +9,14 @@
     --aqi-border-soft: var(--typo3-component-border-color, #e6e9ee);
     --aqi-divider: var(--typo3-component-border-color, #eef0f3);
     --aqi-fg: var(--typo3-text-color-base, var(--bs-body-color, #1f2937));
-    --aqi-fg-muted: var(--typo3-text-color-variant, var(--bs-secondary-color, #667085));
-    --aqi-fg-subtle: var(--typo3-text-color-variant, #8a94a2);
+    /* WCAG 2.1 AA: AQG renders muted/subtle text at 10-12.5px, so these must stay >= 4.5:1 on
+       every AQG surface. --typo3-text-color-variant is a decorative host tone (~2.7:1 light,
+       ~3.5:1 dark) and is deliberately NOT bound here; these values are fixed on purpose.
+       They must also clear 4.5:1 on AQG's own tinted chip/segment backgrounds, which are
+       color-mix(in oklch, var(--aqi-fg) 6%, transparent) over the surface.
+       Contrast is asserted by Tests/Unit/Configuration/ModuleTextContrastTest.php. */
+    --aqi-fg-muted: #4f5866;
+    --aqi-fg-subtle: #5b6472;
     --aqi-ok: var(--typo3-text-color-success, #168a4a);
     --aqi-ok-bg: var(--typo3-surface-container-success, #eefaf2);
     --aqi-ok-border: var(--typo3-state-success-border-color, #b7e3c7);
@@ -26,7 +32,7 @@
     --aqi-review: #7c3aed;
     --aqi-review-bg: #f5f3ff;
     --aqi-review-border: #c4b5fd;
-    --aqi-none: var(--typo3-text-color-variant, #8a94a2);
+    --aqi-none: #5b6472;
     --aqi-none-bg: var(--typo3-surface-container-low, #f4f5f7);
     --aqi-none-border: var(--typo3-component-border-color, #d9dde3);
     --aqi-focus: var(--typo3-state-primary-bg, var(--bs-primary, #2563eb));
@@ -120,8 +126,9 @@ body[data-color-scheme="dark"] .a11y-overview.aqg-module,
     --aqi-border-soft: var(--typo3-component-border-color, #262c34);
     --aqi-divider: var(--typo3-component-border-color, #242a32);
     --aqi-fg: var(--typo3-text-color-base, #e7ebf0);
-    --aqi-fg-muted: var(--typo3-text-color-variant, #aeb6c2);
-    --aqi-fg-subtle: var(--typo3-text-color-variant, #8a94a2);
+    /* See the light block: the host's decorative text variant is below AA at AQG's text sizes. */
+    --aqi-fg-muted: #aeb6c2;
+    --aqi-fg-subtle: #a0a8b5;
     --aqi-ok: var(--typo3-text-color-success, #58cf89);
     --aqi-ok-bg: var(--typo3-surface-container-success, #173322);
     --aqi-ok-border: var(--typo3-state-success-border-color, #255739);
@@ -137,7 +144,7 @@ body[data-color-scheme="dark"] .a11y-overview.aqg-module,
     --aqi-review: #c084fc;
     --aqi-review-bg: #2e1f48;
     --aqi-review-border: #6b3fa0;
-    --aqi-none: var(--typo3-text-color-variant, #a3a9b2);
+    --aqi-none: #a0a8b5;
     --aqi-none-bg: var(--typo3-surface-container-low, #25292e);
     --aqi-none-border: var(--typo3-component-border-color, #3a4047);
     --aqi-focus: var(--typo3-state-primary-bg, #56b9f4);

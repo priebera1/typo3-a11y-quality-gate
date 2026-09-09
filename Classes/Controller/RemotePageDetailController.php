@@ -281,6 +281,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             : $this->decodePageRecommendation((string)($remotePage['page_recommendation_json'] ?? ''));
         $groupedIssues = $this->groupIssuesByRule($issuesWithNodes, $pageRecommendation);
         $pageSummaryIssuesCount = (int)($remotePage['issues_count'] ?? 0);
+        $pageFindingsCount = $this->countPageFindings($issuesWithNodes, $pageSummaryIssuesCount);
         $issueDetailsUnavailable = $groupedIssues === [] && $pageSummaryIssuesCount > 0;
         $keyboardStructureReview = $this->decodeKeyboardStructureReview((string)($remotePage['keyboard_summary_json'] ?? ''));
         $remoteDetail = $this->buildRemoteDetailViewData($remotePage, $remoteScan, $activeRemoteScan);
@@ -341,6 +342,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'issues' => $groupedIssues,
             'issueDetailsUnavailable' => $issueDetailsUnavailable,
             'pageSummaryIssuesCount' => $pageSummaryIssuesCount,
+            'pageFindingsCount' => $pageFindingsCount,
             'pageRemediationSummary' => $pageRemediationSummary,
             'hasPageRemediationSummary' => $pageRemediationSummary !== [],
             'pageRecommendation' => $pageRecommendation,
@@ -1019,6 +1021,35 @@ final class RemotePageDetailController extends AbstractBackendModuleController
      * @param array<string, mixed>|null $activeRemoteScan
      * @return array<string, mixed>
      */
+    /**
+     * Page-scoped finding total for the selected remote page.
+     *
+     * The hero stat must never fall back to the scan-wide `tx_a11y_remote_scan.issues_total`,
+     * which counts every page of the crawl. Counting mirrors groupIssuesByRule() so the hero
+     * value always equals the sum of the rule-group counts rendered below it.
+     *
+     * @param array<int, array<string, mixed>> $issuesWithNodes
+     */
+    private function countPageFindings(array $issuesWithNodes, int $pageSummaryIssuesCount = 0): int
+    {
+        if ($issuesWithNodes === []) {
+            // No detail rows persisted for this page: fall back to the page-scoped summary
+            // column rather than to any scan-wide number.
+            return max(0, $pageSummaryIssuesCount);
+        }
+
+        $total = 0;
+        foreach ($issuesWithNodes as $issue) {
+            if (!is_array($issue)) {
+                continue;
+            }
+
+            $total += max(0, (int)($issue['nodes_count'] ?? 1));
+        }
+
+        return $total;
+    }
+
     private function buildRemoteDetailViewData(array $remotePage, ?array $remoteScan, ?array $activeRemoteScan): array
     {
         $httpStatus = (int)($remotePage['http_status'] ?? 0);

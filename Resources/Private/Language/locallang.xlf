@@ -896,6 +896,9 @@
             <trans-unit id="settings.flash.discoveryRefreshed">
                 <source>Field list was refreshed from TCA.</source>
             </trans-unit>
+            <trans-unit id="settings.flash.configurationNotWritable">
+                <source>The settings could not be stored because the TYPO3 configuration file is not writable. Ask an administrator to make config/system/settings.php writable, then save again.</source>
+            </trans-unit>
             <trans-unit id="settings.flash.saved">
                 <source>Settings were saved.</source>
             </trans-unit>

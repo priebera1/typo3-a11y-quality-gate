@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.2] - 2026-09-09
+
+### Fixed
+
+* Fixed Remote Page Detail finding totals so they reflect the selected page instead of the complete remote scan.
+* Fixed remote scan selection so results from another page cannot be displayed in the current page context.
+* Improved AQG settings error handling when TYPO3 configuration files are not writable.
+* Improved accessibility of the AQG backend interface, including text contrast in Light and Dark modes, visible keyboard focus and correct settings tab semantics.
+* Improved Free Remote Preview responsiveness and retry handling when the remote service is temporarily slow or unavailable.
+* Hardened remote export access checks so permissions are always evaluated against the site that owns the selected scan.
+* Hardened CSV exports against spreadsheet formula injection.
+
 ## [1.9.1] - 2026-09-07
 
 ### Added

@@ -178,7 +178,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: .05em;
-    color: var(--typo3-text-color-variant);
+    color: var(--aqi-fg-muted);
     min-width: 52px;
     flex-shrink: 0;
 }
@@ -187,7 +187,7 @@
 .a11y-filter-label-inline {
     font-size: 12px;
     font-weight: 500;
-    color: var(--typo3-text-color-variant);
+    color: var(--aqi-fg-muted);
     min-width: 52px;
     flex-shrink: 0;
 }
@@ -208,7 +208,7 @@
     font-size: 12px;
     text-decoration: none;
     border: 1px solid var(--typo3-component-border-color);
-    color: var(--typo3-text-color-variant);
+    color: var(--aqi-fg-muted);
     white-space: nowrap;
 }
 
