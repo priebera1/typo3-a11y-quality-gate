@@ -43,9 +43,16 @@ final class ExportController
         $context = $this->parseExportContext($request);
 
         if ($context['scope'] === 'remote') {
+            $ownerSiteIdentifier = $this->resolveRemoteExportOwnerSiteIdentifier(
+                $context['siteIdentifier'],
+                $context['remotePageUid'],
+                $context['remoteScanUid']
+            );
+
             if (
-                !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
-                || !$this->hasPaidRemoteAccess($context['siteIdentifier'])
+                $ownerSiteIdentifier === ''
+                || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
+                || !$this->hasPaidRemoteAccess($ownerSiteIdentifier)
             ) {
                 return $this->downloadResponse(
                     content: 'Access denied.',
@@ -92,7 +99,16 @@ final class ExportController
         $context = $this->parseExportContext($request);
 
         if ($context['scope'] === 'remote') {
-            if (!$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])) {
+            $ownerSiteIdentifier = $this->resolveRemoteExportOwnerSiteIdentifier(
+                $context['siteIdentifier'],
+                $context['remotePageUid'],
+                $context['remoteScanUid']
+            );
+
+            if (
+                $ownerSiteIdentifier === ''
+                || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
+            ) {
                 return $this->downloadResponse(
                     content: 'Access denied.',
                     filename: 'aqg-pdf-export-access-denied.txt',
@@ -101,13 +117,10 @@ final class ExportController
                 );
             }
 
-            $site = $this->resolveSiteForExport(
-                request: $request,
-                siteIdentifier: $context['siteIdentifier'],
-                pageUid: $context['pageUid'],
-            );
+            // Capability is resolved from the site that owns the scan, never from the request.
+            $site = $this->siteResolutionService->resolveSiteByIdentifier($ownerSiteIdentifier);
 
-            if (!$this->canExportPdf($site, $context['siteIdentifier'])) {
+            if (!$this->canExportPdf($site, $ownerSiteIdentifier)) {
                 return $this->downloadResponse(
                     content: 'PDF export is available in AQG PRO only.',
                     filename: 'aqg-pdf-export-unavailable.txt',
@@ -319,6 +332,56 @@ final class ExportController
 
         return $rootPageId > 0
             && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
+    }
+
+    /**
+     * Server-owned site identifier for a remote export request.
+     *
+     * Authorization must follow the record that will actually be exported, so the entitlement is
+     * resolved from the scan's own site_identifier. A caller-supplied identifier may only agree
+     * with that owner; it can never be used to borrow another site's entitlement. Returns an empty
+     * string when the request cannot be bound to a stored scan.
+     */
+    private function resolveRemoteExportOwnerSiteIdentifier(
+        string $requestedSiteIdentifier,
+        int $remotePageUid,
+        int $remoteScanUid,
+    ): string {
+        $remoteScan = null;
+
+        if ($remotePageUid > 0) {
+            $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
+            if (!is_array($remotePage)) {
+                return '';
+            }
+
+            $scanUid = (int)($remotePage['remote_scan'] ?? 0);
+            $remoteScan = $scanUid > 0 ? $this->remoteScanRepository->findScanByUid($scanUid) : null;
+            if (!is_array($remoteScan)) {
+                return '';
+            }
+        } elseif ($remoteScanUid > 0) {
+            $remoteScan = $this->remoteScanRepository->findScanByUid($remoteScanUid);
+            if (!is_array($remoteScan)) {
+                return '';
+            }
+        }
+
+        if (is_array($remoteScan)) {
+            $ownerSiteIdentifier = trim((string)($remoteScan['site_identifier'] ?? ''));
+            if ($ownerSiteIdentifier === '') {
+                return '';
+            }
+
+            $requestedSiteIdentifier = trim($requestedSiteIdentifier);
+            if ($requestedSiteIdentifier !== '' && $requestedSiteIdentifier !== $ownerSiteIdentifier) {
+                return '';
+            }
+
+            return $ownerSiteIdentifier;
+        }
+
+        return trim($requestedSiteIdentifier);
     }
 
     private function canAccessRemoteScan(array $remoteScan): bool

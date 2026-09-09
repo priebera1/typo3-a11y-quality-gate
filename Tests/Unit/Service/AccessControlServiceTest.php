@@ -9,6 +9,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 
 final class AccessControlServiceTest extends TestCase
 {
@@ -36,20 +38,59 @@ final class AccessControlServiceTest extends TestCase
     #[Test]
     public function missingBackendUserCannotRemediateImages(): void
     {
-        self::assertFalse((new AccessControlService())->canRemediateImages());
+        self::assertFalse($this->accessControlServiceWithAdminFlag(0)->canRemediateImages());
+    }
+
+    #[Test]
+    public function administratorCanManageAdminOnlySettingsWhenDatabaseStillMarksUserAsAdmin(): void
+    {
+        self::assertTrue($this->accessControlServiceWithAdminFlag(1)->canManageAdminOnlySettings(
+            $this->backendUser(true, [], 42),
+        ));
+    }
+
+    #[Test]
+    public function staleAdministratorSessionCannotManageAdminOnlySettingsAfterDatabaseDowngrade(): void
+    {
+        self::assertFalse($this->accessControlServiceWithAdminFlag(0)->canManageAdminOnlySettings(
+            $this->backendUser(true, [], 42),
+        ));
+    }
+
+    #[Test]
+    public function nonAdministratorCannotManageAdminOnlySettings(): void
+    {
+        $connectionPool = $this->createMock(ConnectionPool::class);
+        $connectionPool->expects(self::never())->method('getConnectionForTable');
+
+        self::assertFalse((new AccessControlService($connectionPool))->canManageAdminOnlySettings(
+            $this->backendUser(false, [], 42),
+        ));
+    }
+
+    #[Test]
+    public function databaseFailureDeniesAdminOnlySettings(): void
+    {
+        $connectionPool = $this->createMock(ConnectionPool::class);
+        $connectionPool->method('getConnectionForTable')->willThrowException(new \RuntimeException('Unavailable'));
+
+        self::assertFalse((new AccessControlService($connectionPool))->canManageAdminOnlySettings(
+            $this->backendUser(true, [], 42),
+        ));
     }
 
     #[Test]
     public function administratorCanRemediateImagesWithoutTsConfigFlag(): void
     {
-        self::assertTrue((new AccessControlService())->canRemediateImages($this->backendUser(true, [])));
+        self::assertTrue($this->accessControlServiceWithAdminFlag(0)
+            ->canRemediateImages($this->backendUser(true, [])));
     }
 
     #[Test]
     #[DataProvider('enabledValueProvider')]
     public function nonAdminCanRemediateImagesOnlyForExplicitEnabledValue(mixed $value): void
     {
-        self::assertTrue((new AccessControlService())->canRemediateImages(
+        self::assertTrue($this->accessControlServiceWithAdminFlag(0)->canRemediateImages(
             $this->backendUser(false, $this->tsConfig($value)),
         ));
     }
@@ -60,7 +101,7 @@ final class AccessControlServiceTest extends TestCase
     {
         $tsConfig = $includeValue ? $this->tsConfig($value) : [];
 
-        self::assertFalse((new AccessControlService())->canRemediateImages(
+        self::assertFalse($this->accessControlServiceWithAdminFlag(0)->canRemediateImages(
             $this->backendUser(false, $tsConfig),
         ));
     }
@@ -89,7 +130,7 @@ final class AccessControlServiceTest extends TestCase
         yield 'word true' => ['true', true];
     }
 
-    private function backendUser(bool $admin, array $tsConfig): BackendUserAuthentication
+    private function backendUser(bool $admin, array $tsConfig, int $uid = 0): BackendUserAuthentication
     {
         $backendUser = $this->getMockBuilder(BackendUserAuthentication::class)
             ->disableOriginalConstructor()
@@ -97,8 +138,19 @@ final class AccessControlServiceTest extends TestCase
             ->getMock();
         $backendUser->method('isAdmin')->willReturn($admin);
         $backendUser->method('getTSConfig')->willReturn($tsConfig);
+        $backendUser->user = ['uid' => $uid];
 
         return $backendUser;
+    }
+
+    private function accessControlServiceWithAdminFlag(int $adminFlag): AccessControlService
+    {
+        $connection = $this->createMock(Connection::class);
+        $connection->method('fetchOne')->willReturn($adminFlag);
+        $connectionPool = $this->createMock(ConnectionPool::class);
+        $connectionPool->method('getConnectionForTable')->with('be_users')->willReturn($connection);
+
+        return new AccessControlService($connectionPool);
     }
 
     private function tsConfig(mixed $value): array

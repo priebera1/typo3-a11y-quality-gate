@@ -109,7 +109,7 @@ final class RemoteExportBuilder
      */
     private function writeRemoteIssueCsvHeader($output): void
     {
-        fputcsv($output, [
+        fputcsv($output, CsvValueSanitizer::sanitizeRow([
             'URL',
             'Page title',
             'Rule ID',
@@ -131,7 +131,7 @@ final class RemoteExportBuilder
             'Suggested foreground candidates',
             'Suggested background candidates',
             'Candidate note',
-        ], ';');
+        ]), ';');
     }
 
     /**
@@ -152,7 +152,7 @@ final class RemoteExportBuilder
         );
         foreach ($issueRows as $row) {
             if ($row['nodes'] === []) {
-                fputcsv($output, [
+                fputcsv($output, CsvValueSanitizer::sanitizeRow([
                     (string)($remotePage['url'] ?? ''),
                     (string)($remotePage['title'] ?? ''),
                     $row['rule_id'],
@@ -174,14 +174,14 @@ final class RemoteExportBuilder
                     '',
                     '',
                     '',
-                ], ';');
+                ]), ';');
 
                 continue;
             }
 
             foreach ($row['nodes'] as $node) {
                 $contrastCsv = $this->buildContrastCsvColumns($node['contrastDetails'] ?? []);
-                fputcsv($output, [
+                fputcsv($output, CsvValueSanitizer::sanitizeRow([
                     (string)($remotePage['url'] ?? ''),
                     (string)($remotePage['title'] ?? ''),
                     $row['rule_id'],
@@ -203,7 +203,7 @@ final class RemoteExportBuilder
                     $contrastCsv['suggestedForegroundCandidates'],
                     $contrastCsv['suggestedBackgroundCandidates'],
                     $contrastCsv['candidateNote'],
-                ], ';');
+                ]), ';');
             }
         }
     }
@@ -230,7 +230,7 @@ final class RemoteExportBuilder
 
         foreach ($issueRows as $row) {
             if ($row['nodes'] === []) {
-                fputcsv($output, [
+                fputcsv($output, CsvValueSanitizer::sanitizeRow([
                     (string)($remotePage['url'] ?? ''),
                     (string)($remotePage['title'] ?? ''),
                     $row['rule_id'],
@@ -252,14 +252,14 @@ final class RemoteExportBuilder
                     '',
                     '',
                     '',
-                ], ';');
+                ]), ';');
 
                 continue;
             }
 
             foreach ($row['nodes'] as $node) {
                 $contrastCsv = $this->buildContrastCsvColumns($node['contrastDetails'] ?? []);
-                fputcsv($output, [
+                fputcsv($output, CsvValueSanitizer::sanitizeRow([
                     (string)($remotePage['url'] ?? ''),
                     (string)($remotePage['title'] ?? ''),
                     $row['rule_id'],
@@ -281,7 +281,7 @@ final class RemoteExportBuilder
                     $contrastCsv['suggestedForegroundCandidates'],
                     $contrastCsv['suggestedBackgroundCandidates'],
                     $contrastCsv['candidateNote'],
-                ], ';');
+                ]), ';');
             }
         }
 

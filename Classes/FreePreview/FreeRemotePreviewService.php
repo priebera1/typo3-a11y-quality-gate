@@ -9,6 +9,8 @@ use Priebera\A11yQualityGate\Pro\Dto\CrawlerResultsResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerStatusResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSummaryResult;
+use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
+use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Http\AqgCrawlerClient;
 
@@ -18,13 +20,84 @@ final class FreeRemotePreviewService
         private readonly FreeAccessTokenService $tokenService,
         private readonly AqgCrawlerClient $crawlerClient,
         private readonly InstallationIdentityServiceInterface $installationIdentityService,
+        private readonly ProCacheManager $cacheManager,
     ) {
+    }
+
+    /**
+     * Free entitlement status for the Overview render path.
+     *
+     * The result is served from a short bounded cache so a slow or unavailable API cannot stall
+     * the backend module on every page load. Only the Free display payload is ever cached: a paid
+     * entitlement is always returned live so no authorization decision can be made from a stale
+     * value, and no token, licence key or installation id is stored.
+     *
+     * @return array<string, mixed>
+     */
+    public function getEntitlementStatus(
+        string $siteUrl,
+        string $siteIdentifier,
+        string $version,
+        bool $forceRefresh = false,
+    ): array {
+        $cacheKey = $this->buildStatusCacheKey($siteUrl, $siteIdentifier);
+
+        if (!$forceRefresh) {
+            $cached = $this->cacheManager->getDisplayPayload($cacheKey);
+            if ($this->isCacheableStatus($cached)) {
+                $cached['fromCache'] = true;
+
+                return $cached;
+            }
+        }
+
+        $viewData = $this->fetchEntitlementStatus($siteUrl, $siteIdentifier, $version);
+        $viewData['fromCache'] = false;
+
+        if ($this->isCacheableStatus($viewData)) {
+            $this->cacheManager->setDisplayPayload(
+                $cacheKey,
+                $viewData,
+                (string)($viewData['state'] ?? '') === 'FREE_AVAILABLE'
+                || (string)($viewData['state'] ?? '') === 'FREE_USED_TODAY'
+                    ? ProConstants::FREE_ENTITLEMENT_CACHE_TTL
+                    : ProConstants::FREE_ENTITLEMENT_ERROR_CACHE_TTL
+            );
+        }
+
+        return $viewData;
+    }
+
+    /**
+     * A payload may be cached only when it is a Free display state. Paid entitlements and anything
+     * that is not recognisably Free are excluded so that no capability can be granted from cache.
+     *
+     * @param array<string, mixed>|null $viewData
+     */
+    private function isCacheableStatus(?array $viewData): bool
+    {
+        if ($viewData === null) {
+            return false;
+        }
+
+        return ($viewData['isFree'] ?? null) === true
+            && (string)($viewData['entitlement'] ?? '') === 'free_daily'
+            && !array_key_exists('accessToken', $viewData)
+            && !array_key_exists('installationId', $viewData);
+    }
+
+    private function buildStatusCacheKey(string $siteUrl, string $siteIdentifier): string
+    {
+        return 'aqg_free_entitlement_' . hash('sha256', implode('|', [
+            trim($siteUrl),
+            trim($siteIdentifier),
+        ]));
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function getEntitlementStatus(string $siteUrl, string $siteIdentifier, string $version): array
+    private function fetchEntitlementStatus(string $siteUrl, string $siteIdentifier, string $version): array
     {
         try {
             $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version);

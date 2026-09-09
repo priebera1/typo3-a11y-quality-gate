@@ -149,6 +149,8 @@ final class AqgCrawlerClient
                 'siteUrl' => $siteUrl,
                 'siteIdentifier' => $siteIdentifier,
             ],
+            // Runs while the backend module renders: keep it well under the interactive timeout.
+            timeout: ProConstants::FREE_ENTITLEMENT_REQUEST_TIMEOUT,
         );
     }
 
@@ -408,6 +410,7 @@ final class AqgCrawlerClient
         string $accessToken,
         array $payload = [],
         array $additionalHeaders = [],
+        ?float $timeout = null,
     ): array
     {
         $url = rtrim(ProSettings::resolveCrawlerBaseUrl(), '/') . $path;
@@ -417,7 +420,7 @@ final class AqgCrawlerClient
                 'Accept' => 'application/json',
                 'Authorization' => 'Bearer ' . $accessToken,
             ] + $additionalHeaders,
-            'timeout' => ProConstants::REQUEST_TIMEOUT,
+            'timeout' => $timeout !== null && $timeout > 0 ? $timeout : ProConstants::REQUEST_TIMEOUT,
             'http_errors' => false,
             'allow_redirects' => false,
         ];

@@ -3,7 +3,7 @@
             class="aqg-tab{f:if(condition: '{activeTab} == \'licence\'', then: ' is-active')}"
             href="{settingsTabUrls.licence}"
             role="tab"
-            aria-selected="{f:if(condition: '{activeTab} == \'licence\'', then: 'true', else: 'false')}"
+            aria-selected="{settingsTabSelected.licence}"
             aria-current="{f:if(condition: '{activeTab} == \'licence\'', then: 'page', else: '')}"
     >
         <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.licence" default="Licence" /></span>
@@ -26,7 +26,7 @@
             class="aqg-tab{f:if(condition: '{activeTab} == \'fields\'', then: ' is-active')}"
             href="{settingsTabUrls.fields}"
             role="tab"
-            aria-selected="{f:if(condition: '{activeTab} == \'fields\'', then: 'true', else: 'false')}"
+            aria-selected="{settingsTabSelected.fields}"
             aria-current="{f:if(condition: '{activeTab} == \'fields\'', then: 'page', else: '')}"
     >
         <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.scanFields" default="Scan fields" /></span>
@@ -36,7 +36,7 @@
             class="aqg-tab{f:if(condition: '{activeTab} == \'gate\'', then: ' is-active')}"
             href="{settingsTabUrls.gate}"
             role="tab"
-            aria-selected="{f:if(condition: '{activeTab} == \'gate\'', then: 'true', else: 'false')}"
+            aria-selected="{settingsTabSelected.gate}"
             aria-current="{f:if(condition: '{activeTab} == \'gate\'', then: 'page', else: '')}"
     >
         <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.qualityGate" default="Quality gate" /></span>
@@ -46,7 +46,7 @@
             class="aqg-tab{f:if(condition: '{activeTab} == \'rules\'', then: ' is-active')}"
             href="{settingsTabUrls.rules}"
             role="tab"
-            aria-selected="{f:if(condition: '{activeTab} == \'rules\'', then: 'true', else: 'false')}"
+            aria-selected="{settingsTabSelected.rules}"
             aria-current="{f:if(condition: '{activeTab} == \'rules\'', then: 'page', else: '')}"
     >
         <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.rules" default="Rules" /></span>
@@ -56,7 +56,7 @@
                 class="aqg-tab{f:if(condition: '{activeTab} == \'remote_access\'', then: ' is-active')}"
                 href="{settingsTabUrls.remote_access}"
                 role="tab"
-                aria-selected="{f:if(condition: '{activeTab} == \'remote_access\'', then: 'true', else: 'false')}"
+                aria-selected="{settingsTabSelected.remote_access}"
                 aria-current="{f:if(condition: '{activeTab} == \'remote_access\'', then: 'page', else: '')}"
         >
             <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.remoteAccess" default="Remote scan access" /></span>
@@ -70,7 +70,7 @@
                 class="aqg-tab{f:if(condition: '{activeTab} == \'ai\'', then: ' is-active')}"
                 href="{settingsTabUrls.ai}"
                 role="tab"
-                aria-selected="{f:if(condition: '{activeTab} == \'ai\'', then: 'true', else: 'false')}"
+                aria-selected="{settingsTabSelected.ai}"
                 aria-current="{f:if(condition: '{activeTab} == \'ai\'', then: 'page', else: '')}"
         >
             <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.ai" default="AI alt text" /></span>
@@ -82,7 +82,7 @@
             class="aqg-tab{f:if(condition: '{activeTab} == \'statement\'', then: ' is-active')}"
             href="{settingsTabUrls.statement}"
             role="tab"
-            aria-selected="{f:if(condition: '{activeTab} == \'statement\'', then: 'true', else: 'false')}"
+            aria-selected="{settingsTabSelected.statement}"
             aria-current="{f:if(condition: '{activeTab} == \'statement\'', then: 'page', else: '')}"
     >
         <span>Statement</span>

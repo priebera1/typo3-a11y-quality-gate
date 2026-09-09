@@ -37,11 +37,34 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         window.addEventListener('beforeunload', this.beforeUnloadHandler);
 
+        this.consumeFreeRefreshFlag();
         this.initOverviewSourceTabs();
         this.initRemoteScanProgress();
         this.restoreRemoteScanStateFromDom();
         this.bindProEvents();
         this.initFreePreviewCountdown();
+    }
+
+    /**
+     * Make the Retry cache bypass one-shot.
+     *
+     * `aqgFreeRefresh=1` tells the server to re-ask the entitlement API instead of answering from
+     * its short cache. That request has already been served by the time this runs, so the flag is
+     * dropped from the address bar: leaving it there would make every later reload — and every
+     * bookmark or copied link — bypass the cache again and hammer the API.
+     */
+    consumeFreeRefreshFlag() {
+        if (!window.history || typeof window.history.replaceState !== 'function') {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('aqgFreeRefresh')) {
+            return;
+        }
+
+        url.searchParams.delete('aqgFreeRefresh');
+        window.history.replaceState(window.history.state, '', url.toString());
     }
 
     initFreePreviewCountdown() {
@@ -143,7 +166,10 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
     }
 
     retryFreePreview() {
-        window.location.reload();
+        // Bypass the short server-side entitlement-status cache so Retry always re-asks the API.
+        const url = new URL(window.location.href);
+        url.searchParams.set('aqgFreeRefresh', '1');
+        window.location.assign(url.toString());
     }
 
     initOverviewSourceTabs() {

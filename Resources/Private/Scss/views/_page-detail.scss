@@ -458,7 +458,7 @@
 .a11y-btn-ignore {
     background: transparent;
     border: none;
-    color: var(--typo3-text-color-variant);
+    color: var(--aqi-fg-muted);
     font-size: .75rem;
     padding-left: 6px;
     padding-right: 6px;
@@ -516,7 +516,7 @@ details[open] .a11y-details-summary__toggle {
 .a11y-group-heading__count {
     font-size: .8125rem;
     font-weight: 500;
-    color: var(--typo3-text-color-variant);
+    color: var(--aqi-fg-muted);
 }
 
 /* ── Code snippet — softer ────────────────────────────── */
@@ -530,7 +530,7 @@ details[open] .a11y-details-summary__toggle {
     word-break: break-all;
     max-height: 90px;
     overflow-y: auto;
-    color: var(--typo3-text-color-variant);
+    color: var(--aqi-fg-muted);
     opacity: .9;
 }
 
@@ -792,6 +792,12 @@ details[open] .a11y-details-summary__toggle {
     border-style: solid;
     color: var(--aqi-fg);
     outline: none;
+}
+
+/* WCAG 2.4.7: keyboard focus must be distinguishable from hover, so keep the standard AQG ring. */
+.a11y-page-detail .aqg-rule-action:focus-visible {
+    border-color: var(--aqi-focus);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
 }
 
 .a11y-page-detail .aqg-rule-action__plus {

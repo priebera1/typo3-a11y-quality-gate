@@ -207,10 +207,10 @@
                                         </span>
                                         <span class="aqg-hero-stat__value {f:if(condition: remotePage.issues_count, then: 'tone-critical', else: 'tone-ok')}">{remotePage.issues_count}</span>
                                     </div>
-                                    <f:if condition="{remoteScan.issues_total}">
+                                    <f:if condition="{pageFindingsCount}">
                                         <div class="aqg-hero-stat">
                                             <span class="aqg-hero-stat__label">Findings</span>
-                                            <span class="aqg-hero-stat__value {f:if(condition: remoteScan.issues_total, then: 'tone-critical', else: 'tone-ok')}">{remoteScan.issues_total}</span>
+                                            <span class="aqg-hero-stat__value {f:if(condition: pageFindingsCount, then: 'tone-critical', else: 'tone-ok')}">{pageFindingsCount}</span>
                                         </div>
                                     </f:if>
                                     <div class="aqg-hero-stat">

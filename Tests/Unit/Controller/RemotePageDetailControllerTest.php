@@ -223,6 +223,28 @@ final class RemotePageDetailControllerTest extends TestCase
         ];
     }
 
+    #[Test]
+    public function heroFindingsCountEqualsSumOfRenderedRuleGroupCounts(): void
+    {
+        // The hero stat must not disagree with the per-rule counts printed beneath it.
+        $issues = [
+            ['uid' => 1, 'rule_id' => 'landmark-unique', 'nodes_count' => 3],
+            ['uid' => 2, 'rule_id' => 'landmark-unique', 'nodes_count' => 2],
+            ['uid' => 3, 'rule_id' => 'color-contrast'],
+        ];
+
+        $groupSum = array_sum(array_map(
+            static fn (array $group): int => (int)$group['count'],
+            $this->groupIssues($issues)
+        ));
+
+        $heroCount = (int)(new ReflectionMethod(RemotePageDetailController::class, 'countPageFindings'))
+            ->invoke($this->subject, $issues, 0);
+
+        self::assertSame(6, $groupSum);
+        self::assertSame($groupSum, $heroCount);
+    }
+
     /**
      * @param array<int, array<string, mixed>> $issues
      * @return array<int, array<string, mixed>>

@@ -46,6 +46,8 @@ use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 
 #[AsController]
@@ -270,6 +272,7 @@ final class SettingsController extends AbstractBackendModuleController
             'supportUrl' => $publicLinks[PublicLinkProvider::SUPPORT],
             'portalUrl' => $publicLinks[PublicLinkProvider::PORTAL],
             'settingsTabUrls' => $this->buildSettingsTabUrls($request, $selectedRulesetSite),
+            'settingsTabSelected' => $this->buildSettingsTabSelectedStates($activeTab),
             'aiConfigurationStatus' => $aiConfigurationStatus,
             'aiSiteIdentifier' => $aiSiteIdentifier,
             'aiSettingsSaveUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_save'),
@@ -502,7 +505,7 @@ final class SettingsController extends AbstractBackendModuleController
             // Persist UI-only state in the AQG ruleset first, so the toggle survives even
             // when LocalConfiguration writes are restricted on a staging/live system.
             $this->saveShowProHintsState($showProHints);
-            $this->persistExtensionConfiguration($configuration);
+            $configurationPersisted = $this->persistExtensionConfiguration($configuration);
             $this->proCacheManager->flushAll();
         }
 
@@ -512,6 +515,19 @@ final class SettingsController extends AbstractBackendModuleController
         $rulesetSite = trim((string)($body['rulesetSite'] ?? ''));
         if ($rulesetSite !== '') {
             $redirectParameters['rulesetSite'] = $rulesetSite;
+        }
+
+        if (($configurationPersisted ?? true) === false) {
+            // Never report success for a write that did not happen.
+            $this->addFlashMessage(
+                $this->translate('settings.flash.configurationNotWritable'),
+                ContextualFeedbackSeverity::ERROR
+            );
+
+            return new RedirectResponse(
+                $this->buildRouteUrl('web_a11y.settings', $redirectParameters),
+                303
+            );
         }
 
         return $this->buildSettingsPostResponse($request, $redirectParameters, $this->translate('settings.flash.saved'));
@@ -1273,6 +1289,25 @@ final class SettingsController extends AbstractBackendModuleController
     }
 
     /**
+     * Explicit aria-selected values per settings tab.
+     *
+     * TYPO3 14's Fluid resolves the inline `f:if(..., then: 'true', else: 'false')` used for
+     * aria-selected to "false" even on the active tab, so the tablist exposed no selected tab at
+     * all (WCAG 4.1.2). Precomputing the strings keeps the markup correct on TYPO3 13 and 14.
+     *
+     * @return array<string, string>
+     */
+    private function buildSettingsTabSelectedStates(string $activeTab): array
+    {
+        $states = [];
+        foreach (['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement'] as $tab) {
+            $states[$tab] = $tab === $activeTab ? 'true' : 'false';
+        }
+
+        return $states;
+    }
+
+    /**
      * @return array<string, string>
      */
     private function buildSettingsTabUrls(ServerRequestInterface $request, string $selectedRulesetSite): array
@@ -1487,11 +1522,40 @@ final class SettingsController extends AbstractBackendModuleController
     /**
      * @param array<string, mixed> $configuration
      */
-    private function persistExtensionConfiguration(array $configuration): void
+    /**
+     * @param array<string, mixed> $configuration
+     * @return bool TRUE when the value reached persistent storage.
+     */
+    private function persistExtensionConfiguration(array $configuration): bool
     {
-        $this->extensionConfiguration->set('a11y_quality_gate', $configuration);
+        try {
+            $this->extensionConfiguration->set('a11y_quality_gate', $configuration);
+        } catch (\Throwable $exception) {
+            // TYPO3 throws when config/system/settings.php is read-only, which is common on
+            // hardened staging and live systems. A write failure must surface as a bounded error,
+            // never as an uncaught exception and an "Oops, an error occurred!" page.
+            $this->logExtensionConfigurationWriteFailure($exception);
+
+            return false;
+        }
 
         $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate'] = $configuration;
+
+        return true;
+    }
+
+    private function logExtensionConfigurationWriteFailure(\Throwable $exception): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->error('AQG could not persist its extension configuration.', [
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (\Throwable) {
+            // Logging must never mask the original failure.
+        }
     }
 
     private function saveShowProHintsState(bool $showProHints): void

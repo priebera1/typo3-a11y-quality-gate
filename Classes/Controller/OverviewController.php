@@ -31,6 +31,7 @@ use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Utility\PaginationUtility;
+use Priebera\A11yQualityGate\Utility\ScanUrlUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -577,6 +578,7 @@ final class OverviewController extends AbstractBackendModuleController
                 rtrim($siteBase, '/') . '/',
                 $siteIdentifier,
                 $this->extensionContextService->getExtensionVersion(),
+                (string)($queryParams['aqgFreeRefresh'] ?? '') === '1',
             )
             : [
                 'isFree' => false,
@@ -1373,6 +1375,46 @@ final class OverviewController extends AbstractBackendModuleController
         return $siteRootPid > 0 && $runningRootPid === $siteRootPid;
     }
 
+    /**
+     * A `remoteScanUid` request parameter selects an explicit record, so it must be re-validated
+     * against the page the screen currently claims to show. Ownership (site + entitlement) alone is
+     * not enough: a page-scoped scan for page A must never be rendered while page B is selected.
+     *
+     * @param array<string, mixed> $selectedScan
+     */
+    private function selectedScanBelongsToCurrentPageContext(
+        array $selectedScan,
+        bool $isPageContext,
+        int $currentPageUid,
+        string $currentPageUrl,
+    ): bool {
+        if ((string)($selectedScan['scan_scope'] ?? '') !== 'page') {
+            // Site-wide results are not attributed to a single page.
+            return true;
+        }
+
+        if (!$isPageContext || $currentPageUid <= 0) {
+            // No page context to contradict, so a page-scoped result cannot be misattributed.
+            return true;
+        }
+
+        $scanPageUid = (int)($selectedScan['page_uid'] ?? 0);
+        if ($scanPageUid > 0) {
+            return $scanPageUid === $currentPageUid;
+        }
+
+        // Legacy rows without page_uid are bound by their scanned URL instead.
+        $scanStartUrl = $this->normalizeScanUrl((string)($selectedScan['start_url'] ?? ''));
+        $contextUrl = $this->normalizeScanUrl($currentPageUrl);
+
+        return $scanStartUrl !== '' && $contextUrl !== '' && $scanStartUrl === $contextUrl;
+    }
+
+    private function normalizeScanUrl(string $url): string
+    {
+        return ScanUrlUtility::comparable($url);
+    }
+
     private function resolveOverviewRemoteScan(
         string $siteIdentifier,
         bool $isPageContext,
@@ -1393,6 +1435,12 @@ final class OverviewController extends AbstractBackendModuleController
                 && strtolower((string)($selectedScan['status'] ?? '')) === 'completed'
                 && $scopeMatchesContext
                 && $selectedScanIsFreePreview === $isFreePreview
+                && $this->selectedScanBelongsToCurrentPageContext(
+                    $selectedScan,
+                    $isPageContext,
+                    $currentPageUid,
+                    $currentPageUrl
+                )
             ) {
                 return $selectedScan;
             }

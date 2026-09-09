@@ -64,6 +64,27 @@ final class ProCacheManager
         $this->getCache()->set($cacheKey, $result->toArray(), [], max(1, $ttl));
     }
 
+    /**
+     * Short-lived, secret-free display payloads (currently the Free Remote Preview entitlement
+     * status). Never store tokens, licence keys or installation identifiers here.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getDisplayPayload(string $cacheKey): ?array
+    {
+        $payload = $this->getCache()->get($cacheKey);
+
+        return is_array($payload) ? $payload : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function setDisplayPayload(string $cacheKey, array $payload, int $ttl): void
+    {
+        $this->getCache()->set($cacheKey, $payload, [], max(1, $ttl));
+    }
+
     public function flushByPrefix(string $prefix): void
     {
         $this->getCache()->flushByTag($prefix);
