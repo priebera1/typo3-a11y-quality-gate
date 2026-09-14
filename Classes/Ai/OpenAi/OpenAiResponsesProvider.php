@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Ai\OpenAi;
 
-use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Ai\Contract\AiProviderInterface;
 use Priebera\A11yQualityGate\Ai\Dto\AiAltSuggestionRequest;
 use Priebera\A11yQualityGate\Ai\Dto\AiAltSuggestionResult;
@@ -50,7 +49,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         $profile = $this->modelRegistry->require($model);
 
         try {
-            $contextJson = Utils::jsonEncode(
+            $contextJson = json_encode(
                 $request->contextPayload(),
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
             );
@@ -91,7 +90,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         $profile = $this->modelRegistry->require($model);
 
         try {
-            $contextJson = Utils::jsonEncode(
+            $contextJson = json_encode(
                 $request->contextPayload(),
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
             );
@@ -133,7 +132,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         $profile = $this->modelRegistry->require($model);
 
         try {
-            $contextJson = Utils::jsonEncode(
+            $contextJson = json_encode(
                 $request->contextPayload(),
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
             );
@@ -327,7 +326,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         string $model,
     ): array {
         try {
-            $body = Utils::jsonEncode($payload, JSON_THROW_ON_ERROR);
+            $body = json_encode($payload, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             throw new AiProviderException('The AI provider request could not be encoded.', 1771002302, $exception);
         }
@@ -370,7 +369,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         }
 
         try {
-            $decoded = Utils::jsonDecode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             $this->logSafeFailure('openai_invalid_json', $model, [
                 'http_status' => $status,
@@ -428,7 +427,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         }
 
         try {
-            $structured = Utils::jsonDecode($raw, true, 32, JSON_THROW_ON_ERROR);
+            $structured = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             $this->logSafeFailure('openai_invalid_link_text_structured_output', $model);
             throw new AiProviderException('OpenAI returned an invalid link-text structured-output response.', 1771002832, $exception);
@@ -471,7 +470,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         }
 
         try {
-            $structured = Utils::jsonDecode($raw, true, 32, JSON_THROW_ON_ERROR);
+            $structured = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             $this->logSafeFailure('openai_invalid_iframe_title_structured_output', $model);
             throw new AiProviderException('OpenAI returned an invalid iframe-title structured-output response.', 1771002932, $exception);
@@ -513,7 +512,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         }
 
         try {
-            $structured = Utils::jsonDecode($raw, true, 32, JSON_THROW_ON_ERROR);
+            $structured = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             $this->logSafeFailure('openai_invalid_structured_output', $model);
             throw new AiProviderException('OpenAI returned an invalid structured-output test response.', 1771002315, $exception);
@@ -600,7 +599,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
     private function extractProviderError(ResponseInterface $response): array
     {
         try {
-            $decoded = Utils::jsonDecode((string)$response->getBody(), true, 32, JSON_THROW_ON_ERROR);
+            $decoded = json_decode((string)$response->getBody(), true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             return ['type' => '', 'code' => '', 'param' => ''];
         }

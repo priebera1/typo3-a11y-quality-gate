@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Scan;
 
-use GuzzleHttp\Utils;
-
 final class ContentHashCalculator
 {
     public function forRteField(string $html): string
@@ -21,11 +19,11 @@ final class ContentHashCalculator
     {
         if (is_array($value)) {
             try {
-                $normalized = Utils::jsonEncode(
+                $normalized = json_encode(
                     $value,
-                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
                 );
-            } catch (\InvalidArgumentException) {
+            } catch (\JsonException) {
                 $normalized = serialize($value);
             }
         } elseif (is_bool($value)) {

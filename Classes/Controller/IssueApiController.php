@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
-use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
@@ -113,8 +112,8 @@ final class IssueApiController extends AbstractApiController
         $body = (string)$request->getBody();
 
         try {
-            $data = Utils::jsonDecode($body, true) ?? [];
-        } catch (\InvalidArgumentException) {
+            $data = json_decode($body, true, 512, JSON_THROW_ON_ERROR) ?? [];
+        } catch (\JsonException) {
             return $this->badRequestResponse('Invalid JSON body');
         }
 
@@ -227,8 +226,8 @@ final class IssueApiController extends AbstractApiController
         $body = (string)$request->getBody();
 
         try {
-            $data = Utils::jsonDecode($body, true) ?? [];
-        } catch (\InvalidArgumentException) {
+            $data = json_decode($body, true, 512, JSON_THROW_ON_ERROR) ?? [];
+        } catch (\JsonException) {
             return $this->badRequestResponse('Invalid JSON body');
         }
 

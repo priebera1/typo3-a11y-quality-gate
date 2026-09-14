@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Unit\Controller;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Controller\ScanAjaxController;
@@ -23,6 +25,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Http\ResponseFactory;
+use TYPO3\CMS\Core\Http\StreamFactory;
 
 final class ScanAjaxControllerTest extends TestCase
 {
@@ -501,6 +505,78 @@ final class ScanAjaxControllerTest extends TestCase
         $response = $this->controller->scanStatusAction($this->request);
 
         self::assertSame($this->response, $response);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function scanStatusActionReturnsJsonWhenGuzzleUtilsHasNoJsonHelpers(): void
+    {
+        self::assertFalse(class_exists('GuzzleHttp\\Utils', false), 'Guzzle\'s own Utils class is already loaded.');
+        require_once __DIR__ . '/../../Fixtures/Guzzle8Utils.php';
+
+        $this->mockLoggedInUser(1);
+
+        $this->scanStatusService
+            ->expects($this->once())
+            ->method('getStatus')
+            ->willReturn(['running' => false, 'triggeredBy' => 'Jürgen']);
+
+        $this->siteResolutionService
+            ->expects($this->once())
+            ->method('resolveSiteIdentifierFromPageId')
+            ->with(1)
+            ->willReturn('main');
+
+        $this->remoteScanRepository
+            ->method('findLatestActiveSiteScanBySite')
+            ->willReturn(['uid' => 5, 'url' => 'https://example.org/über-uns/']);
+
+        $request = $this->createMock(ServerRequestInterface::class);
+        $request->method('getQueryParams')->willReturn(['id' => '1']);
+
+        $controller = new ScanAjaxController(
+            new ResponseFactory(),
+            new StreamFactory(),
+            $this->backendUserService,
+            $this->orchestrator,
+            $this->siteResolutionService,
+            $this->accessControlService,
+            $this->scanStatusService,
+            $this->remoteScanRepository,
+            $this->scanRepository,
+            $this->backendRecordAccessService,
+            new LanguageUidResolver(),
+        );
+
+        $response = $controller->scanStatusAction($request);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('application/json; charset=UTF-8', $response->getHeaderLine('Content-Type'));
+        self::assertSame('no-cache, no-store', $response->getHeaderLine('Cache-Control'));
+        self::assertSame(
+            '{"success":true,"status":{"running":false,"triggeredBy":"Jürgen"},'
+            . '"remoteStatus":{"uid":5,"url":"https://example.org/über-uns/"}}',
+            (string)$response->getBody()
+        );
+    }
+
+    /**
+     * ProCrawlerAjaxController turns an \InvalidArgumentException from jsonResponse() into a 400 response.
+     */
+    #[Test]
+    public function scanStatusActionThrowsInvalidArgumentExceptionForUnencodableStatus(): void
+    {
+        $this->mockLoggedInUser(1);
+
+        $this->scanStatusService
+            ->method('getStatus')
+            ->willReturn(['running' => false, 'error' => "\xB1\x31"]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded');
+
+        $this->controller->scanStatusAction($this->request);
     }
 
     private function mockLoggedInUser(int $uid, string $username = 'admin'): BackendUserAuthentication

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Pro\Http;
 
-use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 use Priebera\A11yQualityGate\Pro\Configuration\ProSettings;
 use Priebera\A11yQualityGate\Pro\Dto\AccessTokenResponseDto;
@@ -111,7 +110,7 @@ final class AqgApiClient
                         'Accept' => 'application/json',
                         'Content-Type' => 'application/json',
                     ],
-                    'body' => Utils::jsonEncode($payload, JSON_THROW_ON_ERROR),
+                    'body' => json_encode($payload, JSON_THROW_ON_ERROR),
                     'timeout' => ProConstants::REQUEST_TIMEOUT,
                     'http_errors' => false,
                     'allow_redirects' => false,
@@ -140,7 +139,7 @@ final class AqgApiClient
         }
 
         try {
-            $decoded = Utils::jsonDecode($body, true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             $this->logRequestFailure($path, $statusCode, 'invalid_json');
             throw new ApiRequestFailedException(
