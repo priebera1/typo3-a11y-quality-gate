@@ -118,4 +118,21 @@ class ContentHashCalculatorTest extends TestCase
             $this->calc->forStructuredField('  hello  ')
         );
     }
+
+    #[Test]
+    public function structuredHashOfArrayIsSha1OfUnescapedJson(): void
+    {
+        self::assertSame(
+            sha1('{"alt":"Grüße/Bild","num":3}'),
+            $this->calc->forStructuredField(['alt' => 'Grüße/Bild', 'num' => 3])
+        );
+    }
+
+    #[Test]
+    public function structuredHashOfUnencodableArrayFallsBackToSerialize(): void
+    {
+        $value = ['alt' => "\xB1\x31"];
+
+        self::assertSame(sha1(serialize($value)), $this->calc->forStructuredField($value));
+    }
 }

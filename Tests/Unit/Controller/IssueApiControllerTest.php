@@ -21,6 +21,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Http\ResponseFactory;
+use TYPO3\CMS\Core\Http\StreamFactory;
 
 final class IssueApiControllerTest extends TestCase
 {
@@ -266,6 +268,49 @@ final class IssueApiControllerTest extends TestCase
         $response = $this->controller->ignoreAction($this->request);
 
         self::assertSame($this->response, $response);
+    }
+
+    #[Test]
+    public function validateRteActionReturns400ForMalformedJsonBody(): void
+    {
+        $this->mockLoggedInUser(42);
+
+        $this->request->method('getMethod')->willReturn('POST');
+        $this->request->method('getBody')->willReturn($this->mockStream('{"recordUid":'));
+
+        $response = $this->controllerWithRealResponses()->validateRteAction($this->request);
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame('{"success":false,"error":"Invalid JSON body"}', (string)$response->getBody());
+    }
+
+    #[Test]
+    public function ignoreActionReturns400ForMalformedJsonBody(): void
+    {
+        $this->mockLoggedInUser(42);
+
+        $this->request->method('getMethod')->willReturn('POST');
+        $this->request->method('getBody')->willReturn($this->mockStream('{"fingerprint":'));
+
+        $response = $this->controllerWithRealResponses()->ignoreAction($this->request);
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame('{"success":false,"error":"Invalid JSON body"}', (string)$response->getBody());
+    }
+
+    private function controllerWithRealResponses(): IssueApiController
+    {
+        return new IssueApiController(
+            $this->issueRepo,
+            $this->createMock(RuleRegistry::class),
+            $this->createMock(RuleConfigurationService::class),
+            $this->createMock(ConnectionPool::class),
+            $this->createMock(SiteResolutionService::class),
+            $this->backendRecordAccessService,
+            new ResponseFactory(),
+            new StreamFactory(),
+            $this->backendUserService,
+        );
     }
 
     private function mockLoggedInUser(int $uid): void

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Ai\Service;
 
-use GuzzleHttp\Utils;
-
 final class AiModelCacheCodec
 {
     /**
@@ -14,7 +12,7 @@ final class AiModelCacheCodec
      */
     public function encode(array $supported, array $unsupported, string $keyFingerprint): string
     {
-        return Utils::jsonEncode([
+        return json_encode([
             'registry_version' => AiModelCompatibilityRegistry::VERSION,
             'key_fingerprint' => $this->normalizeFingerprint($keyFingerprint),
             'supported' => array_values($supported),
@@ -38,7 +36,7 @@ final class AiModelCacheCodec
         }
 
         try {
-            $decoded = Utils::jsonDecode($cacheJson, true, 64, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($cacheJson, true, 64, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             return $this->empty(false);
         }

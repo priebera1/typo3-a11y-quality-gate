@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.3] - 2026-09-14
+
+### Fixed
+
+* Fixed scan failures caused by removed Guzzle JSON helper methods on newer Guzzle versions.
+* Improved JSON compatibility across AQG API, remote scanning and AI integrations.
+* Improved handling of malformed JSON requests in backend API endpoints.
+
 ## [1.9.2] - 2026-09-09
 
 ### Fixed

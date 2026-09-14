@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
-use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -101,7 +100,12 @@ abstract class AbstractApiController
      */
     protected function jsonResponse(array $data, int $status = 200): ResponseInterface
     {
-        $json = Utils::jsonEncode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        try {
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new \InvalidArgumentException('json_encode error: ' . $exception->getMessage(), 0, $exception);
+        }
+
         $stream = $this->streamFactory->createStream($json);
 
         return $this->responseFactory

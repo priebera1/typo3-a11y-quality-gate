@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Ai\OpenAi;
 
-use GuzzleHttp\Utils;
 use Priebera\A11yQualityGate\Ai\Contract\AiModelDiscoveryProviderInterface;
 use Priebera\A11yQualityGate\Ai\Dto\AiProviderCredentials;
 use Priebera\A11yQualityGate\Ai\Exception\AiModelDiscoveryException;
@@ -75,7 +74,7 @@ final class OpenAiModelDiscoveryProvider implements AiModelDiscoveryProviderInte
         }
 
         try {
-            $decoded = Utils::jsonDecode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
             $this->logSafeFailure('openai_model_discovery_invalid_json', [
                 'request_id' => $this->boundedDiagnosticValue($response->getHeaderLine('x-request-id')),
@@ -121,7 +120,7 @@ final class OpenAiModelDiscoveryProvider implements AiModelDiscoveryProviderInte
     private function extractProviderError(ResponseInterface $response): array
     {
         try {
-            $decoded = Utils::jsonDecode((string)$response->getBody(), true, 32, JSON_THROW_ON_ERROR);
+            $decoded = json_decode((string)$response->getBody(), true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             return ['type' => '', 'code' => '', 'param' => ''];
         }
