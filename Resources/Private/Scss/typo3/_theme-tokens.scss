@@ -35,7 +35,14 @@
     --aqi-none: #5b6472;
     --aqi-none-bg: var(--typo3-surface-container-low, #f4f5f7);
     --aqi-none-border: var(--typo3-component-border-color, #d9dde3);
-    --aqi-focus: var(--typo3-state-primary-bg, var(--bs-primary, #2563eb));
+    /* WCAG 2.1 AA 1.4.11: the focus indicator needs >= 3:1 on every AQG surface. TYPO3's primary resolves to
+       #174482 (13) / #311f7a (14) in dark mode, below 2:1 there, so the focus colour is literal as well.
+       Contrast is asserted by Tests/Unit/Configuration/ModuleTextContrastTest.php. */
+    --aqi-focus: #2563eb;
+    /* The one AQG focus indicator: a 2px --aqi-focus ring behind a 1px surface gap (3px footprint). Use the
+       inset variant for controls that sit flush inside an overflow-clipped container. */
+    --aqi-focus-ring: 0 0 0 1px var(--aqi-surface), 0 0 0 3px var(--aqi-focus);
+    --aqi-focus-ring-inset: inset 0 0 0 2px var(--aqi-focus);
     --aqg-bg: var(--aqi-bg);
     --aqg-surface: var(--aqi-surface);
     --aqg-surface-2: var(--aqi-surface-2);
@@ -89,35 +96,8 @@
     --aqg-indicator-focus: var(--aqi-focus);
 }
 
-html[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
-html[data-bs-theme="dark"] .a11y-settings.aqg-module,
-html[data-theme="dark"] .a11y-page-detail.aqg-module,
-html[data-theme="dark"] .a11y-settings.aqg-module,
-html[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
-html[data-color-scheme="dark"] .a11y-settings.aqg-module,
-html[data-theme="fresh"][data-color-scheme="auto"] .a11y-page-detail.aqg-module,
-html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview.aqg-module,
-body[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
-body[data-bs-theme="dark"] .a11y-settings.aqg-module,
-body[data-theme="dark"] .a11y-page-detail.aqg-module,
-body[data-theme="dark"] .a11y-settings.aqg-module,
-body[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
-body[data-color-scheme="dark"] .a11y-settings.aqg-module,
-.typo3-backend-dark .a11y-page-detail.aqg-module,
-.typo3-backend-dark .a11y-settings.aqg-module,
-.theme-dark .a11y-page-detail.aqg-module,
-.theme-dark .a11y-settings.aqg-module,
-.t3js-theme-dark .a11y-page-detail.aqg-module,
-.t3js-theme-dark .a11y-settings.aqg-module,
-html[data-bs-theme="dark"] .a11y-overview.aqg-module,
-html[data-theme="dark"] .a11y-overview.aqg-module,
-html[data-color-scheme="dark"] .a11y-overview.aqg-module,
-body[data-bs-theme="dark"] .a11y-overview.aqg-module,
-body[data-theme="dark"] .a11y-overview.aqg-module,
-body[data-color-scheme="dark"] .a11y-overview.aqg-module,
-.typo3-backend-dark .a11y-overview.aqg-module,
-.theme-dark .a11y-overview.aqg-module,
-.t3js-theme-dark .a11y-overview.aqg-module {
+/* Dark tokens, shared by an explicit Dark choice and by the default "auto" scheme with a dark OS preference. */
+@mixin aqg-dark-tokens() {
     color-scheme: dark;
     --aqi-bg: var(--typo3-surface-container-base, #14181d);
     --aqi-surface: var(--typo3-surface-container-lowest, #1c2128);
@@ -147,7 +127,50 @@ body[data-color-scheme="dark"] .a11y-overview.aqg-module,
     --aqi-none: #a0a8b5;
     --aqi-none-bg: var(--typo3-surface-container-low, #25292e);
     --aqi-none-border: var(--typo3-component-border-color, #3a4047);
-    --aqi-focus: var(--typo3-state-primary-bg, #56b9f4);
+    /* See the light block: TYPO3's dark primary is below 2:1 on these surfaces. */
+    --aqi-focus: #56b9f4;
+}
+
+html[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
+html[data-bs-theme="dark"] .a11y-settings.aqg-module,
+html[data-theme="dark"] .a11y-page-detail.aqg-module,
+html[data-theme="dark"] .a11y-settings.aqg-module,
+html[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
+html[data-color-scheme="dark"] .a11y-settings.aqg-module,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-page-detail.aqg-module,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview.aqg-module,
+body[data-bs-theme="dark"] .a11y-page-detail.aqg-module,
+body[data-bs-theme="dark"] .a11y-settings.aqg-module,
+body[data-theme="dark"] .a11y-page-detail.aqg-module,
+body[data-theme="dark"] .a11y-settings.aqg-module,
+body[data-color-scheme="dark"] .a11y-page-detail.aqg-module,
+body[data-color-scheme="dark"] .a11y-settings.aqg-module,
+.typo3-backend-dark .a11y-page-detail.aqg-module,
+.typo3-backend-dark .a11y-settings.aqg-module,
+.theme-dark .a11y-page-detail.aqg-module,
+.theme-dark .a11y-settings.aqg-module,
+.t3js-theme-dark .a11y-page-detail.aqg-module,
+.t3js-theme-dark .a11y-settings.aqg-module,
+html[data-bs-theme="dark"] .a11y-overview.aqg-module,
+html[data-theme="dark"] .a11y-overview.aqg-module,
+html[data-color-scheme="dark"] .a11y-overview.aqg-module,
+body[data-bs-theme="dark"] .a11y-overview.aqg-module,
+body[data-theme="dark"] .a11y-overview.aqg-module,
+body[data-color-scheme="dark"] .a11y-overview.aqg-module,
+.typo3-backend-dark .a11y-overview.aqg-module,
+.theme-dark .a11y-overview.aqg-module,
+.t3js-theme-dark .a11y-overview.aqg-module {
+    @include aqg-dark-tokens();
+}
+
+/* TYPO3 13/14 render no data-color-scheme attribute for the default "auto" scheme, so the OS preference decides.
+   Auto + dark must get the explicit Dark tokens; an explicit Light choice stays authoritative. */
+@media (prefers-color-scheme: dark) {
+    html:not([data-color-scheme="light"]) .a11y-page-detail.aqg-module,
+    html:not([data-color-scheme="light"]) .a11y-overview.aqg-module,
+    html:not([data-color-scheme="light"]) .a11y-settings.aqg-module {
+        @include aqg-dark-tokens();
+    }
 }
 
 /* Final runtime P0 overrides imported after all module views. Keep hardcoded colors because TYPO3 14 fresh/auto can resolve variables to the wrong palette on initial dark load. */
@@ -504,10 +527,9 @@ body[data-color-scheme="dark"] .aqg-module,
     @include aqg-p0-pro-dark-cards();
 }
 
+/* Auto scheme (no data-color-scheme attribute) follows the OS preference; an explicit Light choice wins. */
 @media (prefers-color-scheme: dark) {
-    html[data-theme="fresh"][data-color-scheme="auto"] .aqg-module,
-    html[data-color-scheme="auto"] .aqg-module,
-    .aqg-module {
+    html:not([data-color-scheme="light"]) .aqg-module {
         @include aqg-p0-pro-dark-cards();
     }
 }

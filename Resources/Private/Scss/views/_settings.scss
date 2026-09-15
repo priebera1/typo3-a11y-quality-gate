@@ -212,7 +212,7 @@
     .aqg-textarea:focus {
       outline: none;
       border-color: var(--aqi-focus);
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+      box-shadow: var(--aqi-focus-ring);
     }
     .aqg-input:disabled,
     .aqg-select:disabled,
@@ -256,7 +256,7 @@
     }
     .aqg-inputgroup:focus-within {
       border-color: var(--aqi-focus);
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+      box-shadow: var(--aqi-focus-ring);
     }
     .aqg-inputgroup__prefix {
       display: inline-flex;
@@ -301,7 +301,7 @@
     }
     .aqg-inputgroup__btn:focus-visible {
       outline: none;
-      box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--aqi-focus) 55%, transparent);
+      box-shadow: var(--aqi-focus-ring-inset);
     }
 
     /* validation result line beneath the input-group */
@@ -405,7 +405,7 @@
       background: var(--aqi-surface);
     }
     .aqg-switch__input:focus-visible + .aqg-switch .aqg-switch__track {
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+      box-shadow: var(--aqi-focus-ring);
     }
     .aqg-switch__body {
       display: flex;
@@ -510,7 +510,7 @@
     .aqg-radio-card:focus-visible {
       outline: none;
       border-color: var(--aqi-focus);
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+      box-shadow: var(--aqi-focus-ring);
     }
     .aqg-radio-card.is-active {
       border-color: var(--aqi-fg);
@@ -1315,7 +1315,7 @@
 
     .aqg-tab:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
     }
 
     .btn {
@@ -1405,7 +1405,7 @@
     .aqg-field-row:focus-within,
     .aqg-radio-card:focus-within {
         outline: none;
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
         z-index: 1;
     }
 
@@ -2551,7 +2551,7 @@
     .aqg-scope__card:focus-visible {
         outline: none;
         border-color: var(--aqi-focus);
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
     }
 
     .aqg-scope__card.is-active,
@@ -2929,7 +2929,7 @@
     .aqg-remote-access .aqg-remote-textarea:focus {
         outline: none;
         border-color: var(--aqi-focus);
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
     }
 
 /* Settings · rules management */
@@ -2987,7 +2987,7 @@
     .aqg-rules-toolbar__search input:focus {
         outline: none;
         border-color: var(--aqi-focus);
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
     }
 
     .aqg-rules-toolbar__filters {
@@ -3348,7 +3348,7 @@
     }
 
     .aqg-rule-switch input:focus-visible + .aqg-rule-switch__track {
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
     }
 
     .aqg-rule-row__body {
@@ -3873,7 +3873,7 @@
 
     .aqg-suggest__chip:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+        box-shadow: var(--aqi-focus-ring);
     }
 
     .aqg-suggest__chip-plus {

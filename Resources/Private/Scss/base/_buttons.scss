@@ -1,3 +1,4 @@
+/* Shared AQG button family for every AQG module root; hierarchy comes from the variant class. */
 .aqg-module .btn,
 .a11y-page-detail .btn {
     display: inline-flex;
@@ -14,6 +15,7 @@
     text-decoration: none;
     box-shadow: none;
     white-space: nowrap;
+    transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease, box-shadow 80ms ease;
 }
 
 .aqg-module .btn-sm,
@@ -74,17 +76,33 @@
     color: var(--aqi-warn);
 }
 
+.aqg-module .btn-warning:hover,
+.aqg-module .btn-warning:focus,
+.a11y-page-detail .btn-warning:hover,
+.a11y-page-detail .btn-warning:focus {
+    border-color: var(--aqi-warn);
+}
+
 .aqg-module .btn:disabled,
 .aqg-module .btn.disabled,
 .a11y-page-detail .btn:disabled,
 .a11y-page-detail .btn.disabled {
-    opacity: .62;
+    opacity: .55;
     cursor: not-allowed;
     pointer-events: none;
 }
 
+/* WCAG 2.4.7 / 1.4.11: the shared, contrast-verified AQG focus ring (see typo3/_theme-tokens.scss). */
 .aqg-module .btn:focus-visible,
 .a11y-page-detail .btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+    box-shadow: var(--aqi-focus-ring);
+}
+
+/* Forced-colors mode drops box-shadow; without this AQG controls would lose their focus indicator there. */
+@media (forced-colors: active) {
+    .aqg-module :focus-visible {
+        outline: 2px solid CanvasText !important;
+        outline-offset: 1px;
+    }
 }

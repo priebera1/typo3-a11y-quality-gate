@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\Pro\Exception\ProNotConfiguredException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
@@ -16,6 +17,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsController]
 final class RemoteScreenshotController extends AbstractApiController
@@ -79,11 +82,13 @@ final class RemoteScreenshotController extends AbstractApiController
             return $this->badRequestResponse('Missing remotePageUid');
         }
 
-        if (!$this->canAccessRemotePage($remotePageUid)) {
-            return $this->forbiddenResponse();
-        }
-
+        // Messages from the licence and crawler chain carry crawler URLs, response bodies and token
+        // metadata, and database errors carry SQL. They are logged; the client gets a fixed text.
         try {
+            if (!$this->canAccessRemotePage($remotePageUid)) {
+                return $this->forbiddenResponse();
+            }
+
             $result = $this->remoteScreenshotService->fetchScreenshotByRemotePageUid($remotePageUid);
 
             if (!is_array($result)) {
@@ -99,16 +104,30 @@ final class RemoteScreenshotController extends AbstractApiController
             $response->getBody()->write($result['content']);
 
             return $response;
-        } catch (TokenRefreshException $exception) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => $exception->getMessage(),
-            ], 403);
+        } catch (TokenRefreshException | ProNotConfiguredException $exception) {
+            $this->logScreenshotFailure($remotePageUid, $exception);
+            return $this->forbiddenResponse('Screenshot is not available for the current licence.');
         } catch (\Throwable $exception) {
+            $this->logScreenshotFailure($remotePageUid, $exception);
             return $this->jsonResponse([
                 'success' => false,
-                'error' => $exception->getMessage(),
+                'error' => 'Screenshot could not be loaded.',
             ], 500);
+        }
+    }
+
+    private function logScreenshotFailure(int $remotePageUid, \Throwable $exception): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->warning('AQG remote screenshot request failed', [
+                    'remotePageUid' => $remotePageUid,
+                    'exceptionClass' => $exception::class,
+                    'exceptionMessage' => $exception->getMessage(),
+                ]);
+        } catch (\Throwable) {
+            // Logging must never replace the bounded response with a raw error.
         }
     }
 }

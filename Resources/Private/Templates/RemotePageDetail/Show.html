@@ -557,7 +557,10 @@
                                                         </f:if>
                                                         <f:if condition="{issue.help_url}">
                                                             <a href="{issue.help_url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-default">
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.ruleDocs" default="axe-core docs" />
+                                                                <core:icon identifier="actions-window-open" size="small" />
+                                                                <span>
+                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.ruleDocs" default="Rule documentation" />
+                                                                </span>
                                                             </a>
                                                         </f:if>
                                                     </div>

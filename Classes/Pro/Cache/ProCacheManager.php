@@ -85,6 +85,11 @@ final class ProCacheManager
         $this->getCache()->set($cacheKey, $payload, [], max(1, $ttl));
     }
 
+    public function removeDisplayPayload(string $cacheKey): void
+    {
+        $this->getCache()->remove($cacheKey);
+    }
+
     public function flushByPrefix(string $prefix): void
     {
         $this->getCache()->flushByTag($prefix);

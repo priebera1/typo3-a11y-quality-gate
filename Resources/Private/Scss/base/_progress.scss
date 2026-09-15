@@ -261,7 +261,7 @@
 .a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline:focus-visible,
 .a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-err, #c7372f) 18%, transparent);
+  box-shadow: var(--aqi-focus-ring);
 }
 .a11y-overview .aqg-progress-block__cancel.aqg-btn-danger-outline:disabled,
 .a11y-page-detail .aqg-progress-block__cancel.aqg-btn-danger-outline:disabled {

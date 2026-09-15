@@ -4,22 +4,95 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
+use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
+use Priebera\A11yQualityGate\Pro\Exception\ProNotConfiguredException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
+use Psr\Http\Client\ClientExceptionInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class AccessibilityStatementService
 {
-    /** @var array<string, array<string, string>> */
-    private array $translationCache = [];
+    /**
+     * Maximum lengths of the free-text draft fields. TabStatement.html mirrors them as maxlength:
+     * the server rejects longer input instead of cutting a sentence off in a published statement.
+     */
+    public const DRAFT_TEXT_LIMITS = [
+        'websiteName' => 240,
+        'organisation' => 240,
+        'commitmentText' => 1600,
+        'customAccessibilityStandard' => 240,
+        'customMeasure' => 1000,
+        'remediationNote' => 1800,
+        'contactEmail' => 240,
+        'phone' => 120,
+        'postalAddress' => 1000,
+        'responseTime' => 120,
+        'responseNote' => 1000,
+        'compatibleEnvironments' => 1200,
+        'incompatibleEnvironments' => 1000,
+        'evaluationReportUrl' => 600,
+        'approvalOrganisation' => 240,
+        'approvalPerson' => 180,
+        'approvalRole' => 180,
+        'customEnforcementText' => 2000,
+    ];
+
+    private const CONFORMITY_STATUSES = ['not_confirmed', 'not_compliant', 'partially_compliant', 'mostly_compliant'];
+    private const ACCESSIBILITY_STANDARDS = ['wcag22aa', 'wcag21aa', 'en301549', 'custom'];
+    private const ENFORCEMENT_PROCEDURES = ['none', 'generic', 'germany', 'austria', 'custom'];
+    private const MEASURES = ['quality_assurance', 'training', 'release_checks', 'automated_scans', 'manual_reviews', 'feedback_channel'];
+    private const TECHNOLOGIES = ['html', 'wai_aria', 'css', 'javascript', 'pdf', 'media', 'third_party'];
+    private const ASSESSMENT_APPROACHES = ['aqg_automated', 'axe_playwright', 'manual_required', 'manual_review', 'external_audit'];
+    private const SOURCE_TYPES = ['sitemap', 'crawl', 'single_page'];
+
+    /**
+     * Older payload spellings, first match wins (the `??` order the normaliser always used).
+     */
+    private const DRAFT_ALIASES = [
+        'organisation' => ['organisation', 'organization'],
+        'websiteName' => ['websiteName', 'serviceName'],
+        'postalAddress' => ['postalAddress', 'address'],
+        'responseNote' => ['responseNote', 'additionalContactNote'],
+        'approvalOrganisation' => ['approvalOrganisation', 'approvalOrganization'],
+        'conformityStatus' => ['conformityStatus', 'status'],
+        'statusConfirmed' => ['statusConfirmed', 'conformityStatusConfirmed'],
+    ];
+
+    private const DRAFT_FIELD_LABELS = [
+        'websiteName' => 'settings.statement.websiteName',
+        'organisation' => 'settings.statement.organization',
+        'commitmentText' => 'settings.statement.commitment',
+        'statementCreatedDate' => 'settings.statement.createdDate',
+        'customAccessibilityStandard' => 'settings.statement.standard.customLabel',
+        'customMeasure' => 'settings.statement.measure.custom',
+        'remediationNote' => 'settings.statement.remediation.note',
+        'contactEmail' => 'settings.statement.contact.email',
+        'phone' => 'settings.statement.contact.phone',
+        'postalAddress' => 'settings.statement.contact.address',
+        'responseTime' => 'settings.statement.contact.responseTime',
+        'responseNote' => 'settings.statement.contact.note',
+        'compatibleEnvironments' => 'settings.statement.compatible',
+        'incompatibleEnvironments' => 'settings.statement.incompatible',
+        'evaluationReportUrl' => 'settings.statement.evaluationUrl',
+        'approvalOrganisation' => 'settings.statement.approval.organization',
+        'approvalPerson' => 'settings.statement.approval.person',
+        'approvalRole' => 'settings.statement.approval.role',
+        'approvalDate' => 'settings.statement.approval.date',
+        'customEnforcementText' => 'settings.statement.enforcement.customLabel',
+    ];
+
+    private const JOB_ID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i';
 
     public function __construct(
         private readonly ExtensionContextService $extensionContextService,
         private readonly ProCrawlerService $proCrawlerService,
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
         private readonly BackendLanguageService $backendLanguageService,
+        private readonly RemoteScanRepository $remoteScanRepository,
     ) {
     }
 
@@ -27,18 +100,23 @@ final class AccessibilityStatementService
      * @param array<string, mixed> $draftOptions
      * @return array<string, mixed>
      */
-    public function loadByJobId(string $siteBase, string $jobId, string $language = 'en', array $draftOptions = []): array
-    {
+    public function loadByJobId(
+        string $siteBase,
+        string $jobId,
+        string $language = 'en',
+        array $draftOptions = [],
+        string $expectedSiteId = '',
+    ): array {
         $jobId = trim($jobId);
         $language = $this->normalizeStatementLanguage($language);
-        if (trim($siteBase) === '' || $jobId === '') {
-            return $this->emptyStatement($this->t('statement.error.validJobId', $language));
+        if (trim($siteBase) === '' || !$this->isValidJobId($jobId)) {
+            return $this->failure('invalid_job_id', 400, 'statement.error.validJobId');
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyStatement($this->t('statement.error.validDomain', $language));
+                return $this->failure('invalid_domain', 400, 'statement.error.validDomain');
             }
 
             $payload = $this->proCrawlerService->getAccessibilityStatement(
@@ -47,15 +125,50 @@ final class AccessibilityStatementService
                 jobId: $jobId,
                 language: $language,
             );
-        } catch (TokenRefreshException $exception) {
-            $this->logStatementError('AQG accessibility statement request failed', $exception);
-            return $this->emptyStatement($this->mapStatementErrorMessage($exception->getMessage()));
         } catch (\Throwable $exception) {
-            $this->logStatementError('AQG accessibility statement request failed unexpectedly', $exception);
-            return $this->emptyStatement($this->t('statement.error.unavailable', $language));
+            return $this->failFromException('AQG accessibility statement request failed', $exception);
         }
 
-        return $this->normalizeStatementPayload($payload, $language, $draftOptions);
+        return $this->buildStatement($payload, $language, $draftOptions, trim($expectedSiteId));
+    }
+
+    /**
+     * "Latest site scan" is the newest completed paid site scan this installation persisted, the
+     * one the Overview shows. Asking the API for its latest `sitemap` run instead missed every
+     * site scanned by crawling (no sitemap) and could return another installation's run.
+     *
+     * @param array<string, mixed> $draftOptions
+     * @return array<string, mixed>
+     */
+    public function loadLatestSiteScan(string $siteBase, string $siteId, string $language = 'en', array $draftOptions = []): array
+    {
+        $siteId = trim($siteId);
+        if (trim($siteBase) === '' || $siteId === '') {
+            return $this->failure('invalid_site', 400, 'statement.error.validSite');
+        }
+
+        try {
+            $scan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteId, -1, false);
+        } catch (\Throwable $exception) {
+            return $this->failFromException('AQG accessibility statement site scan lookup failed', $exception);
+        }
+
+        $jobId = trim((string)($scan['job_id'] ?? ''));
+        if ($jobId === '') {
+            return $this->failure('no_site_scan', 404, 'settings.statement.error.noSiteScan');
+        }
+
+        return $this->loadByJobId($siteBase, $jobId, $language, $draftOptions, $siteId);
+    }
+
+    public function isValidJobId(string $jobId): bool
+    {
+        return preg_match(self::JOB_ID_PATTERN, trim($jobId)) === 1;
+    }
+
+    public function isValidPageUrl(string $url): bool
+    {
+        return $this->isValidHttpUrl(trim($url));
     }
 
     /**
@@ -76,21 +189,21 @@ final class AccessibilityStatementService
         $language = $this->normalizeStatementLanguage($language);
 
         if (trim($siteBase) === '' || $siteId === '') {
-            return $this->emptyStatement($this->t('statement.error.validSite', $language));
+            return $this->failure('invalid_site', 400, 'statement.error.validSite');
         }
 
-        if (!in_array($sourceType, ['sitemap', 'crawl', 'single_page'], true)) {
-            return $this->emptyStatement($this->t('statement.error.invalidScanType', $language));
+        if (!in_array($sourceType, self::SOURCE_TYPES, true)) {
+            return $this->failure('invalid_scope', 400, 'statement.error.invalidScanType');
         }
 
         if ($sourceType === 'single_page' && $startUrl === '') {
-            return $this->emptyStatement($this->t('statement.error.pageUrlRequired', $language));
+            return $this->failure('page_url_required', 400, 'statement.error.pageUrlRequired');
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyStatement($this->t('statement.error.validDomain', $language));
+                return $this->failure('invalid_domain', 400, 'statement.error.validDomain');
             }
 
             $payload = $this->proCrawlerService->getLatestAccessibilityStatement(
@@ -101,15 +214,11 @@ final class AccessibilityStatementService
                 startUrl: $startUrl,
                 language: $language,
             );
-        } catch (TokenRefreshException $exception) {
-            $this->logStatementError('AQG latest accessibility statement request failed', $exception);
-            return $this->emptyStatement($this->mapStatementErrorMessage($exception->getMessage()));
         } catch (\Throwable $exception) {
-            $this->logStatementError('AQG latest accessibility statement request failed unexpectedly', $exception);
-            return $this->emptyStatement($this->t('statement.error.unavailable', $language));
+            return $this->failFromException('AQG latest accessibility statement request failed', $exception);
         }
 
-        return $this->normalizeStatementPayload($payload, $language, $draftOptions);
+        return $this->buildStatement($payload, $language, $draftOptions, $siteId);
     }
 
     /**
@@ -181,6 +290,203 @@ final class AccessibilityStatementService
     }
 
     /**
+     * @param array<string, string|int> $replacements
+     * @return array<string, mixed>
+     */
+    private function failure(
+        string $code,
+        int $httpStatus,
+        string $messageKey,
+        array $replacements = [],
+        ?int $retryAfter = null,
+    ): array {
+        $statement = $this->emptyStatement($this->uiMessage($messageKey, $replacements));
+        $statement['error'] = [
+            'code' => $code,
+            'httpStatus' => $httpStatus,
+            'retryAfter' => $retryAfter,
+        ];
+
+        return $statement;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function invalidResponse(): array
+    {
+        return $this->failure('invalid_upstream_response', 502, 'settings.statement.error.invalidResponse');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function failFromException(string $logMessage, \Throwable $exception): array
+    {
+        $failure = $this->classifyRequestFailure($exception);
+        $this->logStatementError($logMessage, $exception, (string)($failure['error']['code'] ?? ''));
+
+        return $failure;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $draftOptions
+     * @return array<string, mixed>
+     */
+    private function buildStatement(array $payload, string $language, array $draftOptions, string $expectedSiteId): array
+    {
+        if (isset($payload['data']) && is_array($payload['data'])) {
+            $payload = $payload['data'];
+        }
+
+        $contractFailure = $this->validateStatementPayload($payload);
+        if ($contractFailure !== null) {
+            $this->logStatementWarning('AQG accessibility statement payload rejected', [
+                'reason' => (string)($contractFailure['error']['code'] ?? ''),
+                'contractVersion' => $this->normalizeString($payload['contractVersion'] ?? $payload['contract_version'] ?? '', 40),
+            ]);
+            return $contractFailure;
+        }
+
+        $source = is_array($payload['source'] ?? null) ? $payload['source'] : [];
+        $siteId = $this->normalizeString($source['siteId'] ?? $source['site_id'] ?? '', 80);
+        if ($expectedSiteId !== '' && $siteId !== '' && $siteId !== $expectedSiteId) {
+            return $this->failure('job_site_mismatch', 404, 'settings.statement.error.jobSiteMismatch');
+        }
+
+        return $this->normalizeStatementPayload($payload, $language, $draftOptions);
+    }
+
+    /**
+     * A draft rendered from a partial payload still looks complete while stating wrong facts (no
+     * checked pages, no known barriers), so every field the statement relies on is required.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>|null
+     */
+    private function validateStatementPayload(array $payload): ?array
+    {
+        $contractVersion = $this->normalizeString($payload['contractVersion'] ?? $payload['contract_version'] ?? '', 40);
+        if (preg_match('/^1(?:\.\d+)*$/', $contractVersion) !== 1) {
+            return $this->invalidResponse();
+        }
+
+        $source = $payload['source'] ?? null;
+        $status = $payload['status'] ?? null;
+        $summary = $payload['summary'] ?? null;
+        $knownIssues = $payload['knownIssues'] ?? $payload['known_issues'] ?? null;
+        if (!is_array($source) || !is_array($status) || !is_array($summary) || !is_array($knownIssues)) {
+            return $this->invalidResponse();
+        }
+
+        $sourceType = $this->normalizeString($source['sourceType'] ?? $source['source_type'] ?? '', 40);
+        if (
+            $this->normalizeString($source['jobId'] ?? $source['job_id'] ?? '', 120) === ''
+            || !in_array($sourceType, self::SOURCE_TYPES, true)
+            || $this->normalizeString($source['startUrl'] ?? $source['start_url'] ?? '', 500) === ''
+            || $this->normalizeString($status['statementStatus'] ?? $status['statement_status'] ?? '', 120) === ''
+        ) {
+            return $this->invalidResponse();
+        }
+
+        $pagesScanned = $this->normalizeNullableInt($summary['pagesScanned'] ?? $summary['pages_scanned'] ?? null);
+        $issuesTotal = $this->normalizeNullableInt($summary['issuesTotal'] ?? $summary['issues_total'] ?? null);
+        $topIssueTypes = $knownIssues['topIssueTypes'] ?? $knownIssues['top_issue_types'] ?? null;
+        if ($pagesScanned === null || $issuesTotal === null || !is_array($topIssueTypes)) {
+            return $this->invalidResponse();
+        }
+
+        if ($pagesScanned < 1) {
+            return $this->failure('scan_without_pages', 422, 'settings.statement.error.scanWithoutPages');
+        }
+
+        // Findings without their issue types would publish an empty list of known barriers.
+        if ($issuesTotal > 0 && $topIssueTypes === []) {
+            return $this->invalidResponse();
+        }
+
+        return null;
+    }
+
+    /**
+     * Decided from the structured status and code of the failed response, never from its
+     * diagnostic message: that message embeds the request URL, job ID and token length, and their
+     * digits were read as HTTP statuses (a job ID containing "404" reported a rate limit as a
+     * missing scan).
+     *
+     * @return array<string, mixed>
+     */
+    private function classifyRequestFailure(\Throwable $exception): array
+    {
+        if ($exception instanceof ProNotConfiguredException) {
+            return $this->failure('licence_unavailable', 403, 'statement.error.licenceUnavailable');
+        }
+
+        $apiException = $this->findApiRequestFailure($exception);
+        if ($apiException === null) {
+            // The licence API refused the token without an HTTP failure, or something unexpected broke.
+            return $exception instanceof TokenRefreshException
+                ? $this->failure('licence_unavailable', 403, 'statement.error.licenceUnavailable')
+                : $this->failure('statement_failed', 500, 'settings.statement.error.unavailable');
+        }
+
+        $status = $apiException->httpStatus;
+        $code = strtolower(trim($apiException->apiErrorCode));
+
+        if ($status === 429 || in_array($code, ['rate_limit_exceeded', 'rate_limited'], true)) {
+            $retryAfter = max(1, min(3600, $apiException->retryAfter ?? 60));
+            return $this->failure('rate_limited', 429, 'settings.statement.error.rateLimited', ['seconds' => $retryAfter], $retryAfter);
+        }
+        if ($code === 'accessibility_statement_disabled') {
+            return $this->failure('statement_disabled', 503, 'settings.statement.error.serviceDisabled');
+        }
+        if ($status === 0) {
+            // No HTTP answer at all (connection, timeout) versus an answer that was not usable JSON.
+            return $apiException->getPrevious() instanceof ClientExceptionInterface
+                ? $this->failure('upstream_unavailable', 503, 'settings.statement.error.serviceUnavailable')
+                : $this->invalidResponse();
+        }
+        if ($status === 401 || $status === 403) {
+            return $this->failure('licence_unavailable', 403, 'statement.error.licenceUnavailable');
+        }
+
+        $requestErrorKey = match ($code) {
+            'invalid_job_id' => 'statement.error.validJobId',
+            'missing_start_url' => 'statement.error.pageUrlRequired',
+            'invalid_source_type_filter' => 'statement.error.invalidScanType',
+            'missing_site_context' => 'statement.error.validSite',
+            'unsupported_statement_language' => 'statement.error.unsupportedLanguage',
+            default => '',
+        };
+        if ($requestErrorKey !== '') {
+            return $this->failure($code, 400, $requestErrorKey);
+        }
+        if ($status === 404) {
+            return $this->failure('not_found', 404, 'statement.error.notAvailableForScan');
+        }
+        if ($status >= 500) {
+            return $this->failure('upstream_unavailable', 503, 'settings.statement.error.serviceUnavailable');
+        }
+        if ($status >= 400) {
+            return $this->failure('request_rejected', 502, 'settings.statement.error.requestRejected');
+        }
+
+        return $this->invalidResponse();
+    }
+
+    private function findApiRequestFailure(\Throwable $exception): ?ApiRequestFailedException
+    {
+        for ($current = $exception; $current !== null; $current = $current->getPrevious()) {
+            if ($current instanceof ApiRequestFailedException) {
+                return $current;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @param array<string, mixed> $draftOptions
      * @return array<string, mixed>
@@ -199,7 +505,7 @@ final class AccessibilityStatementService
         $knownIssues = $this->normalizeKnownIssues(is_array($payload['knownIssues'] ?? null) ? $payload['knownIssues'] : (is_array($payload['known_issues'] ?? null) ? $payload['known_issues'] : []));
         $limitations = $this->normalizeLimitations(is_array($payload['limitations'] ?? null) ? $payload['limitations'] : []);
         $auditSupport = $this->normalizeAuditSupport(is_array($payload['auditSupport'] ?? null) ? $payload['auditSupport'] : (is_array($payload['audit_support'] ?? null) ? $payload['audit_support'] : []));
-        $draftOptions = $this->normalizeDraftOptions($draftOptions, $summary, $language);
+        $draftOptions = $this->normalizeDraftOptions($draftOptions, $summary, $language, (string)($status['statementStatus'] ?? ''));
 
         if ($auditSupport['notClaimed'] === []) {
             $auditSupport['notClaimed'] = [$language === 'de'
@@ -332,29 +638,248 @@ final class AccessibilityStatementService
      * @param array<string, mixed> $summary
      * @return array<string, mixed>
      */
-    private function normalizeDraftOptions(array $draftOptions, array $summary, string $language): array
+    /**
+     * Authoritative validation of the draft form. The browser checks are a convenience; a request
+     * that fails here generates no statement at all instead of a plausible-looking wrong one.
+     *
+     * @param array<string, mixed> $draftOptions
+     * @return array{field:string,code:string,message:string}|null
+     */
+    public function validateDraftOptions(array $draftOptions): ?array
     {
-        $requestedStatus = strtolower(trim((string)($draftOptions['conformityStatus'] ?? $draftOptions['status'] ?? 'not_confirmed')));
-        if (!in_array($requestedStatus, ['not_confirmed', 'not_compliant', 'partially_compliant', 'mostly_compliant'], true)) {
+        $options = $this->canonicalDraftOptions($draftOptions);
+
+        foreach ([
+            'conformityStatus' => self::CONFORMITY_STATUSES,
+            'accessibilityStandard' => self::ACCESSIBILITY_STANDARDS,
+            'enforcementProcedure' => self::ENFORCEMENT_PROCEDURES,
+        ] as $field => $allowed) {
+            $value = $options[$field] ?? null;
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                continue;
+            }
+            if (!is_string($value) || !in_array(strtolower(trim($value)), $allowed, true)) {
+                return $this->draftError($field, 'invalid_option', 'settings.statement.validation.invalidOption');
+            }
+        }
+
+        foreach ([
+            'measures' => self::MEASURES,
+            'technologies' => self::TECHNOLOGIES,
+            'assessmentApproach' => self::ASSESSMENT_APPROACHES,
+        ] as $field => $allowed) {
+            $value = $options[$field] ?? null;
+            if ($value === null) {
+                continue;
+            }
+            if (!is_array($value)) {
+                return $this->draftError($field, 'invalid_option', 'settings.statement.validation.invalidOption');
+            }
+            foreach ($value as $item) {
+                if (!is_string($item) || !in_array($item, $allowed, true)) {
+                    return $this->draftError($field, 'invalid_option', 'settings.statement.validation.invalidOption');
+                }
+            }
+        }
+
+        foreach (['statusConfirmed', 'manualReviewPerformed'] as $field) {
+            $value = $options[$field] ?? null;
+            if ($value !== null && filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) === null) {
+                return $this->draftError($field, 'invalid_option', 'settings.statement.validation.invalidOption');
+            }
+        }
+
+        foreach (self::DRAFT_TEXT_LIMITS as $field => $limit) {
+            $value = $options[$field] ?? null;
+            if ($value === null) {
+                continue;
+            }
+            if (!is_scalar($value)) {
+                return $this->draftError($field, 'invalid_option', 'settings.statement.validation.invalidOption');
+            }
+            if (mb_strlen(trim((string)$value)) > $limit) {
+                return $this->draftError($field, 'too_long', 'settings.statement.validation.tooLong', [
+                    'field' => $this->draftFieldLabel($field),
+                    'max' => $limit,
+                ]);
+            }
+        }
+
+        $dates = [];
+        foreach (['statementCreatedDate', 'approvalDate'] as $field) {
+            $value = $options[$field] ?? null;
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                continue;
+            }
+            $date = is_string($value) ? $this->parseDraftDate($value) : null;
+            if ($date === null) {
+                return $this->draftError($field, 'invalid_date', 'settings.statement.validation.invalidDate', [
+                    'field' => $this->draftFieldLabel($field),
+                ]);
+            }
+            $dates[$field] = $date;
+        }
+        if (isset($dates['statementCreatedDate'], $dates['approvalDate']) && $dates['approvalDate'] < $dates['statementCreatedDate']) {
+            return $this->draftError('approvalDate', 'date_order', 'settings.statement.validation.dateOrder');
+        }
+
+        $status = strtolower(trim((string)($options['conformityStatus'] ?? '')));
+        if ($status !== '' && $status !== 'not_confirmed' && !filter_var($options['statusConfirmed'] ?? false, FILTER_VALIDATE_BOOL)) {
+            return $this->draftError('statusConfirmed', 'status_not_confirmed', 'settings.statement.validation.confirmStatus');
+        }
+
+        if (
+            strtolower(trim((string)($options['accessibilityStandard'] ?? ''))) === 'custom'
+            && trim((string)($options['customAccessibilityStandard'] ?? '')) === ''
+        ) {
+            return $this->draftError('customAccessibilityStandard', 'custom_standard_missing', 'settings.statement.validation.customStandard');
+        }
+
+        if (
+            strtolower(trim((string)($options['enforcementProcedure'] ?? ''))) === 'custom'
+            && trim((string)($options['customEnforcementText'] ?? '')) === ''
+        ) {
+            return $this->draftError('customEnforcementText', 'custom_enforcement_missing', 'settings.statement.validation.customEnforcement');
+        }
+
+        $email = trim((string)($options['contactEmail'] ?? ''));
+        if ($email !== '' && !$this->isValidEmail($email)) {
+            return $this->draftError('contactEmail', 'invalid_email', 'settings.statement.validation.invalidEmail');
+        }
+
+        $reportUrl = trim((string)($options['evaluationReportUrl'] ?? ''));
+        if ($reportUrl !== '' && !$this->isValidHttpUrl($reportUrl)) {
+            return $this->draftError('evaluationReportUrl', 'invalid_url', 'settings.statement.validation.invalidUrl');
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $draftOptions
+     * @return array<string, mixed>
+     */
+    private function canonicalDraftOptions(array $draftOptions): array
+    {
+        foreach (self::DRAFT_ALIASES as $canonical => $aliases) {
+            $value = null;
+            foreach ($aliases as $alias) {
+                if (isset($draftOptions[$alias])) {
+                    $value = $draftOptions[$alias];
+                    break;
+                }
+            }
+            foreach ($aliases as $alias) {
+                unset($draftOptions[$alias]);
+            }
+            if ($value !== null) {
+                $draftOptions[$canonical] = $value;
+            }
+        }
+
+        return $draftOptions;
+    }
+
+    /**
+     * @param array<string, string|int> $replacements
+     * @return array{field:string,code:string,message:string}
+     */
+    private function draftError(string $field, string $code, string $messageKey, array $replacements = []): array
+    {
+        return [
+            'field' => $field,
+            'code' => $code,
+            'message' => $this->uiMessage($messageKey, $replacements),
+        ];
+    }
+
+    private function draftFieldLabel(string $field): string
+    {
+        $key = self::DRAFT_FIELD_LABELS[$field] ?? '';
+
+        return $key !== '' ? $this->uiMessage($key) : $field;
+    }
+
+    /**
+     * Dates come from `<input type="date">` as ISO strings. Impossible, pre-2000 and future dates
+     * are rejected; one day of tolerance covers editors ahead of the server's time zone.
+     */
+    private function parseDraftDate(string $value): ?\DateTimeImmutable
+    {
+        $value = trim($value);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        if (!$date instanceof \DateTimeImmutable || $date->format('Y-m-d') !== $value) {
+            return null;
+        }
+
+        if ($date < new \DateTimeImmutable('2000-01-01') || $date > new \DateTimeImmutable('tomorrow')) {
+            return null;
+        }
+
+        return $date;
+    }
+
+    private function formatDraftDate(mixed $value): string
+    {
+        $date = is_string($value) ? $this->parseDraftDate($value) : null;
+
+        return $date !== null ? $date->format('d.m.Y') : '';
+    }
+
+    private function isValidEmail(string $email): bool
+    {
+        // The pattern is the browser check; validEmail() adds the RFC rules the pattern lets through.
+        return preg_match('/^[^\s@]+@[^\s@]+\.[^\s@]+$/u', $email) === 1 && GeneralUtility::validEmail($email);
+    }
+
+    private function isValidHttpUrl(string $url): bool
+    {
+        if ($url === '' || preg_match('/\s/u', $url) === 1) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return false;
+        }
+
+        return in_array(strtolower((string)($parts['scheme'] ?? '')), ['http', 'https'], true)
+            && trim((string)($parts['host'] ?? '')) !== '';
+    }
+
+    /**
+     * @param array<string, mixed> $draftOptions
+     * @param array<string, mixed> $summary
+     * @return array<string, mixed>
+     */
+    private function normalizeDraftOptions(array $draftOptions, array $summary, string $language, string $statementStatus = ''): array
+    {
+        $draftOptions = $this->canonicalDraftOptions($draftOptions);
+        $requestedStatus = strtolower(trim((string)($draftOptions['conformityStatus'] ?? 'not_confirmed')));
+        if (!in_array($requestedStatus, self::CONFORMITY_STATUSES, true)) {
             $requestedStatus = 'not_confirmed';
         }
-        $statusConfirmed = filter_var($draftOptions['statusConfirmed'] ?? $draftOptions['conformityStatusConfirmed'] ?? false, FILTER_VALIDATE_BOOL);
-        $suggestedStatus = $this->suggestConformityStatus($summary['score'] ?? null);
+        $statusConfirmed = filter_var($draftOptions['statusConfirmed'] ?? false, FILTER_VALIDATE_BOOL);
+        $suggestedStatus = $this->suggestConformityStatus($summary['score'] ?? null, $statementStatus);
         $resolvedStatus = $statusConfirmed ? $requestedStatus : 'not_confirmed';
 
         $enforcement = strtolower(trim((string)($draftOptions['enforcementProcedure'] ?? 'generic')));
-        if (!in_array($enforcement, ['none', 'generic', 'germany', 'austria', 'custom'], true)) {
+        if (!in_array($enforcement, self::ENFORCEMENT_PROCEDURES, true)) {
             $enforcement = 'generic';
         }
 
         $standard = strtolower(trim((string)($draftOptions['accessibilityStandard'] ?? 'wcag22aa')));
-        if (!in_array($standard, ['wcag22aa', 'wcag21aa', 'en301549', 'custom'], true)) {
+        if (!in_array($standard, self::ACCESSIBILITY_STANDARDS, true)) {
             $standard = 'wcag22aa';
         }
 
-        $organisation = $this->normalizeString($draftOptions['organisation'] ?? $draftOptions['organization'] ?? '', 240);
+        $organisation = $this->normalizeString($draftOptions['organisation'] ?? '', 240);
         $contactEmail = $this->normalizeString($draftOptions['contactEmail'] ?? '', 240);
-        $websiteName = $this->normalizeString($draftOptions['websiteName'] ?? $draftOptions['serviceName'] ?? '', 240);
+        $websiteName = $this->normalizeString($draftOptions['websiteName'] ?? '', 240);
         $commitmentText = $this->normalizeString($draftOptions['commitmentText'] ?? '', 1600);
         if ($commitmentText === '') {
             $commitmentText = $language === 'de'
@@ -364,14 +889,18 @@ final class AccessibilityStatementService
         $organisationPlaceholder = $this->t('statement.placeholder.organisation', $language);
         $commitmentText = str_replace(['[Organization]', '[Organisation]'], $organisation !== '' ? $organisation : $organisationPlaceholder, $commitmentText);
 
-        $selectedMeasures = $this->normalizeStringList($draftOptions['measures'] ?? [], 12, 120);
-        $selectedTechnologies = $this->normalizeStringList($draftOptions['technologies'] ?? [], 12, 120);
+        // An empty selection is the editor's decision; only a request without the field gets the
+        // form's defaults. Re-adding deselected measures would publish claims nobody made.
+        $selectedMeasures = isset($draftOptions['measures'])
+            ? $this->normalizeStringList($draftOptions['measures'], 12, 120)
+            : ['automated_scans', 'feedback_channel'];
+        $selectedTechnologies = isset($draftOptions['technologies'])
+            ? $this->normalizeStringList($draftOptions['technologies'], 12, 120)
+            : ['html', 'css', 'javascript'];
         $selectedAssessmentApproach = $this->normalizeStringList($draftOptions['assessmentApproach'] ?? [], 12, 120);
 
+        // A response time is a commitment only the organisation can make, so there is no default.
         $responseTime = $this->normalizeString($draftOptions['responseTime'] ?? '', 120);
-        if ($responseTime === '') {
-            $responseTime = $this->t('statement.default.responseTime', $language);
-        }
 
         $remediationNote = $this->normalizeString($draftOptions['remediationNote'] ?? '', 1800);
         if ($remediationNote === '') {
@@ -393,7 +922,7 @@ final class AccessibilityStatementService
             'organisation' => $organisation,
             'organisationPlaceholder' => $organisationPlaceholder,
             'commitmentText' => $commitmentText,
-            'statementCreatedDate' => $this->normalizeString($draftOptions['statementCreatedDate'] ?? '', 120),
+            'statementCreatedDate' => $this->formatDraftDate($draftOptions['statementCreatedDate'] ?? ''),
             'accessibilityStandard' => $standard,
             'accessibilityStandardLabel' => $this->mapAccessibilityStandardLabel($standard, $this->normalizeString($draftOptions['customAccessibilityStandard'] ?? '', 240), $language),
             'customAccessibilityStandard' => $this->normalizeString($draftOptions['customAccessibilityStandard'] ?? '', 240),
@@ -403,12 +932,12 @@ final class AccessibilityStatementService
             'suggestedConformityStatus' => $suggestedStatus,
             'suggestedConformityStatusLabel' => $this->mapConformityStatusLabel($suggestedStatus, $language),
             'conformityStatusLabel' => $this->mapConformityStatusLabel($resolvedStatus, $language),
-            'conformityStatusText' => $this->mapConformityStatusText($resolvedStatus, $language, $statusConfirmed),
+            'conformityStatusText' => $this->mapConformityStatusText($resolvedStatus, $language, $statusConfirmed, $statementStatus),
             'conformityStatusWarning' => $language === 'de'
                 ? $this->t('statement.conformance.warning', 'de')
                 : $this->t('statement.conformance.warning', 'en'),
             'organisationMissing' => $organisation === '',
-            'selectedMeasures' => $selectedMeasures !== [] ? $selectedMeasures : ['automated_scans', 'feedback_channel'],
+            'selectedMeasures' => $selectedMeasures,
             'customMeasure' => $this->normalizeString($draftOptions['customMeasure'] ?? '', 1000),
             'remediationNote' => $remediationNote,
             'contactEmail' => $contactEmail,
@@ -419,21 +948,26 @@ final class AccessibilityStatementService
             'contactMissing' => $organisation === '' || $contactEmail === '',
             'compatibleEnvironments' => $compatibleEnvironments,
             'incompatibleEnvironments' => $this->normalizeString($draftOptions['incompatibleEnvironments'] ?? '', 1000),
-            'selectedTechnologies' => $selectedTechnologies !== [] ? $selectedTechnologies : ['html', 'css', 'javascript'],
+            'selectedTechnologies' => $selectedTechnologies,
             'selectedAssessmentApproach' => $selectedAssessmentApproach !== [] ? $selectedAssessmentApproach : ['aqg_automated', 'axe_playwright', 'manual_required'],
             'manualReviewPerformed' => filter_var($draftOptions['manualReviewPerformed'] ?? false, FILTER_VALIDATE_BOOL) || in_array('manual_review', $selectedAssessmentApproach, true),
             'evaluationReportUrl' => $this->normalizePublicUrl($draftOptions['evaluationReportUrl'] ?? ''),
             'approvalOrganisation' => $this->normalizeString($draftOptions['approvalOrganisation'] ?? $draftOptions['approvalOrganization'] ?? '', 240),
             'approvalPerson' => $this->normalizeString($draftOptions['approvalPerson'] ?? '', 180),
             'approvalRole' => $this->normalizeString($draftOptions['approvalRole'] ?? '', 180),
-            'approvalDate' => $this->normalizeString($draftOptions['approvalDate'] ?? '', 120),
+            'approvalDate' => $this->formatDraftDate($draftOptions['approvalDate'] ?? ''),
             'enforcementProcedure' => $enforcement,
             'customEnforcementText' => $this->normalizeString($draftOptions['customEnforcementText'] ?? '', 2000),
         ];
     }
 
-    private function suggestConformityStatus(mixed $score): string
+    private function suggestConformityStatus(mixed $score, string $statementStatus = ''): string
     {
+        // Pages that could not be checked leave the automated signal without a basis for a suggestion.
+        if ($statementStatus === 'scan_failed_or_incomplete') {
+            return 'not_confirmed';
+        }
+
         $score = $this->normalizeNullableInt($score);
         if ($score === null) {
             return 'not_confirmed';
@@ -475,12 +1009,15 @@ final class AccessibilityStatementService
                 : '',
         ];
 
-        $sections[] = [
-            'key' => 'measures',
-            'heading' => $this->t('statement.section.measures', $language),
-            'body' => $this->t('statement.body.measures', $language, ['organisation' => $organisationLabel, 'website' => $websiteName]),
-            'list' => $this->buildMeasuresList($draftOptions, $language),
-        ];
+        $measures = $this->buildMeasuresList($draftOptions, $language);
+        if ($measures !== []) {
+            $sections[] = [
+                'key' => 'measures',
+                'heading' => $this->t('statement.section.measures', $language),
+                'body' => $this->t('statement.body.measures', $language, ['organisation' => $organisationLabel, 'website' => $websiteName]),
+                'list' => $measures,
+            ];
+        }
 
         $sections[] = [
             'key' => 'scope',
@@ -515,13 +1052,21 @@ final class AccessibilityStatementService
         ];
 
         $topIssueLines = $this->formatTopIssueLines($knownIssues['topIssueTypes'] ?? [], $language);
-        $sections[] = [
-            'key' => 'known_limitations',
-            'heading' => $this->t('statement.section.knownLimitations', $language),
-            'body' => $this->t('statement.body.knownLimitations', $language),
-            'list' => $topIssueLines !== [] ? $topIssueLines : [$this->t('statement.body.noTopIssues', $language)],
-            'warning' => $this->t('statement.body.knownLimitationsWarning', $language),
-        ];
+        $sections[] = $topIssueLines !== []
+            ? [
+                'key' => 'known_limitations',
+                'heading' => $this->t('statement.section.knownLimitations', $language),
+                'body' => $this->t('statement.body.knownLimitations', $language),
+                'list' => $topIssueLines,
+                'warning' => $this->t('statement.body.knownLimitationsWarning', $language),
+            ]
+            : [
+                // Only a scan without findings gets here (the payload check rejects findings without
+                // issue types), so the body must not announce a list of identified issues.
+                'key' => 'known_limitations',
+                'heading' => $this->t('statement.section.knownLimitations', $language),
+                'body' => $this->t('statement.body.noTopIssues', $language),
+            ];
 
         $sections[] = [
             'key' => 'alternatives_remediation',
@@ -546,12 +1091,15 @@ final class AccessibilityStatementService
             'warning' => (string)($draftOptions['incompatibleEnvironments'] ?? ''),
         ];
 
-        $sections[] = [
-            'key' => 'technical_specifications',
-            'heading' => $this->t('statement.section.technicalSpecifications', $language),
-            'body' => $this->t('statement.body.technicalSpecifications', $language, ['website' => $websiteName]),
-            'list' => $this->buildTechnologyList($draftOptions, $language),
-        ];
+        $technologies = $this->buildTechnologyList($draftOptions, $language);
+        if ($technologies !== []) {
+            $sections[] = [
+                'key' => 'technical_specifications',
+                'heading' => $this->t('statement.section.technicalSpecifications', $language),
+                'body' => $this->t('statement.body.technicalSpecifications', $language, ['website' => $websiteName]),
+                'list' => $technologies,
+            ];
+        }
 
         $sections[] = [
             'key' => 'assessment_approach',
@@ -752,11 +1300,8 @@ final class AccessibilityStatementService
     private function normalizePublicUrl(mixed $value): string
     {
         $url = $this->normalizeString($value, 600);
-        if ($url === '') {
-            return '';
-        }
-        $scheme = strtolower((string)(parse_url($url, PHP_URL_SCHEME) ?: ''));
-        return in_array($scheme, ['http', 'https'], true) ? $url : '';
+
+        return $this->isValidHttpUrl($url) ? $url : '';
     }
 
     /**
@@ -783,7 +1328,7 @@ final class AccessibilityStatementService
         if ($custom !== '') {
             $items[] = $custom;
         }
-        return $items !== [] ? $items : [$labels['automated_scans'], $labels['feedback_channel']];
+        return $items;
     }
 
     /**
@@ -807,7 +1352,7 @@ final class AccessibilityStatementService
                 $items[] = $labels[$key];
             }
         }
-        return $items !== [] ? $items : [$labels['html'], $labels['css'], $labels['javascript']];
+        return $items;
     }
 
     /**
@@ -870,10 +1415,10 @@ final class AccessibilityStatementService
         $parts = [];
         $parts[] = '<article class="aqg-accessibility-statement">';
         $parts[] = '<h1>' . $this->escape($title) . '</h1>';
-        $parts[] = '<p class="aqg-statement-lead">' . $this->escape($this->t('statement.lead', $language)) . '</p>';
         $parts[] = '<section class="aqg-statement-meta">';
         $parts[] = '<dl>';
         $this->appendHtmlDefinition($parts, $this->t('statement.label.website', $language), $website);
+        $this->appendHtmlDefinition($parts, $this->t('statement.meta.created', $language), (string)($draftOptions['statementCreatedDate'] ?? ''));
         $this->appendHtmlDefinition($parts, $this->t('statement.meta.generated', $language), $generatedAtFormatted);
         $this->appendHtmlDefinition($parts, $this->t('statement.meta.scanned', $language), $scannedAt);
         $this->appendHtmlDefinition($parts, $this->t('statement.label.status', $language), (string)($status['statementStatusLabel'] ?? ''));
@@ -895,7 +1440,8 @@ final class AccessibilityStatementService
             if ($list !== []) {
                 $parts[] = '<ul>';
                 foreach ($list as $item) {
-                    $item = $this->normalizeString($item, 500);
+                    // At least the longest list input (customMeasure), so no accepted text is cut here.
+                    $item = $this->normalizeString($item, self::DRAFT_TEXT_LIMITS['customMeasure']);
                     if ($item !== '') {
                         $parts[] = '<li>' . $this->escape($item) . '</li>';
                     }
@@ -957,6 +1503,7 @@ final class AccessibilityStatementService
         $status = is_array($statement['status'] ?? null) ? $statement['status'] : [];
         $lines = [$title, ''];
         $this->appendTextLine($lines, $this->t('statement.label.website', $language), $this->normalizeString($source['startUrl'] ?? $source['siteId'] ?? '', 500));
+        $this->appendTextLine($lines, $this->t('statement.meta.created', $language), (string)($draftOptions['statementCreatedDate'] ?? ''));
         $this->appendTextLine($lines, $this->t('statement.meta.generated', $language), (string)($statement['generatedAtFormatted'] ?? ''));
         $this->appendTextLine($lines, $this->t('statement.meta.scanned', $language), $this->normalizeString($source['scannedAtFormatted'] ?? '', 80));
         $this->appendTextLine($lines, $this->t('statement.label.status', $language), (string)($status['statementStatusLabel'] ?? ''));
@@ -975,7 +1522,7 @@ final class AccessibilityStatementService
                 $lines[] = $body;
             }
             foreach ((is_array($section['list'] ?? null) ? $section['list'] : []) as $item) {
-                $item = $this->normalizeString($item, 500);
+                $item = $this->normalizeString($item, self::DRAFT_TEXT_LIMITS['customMeasure']);
                 if ($item !== '') {
                     $lines[] = '- ' . $item;
                 }
@@ -1046,10 +1593,15 @@ final class AccessibilityStatementService
         };
     }
 
-    private function mapConformityStatusText(string $status, string $language, bool $statusConfirmed): string
+    private function mapConformityStatusText(string $status, string $language, bool $statusConfirmed, string $statementStatus = ''): string
     {
+        // The unconfirmed wording must match the scan: "issues found" on a clean scan is a false claim.
         if (!$statusConfirmed || $status === 'not_confirmed') {
-            return $this->t('statement.conformance.text.safe', $language);
+            return match ($statementStatus) {
+                'draft_no_issues_found' => $this->t('statement.conformance.text.safeNoIssues', $language),
+                'scan_failed_or_incomplete' => $this->t('statement.conformance.text.safeIncomplete', $language),
+                default => $this->t('statement.conformance.text.safe', $language),
+            };
         }
 
         return match ($status) {
@@ -1377,111 +1929,81 @@ final class AccessibilityStatementService
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
-    private function mapStatementErrorMessage(string $message): string
-    {
-        $normalized = strtolower($message);
-
-        if (str_contains($normalized, '401') || str_contains($normalized, '403')) {
-            return $this->t('statement.error.licenceUnavailable', 'en');
-        }
-        if (str_contains($normalized, 'unsupported_statement_language')) {
-            return $this->t('statement.error.unsupportedLanguage', 'en');
-        }
-        if (str_contains($normalized, 'invalid_job_id')) {
-            return $this->t('statement.error.jobNotFound', 'en');
-        }
-        if (str_contains($normalized, 'missing_starturl') || str_contains($normalized, 'missing_start_url')) {
-            return $this->t('statement.error.pageUrlRequired', 'en');
-        }
-        if (str_contains($normalized, 'invalid_sourcetype') || str_contains($normalized, 'invalid_source_type')) {
-            return $this->t('statement.error.invalidScanType', 'en');
-        }
-        if (str_contains($normalized, '404') || str_contains($normalized, 'not_found')) {
-            return $this->t('statement.error.notAvailableForScan', 'en');
-        }
-
-        return $this->t('statement.error.unavailable', 'en');
-    }
-
-
     /**
+     * Statement content in the statement's language. A missing German label falls back to English;
+     * a missing key stays visible instead of borrowing the backend user's language.
+     *
      * @param array<string, string|int|float> $replacements
      */
     private function t(string $key, string $language = 'en', array $replacements = []): string
     {
         $language = $this->normalizeStatementLanguage($language);
-        $catalogue = $this->loadStatementTranslations($language);
-        $fallbackCatalogue = $language === 'en' ? $catalogue : $this->loadStatementTranslations('en');
-        $value = $catalogue[$key] ?? $fallbackCatalogue[$key] ?? $this->backendLanguageService->translate($key);
-        if ($value === '' || $value === $key) {
-            $value = $fallbackCatalogue[$key] ?? $key;
+        $value = $this->backendLanguageService->translateForLanguage($key, $language);
+        if ($value === '' && $language !== 'en') {
+            $value = $this->backendLanguageService->translateForLanguage($key, 'en');
+        }
+        if ($value === '') {
+            $value = $key;
         }
 
-        foreach ($replacements as $placeholder => $replacement) {
-            $value = str_replace('{' . $placeholder . '}', (string)$replacement, $value);
-        }
+        // Label markup first, values second: a user value containing "{page}" or "\n" stays literal.
+        $value = str_replace(['\\n', '{page}', '{pages}'], ["\n", '{PAGENO}', '{nb}'], $value);
 
-        return str_replace(['\\n', '{page}', '{pages}'], ["\n", '{PAGENO}', '{nb}'], $value);
+        return $this->replacePlaceholders($value, $replacements);
     }
 
     /**
-     * @return array<string, string>
+     * Messages for the editor use the backend user's language, unlike the statement content.
+     *
+     * @param array<string, string|int|float> $replacements
      */
-    /**
-     * @return array<string, string>
-     */
-    private function loadStatementTranslations(string $language): array
+    private function uiMessage(string $key, array $replacements = []): string
     {
-        $language = $this->normalizeStatementLanguage($language);
-        if (isset($this->translationCache[$language])) {
-            return $this->translationCache[$language];
+        $value = $this->backendLanguageService->translate($key);
+        if ($value === '' || $value === $key || str_starts_with($value, 'LLL:')) {
+            return $this->t($key, 'en', $replacements);
         }
 
-        $file = $language === 'de' ? 'de.locallang.xlf' : 'locallang.xlf';
-        $path = GeneralUtility::getFileAbsFileName('EXT:a11y_quality_gate/Resources/Private/Language/' . $file);
-        if ($path === '' || !is_file($path) || !is_readable($path)) {
-            $this->translationCache[$language] = [];
-            return [];
-        }
-
-        $content = file_get_contents($path);
-        if (!is_string($content) || $content === '') {
-            $this->translationCache[$language] = [];
-            return [];
-        }
-
-        $catalogue = [];
-        if (preg_match_all('/<trans-unit\s+id="([^"]+)"[^>]*>(.*?)<\/trans-unit>/s', $content, $matches, PREG_SET_ORDER) > 0) {
-            foreach ($matches as $match) {
-                $id = html_entity_decode((string)$match[1], ENT_QUOTES | ENT_XML1, 'UTF-8');
-                $body = (string)$match[2];
-                $source = '';
-                $target = '';
-                if (preg_match('/<source>(.*?)<\/source>/s', $body, $sourceMatch) === 1) {
-                    $source = html_entity_decode(trim(strip_tags((string)$sourceMatch[1])), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                }
-                if (preg_match('/<target[^>]*>(.*?)<\/target>/s', $body, $targetMatch) === 1) {
-                    $target = html_entity_decode(trim(strip_tags((string)$targetMatch[1])), ENT_QUOTES | ENT_XML1, 'UTF-8');
-                }
-                if ($id !== '') {
-                    $catalogue[$id] = $language === 'de' && $target !== '' ? $target : $source;
-                }
-            }
-        }
-
-        $this->translationCache[$language] = $catalogue;
-        return $catalogue;
+        return $this->replacePlaceholders($value, $replacements);
     }
 
-    private function logStatementError(string $message, \Throwable $exception): void
+    /**
+     * One pass, so a value that itself contains "{website}" is never expanded a second time.
+     *
+     * @param array<string, string|int|float> $replacements
+     */
+    private function replacePlaceholders(string $value, array $replacements): string
+    {
+        if ($replacements === []) {
+            return $value;
+        }
+
+        $map = [];
+        foreach ($replacements as $placeholder => $replacement) {
+            $map['{' . $placeholder . '}'] = (string)$replacement;
+        }
+
+        return strtr($value, $map);
+    }
+
+    private function logStatementError(string $message, \Throwable $exception, string $failureCode = ''): void
+    {
+        $this->logStatementWarning($message, [
+            'failureCode' => $failureCode,
+            'exception' => get_class($exception),
+            'message' => $exception->getMessage(),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logStatementWarning(string $message, array $context): void
     {
         try {
             GeneralUtility::makeInstance(LogManager::class)
                 ->getLogger(self::class)
-                ->warning($message, [
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                ]);
+                ->warning($message, $context);
         } catch (\Throwable) {
             // Logging must never break the backend module.
         }

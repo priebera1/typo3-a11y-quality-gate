@@ -1,3 +1,11 @@
+const REQUEST_TIMEOUT_MS = 60000;
+
+/**
+ * An error whose message may be shown as is: it is the server's bounded message or one of this
+ * module's translated messages, never text from the browser's network stack.
+ */
+class StatementRequestError extends Error {}
+
 class AqgStatementSettings {
   constructor(root) {
     this.root = root;
@@ -55,6 +63,8 @@ class AqgStatementSettings {
     this.currentHtml = '';
     this.currentText = '';
     this.lastPayload = null;
+    this.generating = false;
+    this.preparingPdf = false;
     this.messages = this.root?.dataset || {};
 
     this.resetResultState();
@@ -208,8 +218,13 @@ class AqgStatementSettings {
   }
 
   validatePayload(payload) {
-    if (payload.scope === 'latest_page' && !payload.startUrl) {
-      return this.message('PageUrl');
+    if (payload.scope === 'latest_page') {
+      if (!payload.startUrl) {
+        return this.message('PageUrl');
+      }
+      if (!this.isHttpUrl(payload.startUrl)) {
+        return this.message('InvalidPageUrl');
+      }
     }
     if (payload.scope === 'specific_job' && !payload.jobId) {
       return this.message('JobId');
@@ -223,7 +238,7 @@ class AqgStatementSettings {
     if (payload.draftOptions.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.draftOptions.contactEmail)) {
       return this.message('InvalidEmail');
     }
-    if (payload.draftOptions.evaluationReportUrl && !/^https?:\/\//i.test(payload.draftOptions.evaluationReportUrl)) {
+    if (payload.draftOptions.evaluationReportUrl && !this.isHttpUrl(payload.draftOptions.evaluationReportUrl)) {
       return this.message('InvalidUrl');
     }
     if (payload.draftOptions.accessibilityStandard === 'custom' && !payload.draftOptions.customAccessibilityStandard) {
@@ -232,53 +247,96 @@ class AqgStatementSettings {
     return '';
   }
 
+  // Same rule as the server: an absolute http(s) URL with a host and without whitespace.
+  isHttpUrl(value) {
+    if (typeof value !== 'string' || value === '' || /\s/.test(value)) {
+      return false;
+    }
+    try {
+      const url = new URL(value);
+      return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname !== '';
+    } catch (error) {
+      return false;
+    }
+  }
+
   async generate() {
-    if (!this.generateUrl || !this.generateButton) {
+    if (!this.generateUrl || !this.generateButton || this.generating) {
       return;
     }
 
     const payload = this.buildPayload();
+    // Every attempt starts without a statement: once the form has changed, an earlier result must
+    // no longer be exportable as if it described the current input.
+    this.resetGeneratedResultOnly();
     const validationError = this.validatePayload(payload);
     if (validationError) {
       this.setStatus(validationError, 'error');
       return;
     }
 
-    this.resetGeneratedResultOnly();
+    this.generating = true;
     this.setStatus(this.message('Generating'), 'running');
     this.generateButton.disabled = true;
     this.generateButton.textContent = this.message('ButtonGenerating');
 
     try {
       const data = await this.postJson(this.generateUrl, payload);
-      this.lastPayload = payload;
-      this.renderStatement(data.statement || {});
+      const statement = data.statement && typeof data.statement === 'object' ? data.statement : null;
+      // A success envelope without a renderable statement would show an empty draft as generated.
+      if (!statement || statement.available === false || typeof statement.html !== 'string' || statement.html.trim() === '') {
+        throw new StatementRequestError(this.message('Unavailable'));
+      }
+      this.renderStatement(statement, payload);
       this.setStatus(this.message('Generated'), 'ok');
     } catch (error) {
       this.resetGeneratedResultOnly();
-      this.setStatus(error instanceof Error ? error.message : this.message('Unavailable'), 'error');
+      this.setStatus(this.errorMessage(error, 'Unavailable'), 'error');
     } finally {
+      this.generating = false;
       this.generateButton.disabled = false;
       this.generateButton.textContent = this.message('ButtonGenerate');
     }
   }
 
   async postJson(url, payload) {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || this.message('Unavailable'));
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : 0;
+    try {
+      let response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+          signal: controller ? controller.signal : undefined,
+        });
+      } catch (error) {
+        throw new StatementRequestError(this.message('Unavailable'));
+      }
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data || data.success !== true) {
+        throw new StatementRequestError(this.serverMessage(data) || this.message('Unavailable'));
+      }
+      return data;
+    } finally {
+      if (controller) {
+        window.clearTimeout(timer);
+      }
     }
-    return data;
+  }
+
+  serverMessage(data) {
+    return data && typeof data.message === 'string' ? data.message.trim() : '';
+  }
+
+  errorMessage(error, fallbackName) {
+    return error instanceof StatementRequestError && error.message ? error.message : this.message(fallbackName);
   }
 
   resetGeneratedResultOnly() {
@@ -293,18 +351,21 @@ class AqgStatementSettings {
     if (this.pdfButton) this.pdfButton.disabled = true;
   }
 
-  renderStatement(statement) {
+  renderStatement(statement, payload) {
     const source = statement.source && typeof statement.source === 'object' ? statement.source : {};
     const status = statement.status && typeof statement.status === 'object' ? statement.status : {};
 
-    this.currentHtml = typeof statement.html === 'string' ? statement.html : '';
-    this.currentText = typeof statement.text === 'string' ? statement.text : this.buildPlainTextFallback(statement);
+    this.currentHtml = statement.html;
+    this.currentText = typeof statement.text === 'string' && statement.text !== '' ? statement.text : this.buildPlainTextFallback(statement);
+    // The PDF must describe the previewed scan, not whichever scan is the latest when it is requested.
+    this.lastPayload = this.buildPdfPayload(payload, source);
 
     if (this.source) {
       const sourceBits = [];
-      if (source.siteId) sourceBits.push(`Site: ${source.siteId}`);
-      if (source.sourceType) sourceBits.push(`Scope: ${source.sourceType}`);
-      if (source.scannedAtFormatted) sourceBits.push(`Scanned: ${source.scannedAtFormatted}`);
+      if (source.siteId) sourceBits.push(`${this.message('SourceSite')}: ${source.siteId}`);
+      const scopeLabel = this.mapSourceTypeLabel(source.sourceType);
+      if (scopeLabel) sourceBits.push(`${this.message('SourceScope')}: ${scopeLabel}`);
+      if (source.scannedAtFormatted) sourceBits.push(`${this.message('SourceScanned')}: ${source.scannedAtFormatted}`);
       this.source.textContent = sourceBits.length > 0 ? sourceBits.join(' · ') : this.message('SourceFallback');
     }
 
@@ -333,6 +394,29 @@ class AqgStatementSettings {
       this.empty.hidden = true;
     }
     this.result?.removeAttribute('hidden');
+  }
+
+  buildPdfPayload(payload, source) {
+    const jobId = typeof source.jobId === 'string' ? source.jobId.trim() : '';
+    if (jobId === '') {
+      return payload;
+    }
+    const pinned = { ...payload, scope: 'specific_job', jobId };
+    delete pinned.startUrl;
+    return pinned;
+  }
+
+  mapSourceTypeLabel(sourceType) {
+    switch (sourceType) {
+      case 'sitemap':
+        return this.message('SourceTypeSitemap');
+      case 'crawl':
+        return this.message('SourceTypeCrawl');
+      case 'single_page':
+        return this.message('SourceTypeSinglePage');
+      default:
+        return '';
+    }
   }
 
   async copyHtml() {
@@ -386,27 +470,36 @@ class AqgStatementSettings {
   }
 
   async downloadPdf() {
-    if (!this.pdfUrl || !this.lastPayload || !this.pdfButton) {
+    if (!this.pdfUrl || !this.lastPayload || !this.pdfButton || this.preparingPdf) {
       return;
     }
+    this.preparingPdf = true;
     this.pdfButton.disabled = true;
     const originalLabel = this.pdfButton.textContent || this.message('ButtonDownloadPdf');
     this.pdfButton.textContent = this.message('PreparingPdf');
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : 0;
     try {
-      const response = await fetch(this.pdfUrl, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/pdf, application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify(this.lastPayload),
-      });
+      let response;
+      try {
+        response = await fetch(this.pdfUrl, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/pdf, application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(this.lastPayload),
+          signal: controller ? controller.signal : undefined,
+        });
+      } catch (error) {
+        throw new StatementRequestError(this.message('PdfUnavailable'));
+      }
       const contentType = response.headers.get('content-type') || '';
       if (!response.ok || !contentType.includes('application/pdf')) {
-        const error = contentType.includes('application/json') ? await response.json().catch(() => ({})) : {};
-        throw new Error(error.message || this.message('PdfUnavailable'));
+        const error = contentType.includes('application/json') ? await response.json().catch(() => null) : null;
+        throw new StatementRequestError(this.serverMessage(error) || this.message('PdfUnavailable'));
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -419,8 +512,12 @@ class AqgStatementSettings {
       URL.revokeObjectURL(url);
       this.setStatus(this.message('PdfDownloaded'), 'ok');
     } catch (error) {
-      this.setStatus(error instanceof Error ? error.message : this.message('PdfUnavailable'), 'error');
+      this.setStatus(this.errorMessage(error, 'PdfUnavailable'), 'error');
     } finally {
+      if (controller) {
+        window.clearTimeout(timer);
+      }
+      this.preparingPdf = false;
       this.pdfButton.disabled = this.currentHtml === '';
       this.pdfButton.textContent = originalLabel;
     }
@@ -492,6 +589,10 @@ class AqgStatementSettings {
   }
 }
 
+export function initializeStatementSettings(root) {
+  return new AqgStatementSettings(root);
+}
+
 document.querySelectorAll('[data-aqg-statement="true"]').forEach((root) => {
-  new AqgStatementSettings(root);
+  initializeStatementSettings(root);
 });
