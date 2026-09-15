@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.9.4] - 2026-09-15
+
+### Changed
+
+* The Accessibility Statement Draft Assistant uses date pickers for the statement created and approval dates.
+* Documented the Statement Assistant scan scopes, input validation and error handling in the extension manual.
+* Improved visual consistency of AQG backend actions and form controls across Light and Dark modes.
+
+### Fixed
+
+* Fixed the Statement Assistant reporting every failed generation as "not available right now". Temporary request limits, service outages and invalid service responses now show a specific, translated message with retry guidance, and a failed attempt no longer leaves an earlier statement available for copying or download.
+* Fixed "Latest site scan" in the Statement Assistant for sites that are scanned without a sitemap. It now uses the newest completed site scan of the selected site.
+* Fixed Statement Assistant input handling: invalid email addresses and report URLs, unsupported options, impossible or future dates and over-long texts are rejected with a message instead of producing a statement, and long texts are no longer cut off.
+* Improved the accuracy of generated statement drafts: the wording matches the scan result, incomplete scans no longer suggest a conformance status, no response time is added unless one is entered, deselected measures and technologies stay omitted, and the statement created date is included.
+* Fixed statements for a specific job ID accepting a scan of another site, and PDF downloads that could use a newer scan than the previewed statement.
+* Fixed a saved, valid licence being shown as inactive in Settings when the module was opened without a selected page.
+* Fixed the Free Remote Preview daily usage count not updating right after a scan.
+* Improved accessibility of the AQG backend: keyboard focus is visible in Dark mode and in forced-colors (high contrast) mode, the automatic colour scheme uses the correct Dark mode colours while an explicit Light choice is respected, settings tabs stay selected and keyboard-reachable on TYPO3 14, and the language switcher announces the selected language.
+
+### Security
+
+* Hardened remote page screenshots so that a failed screenshot request no longer returns internal error details.
+
 ## [1.9.3] - 2026-09-14
 
 ### Fixed

@@ -159,7 +159,7 @@ final class SettingsController extends AbstractBackendModuleController
             $activeTab = 'licence';
         }
 
-        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier(
+        $proStatus = $this->resolveLicenceStatus(
             $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier
         );
         $remoteAccessAvailable = (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
@@ -613,11 +613,7 @@ final class SettingsController extends AbstractBackendModuleController
     {
         $result = $this->buildAccessibilityStatementFromRequest($request);
         if (!($result['success'] ?? false)) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => (string)($result['message'] ?? $this->translate('settings.statement.error.unavailable')),
-                'statement' => $result['statement'] ?? null,
-            ], (int)($result['statusCode'] ?? 200));
+            return $this->buildStatementFailureResponse($result, 'settings.statement.error.unavailable');
         }
 
         return new JsonResponse([
@@ -630,20 +626,25 @@ final class SettingsController extends AbstractBackendModuleController
     {
         $result = $this->buildAccessibilityStatementFromRequest($request);
         if (!($result['success'] ?? false)) {
-            return new JsonResponse([
-                'success' => false,
-                'message' => (string)($result['message'] ?? $this->translate('settings.statement.error.pdfUnavailable')),
-            ], (int)($result['statusCode'] ?? 200));
+            return $this->buildStatementFailureResponse($result, 'settings.statement.error.pdfUnavailable');
         }
 
         $statement = is_array($result['statement'] ?? null) ? $result['statement'] : [];
         $title = $this->translate('settings.statement.pdf.title');
-        $pdf = $this->pdfGenerator->render(
-            $this->accessibilityStatementService->buildPdfHtml($statement),
-            $title,
-            [],
-            $this->accessibilityStatementService->buildPdfCss(),
-        );
+        try {
+            $pdf = $this->pdfGenerator->render(
+                $this->accessibilityStatementService->buildPdfHtml($statement),
+                $title,
+                [],
+                $this->accessibilityStatementService->buildPdfCss(),
+            );
+        } catch (\Throwable $exception) {
+            $this->logStatementPdfFailure($exception);
+            return $this->buildStatementFailureResponse(
+                ['code' => 'pdf_generation_failed', 'statusCode' => 500],
+                'settings.statement.error.pdfUnavailable'
+            );
+        }
 
         $stream = $this->streamFactory->createStream($pdf);
 
@@ -658,58 +659,97 @@ final class SettingsController extends AbstractBackendModuleController
     }
 
     /**
-     * @return array{success:bool,message?:string,statusCode?:int,statement?:array<string,mixed>}
+     * Failures keep their real HTTP status, so a rate limit (429 + Retry-After) or an upstream
+     * outage (502/503) is never a 200 that only the response body contradicts.
+     *
+     * @param array<string, mixed> $result
+     */
+    private function buildStatementFailureResponse(array $result, string $fallbackMessageKey): ResponseInterface
+    {
+        $status = (int)($result['statusCode'] ?? 503);
+        if ($status < 400 || $status > 599) {
+            $status = 503;
+        }
+        $retryAfter = isset($result['retryAfter']) ? max(1, (int)$result['retryAfter']) : null;
+        $message = trim((string)($result['message'] ?? ''));
+
+        $payload = [
+            'success' => false,
+            'code' => (string)($result['code'] ?? 'statement_unavailable'),
+            'message' => $message !== '' ? $message : $this->translate($fallbackMessageKey),
+        ];
+        if ($retryAfter !== null) {
+            $payload['retryAfter'] = $retryAfter;
+        }
+
+        $response = new JsonResponse($payload, $status);
+
+        return $retryAfter !== null ? $response->withHeader('Retry-After', (string)$retryAfter) : $response;
+    }
+
+    /**
+     * @return array{success:false,code:string,message:string,statusCode:int}
+     */
+    private function statementRequestError(string $code, int $statusCode, string $messageKey): array
+    {
+        return [
+            'success' => false,
+            'code' => $code,
+            'message' => $this->translate($messageKey),
+            'statusCode' => $statusCode,
+        ];
+    }
+
+    private function logStatementPdfFailure(\Throwable $exception): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->warning('AQG accessibility statement PDF rendering failed', [
+                    'exceptionClass' => $exception::class,
+                    'exceptionMessage' => $exception->getMessage(),
+                ]);
+        } catch (\Throwable) {
+            // Logging must never replace the bounded response with a raw error.
+        }
+    }
+
+    /**
+     * @return array{success:bool,message?:string,statusCode?:int,code?:string,retryAfter?:int|null,statement?:array<string,mixed>}
      */
     private function buildAccessibilityStatementFromRequest(ServerRequestInterface $request): array
     {
         $backendUser = $this->backendContextService->getBackendUser();
         if (!$this->accessControlService->canShowSettings($backendUser)) {
-            return [
-                'success' => false,
-                'message' => $this->translate('settings.statement.error.accessDenied'),
-                'statusCode' => 403,
-            ];
+            return $this->statementRequestError('access_denied', 403, 'settings.statement.error.accessDenied');
         }
 
         $body = $this->parseRequestBody($request);
         $siteIdentifier = trim((string)($body['siteId'] ?? $body['siteIdentifier'] ?? ''));
         $scope = trim((string)($body['scope'] ?? 'latest_site'));
-        $sourceType = strtolower(trim((string)($body['sourceType'] ?? '')));
         $startUrl = trim((string)($body['startUrl'] ?? ''));
         $jobId = trim((string)($body['jobId'] ?? ''));
         $language = strtolower(trim((string)($body['language'] ?? 'en')));
         if (!in_array($language, ['en', 'de'], true)) {
-            return [
-                'success' => false,
-                'message' => $this->translate('settings.statement.error.unsupportedLanguage'),
-                'statusCode' => 400,
-            ];
+            return $this->statementRequestError('unsupported_language', 400, 'settings.statement.error.unsupportedLanguage');
+        }
+
+        if (!in_array($scope, ['latest_site', 'latest_page', 'specific_job'], true)) {
+            return $this->statementRequestError('invalid_scope', 400, 'statement.error.invalidScanType');
         }
 
         if ($siteIdentifier === '') {
-            return [
-                'success' => false,
-                'message' => $this->translate('settings.statement.error.chooseSite'),
-                'statusCode' => 400,
-            ];
+            return $this->statementRequestError('site_required', 400, 'settings.statement.error.chooseSite');
         }
 
         $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
         if (!$site instanceof Site) {
-            return [
-                'success' => false,
-                'message' => $this->translate('settings.statement.error.siteNotResolved'),
-                'statusCode' => 400,
-            ];
+            return $this->statementRequestError('site_not_resolved', 400, 'settings.statement.error.siteNotResolved');
         }
 
         $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
         if (!$this->hasStatementGeneratorCapability($proStatus)) {
-            return [
-                'success' => false,
-                'message' => $this->translate('settings.statement.error.proOnly'),
-                'statusCode' => 403,
-            ];
+            return $this->statementRequestError('pro_required', 403, 'settings.statement.error.proOnly');
         }
 
         $draftOptions = is_array($body['draftOptions'] ?? null) ? $body['draftOptions'] : [];
@@ -732,47 +772,56 @@ final class SettingsController extends AbstractBackendModuleController
             }
         }
 
+        // Rejected before any API call: invalid input must not produce a plausible-looking statement.
+        $draftError = $this->accessibilityStatementService->validateDraftOptions($draftOptions);
+        if ($draftError !== null) {
+            return [
+                'success' => false,
+                'code' => $draftError['code'],
+                'message' => $draftError['message'],
+                'statusCode' => 400,
+            ];
+        }
+
         $siteBase = (string)$site->getBase();
         if ($scope === 'specific_job') {
             if ($jobId === '') {
-                return [
-                    'success' => false,
-                    'message' => $this->translate('settings.statement.error.enterJobId'),
-                    'statusCode' => 400,
-                ];
+                return $this->statementRequestError('job_id_required', 400, 'settings.statement.error.enterJobId');
+            }
+            if (!$this->accessibilityStatementService->isValidJobId($jobId)) {
+                return $this->statementRequestError('invalid_job_id', 400, 'statement.error.validJobId');
             }
 
-            $statement = $this->accessibilityStatementService->loadByJobId($siteBase, $jobId, $language, $draftOptions);
-        } else {
-            if ($scope === 'latest_page') {
-                $sourceType = 'single_page';
-                if ($startUrl === '') {
-                    return [
-                        'success' => false,
-                        'message' => $this->translate('settings.statement.error.enterPageUrl'),
-                        'statusCode' => 400,
-                    ];
-                }
-            } else {
-                $sourceType = in_array($sourceType, ['sitemap', 'crawl'], true) ? $sourceType : 'sitemap';
-                $startUrl = '';
+            $statement = $this->accessibilityStatementService->loadByJobId($siteBase, $jobId, $language, $draftOptions, $siteIdentifier);
+        } elseif ($scope === 'latest_page') {
+            if ($startUrl === '') {
+                return $this->statementRequestError('page_url_required', 400, 'settings.statement.error.enterPageUrl');
+            }
+            if (!$this->accessibilityStatementService->isValidPageUrl($startUrl)) {
+                return $this->statementRequestError('invalid_page_url', 400, 'settings.statement.error.invalidPageUrl');
             }
 
             $statement = $this->accessibilityStatementService->loadLatest(
                 siteBase: $siteBase,
                 siteId: $siteIdentifier,
-                sourceType: $sourceType,
+                sourceType: 'single_page',
                 startUrl: $startUrl,
                 language: $language,
                 draftOptions: $draftOptions,
             );
+        } else {
+            $statement = $this->accessibilityStatementService->loadLatestSiteScan($siteBase, $siteIdentifier, $language, $draftOptions);
         }
 
         if (!($statement['available'] ?? false)) {
+            $error = is_array($statement['error'] ?? null) ? $statement['error'] : [];
+
             return [
                 'success' => false,
+                'code' => (string)($error['code'] ?? 'statement_unavailable'),
                 'message' => (string)($statement['message'] ?? $this->translate('settings.statement.error.unavailable')),
-                'statement' => $statement,
+                'statusCode' => (int)($error['httpStatus'] ?? 503),
+                'retryAfter' => isset($error['retryAfter']) ? (int)$error['retryAfter'] : null,
             ];
         }
 
@@ -1675,25 +1724,51 @@ final class SettingsController extends AbstractBackendModuleController
 
     private function resolveValidationDomain(?Site $site): string
     {
+        $site = $this->resolveLicenceSite($site);
+
+        return $site instanceof Site
+            ? $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$site->getBase())
+            : '';
+    }
+
+    /**
+     * The site a licence is validated and displayed for: the request's own site, otherwise the first
+     * configured site with a host. Validate (Ajax, which carries no page context) and the Settings
+     * status must resolve the same site, or a key Validate has just accepted renders as INACTIVE.
+     */
+    private function resolveLicenceSite(?Site $site): ?Site
+    {
         if ($site instanceof Site) {
-            return $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$site->getBase());
+            return $site;
         }
 
         try {
             foreach ($this->siteFinder->getAllSites() as $candidate) {
-                if (!$candidate instanceof Site) {
-                    continue;
-                }
-
-                $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$candidate->getBase());
-                if ($domain !== '') {
-                    return $domain;
+                if (
+                    $candidate instanceof Site
+                    && $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$candidate->getBase()) !== ''
+                ) {
+                    return $candidate;
                 }
             }
         } catch (\Throwable) {
         }
 
-        return '';
+        return null;
+    }
+
+    /**
+     * Settings opened without a page or site (e.g. from the Overview's "Select a page" state) has no
+     * site identifier. Resolving an empty one validated the persisted key for an empty domain, which
+     * the API always rejects, so a valid saved key rendered as INACTIVE until a page was selected.
+     */
+    private function resolveLicenceStatus(string $siteIdentifier): object
+    {
+        if ($siteIdentifier !== '') {
+            return $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+        }
+
+        return $this->proStatusResolverService->resolveForSite($this->resolveLicenceSite(null));
     }
 
     private function buildValidationReasonLabel(LicenceValidationResult $result): ?string

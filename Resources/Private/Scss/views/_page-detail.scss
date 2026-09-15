@@ -303,7 +303,7 @@
 .a11y-page-detail .aqg-textarea:focus {
     outline: none;
     border-color: var(--aqi-focus);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+    box-shadow: var(--aqi-focus-ring);
 }
 
 .a11y-page-detail .aqg-issue__meta {
@@ -697,7 +697,7 @@ details[open] .a11y-details-summary__toggle {
 .a11y-page-detail .aqg-issue__select:focus-visible {
     outline: none;
     border-color: var(--aqi-focus);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+    box-shadow: var(--aqi-focus-ring);
 }
 
 .a11y-page-detail .aqg-issue__select.is-checked {
@@ -764,7 +764,7 @@ details[open] .a11y-details-summary__toggle {
 .a11y-page-detail .aqg-issue-group__select-all:focus-visible {
     outline: none;
     border-color: var(--aqi-focus);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+    box-shadow: var(--aqi-focus-ring);
 }
 
 .a11y-page-detail .aqg-rule-action {
@@ -797,7 +797,7 @@ details[open] .a11y-details-summary__toggle {
 /* WCAG 2.4.7: keyboard focus must be distinguishable from hover, so keep the standard AQG ring. */
 .a11y-page-detail .aqg-rule-action:focus-visible {
     border-color: var(--aqi-focus);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+    box-shadow: var(--aqi-focus-ring);
 }
 
 .a11y-page-detail .aqg-rule-action__plus {
@@ -1038,7 +1038,7 @@ details[open] .a11y-details-summary__toggle {
 .a11y-page-detail .aqg-bulkconfirm__textarea:focus {
     outline: none;
     border-color: var(--aqi-focus);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+    box-shadow: var(--aqi-focus-ring);
 }
 
 .a11y-page-detail .aqg-bulkconfirm__error {
@@ -1151,7 +1151,7 @@ details[open] .a11y-details-summary__toggle {
 .aqg-expiry__chip:focus-visible {
   outline: none;
   border-color: var(--aqi-focus);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+  box-shadow: var(--aqi-focus-ring);
 }
 .aqg-expiry__chip.is-active {
   background: var(--aqi-fg);
@@ -1203,7 +1203,7 @@ details[open] .a11y-details-summary__toggle {
 .aqg-expiry__custom-date:focus {
   outline: none;
   border-color: var(--aqi-focus);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqi-focus) 25%, transparent);
+  box-shadow: var(--aqi-focus-ring);
 }
 .aqg-expiry__custom-helper {
   grid-column: 1 / -1;

@@ -13,6 +13,7 @@ use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 use Priebera\A11yQualityGate\Pro\Dto\AccessTokenResult;
+use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResponseDto;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Http\AqgCrawlerClient;
 
@@ -84,6 +85,53 @@ final class FreeEntitlementStatusCacheTest extends TestCase
         $forced = $service->getEntitlementStatus(self::SITE_URL, self::SITE_ID, self::VERSION, true);
 
         self::assertFalse($forced['fromCache']);
+    }
+
+    #[Test]
+    public function aSuccessfulFreeSubmitMakesTheNextRenderShowTheConsumedCredit(): void
+    {
+        $crawler = $this->createMock(AqgCrawlerClient::class);
+        $crawler->expects(self::exactly(2))
+            ->method('entitlementStatus')
+            ->willReturnOnConsecutiveCalls($this->freePayload(1), $this->freePayload(2));
+        $crawler->method('submitFree')->willReturn(
+            new CrawlerSubmitResponseDto(true, 'job-1', 'queued', 'single_page', null, null, null)
+        );
+
+        $service = $this->service($crawler, new InMemoryDisplayCache(), true);
+
+        self::assertSame(1, $service->getEntitlementStatus(self::SITE_URL, self::SITE_ID, self::VERSION)['jobsUsed']);
+        $service->submit(self::SITE_URL, self::SITE_ID, self::SITE_URL . 'page/', self::VERSION, 'idempotency-1');
+        $after = $service->getEntitlementStatus(self::SITE_URL, self::SITE_ID, self::VERSION);
+
+        self::assertFalse($after['fromCache'], 'A consumed credit must not be hidden behind the display cache.');
+        self::assertSame(2, $after['jobsUsed']);
+    }
+
+    #[Test]
+    public function aDailyLimitRejectionMakesTheNextRenderShowTheUsedState(): void
+    {
+        $crawler = $this->createMock(AqgCrawlerClient::class);
+        $crawler->expects(self::exactly(2))
+            ->method('entitlementStatus')
+            ->willReturnOnConsecutiveCalls($this->freePayload(4), $this->freePayload(5, false));
+        $crawler->method('submitFree')->willThrowException(
+            new ApiRequestFailedException('Daily limit reached.', 429, null, 'free_daily_limit_reached')
+        );
+
+        $service = $this->service($crawler, new InMemoryDisplayCache(), true);
+        self::assertSame('FREE_AVAILABLE', $service->getEntitlementStatus(self::SITE_URL, self::SITE_ID, self::VERSION)['state']);
+
+        try {
+            $service->submit(self::SITE_URL, self::SITE_ID, self::SITE_URL . 'page/', self::VERSION, 'idempotency-6');
+            self::fail('A daily-limit rejection must surface as a Free Preview error.');
+        } catch (FreePreviewException $exception) {
+            self::assertStringContainsString('daily scan limit', $exception->getMessage());
+        }
+
+        $after = $service->getEntitlementStatus(self::SITE_URL, self::SITE_ID, self::VERSION);
+        self::assertFalse($after['fromCache'], 'A stale "available" state must not survive a limit rejection.');
+        self::assertSame('FREE_USED_TODAY', $after['state']);
     }
 
     #[Test]
@@ -223,16 +271,16 @@ final class FreeEntitlementStatusCacheTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function freePayload(): array
+    private function freePayload(int $jobsUsed = 1, bool $available = true): array
     {
         return [
             'entitlement' => 'free_daily',
             'remoteCrawlerVisible' => true,
             'freeDaily' => [
-                'available' => true,
-                'jobsUsed' => 1,
+                'available' => $available,
+                'jobsUsed' => $jobsUsed,
                 'jobsLimit' => 5,
-                'pagesUsed' => 1,
+                'pagesUsed' => $jobsUsed,
                 'pagesLimit' => 5,
                 'resetsAt' => '2026-09-08T00:00:00.000Z',
             ],
@@ -240,8 +288,11 @@ final class FreeEntitlementStatusCacheTest extends TestCase
         ];
     }
 
-    private function service(AqgCrawlerClient $crawler, InMemoryDisplayCache $store): FreeRemotePreviewService
-    {
+    private function service(
+        AqgCrawlerClient $crawler,
+        InMemoryDisplayCache $store,
+        bool $withInvalidation = false,
+    ): FreeRemotePreviewService {
         $token = $this->createMock(FreeAccessTokenService::class);
         $token->method('getValidToken')->willReturn(new AccessTokenResult(
             'jwt',
@@ -253,7 +304,16 @@ final class FreeEntitlementStatusCacheTest extends TestCase
             ['crawler_submit', 'crawler_status', 'crawler_results', 'crawler_summary'],
         ));
 
-        return new FreeRemotePreviewService($token, $crawler, $this->identity(), $this->cacheDouble($store));
+        $cache = $this->cacheDouble($store);
+        if ($withInvalidation) {
+            $cache->method('removeDisplayPayload')->willReturnCallback(
+                static function (string $key) use ($store): void {
+                    $store->remove($key);
+                }
+            );
+        }
+
+        return new FreeRemotePreviewService($token, $crawler, $this->identity(), $cache);
     }
 
     private function cacheDouble(InMemoryDisplayCache $store): ProCacheManager
@@ -304,6 +364,11 @@ final class InMemoryDisplayCache
     public function set(string $cacheKey, array $payload, int $ttl): void
     {
         $this->store[$cacheKey] = ['payload' => $payload, 'ttl' => max(1, $ttl)];
+    }
+
+    public function remove(string $cacheKey): void
+    {
+        unset($this->store[$cacheKey]);
     }
 
     /**

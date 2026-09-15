@@ -89,6 +89,49 @@ final class ModuleTextContrastTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function schemeProvider(): iterable
+    {
+        yield 'light' => ['light'];
+        yield 'dark' => ['dark'];
+    }
+
+    /**
+     * WCAG 2.1 AA 1.4.11: a focus indicator is a UI state and needs >= 3:1 against the surface around it.
+     * --aqi-focus used to follow --typo3-state-primary-bg, which TYPO3 13 / 14 resolve to #174482 / #311f7a in
+     * dark mode (below 2:1 on AQG's dark surfaces), so it has to stay a literal this test can measure.
+     */
+    #[Test]
+    #[DataProvider('schemeProvider')]
+    public function focusIndicatorColourClearsNonTextContrastOnEveryAqgSurface(string $scheme): void
+    {
+        $value = $this->tokenValue($scheme, '--aqi-focus');
+
+        self::assertMatchesRegularExpression(
+            '/^#[0-9a-f]{6}$/i',
+            $value,
+            sprintf('--aqi-focus must be a literal colour in the %s block; host primaries go dark in dark mode.', $scheme)
+        );
+
+        foreach ($this->surfacesFor($scheme) as $surface) {
+            $ratio = $this->contrastRatio($value, $surface);
+
+            self::assertGreaterThanOrEqual(
+                3.0,
+                $ratio,
+                sprintf(
+                    'WCAG AA 1.4.11: --aqi-focus (%s) on %s in the %s block is %.2f:1, below 3:1.',
+                    $value,
+                    $surface,
+                    $scheme,
+                    $ratio
+                )
+            );
+        }
+    }
+
     #[Test]
     public function mutedStaysMoreProminentThanSubtle(): void
     {

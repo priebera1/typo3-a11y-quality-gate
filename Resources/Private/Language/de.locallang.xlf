@@ -271,8 +271,8 @@
                 <target>Erwartete Antwortzeit</target>
             </trans-unit>
             <trans-unit id="settings.statement.contact.responseTime.placeholder">
-                <source>5 business days</source>
-                <target>5 Werktage</target>
+                <source>e.g. 5 business days</source>
+                <target>z. B. 5 Werktage</target>
             </trans-unit>
             <trans-unit id="settings.statement.contact.note">
                 <source>Additional contact note</source>
@@ -498,6 +498,58 @@
                 <source>Enter a custom accessibility standard or choose one of the predefined standards.</source>
                 <target>Geben Sie einen benutzerdefinierten Standard ein oder wählen Sie einen vordefinierten Standard.</target>
             </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidOption">
+                <source>The form contains an unsupported option. Reload the page and try again.</source>
+                <target>Das Formular enthält eine nicht unterstützte Option. Laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.tooLong">
+                <source>“{field}” is too long (maximum {max} characters).</source>
+                <target>„{field}“ ist zu lang (höchstens {max} Zeichen).</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidDate">
+                <source>“{field}” must be a valid date that is not in the future.</source>
+                <target>„{field}“ muss ein gültiges Datum sein, das nicht in der Zukunft liegt.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.dateOrder">
+                <source>The approval date cannot be earlier than the statement created date.</source>
+                <target>Das Freigabedatum darf nicht vor dem Erstellungsdatum der Erklärung liegen.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.invalidPageUrl">
+                <source>Enter a valid http or https page URL for the latest page scan statement.</source>
+                <target>Geben Sie eine gültige http- oder https-Seiten-URL für die Erklärung aus dem letzten Seitenscan ein.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.rateLimited">
+                <source>The AQG service is limiting requests right now. Try again in about {seconds} seconds.</source>
+                <target>Der AQG-Dienst begrenzt derzeit die Anzahl der Anfragen. Versuchen Sie es in etwa {seconds} Sekunden erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.serviceUnavailable">
+                <source>The AQG service could not be reached or failed while preparing the statement. No statement was generated. Try again in a few minutes.</source>
+                <target>Der AQG-Dienst war nicht erreichbar oder konnte die Erklärung nicht vorbereiten. Es wurde keine Erklärung erstellt. Versuchen Sie es in einigen Minuten erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.invalidResponse">
+                <source>The AQG service returned an incomplete or invalid response. No statement was generated. Try again in a few minutes.</source>
+                <target>Der AQG-Dienst hat eine unvollständige oder ungültige Antwort geliefert. Es wurde keine Erklärung erstellt. Versuchen Sie es in einigen Minuten erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.requestRejected">
+                <source>The AQG service rejected the statement request. No statement was generated.</source>
+                <target>Der AQG-Dienst hat die Anfrage für die Erklärung abgelehnt. Es wurde keine Erklärung erstellt.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.serviceDisabled">
+                <source>Accessibility statement generation is currently disabled on the AQG service.</source>
+                <target>Die Erstellung von Barrierefreiheitserklärungen ist im AQG-Dienst derzeit deaktiviert.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.noSiteScan">
+                <source>No completed remote site scan was found for this site. Run a remote site scan first.</source>
+                <target>Für diese Website wurde keine abgeschlossene Remote-Website-Prüfung gefunden. Führen Sie zuerst eine Remote-Website-Prüfung durch.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.jobSiteMismatch">
+                <source>The selected job ID belongs to a different site. Choose the matching site or another job ID.</source>
+                <target>Die ausgewählte Job-ID gehört zu einer anderen Website. Wählen Sie die passende Website oder eine andere Job-ID.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.scanWithoutPages">
+                <source>The selected scan contains no successfully checked pages. Run a new remote scan before generating a statement.</source>
+                <target>Die ausgewählte Prüfung enthält keine erfolgreich geprüften Seiten. Führen Sie vor dem Erstellen einer Erklärung eine neue Remote-Prüfung durch.</target>
+            </trans-unit>
             <trans-unit id="settings.statement.status.generating">
                 <source>Generating statement…</source>
                 <target>Statement wird generiert…</target>
@@ -642,10 +694,6 @@
                 <source>[Organization] is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying relevant accessibility standards.</source>
                 <target>[Organisation] bemüht sich, ihre digitalen Angebote barrierefrei zugänglich zu machen. Wir verbessern die Nutzungserfahrung kontinuierlich und orientieren uns an den relevanten Barrierefreiheitsstandards.</target>
             </trans-unit>
-            <trans-unit id="statement.default.responseTime">
-                <source>5 business days</source>
-                <target>5 Werktage</target>
-            </trans-unit>
             <trans-unit id="statement.default.remediation">
                 <source>We are reviewing the identified issues and prioritizing fixes for critical and recurring barriers. If you need information in an accessible format, please use the contact details below.</source>
                 <target>Wir prüfen die festgestellten Probleme und priorisieren die Behebung kritischer und wiederkehrender Barrieren. Wenn Sie Informationen in einer barrierefreien Form benötigen, nutzen Sie bitte die unten angegebenen Kontaktmöglichkeiten.</target>
@@ -743,8 +791,28 @@
                 <target>Trotz laufender Bemühungen zur Verbesserung der Barrierefreiheit sind einige Bereiche der Website möglicherweise noch nicht vollständig barrierefrei. Automatisierte Prüfungen haben die folgenden wiederkehrenden Problemtypen festgestellt:</target>
             </trans-unit>
             <trans-unit id="statement.body.noTopIssues">
-                <source>No recurring issue types were included in the API response.</source>
-                <target>Keine wiederkehrenden Problemtypen im API-Ergebnis enthalten.</target>
+                <source>The automated checks did not report recurring issue types for the scanned scope. Manual review may still identify barriers.</source>
+                <target>Die automatisierten Prüfungen haben für den geprüften Umfang keine wiederkehrenden Problemtypen gemeldet. Eine manuelle Prüfung kann dennoch Barrieren aufdecken.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.safeNoIssues">
+                <source>Automated assessment: the automated checks did not detect accessibility issues in the scanned scope.
+
+This draft is based on automated checks only. Automated checks cover only part of the accessibility requirements, so this result does not confirm conformance. A manual review is required before any accessibility or conformance status can be confirmed.</source>
+                <target>Automatisierte Einschätzung: Die automatisierten Prüfungen haben im geprüften Umfang keine Barrierefreiheitsprobleme erkannt.
+
+Dieser Entwurf basiert ausschließlich auf automatisierten Prüfungen. Automatisierte Prüfungen decken nur einen Teil der Barrierefreiheitsanforderungen ab; dieses Ergebnis bestätigt daher keine Konformität. Eine manuelle Prüfung ist erforderlich, bevor ein Barrierefreiheits- oder Konformitätsstatus bestätigt werden kann.</target>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.safeIncomplete">
+                <source>Automated assessment: the automated scan is incomplete because some pages could not be checked.
+
+This draft is based on automated checks only. A manual review is required before any accessibility or conformance status can be confirmed. No final conformance status is confirmed by this automated draft.</source>
+                <target>Automatisierte Einschätzung: Die automatisierte Prüfung ist unvollständig, weil einige Seiten nicht geprüft werden konnten.
+
+Dieser Entwurf basiert ausschließlich auf automatisierten Prüfungen. Eine manuelle Prüfung ist erforderlich, bevor ein Barrierefreiheits- oder Konformitätsstatus bestätigt werden kann. Durch diesen automatisierten Entwurf wird kein finaler Konformitätsstatus bestätigt.</target>
+            </trans-unit>
+            <trans-unit id="statement.meta.created">
+                <source>Statement created</source>
+                <target>Erklärung erstellt am</target>
             </trans-unit>
             <trans-unit id="statement.body.knownLimitationsWarning">
                 <source>These findings were identified by automated testing. Manual review may identify additional barriers or confirm whether individual findings are applicable.</source>
@@ -781,18 +849,18 @@
             <trans-unit id="statement.scope.single">
                 <source>This accessibility statement draft applies to the selected page: {url}
 
-The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+The draft is based on an automated check with Accessibility Quality Gate.</source>
                 <target>Dieser Entwurf bezieht sich auf die ausgewählte Seite: {url}
 
-Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Quality Gate.</target>
+Der Entwurf basiert auf einer automatisierten Prüfung mit Accessibility Quality Gate.</target>
             </trans-unit>
             <trans-unit id="statement.scope.site">
                 <source>This draft accessibility statement applies to the website: {url}
 
-The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+The draft is based on an automated check with Accessibility Quality Gate.</source>
                 <target>Dieser Entwurf einer Barrierefreiheitserklärung bezieht sich auf die Website: {url}
 
-Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Quality Gate.</target>
+Der Entwurf basiert auf einer automatisierten Prüfung mit Accessibility Quality Gate.</target>
             </trans-unit>
             <trans-unit id="statement.title">
                 <source>Draft Accessibility Statement for {website}</source>
@@ -807,8 +875,8 @@ Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Q
                 <target>Erstellt am</target>
             </trans-unit>
             <trans-unit id="statement.meta.scanned">
-                <source>Last automated scan</source>
-                <target>Letzte automatisierte Prüfung</target>
+                <source>Automated scan date</source>
+                <target>Datum der automatisierten Prüfung</target>
             </trans-unit>
             <trans-unit id="statement.audit.heading">
                 <source>Audit support notes</source>
@@ -835,15 +903,15 @@ Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Q
                 <target>Entwurf - Prüfung erforderlich</target>
             </trans-unit>
             <trans-unit id="statement.conformance.label.notCompliant">
-                <source>Not compliant</source>
+                <source>Not conformant</source>
                 <target>Nicht konform</target>
             </trans-unit>
             <trans-unit id="statement.conformance.label.partiallyCompliant">
-                <source>Partially compliant</source>
+                <source>Partially conformant</source>
                 <target>Teilweise konform</target>
             </trans-unit>
             <trans-unit id="statement.conformance.label.mostlyCompliant">
-                <source>Mostly compliant</source>
+                <source>Mostly conformant</source>
                 <target>Überwiegend konform</target>
             </trans-unit>
             <trans-unit id="statement.conformance.label.notConfirmed">
@@ -851,12 +919,12 @@ Der Entwurf basiert auf der letzten automatisierten Prüfung mit Accessibility Q
                 <target>Nicht bestätigt - nur automatisierter Entwurf</target>
             </trans-unit>
             <trans-unit id="statement.conformance.text.safe">
-                <source>Automated assessment: significant accessibility issues found.
+                <source>Automated assessment: accessibility issues found.
 
-This draft is based on automated checks only. A manual review is required before any accessibility or conformity status can be confirmed.
+This draft is based on automated checks only. A manual review is required before any accessibility or conformance status can be confirmed.
 
-Automated checks found accessibility issues that require review and remediation. No final conformity status is confirmed by this automated draft.</source>
-                <target>Automatisierte Einschätzung: Es wurden erhebliche Barrierefreiheitsprobleme gefunden.
+Automated checks found accessibility issues that require review and remediation. No final conformance status is confirmed by this automated draft.</source>
+                <target>Automatisierte Einschätzung: Es wurden Barrierefreiheitsprobleme gefunden.
 
 Dieser Entwurf basiert ausschließlich auf automatisierten Prüfungen. Eine manuelle Prüfung ist erforderlich, bevor ein Barrierefreiheits- oder Konformitätsstatus bestätigt werden kann.
 

@@ -2418,7 +2418,7 @@
                 <source>Expected response time</source>
             </trans-unit>
             <trans-unit id="settings.statement.contact.responseTime.placeholder">
-                <source>5 business days</source>
+                <source>e.g. 5 business days</source>
             </trans-unit>
             <trans-unit id="settings.statement.contact.note">
                 <source>Additional contact note</source>
@@ -2588,6 +2588,45 @@
             <trans-unit id="settings.statement.validation.customStandard">
                 <source>Enter a custom accessibility standard or choose one of the predefined standards.</source>
             </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidOption">
+                <source>The form contains an unsupported option. Reload the page and try again.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.tooLong">
+                <source>“{field}” is too long (maximum {max} characters).</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.invalidDate">
+                <source>“{field}” must be a valid date that is not in the future.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.validation.dateOrder">
+                <source>The approval date cannot be earlier than the statement created date.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.invalidPageUrl">
+                <source>Enter a valid http or https page URL for the latest page scan statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.rateLimited">
+                <source>The AQG service is limiting requests right now. Try again in about {seconds} seconds.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.serviceUnavailable">
+                <source>The AQG service could not be reached or failed while preparing the statement. No statement was generated. Try again in a few minutes.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.invalidResponse">
+                <source>The AQG service returned an incomplete or invalid response. No statement was generated. Try again in a few minutes.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.requestRejected">
+                <source>The AQG service rejected the statement request. No statement was generated.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.serviceDisabled">
+                <source>Accessibility statement generation is currently disabled on the AQG service.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.noSiteScan">
+                <source>No completed remote site scan was found for this site. Run a remote site scan first.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.jobSiteMismatch">
+                <source>The selected job ID belongs to a different site. Choose the matching site or another job ID.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.error.scanWithoutPages">
+                <source>The selected scan contains no successfully checked pages. Run a new remote scan before generating a statement.</source>
+            </trans-unit>
             <trans-unit id="settings.statement.status.generating">
                 <source>Generating statement…</source>
             </trans-unit>
@@ -2696,9 +2735,6 @@
             <trans-unit id="statement.default.commitment">
                 <source>[Organization] is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying relevant accessibility standards.</source>
             </trans-unit>
-            <trans-unit id="statement.default.responseTime">
-                <source>5 business days</source>
-            </trans-unit>
             <trans-unit id="statement.default.remediation">
                 <source>We are reviewing the identified issues and prioritizing fixes for critical and recurring barriers. If you need information in an accessible format, please use the contact details below.</source>
             </trans-unit>
@@ -2772,7 +2808,20 @@
                 <source>Despite ongoing efforts to improve accessibility, some parts of the website may not yet be fully accessible. Automated checks identified the following recurring issue types:</source>
             </trans-unit>
             <trans-unit id="statement.body.noTopIssues">
-                <source>No recurring issue types were included in the API response.</source>
+                <source>The automated checks did not report recurring issue types for the scanned scope. Manual review may still identify barriers.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.safeNoIssues">
+                <source>Automated assessment: the automated checks did not detect accessibility issues in the scanned scope.
+
+This draft is based on automated checks only. Automated checks cover only part of the accessibility requirements, so this result does not confirm conformance. A manual review is required before any accessibility or conformance status can be confirmed.</source>
+            </trans-unit>
+            <trans-unit id="statement.conformance.text.safeIncomplete">
+                <source>Automated assessment: the automated scan is incomplete because some pages could not be checked.
+
+This draft is based on automated checks only. A manual review is required before any accessibility or conformance status can be confirmed. No final conformance status is confirmed by this automated draft.</source>
+            </trans-unit>
+            <trans-unit id="statement.meta.created">
+                <source>Statement created</source>
             </trans-unit>
             <trans-unit id="statement.body.knownLimitationsWarning">
                 <source>These findings were identified by automated testing. Manual review may identify additional barriers or confirm whether individual findings are applicable.</source>
@@ -2801,12 +2850,12 @@
             <trans-unit id="statement.scope.single">
                 <source>This accessibility statement draft applies to the selected page: {url}
 
-The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+The draft is based on an automated check with Accessibility Quality Gate.</source>
             </trans-unit>
             <trans-unit id="statement.scope.site">
                 <source>This draft accessibility statement applies to the website: {url}
 
-The draft is based on the latest automated check with Accessibility Quality Gate.</source>
+The draft is based on an automated check with Accessibility Quality Gate.</source>
             </trans-unit>
             <trans-unit id="statement.title">
                 <source>Draft Accessibility Statement for {website}</source>
@@ -2818,7 +2867,7 @@ The draft is based on the latest automated check with Accessibility Quality Gate
                 <source>Statement generated</source>
             </trans-unit>
             <trans-unit id="statement.meta.scanned">
-                <source>Last automated scan</source>
+                <source>Automated scan date</source>
             </trans-unit>
             <trans-unit id="statement.audit.heading">
                 <source>Audit support notes</source>
@@ -2839,23 +2888,23 @@ The draft is based on the latest automated check with Accessibility Quality Gate
                 <source>Draft - requires review</source>
             </trans-unit>
             <trans-unit id="statement.conformance.label.notCompliant">
-                <source>Not compliant</source>
+                <source>Not conformant</source>
             </trans-unit>
             <trans-unit id="statement.conformance.label.partiallyCompliant">
-                <source>Partially compliant</source>
+                <source>Partially conformant</source>
             </trans-unit>
             <trans-unit id="statement.conformance.label.mostlyCompliant">
-                <source>Mostly compliant</source>
+                <source>Mostly conformant</source>
             </trans-unit>
             <trans-unit id="statement.conformance.label.notConfirmed">
                 <source>Not confirmed - automated draft only</source>
             </trans-unit>
             <trans-unit id="statement.conformance.text.safe">
-                <source>Automated assessment: significant accessibility issues found.
+                <source>Automated assessment: accessibility issues found.
 
-This draft is based on automated checks only. A manual review is required before any accessibility or conformity status can be confirmed.
+This draft is based on automated checks only. A manual review is required before any accessibility or conformance status can be confirmed.
 
-Automated checks found accessibility issues that require review and remediation. No final conformity status is confirmed by this automated draft.</source>
+Automated checks found accessibility issues that require review and remediation. No final conformance status is confirmed by this automated draft.</source>
             </trans-unit>
             <trans-unit id="statement.conformance.text.notCompliant">
                 <source>The selected draft status is: not conformant. This means that the content does not currently conform to the selected accessibility standard. This status was selected by the statement editor and has not been confirmed by a full manual audit unless separately stated.</source>

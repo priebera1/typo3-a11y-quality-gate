@@ -34,6 +34,35 @@ The generator collects, among others:
 *   the approval metadata: organisation, person, role and date,
 *   the enforcement procedure: none, generic, Germany, Austria or custom.
 
+The statement created date and the approval date are chosen with a date picker
+and cannot lie in the future; the approval date cannot precede the created
+date. An expected response time is only included when you enter one.
+
+..  _configuration-statement-scope:
+
+Scan scope
+==========
+
+*   :guilabel:`Latest site scan` uses the newest completed remote site scan
+    (sitemap or crawl) that this installation stored for the selected site.
+*   :guilabel:`Latest page scan` uses the newest completed single-page scan of
+    the entered page URL.
+*   :guilabel:`Specific job ID` must be a completed scan of the selected site.
+
+..  _configuration-statement-validation:
+
+Validation and errors
+=====================
+
+AQG validates the input on the server before any statement is generated.
+Unsupported options, text longer than the field allows, invalid email
+addresses or report URLs, invalid dates and an unconfirmed conformance status
+are rejected with a message; no statement is generated from invalid input.
+
+If the AQG service is temporarily unavailable or limits requests, the message
+says so and when to try again. A failed request never leaves an earlier
+statement available for copying or download.
+
 ..  _configuration-statement-output:
 
 Output

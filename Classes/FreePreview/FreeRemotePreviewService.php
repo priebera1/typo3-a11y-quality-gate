@@ -192,6 +192,9 @@ final class FreeRemotePreviewService
                 $idempotencyKey,
             );
         } catch (ApiRequestFailedException $exception) {
+            if ($this->mayHaveChangedFreeUsage($exception)) {
+                $this->forgetEntitlementStatus($siteUrl, $siteIdentifier);
+            }
             throw $this->mapApiException($exception);
         }
 
@@ -204,7 +207,27 @@ final class FreeRemotePreviewService
             );
         }
 
+        // The API has just consumed a credit: the next render must show it, not the cached count.
+        $this->forgetEntitlementStatus($siteUrl, $siteIdentifier);
+
         return CrawlerSubmitResult::fromResponseDto($response);
+    }
+
+    private function forgetEntitlementStatus(string $siteUrl, string $siteIdentifier): void
+    {
+        $this->cacheManager->removeDisplayPayload($this->buildStatusCacheKey($siteUrl, $siteIdentifier));
+    }
+
+    /**
+     * Rejections the API answers before reserving a credit (proof, idempotency, site, rate limit)
+     * leave the cached count true. A daily-limit rejection proves a cached "available" state wrong,
+     * and a transport error or 5xx does not tell whether the reservation committed before it failed.
+     */
+    private function mayHaveChangedFreeUsage(ApiRequestFailedException $exception): bool
+    {
+        return trim($exception->apiErrorCode) === 'free_daily_limit_reached'
+            || $exception->httpStatus === 0
+            || $exception->httpStatus >= 500;
     }
 
     public function getStatus(string $siteUrl, string $siteIdentifier, string $version, string $jobId): CrawlerStatusResult
