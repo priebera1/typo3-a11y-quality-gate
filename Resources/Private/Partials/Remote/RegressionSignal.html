@@ -1,7 +1,7 @@
 <f:if condition="{alert.available} || {alert.message}">
-    <section class="aqg-regression-signal aqg-regression-signal--{alert.tone}" aria-label="Accessibility change signal" data-dedupe-key="{alert.dedupeKey}">
+    <section class="aqg-regression-signal aqg-regression-signal--{alert.tone}" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.kicker', default: 'Accessibility change signal')}" data-dedupe-key="{alert.dedupeKey}">
         <div class="aqg-regression-signal__copy">
-            <div class="aqg-regression-signal__kicker">Accessibility change signal</div>
+            <div class="aqg-regression-signal__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.kicker" default="Accessibility change signal" /></div>
             <f:if condition="{alert.available}">
                 <f:then>
                     <h2 class="aqg-regression-signal__title">{alert.title}</h2>
@@ -11,18 +11,18 @@
                     </f:if>
 
                     <f:if condition="{alert.hasScanComparison}">
-                        <div class="aqg-regression-signal__comparison" aria-label="Change since previous frontend scan">
+                        <div class="aqg-regression-signal__comparison" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.sincePrevious', default: 'Change since previous frontend scan')}">
                             <div class="aqg-regression-signal__scan-row">
-                                <span class="aqg-regression-signal__scan-label">Previous scan</span>
+                                <span class="aqg-regression-signal__scan-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.previousScan" default="Previous scan" /></span>
                                 <span><f:if condition="{alert.previousScan.finishedAtFormatted}"><f:then>{alert.previousScan.finishedAtFormatted}</f:then><f:else>—</f:else></f:if></span>
-                                <span>{alert.previousScan.findingsLabel} findings</span>
-                                <span>Score {alert.previousScan.scoreLabel}</span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.findings" default="%s findings" arguments="{0: alert.previousScan.findingsLabel}" /></span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.score" default="Score %s" arguments="{0: alert.previousScan.scoreLabel}" /></span>
                             </div>
                             <div class="aqg-regression-signal__scan-row">
-                                <span class="aqg-regression-signal__scan-label">Current scan</span>
+                                <span class="aqg-regression-signal__scan-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.currentScan" default="Current scan" /></span>
                                 <span><f:if condition="{alert.currentScan.finishedAtFormatted}"><f:then>{alert.currentScan.finishedAtFormatted}</f:then><f:else>—</f:else></f:if></span>
-                                <span>{alert.currentScan.findingsLabel} findings</span>
-                                <span>Score {alert.currentScan.scoreLabel}</span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.findings" default="%s findings" arguments="{0: alert.currentScan.findingsLabel}" /></span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.score" default="Score %s" arguments="{0: alert.currentScan.scoreLabel}" /></span>
                             </div>
                             <f:if condition="{alert.hasComparisonRows}">
                                 <dl class="aqg-regression-signal__metrics">
@@ -38,7 +38,7 @@
                     </f:if>
                 </f:then>
                 <f:else>
-                    <h2 class="aqg-regression-signal__title">Regression signal unavailable</h2>
+                    <h2 class="aqg-regression-signal__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.unavailable" default="Regression signal unavailable" /></h2>
                     <p>{alert.message}</p>
                 </f:else>
             </f:if>

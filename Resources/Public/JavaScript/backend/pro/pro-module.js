@@ -583,7 +583,10 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             const restoredSiteIdentifier = String(submitData.siteIdentifier || '').trim();
 
             if (!restoredJobId || !restoredSiteIdentifier) {
-                throw new Error(submitData.error || 'Frontend scan is already active, but restore data is missing.');
+                throw new Error(submitData.error || this.translate(
+                    'notification.proScan.restoreMissing',
+                    'Frontend scan is already active, but restore data is missing.'
+                ));
             }
 
             this.updateRemoteScanDomState({
@@ -627,7 +630,10 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const siteIdentifier = String(submitData.siteIdentifier || '').trim();
 
         if (!jobId || !siteIdentifier) {
-            throw new Error(submitData.error || 'Missing crawler job ID or site identifier');
+            throw new Error(submitData.error || this.translate(
+                'notification.proScan.jobContextMissing',
+                'Missing crawler job ID or site identifier.'
+            ));
         }
 
         this.updateRemoteScanDomState({
@@ -811,7 +817,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             const maxJobsPerDay = Number(details.maxJobsPerDay || 0);
             const template = this.translate(
                 'notification.proScan.trialLimitMessage',
-                'Trial allows %d crawl jobs per 24 hours. Upgrade to PRO for unlimited scanning.'
+                'Trial allows %d crawl jobs per 24 hours. Try again later, or choose a PRO or Agency plan.'
             );
 
             if (maxJobsPerDay > 0) {

@@ -11,6 +11,18 @@ final class RemoteReportingSummaryService
     private const PRIORITY_FIXES_LIMIT = 10;
     private const GUIDANCE_FALLBACK_TEXT = 'Review this finding in context.';
 
+    /**
+     * Nouns passed to countLabel() and their singular/plural translation key prefix.
+     */
+    private const COUNT_LABEL_KEYS = [
+        'item' => 'reporting.count.items',
+        'repeated issue' => 'reporting.count.repeatedIssues',
+        'issue' => 'module.language.issues',
+        'page' => 'module.language.pages',
+        'outline issue' => 'reporting.count.outlineIssues',
+        'heading issue' => 'reporting.count.headingIssues',
+    ];
+
     public function __construct(
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
         private readonly BackendLanguageService $backendLanguageService,
@@ -291,16 +303,22 @@ final class RemoteReportingSummaryService
         return [
             'available' => true,
             'tested' => $tested,
-            'testedLabel' => $tested ? 'Available' : 'Not available',
+            'testedLabel' => $tested
+                ? $this->label('reporting.keyboard.tested', 'Available')
+                : $this->label('reporting.keyboard.notTested', 'Not available'),
             'focusStepsTotal' => max(0, (int)($keyboardSummary['focusStepsTotal'] ?? $keyboardSummary['focus_steps_total'] ?? 0)),
             'uniqueFocusedElementsTotal' => max(0, (int)($keyboardSummary['uniqueFocusedElementsTotal'] ?? $keyboardSummary['unique_focused_elements_total'] ?? 0)),
             'possibleKeyboardTrap' => $possibleKeyboardTrap,
-            'possibleKeyboardTrapLabel' => $possibleKeyboardTrap ? 'Possible trap signal' : 'No trap signal',
+            'possibleKeyboardTrapLabel' => $possibleKeyboardTrap
+                ? $this->label('reporting.keyboard.trap', 'Possible trap signal')
+                : $this->label('reporting.keyboard.noTrap', 'No trap signal'),
             'possibleKeyboardTrapTone' => $possibleKeyboardTrap ? 'critical' : 'neutral',
             'invisibleFocusIssuesTotal' => $invisibleFocusIssuesTotal,
-            'invisibleFocusIssuesLabel' => $invisibleFocusIssuesTotal === 1 ? '1 invisible focus warning' : $invisibleFocusIssuesTotal . ' invisible focus warnings',
+            'invisibleFocusIssuesLabel' => $this->countLabelFor($invisibleFocusIssuesTotal, 'reporting.count.invisibleFocusWarnings', '%d invisible focus warning', '%d invisible focus warnings'),
             'manualReviewRequired' => $manualReviewRequired,
-            'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : 'Manual review may still be required',
+            'manualReviewLabel' => $manualReviewRequired
+                ? $this->label('remote.label.manualReviewRequired', 'Manual review required')
+                : $this->label('reporting.manualReview.mayBeRequired', 'Manual review may still be required'),
             'topWarnings' => $topWarnings,
             'hasTopWarnings' => $topWarnings !== [],
         ];
@@ -331,7 +349,11 @@ final class RemoteReportingSummaryService
                 }
             }
 
-            $item = $this->normalizeRemediationSummaryItem((string)$key, (string)$config['label'], $value);
+            $item = $this->normalizeRemediationSummaryItem(
+                (string)$key,
+                $this->label('remote.remediation.' . $key, (string)$config['label']),
+                $value
+            );
             if ($item !== null) {
                 $items[] = $item;
             }
@@ -345,7 +367,7 @@ final class RemoteReportingSummaryService
         }
 
         return [
-            'title' => 'Suggested remediation grouping',
+            'title' => $this->label('overview.remote.additionalSignals.remediation.title', 'Suggested remediation grouping'),
             'items' => $items,
             'hasItems' => $items !== [],
             'recommendation' => $recommendation,
@@ -422,12 +444,12 @@ final class RemoteReportingSummaryService
         }
 
         return [
-            'title' => 'Likely shared template/component issue',
+            'title' => $this->label('overview.remote.additionalSignals.components.title', 'Likely shared template/component issue'),
             'likelyRepeatedTemplateIssuesTotal' => $likelyRepeatedTemplateIssuesTotal,
             'likelyRepeatedTemplateIssuesLabel' => $this->countLabel($likelyRepeatedTemplateIssuesTotal, 'repeated issue'),
             'topRepeatedRules' => $topRepeatedRules,
             'hasTopRepeatedRules' => $topRepeatedRules !== [],
-            'note' => $note ?? 'Repeated findings can indicate a shared template or component issue. Review the shared layout before assigning work to editors.',
+            'note' => $note ?? $this->label('reporting.components.note', 'Repeated findings can indicate a shared template or component issue. Review the shared layout before assigning work to editors.'),
         ];
     }
 
@@ -522,15 +544,17 @@ final class RemoteReportingSummaryService
 
         return [
             'landmarkIssuesTotal' => $issuesTotal,
-            'landmarkIssuesLabel' => $issuesTotal === 1 ? '1 landmark/heading issue' : $issuesTotal . ' landmark/heading issues',
+            'landmarkIssuesLabel' => $this->countLabelFor($issuesTotal, 'reporting.count.landmarkHeadingIssues', '%d landmark/heading issue', '%d landmark/heading issues'),
             'outlineIssuesTotal' => $outlineIssuesTotal,
             'outlineIssuesLabel' => $this->countLabel($outlineIssuesTotal, 'outline issue'),
             'headingIssuesTotal' => $headingIssuesTotal,
             'headingIssuesLabel' => $this->countLabel($headingIssuesTotal, 'heading issue'),
             'affectedPagesTotal' => $affectedPagesTotal,
-            'affectedPagesLabel' => $affectedPagesTotal === 1 ? '1 page' : $affectedPagesTotal . ' pages',
+            'affectedPagesLabel' => $this->countLabel($affectedPagesTotal, 'page'),
             'likelyTemplateIssue' => $likelyTemplateIssue,
-            'likelyTemplateIssueLabel' => $likelyTemplateIssue ? 'Likely template/layout issue' : 'Review structure in context',
+            'likelyTemplateIssueLabel' => $likelyTemplateIssue
+                ? $this->label('reporting.structure.likelyTemplate', 'Likely template/layout issue')
+                : $this->label('reporting.structure.reviewInContext', 'Review structure in context'),
             'recommendation' => $recommendation,
             'topRules' => $topRules,
             'topWarnings' => $topWarnings,
@@ -619,9 +643,9 @@ final class RemoteReportingSummaryService
             $normalized[] = [
                 'ruleId' => $ruleId,
                 'issuesTotal' => $issuesTotal,
-                'issuesLabel' => $issuesTotal === 1 ? '1 issue' : $issuesTotal . ' issues',
+                'issuesLabel' => $this->countLabel($issuesTotal, 'issue'),
                 'affectedPagesTotal' => $affectedPagesTotal,
-                'affectedPagesLabel' => $affectedPagesTotal > 0 ? ($affectedPagesTotal === 1 ? '1 page' : $affectedPagesTotal . ' pages') : '',
+                'affectedPagesLabel' => $affectedPagesTotal > 0 ? $this->countLabel($affectedPagesTotal, 'page') : '',
             ];
         }
 
@@ -662,7 +686,7 @@ final class RemoteReportingSummaryService
                 'foreground' => $foreground,
                 'background' => $background,
                 'issuesTotal' => $issuesTotal,
-                'issuesLabel' => $issuesTotal === 1 ? '1 issue' : $issuesTotal . ' issues',
+                'issuesLabel' => $this->countLabel($issuesTotal, 'issue'),
                 'contrastSuggestion' => $suggestion,
                 'hasContrastSuggestion' => $suggestion !== [],
             ];
@@ -701,7 +725,7 @@ final class RemoteReportingSummaryService
             'suggestedBackgroundCandidates' => $backgroundCandidates,
             'hasSuggestedForegroundCandidates' => $foregroundCandidates !== [],
             'hasSuggestedBackgroundCandidates' => $backgroundCandidates !== [],
-            'note' => $note ?? 'Candidate colors are generated as an automated remediation aid and must be reviewed in the brand/design context.',
+            'note' => $note ?? $this->label('reporting.contrast.note', 'Candidate colors are generated as an automated remediation aid and must be reviewed in the brand/design context.'),
         ];
     }
 
@@ -796,7 +820,7 @@ final class RemoteReportingSummaryService
                 'quickWin' => $quickWin,
                 'reason' => trim((string)($item['reason'] ?? '')),
                 'guidanceWhyItMatters' => $whyItMatters,
-                'guidanceHowToFix' => $howToFix ?? $shortFix ?? self::GUIDANCE_FALLBACK_TEXT,
+                'guidanceHowToFix' => $howToFix ?? $shortFix ?? $this->label('reporting.guidanceFallback', self::GUIDANCE_FALLBACK_TEXT),
                 'guidanceDetail' => $howToFix,
                 'guidanceHasApiText' => $guidanceTitle !== null || $shortFix !== null || $whyItMatters !== null || $howToFix !== null,
                 'guidanceIsFallback' => $howToFix === null && $shortFix === null,
@@ -923,7 +947,10 @@ final class RemoteReportingSummaryService
             return '';
         }
 
-        return ucwords(str_replace(['_', '-'], ' ', $value));
+        return $this->label(
+            'badge.' . strtolower(str_replace('-', '_', $value)),
+            ucwords(str_replace(['_', '-'], ' ', $value))
+        );
     }
 
     /**
@@ -988,7 +1015,7 @@ final class RemoteReportingSummaryService
                 'recommendedOwner' => $owner,
                 'recommendedOwnerLabel' => $this->formatBadgeLabel($owner),
                 'status' => $status,
-                'statusLabel' => $status === 'needs_review' ? 'Needs review' : $this->formatBadgeLabel($status),
+                'statusLabel' => $status === 'needs_review' ? $this->label('severity.needsReview', 'Needs review') : $this->formatBadgeLabel($status),
             ];
         }
 
@@ -1033,11 +1060,13 @@ final class RemoteReportingSummaryService
                 'groupId' => $groupId,
                 'title' => $title,
                 'automatedIssuesTotal' => $issuesTotal,
-                'automatedIssuesLabel' => $issuesTotal === 1 ? '1 mapped issue' : $issuesTotal . ' mapped issues',
+                'automatedIssuesLabel' => $this->countLabelFor($issuesTotal, 'reporting.count.mappedIssues', '%d mapped issue', '%d mapped issues'),
                 'wcagCriteria' => $criteria,
-                'wcagCriteriaText' => $criteria !== [] ? implode(', ', $criteria) : 'None mapped',
+                'wcagCriteriaText' => $criteria !== [] ? implode(', ', $criteria) : $this->label('reporting.wcag.noneMapped', 'None mapped'),
                 'manualReviewRequired' => $manualReviewRequired,
-                'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : 'Manual review not flagged',
+                'manualReviewLabel' => $manualReviewRequired
+                    ? $this->label('remote.label.manualReviewRequired', 'Manual review required')
+                    : $this->label('reporting.manualReview.notFlagged', 'Manual review not flagged'),
             ];
         }
 
@@ -1047,12 +1076,14 @@ final class RemoteReportingSummaryService
         return [
             'standard' => $standard,
             'standardLabel' => $standard !== '' ? strtoupper($standard) : 'WCAG',
-            'title' => 'WCAG / BFSG / BITV reporting aid',
+            'title' => $this->label('overview.remote.reportingAid.title', 'WCAG / BFSG / BITV reporting aid'),
             'disclaimer' => $this->normalizeNullableString($reportingGroups['disclaimer'] ?? null),
             'manualReviewRequired' => (bool)($reportingGroups['manualReviewRequired'] ?? $reportingGroups['manual_review_required'] ?? false),
-            'manualReviewLabel' => (bool)($reportingGroups['manualReviewRequired'] ?? $reportingGroups['manual_review_required'] ?? false) ? 'Manual review required' : '',
+            'manualReviewLabel' => (bool)($reportingGroups['manualReviewRequired'] ?? $reportingGroups['manual_review_required'] ?? false)
+                ? $this->label('remote.label.manualReviewRequired', 'Manual review required')
+                : '',
             'automatedIssuesTotal' => $automatedIssuesTotal,
-            'automatedIssuesLabel' => $automatedIssuesTotal === 1 ? '1 WCAG-mapped automated finding' : $automatedIssuesTotal . ' WCAG-mapped automated findings',
+            'automatedIssuesLabel' => $this->countLabelFor($automatedIssuesTotal, 'reporting.count.wcagMappedFindings', '%d WCAG-mapped automated finding', '%d WCAG-mapped automated findings'),
             'groups' => $groups,
         ];
     }
@@ -1215,7 +1246,7 @@ final class RemoteReportingSummaryService
             $rule['guidanceHowToFix'] = $rule['guidanceHowToFix'] ?? ($metadataPresentation['howToFix'] ?? null);
             $rule['guidanceHasApiText'] = $rule['guidanceWhyItMatters'] !== null || $rule['guidanceHowToFix'] !== null;
             $rule['guidanceIsFallback'] = $rule['guidanceHowToFix'] === null;
-            $rule['guidanceHowToFix'] = $rule['guidanceHowToFix'] ?? self::GUIDANCE_FALLBACK_TEXT;
+            $rule['guidanceHowToFix'] = $rule['guidanceHowToFix'] ?? $this->label('reporting.guidanceFallback', self::GUIDANCE_FALLBACK_TEXT);
         }
         unset($rule);
 
@@ -1436,7 +1467,29 @@ final class RemoteReportingSummaryService
 
     private function countLabel(int $count, string $singular, ?string $plural = null): string
     {
-        return $count . ' ' . ($count === 1 ? $singular : ($plural ?? $singular . 's'));
+        $plural ??= $singular . 's';
+        $keyPrefix = self::COUNT_LABEL_KEYS[$singular] ?? '';
+        if ($keyPrefix === '') {
+            return $count . ' ' . ($count === 1 ? $singular : $plural);
+        }
+
+        return $this->countLabelFor($count, $keyPrefix, '%d ' . $singular, '%d ' . $plural);
+    }
+
+    private function countLabelFor(int $count, string $keyPrefix, string $singular, string $plural): string
+    {
+        $template = $count === 1
+            ? $this->label($keyPrefix . '.singular', $singular)
+            : $this->label($keyPrefix . '.plural', $plural);
+
+        return sprintf($template, $count);
+    }
+
+    private function label(string $key, string $fallback): string
+    {
+        $translated = $this->backendLanguageService->translate($key);
+
+        return $translated !== '' && $translated !== $key ? $translated : $fallback;
     }
 
     /**
@@ -1450,15 +1503,28 @@ final class RemoteReportingSummaryService
         $issuesTotal = (int)($rule['issuesTotal'] ?? 0);
         $affectedPagesTotal = (int)($rule['affectedPagesTotal'] ?? 0);
 
-        $impactLabel = $impact !== '' ? ucfirst($impact) : 'Accessibility';
-        $scope = $affectedPagesTotal === 1 ? '1 page' : $affectedPagesTotal . ' pages';
-        $issues = $issuesTotal === 1 ? '1 occurrence' : $issuesTotal . ' occurrences';
+        $impactLabel = $impact !== ''
+            ? $this->formatBadgeLabel($impact)
+            : $this->label('reporting.priority.accessibility', 'Accessibility');
+        $scope = $this->countLabel($affectedPagesTotal, 'page');
+        $issues = $this->countLabelFor($issuesTotal, 'reporting.count.occurrences', '%d occurrence', '%d occurrences');
 
         if ($criterion !== '') {
             $wcagPart = trim('WCAG ' . $level . ' ' . $criterion);
-            return sprintf('%s %s issue with %s across %s.', $impactLabel, $wcagPart, $issues, $scope);
+            return sprintf(
+                $this->label('reporting.priority.reasonWithWcag', '%1$s %2$s issue with %3$s across %4$s.'),
+                $impactLabel,
+                $wcagPart,
+                $issues,
+                $scope
+            );
         }
 
-        return sprintf('%s issue with %s across %s.', $impactLabel, $issues, $scope);
+        return sprintf(
+            $this->label('reporting.priority.reason', '%1$s issue with %2$s across %3$s.'),
+            $impactLabel,
+            $issues,
+            $scope
+        );
     }
 }

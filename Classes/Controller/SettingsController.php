@@ -14,14 +14,17 @@ use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
 use Priebera\A11yQualityGate\Pro\Service\ProLicenceService;
 use Priebera\A11yQualityGate\Pro\Service\ProSiteFingerprintService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\AccessibilityStatementService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Service\SecretEncryptionService;
 use Priebera\A11yQualityGate\Service\ScannerAccessTokenService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -110,6 +113,8 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly CacheManager $cacheManager,
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly StreamFactoryInterface $streamFactory,
+        private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
+        private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -141,6 +146,7 @@ final class SettingsController extends AbstractBackendModuleController
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-statement.js');
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-ai.js');
 
+        $this->fieldConfigurationBootstrapService->initializeIfUnconfigured();
         $fieldGroups = $this->fieldConfigRepository->findGroupedForSettings();
         $returnParameters = $this->getA11yModuleReturnParameters($request);
 
@@ -215,6 +221,18 @@ final class SettingsController extends AbstractBackendModuleController
             $qualityGateRuleset,
         ) ?? $this->getExtensionConfigurationBool('showProHints', true);
         $publicLinks = $this->publicLinkProvider->getBackendLinks();
+        $settingsTabUrls = $this->buildSettingsTabUrls($request, $selectedRulesetSite);
+        $licenceGuidance = $licenceViewData['hasLicenceKey'] && !(bool)($proStatus->valid ?? false)
+            ? LicenceGuidance::forReason((string)($proStatus->reason ?? ''))->toView(
+                [
+                    LicenceGuidance::ACTION_RETRY => $settingsTabUrls['licence'] ?? '',
+                    LicenceGuidance::ACTION_PRICING => $publicLinks[PublicLinkProvider::PRICING],
+                    LicenceGuidance::ACTION_PORTAL => $publicLinks[PublicLinkProvider::PORTAL],
+                    LicenceGuidance::ACTION_SUPPORT => $publicLinks[PublicLinkProvider::SUPPORT],
+                ],
+                fn (string $key): string => $this->translate($key),
+            )
+            : null;
         $aiSiteIdentifier = $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier;
         $aiConfigurationStatus = ($isAdmin && $aiSiteIdentifier !== '')
             ? $this->aiSettingsUiStateBuilder->build($aiSiteIdentifier)
@@ -264,6 +282,7 @@ final class SettingsController extends AbstractBackendModuleController
             'isAdmin' => $isAdmin,
             'licenceKey' => $licenceViewData['licenceKey'],
             'hasLicenceKey' => $licenceViewData['hasLicenceKey'],
+            'licenceGuidance' => $licenceGuidance,
             'showProHints' => $showProHints,
             'productUrl' => $publicLinks[PublicLinkProvider::PRODUCT],
             'documentationUrl' => $publicLinks[PublicLinkProvider::DOCUMENTATION],
@@ -271,7 +290,7 @@ final class SettingsController extends AbstractBackendModuleController
             'trialUrl' => $publicLinks[PublicLinkProvider::TRIAL],
             'supportUrl' => $publicLinks[PublicLinkProvider::SUPPORT],
             'portalUrl' => $publicLinks[PublicLinkProvider::PORTAL],
-            'settingsTabUrls' => $this->buildSettingsTabUrls($request, $selectedRulesetSite),
+            'settingsTabUrls' => $settingsTabUrls,
             'settingsTabSelected' => $this->buildSettingsTabSelectedStates($activeTab),
             'aiConfigurationStatus' => $aiConfigurationStatus,
             'aiSiteIdentifier' => $aiSiteIdentifier,
@@ -548,7 +567,7 @@ final class SettingsController extends AbstractBackendModuleController
             return new JsonResponse([
                 'valid' => false,
                 'reason' => 'admin_only_settings_required',
-                'reasonLabel' => 'Only administrators can validate AQG licence keys.',
+                'reasonLabel' => $this->translateWithFallback('settings.adminOnly.licence', 'Only administrators can validate AQG licence keys.'),
             ], 403);
         }
 
@@ -837,7 +856,7 @@ final class SettingsController extends AbstractBackendModuleController
         if (!$this->accessControlService->canManageAdminOnlySettings($backendUser)) {
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Only administrators can regenerate the scanner token.',
+                'message' => $this->translateWithFallback('settings.adminOnly.token', 'Only administrators can regenerate the scanner token.'),
             ], 403);
         }
 
@@ -846,7 +865,7 @@ final class SettingsController extends AbstractBackendModuleController
         if (!$this->hasRemoteScanAccessCapability($rulesetSite, $request)) {
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Remote scan access is available with a valid remote-scanning licence (Trial, PRO, Agency or Enterprise). Add a licence key or start a trial to configure remote scanning.',
+                'message' => $this->translateWithFallback('settings.remoteAccess.lockedMessage', 'Remote scan access settings need a valid Trial, PRO or Agency licence. Add a licence key or start a trial to configure them.'),
             ], 403);
         }
 
@@ -859,7 +878,7 @@ final class SettingsController extends AbstractBackendModuleController
             'success' => true,
             'token' => $token,
             'maskedToken' => $this->maskSecret($token),
-            'message' => 'Scanner token regenerated.',
+            'message' => $this->translateWithFallback('settings.remoteAccess.token.regeneratedMessage', 'Scanner token regenerated.'),
         ]);
     }
 
@@ -870,7 +889,7 @@ final class SettingsController extends AbstractBackendModuleController
             return new JsonResponse([
                 'success' => false,
                 'ok' => false,
-                'message' => 'Only administrators can test HTTP Basic Auth.',
+                'message' => $this->translateWithFallback('settings.adminOnly.httpAuth', 'Only administrators can test HTTP Basic Auth.'),
             ], 403);
         }
 
@@ -881,7 +900,7 @@ final class SettingsController extends AbstractBackendModuleController
                 'success' => false,
                 'ok' => false,
                 'status' => 403,
-                'message' => 'Remote scan access is available with a valid remote-scanning licence (Trial, PRO, Agency or Enterprise). Add a licence key or start a trial to configure remote scanning.',
+                'message' => $this->translateWithFallback('settings.remoteAccess.lockedMessage', 'Remote scan access settings need a valid Trial, PRO or Agency licence. Add a licence key or start a trial to configure them.'),
             ], 403);
         }
 
@@ -890,7 +909,7 @@ final class SettingsController extends AbstractBackendModuleController
                 'success' => false,
                 'ok' => false,
                 'status' => 429,
-                'message' => 'Too many test requests. Please wait a minute and try again.',
+                'message' => $this->translateWithFallback('settings.remoteAccess.httpAuth.rateLimited', 'Too many test requests. Please wait a minute and try again.'),
             ], 429);
         }
 
@@ -917,7 +936,7 @@ final class SettingsController extends AbstractBackendModuleController
                 'success' => false,
                 'ok' => false,
                 'status' => 0,
-                'message' => 'Select a configured site and enter username and password before testing.',
+                'message' => $this->translateWithFallback('settings.remoteAccess.httpAuth.missingInput', 'Select a configured site and enter username and password before testing.'),
             ], 400);
         }
 
@@ -940,17 +959,17 @@ final class SettingsController extends AbstractBackendModuleController
                 'ok' => $ok,
                 'status' => $status,
                 'message' => $ok
-                    ? 'Connection OK — the crawler reached the frontend with these credentials.'
+                    ? $this->translateWithFallback('settings.remoteAccess.httpAuth.okDetail', 'Connection OK — the crawler reached the frontend with these credentials.')
                     : ($status === 401 || $status === 403
-                        ? 'Authentication failed — the username or password is wrong.'
-                        : 'Connection failed. Please check the credentials or the frontend protection.'),
+                        ? $this->translateWithFallback('settings.remoteAccess.httpAuth.authFailed', 'Authentication failed — the username or password is wrong.')
+                        : $this->translateWithFallback('settings.remoteAccess.httpAuth.failedHint', 'Connection failed. Please check the credentials or the frontend protection.')),
             ]);
         } catch (\Throwable) {
             return new JsonResponse([
                 'success' => true,
                 'ok' => false,
                 'status' => 0,
-                'message' => 'Connection failed. Please check the credentials or the frontend protection.',
+                'message' => $this->translateWithFallback('settings.remoteAccess.httpAuth.failedHint', 'Connection failed. Please check the credentials or the frontend protection.'),
             ]);
         }
     }
@@ -1014,11 +1033,15 @@ final class SettingsController extends AbstractBackendModuleController
         $enabledCount = 0;
         $disabledCount = 0;
 
+        $backendLanguageCode = $this->getBackendLanguageCode();
+
         foreach ($this->ruleRegistry->getAll() as $rule) {
             $ruleId = $rule->getRuleId();
             $enabled = !isset($disabledLookup[$ruleId]);
             $groupKey = $this->resolveRuleGroupKey($ruleId, get_class($rule));
             $group = $this->buildRuleGroupMeta($groupKey);
+            [$ruleLabel, $ruleDescription] = $this->resolveRuleCopy($rule->getRuleId(), $rule->getMessage(), $rule->getHint(), $backendLanguageCode);
+            $severityName = strtolower($rule->getDefaultSeverity()->name);
 
             if (!isset($groups[$groupKey])) {
                 $groups[$groupKey] = $group + [
@@ -1032,13 +1055,16 @@ final class SettingsController extends AbstractBackendModuleController
             $groups[$groupKey]['rules'][] = [
                 'id' => $ruleId,
                 'inputId' => 'aqg-rule-' . preg_replace('/[^a-zA-Z0-9_-]+/', '-', $ruleId),
-                'label' => $this->buildRuleLabel($rule->getMessage()),
-                'description' => $rule->getHint(),
-                'severity' => strtolower($rule->getDefaultSeverity()->name),
-                'severityLabel' => ucfirst(strtolower($rule->getDefaultSeverity()->name)),
+                'label' => $ruleLabel,
+                'description' => $ruleDescription,
+                'severity' => $severityName,
+                'severityLabel' => $this->translateWithFallback(
+                    'severity.' . lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $severityName)))),
+                    ucfirst($severityName)
+                ),
                 'category' => $group['category'],
                 'enabled' => $enabled,
-                'searchText' => strtolower($ruleId . ' ' . $rule->getMessage() . ' ' . $rule->getHint() . ' ' . $group['category']),
+                'searchText' => mb_strtolower(implode(' ', [$ruleId, $ruleLabel, $ruleDescription, $rule->getMessage(), $rule->getHint(), $group['category']])),
             ];
 
             $groups[$groupKey]['totalCount']++;
@@ -1126,45 +1152,52 @@ final class SettingsController extends AbstractBackendModuleController
 
     private function buildRuleGroupMeta(string $groupKey): array
     {
-        return match ($groupKey) {
-            'rte' => [
-                'key' => 'rte',
-                'title' => 'RTE content rules',
-                'subtitle' => 'Rich-text editor checks · run on every save',
-                'category' => 'RTE',
-            ],
-            'structured' => [
-                'key' => 'structured',
-                'title' => 'Structured field rules',
-                'subtitle' => 'Records, fields and file references · run on every save',
-                'category' => 'Structured',
-            ],
-            'media' => [
-                'key' => 'media',
-                'title' => 'Media & embed rules',
-                'subtitle' => 'Images, video, audio and embeds · run on every save',
-                'category' => 'Media',
-            ],
-            'remote' => [
-                'key' => 'remote',
-                'title' => 'Remote / frontend rules',
-                'subtitle' => 'Frontend crawler checks · run during remote scans',
-                'category' => 'Remote',
-            ],
-            default => [
-                'key' => 'other',
-                'title' => 'Other rules',
-                'subtitle' => 'Additional project checks',
-                'category' => 'Other',
-            ],
+        $defaults = match ($groupKey) {
+            'rte' => ['rte', 'RTE content rules', 'Rich-text editor checks · run on every save', 'RTE'],
+            'structured' => ['structured', 'Structured field rules', 'Records, fields and file references · run on every save', 'Structured'],
+            'media' => ['media', 'Media and embed rules', 'Images, video, audio and embeds · run on every save', 'Media'],
+            'remote' => ['remote', 'Remote / frontend rules', 'Frontend crawler checks · run during remote scans', 'Remote'],
+            default => ['other', 'Other rules', 'Additional project checks', 'Other'],
         };
+        [$key, $title, $subtitle, $category] = $defaults;
+        $prefix = 'settings.rules.group.' . $key;
+
+        return [
+            'key' => $key,
+            'title' => $this->translateWithFallback($prefix . '.title', $title),
+            'subtitle' => $this->translateWithFallback($prefix . '.subtitle', $subtitle),
+            'category' => $this->translateWithFallback($prefix . '.category', $category),
+        ];
+    }
+
+    /**
+     * Rule names in the Rules tab: English keeps the rule's own message and hint; other backend
+     * languages use the translated plain-language title and fix from the rule presentation when one exists.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function resolveRuleCopy(string $ruleId, string $message, string $hint, string $language): array
+    {
+        $label = $this->buildRuleLabel($message);
+        if ($language === 'en') {
+            return [$label, $hint];
+        }
+
+        $presentation = $this->ruleMetadataPresentationService->present(['rule_id' => $ruleId, 'help' => $message], $language);
+        $title = trim((string)($presentation['localizedTitle'] ?? ''));
+        $fix = trim((string)($presentation['localizedHowToFix'] ?? ''));
+
+        return [
+            $title !== '' ? $this->buildRuleLabel($title) : $label,
+            $fix !== '' ? $fix : $hint,
+        ];
     }
 
     private function buildRuleLabel(string $message): string
     {
         $message = trim($message);
         if ($message === '') {
-            return 'Accessibility rule';
+            return $this->translateWithFallback('settings.rules.defaultLabel', 'Accessibility rule');
         }
 
         return rtrim($message, '.');

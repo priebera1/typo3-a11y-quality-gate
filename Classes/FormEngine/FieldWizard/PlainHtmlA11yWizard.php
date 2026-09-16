@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\FormEngine\FieldWizard;
 
+use Priebera\A11yQualityGate\FormEngine\EditorFeedbackLabels;
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -31,6 +32,7 @@ final class PlainHtmlA11yWizard extends AbstractNode
             return $result;
         }
 
+        $labels = EditorFeedbackLabels::translated();
         $containerId = StringUtility::getUniqueId('aqg-plain-html-a11y-');
         $attributes = [
             'id' => $containerId,
@@ -38,6 +40,7 @@ final class PlainHtmlA11yWizard extends AbstractNode
             'data-record-uid' => (string)$uid,
             'data-field-name' => $field,
             'data-input-name' => $inputName,
+            'data-labels' => (string)json_encode($labels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ];
 
         $result['html'] = implode(LF, [
@@ -45,8 +48,8 @@ final class PlainHtmlA11yWizard extends AbstractNode
             '    <div class="ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--loading" role="status" aria-live="polite">',
             '        <span class="ck-a11y-summary__left">',
             '            <span class="ck-a11y-summary__spin" aria-hidden="true"></span>',
-            '            <span class="ck-a11y-summary__title">Checking HTML accessibility…</span>',
-            '            <span class="ck-a11y-summary__help">Live validation for this HTML element.</span>',
+            '            <span class="ck-a11y-summary__title">' . htmlspecialchars($labels['plainChecking'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>',
+            '            <span class="ck-a11y-summary__help">' . htmlspecialchars($labels['plainCheckingHelp'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>',
             '        </span>',
             '    </div>',
             '    <div class="aqg-plain-html-a11y__issues" aria-live="polite"></div>',

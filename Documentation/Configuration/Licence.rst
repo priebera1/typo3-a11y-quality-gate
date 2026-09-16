@@ -29,8 +29,9 @@ The licence key is stored in the extension configuration of
     :type: boolean
     :Default: 1
 
-    Whether the backend module shows hints about features that require a
-    licence. Can be overridden per ruleset from the Settings view.
+    Whether the Free Remote Preview shows the upgrade offer with trial and
+    pricing links. Plan badges and notes on locked features stay visible. Can be
+    overridden per ruleset from the Settings view.
 
 There are two ways to set the key:
 
@@ -63,10 +64,14 @@ How validation works
     ``*.ddev.site`` domain does not start it. The :guilabel:`Licence` tab shows
     the start time and the remaining trial time once the window is running.
 
-If the licence service cannot be reached, AQG reports ``api_unreachable`` and
-falls back to the Free feature set until the next successful validation. Local
+If the licence service cannot be reached, AQG keeps the last validation result
+for up to 48 hours. Without one it reports ``api_unreachable`` and falls back
+to the Free feature set until the next successful validation. Local
 content scans, rendered page checks, CLI and Scheduler runs are not affected by
 licence service outages.
+
+When a saved key is not valid, the :guilabel:`Licence` tab names the problem and
+offers the matching next step, see :ref:`troubleshooting-licence`.
 
 ..  _configuration-licence-endpoint:
 

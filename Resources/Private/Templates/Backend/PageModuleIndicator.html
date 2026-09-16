@@ -54,10 +54,13 @@
 
         <p class="aqg-page-module-indicator__meta">{meta}</p>
 
-        <f:if condition="{proHint}">
+        <f:if condition="{remoteHint}">
             <div class="aqg-page-module-indicator__pro-hint">
-                <span class="aqg-page-module-indicator__pro-tag">PRO</span>
-                <span>{proHint}</span>
+                <span class="aqg-page-module-indicator__pro-tag">{remoteHint.tag}</span>
+                <span>{remoteHint.text}</span>
+                <f:if condition="{remoteHint.linkUrl}">
+                    <a class="aqg-page-module-indicator__hint-link" href="{remoteHint.linkUrl}">{remoteHint.linkLabel}</a>
+                </f:if>
             </div>
         </f:if>
     </footer>

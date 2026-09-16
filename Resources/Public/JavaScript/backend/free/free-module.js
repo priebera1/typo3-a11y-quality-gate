@@ -206,19 +206,19 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
         if (mode === '7d' || mode === '30d' || mode === '90d') {
             const days = Number.parseInt(mode, 10);
-            preview.textContent = `Reopens automatically in ${days} days.`;
+            preview.textContent = this.format(this.translate('ignore.expiry.previewDays', 'Reopens automatically in %d days.'), days);
             return;
         }
 
         if (mode === 'custom') {
             const date = picker.querySelector('input[name="ignoreUntilDate"]')?.value || '';
             preview.textContent = date !== ''
-                ? `Reopens automatically on ${date}.`
-                : 'Select a future date when AQG should reopen the issue.';
+                ? this.format(this.translate('ignore.expiry.previewDate', 'Reopens automatically on %s.'), date)
+                : this.translate('ignore.expiry.previewSelectDate', 'Select a future date when AQG should reopen the issue.');
             return;
         }
 
-        preview.textContent = 'The issue stays ignored until someone unignores it manually.';
+        preview.textContent = this.translate('ignore.expiry.permanentPreview', 'The issue stays ignored until someone unignores it manually.');
     }
 
     validateExpiryForForm(form) {
@@ -411,8 +411,10 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             button.classList.toggle('is-on', allSelected);
             button.setAttribute('aria-pressed', allSelected ? 'true' : 'false');
             button.textContent = allSelected
-                ? 'Selected'
-                : (selectedInGroup > 0 ? 'Select remaining' : 'Select all in group');
+                ? this.translate('pageDetail.bulk.groupSelected', 'Selected')
+                : (selectedInGroup > 0
+                    ? this.translate('pageDetail.bulk.groupSelectRemaining', 'Select remaining')
+                    : this.translate('pageDetail.bulk.groupSelectAll', 'Select all in group'));
         });
     }
 
@@ -450,9 +452,14 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 ruleInput.value = ruleId;
             }
 
-            const scopeLabel = mode === 'site' ? 'site' : 'this page';
-            title && (title.textContent = `Ignore all ${ruleId} issues on ${scopeLabel}`);
-            sub && (sub.textContent = `This will mark ${ruleCount} open issues with this rule as ignored. They stay visible in the report but no longer block the quality gate.`);
+            const titleTemplate = mode === 'site'
+                ? this.translate('pageDetail.bulk.ignoreRuleOnSite', 'Ignore all %s issues on this site')
+                : this.translate('pageDetail.bulk.ignoreRuleOnPage', 'Ignore all %s issues on this page');
+            title && (title.textContent = this.format(titleTemplate, ruleId));
+            sub && (sub.textContent = this.format(
+                this.translate('pageDetail.bulk.ignoreRuleText', 'This will mark %d open issues with this rule as ignored. They stay visible in the report but no longer block the quality gate.'),
+                ruleCount
+            ));
             summary && (summary.innerHTML = this.buildBatchSummaryHtml([{ ruleId, count: ruleCount }]));
             return;
         }
@@ -473,8 +480,13 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         });
 
         const count = selected.length;
-        title && (title.textContent = `Ignore ${count} selected ${count === 1 ? 'issue' : 'issues'}`);
-        sub && (sub.textContent = 'These issues will be marked as ignored. They stay visible in the report but no longer block the quality gate.');
+        title && (title.textContent = this.format(
+            count === 1
+                ? this.translate('pageDetail.bulk.ignoreSelectedTitle.singular', 'Ignore %d selected issue')
+                : this.translate('pageDetail.bulk.ignoreSelectedTitle.plural', 'Ignore %d selected issues'),
+            count
+        ));
+        sub && (sub.textContent = this.translate('pageDetail.bulk.confirmText', 'These issues will be marked as ignored. They stay visible in the report but no longer block the quality gate.'));
         summary && (summary.innerHTML = this.buildBatchSummaryHtml(this.groupSelectedByRule(selected)));
     }
 
@@ -706,6 +718,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             const resetCancel = form.querySelector('[data-a11y-rules-reset-cancel="true"]');
             const resetConfirm = form.querySelector('[data-a11y-rules-reset-confirm="true"]');
             const fields = Array.from(form.querySelectorAll('[data-a11y-rules-input="true"]'));
+            // Translated labels rendered by Settings/TabRules.html; English fallbacks keep the UI usable.
+            const labels = form.dataset;
 
             if (fields.length === 0) {
                 return;
@@ -754,8 +768,11 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 }
 
                 if (metaLabel && actionbar) {
+                    const changesLabel = dirtyFields.length === 1
+                        ? (labels.labelChangeOne || '%d change')
+                        : (labels.labelChangeOther || '%d changes');
                     metaLabel.textContent = isDirty
-                        ? `${actionbar.dataset.a11yRulesDirtyMeta || 'Unsaved changes'} — ${dirtyFields.length} change${dirtyFields.length === 1 ? '' : 's'}`
+                        ? `${actionbar.dataset.a11yRulesDirtyMeta || 'Unsaved changes'} — ${changesLabel.replace('%d', String(dirtyFields.length))}`
                         : (actionbar.dataset.a11yRulesSavedMeta || 'All changes saved');
                 }
             };
@@ -784,7 +801,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                     dirtyMarker.hidden = !dirty;
                 }
                 if (status) {
-                    status.textContent = enabled ? 'Reported in scans' : 'Not reported in scans';
+                    status.textContent = enabled
+                        ? (labels.labelReported || 'Reported in scans')
+                        : (labels.labelNotReported || 'Not reported in scans');
                 }
             };
 
@@ -798,14 +817,18 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                     const totalCount = rows.length;
 
                     if (countNode) {
-                        countNode.innerHTML = `<strong>${enabledCount}</strong> / ${totalCount} on`;
+                        const enabledNode = document.createElement('strong');
+                        enabledNode.textContent = String(enabledCount);
+                        countNode.replaceChildren(enabledNode, ` / ${totalCount} ${labels.labelOn || 'on'}`);
                         countNode.classList.toggle('aqg-rgroup__count--all', enabledCount === totalCount && totalCount > 0);
                         countNode.classList.toggle('aqg-rgroup__count--none', enabledCount === 0 && totalCount > 0);
                         countNode.classList.toggle('aqg-rgroup__count--partial', enabledCount > 0 && enabledCount < totalCount);
                     }
 
                     if (toggle) {
-                        toggle.textContent = enabledCount === totalCount ? 'Disable all in group' : 'Enable all in group';
+                        toggle.textContent = enabledCount === totalCount
+                            ? (labels.labelDisableGroup || 'Disable all in group')
+                            : (labels.labelEnableGroup || 'Enable all in group');
                     }
                 });
             };
@@ -842,7 +865,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                     emptyState.hidden = shownRows > 0;
                 }
                 if (emptyQuery) {
-                    emptyQuery.textContent = query || activeFilter;
+                    const activeButton = filterButtons.find((button) => button.dataset.a11yRulesFilter === activeFilter);
+                    emptyQuery.textContent = query || (activeButton?.childNodes[0]?.textContent || activeFilter).trim();
                 }
             };
 
@@ -1371,7 +1395,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             );
         } catch (error) {
             this.localScanCancellationRequested = false;
-            const message = error instanceof Error ? error.message : 'Unknown error';
+            const message = error instanceof Error ? error.message : this.translate('js.error.unknown', 'Unknown error');
             this.updateLocalCancelButtons(false);
             this.showNotification(
                 this.format(this.translate('notification.scan.cancelFailed', 'Content scan cancel request failed: %s'), message),
@@ -1466,7 +1490,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             this.reloadCurrentModule(2600);
         } catch (error) {
             this.localScanCancellationRequested = false;
-            const message = error instanceof Error ? error.message : 'Unknown error';
+            const message = error instanceof Error ? error.message : this.translate('js.error.unknown', 'Unknown error');
             this.showNotification(
                 this.format(this.translate('notification.scan.failed', 'Scan failed: %s'), message),
                 'error'
@@ -1669,7 +1693,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             this.reloadCurrentModule(2600);
         } catch (error) {
             this.localScanCancellationRequested = false;
-            const message = error instanceof Error ? error.message : 'Unknown error';
+            const message = error instanceof Error ? error.message : this.translate('js.error.unknown', 'Unknown error');
             this.showNotification(
                 this.format(this.translate('notification.scan.failed', 'Scan failed: %s'), message),
                 'error'

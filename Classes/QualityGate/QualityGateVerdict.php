@@ -13,6 +13,12 @@ final class QualityGateVerdict
         public readonly array $counts,
         /** @var string[] */
         public readonly array $reasons,
+        /**
+         * Structured form of $reasons, so callers can present them in the editor's language.
+         *
+         * @var list<array{severity: string, count: int, threshold: int}>
+         */
+        public readonly array $reasonDetails = [],
     ) {
     }
 
@@ -31,14 +37,16 @@ final class QualityGateVerdict
     /**
      * @param array{critical: int, warning: int, info: int, needs_review?: int} $counts
      * @param string[] $reasons
+     * @param list<array{severity: string, count: int, threshold: int}> $reasonDetails
      */
-    public static function fail(int $mode, array $counts, array $reasons): self
+    public static function fail(int $mode, array $counts, array $reasons, array $reasonDetails = []): self
     {
         return new self(
             passed: false,
             mode: $mode,
             counts: $counts,
             reasons: $reasons,
+            reasonDetails: $reasonDetails,
         );
     }
 

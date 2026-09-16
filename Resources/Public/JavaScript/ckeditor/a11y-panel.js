@@ -1,9 +1,10 @@
 import { View } from '@ckeditor/ckeditor5-ui';
 
 export default class A11yPanelView extends View {
-    constructor(locale) {
+    constructor(locale, labels = {}) {
         super(locale);
 
+        this._labels = labels && typeof labels === 'object' ? labels : {};
         this.set('issueData', null);
 
         const bind = this.bindTemplate;
@@ -50,7 +51,7 @@ export default class A11yPanelView extends View {
                             },
                             children: [
                                 {
-                                    text: 'Accessibility issue',
+                                    text: this._label('accessibilityIssue', 'Accessibility issue'),
                                 },
                             ],
                         },
@@ -83,7 +84,9 @@ export default class A11yPanelView extends View {
                             },
                             children: [
                                 {
-                                    text: bind.to('issueData', (issueData) => issueData?.issueCount > 1 ? `${issueData.issueCount} issues on this element` : ''),
+                                    text: bind.to('issueData', (issueData) => issueData?.issueCount > 1
+                                        ? this._label('issuesOnElement', '%d issues on this element').replace('%d', String(issueData.issueCount))
+                                        : ''),
                                 },
                             ],
                         },
@@ -116,7 +119,7 @@ export default class A11yPanelView extends View {
                             },
                             children: [
                                 {
-                                    text: 'How to fix',
+                                    text: this._label('howToFix', 'How to fix'),
                                 },
                             ],
                         },
@@ -127,7 +130,7 @@ export default class A11yPanelView extends View {
                             },
                             children: [
                                 {
-                                    text: bind.to('issueData', (issueData) => issueData?.hint || 'No editor guidance is available for this rule yet. Review the highlighted content and the rule details below.'),
+                                    text: bind.to('issueData', (issueData) => issueData?.hint || this._label('noGuidance', 'No editor guidance is available for this rule yet. Review the highlighted content and the rule details below.')),
                                 },
                             ],
                         },
@@ -139,8 +142,8 @@ export default class A11yPanelView extends View {
                         class: 'ck-a11y-panel__details',
                     },
                     children: [
-                        this._detailsRow('Rule', bind.to('issueData', (issueData) => issueData?.ruleId ?? '')),
-                        this._detailsRow('Location', bind.to('issueData', (issueData) => issueData?.contextPath ?? '')),
+                        this._detailsRow(this._label('rule', 'Rule'), bind.to('issueData', (issueData) => issueData?.ruleId ?? '')),
+                        this._detailsRow(this._label('location', 'Location'), bind.to('issueData', (issueData) => issueData?.contextPath ?? '')),
                         {
                             tag: 'code',
                             attributes: {
@@ -175,7 +178,7 @@ export default class A11yPanelView extends View {
                             },
                             children: [
                                 {
-                                    text: bind.to('issueData', (issueData) => issueData?.issueCount > 1 ? '' : 'Ignore this issue'),
+                                    text: bind.to('issueData', (issueData) => issueData?.issueCount > 1 ? '' : this._label('ignoreIssue', 'Ignore this issue')),
                                 },
                             ],
                             on: {
@@ -196,7 +199,7 @@ export default class A11yPanelView extends View {
                             },
                             children: [
                                 {
-                                    text: 'Show details',
+                                    text: this._label('showDetails', 'Show details'),
                                 },
                             ],
                             on: {
@@ -253,15 +256,20 @@ export default class A11yPanelView extends View {
     _severityLabel(severity) {
         switch (severity) {
             case 'critical':
-                return 'Critical';
+                return this._label('severityCritical', 'Critical');
             case 'info':
-                return 'Info';
+                return this._label('severityInfo', 'Info');
             case 'needs_review':
             case 'needs-review':
-                return 'Needs review';
+                return this._label('severityNeedsReview', 'Needs review');
             case 'warning':
             default:
-                return 'Warning';
+                return this._label('severityWarning', 'Warning');
         }
+    }
+
+    _label(key, fallback) {
+        const value = this._labels?.[key];
+        return typeof value === 'string' && value !== '' ? value : fallback;
     }
 }

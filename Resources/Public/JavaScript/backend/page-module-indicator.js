@@ -383,7 +383,7 @@ async function runRemotePageScan({ pageUid, pageUrl, siteIdentifier, languageUid
     const jobId = String(submitData.jobId || '').trim();
     const responseSiteIdentifier = String(submitData.siteIdentifier || siteIdentifier).trim();
     if (!jobId || !responseSiteIdentifier) {
-        throw new Error(String(submitData.error || 'Missing crawler job ID or site identifier'));
+        throw new Error(String(submitData.error || translate('notification.proScan.jobContextMissing', 'Missing crawler job ID or site identifier.')));
     }
 
     await pollRemoteScan(jobId, responseSiteIdentifier);
@@ -459,7 +459,7 @@ async function scanPage(button) {
         setPanelStateCompleted(panel, scanMode);
         reloadCurrentFrame(2400);
     } catch (error) {
-        const message = await extractAjaxErrorMessage(error, 'Unknown error');
+        const message = await extractAjaxErrorMessage(error, translate('js.error.unknown', 'Unknown error'));
         showNotification(
             format(translate('notification.scan.failed', 'Scan failed: %s'), message),
             'error'

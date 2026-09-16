@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProCapabilityService;
 use Priebera\A11yQualityGate\QualityGate\QualityGateChecker;
+use Priebera\A11yQualityGate\QualityGate\QualityGateVerdict;
 use Priebera\A11yQualityGate\Scan\ContentCollector;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
 use Priebera\A11yQualityGate\Service\BackendContextService;
@@ -204,16 +205,10 @@ final class PublishHook
         $counts = $this->countIssuesBySeverity($allIssues);
         $parts = [];
 
-        if ($counts['critical'] > 0) {
-            $parts[] = sprintf('%d critical', $counts['critical']);
-        }
-
-        if ($counts['warning'] > 0) {
-            $parts[] = sprintf('%d warning', $counts['warning']);
-        }
-
-        if ($counts['info'] > 0) {
-            $parts[] = sprintf('%d info', $counts['info']);
+        foreach (['critical', 'warning', 'info'] as $severity) {
+            if ($counts[$severity] > 0) {
+                $parts[] = $this->formatSeverityCount($severity, $counts[$severity]);
+            }
         }
 
         if ($parts === []) {
@@ -221,7 +216,10 @@ final class PublishHook
         }
 
         $message = sprintf(
-            'This content element has %s accessibility issue(s). Open the Accessibility module to review details.',
+            $this->translate(
+                'publish.flash.contentIssues',
+                'This content element has %s accessibility issue(s). Open the Accessibility module to review details.'
+            ),
             implode(', ', $parts),
         );
 
@@ -258,11 +256,11 @@ final class PublishHook
         }
 
         if ($verdict->isWarningOnly()) {
-            $message = $verdict->toFlashMessage();
+            $message = $this->buildVerdictMessage($verdict);
 
             $this->addFlashMessage(
                 message: $message,
-                title: 'AQG Warning',
+                title: $this->translate('publish.flash.warningTitle', 'AQG Warning'),
                 severity: ContextualFeedbackSeverity::WARNING,
                 deduplicationKey: 'page-warning:' . $pageUid . ':' . md5($message),
             );
@@ -275,10 +273,13 @@ final class PublishHook
         if ($verdict->isBlockingMode() && $proStatus->valid) {
             $this->reHidePage($pageUid);
 
-            $message = $verdict->toFlashMessage();
+            $message = $this->buildVerdictMessage($verdict);
 
             if ($proStatus->isTrial) {
-                $message .= ' Trial licence active — upgrade to PRO to keep this feature after the trial ends.';
+                $message .= ' ' . $this->translate(
+                    'publish.flash.trialNote',
+                    'Trial licence active — upgrade to PRO to keep this feature after the trial ends.'
+                );
             }
 
             $this->addFlashMessage(
@@ -291,14 +292,64 @@ final class PublishHook
             return;
         }
 
-        $message = $verdict->toFlashMessage();
+        $message = $this->buildVerdictMessage($verdict);
 
         $this->addFlashMessage(
             message: $message,
-            title: 'AQG Warning',
+            title: $this->translate('publish.flash.warningTitle', 'AQG Warning'),
             severity: ContextualFeedbackSeverity::WARNING,
             deduplicationKey: 'page-fallback-warning:' . $pageUid . ':' . md5($message),
         );
+    }
+
+    private function buildVerdictMessage(QualityGateVerdict $verdict): string
+    {
+        $reasons = [];
+        foreach ($verdict->reasonDetails as $detail) {
+            $template = $detail['severity'] === 'critical'
+                ? $this->translate('publish.flash.reason.critical', '%1$d critical issue(s) exceed threshold %2$d')
+                : $this->translate('publish.flash.reason.warning', '%1$d warning(s) exceed threshold %2$d');
+            $reasons[] = sprintf($template, $detail['count'], $detail['threshold']);
+        }
+        if ($reasons === []) {
+            $reasons = $verdict->reasons;
+        }
+
+        $counts = [];
+        foreach (['critical', 'warning', 'info', 'needs_review'] as $severity) {
+            $count = (int)($verdict->counts[$severity] ?? 0);
+            if ($count > 0) {
+                $counts[] = $this->formatSeverityCount($severity, $count);
+            }
+        }
+
+        return sprintf(
+            $this->translate(
+                'publish.flash.gate',
+                'Accessibility quality gate: %1$s. Current open findings: %2$s. Needs review items are manual checks and do not block publishing.'
+            ),
+            implode(', ', $reasons),
+            $counts !== [] ? implode(', ', $counts) : $this->translate('publish.flash.none', 'none'),
+        );
+    }
+
+    private function formatSeverityCount(string $severity, int $count): string
+    {
+        $template = match ($severity) {
+            'critical' => $this->translate('publish.flash.count.critical', '%d critical'),
+            'warning' => $this->translate('publish.flash.count.warning', '%d warning'),
+            'needs_review' => $this->translate('publish.flash.count.needsReview', '%d needs review'),
+            default => $this->translate('publish.flash.count.info', '%d info'),
+        };
+
+        return sprintf($template, $count);
+    }
+
+    private function translate(string $key, string $fallback): string
+    {
+        $translated = $this->backendContextService->translate($key);
+
+        return $translated !== '' && $translated !== $key ? $translated : $fallback;
     }
 
 

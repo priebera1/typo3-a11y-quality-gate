@@ -58,6 +58,7 @@ final class LocalIssueGuidanceService
 
         return [
             'title' => trim((string)($metadata['title'] ?? '')),
+            'localizedTitle' => trim((string)($metadata['localizedTitle'] ?? '')),
             'whyItMatters' => $whyItMatters,
             'howToFix' => $howToFix,
             'howToFixIsFallback' => $howToFixIsFallback,

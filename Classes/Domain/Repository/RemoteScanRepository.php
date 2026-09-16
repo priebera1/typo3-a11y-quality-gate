@@ -446,8 +446,12 @@ final class RemoteScanRepository extends AbstractRepository
     }
 
 
-    public function findLastCompletedPageScanByPage(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
-    {
+    public function findLastCompletedPageScanByPage(
+        string $siteIdentifier,
+        int $pageUid,
+        int $languageUid = -1,
+        ?bool $isFreePreview = null,
+    ): ?array {
         if ($siteIdentifier === '' || $pageUid <= 0) {
             return null;
         }
@@ -483,6 +487,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
+        $this->addFreePreviewConstraint($queryBuilder, $isFreePreview);
 
         $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
@@ -574,16 +579,20 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
-    public function findLastCompletedRelevantScan(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
-    {
+    public function findLastCompletedRelevantScan(
+        string $siteIdentifier,
+        int $pageUid,
+        int $languageUid = -1,
+        ?bool $isFreePreview = null,
+    ): ?array {
         if ($pageUid > 0) {
-            $pageScan = $this->findLastCompletedPageScanByPage($siteIdentifier, $pageUid, $languageUid);
+            $pageScan = $this->findLastCompletedPageScanByPage($siteIdentifier, $pageUid, $languageUid, $isFreePreview);
             if (is_array($pageScan)) {
                 return $pageScan;
             }
         }
 
-        return $this->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
+        return $this->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, $isFreePreview);
     }
 
     public function findUnpersistedCompletedScanBySite(string $siteIdentifier): ?array
@@ -1309,7 +1318,7 @@ final class RemoteScanRepository extends AbstractRepository
         return $row;
     }
 
-    public function findLatestPageByUrl(string $url, string $siteIdentifier): ?array
+    public function findLatestPageByUrl(string $url, string $siteIdentifier, ?bool $isFreePreview = null): ?array
     {
         if ($url === '' || $siteIdentifier === '') {
             return null;
@@ -1340,6 +1349,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addUrlVariantConstraint($queryBuilder, $url);
+        $this->addFreePreviewConstraint($queryBuilder, $isFreePreview, 'rs');
 
         $row = $queryBuilder
             ->orderBy('rs.finished_at', 'DESC')
@@ -1358,6 +1368,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $pageUid,
         int $languageUid = -1,
         string $url = '',
+        ?bool $isFreePreview = null,
     ): ?array {
         if ($siteIdentifier === '' || $pageUid <= 0) {
             return null;
@@ -1401,6 +1412,7 @@ final class RemoteScanRepository extends AbstractRepository
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
         $this->addUrlVariantConstraint($queryBuilder, $url);
+        $this->addFreePreviewConstraint($queryBuilder, $isFreePreview, 'rs');
 
         $row = $queryBuilder
             ->orderBy('rs.finished_at', 'DESC')

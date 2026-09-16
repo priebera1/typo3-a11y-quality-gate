@@ -41,6 +41,7 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 - Automated local scans via TYPO3 Scheduler
 - Changed-only scan mode for incremental rescans
 - Quality gate warning mode on page publish / unhide; editors can continue after reviewing the warning
+- Free Remote Preview — a limited daily browser-based frontend scan with axe-core (current limits are shown in the module)
 - FREE rendered page check — inspects the server-rendered HTML of a page; runs for backend page and site scans and for single-page CLI/Scheduler runs
 - CSV export
 - TCA-based field discovery for `tt_content` RTE and file fields
@@ -51,12 +52,20 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 
 - Remote browser accessibility scans via Playwright + axe-core
 - Remote browser scan results with issue breakdown and screenshot preview
-- PDF export for overview and page detail reports
 - Remote CSV export
 - Per-site quality gate configuration
 - Quality gate blocking mode on publish / unhide
 - Diff tracking for new and resolved issues across scans
-- Multi-site support for agencies
+
+### PRO / Agency
+
+- PDF export for overview and page detail reports
+- AI-assisted alt text, link text and iframe title suggestions (bring your own OpenAI key; editors review every suggestion)
+- Accessibility Statement Draft Assistant based on a completed frontend site scan
+
+### Agency
+
+- Multi-site licence for agencies
 
 Plan details, trial access and pricing:
 
@@ -212,7 +221,7 @@ Then run TYPO3 extension setup and flush caches:
 Next:
 
 1. Open the Accessibility Quality Gate module in the TYPO3 backend
-2. Run **Re-scan TCA** in Settings once
+2. Review the automatically discovered fields in **Settings → Scan fields** (use **Refresh fields** after adding TCA fields)
 3. Configure a Scheduler task or run scans manually via backend module or CLI
 
 For full setup and usage instructions see the documentation:
@@ -287,7 +296,7 @@ options.a11y_quality_gate {
 
 AQG helps teams identify common accessibility issues early in the TYPO3 editorial workflow. It is not a legal certification tool and cannot guarantee WCAG, EAA, BITV or any other accessibility compliance on its own.
 
-The Free rendered page check analyzes server-rendered HTML only. It does not execute JavaScript, wait for AJAX or lazy-loaded content, interact with cookie banners or take screenshots. Browser-based crawling, screenshots and axe-core checks are part of the Trial / PRO remote scanner.
+The Free rendered page check analyzes server-rendered HTML only. It does not execute JavaScript, wait for AJAX or lazy-loaded content, interact with cookie banners or take screenshots. Browser-based frontend scans with axe-core run in the AQG remote scanner, either as the limited daily Free Remote Preview or with a Trial, PRO or Agency licence; screenshots need a Trial, PRO or Agency licence.
 
 Accessibility Quality Gate does not replace a full accessibility audit, keyboard testing, assistive technology testing or a professional WCAG review. Some rules reflect best practices and may not always correspond to a hard WCAG 2.1 failure in every context. All findings should be reviewed in context.
 

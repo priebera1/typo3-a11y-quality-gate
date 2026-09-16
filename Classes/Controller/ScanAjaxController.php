@@ -51,7 +51,7 @@ final class ScanAjaxController extends AbstractApiController
         if ($this->scanStatusService->isRunning()) {
             return $this->jsonResponse([
                 'success' => false,
-                'error' => 'A scan is already running.',
+                'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
                 'status' => $this->scanStatusService->getStatus(),
             ], 409);
         }
@@ -121,7 +121,7 @@ final class ScanAjaxController extends AbstractApiController
             return $this->jsonResponse([
                 'success' => false,
                 'code' => 'local_scan_cancelled',
-                'message' => 'Scan was cancelled.',
+                'message' => $this->translate('scanAjax.cancelled', 'Scan was cancelled.'),
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (\Throwable $e) {
@@ -138,7 +138,7 @@ final class ScanAjaxController extends AbstractApiController
 
             return $this->jsonResponse([
                 'success' => false,
-                'error' => 'Scan failed: ' . $e->getMessage(),
+                'error' => sprintf($this->translate('scanAjax.failed', 'Scan failed: %s'), $e->getMessage()),
                 'status' => $this->scanStatusService->getStatus(),
             ], 500);
         }
@@ -154,7 +154,7 @@ final class ScanAjaxController extends AbstractApiController
         if ($this->scanStatusService->isRunning()) {
             return $this->jsonResponse([
                 'success' => false,
-                'error' => 'A scan is already running.',
+                'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
                 'status' => $this->scanStatusService->getStatus(),
             ], 409);
         }
@@ -225,7 +225,7 @@ final class ScanAjaxController extends AbstractApiController
             return $this->jsonResponse([
                 'success' => false,
                 'code' => 'local_scan_cancelled',
-                'message' => 'Scan was cancelled.',
+                'message' => $this->translate('scanAjax.cancelled', 'Scan was cancelled.'),
                 'status' => $this->scanStatusService->getStatus(),
             ]);
         } catch (\Throwable $e) {
@@ -242,7 +242,7 @@ final class ScanAjaxController extends AbstractApiController
 
             return $this->jsonResponse([
                 'success' => false,
-                'error' => 'Scan failed: ' . $e->getMessage(),
+                'error' => sprintf($this->translate('scanAjax.failed', 'Scan failed: %s'), $e->getMessage()),
                 'status' => $this->scanStatusService->getStatus(),
             ], 500);
         }
@@ -266,7 +266,7 @@ final class ScanAjaxController extends AbstractApiController
             return $this->jsonResponse([
                 'success' => true,
                 'status' => $this->scanStatusService->getStatus(),
-                'message' => 'No content scan is running.',
+                'message' => $this->translate('scanAjax.noScanRunning', 'No content scan is running.'),
             ]);
         }
 
@@ -281,7 +281,7 @@ final class ScanAjaxController extends AbstractApiController
         return $this->jsonResponse([
             'success' => true,
             'status' => $this->scanStatusService->getStatus(),
-            'message' => 'Content scan cancellation was requested.',
+            'message' => $this->translate('scanAjax.cancellationRequested', 'Content scan cancellation was requested.'),
         ]);
     }
 

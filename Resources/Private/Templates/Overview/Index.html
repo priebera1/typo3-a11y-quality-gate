@@ -52,7 +52,7 @@
                         </f:else>
                     </f:if>
                     <div class="aqg-lang__context">
-                        Active · {currentLanguageOption.title}
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.active" default="Active" /> · {currentLanguageOption.title}
                         <f:if condition="{currentLanguageOption.hasResults}">
                             · {currentLanguageOption.pageLabel}
                         </f:if>
@@ -67,33 +67,109 @@
                 <f:render partial="Shared/ModuleEmptyState" arguments="{emptyState: emptyState}" />
             </f:then>
             <f:else>
-        <f:if condition="!{hasEnabledFields}">
-            <div class="aqg-notice aqg-tone-warning" role="status">
+        <f:if condition="{licenceNotice}">
+            <div class="aqg-notice aqg-tone-warning" role="status" data-aqg-licence-notice="{licenceNotice.state}">
                 <span class="aqg-notice__icon" aria-hidden="true">
                     <f:render partial="Overview/Icon" arguments="{name: 'warning'}" />
                 </span>
                 <div class="aqg-notice__body">
-                <strong class="aqg-notice__title">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.settingsRequired.title"
-                            default="Scanner fields are not configured yet."
-                    />
-                </strong>
-                <div class="aqg-notice__text">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.settingsRequired.text"
-                            default="Open Settings, choose which fields should be scanned, save your changes, and then start the first scan."
-                    />
-                </div>
+                    <strong class="aqg-notice__title">{licenceNotice.title}</strong>
+                    <div class="aqg-notice__text">{licenceNotice.text}</div>
                 </div>
                 <div class="aqg-notice__actions">
-                    <a href="{settingsUrl}" class="btn btn-primary btn-sm">
+                    <f:if condition="{licenceNotice.primaryAction}">
+                        <a href="{licenceNotice.primaryAction.url}" class="btn btn-primary btn-sm" data-aqg-licence-action="{licenceNotice.primaryAction.action}" {f:if(condition: licenceNotice.primaryAction.external, then: 'target="_blank" rel="noopener noreferrer"')}>{licenceNotice.primaryAction.label}</a>
+                    </f:if>
+                    <a href="{licenceNotice.settingsUrl}" class="btn btn-default btn-sm">
                         <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title"
-                                default="Open settings"
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.licenceNotice.settings"
+                                default="Licence settings"
                         />
                     </a>
                 </div>
+            </div>
+        </f:if>
+
+        <f:if condition="{fieldsInitializedCount} > 0">
+            <div class="aqg-notice aqg-tone-info" role="status" data-aqg-first-run="fields-initialized">
+                <span class="aqg-notice__icon" aria-hidden="true">
+                    <f:render partial="Overview/Icon" arguments="{name: 'ok'}" />
+                </span>
+                <div class="aqg-notice__body">
+                    <strong class="aqg-notice__title">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.title"
+                                default="AQG is ready to scan"
+                        />
+                    </strong>
+                    <div class="aqg-notice__text">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.text"
+                                default="AQG found %1$d rich-text and image fields in your TYPO3 content and enabled them for scanning. Next: Scan this page or Scan site."
+                                arguments="{0: fieldsInitializedCount}"
+                        />
+                    </div>
+                </div>
+                <f:if condition="{canShowSettings}">
+                    <div class="aqg-notice__actions">
+                        <a href="{scanFieldsSettingsUrl}" class="btn btn-default btn-sm">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.reviewFields"
+                                    default="Review scan fields"
+                            />
+                        </a>
+                    </div>
+                </f:if>
+            </div>
+        </f:if>
+
+        <f:if condition="!{hasEnabledFields}">
+            <div class="aqg-notice aqg-tone-warning" role="status" data-aqg-first-run="fields-missing">
+                <span class="aqg-notice__icon" aria-hidden="true">
+                    <f:render partial="Overview/Icon" arguments="{name: 'warning'}" />
+                </span>
+                <div class="aqg-notice__body">
+                    <f:if condition="{hasFieldConfiguration}">
+                        <f:then>
+                            <strong class="aqg-notice__title">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.fieldsDisabled.title"
+                                        default="No content fields are enabled for scanning"
+                                />
+                            </strong>
+                            <div class="aqg-notice__text">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.fieldsDisabled.text"
+                                        default="Content scans skip all TYPO3 content fields until at least one field is enabled."
+                                />
+                            </div>
+                        </f:then>
+                        <f:else>
+                            <strong class="aqg-notice__title">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.noFieldsFound.title"
+                                        default="No scannable content fields found"
+                                />
+                            </strong>
+                            <div class="aqg-notice__text">
+                                <f:translate
+                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.noFieldsFound.text"
+                                        default="AQG found no rich-text or image fields in TCA. Refresh the field list after installing the extensions that provide your content."
+                                />
+                            </div>
+                        </f:else>
+                    </f:if>
+                </div>
+                <f:if condition="{canShowSettings}">
+                    <div class="aqg-notice__actions">
+                        <a href="{scanFieldsSettingsUrl}" class="btn btn-primary btn-sm">
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.chooseFields"
+                                    default="Choose scan fields"
+                            />
+                        </a>
+                    </div>
+                </f:if>
             </div>
         </f:if>
 
@@ -228,13 +304,6 @@
                         }"
                 />
             </div>
-        </f:if>
-
-        <f:if condition="{proStatus.showProHints} &amp;&amp; !{remoteUiAvailable}">
-            <f:render
-                    partial="Overview/ProHint"
-                    arguments="{proStatus: proStatus, settingsUrl: settingsUrl}"
-            />
         </f:if>
             </f:else>
         </f:if>

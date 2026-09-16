@@ -1,5 +1,5 @@
 # cat=PRO Licence/10; type=string; label=PRO licence key:Enter your AQG PRO licence key. Example: aqg_live_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 licenceKey =
 
-# cat=PRO Licence/20; type=boolean; label=Show PRO hints when licence is not active
+# cat=PRO Licence/20; type=boolean; label=Show PRO upgrade offers (trial and pricing links) in the Free Remote Preview
 showProHints = 1

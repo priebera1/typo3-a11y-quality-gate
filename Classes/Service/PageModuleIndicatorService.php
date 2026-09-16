@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
+use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
@@ -31,18 +32,29 @@ final class PageModuleIndicatorService
         private readonly UriBuilder $uriBuilder,
         private readonly ViewFactoryInterface $viewFactory,
         private readonly FrontendPageUrlService $frontendPageUrlService,
+        private readonly FreeRemotePreviewService $freeRemotePreviewService,
     ) {
     }
 
     public function buildForPage(int $pageUid, ?Site $site, int $languageUid = 0): string
     {
+        $variables = $this->buildViewData($pageUid, $site, $languageUid);
+
+        return $variables === null ? '' : $this->renderTemplate($variables);
+    }
+
+    /**
+     * @return array<string, mixed>|null null when the page has no site context to report on
+     */
+    public function buildViewData(int $pageUid, ?Site $site, int $languageUid = 0): ?array
+    {
         if ($pageUid <= 0 || !$site instanceof Site) {
-            return '';
+            return null;
         }
 
         $siteIdentifier = trim($site->getIdentifier());
         if ($siteIdentifier === '') {
-            return '';
+            return null;
         }
 
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
@@ -62,12 +74,25 @@ final class PageModuleIndicatorService
             );
         }
 
-        $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedRelevantScan($siteIdentifier, $pageUid, $languageUid);
-        $remotePage = $currentPageUrl !== ''
-            ? $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl)
-            : null;
-        if (!is_array($remotePage) && $currentPageUrl !== '') {
-            $remotePage = $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier);
+        // Free and paid results are never interchangeable: a licensed installation reads licensed scans
+        // only, a Free one reads its Free Remote Preview results for this page only.
+        if ($hasRemoteScanCapability) {
+            $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedRelevantScan($siteIdentifier, $pageUid, $languageUid, false);
+            $remotePage = $currentPageUrl !== ''
+                ? $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl, false)
+                : null;
+            if (!is_array($remotePage) && $currentPageUrl !== '') {
+                $remotePage = $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier, false);
+            }
+        } else {
+            $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedPageScanByPageOrUrl(
+                $siteIdentifier,
+                $pageUid,
+                $languageUid,
+                $this->frontendPageUrlService->resolvePublicForPage($site, $pageUid, $languageUid),
+                true
+            );
+            $remotePage = null;
         }
 
         $isLocalScanRunning = (bool)($scanStatus['running'] ?? false)
@@ -95,11 +120,9 @@ final class PageModuleIndicatorService
         ]);
 
         $localState = $this->resolveState($counts, $hasLocalScanState, $isLocalScanRunning);
-        $remoteState = $hasRemoteScanCapability
-            ? $this->resolveRemoteState($remoteCompletedScan, $remotePage, $isRemoteScanRunning)
-            : 'none';
-        $overallState = $this->resolveOverallState($localState, $hasRemoteScanCapability ? $remoteState : 'none', $hasRemoteScanCapability && $this->hasRemoteScanRun($remoteCompletedScan, $remotePage));
-        $hasRemoteScanRun = $hasRemoteScanCapability && $this->hasRemoteScanRun($remoteCompletedScan, $remotePage);
+        $remoteState = $this->resolveRemoteState($remoteCompletedScan, $remotePage, $isRemoteScanRunning);
+        $hasRemoteScanRun = $this->hasRemoteScanRun($remoteCompletedScan, $remotePage);
+        $overallState = $this->resolveOverallState($localState, $remoteState, $hasRemoteScanRun);
         $meta = $this->buildMeta($overallState, $counts, $scanStatus, $remoteActiveScan, $remoteCompletedScan, $latestLocalScanAt);
         $actions = $this->buildActions($overallState, $aqgPageUrl, $overviewUrl);
         $progress = $this->buildProgress($overallState, $remoteActiveScan);
@@ -107,33 +130,31 @@ final class PageModuleIndicatorService
         $body = $this->buildBody($overallState, $isRemoteScanRunning, $hasRemoteScanRun);
         $remoteScanEnabled = $hasRemoteScanCapability && $currentPageUrl !== '';
         $scanMode = $remoteScanEnabled ? 'combined' : 'local';
-        $rows = [[
-            'label' => $this->translate('pageModuleIndicator.row.local', 'Local scan'),
-            'state' => $localState,
-            'headline' => $this->buildHeadline($localState, $counts),
-        ]];
-        if ($hasRemoteScanCapability) {
-            $rows[] = [
-                'label' => $this->translate('pageModuleIndicator.row.remote', 'Remote scan'),
+        $rows = [
+            [
+                'label' => $this->translate('pageModuleIndicator.row.local', 'Local scan'),
+                'state' => $localState,
+                'headline' => $this->buildHeadline($localState, $counts),
+            ],
+            [
+                'label' => $this->translate('pageModuleIndicator.row.remote', 'Frontend scan'),
                 'state' => $remoteState,
                 'headline' => $this->buildRemoteHeadline($remoteState, $remoteCompletedScan, $remotePage),
+            ],
+        ];
+
+        if ($hasRemoteScanCapability) {
+            $remoteHint = $hasRemoteScanRun ? null : [
+                'tag' => 'PRO',
+                'text' => $this->translate('pageModuleIndicator.proHint.remoteScanAvailable', 'Frontend scan available — run a frontend scan'),
+                'linkLabel' => '',
+                'linkUrl' => '',
             ];
         } else {
-            $rows[] = [
-                'label' => $this->translate('pageModuleIndicator.row.remote', 'Remote scan'),
-                'state' => 'none',
-                'headline' => $this->translate('pageModuleIndicator.headline.none', 'Not scanned'),
-            ];
+            $remoteHint = $this->buildFreeRemoteHint($site, $siteIdentifier, $pageUid, $languageUid);
         }
 
-        $proHint = null;
-        if (!$hasRemoteScanCapability || !$hasRemoteScanRun) {
-            $proHint = $hasRemoteScanCapability
-                ? $this->translate('pageModuleIndicator.proHint.remoteScanAvailable', 'Frontend scan available — run a remote scan')
-                : $this->translate('pageModuleIndicator.proHint.frontendScan', 'Frontend scan available in PRO');
-        }
-
-        return $this->renderTemplate([
+        return [
             'title' => $this->translate('pageModuleIndicator.title', 'Accessibility Quality'),
             'overallState' => $overallState,
             'localState' => $localState,
@@ -145,7 +166,7 @@ final class PageModuleIndicatorService
             'rows' => $rows,
             'actions' => $actions,
             'progress' => $progress,
-            'proHint' => $proHint,
+            'remoteHint' => $remoteHint,
             'isRunning' => $overallState === 'running',
             'pageUid' => $pageUid,
             'siteIdentifier' => $siteIdentifier,
@@ -154,11 +175,66 @@ final class PageModuleIndicatorService
             'remoteScanEnabled' => $remoteScanEnabled,
             'languageUid' => $languageUid,
             'runningHeadline' => $this->translate('pageModuleIndicator.headline.running', 'Scan running'),
-            'runningBody' => $this->translate('pageModuleIndicator.body.running', 'Checking this page for accessibility issues...'),
+            'runningBody' => $this->translate('pageModuleIndicator.body.running', 'Checking this page for accessibility issues…'),
             'runningMeta' => $this->translate('pageModuleIndicator.meta.running', 'Started just now'),
             'runningStatus' => $this->translate('pageModuleIndicator.status.running', 'Scanning'),
             'loadingText' => $this->translate('action.scanning', 'Scanning...'),
-        ]);
+        ];
+    }
+
+    /**
+     * Free installations have a real remote option: a limited number of selected-page scans per day
+     * (Free Remote Preview), started from the AQG module. The quota comes from the entitlement status
+     * the Overview has already cached — the Page module never adds a synchronous API call — so without
+     * a cached status the hint stays generic instead of guessing numbers.
+     *
+     * @return array{tag:string,text:string,linkLabel:string,linkUrl:string}
+     */
+    private function buildFreeRemoteHint(Site $site, string $siteIdentifier, int $pageUid, int $languageUid): array
+    {
+        $status = $this->freeRemotePreviewService->peekEntitlementStatus(
+            rtrim((string)$site->getBase(), '/') . '/',
+            $siteIdentifier,
+        );
+        $state = (string)($status['state'] ?? '');
+        $jobsLimit = max(0, (int)($status['jobsLimit'] ?? 0));
+        $scansRemaining = max(0, (int)($status['scansRemaining'] ?? 0));
+
+        if ($status === null || ($state === 'FREE_AVAILABLE' && $jobsLimit === 0)) {
+            $text = $this->translate(
+                'pageModuleIndicator.freeHint.available',
+                'Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free page scans per day.'
+            );
+        } elseif ($state === 'FREE_AVAILABLE') {
+            $text = sprintf(
+                $this->translate('pageModuleIndicator.freeHint.remaining', 'Free Remote Preview: %1$d of %2$d free page scans left today.'),
+                $scansRemaining,
+                $jobsLimit
+            );
+        } elseif ($state === 'FREE_USED_TODAY' || $state === 'FREE_LIMIT_REACHED') {
+            $text = $this->translate('pageModuleIndicator.freeHint.limitReached', 'Daily Free limit reached — all free page scans for today are used.');
+            $resetsAt = strtotime((string)($status['resetsAt'] ?? '')) ?: 0;
+            if ($resetsAt > 0) {
+                $text .= ' ' . sprintf(
+                    $this->translate('pageModuleIndicator.freeHint.nextScans', 'Next free scans: %s.'),
+                    BackendTimeUtility::formatDateTime($resetsAt)
+                );
+            }
+        } else {
+            $text = $this->translate('pageModuleIndicator.freeHint.unavailable', 'Free Remote Preview status is temporarily unavailable.');
+        }
+
+        return [
+            'tag' => 'FREE',
+            'text' => $text,
+            'linkLabel' => $this->translate('pageModuleIndicator.freeHint.open', 'Open frontend scan'),
+            'linkUrl' => (string)$this->uriBuilder->buildUriFromRoute('web_a11y', [
+                'id' => $pageUid,
+                'site' => $siteIdentifier,
+                'language' => $languageUid,
+                'aqgSource' => 'remote',
+            ]),
+        ];
     }
 
     private function matchesLanguage(int $runningLanguageUid, int $currentLanguageUid): bool
@@ -306,11 +382,11 @@ final class PageModuleIndicatorService
     private function buildRemoteHeadline(string $state, ?array $remoteCompletedScan, ?array $remotePage): string
     {
         if ($state === 'running') {
-            return $this->translate('pageModuleIndicator.headline.running', 'Scanning...');
+            return $this->translate('pageModuleIndicator.headline.running', 'Scan running');
         }
 
         if ($state === 'none') {
-            return $this->translate('pageModuleIndicator.headline.none', 'Not scanned');
+            return $this->translate('pageModuleIndicator.headline.none', 'Not scanned yet');
         }
 
         if ($state === 'ok') {
@@ -499,10 +575,10 @@ final class PageModuleIndicatorService
                 $pagesScanned = (int)($remoteActiveScan['pages_scanned'] ?? 0);
                 $pagesTotal = (int)($remoteActiveScan['pages_total'] ?? 0);
                 if ($pagesTotal > 0) {
-                    return sprintf($this->translate('pageModuleIndicator.meta.remoteProgressTotal', 'Remote scan: %d/%d pages processed.'), $pagesScanned, $pagesTotal);
+                    return sprintf($this->translate('pageModuleIndicator.meta.remoteProgressTotal', 'Frontend scan: %d/%d pages processed.'), $pagesScanned, $pagesTotal);
                 }
                 if ($pagesScanned > 0) {
-                    return sprintf($this->translate('pageModuleIndicator.meta.remoteProgress', 'Remote scan: %d pages processed.'), $pagesScanned);
+                    return sprintf($this->translate('pageModuleIndicator.meta.remoteProgress', 'Frontend scan: %d pages processed.'), $pagesScanned);
                 }
             }
 
@@ -532,7 +608,7 @@ final class PageModuleIndicatorService
 
         if (is_array($remoteCompletedScan) && (int)($remoteCompletedScan['finished_at'] ?? 0) > 0) {
             return sprintf(
-                $this->translate('pageModuleIndicator.meta.remoteCompleted', 'Frontend scan available. Last remote sync: %s.'),
+                $this->translate('pageModuleIndicator.meta.remoteCompleted', 'Frontend scan available. Last frontend sync: %s.'),
                 BackendTimeUtility::formatDateTime((int)$remoteCompletedScan['finished_at'])
             );
         }

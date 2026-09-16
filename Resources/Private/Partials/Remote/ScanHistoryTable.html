@@ -4,28 +4,29 @@
         <table class="aqg-history-table{f:if(condition: compactPageHistory, then: ' aqg-history-table--page-detail')}">
             <thead>
                 <tr>
-                    <th>Finished</th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.finished" default="Finished" /></th>
                     <f:if condition="{compactPageHistory}">
                         <f:then></f:then>
                         <f:else>
-                            <th>Scope</th>
-                            <th>URL / Site</th>
-                            <th>Pages scanned</th>
+                            <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.scope" default="Scope" /></th>
+                            <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.urlOrSite" default="URL / Site" /></th>
+                            <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.pagesScanned" default="Pages scanned" /></th>
                         </f:else>
                     </f:if>
-                    <th>Findings</th>
-                    <th>Score</th>
-                    <th>Impact</th>
-                    <th>Critical</th>
-                    <th>Serious</th>
-                    <th>Moderate</th>
-                    <th>Actions</th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.score" default="Score" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.impact" default="Impact" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.serious" default="Serious" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.moderate" default="Moderate" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions" default="Actions" /></th>
                 </tr>
             </thead>
             <tbody>
                 <f:for each="{items}" as="item">
+                    <f:variable name="jobLabel"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.job" default="Job" /></f:variable>
                     <tr>
-                        <td title="Job: {item.jobId}">{item.finishedAtFormatted}<br /><span class="aqg-history-table__job">Job: {item.jobIdShort}</span></td>
+                        <td title="{jobLabel}: {item.jobId}">{item.finishedAtFormatted}<br /><span class="aqg-history-table__job">{jobLabel}: {item.jobIdShort}</span></td>
                         <f:if condition="{compactPageHistory}">
                             <f:then></f:then>
                             <f:else>
@@ -43,15 +44,15 @@
                         <td class="aqg-history-table__actions">
                             <f:if condition="{item.viewReportUrl}">
                                 <f:then>
-                                    <a href="{item.viewReportUrl}" class="btn btn-sm btn-default" title="Job: {item.jobId} · Report UID: {item.viewReportRemotePageUid}">View report</a>
+                                    <a href="{item.viewReportUrl}" class="btn btn-sm btn-default" title="{jobLabel}: {item.jobId}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.viewReport" default="View report" /></a>
                                 </f:then>
                                 <f:else>
-                                    <span class="aqg-history-table__muted" title="Job: {item.jobId}">Not available in TYPO3</span>
+                                    <span class="aqg-history-table__muted" title="{jobLabel}: {item.jobId}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.notAvailable" default="Not available in TYPO3" /></span>
                                 </f:else>
                             </f:if>
                             <f:if condition="{item.compareUrl}">
                                 <f:then>
-                                    <a href="{item.compareUrl}" class="btn btn-sm btn-default">Compare with previous compatible scan</a>
+                                    <a href="{item.compareUrl}" class="btn btn-sm btn-default"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.compare" default="Compare with previous compatible scan" /></a>
                                 </f:then>
                                 <f:else>
                                     <span class="aqg-history-table__muted">{item.compareLabel}</span>

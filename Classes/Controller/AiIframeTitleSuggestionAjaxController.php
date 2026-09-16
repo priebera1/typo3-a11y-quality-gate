@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Ai\Exception\AiConfigurationException;
 use Priebera\A11yQualityGate\Ai\Exception\AiIframeTitleSuggestionException;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
 use Priebera\A11yQualityGate\Ai\Exception\AiRateLimitException;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -37,7 +38,10 @@ final class AiIframeTitleSuggestionAjaxController
                 'code' => $result->status,
                 ...$result->toResponsePayload(),
                 'reviewOnly' => true,
-                'message' => 'Review the suggested iframe title and update the template, plugin or content source manually. Nothing was changed automatically.',
+                'message' => BackendLabelUtility::translate(
+                    'aiIframeTitle.reviewNotice',
+                    'Review the suggested iframe title and update the template, plugin or content source manually. Nothing was changed automatically.'
+                ),
             ]);
         } catch (AiIframeTitleSuggestionException $exception) {
             return match ($exception->safeCode) {

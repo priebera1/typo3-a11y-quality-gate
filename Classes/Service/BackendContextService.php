@@ -25,6 +25,14 @@ final class BackendContextService implements BackendContextServiceInterface
         return $this->backendLanguageService->translate($key, $file);
     }
 
+    /**
+     * Backend UI language as 'de' or 'en', for services that pick guidance texts per language.
+     */
+    public function getCurrentLanguageCode(): string
+    {
+        return $this->backendLanguageService->getCurrentLanguageCode();
+    }
+
     public function getBackendUser(): ?BackendUserAuthentication
     {
         return $this->backendUserService->getBackendUser();

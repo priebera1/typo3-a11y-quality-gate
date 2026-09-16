@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Ai\Exception\AiLinkTextSuggestionException;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
 use Priebera\A11yQualityGate\Ai\Exception\AiRateLimitException;
 use Priebera\A11yQualityGate\Ai\Contract\AiLinkTextSuggestionServiceInterface;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -37,7 +38,10 @@ final class AiLinkTextSuggestionAjaxController
                 'code' => $result->status,
                 ...$result->toResponsePayload(),
                 'reviewOnly' => true,
-                'message' => 'Review the suggested link text and update the RTE content manually. Nothing was changed automatically.',
+                'message' => BackendLabelUtility::translate(
+                    'aiLinkText.reviewNotice',
+                    'Review the suggested link text and update the RTE content manually. Nothing was changed automatically.'
+                ),
             ]);
         } catch (AiLinkTextSuggestionException $exception) {
             return match ($exception->safeCode) {

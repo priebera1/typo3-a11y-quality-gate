@@ -1,10 +1,10 @@
 <f:if condition="{plan.hasTasks}">
-    <section class="aqg-remediation-plan aqg-remediation-plan--{variant}" aria-label="Recommended remediation plan">
+    <section class="aqg-remediation-plan aqg-remediation-plan--{variant}" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.kicker', default: 'Recommended remediation plan')}">
         <div class="aqg-remediation-plan__head">
             <div>
-                <div class="aqg-remediation-plan__kicker">Recommended remediation plan</div>
-                <h2 class="aqg-remediation-plan__title">What to fix first</h2>
-                <p class="aqg-remediation-plan__subtitle">Automated remediation plan. Manual review may still be required.</p>
+                <div class="aqg-remediation-plan__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.kicker" default="Recommended remediation plan" /></div>
+                <h2 class="aqg-remediation-plan__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.title" default="What to fix first" /></h2>
+                <p class="aqg-remediation-plan__subtitle"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.subtitle" default="Automated remediation plan. Manual review may still be required." /></p>
             </div>
         </div>
 
@@ -23,19 +23,19 @@
                                 </div>
                             </div>
                             <dl class="aqg-remediation-plan__meta">
-                                <div><dt>Suggested owner</dt><dd>{task.ownerLabel}</dd></div>
-                                <div><dt>Fix type</dt><dd>{task.fixTypeLabel}</dd></div>
-                                <div><dt>Impact</dt><dd>{task.impactLabel}</dd></div>
-                                <div><dt>Findings</dt><dd>{task.findingsTotalLabel}</dd></div>
-                                <div><dt>Affected pages</dt><dd>{task.affectedPagesTotalLabel}</dd></div>
-                                <div><dt>Estimated effort</dt><dd>{task.estimatedEffortLabel}</dd></div>
+                                <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.owner" default="Suggested owner" /></dt><dd>{task.ownerLabel}</dd></div>
+                                <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.fixType" default="Fix type" /></dt><dd>{task.fixTypeLabel}</dd></div>
+                                <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.impact" default="Impact" /></dt><dd>{task.impactLabel}</dd></div>
+                                <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" /></dt><dd>{task.findingsTotalLabel}</dd></div>
+                                <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.affectedPages" default="Affected pages" /></dt><dd>{task.affectedPagesTotalLabel}</dd></div>
+                                <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.effort" default="Estimated effort" /></dt><dd>{task.estimatedEffortLabel}</dd></div>
                             </dl>
                             <f:if condition="{task.quickWinLabel}">
                                 <span class="aqg-remediation-plan__badge">{task.quickWinLabel}</span>
                             </f:if>
                             <f:if condition="{task.hasSteps}">
                                 <div class="aqg-remediation-plan__steps">
-                                    <strong>Recommended steps</strong>
+                                    <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.steps" default="Recommended steps" /></strong>
                                     <ol>
                                         <f:for each="{task.steps}" as="step">
                                             <li>{step}</li>
@@ -45,7 +45,7 @@
                             </f:if>
                             <f:if condition="{task.hasExamples}">
                                 <div class="aqg-remediation-plan__examples">
-                                    <strong>Examples</strong>
+                                    <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.examples" default="Examples" /></strong>
                                     <ul>
                                         <f:for each="{task.examples}" as="example">
                                             <li>{example}</li>

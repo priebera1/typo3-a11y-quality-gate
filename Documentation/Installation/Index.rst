@@ -90,16 +90,15 @@ First steps after installation
     :guilabel:`Web`, on TYPO3 14 below :guilabel:`Content`. The backend route
     identifier stays ``web_a11y`` on both versions.
 
-#.  Open :guilabel:`Settings` and run :guilabel:`Re-scan TCA` once. This
-    discovers the RTE and file fields that AQG can analyse and writes them to
-    :sql:`tx_a11y_field_config`. AQG does not run the discovery automatically,
-    so until you do this the field configuration is empty and field-based rules
-    produce no findings.
+#.  AQG discovers the RTE and file fields it can analyse the first time the
+    module opens or a scan runs, and writes them to
+    :sql:`tx_a11y_field_config`. The overview confirms how many fields it
+    registered. See :ref:`configuration-scan-fields`.
 
-#.  Review the discovered fields on the :guilabel:`Scanned fields` tab. Newly
-    discovered fields are enabled by default; disable the ones you do not want
-    to check and press :guilabel:`Save settings`. Changes take effect only after
-    saving.
+#.  Review the discovered fields in :guilabel:`Settings` on the
+    :guilabel:`Scan fields` tab. Newly discovered fields are enabled by
+    default; disable the ones you do not want to check and press
+    :guilabel:`Save changes`. Changes take effect only after saving.
 
 #.  Optional: review the :guilabel:`Rules` tab and disable rules that do not
     apply to your project.

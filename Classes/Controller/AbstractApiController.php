@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -33,6 +34,11 @@ abstract class AbstractApiController
     protected function getBackendUserUid(): int
     {
         return $this->backendUserService->getBackendUserUid();
+    }
+
+    protected function translate(string $key, string $fallback): string
+    {
+        return BackendLabelUtility::translate($key, $fallback);
     }
 
     protected function unauthorizedResponse(string $message = 'Unauthorized'): ResponseInterface

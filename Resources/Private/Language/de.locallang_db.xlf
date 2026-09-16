@@ -1,0 +1,723 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" target-language="de" datatype="plaintext" original="EXT:a11y_quality_gate/Resources/Private/Language/locallang_db.xlf" product-name="a11y_quality_gate">
+    <body>
+      <trans-unit id="tx_a11y_issue">
+        <source>Accessibility issue</source>
+        <target>Barrierefreiheitsproblem</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.site_identifier">
+        <source>Site identifier</source>
+        <target>Website-Kennung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.page_uid">
+        <source>Page UID</source>
+        <target>Seiten-UID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.source_lang_uid">
+        <source>Source language UID</source>
+        <target>Sprach-UID der Quelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.source_table">
+        <source>Source table</source>
+        <target>Quelltabelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.source_uid">
+        <source>Source UID</source>
+        <target>Quell-UID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.source_field">
+        <source>Source field</source>
+        <target>Quellfeld</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.rule_id">
+        <source>Rule ID</source>
+        <target>Regel-ID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.severity">
+        <source>Severity</source>
+        <target>Schweregrad</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.message">
+        <source>Message</source>
+        <target>Meldung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.hint">
+        <source>Hint</source>
+        <target>Hinweis</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.context_snippet">
+        <source>Context snippet</source>
+        <target>Kontextausschnitt</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.context_path">
+        <source>Context path</source>
+        <target>Kontextpfad</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.fingerprint">
+        <source>Fingerprint</source>
+        <target>Fingerabdruck</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.status">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_reason">
+        <source>Ignored reason</source>
+        <target>Grund für das Ignorieren</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_by">
+        <source>Ignored by UID</source>
+        <target>Ignoriert von (UID)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_by_name">
+        <source>Ignored by name</source>
+        <target>Ignoriert von (Name)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_by_username">
+        <source>Ignored by username</source>
+        <target>Ignoriert von (Benutzername)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_at">
+        <source>Ignored at</source>
+        <target>Ignoriert am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_until">
+        <source>Ignored until</source>
+        <target>Ignoriert bis</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.ignored_reopened_at">
+        <source>Automatically reopened at</source>
+        <target>Automatisch wieder geöffnet am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.resolved_by">
+        <source>Resolved by UID</source>
+        <target>Behoben von (UID)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.resolved_by_name">
+        <source>Resolved by name</source>
+        <target>Behoben von (Name)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.resolved_by_username">
+        <source>Resolved by username</source>
+        <target>Behoben von (Benutzername)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.resolved_at">
+        <source>Resolved at</source>
+        <target>Behoben am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.first_seen_scan_uid">
+        <source>First seen scan UID</source>
+        <target>UID des ersten Scans mit Befund</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.field.last_seen_scan_uid">
+        <source>Last seen scan UID</source>
+        <target>UID des letzten Scans mit Befund</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.severity.critical">
+        <source>Critical</source>
+        <target>Kritisch</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.severity.warning">
+        <source>Warning</source>
+        <target>Warnung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.severity.info">
+        <source>Info</source>
+        <target>Info</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.status.open">
+        <source>Open</source>
+        <target>Offen</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.status.resolved">
+        <source>Resolved</source>
+        <target>Behoben</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.status.ignored">
+        <source>Ignored</source>
+        <target>Ignoriert</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.status.muted">
+        <source>Muted</source>
+        <target>Stummgeschaltet</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.tab.source">
+        <source>Source</source>
+        <target>Quelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.tab.rule">
+        <source>Rule</source>
+        <target>Regel</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.tab.context">
+        <source>Context</source>
+        <target>Kontext</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.tab.status">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_issue.tab.scan">
+        <source>Scan</source>
+        <target>Scan</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset">
+        <source>Accessibility ruleset</source>
+        <target>Barrierefreiheits-Regelwerk</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.title">
+        <source>Title</source>
+        <target>Titel</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.site_identifier">
+        <source>Site identifier</source>
+        <target>Website-Kennung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.site_identifier.description">
+        <source>Leave empty to use this ruleset as the default for all sites.</source>
+        <target>Leer lassen, um dieses Regelwerk als Standard für alle Websites zu verwenden.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.site_identifier.placeholder">
+        <source>Leave empty to use as default for all sites</source>
+        <target>Leer lassen für den Standard aller Websites</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.is_default">
+        <source>Default ruleset</source>
+        <target>Standard-Regelwerk</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.is_default.description">
+        <source>Marks this ruleset as the default fallback when no site-specific ruleset exists.</source>
+        <target>Kennzeichnet dieses Regelwerk als Standard, wenn es kein websitespezifisches Regelwerk gibt.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.publish_mode">
+        <source>Publish mode</source>
+        <target>Veröffentlichungsmodus</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.publish_mode.description">
+        <source>Controls how the quality gate behaves when thresholds are exceeded.</source>
+        <target>Steuert, wie sich das Quality Gate verhält, wenn Schwellenwerte überschritten werden.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.threshold_critical">
+        <source>Critical threshold</source>
+        <target>Schwellenwert für kritische Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.threshold_critical.description">
+        <source>Maximum allowed number of open critical issues before the quality gate triggers.</source>
+        <target>Maximal erlaubte Anzahl offener kritischer Probleme, bevor das Quality Gate greift.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.threshold_warning">
+        <source>Warning threshold</source>
+        <target>Schwellenwert für Warnungen</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.threshold_warning.description">
+        <source>Maximum allowed number of open warnings before the quality gate triggers. Use -1 to disable warning threshold checks.</source>
+        <target>Maximal erlaubte Anzahl offener Warnungen, bevor das Quality Gate greift. Mit -1 wird die Prüfung der Warnungen deaktiviert.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.rules_json">
+        <source>Rules JSON</source>
+        <target>Regeln (JSON)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.scanner_token">
+        <source>Scanner token</source>
+        <target>Scanner-Token</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.scanner_token.description">
+        <source>Optional token used by the remote scanner to identify or authorize this ruleset.</source>
+        <target>Optionales Token, mit dem der Remote-Scanner dieses Regelwerk identifiziert oder autorisiert.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.http_auth_user">
+        <source>HTTP auth user</source>
+        <target>HTTP-Auth-Benutzer</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.http_auth_user.description">
+        <source>Optional basic authentication username used by the remote scanner.</source>
+        <target>Optionaler Benutzername für die Basic-Authentifizierung des Remote-Scanners.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.http_auth_pass">
+        <source>HTTP auth password</source>
+        <target>HTTP-Auth-Passwort</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.http_auth_pass.description">
+        <source>Encrypted basic authentication password. It is managed through the AQG settings UI.</source>
+        <target>Verschlüsseltes Passwort für die Basic-Authentifizierung. Es wird in den AQG-Einstellungen verwaltet.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.excluded_patterns">
+        <source>Excluded URL patterns</source>
+        <target>Ausgeschlossene URL-Muster</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.excluded_patterns.description">
+        <source>JSON list of URL patterns that should be skipped by remote scans.</source>
+        <target>JSON-Liste von URL-Mustern, die Remote-Scans überspringen sollen.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.cookie_accept_selectors">
+        <source>Cookie accept selectors</source>
+        <target>Selektoren zum Akzeptieren von Cookies</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.cookie_accept_selectors.description">
+        <source>Optional CSS selectors for custom cookie consent accept buttons.</source>
+        <target>Optionale CSS-Selektoren für eigene Schaltflächen zum Akzeptieren von Cookies.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.is_global">
+        <source>Global remote access settings</source>
+        <target>Globale Einstellungen für den Remote-Zugriff</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.is_global.description">
+        <source>When enabled, these remote scan access settings are considered global defaults.</source>
+        <target>Wenn aktiviert, gelten diese Einstellungen für den Remote-Scan-Zugriff als globaler Standard.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.crawl_priority_urls">
+        <source>Crawl priority URLs</source>
+        <target>Priorisierte Crawl-URLs</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.field.crawl_priority_urls.description">
+        <source>JSON list of URLs that should be prioritized by remote crawler jobs.</source>
+        <target>JSON-Liste von URLs, die Remote-Crawler-Aufträge bevorzugt behandeln sollen.</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.publish_mode.off">
+        <source>Off — no quality gate check</source>
+        <target>Aus – keine Quality-Gate-Prüfung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.publish_mode.warn">
+        <source>Warn — show warning, allow publish</source>
+        <target>Warnen – Warnung anzeigen, Veröffentlichen erlauben</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.publish_mode.block">
+        <source>Block — prevent publish (Trial, PRO or Agency)</source>
+        <target>Blockieren – Veröffentlichen verhindern (Trial, PRO oder Agency)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.tab.general">
+        <source>General</source>
+        <target>Allgemein</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.tab.site">
+        <source>Site</source>
+        <target>Website</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.tab.quality_gate">
+        <source>Quality gate</source>
+        <target>Quality Gate</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.tab.remote_scan_access">
+        <source>Remote scan access</source>
+        <target>Remote-Scan-Zugriff</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.tab.rules">
+        <source>Rules</source>
+        <target>Regeln</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.tab.system">
+        <source>System</source>
+        <target>System</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan">
+        <source>Accessibility scan</source>
+        <target>Barrierefreiheitsscan</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.site_identifier">
+        <source>Site identifier</source>
+        <target>Website-Kennung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.root_pid">
+        <source>Root page UID</source>
+        <target>UID der Startseite</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.language_uid">
+        <source>Language UID</source>
+        <target>Sprach-UID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.scope">
+        <source>Scope</source>
+        <target>Umfang</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.status">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.started_at">
+        <source>Started at</source>
+        <target>Gestartet am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.finished_at">
+        <source>Finished at</source>
+        <target>Beendet am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.pages_scanned">
+        <source>Pages scanned</source>
+        <target>Gescannte Seiten</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.records_scanned">
+        <source>Records scanned</source>
+        <target>Gescannte Datensätze</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.issues_new">
+        <source>New issues</source>
+        <target>Neue Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.issues_resolved">
+        <source>Resolved issues</source>
+        <target>Behobene Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.field.issues_ignored">
+        <source>Ignored issues</source>
+        <target>Ignorierte Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.status.pending">
+        <source>Pending</source>
+        <target>Ausstehend</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.status.running">
+        <source>Running</source>
+        <target>Läuft</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.status.done">
+        <source>Done</source>
+        <target>Fertig</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.status.failed">
+        <source>Failed</source>
+        <target>Fehlgeschlagen</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.status.cancelled">
+        <source>Cancelled</source>
+        <target>Abgebrochen</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.tab.general">
+        <source>General</source>
+        <target>Allgemein</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.tab.timing">
+        <source>Timing</source>
+        <target>Zeitpunkte</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.tab.result">
+        <source>Result</source>
+        <target>Ergebnis</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_scan.tab.system">
+        <source>System</source>
+        <target>System</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state">
+        <source>Accessibility source state</source>
+        <target>Barrierefreiheits-Quellstatus</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.site_identifier">
+        <source>Site identifier</source>
+        <target>Website-Kennung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.page_uid">
+        <source>Page UID</source>
+        <target>Seiten-UID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.source_lang_uid">
+        <source>Source language UID</source>
+        <target>Sprach-UID der Quelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.source_table">
+        <source>Source table</source>
+        <target>Quelltabelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.source_uid">
+        <source>Source UID</source>
+        <target>Quell-UID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.source_field">
+        <source>Source field</source>
+        <target>Quellfeld</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.content_hash">
+        <source>Content hash</source>
+        <target>Inhalts-Hash</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.field.last_scan_uid">
+        <source>Last scan UID</source>
+        <target>UID des letzten Scans</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.tab.source">
+        <source>Source</source>
+        <target>Quelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.tab.state">
+        <source>State</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_source_state.tab.system">
+        <source>System</source>
+        <target>System</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan">
+        <source>Remote accessibility scan</source>
+        <target>Remote-Barrierefreiheitsscan</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.site_identifier">
+        <source>Site identifier</source>
+        <target>Website-Kennung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.job_id">
+        <source>Job ID</source>
+        <target>Auftrags-ID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.source_type">
+        <source>Source type</source>
+        <target>Quelltyp</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.start_url">
+        <source>Start URL</source>
+        <target>Start-URL</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.sitemap_url">
+        <source>Sitemap URL</source>
+        <target>Sitemap-URL</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.status">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.pages_scanned">
+        <source>Pages scanned</source>
+        <target>Gescannte Seiten</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.pages_failed">
+        <source>Pages failed</source>
+        <target>Fehlgeschlagene Seiten</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.issues_total">
+        <source>Total issues</source>
+        <target>Probleme gesamt</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.issues_new">
+        <source>New issues</source>
+        <target>Neue Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.issues_resolved">
+        <source>Resolved issues</source>
+        <target>Behobene Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.started_at">
+        <source>Started at</source>
+        <target>Gestartet am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.field.finished_at">
+        <source>Finished at</source>
+        <target>Beendet am</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.tab.general">
+        <source>General</source>
+        <target>Allgemein</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.tab.result">
+        <source>Result</source>
+        <target>Ergebnis</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan.tab.timing">
+        <source>Timing</source>
+        <target>Zeitpunkte</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page">
+        <source>Remote accessibility scan page</source>
+        <target>Seite eines Remote-Barrierefreiheitsscans</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.remote_scan">
+        <source>Remote scan</source>
+        <target>Remote-Scan</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.source_type">
+        <source>Source type</source>
+        <target>Quelltyp</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.url">
+        <source>URL</source>
+        <target>URL</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.title">
+        <source>Title</source>
+        <target>Titel</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.http_status">
+        <source>HTTP status</source>
+        <target>HTTP-Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.issues_count">
+        <source>Issues count</source>
+        <target>Anzahl Probleme</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.screenshot_path">
+        <source>Screenshot path</source>
+        <target>Screenshot-Pfad</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.screenshot_url">
+        <source>Screenshot URL</source>
+        <target>Screenshot-URL</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.failure_reason">
+        <source>Failure reason</source>
+        <target>Fehlergrund</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.keyboard_summary_json">
+        <source>Keyboard summary JSON</source>
+        <target>Tastaturzusammenfassung (JSON)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.field.is_failed">
+        <source>Failed page</source>
+        <target>Fehlgeschlagene Seite</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.tab.general">
+        <source>General</source>
+        <target>Allgemein</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.tab.result">
+        <source>Result</source>
+        <target>Ergebnis</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_scan_page.tab.artifacts">
+        <source>Artifacts</source>
+        <target>Artefakte</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue">
+        <source>Remote accessibility issue</source>
+        <target>Remote-Barrierefreiheitsproblem</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.remote_scan">
+        <source>Remote scan</source>
+        <target>Remote-Scan</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.remote_scan_page">
+        <source>Remote scan page</source>
+        <target>Seite des Remote-Scans</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.rule_id">
+        <source>Rule ID</source>
+        <target>Regel-ID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.impact">
+        <source>Impact</source>
+        <target>Auswirkung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.help">
+        <source>Help</source>
+        <target>Hilfe</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.help_url">
+        <source>Help URL</source>
+        <target>Hilfe-URL</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.nodes_count">
+        <source>Nodes count</source>
+        <target>Anzahl Elemente</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.fingerprint">
+        <source>Fingerprint</source>
+        <target>Fingerabdruck</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.status">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.tab.general">
+        <source>General</source>
+        <target>Allgemein</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.tab.rule">
+        <source>Rule</source>
+        <target>Regel</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.tab.state">
+        <source>State</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.guidance_why_it_matters">
+        <source>Why it matters</source>
+        <target>Warum das wichtig ist</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.guidance_how_to_fix">
+        <source>How to fix</source>
+        <target>So beheben Sie es</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.who_should_fix">
+        <source>Suggested owner</source>
+        <target>Vorgeschlagene Zuständigkeit</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.fix_type">
+        <source>Suggested fix type</source>
+        <target>Vorgeschlagene Art der Korrektur</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.field.confidence">
+        <source>Guidance confidence</source>
+        <target>Verlässlichkeit der Hinweise</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue.tab.guidance">
+        <source>Guidance</source>
+        <target>Hinweise</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node">
+        <source>Remote accessibility issue node</source>
+        <target>Element eines Remote-Barrierefreiheitsproblems</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.remote_issue">
+        <source>Remote issue</source>
+        <target>Remote-Problem</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.target_json">
+        <source>Target JSON</source>
+        <target>Ziel (JSON)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.html_snippet">
+        <source>HTML snippet</source>
+        <target>HTML-Ausschnitt</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.failure_summary">
+        <source>Failure summary</source>
+        <target>Fehlerzusammenfassung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.screenshot_path">
+        <source>Screenshot path</source>
+        <target>Screenshot-Pfad</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.screenshot_url">
+        <source>Screenshot URL</source>
+        <target>Screenshot-URL</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.contrast_details_json">
+        <source>Contrast details JSON</source>
+        <target>Kontrastdetails (JSON)</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.tab.general">
+        <source>General</source>
+        <target>Allgemein</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.tab.artifacts">
+        <source>Artifacts</source>
+        <target>Artefakte</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.mapped_table">
+        <source>Mapped table</source>
+        <target>Zugeordnete Tabelle</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.mapped_uid">
+        <source>Mapped UID</source>
+        <target>Zugeordnete UID</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.mapped_cid">
+        <source>Mapped content identifier</source>
+        <target>Zugeordnete Inhaltskennung</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.field.mapped_ctype">
+        <source>Mapped content type</source>
+        <target>Zugeordneter Inhaltstyp</target>
+      </trans-unit>
+      <trans-unit id="tx_a11y_remote_issue_node.tab.mapping">
+        <source>Mapping</source>
+        <target>Zuordnung</target>
+      </trans-unit>
+      <trans-unit id="sys_file_reference.tx_a11y_is_decorative">
+        <source>Decorative image</source>
+        <target>Dekoratives Bild</target>
+      </trans-unit>
+      <trans-unit id="sys_file_reference.tx_a11y_is_decorative.description">
+        <source>Mark this image as decorative only when it conveys no meaningful information. TYPO3 will render an empty alternative text.</source>
+        <target>Kennzeichnen Sie dieses Bild nur dann als dekorativ, wenn es keine relevante Information vermittelt. TYPO3 gibt dann einen leeren Alternativtext aus.</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

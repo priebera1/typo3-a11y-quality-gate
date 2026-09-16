@@ -21,7 +21,9 @@ use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
+use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
 use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
@@ -84,6 +86,7 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly FreeRemotePreviewService $freeRemotePreviewService,
         private readonly FreeSubmitIntentService $freeSubmitIntentService,
         private readonly PublicLinkProvider $publicLinkProvider,
+        private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -120,14 +123,14 @@ final class OverviewController extends AbstractBackendModuleController
 
             $emptyState = $currentPageUid <= 0
                 ? [
-                    'title' => 'Select a page to start',
-                    'body' => 'Choose a page in the TYPO3 page tree to open accessibility results for that context.',
-                    'hint' => 'Site roots show the full overview. Content pages show page-specific issues and scan actions.',
+                    'title' => $this->translateWithFallback('overview.emptyState.selectPage.title', 'Select a page to start'),
+                    'body' => $this->translateWithFallback('overview.emptyState.selectPage.body', 'Choose a page in the TYPO3 page tree to open accessibility results for that context.'),
+                    'hint' => $this->translateWithFallback('overview.emptyState.selectPage.hint', 'Site roots show the full overview. Content pages show page-specific issues and scan actions.'),
                 ]
                 : [
-                    'title' => 'No site context selected',
-                    'body' => 'AQG needs a valid site context before it can show local scans, frontend crawler results and page-level issues.',
-                    'hint' => 'Tip: Select a page inside a configured TYPO3 site root.',
+                    'title' => $this->translateWithFallback('overview.emptyState.noSite.title', 'No site context selected'),
+                    'body' => $this->translateWithFallback('overview.emptyState.noSite.body', 'AQG needs a valid site context before it can show content scans, frontend scan results and page-level issues.'),
+                    'hint' => $this->translateWithFallback('overview.emptyState.noSite.hint', 'Tip: Select a page inside a configured TYPO3 site root.'),
                 ];
 
             $moduleTemplate->assignMultiple([
@@ -651,7 +654,13 @@ final class OverviewController extends AbstractBackendModuleController
             ])
         );
 
+        $fieldsInitializedCount = $this->fieldConfigurationBootstrapService->initializeIfUnconfigured();
         $hasEnabledFields = $this->fieldConfigRepository->hasEnabledFields();
+        $hasFieldConfiguration = $hasEnabledFields || $this->fieldConfigRepository->hasAnyConfiguration();
+        $canShowSettings = $this->accessControlService->canShowSettings($backendUser);
+        $licenceNotice = $canShowSettings
+            ? $this->buildLicenceNotice($proStatus, $this->buildRouteUrl('web_a11y', $returnParameters), $returnParameters)
+            : null;
         $remoteReportingSummary = $this->resolveRemoteReportingSummary(
             is_array($remoteScan) ? $remoteScan : null,
             $siteBase
@@ -728,6 +737,11 @@ final class OverviewController extends AbstractBackendModuleController
             'isRelevantLocalScanRunning' => $isRelevantLocalScanRunning,
             'hasScanResults' => $lastScan !== null,
             'hasEnabledFields' => $hasEnabledFields,
+            'hasFieldConfiguration' => $hasFieldConfiguration,
+            'fieldsInitializedCount' => $fieldsInitializedCount,
+            'canShowSettings' => $canShowSettings,
+            'scanFieldsSettingsUrl' => $this->buildRouteUrl('web_a11y.settings', array_replace($returnParameters, ['tab' => 'fields'])),
+            'licenceNotice' => $licenceNotice,
             'remoteScan' => $remoteScan,
             'latestRemotePageScan' => $latestRemotePageScan,
             'activeRemoteScan' => $activeRemoteScan,
@@ -827,6 +841,35 @@ final class OverviewController extends AbstractBackendModuleController
             || $activeRemoteScan !== null
             || $totalRemotePages > 0
             || $totalRemoteFailedPages > 0;
+    }
+
+    /**
+     * A saved licence that does not validate leaves the Overview in the Free state. Say why and offer the
+     * one step that resolves it; a retry simply reloads this view, which validates again.
+     *
+     * @param array<string, mixed> $returnParameters
+     * @return array<string, mixed>|null
+     */
+    private function buildLicenceNotice(object $proStatus, string $retryUrl, array $returnParameters): ?array
+    {
+        if (!(bool)($proStatus->configured ?? false) || (bool)($proStatus->valid ?? false)) {
+            return null;
+        }
+
+        $publicLinks = $this->publicLinkProvider->getBackendLinks();
+        $notice = LicenceGuidance::forReason((string)($proStatus->reason ?? ''))->toView(
+            [
+                LicenceGuidance::ACTION_RETRY => $retryUrl,
+                LicenceGuidance::ACTION_PRICING => $publicLinks[PublicLinkProvider::PRICING],
+                LicenceGuidance::ACTION_PORTAL => $publicLinks[PublicLinkProvider::PORTAL],
+                LicenceGuidance::ACTION_SUPPORT => $publicLinks[PublicLinkProvider::SUPPORT],
+            ],
+            fn (string $key): string => $this->translate($key),
+        );
+        $notice['primaryAction'] = $notice['actions'][0] ?? null;
+        $notice['settingsUrl'] = $this->buildRouteUrl('web_a11y.settings', array_replace($returnParameters, ['tab' => 'licence']));
+
+        return $notice;
     }
 
     private function resolvePaidEntitlement(object $proStatus): string
@@ -1644,7 +1687,7 @@ final class OverviewController extends AbstractBackendModuleController
                 'viewReportRemotePageUid' => 0,
                 'compareFromJobId' => '',
                 'compareUrl' => '',
-                'compareLabel' => 'No comparable previous scan found.',
+                'compareLabel' => $this->translateWithFallback('remote.history.noComparable', 'No comparable previous scan found.'),
                 'hasComparablePrevious' => false,
             ];
         }
@@ -1864,7 +1907,7 @@ final class OverviewController extends AbstractBackendModuleController
         if (($alert['comparisonRows'] ?? []) === [] && is_int($previousFindings) && is_int($currentFindings)) {
             $delta = $currentFindings - $previousFindings;
             $alert['comparisonRows'] = [[
-                'label' => 'Findings change',
+                'label' => $this->translateWithFallback('remote.regression.findingsChange', 'Findings change'),
                 'value' => $delta > 0 ? '+' . $delta : (string)$delta,
                 'tone' => $delta > 0 ? 'warning' : ($delta < 0 ? 'positive' : 'neutral'),
             ]];

@@ -57,73 +57,115 @@ require an active licence key.
 
     *   -   Feature
         -   Free
-        -   Trial / PRO / Agency
+        -   Trial
+        -   PRO
+        -   Agency
 
     *   -   CKEditor inline highlighting
+        -   yes
+        -   yes
         -   yes
         -   yes
 
     *   -   Content scan (RTE and structured rules)
         -   yes
         -   yes
+        -   yes
+        -   yes
 
     *   -   Rendered page check
+        -   yes
+        -   yes
         -   yes
         -   yes
 
     *   -   Backend overview, page detail, ignore workflow
         -   yes
         -   yes
+        -   yes
+        -   yes
 
     *   -   CLI and Scheduler scans
+        -   yes
+        -   yes
         -   yes
         -   yes
 
     *   -   CSV export of local findings
         -   yes
         -   yes
+        -   yes
+        -   yes
+
+    *   -   Quality gate, warning mode
+        -   yes
+        -   yes
+        -   yes
+        -   yes
+
+    *   -   Free Remote Preview (limited daily browser scans)
+        -   yes
+        -   not applicable
+        -   not applicable
+        -   not applicable
+
+    *   -   Full frontend crawler scans with axe-core
+        -   no
+        -   yes
+        -   yes
+        -   yes
+
+    *   -   Remote screenshots and TYPO3 record mapping
+        -   no
+        -   yes
+        -   yes
+        -   yes
+
+    *   -   Scan history and diff tracking
+        -   no
+        -   yes
+        -   yes
+        -   yes
 
     *   -   CSV export of frontend scan results
         -   no
         -   yes
-
-    *   -   Quality gate, warning mode
         -   yes
         -   yes
 
     *   -   Quality gate, blocking mode
         -   no
         -   yes
-
-    *   -   Free Remote Preview (limited daily browser scans)
         -   yes
-        -   not applicable
-
-    *   -   Full frontend crawler scans with axe-core
-        -   no
         -   yes
 
-    *   -   Remote screenshots and TYPO3 record mapping
+    *   -   Per-site quality gate rulesets
         -   no
         -   yes
-
-    *   -   Scan history and diff tracking
-        -   no
+        -   yes
         -   yes
 
     *   -   PDF export
         -   no
+        -   no
+        -   yes
         -   yes
 
     *   -   Accessibility statement generator
         -   no
+        -   no
+        -   yes
         -   yes
 
     *   -   AI-assisted text suggestions (bring your own OpenAI key)
         -   no
+        -   no
+        -   yes
         -   yes
 
-    *   -   Per-site rulesets and multi-site support
+    *   -   Multi-site licence
+        -   no
+        -   no
         -   no
         -   yes
 

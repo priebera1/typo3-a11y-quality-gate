@@ -468,6 +468,24 @@ p.aqg-page-module-indicator__meta {
   font-size: 12px;
 }
 
+.aqg-page-module-indicator__hint-link {
+  color: var(--aqg-indicator-fg);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.aqg-page-module-indicator__hint-link:hover {
+  color: var(--aqg-indicator-fg);
+  text-decoration-thickness: 2px;
+}
+
+.aqg-page-module-indicator__hint-link:focus-visible {
+  outline: 2px solid var(--aqg-indicator-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .aqg-page-module-indicator__pro-tag {
   display: inline-flex;
   align-items: center;

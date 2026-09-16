@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Rendered;
 
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Log\LoggerInterface;
 
 final class RenderedPageScanner
@@ -39,7 +40,10 @@ final class RenderedPageScanner
                 'pageUid' => $pageUid,
                 'languageUid' => $languageUid,
             ]);
-            return new RenderedPageScanResult(false, warning: 'Frontend URL could not be resolved.');
+            return new RenderedPageScanResult(
+                false,
+                warning: BackendLabelUtility::translate('renderedCheck.warning.urlUnresolved', 'Frontend URL could not be resolved.')
+            );
         }
 
         $response = $this->pageFetcher->fetch(
@@ -77,7 +81,10 @@ final class RenderedPageScanner
 
             return new RenderedPageScanResult(
                 false,
-                warning: 'Rendered page check received an error page instead of the expected frontend HTML. Check frontend rendering, middleware, external dependencies or use the PRO remote crawler for browser-based scanning.',
+                warning: BackendLabelUtility::translate(
+                    'renderedCheck.warning.errorPage',
+                    'Rendered page check received an error page instead of the expected frontend HTML. Check frontend rendering, middleware or external dependencies, or use a frontend scan for browser-based checks.'
+                ),
                 failureReason: 'error_page'
             );
         }

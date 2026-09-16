@@ -66,7 +66,7 @@ final class ProLicenceService
                 return $graceResult;
             }
 
-            return LicenceValidationResult::invalid($exception->getMessage());
+            return LicenceValidationResult::invalid(self::failureReason($exception));
         }
     }
 
@@ -95,8 +95,18 @@ final class ProLicenceService
 
             return LicenceValidationResult::fromResponseDto($responseDto);
         } catch (ApiRequestFailedException $exception) {
-            return LicenceValidationResult::invalid($exception->getMessage());
+            return LicenceValidationResult::invalid(self::failureReason($exception));
         }
+    }
+
+    /**
+     * A failed request says nothing about the key, so it surfaces as an outage the user can retry —
+     * never as a licence verdict — while paid features stay off. Classified from the HTTP status, never
+     * from the exception message.
+     */
+    private static function failureReason(ApiRequestFailedException $exception): string
+    {
+        return $exception->httpStatus === 429 ? 'rate_limited' : 'api_unreachable';
     }
 
     /**

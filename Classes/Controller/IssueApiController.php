@@ -11,9 +11,11 @@ use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Service\BackendLanguageService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -38,6 +40,8 @@ final class IssueApiController extends AbstractApiController
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         BackendUserService $backendUserService,
+        private readonly ?RuleMetadataPresentationService $ruleMetadataPresentationService = null,
+        private readonly ?BackendLanguageService $backendLanguageService = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -446,19 +450,40 @@ final class IssueApiController extends AbstractApiController
     }
 
     /**
+     * Rule messages are English. Other backend languages get the translated rule title and fix
+     * where locallang.xlf has one; otherwise the original message and hint stay.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function localizeRuleCopy(string $ruleId, string $message, string $hint): array
+    {
+        $language = $this->backendLanguageService?->getCurrentLanguageCode() ?? 'en';
+        if ($language === 'en' || $ruleId === '' || $this->ruleMetadataPresentationService === null) {
+            return [$message, $hint];
+        }
+
+        $presentation = $this->ruleMetadataPresentationService->present(['rule_id' => $ruleId], $language);
+        $title = trim((string)($presentation['localizedTitle'] ?? ''));
+        $fix = trim((string)($presentation['localizedHowToFix'] ?? ''));
+
+        return [$title !== '' ? $title : $message, $fix !== '' ? $fix : $hint];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function formatLiveViolation(RuleViolation $violation, CheckContext $ctx): array
     {
         $fingerprint = $violation->fingerprint($ctx);
+        [$message, $hint] = $this->localizeRuleCopy((string)$violation->ruleId, (string)$violation->message, (string)$violation->hint);
 
         return [
             'fingerprint' => 'live:' . $fingerprint,
             'persistedFingerprint' => $fingerprint,
             'ruleId' => $violation->ruleId,
             'severity' => $violation->severity->key(),
-            'message' => $violation->message,
-            'hint' => $violation->hint,
+            'message' => $message,
+            'hint' => $hint,
             'snippet' => $violation->contextSnippet,
             'contextPath' => $violation->contextPath,
             'status' => 0,
@@ -473,13 +498,18 @@ final class IssueApiController extends AbstractApiController
     private function formatIssue(array $row): array
     {
         $severity = Severity::fromInt((int)$row['severity']);
+        [$message, $hint] = $this->localizeRuleCopy(
+            (string)($row['rule_id'] ?? ''),
+            (string)($row['message'] ?? ''),
+            (string)($row['hint'] ?? '')
+        );
 
         return [
             'fingerprint' => $row['fingerprint'] ?? '',
             'ruleId' => $row['rule_id'] ?? '',
             'severity' => $severity->key(),
-            'message' => $row['message'] ?? '',
-            'hint' => $row['hint'] ?? '',
+            'message' => $message,
+            'hint' => $hint,
             'snippet' => $row['context_snippet'] ?? '',
             'contextPath' => $row['context_path'] ?? '',
             'status' => (int)($row['status'] ?? 0),

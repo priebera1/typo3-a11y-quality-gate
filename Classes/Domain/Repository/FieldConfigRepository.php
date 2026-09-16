@@ -240,6 +240,24 @@ final class FieldConfigRepository extends AbstractRepository
         }
     }
 
+    /**
+     * Whether a field configuration was ever stored — including rows hidden by discovery or deleted in
+     * the List module. Only a table that never held a row counts as an unconfigured installation.
+     */
+    public function hasAnyConfiguration(): bool
+    {
+        $queryBuilder = $this->getQueryBuilder(Tables::FIELD_CONFIG);
+        $queryBuilder->getRestrictions()->removeAll();
+
+        $count = $queryBuilder
+            ->count('uid')
+            ->from(Tables::FIELD_CONFIG)
+            ->executeQuery()
+            ->fetchOne();
+
+        return (int)$count > 0;
+    }
+
     public function hasEnabledFields(): bool
     {
         $queryBuilder = $this->getQueryBuilder(Tables::FIELD_CONFIG);

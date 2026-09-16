@@ -149,7 +149,9 @@ final class PageDetailController extends AbstractBackendModuleController
             ? $this->issueRepository->countOpenByRuleOnSite($siteIdentifier, $currentLanguageUid)
             : [];
 
+        $backendLanguageCode = $this->getBackendLanguageCode();
         $allIssues = array_map(function (array $row) use (
+            $backendLanguageCode,
             $pageUid,
             $siteIdentifier,
             $activeStatus,
@@ -171,12 +173,12 @@ final class PageDetailController extends AbstractBackendModuleController
             $row['openRuleCountOnSite'] = (int)($openRuleCountsOnSite[$ruleId] ?? 0);
             $ignoredUntil = (int)($row['ignored_until'] ?? 0);
             $ignoredReopenedAt = (int)($row['ignored_reopened_at'] ?? 0);
-            $row['ignoredUntilLabel'] = $ignoredUntil > 0 ? date('d M Y', $ignoredUntil) : '';
+            $row['ignoredUntilLabel'] = $ignoredUntil > 0 ? date('d.m.Y', $ignoredUntil) : '';
             $row['ignoredUntilRelative'] = $ignoredUntil > 0 ? $this->formatExpiryRelative($ignoredUntil) : '';
             $row['ignoreIsTemporary'] = $ignoredUntil > 0;
             $row['ignoreReopensSoon'] = $ignoredUntil > 0 && $ignoredUntil <= strtotime('+7 days');
             $row['ignoreWasReopened'] = (int)$row['status'] === IssueStatus::Open->value && $ignoredReopenedAt > 0;
-            $row['ignoredReopenedAtLabel'] = $ignoredReopenedAt > 0 ? date('d M Y', $ignoredReopenedAt) : '';
+            $row['ignoredReopenedAtLabel'] = $ignoredReopenedAt > 0 ? date('d.m.Y', $ignoredReopenedAt) : '';
             $row['hasEditAccess'] = false;
             $row['editLink'] = '';
             $sourceType = trim((string)($row['source_type'] ?? ''));
@@ -185,15 +187,20 @@ final class PageDetailController extends AbstractBackendModuleController
             }
             $row['sourceType'] = $sourceType;
             $row['sourceTypeLabel'] = match ($sourceType) {
-                'rendered' => 'Rendered HTML',
-                'structured' => 'Structured content',
-                'remote' => 'Remote crawler',
-                default => 'Content source',
+                'rendered' => $this->translateWithFallback('pageDetail.sourceType.rendered', 'Rendered HTML'),
+                'structured' => $this->translateWithFallback('pageDetail.sourceType.structured', 'Structured content'),
+                'remote' => $this->translateWithFallback('pageDetail.sourceType.remote', 'Frontend crawler'),
+                default => $this->translateWithFallback('pageDetail.sourceType.content', 'Content source'),
             };
             $row['sourceHint'] = $sourceType === 'rendered' && $sourceTable === 'pages'
-                ? 'Likely: template, layout or plugin output'
+                ? $this->translateWithFallback('pageDetail.sourceHint.rendered', 'Likely: template, layout or plugin output')
                 : '';
-            $row['guidance'] = $this->localIssueGuidanceService->present($row);
+            $row['guidance'] = $this->localIssueGuidanceService->present($row, $backendLanguageCode);
+            // The stored rule message is English; other backend languages show the translated rule title when one exists.
+            $localizedTitle = (string)($row['guidance']['localizedTitle'] ?? '');
+            $row['displayTitle'] = $backendLanguageCode !== 'en' && $localizedTitle !== ''
+                ? $localizedTitle
+                : (string)($row['message'] ?? '');
             $row['aiLinkTextSuggestionAvailable'] = false;
             $row['aiIframeTitleSuggestionAvailable'] = false;
 
@@ -1000,30 +1007,34 @@ final class PageDetailController extends AbstractBackendModuleController
 
     private function buildFilterSummary(string $activeStatus, string $activeSeverity, int $visibleCount): string
     {
-        $parts = [];
-
-        if ($activeSeverity !== 'all') {
-            $parts[] = $activeSeverity;
-        }
-
-        $statusLabel = match ($activeStatus) {
-            'ignored' => 'ignored',
-            'resolved' => 'resolved',
-            'all' => null,
-            default => 'open',
-        };
-
-        if ($statusLabel !== null) {
-            $parts[] = $statusLabel;
-        }
-
-        $label = implode(' ', $parts);
-
-        return sprintf(
-            'Showing %d %sissue%s',
-            $visibleCount,
-            $label !== '' ? $label . ' ' : '',
-            $visibleCount === 1 ? '' : 's'
+        $summary = sprintf(
+            $this->translate($visibleCount === 1
+                ? 'pageDetail.filterSummary.template.singular'
+                : 'pageDetail.filterSummary.template.plural'),
+            $visibleCount
         );
+
+        // The active filters are appended as their own labels, so no language has to inflect them in a sentence.
+        $filterKeys = [
+            match ($activeStatus) {
+                'ignored' => 'issue.status.ignored',
+                'resolved' => 'issue.status.resolved',
+                'all' => null,
+                default => 'issue.status.open',
+            },
+            match ($activeSeverity) {
+                'critical' => 'severity.critical',
+                'warning' => 'severity.warning',
+                'info' => 'severity.info',
+                'needs_review' => 'severity.needsReview',
+                default => null,
+            },
+        ];
+
+        foreach (array_filter($filterKeys) as $filterKey) {
+            $summary .= ' · ' . $this->translate($filterKey);
+        }
+
+        return $summary;
     }
 }

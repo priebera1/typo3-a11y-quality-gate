@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -30,13 +31,13 @@ final class RemoteScanHistoryService
         string $status = ''
     ): array {
         if (trim($siteBase) === '' || trim($siteIdentifier) === '') {
-            return $this->emptyHistory('Remote scan history is not available without a site context.');
+            return $this->emptyHistory(BackendLabelUtility::translate('remote.history.error.noSite', 'Remote scan history is not available without a site context.'));
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyHistory('Remote scan history is not available without a valid domain context.');
+                return $this->emptyHistory(BackendLabelUtility::translate('remote.history.error.noDomain', 'Remote scan history is not available without a valid domain context.'));
             }
 
             $payload = $this->proCrawlerService->getHistory(
@@ -53,7 +54,7 @@ final class RemoteScanHistoryService
             return $this->emptyHistory($this->mapRemoteHistoryErrorMessage($exception->getMessage()));
         } catch (\Throwable $exception) {
             $this->logHistoryError('AQG remote scan history request failed unexpectedly', $exception);
-            return $this->emptyHistory('Remote scan history is not available for this licence or environment.');
+            return $this->emptyHistory(BackendLabelUtility::translate('remote.history.error.unavailable', 'Remote scan history is not available for this licence or environment.'));
         }
 
         $items = $this->extractList($payload, ['items', 'history', 'scans', 'results']);
@@ -80,7 +81,7 @@ final class RemoteScanHistoryService
             'hasAnyRows' => $hasAnyRows,
             'showScopedHistory' => $hasAnyRows,
             'showGlobalEmpty' => !$hasAnyRows,
-            'message' => $hasAnyRows ? '' : 'No completed remote scan history was returned yet.',
+            'message' => $hasAnyRows ? '' : BackendLabelUtility::translate('remote.history.empty', 'No completed remote scan history was returned yet.'),
             'items' => $normalized,
             'siteScans' => $siteScans,
             'pageScans' => $pageScans,
@@ -101,7 +102,7 @@ final class RemoteScanHistoryService
         if (trim($siteBase) === '' || $fromJobId === '' || $toJobId === '') {
             return [
                 'available' => false,
-                'message' => 'Choose two compatible scans to compare.',
+                'message' => BackendLabelUtility::translate('remote.comparison.error.chooseTwo', 'Choose two compatible scans to compare.'),
             ];
         }
 
@@ -110,7 +111,7 @@ final class RemoteScanHistoryService
             if ($domain === '') {
                 return [
                     'available' => false,
-                    'message' => 'The selected scans cannot be compared without a valid domain context.',
+                    'message' => BackendLabelUtility::translate('remote.comparison.error.noDomain', 'The selected scans cannot be compared without a valid domain context.'),
                 ];
             }
 
@@ -130,7 +131,7 @@ final class RemoteScanHistoryService
             $this->logHistoryError('AQG remote scan compare request failed unexpectedly', $exception);
             return [
                 'available' => false,
-                'message' => 'The selected scans cannot be compared.',
+                'message' => BackendLabelUtility::translate('remote.comparison.error.incompatible', 'The selected scans cannot be compared.'),
             ];
         }
 
@@ -151,25 +152,25 @@ final class RemoteScanHistoryService
         $startUrl = trim($startUrl);
 
         if (trim($siteBase) === '' || $siteIdentifier === '') {
-            return $this->emptyRegressionAlert('Regression signal is not available without a site context.');
+            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.noSite', 'Regression signal is not available without a site context.'));
         }
 
         if ($sourceType === '') {
-            return $this->emptyRegressionAlert('Internal configuration issue: source type is missing.');
+            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.error.sourceTypeMissing', 'Internal configuration issue: source type is missing.'));
         }
 
         if (!in_array($sourceType, ['sitemap', 'crawl', 'single_page'], true)) {
-            return $this->emptyRegressionAlert('Invalid scan type for regression signal.');
+            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.invalidType', 'Invalid scan type for regression signal.'));
         }
 
         if ($sourceType === 'single_page' && $startUrl === '') {
-            return $this->emptyRegressionAlert('Internal configuration issue: page URL is missing.');
+            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.error.pageUrlMissing', 'Internal configuration issue: page URL is missing.'));
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyRegressionAlert('Regression signal is not available without a valid domain context.');
+                return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.noDomain', 'Regression signal is not available without a valid domain context.'));
             }
 
             $payload = $this->proCrawlerService->getRegressionAlert(
@@ -184,7 +185,7 @@ final class RemoteScanHistoryService
             return $this->emptyRegressionAlert($this->mapRegressionAlertErrorMessage($exception->getMessage()));
         } catch (\Throwable $exception) {
             $this->logHistoryError('AQG regression alert request failed unexpectedly', $exception);
-            return $this->emptyRegressionAlert('Regression signal is not available right now.');
+            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.'));
         }
 
         return $this->normalizeRegressionAlertPayload($payload, $siteIdentifier, $sourceType, $startUrl);
@@ -197,13 +198,13 @@ final class RemoteScanHistoryService
     {
         $jobId = trim($jobId);
         if (trim($siteBase) === '' || $jobId === '') {
-            return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+            return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+                return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
             }
 
             $payload = $this->proCrawlerService->getRemediationPlan(
@@ -216,7 +217,7 @@ final class RemoteScanHistoryService
             return $this->emptyRemediationPlan($this->mapRemediationPlanErrorMessage($exception->getMessage()));
         } catch (\Throwable $exception) {
             $this->logHistoryError('AQG remediation plan request failed unexpectedly', $exception);
-            return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+            return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
         }
 
         return $this->normalizeRemediationPlanPayload($payload, $limit);
@@ -237,21 +238,21 @@ final class RemoteScanHistoryService
         $startUrl = $startUrl !== null ? trim($startUrl) : null;
 
         if (trim($siteBase) === '' || $siteIdentifier === '') {
-            return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+            return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
         }
 
         if (!in_array($sourceType, ['sitemap', 'crawl', 'single_page'], true)) {
-            return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+            return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
         }
 
         if ($sourceType === 'single_page' && ($startUrl === null || $startUrl === '')) {
-            return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+            return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+                return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
             }
 
             $payload = $this->proCrawlerService->getLatestRemediationPlan(
@@ -266,7 +267,7 @@ final class RemoteScanHistoryService
             return $this->emptyRemediationPlan($this->mapRemediationPlanErrorMessage($exception->getMessage()));
         } catch (\Throwable $exception) {
             $this->logHistoryError('AQG latest remediation plan request failed unexpectedly', $exception);
-            return $this->emptyRemediationPlan('Recommended remediation plan is not available for this scan.');
+            return $this->emptyRemediationPlan(BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.'));
         }
 
         return $this->normalizeRemediationPlanPayload($payload, $limit);
@@ -295,9 +296,9 @@ final class RemoteScanHistoryService
             'scope' => [],
             'previousJobId' => '',
             'currentJobId' => '',
-            'contextLabel' => 'Compared with previous compatible frontend scan.',
-            'previousScan' => $this->emptyRegressionScanMeta('Previous scan'),
-            'currentScan' => $this->emptyRegressionScanMeta('Current scan'),
+            'contextLabel' => BackendLabelUtility::translate('remote.regression.contextFrontend', 'Compared with previous compatible frontend scan.'),
+            'previousScan' => $this->emptyRegressionScanMeta(BackendLabelUtility::translate('remote.comparison.previousScan', 'Previous scan')),
+            'currentScan' => $this->emptyRegressionScanMeta(BackendLabelUtility::translate('remote.comparison.currentScan', 'Current scan')),
             'comparisonRows' => [],
             'hasComparisonRows' => false,
             'hasScanComparison' => false,
@@ -330,23 +331,25 @@ final class RemoteScanHistoryService
         $actionType = trim((string)($recommendedAction['type'] ?? $notification['actionType'] ?? $notification['action_type'] ?? ''));
 
         if ($title === '') {
-            $title = $regressionDetected ? 'Review regression before publishing' : 'No new regression detected in automated scan';
+            $title = $regressionDetected
+            ? BackendLabelUtility::translate('remote.regression.titleDetected', 'Review regression before publishing')
+            : BackendLabelUtility::translate('remote.regression.titleClear', 'No new regression detected in automated scan');
         }
 
         if ($summary === '') {
             $summary = $regressionDetected
-                ? 'Review the change against the previous compatible frontend scan.'
-                : 'No meaningful regression was detected compared with the previous compatible frontend scan.';
+                ? BackendLabelUtility::translate('remote.regression.summaryDetected', 'Review the change against the previous compatible frontend scan.')
+                : BackendLabelUtility::translate('remote.regression.summaryClear', 'No meaningful regression was detected compared with the previous compatible frontend scan.');
         }
 
         if ($actionLabel === '' && $actionType === 'compare') {
-            $actionLabel = 'Review automated scan comparison';
+            $actionLabel = BackendLabelUtility::translate('remote.regression.action', 'Review automated scan comparison');
         }
 
         $previousJobId = $this->extractRegressionJobId($payload, ['previousJobId', 'previous_job_id'], ['previousScan', 'previous_scan', 'fromScan', 'from_scan', 'previous']);
         $currentJobId = $this->extractRegressionJobId($payload, ['currentJobId', 'current_job_id'], ['currentScan', 'current_scan', 'toScan', 'to_scan', 'current']);
-        $previousScan = $this->extractRegressionScanMeta($payload, ['previousScan', 'previous_scan', 'fromScan', 'from_scan', 'previous'], 'previous', 'Previous scan');
-        $currentScan = $this->extractRegressionScanMeta($payload, ['currentScan', 'current_scan', 'toScan', 'to_scan', 'current'], 'current', 'Current scan');
+        $previousScan = $this->extractRegressionScanMeta($payload, ['previousScan', 'previous_scan', 'fromScan', 'from_scan', 'previous'], 'previous', BackendLabelUtility::translate('remote.comparison.previousScan', 'Previous scan'));
+        $currentScan = $this->extractRegressionScanMeta($payload, ['currentScan', 'current_scan', 'toScan', 'to_scan', 'current'], 'current', BackendLabelUtility::translate('remote.comparison.currentScan', 'Current scan'));
         if ($previousScan['jobId'] === '' && $previousJobId !== '') {
             $previousScan['jobId'] = $previousJobId;
         }
@@ -373,7 +376,7 @@ final class RemoteScanHistoryService
             'shouldNotify' => $shouldNotify,
             'title' => $title,
             'summary' => $summary,
-            'actionLabel' => $actionLabel !== '' ? $actionLabel : 'Review automated scan comparison',
+            'actionLabel' => $actionLabel !== '' ? $actionLabel : BackendLabelUtility::translate('remote.regression.action', 'Review automated scan comparison'),
             'actionType' => $actionType,
             'actionUrl' => '',
             'dedupeKey' => trim((string)($notification['dedupeKey'] ?? $notification['dedupe_key'] ?? '')),
@@ -386,7 +389,7 @@ final class RemoteScanHistoryService
             ],
             'previousJobId' => $previousJobId,
             'currentJobId' => $currentJobId,
-            'contextLabel' => 'Compared with previous compatible frontend scan.',
+            'contextLabel' => BackendLabelUtility::translate('remote.regression.contextFrontend', 'Compared with previous compatible frontend scan.'),
             'previousScan' => $previousScan,
             'currentScan' => $currentScan,
             'comparisonRows' => $comparisonRows,
@@ -569,19 +572,19 @@ final class RemoteScanHistoryService
 
         $rows = [];
         if ($scoreDelta !== null) {
-            $rows[] = ['label' => 'Score change', 'value' => $this->formatSignedInteger($scoreDelta), 'tone' => $scoreDelta < 0 ? 'warning' : ($scoreDelta > 0 ? 'positive' : 'neutral')];
+            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.scoreChange', 'Score change'), 'value' => $this->formatSignedInteger($scoreDelta), 'tone' => $scoreDelta < 0 ? 'warning' : ($scoreDelta > 0 ? 'positive' : 'neutral')];
         }
         if ($findingsDelta !== null) {
-            $rows[] = ['label' => 'Findings change', 'value' => $this->formatSignedInteger($findingsDelta), 'tone' => $findingsDelta > 0 ? 'warning' : ($findingsDelta < 0 ? 'positive' : 'neutral')];
+            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.findingsChange', 'Findings change'), 'value' => $this->formatSignedInteger($findingsDelta), 'tone' => $findingsDelta > 0 ? 'warning' : ($findingsDelta < 0 ? 'positive' : 'neutral')];
         }
         if ($newCritical !== null) {
-            $rows[] = ['label' => 'New critical', 'value' => (string)$newCritical, 'tone' => $newCritical > 0 ? 'warning' : 'neutral'];
+            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.newCritical', 'New critical'), 'value' => (string)$newCritical, 'tone' => $newCritical > 0 ? 'warning' : 'neutral'];
         }
         if ($newSerious !== null) {
-            $rows[] = ['label' => 'New serious', 'value' => (string)$newSerious, 'tone' => $newSerious > 0 ? 'warning' : 'neutral'];
+            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.newSerious', 'New serious'), 'value' => (string)$newSerious, 'tone' => $newSerious > 0 ? 'warning' : 'neutral'];
         }
         if ($resolvedFindings !== null) {
-            $rows[] = ['label' => 'Resolved findings', 'value' => (string)$resolvedFindings, 'tone' => $resolvedFindings > 0 ? 'positive' : 'neutral'];
+            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.resolvedFindings', 'Resolved findings'), 'value' => (string)$resolvedFindings, 'tone' => $resolvedFindings > 0 ? 'positive' : 'neutral'];
         }
 
         return $rows;
@@ -651,8 +654,8 @@ final class RemoteScanHistoryService
         return [
             'available' => false,
             'message' => $message,
-            'title' => 'Recommended remediation plan',
-            'subtitle' => 'Automated remediation plan. Manual review may still be required.',
+            'title' => BackendLabelUtility::translate('remote.plan.titleFallback', 'Recommended remediation plan'),
+            'subtitle' => BackendLabelUtility::translate('remote.plan.subtitle', 'Automated remediation plan. Manual review may still be required.'),
             'tasks' => [],
             'hasTasks' => false,
             'taskCount' => 0,
@@ -695,13 +698,13 @@ final class RemoteScanHistoryService
         $scope = is_array($payload['scope'] ?? null) ? $payload['scope'] : (is_array($plan['scope'] ?? null) ? $plan['scope'] : []);
         $generatedAt = $this->parseTimestamp($payload['generatedAt'] ?? $payload['generated_at'] ?? $plan['generatedAt'] ?? $plan['generated_at'] ?? null);
 
-        $message = $tasks === [] ? 'Recommended remediation plan is not available for this scan.' : '';
+        $message = $tasks === [] ? BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.') : '';
 
         return [
             'available' => true,
             'message' => $message,
-            'title' => $this->normalizeShortString($payload['title'] ?? $plan['title'] ?? 'Recommended remediation plan', 120) ?: 'Recommended remediation plan',
-            'subtitle' => 'Automated remediation plan. Manual review may still be required.',
+            'title' => $this->normalizeShortString($payload['title'] ?? $plan['title'] ?? BackendLabelUtility::translate('remote.plan.titleFallback', 'Recommended remediation plan'), 120) ?: BackendLabelUtility::translate('remote.plan.titleFallback', 'Recommended remediation plan'),
+            'subtitle' => BackendLabelUtility::translate('remote.plan.subtitle', 'Automated remediation plan. Manual review may still be required.'),
             'tasks' => $tasks,
             'hasTasks' => $tasks !== [],
             'taskCount' => count($tasks),
@@ -769,22 +772,22 @@ final class RemoteScanHistoryService
 
         return [
             'priority' => $priority,
-            'title' => $title ?? 'Recommended remediation task',
+            'title' => $title ?? BackendLabelUtility::translate('remote.plan.taskFallback', 'Recommended remediation task'),
             'summary' => $summary ?? '',
             'owner' => $owner ?? '',
-            'ownerLabel' => $owner !== null ? $this->formatMachineLabel($owner) : 'Not specified',
+            'ownerLabel' => $owner !== null ? $this->formatMachineLabel($owner) : BackendLabelUtility::translate('remote.plan.notSpecified', 'Not specified'),
             'fixType' => $fixType ?? '',
-            'fixTypeLabel' => $fixType !== null ? $this->formatMachineLabel($fixType) : 'Not specified',
+            'fixTypeLabel' => $fixType !== null ? $this->formatMachineLabel($fixType) : BackendLabelUtility::translate('remote.plan.notSpecified', 'Not specified'),
             'impact' => $impact ?? '',
-            'impactLabel' => $impact !== null ? $this->formatMachineLabel($impact) : 'Not specified',
+            'impactLabel' => $impact !== null ? $this->formatMachineLabel($impact) : BackendLabelUtility::translate('remote.plan.notSpecified', 'Not specified'),
             'findingsTotal' => $findingsTotal,
             'findingsTotalLabel' => $findingsTotal !== null ? (string)$findingsTotal : '—',
             'affectedPagesTotal' => $affectedPagesTotal,
             'affectedPagesTotalLabel' => $affectedPagesTotal !== null ? (string)$affectedPagesTotal : '—',
             'quickWin' => $quickWin,
-            'quickWinLabel' => $quickWin ? 'Quick win' : '',
+            'quickWinLabel' => $quickWin ? BackendLabelUtility::translate('overview.remote.quickWin', 'Quick win') : '',
             'estimatedEffort' => $estimatedEffort ?? '',
-            'estimatedEffortLabel' => $estimatedEffort !== null ? $this->formatMachineLabel($estimatedEffort) : 'Not specified',
+            'estimatedEffortLabel' => $estimatedEffort !== null ? $this->formatMachineLabel($estimatedEffort) : BackendLabelUtility::translate('remote.plan.notSpecified', 'Not specified'),
             'steps' => $steps,
             'hasSteps' => $steps !== [],
             'examples' => $examples,
@@ -857,22 +860,22 @@ final class RemoteScanHistoryService
         $normalized = strtolower($message);
 
         if (str_contains($normalized, 'remediation_plan_disabled')) {
-            return 'Recommended remediation plan is not available for this scan.';
+            return BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.');
         }
 
         if (str_contains($normalized, '401') || str_contains($normalized, '403')) {
-            return 'Recommended remediation plan is not available for this licence or environment.';
+            return BackendLabelUtility::translate('remote.plan.unavailableLicence', 'Recommended remediation plan is not available for this licence or environment.');
         }
 
         if (str_contains($normalized, '404') || str_contains($normalized, 'not_found')) {
-            return 'Recommended remediation plan is not available for this scan.';
+            return BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.');
         }
 
         if (str_contains($normalized, 'missing_start_url') || str_contains($normalized, 'invalid_source_type_filter')) {
-            return 'Recommended remediation plan is not available for this scan.';
+            return BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.');
         }
 
-        return 'Recommended remediation plan is not available for this scan.';
+        return BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.');
     }
 
     private function mapRegressionAlertErrorMessage(string $message): string
@@ -880,26 +883,26 @@ final class RemoteScanHistoryService
         $normalized = strtolower($message);
 
         if (str_contains($normalized, 'history_disabled') || str_contains($normalized, '404')) {
-            return 'Regression signal is available in PRO when enabled.';
+            return BackendLabelUtility::translate('remote.regression.error.licenceRequired', 'Regression signal is available with a remote-scanning licence (Trial, PRO or Agency) when enabled.');
         }
 
         if (str_contains($normalized, '401') || str_contains($normalized, '403')) {
-            return 'Regression signal is not available for this licence or environment.';
+            return BackendLabelUtility::translate('remote.regression.error.unavailable', 'Regression signal is not available for this licence or environment.');
         }
 
         if (str_contains($normalized, 'missing_source_type')) {
-            return 'Internal configuration issue: source type is missing.';
+            return BackendLabelUtility::translate('remote.error.sourceTypeMissing', 'Internal configuration issue: source type is missing.');
         }
 
         if (str_contains($normalized, 'missing_start_url')) {
-            return 'Internal configuration issue: page URL is missing.';
+            return BackendLabelUtility::translate('remote.error.pageUrlMissing', 'Internal configuration issue: page URL is missing.');
         }
 
         if (str_contains($normalized, 'invalid_source_type_filter')) {
-            return 'Invalid scan type for regression signal.';
+            return BackendLabelUtility::translate('remote.regression.error.invalidType', 'Invalid scan type for regression signal.');
         }
 
-        return 'Regression signal is not available right now.';
+        return BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.');
     }
 
     /**
@@ -932,7 +935,7 @@ final class RemoteScanHistoryService
             'available' => true,
             'fromJobId' => $fromJobId,
             'toJobId' => $toJobId,
-            'contextLabel' => 'Compared with previous compatible automated scan.',
+            'contextLabel' => BackendLabelUtility::translate('remote.regression.contextAutomated', 'Compared with previous compatible automated scan.'),
             'status' => $status['status'],
             'statusLabel' => $status['label'],
             'statusTone' => $status['tone'],
@@ -981,12 +984,12 @@ final class RemoteScanHistoryService
                 'siteId' => (string)($item['siteId'] ?? $item['site_id'] ?? ''),
                 'status' => (string)($item['status'] ?? ''),
                 'sourceType' => $sourceType,
-                'sourceTypeLabel' => $isPageScan ? 'Page scan' : 'Site scan',
+                'sourceTypeLabel' => $isPageScan ? BackendLabelUtility::translate('remote.history.pageScan', 'Page scan') : BackendLabelUtility::translate('remote.history.siteScan', 'Site scan'),
                 'isSiteScan' => $isSiteScan,
                 'isPageScan' => $isPageScan,
                 'startUrl' => $startUrl,
                 'normalizedStartUrl' => $this->normalizeComparableUrl($startUrl),
-                'urlLabel' => $startUrl !== '' ? $startUrl : ($isSiteScan ? 'Site scan' : 'Page scan'),
+                'urlLabel' => $startUrl !== '' ? $startUrl : ($isSiteScan ? BackendLabelUtility::translate('remote.history.siteScan', 'Site scan') : BackendLabelUtility::translate('remote.history.pageScan', 'Page scan')),
                 'createdAt' => $createdAt,
                 'createdAtFormatted' => BackendTimeUtility::formatDateTime($createdAt, 'd.m.Y H:i'),
                 'finishedAt' => $finishedAt,
@@ -1004,7 +1007,7 @@ final class RemoteScanHistoryService
                 'viewReportUrl' => '',
                 'compareFromJobId' => '',
                 'compareUrl' => '',
-                'compareLabel' => 'No comparable previous scan found.',
+                'compareLabel' => BackendLabelUtility::translate('remote.history.noComparable', 'No comparable previous scan found.'),
                 'hasComparablePrevious' => false,
             ];
         }
@@ -1036,7 +1039,7 @@ final class RemoteScanHistoryService
 
                 $items[$i]['compareFromJobId'] = (string)$items[$j]['jobId'];
                 $items[$i]['hasComparablePrevious'] = true;
-                $items[$i]['compareLabel'] = 'Compare with previous compatible scan';
+                $items[$i]['compareLabel'] = BackendLabelUtility::translate('remote.history.compareWithPrevious', 'Compare with previous compatible scan');
                 break;
             }
         }
@@ -1075,26 +1078,26 @@ final class RemoteScanHistoryService
         if ($scoreDelta < 0 || $newIssues > $resolvedIssues) {
             return [
                 'status' => 'regression',
-                'label' => 'Regression signal',
+                'label' => BackendLabelUtility::translate('remote.regression.label', 'Regression signal'),
                 'tone' => 'warning',
-                'message' => 'The latest automated scan found more issues than the previous comparable scan. Review before publishing.',
+                'message' => BackendLabelUtility::translate('remote.regression.messageRegression', 'The latest automated scan found more issues than the previous comparable scan. Review before publishing.'),
             ];
         }
 
         if ($scoreDelta > 0 || $resolvedIssues > $newIssues) {
             return [
                 'status' => 'improved',
-                'label' => 'Improved',
+                'label' => BackendLabelUtility::translate('remote.regression.improved', 'Improved'),
                 'tone' => 'positive',
-                'message' => 'The latest automated scan found fewer issues than the previous comparable scan. Manual review may still be required.',
+                'message' => BackendLabelUtility::translate('remote.regression.messageImproved', 'The latest automated scan found fewer issues than the previous comparable scan. Manual review may still be required.'),
             ];
         }
 
         return [
             'status' => 'stable',
-            'label' => 'Stable',
+            'label' => BackendLabelUtility::translate('remote.regression.stable', 'Stable'),
             'tone' => 'neutral',
-            'message' => 'No meaningful regression detected. Findings may have changed, but total issues and score stayed stable.',
+            'message' => BackendLabelUtility::translate('remote.regression.messageStable', 'No meaningful regression detected. Findings may have changed, but total issues and score stayed stable.'),
         ];
     }
 
@@ -1186,7 +1189,7 @@ final class RemoteScanHistoryService
             $issueSummaryLabel = $this->buildCompareIssueSummaryLabel($newIssues, $resolvedIssues, $unchangedIssues);
 
             $normalized[] = [
-                'label' => $label ?? 'Change',
+                'label' => $label ?? BackendLabelUtility::translate('remote.regression.change', 'Change'),
                 'changeType' => $changeStatus,
                 'changeTypeLabel' => $this->formatMachineLabel($changeStatus),
                 'apiType' => $apiType,
@@ -1225,16 +1228,16 @@ final class RemoteScanHistoryService
     {
         $parts = [];
         if ($newIssues > 0) {
-            $parts[] = $newIssues . ' new in automated scan';
+            $parts[] = sprintf(BackendLabelUtility::translate('remote.regression.newInScan', '%d new in automated scan'), $newIssues);
         }
         if ($resolvedIssues > 0) {
-            $parts[] = $resolvedIssues . ' resolved in automated scan';
+            $parts[] = sprintf(BackendLabelUtility::translate('remote.regression.resolvedInScan', '%d resolved in automated scan'), $resolvedIssues);
         }
         if ($unchangedIssues > 0) {
-            $parts[] = $unchangedIssues . ' unchanged in automated scan';
+            $parts[] = sprintf(BackendLabelUtility::translate('remote.regression.unchangedInScan', '%d unchanged in automated scan'), $unchangedIssues);
         }
 
-        return $parts !== [] ? implode(' · ', $parts) : 'No issue count change reported.';
+        return $parts !== [] ? implode(' · ', $parts) : BackendLabelUtility::translate('remote.regression.noCountChange', 'No issue count change reported.');
     }
 
     /**
@@ -1284,32 +1287,32 @@ final class RemoteScanHistoryService
     {
         $lower = strtolower($message);
         if (str_contains($lower, 'history_disabled') || str_contains($lower, '404')) {
-            return 'Remote scan history is available in PRO when enabled.';
+            return BackendLabelUtility::translate('remote.history.error.licenceRequired', 'Remote scan history is available with a remote-scanning licence (Trial, PRO or Agency) when enabled.');
         }
         if (str_contains($lower, 'domain_mismatch') || str_contains($lower, '403')) {
-            return 'The selected scan does not belong to this site/domain.';
+            return BackendLabelUtility::translate('remote.history.error.foreignScan', 'The selected scan does not belong to this site/domain.');
         }
         if (str_contains($lower, '401') || str_contains($lower, 'unauthorized')) {
-            return 'Scan history is not available for this licence or environment.';
+            return BackendLabelUtility::translate('remote.history.error.unavailableShort', 'Scan history is not available for this licence or environment.');
         }
 
-        return 'Remote scan history is not available for this licence or environment.';
+        return BackendLabelUtility::translate('remote.history.error.unavailable', 'Remote scan history is not available for this licence or environment.');
     }
 
     private function mapRemoteCompareErrorMessage(string $message): string
     {
         $lower = strtolower($message);
         if (str_contains($lower, 'invalid_compare_jobs') || str_contains($lower, '400')) {
-            return 'The selected scans cannot be compared.';
+            return BackendLabelUtility::translate('remote.comparison.error.incompatible', 'The selected scans cannot be compared.');
         }
         if (str_contains($lower, 'domain_mismatch') || str_contains($lower, '403')) {
-            return 'The selected scan does not belong to this site/domain.';
+            return BackendLabelUtility::translate('remote.history.error.foreignScan', 'The selected scan does not belong to this site/domain.');
         }
         if (str_contains($lower, '401') || str_contains($lower, 'unauthorized')) {
-            return 'Scan history is not available for this licence or environment.';
+            return BackendLabelUtility::translate('remote.history.error.unavailableShort', 'Scan history is not available for this licence or environment.');
         }
 
-        return 'The selected scans cannot be compared.';
+        return BackendLabelUtility::translate('remote.comparison.error.incompatible', 'The selected scans cannot be compared.');
     }
 
     private function normalizeComparableUrl(string $url): string
