@@ -41,7 +41,7 @@
                             </f:if>
                         </h1>
 
-                        <div class="aqg-hero__path" aria-label="Frontend URL">
+                        <div class="aqg-hero__path" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.frontendUrl', default: 'Frontend URL')}">
                             <span class="aqg-hero__path-seg aqg-hero__path-seg--last text-break">
                                 <a href="{remotePage.url}" target="_blank" rel="noopener noreferrer">{remotePage.url}</a>
                             </span>
@@ -189,7 +189,7 @@
                                     </div>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            Issue groups
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issueGroups" default="Issue groups" />
                                         </span>
                                         <span class="aqg-hero-stat__value">—</span>
                                     </div>
@@ -203,13 +203,13 @@
                                     </div>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            Issue groups
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issueGroups" default="Issue groups" />
                                         </span>
                                         <span class="aqg-hero-stat__value {f:if(condition: remotePage.issues_count, then: 'tone-critical', else: 'tone-ok')}">{remotePage.issues_count}</span>
                                     </div>
                                     <f:if condition="{pageFindingsCount}">
                                         <div class="aqg-hero-stat">
-                                            <span class="aqg-hero-stat__label">Findings</span>
+                                            <span class="aqg-hero-stat__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" /></span>
                                             <span class="aqg-hero-stat__value {f:if(condition: pageFindingsCount, then: 'tone-critical', else: 'tone-ok')}">{pageFindingsCount}</span>
                                         </div>
                                     </f:if>
@@ -413,9 +413,9 @@
                             <div class="aqg-twocol">
                                 <div class="aqg-stack">
                                     <f:if condition="{hasPageRecommendation}">
-                                        <section class="aqg-page-recommendation" aria-label="Suggested first step">
-                                            <div class="aqg-page-recommendation__kicker">Start here</div>
-                                            <h2 class="aqg-page-recommendation__title">Suggested first step based on automated findings</h2>
+                                        <section class="aqg-page-recommendation" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.aria', default: 'Suggested first step')}">
+                                            <div class="aqg-page-recommendation__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.kicker" default="Start here" /></div>
+                                            <h2 class="aqg-page-recommendation__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.title" default="Suggested first step based on automated findings" /></h2>
                                             <f:if condition="{pageRecommendation.summary}">
                                                 <p class="aqg-page-recommendation__summary">{pageRecommendation.summary}</p>
                                             </f:if>
@@ -428,13 +428,13 @@
                                             </f:if>
                                             <div class="aqg-page-recommendation__meta">
                                                 <f:if condition="{pageRecommendation.primaryRuleId}">
-                                                    <span>Primary rule: <code>{pageRecommendation.primaryRuleId}</code></span>
+                                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.primaryRule" default="Primary rule:" /> <code>{pageRecommendation.primaryRuleId}</code></span>
                                                 </f:if>
                                                 <f:if condition="{pageRecommendation.primaryFixType}">
-                                                    <span>Primary fix type: {pageRecommendation.primaryFixTypeLabel}</span>
+                                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.primaryFixType" default="Primary fix type: %s" arguments="{0: pageRecommendation.primaryFixTypeLabel}" /></span>
                                                 </f:if>
                                                 <f:if condition="{pageRecommendation.primaryOwner}">
-                                                    <span>Suggested owner: {pageRecommendation.primaryOwnerLabel}</span>
+                                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.owner" default="Suggested owner: %s" arguments="{0: pageRecommendation.primaryOwnerLabel}" /></span>
                                                 </f:if>
                                                 <f:if condition="{pageRecommendation.quickWinsLabel}">
                                                     <span>{pageRecommendation.quickWinsLabel}</span>
@@ -449,8 +449,8 @@
                                                 <f:if condition="{pageRecommendation.designIssuesLabel}"><span>{pageRecommendation.designIssuesLabel}</span></f:if>
                                             </div>
                                             <f:if condition="{hasPageRemediationSummary}">
-                                                <div class="aqg-page-recommendation__strategy" aria-label="Fix strategy">
-                                                    <span class="aqg-page-recommendation__strategy-label">Fix strategy</span>
+                                                <div class="aqg-page-recommendation__strategy" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.strategy', default: 'Fix strategy')}">
+                                                    <span class="aqg-page-recommendation__strategy-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.strategy" default="Fix strategy" /></span>
                                                     <f:if condition="{pageRemediationSummary.recommendation}">
                                                         <f:then>
                                                             <p>{pageRemediationSummary.recommendation}</p>
@@ -505,7 +505,7 @@
                                                     </span>
                                                     <span class="aqg-guidance-badges aqg-rule__summary-badges">
                                                         <f:if condition="{issue.isPrimaryRecommendation}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">Top recommendation</span>
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.topRecommendation" default="Top recommendation" /></span>
                                                         </f:if>
                                                         <f:if condition="{issue.whoShouldFix}">
                                                             <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{issue.whoShouldFix}">{issue.whoShouldFixLabel}</span>
@@ -514,7 +514,7 @@
                                                             <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{issue.fixType}">{issue.fixTypeLabel}</span>
                                                         </f:if>
                                                         <f:if condition="{issue.confidence}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}">{issue.confidenceLabel} confidence</span>
+                                                            <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.confidence" default="%s confidence" arguments="{0: issue.confidenceLabel}" /></span>
                                                         </f:if>
                                                         <f:if condition="{issue.wcagPrimaryLabel}">
                                                             <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{issue.wcagPrimaryLabel}</span>
@@ -522,7 +522,7 @@
                                                     </span>
                                                     <f:if condition="{issue.affectedUserItems}">
                                                         <span class="aqg-rule__affected-users">
-                                                            <span class="aqg-rule__affected-users-label">Affected users:</span>
+                                                            <span class="aqg-rule__affected-users-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" />:</span>
                                                             <span class="aqg-affected-user-badges">
                                                                 <f:for each="{issue.affectedUserItems}" as="affectedUser">
                                                                     <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
@@ -531,11 +531,11 @@
                                                         </span>
                                                     </f:if>
                                                     <f:if condition="{issue.primaryFixSummary}">
-                                                        <span class="aqg-rule__primary-fix">Primary fix: {issue.primaryFixSummary}</span>
+                                                        <span class="aqg-rule__primary-fix"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.primaryFix" default="Primary fix: %s" arguments="{0: issue.primaryFixSummary}" /></span>
                                                     </f:if>
                                                 </span>
 
-                                                <span class="aqg-rule__toggle"><span class="aqg-rule__toggle-show">Show details</span><span class="aqg-rule__toggle-hide">Hide details</span></span>
+                                                <span class="aqg-rule__toggle"><span class="aqg-rule__toggle-show"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.showDetails" default="Show details" /></span><span class="aqg-rule__toggle-hide"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.hideDetails" default="Hide details" /></span></span>
                                             </summary>
 
                                             <div class="aqg-rule__body">
@@ -565,7 +565,7 @@
                                                         </f:if>
                                                     </div>
                                                 </f:if>
-                                                <section class="aqg-rule-guidance" aria-label="Rule guidance">
+                                                <section class="aqg-rule-guidance" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.ruleGuidance', default: 'Rule guidance')}">
                                                     <f:if condition="{issue.guidanceWhyItMatters}">
                                                         <div class="aqg-rule-guidance__item">
                                                             <h3>
@@ -589,11 +589,11 @@
 
                                                 <f:if condition="{issue.hasStandardsAndImpact}">
                                                     <details class="aqg-rule-metadata">
-                                                        <summary>Standards and impact</summary>
+                                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standardsAndImpact" default="Standards and impact" /></summary>
                                                         <div class="aqg-rule-metadata__body">
                                                             <f:if condition="{issue.affectedUserItems}">
                                                                 <div class="aqg-rule-metadata__group">
-                                                                    <h3>Affected users</h3>
+                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" /></h3>
                                                                     <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
                                                                         <f:for each="{issue.affectedUserItems}" as="affectedUser">
                                                                             <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
@@ -603,7 +603,7 @@
                                                             </f:if>
                                                             <f:if condition="{issue.wcagReferences}">
                                                                 <div class="aqg-rule-metadata__group">
-                                                                    <h3>WCAG reference</h3>
+                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3>
                                                                     <ul>
                                                                         <f:for each="{issue.wcagReferences}" as="wcag">
                                                                             <li>
@@ -618,7 +618,7 @@
                                                             </f:if>
                                                             <f:if condition="{issue.techniques}">
                                                                 <div class="aqg-rule-metadata__group">
-                                                                    <h3>Technique</h3>
+                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technique" default="Technique" /></h3>
                                                                     <ul>
                                                                         <f:for each="{issue.techniques}" as="technique">
                                                                             <li>
@@ -633,7 +633,7 @@
                                                             </f:if>
                                                             <f:if condition="{issue.standards}">
                                                                 <div class="aqg-rule-metadata__group">
-                                                                    <h3>Standards</h3>
+                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3>
                                                                     <div class="aqg-rule-metadata__chips">
                                                                         <f:for each="{issue.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for>
                                                                     </div>
@@ -641,7 +641,7 @@
                                                             </f:if>
                                                             <f:if condition="{issue.documentationLinks}">
                                                                 <div class="aqg-rule-metadata__group">
-                                                                    <h3>Documentation</h3>
+                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3>
                                                                     <ul>
                                                                         <f:for each="{issue.documentationLinks}" as="doc">
                                                                             <li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li>
@@ -651,7 +651,7 @@
                                                             </f:if>
                                                             <f:if condition="{issue.technicalTags}">
                                                                 <div class="aqg-rule-metadata__group aqg-rule-metadata__group--technical">
-                                                                    <h3>Technical tags</h3>
+                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technicalTags" default="Technical tags" /></h3>
                                                                     <div class="aqg-rule-metadata__chips aqg-rule-metadata__chips--tags">
                                                                         <f:for each="{issue.technicalTags}" as="tag"><span class="aqg-rule-metadata__tag">{tag}</span></f:for>
                                                                     </div>
@@ -674,15 +674,15 @@
                                                             </f:if>
 
                                                             <f:if condition="{node.hasNodeRemediation}">
-                                                                <div class="aqg-node-remediation" aria-label="Suggested remediation for this finding">
-                                                                    <div class="aqg-node-remediation__title">Suggested remediation</div>
+                                                                <div class="aqg-node-remediation" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.aria', default: 'Suggested remediation for this finding')}">
+                                                                    <div class="aqg-node-remediation__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.title" default="Suggested remediation" /></div>
                                                                     <f:if condition="{node.nodeRemediation.summary}">
                                                                         <p>{node.nodeRemediation.summary}</p>
                                                                     </f:if>
                                                                     <div class="aqg-node-remediation__meta">
-                                                                        <f:if condition="{node.nodeRemediation.recommendedOwnerLabel}"><span>Suggested owner: {node.nodeRemediation.recommendedOwnerLabel}</span></f:if>
-                                                                        <f:if condition="{node.nodeRemediation.fixTypeLabel}"><span>Fix type: {node.nodeRemediation.fixTypeLabel}</span></f:if>
-                                                                        <f:if condition="{node.nodeRemediation.confidenceLabel}"><span>Confidence: {node.nodeRemediation.confidenceLabel}</span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.recommendedOwnerLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.owner" default="Suggested owner: %s" arguments="{0: node.nodeRemediation.recommendedOwnerLabel}" /></span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.fixTypeLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.fixType" default="Fix type: %s" arguments="{0: node.nodeRemediation.fixTypeLabel}" /></span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.confidenceLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.confidence" default="Confidence: %s" arguments="{0: node.nodeRemediation.confidenceLabel}" /></span></f:if>
                                                                     </div>
                                                                     <f:if condition="{node.nodeRemediation.hasSteps}">
                                                                         <ol class="aqg-node-remediation__steps">
@@ -698,45 +698,45 @@
                                                             </f:if>
 
                                                             <f:if condition="{node.hasContrastDetails}">
-                                                                <div class="aqg-contrast-details" aria-label="Contrast details">
-                                                                    <div class="aqg-contrast-details__title">Contrast details</div>
+                                                                <div class="aqg-contrast-details" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.title', default: 'Contrast details')}">
+                                                                    <div class="aqg-contrast-details__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.title" default="Contrast details" /></div>
                                                                     <f:for each="{node.contrastDetails}" as="contrast">
                                                                         <div class="aqg-contrast-details__row">
-                                                                            <f:if condition="{contrast.actualRatio}"><span>Actual ratio: <strong>{contrast.actualRatio}</strong></span></f:if>
-                                                                            <f:if condition="{contrast.requiredRatio}"><span>Required ratio: <strong>{contrast.requiredRatio}</strong></span></f:if>
-                                                                            <f:if condition="{contrast.foreground}"><span>Foreground: <code>{contrast.foreground}</code></span></f:if>
-                                                                            <f:if condition="{contrast.background}"><span>Background: <code>{contrast.background}</code></span></f:if>
+                                                                            <f:if condition="{contrast.actualRatio}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.actualRatio" default="Actual ratio:" /> <strong>{contrast.actualRatio}</strong></span></f:if>
+                                                                            <f:if condition="{contrast.requiredRatio}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.requiredRatio" default="Required ratio:" /> <strong>{contrast.requiredRatio}</strong></span></f:if>
+                                                                            <f:if condition="{contrast.foreground}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.foreground" default="Foreground:" /> <code>{contrast.foreground}</code></span></f:if>
+                                                                            <f:if condition="{contrast.background}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.background" default="Background:" /> <code>{contrast.background}</code></span></f:if>
                                                                         </div>
                                                                         <f:if condition="{contrast.hasContrastSuggestion}">
                                                                             <div class="aqg-contrast-suggestion">
-                                                                                <div class="aqg-contrast-suggestion__title">Candidate colors</div>
+                                                                                <div class="aqg-contrast-suggestion__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.candidates" default="Candidate colors" /></div>
                                                                                 <div class="aqg-contrast-suggestion__meta">
-                                                                                    <f:if condition="{contrast.contrastSuggestion.candidateTypeLabel}"><span>Candidate type: {contrast.contrastSuggestion.candidateTypeLabel}</span></f:if>
-                                                                                    <f:if condition="{contrast.contrastSuggestion.riskLevelLabel}"><span>Risk signal: {contrast.contrastSuggestion.riskLevelLabel}</span></f:if>
+                                                                                    <f:if condition="{contrast.contrastSuggestion.candidateTypeLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.candidateType" default="Candidate type: %s" arguments="{0: contrast.contrastSuggestion.candidateTypeLabel}" /></span></f:if>
+                                                                                    <f:if condition="{contrast.contrastSuggestion.riskLevelLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.riskSignal" default="Risk signal: %s" arguments="{0: contrast.contrastSuggestion.riskLevelLabel}" /></span></f:if>
                                                                                 </div>
                                                                                 <div class="aqg-contrast-suggestion__rows">
                                                                                     <f:if condition="{contrast.contrastSuggestion.currentForeground}">
-                                                                                        <span>Current foreground: <code>{contrast.contrastSuggestion.currentForeground}</code></span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.currentForeground" default="Current foreground:" /> <code>{contrast.contrastSuggestion.currentForeground}</code></span>
                                                                                     </f:if>
                                                                                     <f:if condition="{contrast.contrastSuggestion.currentBackground}">
-                                                                                        <span>Current background: <code>{contrast.contrastSuggestion.currentBackground}</code></span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.currentBackground" default="Current background:" /> <code>{contrast.contrastSuggestion.currentBackground}</code></span>
                                                                                     </f:if>
                                                                                     <f:if condition="{contrast.contrastSuggestion.actualRatio}">
-                                                                                        <span>Actual ratio: <strong>{contrast.contrastSuggestion.actualRatio}</strong></span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.actualRatio" default="Actual ratio:" /> <strong>{contrast.contrastSuggestion.actualRatio}</strong></span>
                                                                                     </f:if>
                                                                                     <f:if condition="{contrast.contrastSuggestion.requiredRatio}">
-                                                                                        <span>Required ratio: <strong>{contrast.contrastSuggestion.requiredRatio}</strong></span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.requiredRatio" default="Required ratio:" /> <strong>{contrast.contrastSuggestion.requiredRatio}</strong></span>
                                                                                     </f:if>
                                                                                 </div>
                                                                                 <f:if condition="{contrast.contrastSuggestion.hasPreferredCandidate}">
                                                                                     <div class="aqg-contrast-suggestion__preferred">
-                                                                                        <span>Preferred candidate:</span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.preferred" default="Preferred candidate:" /></span>
                                                                                         <code>{contrast.contrastSuggestion.preferredCandidate.color}</code>
                                                                                         <f:if condition="{contrast.contrastSuggestion.preferredCandidate.label}">
                                                                                             <span>{contrast.contrastSuggestion.preferredCandidate.label}</span>
                                                                                         </f:if>
                                                                                         <f:if condition="{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}">
-                                                                                            <span>Estimated contrast ratio: <strong>{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}</strong></span>
+                                                                                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.estimatedRatio" default="Estimated contrast ratio:" /> <strong>{contrast.contrastSuggestion.preferredCandidate.estimatedRatio}</strong></span>
                                                                                         </f:if>
                                                                                         <f:if condition="{contrast.contrastSuggestion.preferredCandidate.explanation}">
                                                                                             <small>{contrast.contrastSuggestion.preferredCandidate.explanation}</small>
@@ -745,7 +745,7 @@
                                                                                 </f:if>
                                                                                 <f:if condition="{contrast.contrastSuggestion.hasSuggestedForegroundCandidates}">
                                                                                     <div class="aqg-contrast-suggestion__candidate-row">
-                                                                                        <span>Foreground candidates:</span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.foregroundCandidates" default="Foreground candidates:" /></span>
                                                                                         <f:for each="{contrast.contrastSuggestion.suggestedForegroundCandidateDetails}" as="candidate">
                                                                                             <span class="aqg-contrast-suggestion__candidate">
                                                                                                 <code>{candidate.color}</code>
@@ -761,7 +761,7 @@
                                                                                 </f:if>
                                                                                 <f:if condition="{contrast.contrastSuggestion.hasSuggestedBackgroundCandidates}">
                                                                                     <div class="aqg-contrast-suggestion__candidate-row">
-                                                                                        <span>Background candidates:</span>
+                                                                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.contrast.backgroundCandidates" default="Background candidates:" /></span>
                                                                                         <f:for each="{contrast.contrastSuggestion.suggestedBackgroundCandidateDetails}" as="candidate">
                                                                                             <span class="aqg-contrast-suggestion__candidate">
                                                                                                 <code>{candidate.color}</code>
@@ -877,14 +877,14 @@
                                     </f:if>
 
                                     <f:if condition="{hasKeyboardStructureReview}">
-                                        <details class="aqg-review-assistant" aria-label="Keyboard and structure review">
+                                        <details class="aqg-review-assistant" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.aria', default: 'Keyboard and structure review')}">
                                             <summary class="aqg-review-assistant__head">
                                                 <span class="aqg-review-assistant__headline">
-                                                    <span class="aqg-review-assistant__kicker">Review assistant</span>
+                                                    <span class="aqg-review-assistant__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.kicker" default="Review assistant" /></span>
                                                     <span class="aqg-review-assistant__title">{keyboardStructureReview.title}</span>
                                                     <span class="aqg-review-assistant__intro">{keyboardStructureReview.subtitle}</span>
                                                 </span>
-                                                <span class="aqg-review-assistant__toggle">View review signals</span>
+                                                <span class="aqg-review-assistant__toggle"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.toggle" default="View review signals" /></span>
                                             </summary>
                                             <div class="aqg-review-assistant__body">
 
@@ -892,17 +892,17 @@
                                                 <article class="aqg-review-card aqg-review-card--keyboard">
                                                     <header class="aqg-review-card__head">
                                                         <div>
-                                                            <div class="aqg-review-card__kicker">Keyboard exploration</div>
-                                                            <h3 class="aqg-review-card__title">Automated keyboard exploration signal</h3>
+                                                            <div class="aqg-review-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.keyboardKicker" default="Keyboard exploration" /></div>
+                                                            <h3 class="aqg-review-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.keyboardTitle" default="Automated keyboard exploration signal" /></h3>
                                                         </div>
                                                         <f:if condition="{keyboardStructureReview.keyboard.manualReviewRequired}">
                                                             <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{keyboardStructureReview.keyboard.manualReviewLabel}</span>
                                                         </f:if>
                                                     </header>
                                                     <div class="aqg-review-metrics">
-                                                        <span><strong>{keyboardStructureReview.keyboard.focusStepsTotal}</strong> focus steps</span>
-                                                        <span><strong>{keyboardStructureReview.keyboard.uniqueFocusedElementsTotal}</strong> unique focused elements</span>
-                                                        <span><strong>{keyboardStructureReview.keyboard.invisibleFocusIssuesTotal}</strong> focus visibility warnings</span>
+                                                        <span><strong>{keyboardStructureReview.keyboard.focusStepsTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.focusSteps" default="focus steps" /></span>
+                                                        <span><strong>{keyboardStructureReview.keyboard.uniqueFocusedElementsTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.uniqueFocused" default="unique focused elements" /></span>
+                                                        <span><strong>{keyboardStructureReview.keyboard.invisibleFocusIssuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.focusVisibilityWarnings" default="focus visibility warnings" /></span>
                                                         <span>{keyboardStructureReview.keyboard.possibleKeyboardTrapLabel}</span>
                                                     </div>
                                                     <f:if condition="{keyboardStructureReview.keyboard.recommendation}">
@@ -910,20 +910,20 @@
                                                     </f:if>
 
                                                     <details class="aqg-review-disclosure">
-                                                        <summary>Focus path</summary>
+                                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.focusPath" default="Focus path" /></summary>
                                                         <f:if condition="{keyboardStructureReview.keyboard.hasFocusPath}">
                                                             <f:then>
                                                                 <div class="aqg-review-table-wrap">
                                                                     <table class="aqg-review-table aqg-review-table--focus">
                                                                         <thead>
                                                                             <tr>
-                                                                                <th>Step</th>
-                                                                                <th>Element</th>
-                                                                                <th>Name / visible text signal</th>
-                                                                                <th>Selector</th>
-                                                                                <th>Visible focus</th>
-                                                                                <th>Warning</th>
-                                                                                <th>Reliability</th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.step" default="Step" /></th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.item" default="Element" /></th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.nameSignal" default="Name / visible text signal" /></th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.selector" default="Selector" /></th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.visibleFocus" default="Visible focus" /></th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning" default="Warning" /></th>
+                                                                                <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.reliability" default="Reliability" /></th>
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
@@ -955,7 +955,7 @@
                                                                 </f:if>
                                                             </f:then>
                                                             <f:else>
-                                                                <p class="aqg-review-empty">No focus path details were returned for this scan.</p>
+                                                                <p class="aqg-review-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.noFocusPath" default="No focus path details were returned for this scan." /></p>
                                                             </f:else>
                                                         </f:if>
                                                     </details>
@@ -966,8 +966,8 @@
                                                 <article class="aqg-review-card aqg-review-card--structure">
                                                     <header class="aqg-review-card__head">
                                                         <div>
-                                                            <div class="aqg-review-card__kicker">Structure outline</div>
-                                                            <h3 class="aqg-review-card__title">Automated structure signal</h3>
+                                                            <div class="aqg-review-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.structureKicker" default="Structure outline" /></div>
+                                                            <h3 class="aqg-review-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.structureTitle" default="Automated structure signal" /></h3>
                                                         </div>
                                                         <f:if condition="{keyboardStructureReview.structure.likelyTemplateIssue}">
                                                             <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{keyboardStructureReview.structure.likelyTemplateIssueLabel}</span>
@@ -979,7 +979,7 @@
 
                                                     <f:if condition="{keyboardStructureReview.structure.hasHeadings}">
                                                         <div class="aqg-review-subsection">
-                                                            <h4>Heading outline</h4>
+                                                            <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.headings" default="Heading outline" /></h4>
                                                             <ol class="aqg-heading-outline">
                                                                 <f:for each="{keyboardStructureReview.structure.headings}" as="heading">
                                                                     <li class="aqg-heading-outline__item aqg-heading-outline__item--h{heading.level}">
@@ -1000,7 +1000,7 @@
 
                                                     <f:if condition="{keyboardStructureReview.structure.hasLandmarks}">
                                                         <div class="aqg-review-subsection">
-                                                            <h4>Landmarks</h4>
+                                                            <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.landmarks" default="Landmarks" /></h4>
                                                             <div class="aqg-landmark-list">
                                                                 <f:for each="{keyboardStructureReview.structure.landmarks}" as="landmark">
                                                                     <div class="aqg-landmark-list__item{f:if(condition: landmark.isMissing, then: ' is-missing')}">
@@ -1015,7 +1015,7 @@
 
                                                     <f:if condition="{keyboardStructureReview.structure.hasWarnings}">
                                                         <div class="aqg-review-subsection">
-                                                            <h4>Structure warnings</h4>
+                                                            <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.structureWarnings" default="Structure warnings" /></h4>
                                                             <div class="aqg-review-warning-list">
                                                                 <f:for each="{keyboardStructureReview.structure.warnings}" as="warning">
                                                                     <div class="aqg-review-warning">
@@ -1039,14 +1039,14 @@
 
 
                                     <f:if condition="!{isFreePreview}">
-                                    <details class="aqg-history-panel aqg-history-panel--page" aria-label="Page scan history">
+                                    <details class="aqg-history-panel aqg-history-panel--page" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.pageTitle', default: 'Page scan history')}">
                                         <summary class="aqg-history-panel__summary">
                                             <span>
-                                                <span class="aqg-history-panel__kicker">Accessibility progress</span>
-                                                <strong>Page scan history</strong>
-                                                <small>Previous automated scans for this URL. Manual review may still be required.</small>
+                                                <span class="aqg-history-panel__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.kicker" default="Accessibility progress" /></span>
+                                                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.pageTitle" default="Page scan history" /></strong>
+                                                <small><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.pageSubtitle" default="Previous automated scans for this URL. Manual review may still be required." /></small>
                                             </span>
-                                            <span class="aqg-report-collapse__toggle aqg-history-panel__toggle"><span class="aqg-history-panel__toggle-show">Show history</span><span class="aqg-history-panel__toggle-hide">Hide history</span></span>
+                                            <span class="aqg-report-collapse__toggle aqg-history-panel__toggle"><span class="aqg-history-panel__toggle-show"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.show" default="Show history" /></span><span class="aqg-history-panel__toggle-hide"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.hide" default="Hide history" /></span></span>
                                         </summary>
                                         <div class="aqg-history-panel__body">
                                             <f:if condition="{remotePageHistory.items}">
@@ -1057,7 +1057,7 @@
                                                     <div class="aqg-history-notice">
                                                         <f:if condition="{remotePageHistory.message}">
                                                             <f:then>{remotePageHistory.message}</f:then>
-                                                            <f:else>No frontend scan history available yet.</f:else>
+                                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.emptyFrontend" default="No frontend scan history available yet." /></f:else>
                                                         </f:if>
                                                     </div>
                                                 </f:else>
@@ -1080,9 +1080,9 @@
                                         </div>
                                         <f:if condition="{issueDetailsUnavailable}">
                                             <f:then>
-                                                <div class="aqg-empty__title">Issue details are not available for this scan</div>
+                                                <div class="aqg-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.detailsUnavailable.title" default="Issue details are not available for this scan" /></div>
                                                 <div class="aqg-empty__body">
-                                                    The page summary reports {pageSummaryIssuesCount} automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.detailsUnavailable.text" default="The page summary reports %d automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence." arguments="{0: pageSummaryIssuesCount}" />
                                                 </div>
                                             </f:then>
                                             <f:else>

@@ -39,7 +39,7 @@
                         </div>
                         <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxPages" default="Max 10 pages per frontend scan" /></div>
                         <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxScans" default="Max 5 scans per day" /></div>
-                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.screenshotCapture" default="Screenshot capture per page" /></div>
+                        <div class="aqg-licence-status__feature aqg-licence-status__feature--off"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'minus'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.paidOnly" default="PDF export, AI suggestions and the Statement Assistant are not part of the trial" /></div>
                     </div>
 
                     <div class="aqg-licence-status__foot">
@@ -88,7 +88,7 @@
                             </div>
                             <dl class="aqg-licence-status__kv">
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" default="Plan" /></dt>
-                                <dd>PRO · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.singleSite" default="single site" /></dd>
+                                <dd>PRO</dd>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt>
                                 <dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
@@ -116,19 +116,38 @@
     <f:else>
         <f:if condition="{hasLicenceKey}">
             <f:then>
-                <section class="aqg-licence-status tone-error">
+                <section class="aqg-licence-status tone-error" data-aqg-licence-state="{licenceGuidance.state}">
                     <div class="aqg-licence-status__head">
-                        <div class="aqg-licence-status__plan-line"><span class="aqg-licence-status__plan-tag">INACTIVE</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactive" default="Licence not valid" /></span></div>
-                        <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.inactive.title" default="Licence is inactive" /></h3>
-                        <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveText" default="The configured licence key did not validate against the configured domain. PRO features are disabled until a valid key is provided." /></p>
+                        <div class="aqg-licence-status__plan-line"><span class="aqg-licence-status__plan-tag"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.tag.inactive" default="INACTIVE" /></span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactive" default="Licence not valid" /></span></div>
+                        <f:if condition="{licenceGuidance}">
+                            <f:then>
+                                <h3 class="aqg-licence-status__title">{licenceGuidance.title}</h3>
+                                <p class="aqg-licence-status__sub">{licenceGuidance.text}</p>
+                            </f:then>
+                            <f:else>
+                                <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.inactive.title" default="Licence is inactive" /></h3>
+                                <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveText" default="The configured licence key did not validate against the configured domain. PRO features are disabled until a valid key is provided." /></p>
+                            </f:else>
+                        </f:if>
                     </div>
                     <dl class="aqg-licence-status__kv">
                         <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusTitle" default="Status" /></dt><dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveValue" default="Inactive" /></dd>
                         <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt><dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
-                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.reason" default="Reason" /></dt><dd><f:if condition="{proStatus.reasonLabel}"><f:then>{proStatus.reasonLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Validation failed" /></f:else></f:if></dd>
+                        <f:if condition="{proStatus.reason}">
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.reasonCode" default="Reason code" /></dt><dd><code>{proStatus.reason}</code></dd>
+                        </f:if>
                     </dl>
                     <div class="aqg-licence-status__foot">
-                        <a href="{supportUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
+                        <f:if condition="{licenceGuidance.actions}">
+                            <f:then>
+                                <f:for each="{licenceGuidance.actions}" as="action">
+                                    <a href="{action.url}" class="btn btn-sm {f:if(condition: action.primary, then: 'btn-primary', else: 'btn-default')}" data-aqg-licence-action="{action.action}" {f:if(condition: action.external, then: 'target="_blank" rel="noopener noreferrer"')}>{action.label}</a>
+                                </f:for>
+                            </f:then>
+                            <f:else>
+                                <a href="{supportUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
+                            </f:else>
+                        </f:if>
                     </div>
                 </section>
             </f:then>

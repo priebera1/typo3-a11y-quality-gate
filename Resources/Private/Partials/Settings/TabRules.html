@@ -9,7 +9,20 @@
         aria-labelledby="a11y-settings-tab-rules"
         tabindex="0"
 >
-    <form method="post" action="{saveUrl}" class="aqg-stack" id="a11y-settings-rules-form" data-a11y-rules-form="true">
+    <form
+            method="post"
+            action="{saveUrl}"
+            class="aqg-stack"
+            id="a11y-settings-rules-form"
+            data-a11y-rules-form="true"
+            data-label-reported="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.status.reported', default: 'Reported in scans')}"
+            data-label-not-reported="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.status.notReported', default: 'Not reported in scans')}"
+            data-label-on="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.on', default: 'on')}"
+            data-label-enable-group="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.group.enableAll', default: 'Enable all in group')}"
+            data-label-disable-group="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.group.disableAll', default: 'Disable all in group')}"
+            data-label-change-one="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.changes.singular', default: '%d change')}"
+            data-label-change-other="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.changes.plural', default: '%d changes')}"
+    >
         <f:for each="{returnParameters}" as="value" key="name">
             <input type="hidden" name="{name}" value="{value}" />
         </f:for>
@@ -21,6 +34,7 @@
         <input type="hidden" name="tab" value="rules" />
         <input type="hidden" name="rulesManagementFormSubmitted" value="1" />
 
+        <f:variable name="rulesSavedMeta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.savedMeta" default="All changes saved · %s" arguments="{0: settingsLastSavedLabel}" /></f:variable>
         <div class="aqg-actionbar" data-a11y-rules-actionbar="true">
             <div class="aqg-actionbar__left">
                 <div class="aqg-actionbar__title">
@@ -28,10 +42,10 @@
                 </div>
                 <div
                         class="aqg-actionbar__meta"
-                        data-a11y-rules-saved-meta="All changes saved · {settingsLastSavedLabel}"
-                        data-a11y-rules-dirty-meta="Unsaved changes"
+                        data-a11y-rules-saved-meta="{rulesSavedMeta}"
+                        data-a11y-rules-dirty-meta="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.unsavedChanges', default: 'Unsaved changes')}"
                 >
-                    <span data-a11y-rules-meta-label="true">All changes saved · {settingsLastSavedLabel}</span>
+                    <span data-a11y-rules-meta-label="true">{rulesSavedMeta}</span>
                 </div>
             </div>
 
@@ -53,16 +67,16 @@
         <div class="aqg-notice aqg-notice--info aqg-rules-management-notice">
             <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
             <span class="aqg-notice__body">
-                <span class="aqg-notice__title">Rules management</span>
-                <span class="aqg-notice__text">Choose which accessibility rules AQG should use during scans. Disabled rules are not reported in editor highlights, local scans or quality-gate checks. Disabling a rule is a project-wide configuration — not the same as ignoring an individual issue.</span>
+                <span class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.notice.title" default="Rules management" /></span>
+                <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.notice.text" default="Choose which accessibility rules AQG should use during scans. Disabled rules are not reported in editor highlights, local scans or quality-gate checks. Disabling a rule is a project-wide configuration — not the same as ignoring an individual issue." /></span>
             </span>
         </div>
 
         <section class="aqg-card aqg-rule-card aqg-rules-card">
             <header class="aqg-card__head aqg-card__head--quiet">
                 <div>
-                    <h3 class="aqg-card__title">Enabled rules</h3>
-                    <p class="aqg-card__sub">Every local accessibility rule AQG ships with. Toggle a rule off to remove it from scans across this project.</p>
+                    <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.enabled.title" default="Enabled rules" /></h3>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.enabled.text" default="Every local accessibility rule AQG ships with. Toggle a rule off to remove it from scans across this project." /></p>
                 </div>
             </header>
 
@@ -74,37 +88,37 @@
                                 <path d="M7 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm3.7-1.3 2.8 2.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                             </svg>
                         </span>
-                        <span class="visually-hidden">Search rules</span>
-                        <input type="search" placeholder="Search rules by name or id (e.g. table_caption)" data-a11y-rules-search="true" />
+                        <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.search.label" default="Search rules" /></span>
+                        <input type="search" placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.search.placeholder', default: 'Search rules by name or id (e.g. table_caption)')}" data-a11y-rules-search="true" />
                     </label>
 
-                    <div class="aqg-rules-toolbar__filters" role="group" aria-label="Filter rules">
-                        <button type="button" class="aqg-rules-toolbar__chip is-active" data-a11y-rules-filter="all" aria-pressed="true">All <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.all}</span></button>
-                        <button type="button" class="aqg-rules-toolbar__chip" data-a11y-rules-filter="enabled" aria-pressed="false">Enabled <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.enabled}</span></button>
-                        <button type="button" class="aqg-rules-toolbar__chip" data-a11y-rules-filter="disabled" aria-pressed="false">Disabled <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.disabled}</span></button>
+                    <div class="aqg-rules-toolbar__filters" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.filter.aria', default: 'Filter rules')}">
+                        <button type="button" class="aqg-rules-toolbar__chip is-active" data-a11y-rules-filter="all" aria-pressed="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.filter.all" default="All" /> <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.all}</span></button>
+                        <button type="button" class="aqg-rules-toolbar__chip" data-a11y-rules-filter="enabled" aria-pressed="false"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.filter.enabled" default="Enabled" /> <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.enabled}</span></button>
+                        <button type="button" class="aqg-rules-toolbar__chip" data-a11y-rules-filter="disabled" aria-pressed="false"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.filter.disabled" default="Disabled" /> <span class="aqg-rules-toolbar__chip-num">{rulesManagement.counts.disabled}</span></button>
                     </div>
 
                     <div class="aqg-rules-toolbar__bulk">
-                        <span class="aqg-rules-toolbar__counts"><span data-a11y-rules-visible-count="true">{rulesManagement.counts.all}</span>/{rulesManagement.counts.all} on</span>
-                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-open="true">Reset to defaults</button>
+                        <span class="aqg-rules-toolbar__counts"><span data-a11y-rules-visible-count="true">{rulesManagement.counts.all}</span>/{rulesManagement.counts.all} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.on" default="on" /></span>
+                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-open="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.resetDefaults" default="Reset to defaults" /></button>
                     </div>
                 </div>
 
                 <div class="aqg-rules-reset" data-a11y-rules-reset-panel="true" hidden="hidden">
                     <span class="aqg-rules-reset__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'warning'}" /></span>
                     <span class="aqg-rules-reset__body">
-                        <span class="aqg-rules-reset__title">Reset every rule to its default state?</span>
-                        <span class="aqg-rules-reset__text">Re-enables the default set of accessibility rules. Custom phrase lists below are not affected.</span>
+                        <span class="aqg-rules-reset__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.reset.title" default="Reset every rule to its default state?" /></span>
+                        <span class="aqg-rules-reset__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.reset.text" default="Re-enables the default set of accessibility rules. Custom phrase lists below are not affected." /></span>
                     </span>
                     <span class="aqg-rules-reset__actions">
-                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-cancel="true">Cancel</button>
-                        <button type="button" class="btn btn-primary btn-sm" data-a11y-rules-reset-confirm="true">Yes, reset rules</button>
+                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-cancel="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel" default="Cancel" /></button>
+                        <button type="button" class="btn btn-primary btn-sm" data-a11y-rules-reset-confirm="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.reset.confirm" default="Yes, reset rules" /></button>
                     </span>
                 </div>
 
                 <div class="aqg-rules-empty" data-a11y-rules-empty="true" hidden="hidden">
-                    <h4 class="aqg-rules-empty__title">No rules match your search</h4>
-                    <p class="aqg-rules-empty__body">Nothing in the rules catalog matches <span class="aqg-rules-empty__match" data-a11y-rules-empty-query="true"></span>. Try a different keyword, a rule id fragment, or the category filters above.</p>
+                    <h4 class="aqg-rules-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.empty.title" default="No rules match your search" /></h4>
+                    <p class="aqg-rules-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.empty.before" default="Nothing in the rules catalog matches" /> <span class="aqg-rules-empty__match" data-a11y-rules-empty-query="true"></span>. <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.empty.after" default="Try a different keyword, a rule id fragment, or the category filters above." /></p>
                 </div>
 
                 <div class="aqg-rules-groups" data-a11y-rules-groups="true">
@@ -117,9 +131,9 @@
                                     <span class="aqg-rgroup__sub">{group.subtitle}</span>
                                 </span>
                                 <span class="aqg-rgroup__count" data-a11y-rule-group-count="true">
-                                    <strong>{group.enabledCount}</strong> / {group.totalCount} on
+                                    <strong>{group.enabledCount}</strong> / {group.totalCount} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.on" default="on" />
                                 </span>
-                                <button type="button" class="aqg-rgroup__bulk" data-a11y-rule-group-toggle="true">Enable all in group</button>
+                                <button type="button" class="aqg-rgroup__bulk" data-a11y-rule-group-toggle="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.group.enableAll" default="Enable all in group" /></button>
                             </summary>
 
                             <div class="aqg-rgroup__body">
@@ -164,7 +178,7 @@
                                                 <span class="aqg-rule-row__dirty" data-a11y-rule-dirty="true" hidden="hidden"></span>
                                                 <span class="aqg-rule-row__label">{rule.label}</span>
                                                 <code class="aqg-rule-row__id">{rule.id}</code>
-                                                <span class="aqg-rule-row__off-tag{f:if(condition: '{rule.enabled}', then: ' aqg-is-hidden')}" data-a11y-rule-off-tag="true">OFF</span>
+                                                <span class="aqg-rule-row__off-tag{f:if(condition: '{rule.enabled}', then: ' aqg-is-hidden')}" data-a11y-rule-off-tag="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.offTag" default="OFF" /></span>
                                             </span>
                                             <span class="aqg-rule-row__desc">{rule.description}</span>
                                             <span class="aqg-rule-row__tags">
@@ -175,8 +189,8 @@
                                         <span class="aqg-rule-row__meta">
                                             <span class="aqg-rule-row__status" data-a11y-rule-status="true">
                                                 <f:if condition="{rule.enabled}">
-                                                    <f:then>Reported in scans</f:then>
-                                                    <f:else>Not reported in scans</f:else>
+                                                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.status.reported" default="Reported in scans" /></f:then>
+                                                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.status.notReported" default="Not reported in scans" /></f:else>
                                                 </f:if>
                                             </span>
                                         </span>
@@ -193,8 +207,8 @@
         <section class="aqg-card aqg-rule-card">
             <header class="aqg-card__head aqg-card__head--quiet">
                 <div>
-                    <h3 class="aqg-card__title">Rendered Page Check</h3>
-                    <p class="aqg-card__sub">Controls the FREE, manual HTML-only rendered check used by Scan this page and manual Scan site actions.</p>
+                    <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.title" default="Rendered page check" /></h3>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.text" default="Controls the FREE, manual HTML-only rendered check used by Scan this page and manual Scan site actions." /></p>
                 </div>
             </header>
 
@@ -210,8 +224,8 @@
                                 data-a11y-rules-input="true"
                         />
                         <span>
-                            <span class="aqg-check-option__title">Enable rendered page checks</span>
-                            <span class="aqg-check-option__copy">Runs DOM-only checks against the final frontend HTML output during manual page and site scans. It is not used by Scheduler/CLI subtree scans or the PRO crawler.</span>
+                            <span class="aqg-check-option__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.enable" default="Enable rendered page checks" /></span>
+                            <span class="aqg-check-option__copy"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.enableText" default="Runs DOM-only checks against the final frontend HTML output during manual page and site scans. It is not used by Scheduler/CLI subtree scans or the AQG crawler." /></span>
                         </span>
                     </label>
 
@@ -225,8 +239,8 @@
                                 data-a11y-rules-input="true"
                         />
                         <span>
-                            <span class="aqg-check-option__title">Allow private/local frontend hosts for rendered checks</span>
-                            <span class="aqg-check-option__copy">Use only for DDEV, local development or isolated staging. Keep disabled in production to protect against SSRF.</span>
+                            <span class="aqg-check-option__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.privateHosts" default="Allow private/local frontend hosts for rendered checks" /></span>
+                            <span class="aqg-check-option__copy"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.privateHostsText" default="Use only for DDEV, local development or isolated staging. Keep disabled in production to protect against SSRF." /></span>
                         </span>
                     </label>
                 </div>
@@ -234,12 +248,12 @@
                 <div class="aqg-guidance aqg-guidance--rules">
                     <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
                     <span class="aqg-guidance__body">
-                        <span class="aqg-guidance__title">Rendered check scope</span>
+                        <span class="aqg-guidance__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.scopeTitle" default="Rendered check scope" /></span>
                         <ol class="aqg-guidance__steps">
-                            <li>FREE rendered checks run only when an editor manually starts Scan this page or Scan site.</li>
-                            <li>They inspect the server-rendered HTML returned by TYPO3 and do not execute JavaScript.</li>
-                            <li>They do not load AJAX or lazy-loaded content, run sitemap crawls, Playwright, axe-core or screenshots.</li>
-                            <li>Manual Scan site fetches each TYPO3 page one by one; browser-based crawling, JavaScript execution and screenshots remain PRO crawler features.</li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.step1" default="FREE rendered checks run only when an editor manually starts Scan this page or Scan site." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.step2" default="They inspect the server-rendered HTML returned by TYPO3 and do not execute JavaScript." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.step3" default="They do not load AJAX or lazy-loaded content, run sitemap crawls, Playwright, axe-core or screenshots." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.step4" default="Manual Scan site fetches each TYPO3 page one by one. Browser-based frontend scans with JavaScript execution run in the AQG crawler — as the daily Free Remote Preview or with a Trial, PRO or Agency licence." /></li>
                         </ol>
                     </span>
                 </div>
@@ -253,7 +267,7 @@
                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionaryLabel" default="Dictionary-based phrase detection" />
                     </h3>
                     <p class="aqg-card__sub">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionaryHelp" default="Phrase-based RTE rules now use built-in multilingual dictionaries and automatically resolve the TYPO3 site language. Project-specific overrides belong in TYPO3 Site Settings." />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionaryHelp" default="Phrase-based RTE rules use built-in multilingual dictionaries and automatically resolve the TYPO3 site language. Project-specific overrides belong in TYPO3 Site Settings." />
                     </p>
                 </div>
             </header>
@@ -261,26 +275,17 @@
             <div class="aqg-card__body">
                 <div class="aqg-settings-grid aqg-settings-grid--rules">
                     <div class="aqg-field">
-                        <label class="aqg-field__label" for="aqg-dictionary-mode">Dictionary mode</label>
+                        <label class="aqg-field__label" for="aqg-dictionary-mode"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.mode" default="Dictionary mode" /></label>
                         <select id="aqg-dictionary-mode" name="dictionarySettings[mode]" class="aqg-select" data-a11y-rules-input="true">
-                            <f:if condition="{dictionarySettings.isAuto}">
-                                <f:then><option value="auto" selected="selected">Auto — uses TYPO3 page language</option></f:then>
-                                <f:else><option value="auto">Auto — uses TYPO3 page language</option></f:else>
-                            </f:if>
-                            <f:if condition="{dictionarySettings.isForce}">
-                                <f:then><option value="force" selected="selected">Force a single language</option></f:then>
-                                <f:else><option value="force">Force a single language</option></f:else>
-                            </f:if>
-                            <f:if condition="{dictionarySettings.isDisable}">
-                                <f:then><option value="disable" selected="selected">Disable phrase-based checks</option></f:then>
-                                <f:else><option value="disable">Disable phrase-based checks</option></f:else>
-                            </f:if>
+                            <option value="auto" {f:if(condition: dictionarySettings.isAuto, then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeAuto" default="Auto — uses TYPO3 page language" /></option>
+                            <option value="force" {f:if(condition: dictionarySettings.isForce, then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeForce" default="Force a single language" /></option>
+                            <option value="disable" {f:if(condition: dictionarySettings.isDisable, then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeDisable" default="Disable phrase-based checks" /></option>
                         </select>
-                        <div class="aqg-field__help">Auto is recommended for multilingual TYPO3 sites. The scanner resolves the language from the scanned content record and TYPO3 SiteLanguage.</div>
+                        <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeHelp" default="Auto is recommended for multilingual TYPO3 sites. The scanner resolves the language from the scanned content record and TYPO3 SiteLanguage." /></div>
                     </div>
 
                     <div class="aqg-field">
-                        <label class="aqg-field__label" for="aqg-dictionary-force-language">Forced language code</label>
+                        <label class="aqg-field__label" for="aqg-dictionary-force-language"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.forceLanguage" default="Forced language code" /></label>
                         <input
                                 id="aqg-dictionary-force-language"
                                 type="text"
@@ -291,18 +296,18 @@
                                 maxlength="8"
                                 data-a11y-rules-input="true"
                         />
-                        <div class="aqg-field__help">Used only when dictionary mode is set to force. Examples: <code>en</code>, <code>de</code>, <code>nl</code>, <code>cs</code>.</div>
+                        <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.forceLanguageHelp" default="Used only when the dictionary mode forces a single language. Examples:" /> <code>en</code>, <code>de</code>, <code>nl</code>, <code>cs</code>.</div>
                     </div>
                 </div>
 
                 <div class="aqg-guidance aqg-guidance--rules">
                     <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
                     <span class="aqg-guidance__body">
-                        <span class="aqg-guidance__title">Built-in dictionary languages</span>
+                        <span class="aqg-guidance__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.languagesTitle" default="Built-in dictionary languages" /></span>
                         <ol class="aqg-guidance__steps">
-                            <li>Phrase dictionaries are shipped for EN, DE, SK, FR, NL, PL, CS, IT, ES, PT, DA, SV, NB and FI.</li>
-                            <li>Phrase matching is normalized, language-aware and cached for scans.</li>
-                            <li>Needs review findings are informational and never block the quality gate.</li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.languagesStep1" default="Phrase dictionaries are shipped for EN, DE, SK, FR, NL, PL, CS, IT, ES, PT, DA, SV, NB and FI." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.languagesStep2" default="Phrase matching is normalized, language-aware and cached for scans." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.languagesStep3" default="Needs review findings are informational and never block the quality gate." /></li>
                         </ol>
                     </span>
                 </div>
@@ -310,29 +315,29 @@
                 <f:if condition="{proStatus.valid}">
                     <div class="aqg-settings-grid aqg-settings-grid--rules">
                         <div class="aqg-field">
-                            <label class="aqg-field__label" for="aqg-dictionary-non-desc-additional">Additional non-descriptive link phrases</label>
+                            <label class="aqg-field__label" for="aqg-dictionary-non-desc-additional"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.nonDescAdditional" default="Additional non-descriptive link phrases" /></label>
                             <textarea
                                     id="aqg-dictionary-non-desc-additional"
                                     name="dictionarySettings[nonDescriptiveAdditional]"
                                     class="aqg-textarea aqg-textarea--mono"
                                     rows="4"
                                     data-a11y-rules-input="true"
-                                    placeholder="one phrase per line"
+                                    placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.onePerLine', default: 'one phrase per line')}"
                             >{dictionarySettings.nonDescriptiveAdditional}</textarea>
-                            <div class="aqg-field__help">Adds project-specific phrases to <code>rte.non_descriptive_link</code>.</div>
+                            <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.nonDescAdditionalHelp" default="Adds project-specific phrases to" /> <code>rte.non_descriptive_link</code>.</div>
                         </div>
 
                         <div class="aqg-field">
-                            <label class="aqg-field__label" for="aqg-dictionary-non-desc-disabled">Disabled built-in non-descriptive link phrases</label>
+                            <label class="aqg-field__label" for="aqg-dictionary-non-desc-disabled"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.nonDescDisabled" default="Disabled built-in non-descriptive link phrases" /></label>
                             <textarea
                                     id="aqg-dictionary-non-desc-disabled"
                                     name="dictionarySettings[nonDescriptiveDisabled]"
                                     class="aqg-textarea aqg-textarea--mono"
                                     rows="4"
                                     data-a11y-rules-input="true"
-                                    placeholder="one phrase per line"
+                                    placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.onePerLine', default: 'one phrase per line')}"
                             >{dictionarySettings.nonDescriptiveDisabled}</textarea>
-                            <div class="aqg-field__help">Removes selected built-in phrases for this project to reduce false positives.</div>
+                            <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.nonDescDisabledHelp" default="Removes selected built-in phrases for this project to reduce false positives." /></div>
                         </div>
                     </div>
                 </f:if>

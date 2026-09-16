@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
+use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -34,6 +35,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         private readonly RemoteScanRecoveryService $remoteScanRecoveryService,
         private readonly RequestParameterService $requestParameterService,
         private readonly SiteResolutionService $siteResolutionService,
+        private readonly BackendContextService $backendContextService,
     ) {
     }
 
@@ -374,7 +376,9 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
                 'tone' => 'info',
                 'count' => 0,
                 'running' => true,
-                'footnote' => $remoteRunning ? $this->buildRemoteProgressLabel($remoteStatus) : 'Local scan is running',
+                'footnote' => $remoteRunning
+                    ? $this->buildRemoteProgressLabel($remoteStatus)
+                    : $this->translate('overview.localScan.runningTitle', 'Content scan is running'),
             ];
         }
 
@@ -384,7 +388,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
                 'tone' => 'error',
                 'count' => 0,
                 'running' => false,
-                'footnote' => 'Last scan needs attention',
+                'footnote' => $this->translate('toolbar.footnote.failed', 'Last scan needs attention'),
             ];
         }
 
@@ -394,7 +398,12 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
                 'tone' => $newIssues >= 3 ? 'critical' : 'warning',
                 'count' => $newIssues,
                 'running' => false,
-                'footnote' => sprintf('%d new issue%s found', $newIssues, $newIssues === 1 ? '' : 's'),
+                'footnote' => sprintf(
+                    $newIssues === 1
+                        ? $this->translate('toolbar.footnote.newIssues.singular', '%d new issue found')
+                        : $this->translate('toolbar.footnote.newIssues.plural', '%d new issues found'),
+                    $newIssues
+                ),
             ];
         }
 
@@ -404,7 +413,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
                 'tone' => 'none',
                 'count' => 0,
                 'running' => false,
-                'footnote' => 'No scan result yet',
+                'footnote' => $this->translate('toolbar.footnote.notScanned', 'No scan result yet'),
             ];
         }
 
@@ -413,7 +422,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             'tone' => 'ok',
             'count' => 0,
             'running' => false,
-            'footnote' => 'No new issues in the latest scan',
+            'footnote' => $this->translate('toolbar.footnote.ok', 'No new issues in the latest scan'),
         ];
     }
 
@@ -448,11 +457,16 @@ HTML;
     private function buildToolbarAriaLabel(array $state): string
     {
         return match ($state['state']) {
-            'running' => 'Accessibility scan is running',
-            'failed' => 'Accessibility scan failed',
-            'issues' => sprintf('Accessibility: %d new issue%s', $state['count'], $state['count'] === 1 ? '' : 's'),
-            'ok' => 'Accessibility: no new issues',
-            default => 'Accessibility: not scanned yet',
+            'running' => $this->translate('toolbar.aria.running', 'Accessibility scan is running'),
+            'failed' => $this->translate('toolbar.aria.failed', 'Accessibility scan failed'),
+            'issues' => sprintf(
+                $state['count'] === 1
+                    ? $this->translate('toolbar.aria.issues.singular', 'Accessibility: %d new issue')
+                    : $this->translate('toolbar.aria.issues.plural', 'Accessibility: %d new issues'),
+                $state['count']
+            ),
+            'ok' => $this->translate('toolbar.aria.ok', 'Accessibility: no new issues'),
+            default => $this->translate('toolbar.aria.notScanned', 'Accessibility: not scanned yet'),
         };
     }
 
@@ -473,30 +487,40 @@ HTML;
         $tone = $this->resolveCardTone($running, $hasError, $newIssues, !empty($status['finishedAt']));
 
         return [
-            'label' => 'Local',
-            'description' => 'Checks TYPO3 content records.',
+            'label' => $this->translate('toolbar.local', 'Local'),
+            'description' => $this->translate('toolbar.localDescription', 'Checks TYPO3 content records.'),
             'tone' => $tone,
             'statusTone' => $running ? 'info' : ($hasError ? 'error' : ($newIssues > 0 ? 'warning' : (!empty($status['finishedAt']) ? 'ok' : 'none'))),
-            'statusLabel' => $running ? 'Running' : ($hasError ? 'Failed' : ($newIssues > 0 ? sprintf('Idle · %d new', $newIssues) : (!empty($status['finishedAt']) ? 'Idle · clean' : 'Not run yet'))),
+            'statusLabel' => $running
+                ? $this->translate('toolbar.status.running', 'Running')
+                : ($hasError
+                    ? $this->translate('toolbar.status.failed', 'Failed')
+                    : ($newIssues > 0
+                        ? sprintf($this->translate('toolbar.status.idleNew', 'Idle · %d new'), $newIssues)
+                        : (!empty($status['finishedAt'])
+                            ? $this->translate('toolbar.status.idleClean', 'Idle · clean')
+                            : $this->translate('toolbar.status.remoteIdle', 'Not run yet')))),
             'statusIcon' => $this->statusIcon($running ? 'info' : ($hasError ? 'error' : ($newIssues > 0 ? 'warning' : (!empty($status['finishedAt']) ? 'ok' : 'none')))),
             'running' => $running,
             'progressWidth' => null,
             'meta' => [
                 [
-                    'label' => $running ? 'Started' : 'Last finished',
+                    'label' => $running
+                        ? $this->translate('toolbar.startedAt', 'Started')
+                        : $this->translate('toolbar.lastFinished', 'Last finished'),
                     'value' => $this->formatTimestamp((int)($running ? ($status['startedAt'] ?? 0) : ($status['finishedAt'] ?? 0))),
                     'muted' => empty($running ? ($status['startedAt'] ?? 0) : ($status['finishedAt'] ?? 0)),
                 ],
                 [
-                    'label' => 'Pages',
+                    'label' => $this->translate('toolbar.pages', 'Pages'),
                     'value' => $pages,
                     'muted' => $pages === '—',
                 ],
             ],
             'results' => [
-                $this->resultItem('New', $running ? '—' : $newIssues, $newIssues > 0 ? 'critical' : ''),
-                $this->resultItem('Resolved', $running ? '—' : $resolved, $resolved > 0 ? 'ok' : ''),
-                $this->resultItem('Ignored', $running ? '—' : $ignored),
+                $this->resultItem($this->translate('toolbar.result.new', 'New'), $running ? '—' : $newIssues, $newIssues > 0 ? 'critical' : ''),
+                $this->resultItem($this->translate('toolbar.result.resolved', 'Resolved'), $running ? '—' : $resolved, $resolved > 0 ? 'ok' : ''),
+                $this->resultItem($this->translate('toolbar.result.ignored', 'Ignored'), $running ? '—' : $ignored),
             ],
         ];
     }
@@ -522,8 +546,8 @@ HTML;
         $statusTone = $running ? 'info' : ($hasError ? 'error' : ($statusValue === 'completed' ? ($newIssues > 0 ? 'warning' : 'ok') : 'none'));
 
         return [
-            'label' => 'Remote',
-            'description' => 'Checks published frontend pages.',
+            'label' => $this->translate('toolbar.remote', 'Remote'),
+            'description' => $this->translate('toolbar.remoteDescription', 'Checks published frontend pages.'),
             'tone' => $this->resolveCardTone($running, $hasError, $newIssues, $hasResult),
             'statusTone' => $statusTone,
             'statusLabel' => $this->remoteStatusLabel($statusValue, $hasResult, $newIssues),
@@ -532,20 +556,24 @@ HTML;
             'progressWidth' => $progressWidth,
             'meta' => [
                 [
-                    'label' => $running ? ($statusValue === 'queued' ? 'Queued since' : 'Started') : 'Last finished',
+                    'label' => $running
+                        ? ($statusValue === 'queued'
+                            ? $this->translate('toolbar.queuedSince', 'Queued since')
+                            : $this->translate('toolbar.startedAt', 'Started'))
+                        : $this->translate('toolbar.lastFinished', 'Last finished'),
                     'value' => $this->formatTimestamp((int)($running ? ($status['started_at'] ?? 0) : ($status['finished_at'] ?? 0))),
                     'muted' => empty($running ? ($status['started_at'] ?? 0) : ($status['finished_at'] ?? 0)),
                 ],
                 [
-                    'label' => 'Pages',
+                    'label' => $this->translate('toolbar.pages', 'Pages'),
                     'value' => $pagesLabel,
                     'muted' => $pagesLabel === '—',
                 ],
             ],
             'results' => [
-                $this->resultItem('New', $running || !$hasResult ? '—' : $newIssues, $newIssues > 0 ? 'critical' : ''),
-                $this->resultItem('Resolved', $running || !$hasResult ? '—' : $resolved, $resolved > 0 ? 'ok' : ''),
-                $this->resultItem('Total found', $running || !$hasResult ? '—' : $total, $total > 0 ? 'warning' : ''),
+                $this->resultItem($this->translate('toolbar.result.new', 'New'), $running || !$hasResult ? '—' : $newIssues, $newIssues > 0 ? 'critical' : ''),
+                $this->resultItem($this->translate('toolbar.result.resolved', 'Resolved'), $running || !$hasResult ? '—' : $resolved, $resolved > 0 ? 'ok' : ''),
+                $this->resultItem($this->translate('toolbar.result.total', 'Total found'), $running || !$hasResult ? '—' : $total, $total > 0 ? 'warning' : ''),
             ],
         ];
     }
@@ -583,11 +611,15 @@ HTML;
     private function remoteStatusLabel(string $status, bool $hasResult, int $newIssues): string
     {
         return match ($status) {
-            'running', 'active', 'processing', 'in_progress', 'in-progress', 'started' => 'Running',
-            'queued', 'waiting' => 'Queued',
-            'completed' => $newIssues > 0 ? sprintf('Completed · %d new', $newIssues) : 'Completed',
-            'failed' => 'Failed',
-            default => $hasResult ? ($status !== '' ? ucfirst($status) : 'Completed') : 'Not run yet',
+            'running', 'active', 'processing', 'in_progress', 'in-progress', 'started' => $this->translate('toolbar.status.running', 'Running'),
+            'queued', 'waiting' => $this->translate('toolbar.status.queued', 'Queued'),
+            'completed' => $newIssues > 0
+                ? sprintf($this->translate('toolbar.status.completedNew', 'Completed · %d new'), $newIssues)
+                : $this->translate('toolbar.status.completed', 'Completed'),
+            'failed' => $this->translate('toolbar.status.failed', 'Failed'),
+            default => $hasResult
+                ? ($status !== '' ? ucfirst($status) : $this->translate('toolbar.status.completed', 'Completed'))
+                : $this->translate('toolbar.status.remoteIdle', 'Not run yet'),
         };
     }
 
@@ -616,10 +648,21 @@ HTML;
         $pagesTotal = (int)($status['pages_total'] ?? 0);
 
         if ($pagesTotal > 0) {
-            return sprintf('Remote scan is running · %d/%d pages', $pagesScanned, $pagesTotal);
+            return sprintf(
+                $this->translate('toolbar.footnote.remoteRunningProgress', 'Frontend scan is running · %1$d/%2$d pages'),
+                $pagesScanned,
+                $pagesTotal
+            );
         }
 
-        return 'Remote scan is running';
+        return $this->translate('toolbar.footnote.remoteRunning', 'Frontend scan is running');
+    }
+
+    private function translate(string $key, string $fallback): string
+    {
+        $translated = $this->backendContextService->translate($key);
+
+        return $translated !== '' && $translated !== $key ? $translated : $fallback;
     }
 
     private function formatTimestamp(int $timestamp): string

@@ -232,8 +232,8 @@ export default class A11yPlugin extends Plugin {
             const elementId = `a11y-element:${index++}`;
             const severity = this._normalizeSeverity(mergedIssueData.severity);
             const label = mergedIssueData.issueCount > 1
-                ? `${mergedIssueData.issueCount} issues · ${mergedIssueData.ruleId || 'multiple rules'}`
-                : `${this._severityLabel(severity)} · ${mergedIssueData.ruleId || 'issue'}`;
+                ? `${this._label('elementIssues', '%d issues').replace('%d', String(mergedIssueData.issueCount))} · ${mergedIssueData.ruleId || this._label('multipleRules', 'multiple rules')}`
+                : `${this._severityLabel(severity)} · ${mergedIssueData.ruleId || this._label('issueFallback', 'issue')}`;
 
             this._elementIssueMeta.set(elementId, mergedIssueData);
 
@@ -291,7 +291,7 @@ export default class A11yPlugin extends Plugin {
         return Array.from(grouped.values())
             .map((issue, index) => {
                 const prefix = issue.count > 1 ? `${issue.count}× ` : '';
-                return `${index + 1}. ${prefix}${this._severityLabel(issue.severity)} · ${issue.message || issue.ruleId || 'Accessibility issue'}`;
+                return `${index + 1}. ${prefix}${this._severityLabel(issue.severity)} · ${issue.message || issue.ruleId || this._label('accessibilityIssue', 'Accessibility issue')}`;
             })
             .join('\n');
     }
@@ -807,7 +807,7 @@ export default class A11yPlugin extends Plugin {
         }
 
         if (!this._panelView) {
-            this._panelView = new A11yPanelView(this.editor.locale);
+            this._panelView = new A11yPanelView(this.editor.locale, this._labels());
             this._panelView.on('ignore', (event, issueData) => {
                 this._postIgnore(issueData);
             });
@@ -945,10 +945,12 @@ export default class A11yPlugin extends Plugin {
         }
 
         if (state === 'loading' || state === 'updating') {
-            const title = state === 'updating' ? 'Updating accessibility status…' : 'Checking accessibility…';
+            const title = state === 'updating'
+                ? this._labelHtml('updating', 'Updating accessibility status…')
+                : this._labelHtml('checking', 'Checking accessibility…');
             const help = state === 'updating'
-                ? 'Refreshing highlights after your content change.'
-                : 'Scanning the current draft for issues.';
+                ? this._labelHtml('updatingHelp', 'Refreshing highlights after your content change.')
+                : this._labelHtml('checkingHelp', 'Scanning the current draft for issues.');
 
             this._summaryElement.className = 'ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--loading';
             this._summaryElement.innerHTML = `
@@ -966,11 +968,11 @@ export default class A11yPlugin extends Plugin {
             this._summaryElement.innerHTML = `
                 <span class="ck-a11y-summary__left">
                     <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
-                    <span class="ck-a11y-summary__title">Accessibility issues could not be loaded</span>
-                    <span class="ck-a11y-summary__help">You can keep editing. We'll try again on save.</span>
+                    <span class="ck-a11y-summary__title">${this._labelHtml('loadFailed', 'Accessibility issues could not be loaded')}</span>
+                    <span class="ck-a11y-summary__help">${this._labelHtml('loadFailedHelp', "You can keep editing. We'll try again on save.")}</span>
                 </span>
                 <span class="ck-a11y-summary__right">
-                    <button class="ck-a11y-summary__link" type="button" data-a11y-refresh="1">Retry</button>
+                    <button class="ck-a11y-summary__link" type="button" data-a11y-refresh="1">${this._labelHtml('retry', 'Retry')}</button>
                 </span>
             `;
             return;
@@ -981,10 +983,10 @@ export default class A11yPlugin extends Plugin {
             this._summaryElement.innerHTML = `
                 <span class="ck-a11y-summary__left">
                     <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
-                    <span class="ck-a11y-summary__title">Accessibility check passed</span>
-                    <span class="ck-a11y-summary__help">No issues found in this field.</span>
+                    <span class="ck-a11y-summary__title">${this._labelHtml('passed', 'Accessibility check passed')}</span>
+                    <span class="ck-a11y-summary__help">${this._labelHtml('passedHelp', 'No issues found in this field.')}</span>
                 </span>
-                <span class="ck-a11y-summary__right">Last checked just now</span>
+                <span class="ck-a11y-summary__right">${this._labelHtml('lastChecked', 'Last checked just now')}</span>
             `;
             return;
         }
@@ -997,7 +999,9 @@ export default class A11yPlugin extends Plugin {
         this._summaryElement.innerHTML = `
             <span class="ck-a11y-summary__left">
                 <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
-                <span class="ck-a11y-summary__title">${total} ${total === 1 ? 'issue' : 'issues'} found</span>
+                <span class="ck-a11y-summary__title">${(total === 1
+                    ? this._labelHtml('issuesFoundOne', '%d issue found')
+                    : this._labelHtml('issuesFoundOther', '%d issues found')).replace('%d', String(total))}</span>
                 <span class="ck-a11y-summary__counts">
                     ${this._summaryCount('critical', counts.critical)}
                     ${this._summaryCount('warning', counts.warning)}
@@ -1006,7 +1010,7 @@ export default class A11yPlugin extends Plugin {
                 </span>
             </span>
             <span class="ck-a11y-summary__right">
-                <span class="ck-a11y-summary__help">Select a highlight to see how to fix it.</span>
+                <span class="ck-a11y-summary__help">${this._labelHtml('selectHighlight', 'Select a highlight to see how to fix it.')}</span>
             </span>
         `;
     }
@@ -1016,9 +1020,12 @@ export default class A11yPlugin extends Plugin {
             return '';
         }
 
-        const label = severity === 'info' || severity === 'needs_review'
-            ? this._severityLabel(severity)
-            : `${this._severityLabel(severity)}${count === 1 ? '' : 's'}`;
+        let label = this._severityLabel(severity);
+        if (count !== 1 && severity === 'critical') {
+            label = this._label('severityCriticalPlural', 'Criticals');
+        } else if (count !== 1 && severity === 'warning') {
+            label = this._label('severityWarningPlural', 'Warnings');
+        }
 
         return `
             <span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}">
@@ -1421,7 +1428,7 @@ export default class A11yPlugin extends Plugin {
         this._panelView.element.classList.remove('ck-a11y-panel--details-expanded');
         const button = this._panelView.element.querySelector('.ck-a11y-panel__btn--ghost');
         if (button) {
-            button.textContent = 'Show details';
+            button.textContent = this._label('showDetails', 'Show details');
             button.setAttribute('aria-expanded', 'false');
         }
     }
@@ -1434,7 +1441,9 @@ export default class A11yPlugin extends Plugin {
         const isOpen = this._panelView.element.classList.toggle('ck-a11y-panel--details-expanded');
         const button = this._panelView.element.querySelector('.ck-a11y-panel__btn--ghost');
         if (button) {
-            button.textContent = isOpen ? 'Hide details' : 'Show details';
+            button.textContent = isOpen
+                ? this._label('hideDetails', 'Hide details')
+                : this._label('showDetails', 'Show details');
             button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
     }
@@ -1500,7 +1509,7 @@ export default class A11yPlugin extends Plugin {
                 fingerprint,
                 persistedFingerprint: issueData?.persistedFingerprint ?? '',
                 ruleId: issueData?.ruleId ?? '',
-                reason: 'Ignored via editor',
+                reason: this._label('ignoredReason', 'Ignored via editor'),
                 recordUid: cfg.recordUid ?? 0,
                 fieldName: cfg.fieldName ?? 'bodytext',
                 pageUid: cfg.pageUid ?? 0,
@@ -1571,14 +1580,36 @@ export default class A11yPlugin extends Plugin {
     _severityLabel(severity) {
         switch (this._normalizeSeverity(severity)) {
             case 'critical':
-                return 'Critical';
+                return this._label('severityCritical', 'Critical');
             case 'info':
-                return 'Info';
+                return this._label('severityInfo', 'Info');
             case 'needs_review':
-                return 'Needs review';
+                return this._label('severityNeedsReview', 'Needs review');
             case 'warning':
             default:
-                return 'Warning';
+                return this._label('severityWarning', 'Warning');
         }
+    }
+
+    /**
+     * Translated labels from the editor configuration (RteConfigurationListener).
+     */
+    _labels() {
+        const labels = (this.editor.config.get('a11yQualityGate') ?? {}).labels;
+        return labels && typeof labels === 'object' ? labels : {};
+    }
+
+    _label(key, fallback) {
+        const value = this._labels()[key];
+        return typeof value === 'string' && value !== '' ? value : fallback;
+    }
+
+    _labelHtml(key, fallback) {
+        return String(this._label(key, fallback))
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 }

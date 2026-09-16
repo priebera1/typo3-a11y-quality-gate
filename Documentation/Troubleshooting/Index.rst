@@ -11,10 +11,11 @@ Troubleshooting
 A scan finds nothing
 ====================
 
-*   Open :guilabel:`Settings` and check whether any fields are enabled on the
-    :guilabel:`Scanned fields` tab. Directly after installation no fields are
-    enabled. Run :guilabel:`Re-scan TCA`, enable the fields and press
-    :guilabel:`Save settings`.
+*   Open :guilabel:`Settings` and check which fields are enabled on the
+    :guilabel:`Scan fields` tab. AQG discovers the fields automatically the
+    first time the module opens or a scan runs; if the tab is still empty,
+    press :guilabel:`Refresh fields`. After changing the selection press
+    :guilabel:`Save changes`.
 *   Check the :guilabel:`Rules` tab for rules that were disabled earlier.
 *   Verify that the scanned page really is inside the site you selected in the
     module filter.
@@ -24,9 +25,9 @@ A scan finds nothing
 A field is not offered for scanning
 ===================================
 
-Run :guilabel:`Re-scan TCA`. AQG discovers RTE and file fields from TCA, so a
-field that was added by an extension or by a TCA override appears only after a
-new discovery run. Fields whose TCA type AQG does not support are not listed.
+Press :guilabel:`Refresh fields` on the :guilabel:`Scan fields` tab. AQG
+discovers RTE and file fields from TCA, so a field that was added by an
+extension or by a TCA override appears only after a new discovery run. Fields whose TCA type AQG does not support are not listed.
 
 ..  _troubleshooting-ckeditor:
 
@@ -59,32 +60,52 @@ The rendered page check fails
 The licence is not accepted
 ===========================
 
-The :guilabel:`Licence` tab reports a machine-readable reason:
+The :guilabel:`Licence` tab explains the problem, offers the matching next step
+(for example renew, manage domains or validate again) and shows the
+machine-readable reason code. Administrators also see the notice in the
+overview.
 
 ``invalid_key``
-    The key does not exist. Check for copy and paste errors.
+    The key does not exist. Check for copy and paste errors, or copy the key
+    again from the customer portal.
 
-``expired`` / ``trial_expired``
-    The licence or the trial has ended. Renew it in the customer portal.
+``expired``
+    The licence has ended. Renew it in the customer portal.
 
-``inactive`` / ``trial_revoked``
-    The licence was deactivated. Contact support.
+``trial_expired``
+    The trial has ended. Choose a plan on the pricing page to keep the licensed
+    features.
+
+``inactive``
+    The licence is not active. Open the customer portal to reactivate it.
+
+``trial_revoked``
+    The trial was revoked. Contact support.
+
+``trial_not_verified``
+    The trial could not be verified yet. Validate again from the production
+    domain.
 
 ``domain_mismatch`` / ``trial_domain_mismatch``
     The key is bound to a different domain. Assign the current domain in the
-    customer portal.
+    customer portal; for a trial key, choose a plan for this domain or contact
+    support.
 
 ``domain_limit_reached``
-    All domain slots of the plan are used. Release a domain or upgrade the plan.
-
-``api_unreachable``
-    The licence service could not be reached. Check outbound HTTPS access to
-    ``https://api.priebera.sk``, and whether an
-    :ref:`endpoint override <configuration-licence-endpoint>` is set by mistake.
-    AQG falls back to the Free feature set until the next successful validation.
+    All domain slots of the plan are used. Release a domain in the customer
+    portal, or switch to Agency for more domains.
 
 ``licence_project_mismatch`` / ``trial_project_mismatch``
-    The key belongs to a different product.
+    The key is registered to a different TYPO3 project. Use the key of this
+    project; if the installation was moved or rebuilt, contact support.
+
+``api_unreachable`` / ``rate_limited``
+    The licence service could not be reached, or asked AQG to slow down.
+    Validate again later, and check outbound HTTPS access to
+    ``https://api.priebera.sk`` and whether an
+    :ref:`endpoint override <configuration-licence-endpoint>` is set by mistake.
+    AQG keeps the last validation result for up to 48 hours; without one it
+    falls back to the Free feature set until the next successful validation.
 
 Validation results are cached: valid results for one hour, invalid results for
 five minutes, trial results for fifteen minutes. After fixing a problem it can

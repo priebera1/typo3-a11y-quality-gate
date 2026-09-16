@@ -73,7 +73,7 @@ class AqgRemoteAccessSettings {
       return;
     }
 
-    this.setButtonLoading(this.regenerateButton, this.regenerateLabel, 'Regenerating…');
+    this.setButtonLoading(this.regenerateButton, this.regenerateLabel, this.label('labelRegenerating', 'Regenerating…'));
     this.tokenSuccess?.setAttribute('hidden', 'hidden');
 
     try {
@@ -92,16 +92,22 @@ class AqgRemoteAccessSettings {
       const payload = await response.json();
 
       if (!response.ok || !payload.success) {
-        throw new Error(payload.message || 'Scanner token could not be regenerated.');
+        throw new Error(payload.message || this.label('labelTokenError', 'Scanner token could not be regenerated.'));
       }
 
       this.updateToken(payload.maskedToken || '', payload.token || '');
       this.tokenSuccess?.removeAttribute('hidden');
       window.setTimeout(() => this.tokenSuccess?.setAttribute('hidden', 'hidden'), 4500);
     } catch (error) {
-      this.showInlineError(this.tokenSuccess, error instanceof Error ? error.message : 'Scanner token could not be regenerated.');
+      this.showInlineError(this.tokenSuccess, error instanceof Error ? error.message : this.label('labelTokenError', 'Scanner token could not be regenerated.'));
     } finally {
-      this.restoreButton(this.regenerateButton, this.regenerateLabel, this.tokenValue?.textContent?.trim() ? 'Regenerate token' : 'Generate token');
+      this.restoreButton(
+        this.regenerateButton,
+        this.regenerateLabel,
+        this.tokenValue?.textContent?.trim()
+          ? this.label('labelRegenerate', 'Regenerate token')
+          : this.label('labelGenerate', 'Generate token')
+      );
     }
   }
 
@@ -110,9 +116,9 @@ class AqgRemoteAccessSettings {
       return;
     }
 
-    this.setTestResult('running', 0, 'Testing connection…');
+    this.setTestResult('running', 0, this.label('labelTesting', 'Testing connection…'));
     this.testButton.disabled = true;
-    this.testButton.textContent = 'Testing…';
+    this.testButton.textContent = this.label('labelTestingShort', 'Testing…');
 
     try {
       const response = await fetch(this.testHttpAuthUrl, {
@@ -133,12 +139,12 @@ class AqgRemoteAccessSettings {
       const status = Number(payload.status || 0);
       const ok = !!payload.ok;
       const tone = ok ? 'ok' : (status === 401 || status === 403 ? 'warning' : 'error');
-      this.setTestResult(tone, status, payload.message || (ok ? 'Connection OK.' : 'Connection failed.'));
+      this.setTestResult(tone, status, payload.message || (ok ? this.label('labelTestOk', 'Connection OK.') : this.label('labelTestFailed', 'Connection failed.')));
     } catch (error) {
-      this.setTestResult('error', 0, 'Connection failed. Please check the credentials or the frontend protection.');
+      this.setTestResult('error', 0, this.label('labelTestFailedHint', 'Connection failed. Please check the credentials or the frontend protection.'));
     } finally {
       this.testButton.disabled = false;
-      this.testButton.textContent = 'Test connection';
+      this.testButton.textContent = this.label('labelTest', 'Test connection');
     }
   }
 
@@ -149,7 +155,7 @@ class AqgRemoteAccessSettings {
     this.tokenPresent?.removeAttribute('hidden');
     this.tokenEmpty?.setAttribute('hidden', 'hidden');
     if (this.regenerateLabel) {
-      this.regenerateLabel.textContent = 'Regenerate token';
+      this.regenerateLabel.textContent = this.label('labelRegenerate', 'Regenerate token');
     }
     const copy = this.form.querySelector('.js-aqg-copy-token');
     if (copy instanceof HTMLElement) {
@@ -157,7 +163,7 @@ class AqgRemoteAccessSettings {
       copy.disabled = fullToken === '';
       const copyLabel = copy.querySelector('.js-aqg-copy-token-label');
       if (copyLabel instanceof HTMLElement) {
-        copyLabel.textContent = 'Copy';
+        copyLabel.textContent = this.label('labelCopy', 'Copy');
       }
     }
   }
@@ -205,20 +211,24 @@ class AqgRemoteAccessSettings {
     await navigator.clipboard.writeText(token);
     const label = button.querySelector('.js-aqg-copy-token-label');
     const original = label instanceof HTMLElement ? label.textContent : button.textContent;
+    const copied = this.label('labelCopied', 'Copied');
+    const copy = this.label('labelCopy', 'Copy');
     if (label instanceof HTMLElement) {
-      label.textContent = 'Copied';
-      window.setTimeout(() => { label.textContent = original || 'Copy'; }, 1800);
+      label.textContent = copied;
+      window.setTimeout(() => { label.textContent = original || copy; }, 1800);
       return;
     }
 
-    button.textContent = 'Copied';
-    window.setTimeout(() => { button.textContent = original || 'Copy'; }, 1800);
+    button.textContent = copied;
+    window.setTimeout(() => { button.textContent = original || copy; }, 1800);
   }
 
   setDirty(isDirty) {
     this.actionbar?.classList.toggle('is-dirty', isDirty);
     if (this.actionMeta) {
-      this.actionMeta.textContent = isDirty ? 'You have unsaved changes' : 'All changes saved';
+      this.actionMeta.textContent = isDirty
+        ? this.label('labelUnsaved', 'You have unsaved changes')
+        : this.label('labelSaved', 'All changes saved');
     }
     this.saveToast?.setAttribute('hidden', 'hidden');
   }
@@ -235,6 +245,10 @@ class AqgRemoteAccessSettings {
     if (label) {
       label.textContent = text;
     }
+  }
+
+  label(name, fallback) {
+    return this.form.dataset[name] || fallback;
   }
 
   showInlineError(node, message) {

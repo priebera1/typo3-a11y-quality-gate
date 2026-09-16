@@ -80,7 +80,7 @@
                                                 <f:then>
                                                     <span class="aqg-validation tone-error">
                                                         <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
-                                                        <span><f:if condition="{proStatus.reasonLabel}"><f:then>{proStatus.reasonLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Licence validation failed." /></f:else></f:if></span>
+                                                        <span><f:if condition="{licenceGuidance.title}"><f:then>{licenceGuidance.title}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Licence validation failed." /></f:else></f:if></span>
                                                     </span>
                                                 </f:then>
                                                 <f:else>
@@ -109,10 +109,10 @@
                                 <span class="aqg-switch__track" aria-hidden="true"><span class="aqg-switch__thumb"></span></span>
                                 <span class="aqg-switch__body">
                                     <span class="aqg-switch__label">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" default="Show PRO hints in the AQG UI" />
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" default="Show PRO upgrade offers" />
                                     </span>
                                     <span class="aqg-switch__hint">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHintsHint" default="When off, PRO upgrade hints in Overview and Page Detail are hidden. Existing PRO features keep working if you have a licence." />
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHintsHint" default="Shows the upgrade card with trial and pricing links in the Free Remote Preview. Turn it off to hide these offers from editors; locked features still say that they need a licence." />
                                     </span>
                                 </span>
                             </label>

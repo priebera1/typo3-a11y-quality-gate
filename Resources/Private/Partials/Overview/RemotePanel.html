@@ -13,7 +13,8 @@
                     siteRootPid: siteRootPid,
                     currentPageUid: currentPageUid,
                     siteIdentifier: siteIdentifier,
-                    remoteScan: remoteScan
+                    remoteScan: remoteScan,
+                    showProHints: proStatus.showProHints
                 }"
         />
     </f:if>
@@ -78,7 +79,7 @@
                                         </button>
                                     </f:then>
                                     <f:else>
-                                        <button type="button" class="btn btn-default btn-sm" disabled="disabled" title="This page is not translated in the selected site language.">
+                                        <button type="button" class="btn btn-default btn-sm" disabled="disabled" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.notTranslated', default: 'This page is not translated in the selected site language.')}">
                                             <f:translate
                                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanPage"
                                                     default="Scan this page"
@@ -120,7 +121,7 @@
                         </f:if>
                     </div>
 
-                    <div class="aqg-signal__metrics" aria-label="Frontend scan metrics">
+                    <div class="aqg-signal__metrics" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metricsAria', default: 'Frontend scan metrics')}">
                         <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">{remoteScan.issues_total}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal" default="total issues" /></span>
                         <span class="aqg-signal__metric-sep" aria-hidden="true">·</span>
                         <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">
@@ -273,7 +274,7 @@
                 <div class="aqg-pfix-list">
                     <f:for each="{remotePriorityFixesVisible}" as="fix">
                         <article class="aqg-pfix-item">
-                            <span class="aqg-pfix-item__rank" aria-label="Priority {fix.rank}">#{fix.rank}</span>
+                            <span class="aqg-pfix-item__rank" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityRank', default: 'Priority %s', arguments: {0: fix.rank})}">#{fix.rank}</span>
 
                             <div class="aqg-pfix-item__body">
                                 <div class="aqg-pfix-item__title-row">
@@ -290,7 +291,7 @@
                                     </f:if>
 
                                     <f:if condition="{fix.quickWin}">
-                                        <span class="aqg-guidance-badge aqg-guidance-badge--neutral">Quick win</span>
+                                        <span class="aqg-guidance-badge aqg-guidance-badge--neutral"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.quickWin" default="Quick win" /></span>
                                     </f:if>
                                 </div>
 
@@ -365,7 +366,7 @@
                                 </div>
 
                                 <f:if condition="{fix.shortFix}">
-                                    <p class="aqg-pfix-guidance-inline"><strong>Suggested fix:</strong> {fix.shortFix}</p>
+                                    <p class="aqg-pfix-guidance-inline"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.suggestedFix" default="Suggested fix:" /></strong> {fix.shortFix}</p>
                                 </f:if>
 
                                 <f:if condition="{fix.guidanceDetail}">
@@ -378,11 +379,11 @@
 
                                 <f:if condition="{fix.hasStandardsAndImpact}">
                                     <details class="aqg-rule-metadata aqg-rule-metadata--compact">
-                                        <summary>Standards and impact</summary>
+                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standardsAndImpact" default="Standards and impact" /></summary>
                                         <div class="aqg-rule-metadata__body">
                                             <f:if condition="{fix.affectedUserItems}">
                                                 <div class="aqg-rule-metadata__group">
-                                                    <h3>Affected users</h3>
+                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" /></h3>
                                                     <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
                                                         <f:for each="{fix.affectedUserItems}" as="affectedUser">
                                                             <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
@@ -391,13 +392,13 @@
                                                 </div>
                                             </f:if>
                                             <f:if condition="{fix.wcagReferences}">
-                                                <div class="aqg-rule-metadata__group"><h3>WCAG reference</h3><ul><f:for each="{fix.wcagReferences}" as="wcag"><li>{wcag.label}</li></f:for></ul></div>
+                                                <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3><ul><f:for each="{fix.wcagReferences}" as="wcag"><li>{wcag.label}</li></f:for></ul></div>
                                             </f:if>
                                             <f:if condition="{fix.standards}">
-                                                <div class="aqg-rule-metadata__group"><h3>Standards</h3><div class="aqg-rule-metadata__chips"><f:for each="{fix.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for></div></div>
+                                                <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3><div class="aqg-rule-metadata__chips"><f:for each="{fix.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for></div></div>
                                             </f:if>
                                             <f:if condition="{fix.documentationLinks}">
-                                                <div class="aqg-rule-metadata__group"><h3>Documentation</h3><ul><f:for each="{fix.documentationLinks}" as="doc"><li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li></f:for></ul></div>
+                                                <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3><ul><f:for each="{fix.documentationLinks}" as="doc"><li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li></f:for></ul></div>
                                             </f:if>
                                         </div>
                                     </details>
@@ -570,8 +571,8 @@
 
         <f:if condition="{remotePagesArePageScanFallback}">
             <div class="aqg-page-scan-fallback-note" role="status">
-                <strong>Page-scan fallback</strong>
-                <span>No completed site scan exists yet. Showing recently scanned pages from page-level frontend scans.</span>
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pageScanFallback.title" default="Page-scan fallback" /></strong>
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pageScanFallback.text" default="No completed site scan exists yet. Showing recently scanned pages from page-level frontend scans." /></span>
             </div>
         </f:if>
 
@@ -589,7 +590,7 @@
                                     />
                                 </th>
                                 <th scope="col" class="num">
-                                    Findings
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" />
                                 </th>
                                 <th scope="col" class="num">
                                     <f:translate
@@ -627,7 +628,7 @@
                                             </div>
                                             <span class="aqg-page-cell__meta">{page.url}</span>
                                             <span class="visually-hidden">
-                                                Page UID {page.typo3_page_uid} · Frontend page UID {page.uid} · Frontend scan UID {page.remote_scan_uid}
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pageIdentifiers" default="Page UID %1$s · Frontend page UID %2$s · Frontend scan UID %3$s" arguments="{0: page.typo3_page_uid, 1: page.uid, 2: page.remote_scan_uid}" />
                                             </span>
                                         </div>
                                     </td>
@@ -647,7 +648,7 @@
 
                                     <td class="actions">
                                         <a href="{page.detailUrl}" class="aqg-action-link">
-                                            View findings
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.viewFindings" default="View findings" />
                                         </a>
                                     </td>
                                 </tr>
@@ -663,7 +664,7 @@
 {remotePagesCountLabel}
                             </div>
 
-                            <nav aria-label="Frontend scanned pages pagination">
+                            <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pagination.aria', default: 'Frontend scanned pages pagination')}">
                                 <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
                                     <li class="page-item {f:if(condition: remotePagination.hasPrevious, then: '', else: 'disabled')}">
                                         <a class="page-link" href="{f:if(condition: remotePagination.hasPrevious, then: remotePagination.previousUrl, else: '#')}">‹</a>
@@ -942,7 +943,7 @@
                                             />
                                         </div>
                     
-                                        <nav aria-label="Failed remote pages pagination">
+                                        <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.failedPages.paginationAria', default: 'Failed frontend pages pagination')}">
                                             <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
                                                 <li class="page-item {f:if(condition: remoteFailedPagination.hasPrevious, then: '', else: 'disabled')}">
                                                     <a class="page-link" href="{f:if(condition: remoteFailedPagination.hasPrevious, then: remoteFailedPagination.previousUrl, else: '#')}">‹</a>
@@ -1016,7 +1017,7 @@
             </p>
         </div>
 
-        <section class="aqg-report-summary-strip" aria-label="Report summary">
+        <section class="aqg-report-summary-strip" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.aria', default: 'Report summary')}">
             <f:if condition="{remoteReportSummary}">
                 <f:then>
                     <div class="aqg-report-summary-strip__main">
@@ -1065,7 +1066,7 @@
                         </div>
                     </div>
 
-                    <div class="aqg-report-summary-strip__metrics" aria-label="Report summary metrics">
+                    <div class="aqg-report-summary-strip__metrics" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.metricsAria', default: 'Report summary metrics')}">
                         <f:if condition="{remoteReportSummary.issuesTotal}">
                             <span><strong>{remoteReportSummary.issuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.issues" default="issues" /></span>
                         </f:if>
@@ -1102,21 +1103,21 @@
         </section>
 
         <f:if condition="{remoteHasAdditionalAutomatedSignals}">
-            <section class="aqg-additional-signals" aria-label="Additional automated signals">
+            <section class="aqg-additional-signals" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.title', default: 'Additional automated signals')}">
                 <div class="aqg-additional-signals__head">
                     <div>
-                        <div class="aqg-additional-signals__title">Additional automated signals</div>
-                        <div class="aqg-additional-signals__sub">Compact technical signals for report support. Review them in context.</div>
+                        <div class="aqg-additional-signals__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.title" default="Additional automated signals" /></div>
+                        <div class="aqg-additional-signals__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.subtitle" default="Compact technical signals for report support. Review them in context." /></div>
                     </div>
                 </div>
 
                 <div class="aqg-additional-signals__grid">
                     <f:if condition="{remoteRemediationSummary} &amp;&amp; !{freePreview.isFree}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--remediation">
-                            <div class="aqg-signal-chip-card__kicker">Remediation</div>
-                            <div class="aqg-signal-chip-card__title">Suggested remediation grouping</div>
+                            <div class="aqg-signal-chip-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.remediation.kicker" default="Remediation" /></div>
+                            <div class="aqg-signal-chip-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.remediation.title" default="Suggested remediation grouping" /></div>
                             <f:if condition="{remoteRemediationSummary.hasItems}">
-                                <div class="aqg-remediation-group-list" aria-label="Suggested remediation grouping">
+                                <div class="aqg-remediation-group-list" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.remediation.title', default: 'Suggested remediation grouping')}">
                                     <f:for each="{remoteRemediationSummary.items}" as="item">
                                         <div class="aqg-remediation-group-list__item">
                                             <span class="aqg-remediation-group-list__label">{item.label}</span>
@@ -1131,7 +1132,7 @@
                                 </div>
                             </f:if>
                             <f:if condition="{remoteRemediationSummary.recommendation}">
-                                <p class="aqg-signal-chip-card__note">Recommendation: {remoteRemediationSummary.recommendation}</p>
+                                <p class="aqg-signal-chip-card__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.recommendation" default="Recommendation: %s" arguments="{0: remoteRemediationSummary.recommendation}" /></p>
                             </f:if>
                             <f:if condition="{remoteRemediationSummary.note}">
                                 <p class="aqg-signal-chip-card__note">{remoteRemediationSummary.note}</p>
@@ -1141,13 +1142,13 @@
 
                     <f:if condition="{remoteComponentSummary}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--component">
-                            <div class="aqg-signal-chip-card__kicker">Components</div>
-                            <div class="aqg-signal-chip-card__title">Likely shared template/component issue</div>
+                            <div class="aqg-signal-chip-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.components.kicker" default="Components" /></div>
+                            <div class="aqg-signal-chip-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.components.title" default="Likely shared template/component issue" /></div>
                             <div class="aqg-signal-chip-card__body">
                                 <strong>{remoteComponentSummary.likelyRepeatedTemplateIssuesLabel}</strong>
                             </div>
                             <f:if condition="{remoteComponentSummary.hasTopRepeatedRules}">
-                                <div class="aqg-structure-top-rules" aria-label="Top repeated component rules">
+                                <div class="aqg-structure-top-rules" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.components.topRulesAria', default: 'Top repeated component rules')}">
                                     <f:for each="{remoteComponentSummary.topRepeatedRules}" as="rule">
                                         <span class="aqg-structure-top-rule">
                                             <code>{rule.ruleId}</code>
@@ -1163,7 +1164,7 @@
                                                 <small>{rule.componentHint}</small>
                                             </f:if>
                                             <f:if condition="{rule.suggestedAction}">
-                                                <small>Suggested action: {rule.suggestedAction}</small>
+                                                <small><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.suggestedAction" default="Suggested action: %s" arguments="{0: rule.suggestedAction}" /></small>
                                             </f:if>
                                         </span>
                                     </f:for>
@@ -1177,19 +1178,19 @@
 
                     <f:if condition="{remoteStructureSummary}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--structure">
-                            <div class="aqg-signal-chip-card__kicker">Structure</div>
-                            <div class="aqg-signal-chip-card__title">Template / structure signal</div>
+                            <div class="aqg-signal-chip-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.kicker" default="Structure" /></div>
+                            <div class="aqg-signal-chip-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.title" default="Template / structure signal" /></div>
                             <div class="aqg-signal-chip-card__body">
                                 <strong>{remoteStructureSummary.landmarkIssuesLabel}</strong>
-                                <span>across {remoteStructureSummary.affectedPagesLabel}</span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.across" default="across %s" arguments="{0: remoteStructureSummary.affectedPagesLabel}" /></span>
                             </div>
-                            <div class="aqg-metric-chips aqg-metric-chips--compact" aria-label="Structure signal metrics">
-                                <span class="aqg-metric-chip"><strong>{remoteStructureSummary.outlineIssuesTotal}</strong> outline issues</span>
-                                <span class="aqg-metric-chip"><strong>{remoteStructureSummary.headingIssuesTotal}</strong> heading issues</span>
+                            <div class="aqg-metric-chips aqg-metric-chips--compact" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.metricsAria', default: 'Structure signal metrics')}">
+                                <span class="aqg-metric-chip"><strong>{remoteStructureSummary.outlineIssuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.outlineIssues" default="outline issues" /></span>
+                                <span class="aqg-metric-chip"><strong>{remoteStructureSummary.headingIssuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.headingIssues" default="heading issues" /></span>
                             </div>
                             <f:if condition="{remoteStructureSummary.likelyTemplateIssue}">
                                 <f:then>
-                                    <p class="aqg-signal-chip-card__note">Likely template/layout issue — review shared landmarks and heading structure.</p>
+                                    <p class="aqg-signal-chip-card__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.likelyTemplate" default="Likely template/layout issue — review shared landmarks and heading structure." /></p>
                                 </f:then>
                                 <f:else>
                                     <f:if condition="{remoteStructureSummary.recommendation}">
@@ -1198,7 +1199,7 @@
                                 </f:else>
                             </f:if>
                             <f:if condition="{remoteStructureSummary.hasTopWarnings}">
-                                <div class="aqg-structure-top-rules" aria-label="Top structure warnings">
+                                <div class="aqg-structure-top-rules" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.topWarningsAria', default: 'Top structure warnings')}">
                                     <f:for each="{remoteStructureSummary.topWarnings}" as="warning">
                                         <span class="aqg-structure-top-rule">
                                             <strong>{warning.typeLabel}</strong>
@@ -1215,7 +1216,7 @@
                                 </div>
                             </f:if>
                             <f:if condition="{remoteStructureSummary.topRules}">
-                                <div class="aqg-structure-top-rules" aria-label="Top structure rules">
+                                <div class="aqg-structure-top-rules" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.topRulesAria', default: 'Top structure rules')}">
                                     <f:for each="{remoteStructureSummary.topRules}" as="rule">
                                         <span class="aqg-structure-top-rule">
                                             <code>{rule.ruleId}</code>
@@ -1233,19 +1234,19 @@
 
                     <f:if condition="{remoteShowKeyboardSummary}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--keyboard">
-                            <div class="aqg-signal-chip-card__kicker">Keyboard</div>
-                            <div class="aqg-signal-chip-card__title">Keyboard exploration signal</div>
-                            <div class="aqg-metric-chips aqg-metric-chips--compact" aria-label="Keyboard exploration metrics">
-                                <span class="aqg-metric-chip"><strong>{remoteKeyboardSummary.focusStepsTotal}</strong> focus steps</span>
-                                <span class="aqg-metric-chip"><strong>{remoteKeyboardSummary.uniqueFocusedElementsTotal}</strong> focused elements</span>
+                            <div class="aqg-signal-chip-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.kicker" default="Keyboard" /></div>
+                            <div class="aqg-signal-chip-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.title" default="Keyboard exploration signal" /></div>
+                            <div class="aqg-metric-chips aqg-metric-chips--compact" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.metricsAria', default: 'Keyboard exploration metrics')}">
+                                <span class="aqg-metric-chip"><strong>{remoteKeyboardSummary.focusStepsTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.focusSteps" default="focus steps" /></span>
+                                <span class="aqg-metric-chip"><strong>{remoteKeyboardSummary.uniqueFocusedElementsTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.focusedElements" default="focused elements" /></span>
                                 <span class="aqg-metric-chip aqg-metric-chip--{remoteKeyboardSummary.possibleKeyboardTrapTone}">{remoteKeyboardSummary.possibleKeyboardTrapLabel}</span>
                                 <span class="aqg-metric-chip">{remoteKeyboardSummary.invisibleFocusIssuesLabel}</span>
                             </div>
                             <f:if condition="{remoteKeyboardSummary.manualReviewRequired}">
-                                <p class="aqg-signal-chip-card__note">Manual review required. Automated keyboard exploration is only a signal.</p>
+                                <p class="aqg-signal-chip-card__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.manualReview" default="Manual review required. Automated keyboard exploration is only a signal." /></p>
                             </f:if>
                             <f:if condition="{remoteKeyboardSummary.hasTopWarnings}">
-                                <div class="aqg-structure-top-rules" aria-label="Top keyboard warnings">
+                                <div class="aqg-structure-top-rules" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.topWarningsAria', default: 'Top keyboard warnings')}">
                                     <f:for each="{remoteKeyboardSummary.topWarnings}" as="warning">
                                         <span class="aqg-structure-top-rule">
                                             <strong>{warning.typeLabel}</strong>
@@ -1266,15 +1267,15 @@
 
                     <f:if condition="{remoteContrastDetails}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--contrast">
-                            <div class="aqg-signal-chip-card__kicker">Contrast</div>
-                            <div class="aqg-signal-chip-card__title">Contrast samples</div>
+                            <div class="aqg-signal-chip-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.kicker" default="Contrast" /></div>
+                            <div class="aqg-signal-chip-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.title" default="Contrast samples" /></div>
                             <div class="aqg-contrast-samples aqg-contrast-samples--compact">
                                 <f:for each="{remoteContrastDetails}" as="contrast">
                                     <div class="aqg-contrast-sample">
-                                        <span>Actual <strong>{contrast.actualRatio}</strong></span>
-                                        <span>Required <strong>{contrast.requiredRatio}</strong></span>
-                                        <f:if condition="{contrast.foreground}"><span>FG <code>{contrast.foreground}</code></span></f:if>
-                                        <f:if condition="{contrast.background}"><span>BG <code>{contrast.background}</code></span></f:if>
+                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.actual" default="Actual" /> <strong>{contrast.actualRatio}</strong></span>
+                                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.required" default="Required" /> <strong>{contrast.requiredRatio}</strong></span>
+                                        <f:if condition="{contrast.foreground}"><span><abbr title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.foreground', default: 'Foreground')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.fg" default="FG" /></abbr> <code>{contrast.foreground}</code></span></f:if>
+                                        <f:if condition="{contrast.background}"><span><abbr title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.background', default: 'Background')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.bg" default="BG" /></abbr> <code>{contrast.background}</code></span></f:if>
                                         <span>{contrast.issuesLabel}</span>
                                     </div>
                                 </f:for>
@@ -1385,7 +1386,7 @@
 
                     <f:if condition="{remoteReportingGroups.groups}">
                         <f:then>
-                            <div class="aqg-reporting-groups-table" role="table" aria-label="WCAG reporting groups">
+                            <div class="aqg-reporting-groups-table" role="table" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.groupsAria', default: 'WCAG reporting groups')}">
                                 <div class="aqg-reporting-groups-table__head" role="row">
                                     <span role="columnheader"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.group" default="Group" /></span>
                                     <span role="columnheader"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.findings" default="Findings" /></span>
@@ -1439,25 +1440,25 @@
 
 
     <f:if condition="!{freePreview.isFree}">
-    <details class="aqg-history-panel aqg-history-panel--overview" aria-label="Frontend scan history">
+    <details class="aqg-history-panel aqg-history-panel--overview" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteTitle', default: 'Frontend scan history')}">
         <summary class="aqg-history-panel__summary">
             <span class="aqg-history-panel__summary-copy">
-                <span class="aqg-history-panel__kicker">Accessibility progress</span>
-                <strong class="aqg-history-panel__title">Frontend scan history</strong>
-                <small>Previous automated frontend scans. Manual review may still be required.</small>
+                <span class="aqg-history-panel__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.kicker" default="Accessibility progress" /></span>
+                <strong class="aqg-history-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteTitle" default="Frontend scan history" /></strong>
+                <small><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteSubtitle" default="Previous automated frontend scans. Manual review may still be required." /></small>
             </span>
-            <span class="aqg-report-collapse__toggle aqg-history-panel__toggle"><span class="aqg-history-panel__toggle-show">Show history</span><span class="aqg-history-panel__toggle-hide">Hide history</span></span>
+            <span class="aqg-report-collapse__toggle aqg-history-panel__toggle"><span class="aqg-history-panel__toggle-show"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.show" default="Show history" /></span><span class="aqg-history-panel__toggle-hide"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.hide" default="Hide history" /></span></span>
         </summary>
         <div class="aqg-history-panel__body">
             <f:if condition="{remoteScanHistory.siteScans}">
                 <f:then>
                     <details class="aqg-history-group" open="open">
-                        <summary>Site scans</summary>
+                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteScans" default="Site scans" /></summary>
                         <f:render partial="Remote/ScanHistoryTable" arguments="{items: remoteScanHistory.siteScans}" />
                     </details>
                 </f:then>
                 <f:else>
-                    <div class="aqg-history-notice">No site frontend scan history available yet.</div>
+                    <div class="aqg-history-notice"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.emptySite" default="No site frontend scan history available yet." /></div>
                 </f:else>
             </f:if>
         </div>

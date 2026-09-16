@@ -16,161 +16,176 @@
                         id="a11y-settings-remote-access-form"
                         data-regenerate-token-url="{remoteAccessRegenerateTokenUrl}"
                         data-test-http-auth-url="{remoteAccessTestHttpAuthUrl}"
+                        data-label-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.saved', default: 'All changes saved')}"
+                        data-label-unsaved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.unsaved', default: 'You have unsaved changes')}"
+                        data-label-generate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generate', default: 'Generate token')}"
+                        data-label-regenerate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerate', default: 'Regenerate token')}"
+                        data-label-regenerating="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerating', default: 'Regenerating…')}"
+                        data-label-token-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.error', default: 'Scanner token could not be regenerated.')}"
+                        data-label-copy="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copy', default: 'Copy')}"
+                        data-label-copied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copied', default: 'Copied')}"
+                        data-label-test="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.test', default: 'Test connection')}"
+                        data-label-testing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.testing', default: 'Testing connection…')}"
+                        data-label-testing-short="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.testingShort', default: 'Testing…')}"
+                        data-label-test-ok="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.ok', default: 'Connection OK.')}"
+                        data-label-test-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.failed', default: 'Connection failed.')}"
+                        data-label-test-failed-hint="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.failedHint', default: 'Connection failed. Please check the credentials or the frontend protection.')}"
                 >
                     <f:for each="{returnParameters}" as="value" key="name">
                         <input type="hidden" name="{name}" value="{value}" />
                     </f:for>
-    
+
                     <input type="hidden" name="tab" value="remote_access" />
                     <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
                     <input type="hidden" name="remoteScanAccessFormSubmitted" value="1" />
-                    
+
                     <div class="aqg-actionbar js-aqg-remote-actionbar">
                         <div class="aqg-actionbar__left">
-                            <span class="aqg-actionbar__title">Remote scan access</span>
-                            <span class="aqg-actionbar__meta js-aqg-remote-action-meta">All changes saved</span>
-                            <span class="aqg-toast js-aqg-remote-save-toast" hidden="hidden">✓ Settings saved</span>
+                            <span class="aqg-actionbar__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.title" default="Remote scan access" /></span>
+                            <span class="aqg-actionbar__meta js-aqg-remote-action-meta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.saved" default="All changes saved" /></span>
+                            <span class="aqg-toast js-aqg-remote-save-toast" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.savedToast" default="✓ Settings saved" /></span>
                         </div>
                         <div class="aqg-actionbar__right">
-                            <button type="reset" class="aqg-text-action js-aqg-remote-discard">Discard</button>
-                            <button type="submit" class="btn btn-primary btn-sm">Save remote scan settings</button>
+                            <button type="reset" class="aqg-text-action js-aqg-remote-discard"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.discard" default="Discard" /></button>
+                            <button type="submit" class="btn btn-primary btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.save" default="Save remote scan settings" /></button>
                         </div>
                     </div>
-    
+
                     <div class="aqg-admin-banner">
-                        <span class="aqg-admin-banner__badge"><span class="aqg-admin-banner__badge-dot"></span>Admin only</span>
+                        <span class="aqg-admin-banner__badge"><span class="aqg-admin-banner__badge-dot"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminBadge" default="Admin only" /></span>
                         <span class="aqg-admin-banner__text">
-                            <strong>Only administrators should change Remote scan access settings.</strong>
-                            These options control how the AQG crawler reaches your frontend — including hidden pages, protected staging environments, and the URL crawl rules.
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminBannerTitle" default="Only administrators should change Remote scan access settings." /></strong>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminBannerText" default="These options control how the AQG crawler reaches your frontend — including hidden pages, protected staging environments, and the URL crawl rules." />
                         </span>
                         <f:if condition="{backendUserDisplayName}">
-                            <span class="aqg-admin-banner__user">signed in as {backendUserDisplayName}</span>
+                            <span class="aqg-admin-banner__user"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.signedInAs" default="signed in as %s" arguments="{0: backendUserDisplayName}" /></span>
                         </f:if>
                     </div>
-    
+
                     <section class="aqg-card aqg-card--secret js-aqg-scanner-token-card">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
                                 <h3 class="aqg-card__title">
                                     <span class="aqg-card__title-prefix" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
-                                    Scanner preview token
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.title" default="Scanner preview token" />
                                 </h3>
-                                <p class="aqg-card__sub">Generate a private token so the remote crawler can access hidden pages and hidden content during scans. Keep this token secret.</p>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.text" default="Generate a private token so the remote crawler can access hidden pages and hidden content during scans. Keep this token secret." /></p>
                             </div>
-                            <span class="aqg-toast js-aqg-token-success" hidden="hidden">✓ Scanner token regenerated</span>
+                            <span class="aqg-toast js-aqg-token-success" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerated" default="✓ Scanner token regenerated" /></span>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label">Token</label>
+                                <label class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.label" default="Token" /></label>
                                 <div class="js-aqg-token-present" {f:if(condition: remoteAccessHasScannerToken, else: 'hidden="hidden"')}>
-                                    <div class="aqg-token-row__field" role="group" aria-label="Scanner token masked value">
-                                        <span class="aqg-token-row__prefix">Token</span>
+                                    <div class="aqg-token-row__field" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.maskedAria', default: 'Scanner token masked value')}">
+                                        <span class="aqg-token-row__prefix"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.label" default="Token" /></span>
                                         <span class="aqg-token-row__value js-aqg-token-value">{remoteAccessMaskedScannerToken}</span>
-                                        <button type="button" class="btn btn-default btn-sm aqg-token-row__action js-aqg-copy-token" data-token="" disabled="disabled" aria-label="Copy newly generated scanner token">
+                                        <button type="button" class="btn btn-default btn-sm aqg-token-row__action js-aqg-copy-token" data-token="" disabled="disabled" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copyAria', default: 'Copy newly generated scanner token')}">
                                             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                                                 <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
                                                 <path d="M2 8 L2 2 L8 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
                                             </svg>
-                                            <span class="js-aqg-copy-token-label">Copy</span>
+                                            <span class="js-aqg-copy-token-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copy" default="Copy" /></span>
                                         </button>
                                     </div>
                                 </div>
                                 <div class="aqg-token-empty js-aqg-token-empty" {f:if(condition: remoteAccessHasScannerToken, then: 'hidden="hidden"')}>
                                     <span class="aqg-token-empty__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
-                                    <span>No token set — click <strong>Generate token</strong> to create one. Without a token, the remote crawler scans only publicly visible pages and mapping to TYPO3 records may be limited.</span>
+                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.empty" default="No token set — click “Generate token” to create one. Without a token, the remote crawler scans only publicly visible pages and mapping to TYPO3 records may be limited." /></span>
                                 </div>
-                                <div class="aqg-field__help">Optional. When set, the crawler sends this token with every request so TYPO3 can expose AQG debug markers for record mapping and scanner-only access during the scan.<br />
-                                    Without a token, the crawler scans only publicly visible pages and mapping to TYPO3 records may be limited.<br />
-                                    For security, the full token is shown only once immediately after generation.</div>
+                                <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.help1" default="Optional. When set, the crawler sends this token with every request so TYPO3 can expose AQG debug markers for record mapping and scanner-only access during the scan." /><br />
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.help2" default="Without a token, the crawler scans only publicly visible pages and mapping to TYPO3 records may be limited." /><br />
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.help3" default="For security, the full token is shown only once immediately after generation." /></div>
                             </div>
-    
+
                             <div class="aqg-remote-inline-actions">
                                 <button type="button" class="btn btn-default btn-sm js-aqg-regenerate-token">
-                                    <span class="js-aqg-regenerate-token-label"><f:if condition="{remoteAccessHasScannerToken}"><f:then>Regenerate token</f:then><f:else>Generate token</f:else></f:if></span>
+                                    <span class="js-aqg-regenerate-token-label"><f:if condition="{remoteAccessHasScannerToken}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerate" default="Regenerate token" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generate" default="Generate token" /></f:else></f:if></span>
                                 </button>
                                 <span class="aqg-remote-warning">
                                     <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
-                                    Regenerating invalidates the current token immediately. Running scans may fail until the crawler uses the new token.
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.warning" default="Regenerating invalidates the current token immediately. Running scans may fail until the crawler uses the new token." />
                                 </span>
                             </div>
                         </div>
                     </section>
-    
+
                     <section class="aqg-card">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title">HTTP Basic Authentication</h3>
-                                <p class="aqg-card__sub">For password-protected staging environments. The remote crawler will use these credentials when scanning. Credentials are stored encrypted and never shown again.</p>
+                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.title" default="HTTP Basic Authentication" /></h3>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.text" default="For password-protected staging environments. The remote crawler will use these credentials when scanning. Credentials are stored encrypted and never shown again." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-remote-grid-2">
                                 <div class="aqg-field">
-                                    <label class="aqg-field__label" for="aqg-http-auth-user">Username</label>
-                                    <input id="aqg-http-auth-user" type="text" class="aqg-input js-aqg-http-auth-user" name="remoteScanAccess[http_auth_user]" value="{remoteAccessRuleset.http_auth_user}" placeholder="e.g. crawler" autocomplete="off" />
-                                    <div class="aqg-field__help">The HTTP Basic Auth user that has access to the staging frontend.</div>
+                                    <label class="aqg-field__label" for="aqg-http-auth-user"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.username" default="Username" /></label>
+                                    <input id="aqg-http-auth-user" type="text" class="aqg-input js-aqg-http-auth-user" name="remoteScanAccess[http_auth_user]" value="{remoteAccessRuleset.http_auth_user}" placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.usernamePlaceholder', default: 'e.g. crawler')}" autocomplete="off" />
+                                    <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.usernameHelp" default="The HTTP Basic Auth user that has access to the staging frontend." /></div>
                                 </div>
                                 <div class="aqg-field">
-                                    <label class="aqg-field__label" for="aqg-http-auth-pass">Password</label>
-                                    <input id="aqg-http-auth-pass" type="password" class="aqg-input js-aqg-http-auth-pass" name="remoteScanAccess[http_auth_pass]" value="" placeholder="{f:if(condition: remoteAccessHasHttpAuthPassword, then: '••••••••', else: 'enter password…')}" autocomplete="new-password" />
+                                    <f:variable name="httpAuthPasswordPlaceholder"><f:if condition="{remoteAccessHasHttpAuthPassword}"><f:then>••••••••</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.passwordPlaceholder" default="enter password…" /></f:else></f:if></f:variable>
+                                    <label class="aqg-field__label" for="aqg-http-auth-pass"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.password" default="Password" /></label>
+                                    <input id="aqg-http-auth-pass" type="password" class="aqg-input js-aqg-http-auth-pass" name="remoteScanAccess[http_auth_pass]" value="" placeholder="{httpAuthPasswordPlaceholder}" autocomplete="new-password" />
                                     <div class="aqg-field__help">
                                         <f:if condition="{remoteAccessHasHttpAuthPassword}">
-                                            <f:then>A password is saved. Type a new value to replace it; leave blank to keep the current password.</f:then>
-                                            <f:else>The saved password is encrypted and never shown again.</f:else>
+                                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.passwordSaved" default="A password is saved. Type a new value to replace it; leave blank to keep the current password." /></f:then>
+                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.passwordHelp" default="The saved password is encrypted and never shown again." /></f:else>
                                         </f:if>
                                     </div>
                                     <f:if condition="{remoteAccessHasHttpAuthPassword}">
                                         <label class="aqg-checkbox-line aqg-checkbox-line--muted">
                                             <input type="checkbox" name="remoteScanAccess[clear_http_auth_password]" value="1" />
-                                            <span>Remove saved password</span>
+                                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.removePassword" default="Remove saved password" /></span>
                                         </label>
                                     </f:if>
                                 </div>
                             </div>
                             <div class="aqg-remote-inline-actions">
-                                <button type="button" class="btn btn-default btn-sm js-aqg-test-http-auth">Test connection</button>
+                                <button type="button" class="btn btn-default btn-sm js-aqg-test-http-auth"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.test" default="Test connection" /></button>
                                 <span class="aqg-test-result js-aqg-test-result" hidden="hidden"></span>
                             </div>
                         </div>
                     </section>
-    
+
                     <section class="aqg-card aqg-card--advanced aqg-cookie-selectors-card">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title">Cookie accept selectors <span class="aqg-field__label-hint">optional</span></h3>
-                                <p class="aqg-card__sub">Use custom selectors only when the crawler cannot dismiss your cookie banner automatically. Leave this field empty if remote scans work correctly.</p>
+                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.title" default="Cookie accept selectors" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.optional" default="optional" /></span></h3>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.text" default="Use custom selectors only when the crawler cannot dismiss your cookie banner automatically. Leave this field empty if remote scans work correctly." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label" for="aqg-cookie-accept-selectors">Cookie accept selectors <span class="aqg-field__label-hint">one CSS selector per line</span></label>
+                                <label class="aqg-field__label" for="aqg-cookie-accept-selectors"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.title" default="Cookie accept selectors" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.hint" default="one CSS selector per line" /></span></label>
                                 <textarea id="aqg-cookie-accept-selectors" name="remoteScanAccess[cookie_accept_selectors]" class="aqg-textarea aqg-input--mono aqg-remote-textarea aqg-remote-textarea--compact js-aqg-cookie-selectors" rows="4" placeholder="#cookie-accept-btn&#10;.cookie-consent__accept&#10;button[data-cookie-accept]">{remoteAccessCookieAcceptSelectorsText}</textarea>
-                                <div class="aqg-field__help">Selectors are tried before AQG’s automatic cookie detection. Leave empty if the cookie banner does not block scan results.</div>
+                                <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.help" default="Selectors are tried before AQG’s automatic cookie detection. Leave empty if the cookie banner does not block scan results." /></div>
                             </div>
                             <div class="aqg-suggest aqg-suggest--compact">
-                                <span class="aqg-suggest__label">Examples</span>
+                                <span class="aqg-suggest__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.examples" default="Examples" /></span>
                                 <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-cookie-accept-selectors" data-value="#cookie-accept-btn"><span class="aqg-suggest__chip-plus">+</span>#cookie-accept-btn</button>
                                 <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-cookie-accept-selectors" data-value=".cookie-consent__accept"><span class="aqg-suggest__chip-plus">+</span>.cookie-consent__accept</button>
                                 <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-cookie-accept-selectors" data-value="button[data-cookie-accept]"><span class="aqg-suggest__chip-plus">+</span>button[data-cookie-accept]</button>
                             </div>
                         </div>
                     </section>
-    
+
                     <section class="aqg-card">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title">Excluded URL patterns</h3>
-                                <p class="aqg-card__sub">URLs the remote crawler should skip. Use this for admin areas, file folders, internal tools and other paths that should never be scanned.</p>
+                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.title" default="Excluded URL patterns" /></h3>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.text" default="URLs the remote crawler should skip. Use this for admin areas, file folders, internal tools and other paths that should never be scanned." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label" for="aqg-excluded-patterns">Patterns <span class="aqg-field__label-hint">(one per line · supports the * wildcard)</span></label>
+                                <label class="aqg-field__label" for="aqg-excluded-patterns"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.label" default="Patterns" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.hint" default="(one per line · supports the * wildcard)" /></span></label>
                                 <textarea id="aqg-excluded-patterns" name="remoteScanAccess[excluded_patterns]" class="aqg-textarea aqg-input--mono aqg-remote-textarea js-aqg-recommended-target" rows="6" placeholder="/typo3/*&#10;/fileadmin/*&#10;/typo3temp/*&#10;/typo3temp/assets/*&#10;/_assets/*">{remoteAccessExcludedPatternsText}</textarea>
-                                <div class="aqg-field__help">Matching URLs will not be crawled. Examples: /fileadmin/* skips every file path; /preview?token=* skips preview URLs.</div>
+                                <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.help" default="Matching URLs will not be crawled. Examples: /fileadmin/* skips every file path; /preview?token=* skips preview URLs." /></div>
                             </div>
                             <div class="aqg-suggest">
-                                <span class="aqg-suggest__label">Recommended</span>
+                                <span class="aqg-suggest__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.recommended" default="Recommended" /></span>
                                 <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/typo3/*"><span class="aqg-suggest__chip-plus">+</span>/typo3/*</button>
                                 <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/fileadmin/*"><span class="aqg-suggest__chip-plus">+</span>/fileadmin/*</button>
                                 <button type="button" class="aqg-suggest__chip js-aqg-add-pattern" data-target="#aqg-excluded-patterns" data-value="/typo3temp/*"><span class="aqg-suggest__chip-plus">+</span>/typo3temp/*</button>
@@ -179,19 +194,19 @@
                             </div>
                         </div>
                     </section>
-    
+
                     <section class="aqg-card">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title">Priority URLs</h3>
-                                <p class="aqg-card__sub">Pages the remote crawler scans first. Use this for the homepage, contact page and other high-traffic pages — so issues appear in the report early.</p>
+                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.title" default="Priority URLs" /></h3>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.text" default="Pages the remote crawler scans first. Use this for the homepage, contact page and other high-traffic pages — so issues appear in the report early." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label" for="aqg-priority-urls">URL paths <span class="aqg-field__label-hint">(one per line · paths relative to the site root)</span></label>
+                                <label class="aqg-field__label" for="aqg-priority-urls"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.label" default="URL paths" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.hint" default="(one per line · paths relative to the site root)" /></span></label>
                                 <textarea id="aqg-priority-urls" name="remoteScanAccess[crawl_priority_urls]" class="aqg-textarea aqg-input--mono aqg-remote-textarea" rows="6" placeholder="/&#10;/contact&#10;/products">{remoteAccessPriorityUrlsText}</textarea>
-                                <div class="aqg-field__help">Other URLs are still crawled in their normal order — this list only affects ordering, not visibility.</div>
+                                <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.help" default="Other URLs are still crawled in their normal order — this list only affects ordering, not visibility." /></div>
                             </div>
                         </div>
                     </section>
@@ -203,14 +218,14 @@
                             <div>
                                 <h3 class="aqg-card__title">
                                     <span class="aqg-card__title-prefix" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.locked.title" default="Remote scanning requires a valid remote-scanning licence" />
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.locked.title" default="Remote scan access settings need a Trial, PRO or Agency licence" />
                                 </h3>
-                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.locked.description" default="Remote scan access is available with a valid Trial, PRO, Agency or Enterprise licence. Add a licence key or start a trial to configure remote crawling, scanner tokens and protected staging access." /></p>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.locked.description" default="Scanner tokens, HTTP authentication for protected staging, cookie selectors and crawl rules apply to licensed frontend scans. Add a licence key or start a trial to configure them." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-pro-gate">
-                                <p class="aqg-pro-gate__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.locked.text" default="The FREE edition keeps local TYPO3 content checks available, but browser-based remote crawling is gated. Configure a valid remote-scanning licence to unlock this setup." /></p>
+                                <p class="aqg-pro-gate__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.locked.text" default="FREE includes local TYPO3 content checks and the daily Free Remote Preview, which scans publicly reachable pages without these access settings." /></p>
                                 <div class="aqg-pro-gate__actions">
                                     <a class="btn btn-primary btn-sm" href="{trialUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.startTrial" default="Start trial" /></a>
                                     <a class="btn btn-default btn-sm" href="{documentationUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.learnMore" default="Learn about remote scanning" /></a>

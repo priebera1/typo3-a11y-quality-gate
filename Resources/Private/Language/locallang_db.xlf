@@ -227,7 +227,7 @@
                 <source>Warn — show warning, allow publish</source>
             </trans-unit>
             <trans-unit id="tx_a11y_ruleset.publish_mode.block">
-                <source>Block — prevent publish (Pro / v1.1+)</source>
+                <source>Block — prevent publish (Trial, PRO or Agency)</source>
             </trans-unit>
 
             <trans-unit id="tx_a11y_ruleset.tab.general">

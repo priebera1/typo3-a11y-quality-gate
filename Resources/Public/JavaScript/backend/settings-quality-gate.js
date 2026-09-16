@@ -12,6 +12,7 @@ class AqgQualityGateSettings {
     this.addSelect = form.querySelector('.js-aqg-addsite-select');
     this.countNode = form.querySelector('.js-aqg-site-override-count');
     this.metaNode = form.querySelector('.js-aqg-quality-gate-action-meta');
+    this.rowTemplate = form.querySelector('.js-aqg-site-row-template');
 
     this.bindEvents();
     this.updateModePills();
@@ -119,9 +120,12 @@ class AqgQualityGateSettings {
       this.emptyState.hidden = count > 0;
     }
     if (this.metaNode) {
-      this.metaNode.textContent = this.scopeInput.value === '0'
-        ? `Applies to publish & unhide · Per-site · ${count} override${count === 1 ? '' : 's'}`
-        : 'Applies to publish & unhide · Global configuration';
+      const scopeLabel = this.scopeInput.value === '0'
+        ? (count === 1
+          ? this.label('labelPerSiteOne', 'Per-site · %d override')
+          : this.label('labelPerSiteOther', 'Per-site · %d overrides')).replace('%d', String(count))
+        : this.label('labelGlobal', 'Global configuration');
+      this.metaNode.textContent = `${this.label('labelAppliesTo', 'Applies to publish and unhide')} · ${scopeLabel}`;
     }
   }
 
@@ -179,60 +183,14 @@ class AqgQualityGateSettings {
   }
 
   renderSiteRow(identifier, label) {
-    const escapedIdentifier = this.escapeHtml(identifier);
-    const escapedLabel = this.escapeHtml(label);
-    const namePrefix = `qualityGate[sites][${escapedIdentifier}]`;
+    // The row markup (and its translated labels) is rendered server-side into a <template>.
+    if (!(this.rowTemplate instanceof HTMLTemplateElement)) {
+      return '';
+    }
 
-    return `
-      <div class="aqg-site js-aqg-site-row" data-site-identifier="${escapedIdentifier}">
-        <header class="aqg-site__head">
-          <div class="aqg-site__title-block">
-            <span class="aqg-site__title">
-              ${escapedLabel}
-              <span class="aqg-site__id">${escapedIdentifier}</span>
-              <span class="aqg-mode-pill js-aqg-mode-pill" data-mode="1"><span class="aqg-mode-pill__dot"></span><span class="js-aqg-mode-label">Warn editors</span></span>
-            </span>
-            <span class="aqg-site__sub">Stored for site identifier <code>${escapedIdentifier}</code></span>
-          </div>
-          <div class="aqg-site__actions">
-            <button type="button" class="btn btn-default btn-sm js-aqg-remove-site">Remove custom configuration</button>
-            <span class="aqg-confirm js-aqg-remove-confirm" hidden="hidden">
-              <span>Remove custom configuration?</span>
-              <button type="button" class="aqg-confirm__btn js-aqg-remove-cancel">Cancel</button>
-              <button type="button" class="aqg-confirm__btn aqg-confirm__btn--danger js-aqg-remove-confirmed">Remove</button>
-            </span>
-          </div>
-        </header>
-        <div class="aqg-site__body aqg-site__body--compact">
-          <div class="aqg-field">
-            <label class="aqg-field__label">Publishing mode</label>
-            <select class="aqg-select js-aqg-site-mode" name="${namePrefix}[publish_mode]">
-              <option value="0">Disabled — do not warn or block</option>
-              <option value="1" selected="selected">Warn editors before publish</option>
-              <option value="2">Block publish on failure</option>
-            </select>
-            <div class="aqg-field__help">Disabled · Warn editors · Block publishing.</div>
-          </div>
-          <div class="aqg-field">
-            <label class="aqg-field__label">Critical threshold</label>
-            <div class="aqg-inline-row"><input type="number" min="0" class="aqg-input aqg-input--num" name="${namePrefix}[threshold_critical]" value="0" /><span class="aqg-field__help">or more</span></div>
-            <div class="aqg-field__help">Open criticals allowed. <code>0</code> = any critical fails.</div>
-          </div>
-          <div class="aqg-field">
-            <label class="aqg-field__label">Warning threshold</label>
-            <select class="aqg-select" name="${namePrefix}[threshold_warning]">
-              <option value="-1" selected="selected">Ignore warnings</option>
-              <option value="0">Any warning fails</option>
-              <option value="1">1 or more fail</option>
-              <option value="3">3 or more fail</option>
-              <option value="5">5 or more fail</option>
-              <option value="10">10 or more fail</option>
-            </select>
-            <div class="aqg-field__help">Optional. Leave on <em>Ignore</em> to evaluate critical only.</div>
-          </div>
-        </div>
-        <div class="aqg-inherit-note js-aqg-inherit-note" hidden="hidden"><span class="aqg-inherit-note__badge">FYI</span>Removing this configuration makes the site inherit the global default again.</div>
-      </div>`;
+    return this.rowTemplate.innerHTML
+      .replaceAll('__AQG_SITE_IDENTIFIER__', this.escapeHtml(identifier))
+      .replaceAll('__AQG_SITE_LABEL__', this.escapeHtml(label));
   }
 
   showRemoveConfirm(row) {
@@ -328,14 +286,18 @@ class AqgQualityGateSettings {
     pill.classList.remove('tone-neutral', 'tone-warning', 'tone-critical');
     if (select.value === '2') {
       pill.classList.add('tone-critical');
-      label.textContent = 'Block publish';
+      label.textContent = this.label('labelModeBlock', 'Block publish');
     } else if (select.value === '1') {
       pill.classList.add('tone-warning');
-      label.textContent = 'Warn editors';
+      label.textContent = this.label('labelModeWarn', 'Warn editors');
     } else {
       pill.classList.add('tone-neutral');
-      label.textContent = 'Disabled';
+      label.textContent = this.label('labelModeDisabled', 'Disabled');
     }
+  }
+
+  label(name, fallback) {
+    return this.form.dataset[name] || fallback;
   }
 
   escapeHtml(value) {

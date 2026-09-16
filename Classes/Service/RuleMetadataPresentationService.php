@@ -379,9 +379,23 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
         $owner = $this->normalizeMachineValue($metadata['suggestedOwner'] ?? $metadata['suggested_owner'] ?? $issue['who_should_fix'] ?? $friendly['owner'] ?? '');
         $fixType = $this->normalizeMachineValue($metadata['fixType'] ?? $metadata['fix_type'] ?? $issue['fix_type'] ?? $friendly['fixType'] ?? '');
 
+        // Translation-backed title/fix only (no message or rule-id fallback), for views that keep the
+        // stored English message unless a real translation exists. Rule-specific texts win over the
+        // generic plain-language rule they are grouped under.
+        $localizedTitle = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.title', $language) : '';
+        if ($localizedTitle === '') {
+            $localizedTitle = $this->translateFriendly($friendly['titleKey'] ?? null, $language);
+        }
+        $localizedHowToFix = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.howToFix', $language) : '';
+        if ($localizedHowToFix === '') {
+            $localizedHowToFix = $this->translateFriendly($friendly['fixKey'] ?? null, $language);
+        }
+
         return [
             'ruleId' => $ruleId,
             'title' => $title,
+            'localizedTitle' => $localizedTitle,
+            'localizedHowToFix' => $localizedHowToFix,
             'whyItMatters' => $why,
             'howToFix' => $fix,
             'affectedUsers' => $affectedUsers,
@@ -395,9 +409,9 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
             'documentationLinks' => $docs,
             'technicalTags' => $technicalTags,
             'owner' => $owner,
-            'ownerLabel' => $this->formatBadgeLabel($owner),
+            'ownerLabel' => $this->formatBadgeLabel($owner, $language),
             'fixType' => $fixType,
-            'fixTypeLabel' => $this->formatBadgeLabel($fixType),
+            'fixTypeLabel' => $this->formatBadgeLabel($fixType, $language),
             'hasAffectedUsers' => $affectedUsers !== [],
             'hasWcagReferences' => $wcagReferences !== [],
             'hasTechniques' => $techniques !== [],
@@ -811,9 +825,16 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
         return trim($value, '_-');
     }
 
-    private function formatBadgeLabel(string $value): string
+    private function formatBadgeLabel(string $value, string $language = 'en'): string
     {
+        $machineValue = strtolower(trim(str_replace('-', '_', $value)));
         $value = trim(str_replace(['_', '-'], ' ', $value));
-        return $value !== '' ? ucwords($value) : '';
+        if ($value === '') {
+            return '';
+        }
+
+        $translated = $language !== 'en' ? $this->translateFriendly('badge.' . $machineValue, $language) : '';
+
+        return $translated !== '' ? $translated : ucwords($value);
     }
 }

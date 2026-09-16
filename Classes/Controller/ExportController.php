@@ -13,6 +13,7 @@ use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Priebera\A11yQualityGate\Utility\FilterValueUtility;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -55,7 +56,7 @@ final class ExportController
                 || !$this->hasPaidRemoteAccess($ownerSiteIdentifier)
             ) {
                 return $this->downloadResponse(
-                    content: 'Access denied.',
+                    content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
                     filename: 'aqg-export-access-denied.txt',
                     contentType: 'text/plain; charset=UTF-8',
                     statusCode: 403,
@@ -73,7 +74,7 @@ final class ExportController
 
         if (!$this->canAccessLocalExport($request, $context['siteIdentifier'], $context['pageUid'])) {
             return $this->downloadResponse(
-                content: 'Access denied.',
+                content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
                 filename: 'aqg-export-access-denied.txt',
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,
@@ -110,7 +111,7 @@ final class ExportController
                 || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
             ) {
                 return $this->downloadResponse(
-                    content: 'Access denied.',
+                    content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
                     filename: 'aqg-pdf-export-access-denied.txt',
                     contentType: 'text/plain; charset=UTF-8',
                     statusCode: 403,
@@ -122,7 +123,7 @@ final class ExportController
 
             if (!$this->canExportPdf($site, $ownerSiteIdentifier)) {
                 return $this->downloadResponse(
-                    content: 'PDF export is available in AQG PRO only.',
+                    content: BackendLabelUtility::translate('export.pdf.paidOnly', 'PDF export needs a PRO or Agency licence.'),
                     filename: 'aqg-pdf-export-unavailable.txt',
                     contentType: 'text/plain; charset=UTF-8',
                     statusCode: 403,
@@ -141,7 +142,7 @@ final class ExportController
 
         if (!$this->canAccessLocalExport($request, $context['siteIdentifier'], $context['pageUid'])) {
             return $this->downloadResponse(
-                content: 'Access denied.',
+                content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
                 filename: 'aqg-pdf-export-access-denied.txt',
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,
@@ -156,7 +157,7 @@ final class ExportController
 
         if (!$this->canExportPdf($site, $context['siteIdentifier'])) {
             return $this->downloadResponse(
-                content: 'PDF export is available in AQG PRO only.',
+                content: BackendLabelUtility::translate('export.pdf.paidOnly', 'PDF export needs a PRO or Agency licence.'),
                 filename: 'aqg-pdf-export-unavailable.txt',
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,

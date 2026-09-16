@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Rendered;
 
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
@@ -11,6 +12,25 @@ final class RenderedPageFetcher
 {
     private const TIMEOUT_SECONDS = 8;
     private const MAX_HTML_BYTES = 5242880;
+
+    /**
+     * English error texts, translated for the editor as "renderedCheck.error.<key>". Logs keep English.
+     */
+    private const ERRORS = [
+        'invalidUrl' => 'Rendered page URL is invalid.',
+        'scheme' => 'Rendered page URL must use HTTP or HTTPS.',
+        'host' => 'Rendered page URL does not belong to the configured site host.',
+        'port' => 'Rendered page URL port does not match the configured site port.',
+        'privateHost' => 'Rendered page check was skipped because the frontend URL resolves to a private/local address. For trusted DDEV or staging environments, enable “Allow private/local frontend hosts for rendered checks” in Settings → Rules.',
+        'finalUrl' => 'Rendered page fetch ended on a URL that does not match the configured site host or port.',
+        'httpStatus' => 'Rendered page returned HTTP %d. The local rendered check can only inspect successful HTML responses.',
+        'notHtml' => 'Rendered page response is not HTML. The local rendered check can only inspect server-rendered HTML pages.',
+        'tooLarge' => 'Rendered HTML response is too large for the local rendered check. Try scanning a smaller page, or use a frontend scan for browser-based checks.',
+        'empty' => 'Rendered page response body is empty. The local rendered check could not inspect the page output.',
+        'timeout' => 'Rendered page fetch timed out. This can happen on very large, protected or slow pages. Try scanning a smaller page, or use a frontend scan for browser-based checks.',
+        'redirect' => 'Rendered page check was stopped because a redirect led outside the configured site host or port. Check your TYPO3 site base URL configuration.',
+        'failed' => 'Rendered page fetch failed. This can happen on very large, protected or slow pages. Check that the frontend URL is reachable from TYPO3, or use a frontend scan for browser-based checks.',
+    ];
 
     public function __construct(
         private readonly RequestFactory $requestFactory,
@@ -27,10 +47,10 @@ final class RenderedPageFetcher
                 'allowedHost' => $allowedHost,
                 'allowedPort' => $allowedPort,
                 'allowPrivateHosts' => $allowPrivateHosts,
-                'reason' => $validationError,
+                'reason' => self::ERRORS[$validationError],
                 'resolvedIps' => $this->resolveHostIps($allowedHost),
             ]);
-            return new RenderedPageResponse(false, error: $validationError, finalUrl: $url);
+            return new RenderedPageResponse(false, error: $this->errorText($validationError), finalUrl: $url);
         }
 
         try {
@@ -42,7 +62,7 @@ final class RenderedPageFetcher
                         $redirectUrl = (string)$uri;
                         $validationError = $this->validateUrl($redirectUrl, $allowedHost, $allowedPort, $allowPrivateHosts);
                         if ($validationError !== '') {
-                            throw new \RuntimeException('Rendered page check redirect is not allowed: ' . $validationError);
+                            throw new \RuntimeException('Rendered page check redirect is not allowed: ' . self::ERRORS[$validationError]);
                         }
                     },
                 ],
@@ -75,17 +95,17 @@ final class RenderedPageFetcher
                 'allowedPort' => $allowedPort,
                 'statusCode' => $statusCode,
                 'contentType' => $contentType,
-                'reason' => $finalUrlValidationError,
+                'reason' => self::ERRORS[$finalUrlValidationError],
             ]);
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page fetch ended on a URL that does not match the configured site host or port.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: $this->errorText('finalUrl'), finalUrl: $finalUrl);
         }
 
         if ($statusCode < 200 || $statusCode >= 300) {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page returned HTTP ' . $statusCode . '. The local rendered check can only inspect successful HTML responses.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: sprintf($this->errorText('httpStatus'), $statusCode), finalUrl: $finalUrl);
         }
 
         if ($contentType !== '' && !str_contains($contentType, 'text/html') && !str_contains($contentType, 'application/xhtml+xml')) {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page response is not HTML. The local rendered check can only inspect server-rendered HTML pages.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: $this->errorText('notHtml'), finalUrl: $finalUrl);
         }
 
         $body = $response->getBody();
@@ -95,11 +115,11 @@ final class RenderedPageFetcher
         }
 
         if (strlen($html) > self::MAX_HTML_BYTES) {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered HTML response is too large for the local rendered check. Try scanning a smaller page or use the PRO remote crawler for browser-based scanning.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: $this->errorText('tooLarge'), finalUrl: $finalUrl);
         }
 
         if (trim($html) === '') {
-            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: 'Rendered page response body is empty. The local rendered check could not inspect the page output.', finalUrl: $finalUrl);
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: $this->errorText('empty'), finalUrl: $finalUrl);
         }
 
         return new RenderedPageResponse(true, html: $html, statusCode: $statusCode, contentType: $contentType, finalUrl: $finalUrl);
@@ -109,27 +129,27 @@ final class RenderedPageFetcher
     {
         $parts = parse_url($url);
         if (!is_array($parts)) {
-            return 'Rendered page URL is invalid.';
+            return 'invalidUrl';
         }
 
         $scheme = strtolower((string)($parts['scheme'] ?? ''));
         if (!in_array($scheme, ['http', 'https'], true)) {
-            return 'Rendered page URL must use HTTP or HTTPS.';
+            return 'scheme';
         }
 
         $host = strtolower((string)($parts['host'] ?? ''));
         if ($host === '' || $host !== strtolower($allowedHost)) {
-            return 'Rendered page URL does not belong to the configured site host.';
+            return 'host';
         }
 
         $actualPort = $this->effectivePort($scheme, $parts['port'] ?? null);
         $expectedPort = $allowedPort ?? $this->defaultPortForScheme($scheme);
         if ($actualPort !== $expectedPort) {
-            return 'Rendered page URL port does not match the configured site port.';
+            return 'port';
         }
 
         if (!$allowPrivateHosts && $this->resolvesToPrivateAddress($host)) {
-            return 'Rendered page check was skipped because the frontend URL resolves to a private/local address. For trusted DDEV or staging environments, enable “Allow private/local frontend hosts for rendered checks” in Settings → Rules.';
+            return 'privateHost';
         }
 
         return '';
@@ -139,14 +159,19 @@ final class RenderedPageFetcher
     {
         $message = strtolower($exception->getMessage());
         if (str_contains($message, 'timed out') || str_contains($message, 'timeout') || str_contains($message, 'operation timed out')) {
-            return 'Rendered page fetch timed out. This can happen on very large, protected or slow pages. Try scanning a smaller page or use the PRO remote crawler for browser-based scanning.';
+            return $this->errorText('timeout');
         }
 
         if (str_contains($message, 'redirect is not allowed')) {
-            return 'Rendered page check was stopped because a redirect led outside the configured site host or port. Check your TYPO3 site base URL configuration.';
+            return $this->errorText('redirect');
         }
 
-        return 'Rendered page fetch failed. This can happen on very large, protected or slow pages. Check that the frontend URL is reachable from TYPO3, or use the PRO remote crawler for browser-based scanning.';
+        return $this->errorText('failed');
+    }
+
+    private function errorText(string $key): string
+    {
+        return BackendLabelUtility::translate('renderedCheck.error.' . $key, self::ERRORS[$key]);
     }
 
     private function effectivePort(string $scheme, mixed $port): int

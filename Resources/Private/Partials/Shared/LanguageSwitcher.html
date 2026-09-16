@@ -5,7 +5,7 @@
 >
 <details class="aqg-lang aqg-lang--dropdown">
     <summary class="aqg-lang__trigger">
-        <span class="visually-hidden">Site language:</span>
+        <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.siteLanguageLabel" default="Site language:" /></span>
         <span class="aqg-lang__trigger-text">
             <f:if condition="{currentLanguageOption.flagIdentifier}">
                 <span class="aqg-lang__flag" aria-hidden="true">
@@ -22,10 +22,10 @@
         </svg>
     </summary>
 
-    <div class="aqg-lang__menu" role="listbox" aria-label="Site language">
+    <div class="aqg-lang__menu" role="listbox" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.siteLanguage', default: 'Site language')}">
         <div class="aqg-lang__menu-head">
-            <span>Site language</span>
-            <span class="aqg-lang__menu-count">{availableLanguageCount} available</span>
+            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.siteLanguage" default="Site language" /></span>
+            <span class="aqg-lang__menu-count"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.available" default="%d available" arguments="{0: availableLanguageCount}" /></span>
         </div>
         <f:for each="{languageOptions}" as="languageOption">
             <a
@@ -55,13 +55,13 @@
                 <span class="aqg-lang__option-trail">
                     <f:if condition="{languageOption.hasResults}">
                         <f:then>{languageOption.pageLabel}</f:then>
-                        <f:else><span class="aqg-lang__noresults">no results</span></f:else>
+                        <f:else><span class="aqg-lang__noresults"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.noResults" default="no results" /></span></f:else>
                     </f:if>
                 </span>
             </a>
         </f:for>
         <div class="aqg-lang__menu-foot">
-            Switching changes which site language AQG reports on. Backend language is unchanged.
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.switchHint" default="Switching changes which site language AQG reports on. Backend language is unchanged." />
         </div>
     </div>
 </details>

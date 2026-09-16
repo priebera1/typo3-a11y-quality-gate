@@ -149,7 +149,7 @@
                         />
                     </div>
 
-                    <nav aria-label="Local pages pagination">
+                    <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.paginationAria', default: 'Content scan pages pagination')}">
                         <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
                             <li class="page-item {f:if(condition: localPagination.hasPrevious, then: '', else: 'disabled')}">
                                 <a class="page-link" href="{f:if(condition: localPagination.hasPrevious, then: localPagination.previousUrl, else: '#')}">‹</a>

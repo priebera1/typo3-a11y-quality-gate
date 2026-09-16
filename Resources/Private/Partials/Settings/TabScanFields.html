@@ -22,7 +22,7 @@
                 <div>
                     <div class="aqg-scan-summary__numbers">
                         <strong data-a11y-settings-summary-enabled="true">0</strong>
-                        <span>of</span>
+                        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.of" default="of" /></span>
                         <strong data-a11y-settings-summary-total="true">0</strong>
                         <span class="aqg-scan-summary__label">
                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.fieldsEnabled" default="fields enabled" />
@@ -110,10 +110,10 @@
                                                         <f:then>{group.label}</f:then>
                                                         <f:else>
                                                             <f:switch expression="{tableName}">
-                                                                <f:case value="tt_content">Content elements</f:case>
-                                                                <f:case value="pages">Page properties</f:case>
-                                                                <f:case value="tx_news_domain_model_news">News records</f:case>
-                                                                <f:defaultCase>Custom records</f:defaultCase>
+                                                                <f:case value="tt_content"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.group.content" default="Content elements" /></f:case>
+                                                                <f:case value="pages"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.group.pages" default="Page properties" /></f:case>
+                                                                <f:case value="tx_news_domain_model_news"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.group.news" default="News records" /></f:case>
+                                                                <f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.group.custom" default="Custom records" /></f:defaultCase>
                                                             </f:switch>
                                                         </f:else>
                                                     </f:if>
@@ -122,10 +122,10 @@
                                             </span>
                                             <span class="aqg-fgroup__help">
                                                 <f:switch expression="{tableName}">
-                                                    <f:case value="tt_content">Standard TYPO3 content fields. Use this group to control what is scanned inside content elements on the page.</f:case>
-                                                    <f:case value="pages">Fields stored on the page itself — page title, navigation and metadata.</f:case>
-                                                    <f:case value="tx_news_domain_model_news">Detected from EXT:news. Add or remove fields if your team extends the news model.</f:case>
-                                                    <f:defaultCase>Detected database fields for this table. Enable the fields AQG should include in future scans.</f:defaultCase>
+                                                    <f:case value="tt_content"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.groupHelp.content" default="Standard TYPO3 content fields. Use this group to control what is scanned inside content elements on the page." /></f:case>
+                                                    <f:case value="pages"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.groupHelp.pages" default="Fields stored on the page itself — page title, navigation and metadata." /></f:case>
+                                                    <f:case value="tx_news_domain_model_news"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.groupHelp.news" default="Detected from EXT:news. Add or remove fields if your team extends the news model." /></f:case>
+                                                    <f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.groupHelp.custom" default="Detected database fields for this table. Enable the fields AQG should include in future scans." /></f:defaultCase>
                                                 </f:switch>
                                             </span>
                                         </span>

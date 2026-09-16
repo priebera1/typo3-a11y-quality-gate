@@ -42,6 +42,30 @@ abstract class AbstractBackendModuleController
         return $this->backendContextService->translate($key, $file);
     }
 
+    protected function translateWithFallback(string $key, string $fallback): string
+    {
+        $translated = $this->translate($key);
+
+        return $translated !== '' && $translated !== $key ? $translated : $fallback;
+    }
+
+    /**
+     * Formats "%d page" / "%d pages" style labels from singular/plural translation keys.
+     */
+    protected function formatCountLabel(int $count, string $keyPrefix, string $singular, string $plural): string
+    {
+        $label = $count === 1
+            ? $this->translateWithFallback($keyPrefix . '.singular', $singular)
+            : $this->translateWithFallback($keyPrefix . '.plural', $plural);
+
+        return sprintf($label, $count);
+    }
+
+    protected function getBackendLanguageCode(): string
+    {
+        return $this->backendContextService->getCurrentLanguageCode();
+    }
+
     protected function addFlashMessage(
         string $message,
         ContextualFeedbackSeverity $severity = ContextualFeedbackSeverity::OK,
@@ -109,7 +133,11 @@ abstract class AbstractBackendModuleController
 
     private function accessDeniedRedirect(ServerRequestInterface $request): ResponseInterface
     {
-        $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+        $this->addFlashMessage(
+            $this->translateWithFallback('module.accessDenied', 'Access denied.'),
+            ContextualFeedbackSeverity::ERROR,
+            $this->translateWithFallback('module.title', 'Accessibility')
+        );
 
         $referer = trim($request->getHeaderLine('referer'));
         if ($referer !== '' && $this->isSameOriginUrl($referer, $request)) {
@@ -215,7 +243,7 @@ abstract class AbstractBackendModuleController
                 'url' => $this->buildRouteUrl('web_a11y', $parameters),
                 'pages' => $pages,
                 'hasResults' => $pages > 0,
-                'pageLabel' => $pages === 1 ? '1 page' : ($pages . ' pages'),
+                'pageLabel' => $this->formatCountLabel($pages, 'module.language.pages', '%d page', '%d pages'),
             ];
         }
 
@@ -254,7 +282,7 @@ abstract class AbstractBackendModuleController
                 'url' => $this->buildRouteUrl('web_a11y.pageDetail', $parameters),
                 'pages' => $issueCount,
                 'hasResults' => $issueCount > 0,
-                'pageLabel' => $issueCount === 1 ? '1 issue' : ($issueCount . ' issues'),
+                'pageLabel' => $this->formatCountLabel($issueCount, 'module.language.issues', '%d issue', '%d issues'),
             ];
         }
 
@@ -271,7 +299,7 @@ abstract class AbstractBackendModuleController
 
         return $languageOptions[0] ?? [
             'languageId' => 0,
-            'title' => 'Default language',
+            'title' => $this->translateWithFallback('module.language.default', 'Default language'),
             'locale' => '',
             'flagIdentifier' => '',
             'base' => '',
@@ -281,7 +309,7 @@ abstract class AbstractBackendModuleController
             'url' => '',
             'pages' => 0,
             'hasResults' => false,
-            'pageLabel' => '0 issues',
+            'pageLabel' => $this->formatCountLabel(0, 'module.language.issues', '%d issue', '%d issues'),
         ];
     }
 

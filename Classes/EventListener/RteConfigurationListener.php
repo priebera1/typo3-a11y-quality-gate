@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\EventListener;
 
+use Priebera\A11yQualityGate\FormEngine\EditorFeedbackLabels;
 use Priebera\A11yQualityGate\Service\LanguageUidResolver;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -66,6 +67,7 @@ final class RteConfigurationListener
             'fieldName' => $field,
             'languageUid' => $languageUid,
             'pageUid' => $pageUid,
+            'labels' => EditorFeedbackLabels::translated(),
         ];
 
         $event->setConfiguration($configuration);

@@ -25,9 +25,36 @@ const normalizeSeverity = (severity) => {
 
 const severityRank = (severity) => ({ critical: 3, warning: 2, needs_review: 1.5, info: 1 }[normalizeSeverity(severity)] ?? 0);
 
+// Translated labels from the wizard markup (PlainHtmlA11yWizard, data-labels); English fallbacks otherwise.
+let editorLabels = {};
+
+const editorLabel = (key, fallback) => {
+    const value = editorLabels[key];
+    return typeof value === 'string' && value !== '' ? value : fallback;
+};
+
+const editorLabelHtml = (key, fallback) => escapeHtml(editorLabel(key, fallback));
+
+const readEditorLabels = (raw) => {
+    try {
+        const parsed = JSON.parse(raw || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+};
+
 const severityLabel = (severity) => {
-    const value = normalizeSeverity(severity);
-    return value === 'needs_review' ? 'Needs review' : value.charAt(0).toUpperCase() + value.slice(1);
+    switch (normalizeSeverity(severity)) {
+        case 'critical':
+            return editorLabel('severityCritical', 'Critical');
+        case 'warning':
+            return editorLabel('severityWarning', 'Warning');
+        case 'needs_review':
+            return editorLabel('severityNeedsReview', 'Needs review');
+        default:
+            return editorLabel('severityInfo', 'Info');
+    }
 };
 
 class PlainHtmlA11yValidator {
@@ -36,6 +63,7 @@ class PlainHtmlA11yValidator {
         this.recordUid = parseInt(container.dataset.recordUid || '0', 10);
         this.fieldName = container.dataset.fieldName || 'bodytext';
         this.inputName = container.dataset.inputName || '';
+        editorLabels = { ...editorLabels, ...readEditorLabels(container.dataset.labels) };
         this.summary = container.querySelector('.ck-a11y-summary');
         this.issuesContainer = container.querySelector('.aqg-plain-html-a11y__issues');
         this.textarea = this.findTextarea();
@@ -317,14 +345,14 @@ class PlainHtmlA11yValidator {
         const endpoint = TYPO3?.settings?.ajaxUrls?.a11y_rte_validate || TYPO3?.settings?.ajaxUrls?.['a11y_rte_validate'];
 
         if (!endpoint) {
-            this.renderError('Live validation endpoint is not available.');
+            this.renderError(editorLabel('liveUnavailable', 'Live validation endpoint is not available.'));
             return;
         }
 
         const html = this.getHtmlValue();
         this.lastKnownHtml = html;
         if (html.length > MAX_LIVE_VALIDATION_HTML_SIZE) {
-            this.renderError('HTML is too large for live validation. Save the record and run a page scan instead.');
+            this.renderError(editorLabel('htmlTooLarge', 'HTML is too large for live validation. Save the record and run a page scan instead.'));
             return;
         }
 
@@ -357,13 +385,13 @@ class PlainHtmlA11yValidator {
             }
 
             if (!response.ok) {
-                this.renderError(`Live validation failed (${response.status}).`);
+                this.renderError(editorLabel('liveFailedStatus', 'Live validation failed (%s).').replace('%s', String(response.status)));
                 return;
             }
 
             const data = await response.json();
             if (!data.success) {
-                this.renderError(data.error || 'Live validation failed.');
+                this.renderError(data.error || editorLabel('liveFailed', 'Live validation failed.'));
                 return;
             }
 
@@ -377,7 +405,7 @@ class PlainHtmlA11yValidator {
             if (error?.name === 'AbortError') {
                 return;
             }
-            this.renderError('Live validation failed. You can keep editing and try again after saving.');
+            this.renderError(editorLabel('liveFailedRetry', 'Live validation failed. You can keep editing and try again after saving.'));
         }
     }
 
@@ -403,8 +431,8 @@ class PlainHtmlA11yValidator {
         this.summary.innerHTML = `
             <span class="ck-a11y-summary__left">
                 <span class="ck-a11y-summary__spin" aria-hidden="true"></span>
-                <span class="ck-a11y-summary__title">Updating accessibility status…</span>
-                <span class="ck-a11y-summary__help">Refreshing live issues for this HTML field.</span>
+                <span class="ck-a11y-summary__title">${editorLabelHtml('updating', 'Updating accessibility status…')}</span>
+                <span class="ck-a11y-summary__help">${editorLabelHtml('plainUpdatingHelp', 'Refreshing live issues for this HTML field.')}</span>
             </span>
         `;
     }
@@ -418,11 +446,11 @@ class PlainHtmlA11yValidator {
         this.summary.innerHTML = `
             <span class="ck-a11y-summary__left">
                 <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
-                <span class="ck-a11y-summary__title">Accessibility issues could not be loaded</span>
+                <span class="ck-a11y-summary__title">${editorLabelHtml('loadFailed', 'Accessibility issues could not be loaded')}</span>
                 <span class="ck-a11y-summary__help">${escapeHtml(message)}</span>
             </span>
             <span class="ck-a11y-summary__right">
-                <button type="button" class="ck-a11y-summary__link js-aqg-plain-html-retry">Retry</button>
+                <button type="button" class="ck-a11y-summary__link js-aqg-plain-html-retry">${editorLabelHtml('retry', 'Retry')}</button>
             </span>
         `;
 
@@ -446,8 +474,8 @@ class PlainHtmlA11yValidator {
             this.summary.innerHTML = `
                 <span class="ck-a11y-summary__left">
                     <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
-                    <span class="ck-a11y-summary__title">Accessibility check passed</span>
-                    <span class="ck-a11y-summary__help">No issues found in this HTML field.</span>
+                    <span class="ck-a11y-summary__title">${editorLabelHtml('passed', 'Accessibility check passed')}</span>
+                    <span class="ck-a11y-summary__help">${editorLabelHtml('plainPassedHelp', 'No issues found in this HTML field.')}</span>
                 </span>
             `;
             return;
@@ -456,7 +484,9 @@ class PlainHtmlA11yValidator {
         this.summary.innerHTML = `
             <span class="ck-a11y-summary__left">
                 <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
-                <span class="ck-a11y-summary__title">${total} ${total === 1 ? 'issue' : 'issues'} found</span>
+                <span class="ck-a11y-summary__title">${(total === 1
+                    ? editorLabelHtml('issuesFoundOne', '%d issue found')
+                    : editorLabelHtml('issuesFoundOther', '%d issues found')).replace('%d', String(total))}</span>
                 <span class="ck-a11y-summary__counts">
                     ${this.renderCount('critical', counts.critical)}
                     ${this.renderCount('warning', counts.warning)}
@@ -465,7 +495,7 @@ class PlainHtmlA11yValidator {
                 </span>
             </span>
             <span class="ck-a11y-summary__right">
-                <span class="ck-a11y-summary__help">Lines with issues are marked directly in the HTML editor.</span>
+                <span class="ck-a11y-summary__help">${editorLabelHtml('plainLinesMarked', 'Lines with issues are marked directly in the HTML editor.')}</span>
             </span>
         `;
     }
@@ -475,9 +505,13 @@ class PlainHtmlA11yValidator {
             return '';
         }
 
-        const label = severity === 'info' || severity === 'needs_review'
-            ? severityLabel(severity)
-            : `${severityLabel(severity)}${count === 1 ? '' : 's'}`;
+        let label = severityLabel(severity);
+        if (count !== 1 && severity === 'critical') {
+            label = editorLabel('severityCriticalPlural', 'Criticals');
+        } else if (count !== 1 && severity === 'warning') {
+            label = editorLabel('severityWarningPlural', 'Warnings');
+        }
+        label = escapeHtml(label);
 
         return `
             <span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}">
@@ -526,7 +560,7 @@ class PlainHtmlA11yValidator {
                 <summary class="aqg-plain-html-a11y__issue-head">
                     <span class="aqg-plain-html-a11y__issue-num">#${String(index + 1).padStart(2, '0')}</span>
                     <span class="aqg-plain-html-a11y__issue-title-wrap">
-                        <span class="aqg-plain-html-a11y__issue-title">${escapeHtml(issue.message || issue.ruleId || 'Accessibility issue')}</span>
+                        <span class="aqg-plain-html-a11y__issue-title">${escapeHtml(issue.message || issue.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue'))}</span>
                         <span class="aqg-plain-html-a11y__issue-rule">${escapeHtml(issue.ruleId || '')}</span>
                     </span>
                     <span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}">
@@ -536,13 +570,13 @@ class PlainHtmlA11yValidator {
                 <div class="aqg-plain-html-a11y__issue-body">
                     ${hint}
                     <dl class="aqg-plain-html-a11y__meta">
-                        <div><dt>Rule</dt><dd>${escapeHtml(issue.ruleId || '')}</dd></div>
-                        <div><dt>Location</dt><dd>${escapeHtml(issue.contextPath || 'HTML source')}</dd></div>
+                        <div><dt>${editorLabelHtml('rule', 'Rule')}</dt><dd>${escapeHtml(issue.ruleId || '')}</dd></div>
+                        <div><dt>${editorLabelHtml('location', 'Location')}</dt><dd>${escapeHtml(issue.contextPath || editorLabel('htmlSource', 'HTML source'))}</dd></div>
                     </dl>
                     ${snippet}
                     <div class="aqg-plain-html-a11y__actions">
-                        <button type="button" class="btn btn-default btn-sm js-aqg-plain-html-locate" data-index="${index}">Locate in HTML</button>
-                        <button type="button" class="btn btn-default btn-sm js-aqg-plain-html-ignore" data-index="${index}">Ignore this issue</button>
+                        <button type="button" class="btn btn-default btn-sm js-aqg-plain-html-locate" data-index="${index}">${editorLabelHtml('locateInHtml', 'Locate in HTML')}</button>
+                        <button type="button" class="btn btn-default btn-sm js-aqg-plain-html-ignore" data-index="${index}">${editorLabelHtml('ignoreIssue', 'Ignore this issue')}</button>
                     </div>
                 </div>
             </details>
@@ -616,13 +650,13 @@ class PlainHtmlA11yValidator {
         const multiple = issues.length > 1;
         const body = multiple
             ? `<div class="aqg-code-html-panel__siblings">
-                    <strong>${issues.length} issues on this line</strong>
+                    <strong>${editorLabelHtml('issuesOnLine', '%d issues on this line').replace('%d', String(issues.length))}</strong>
                     ${issues.map((entry) => `
                         <div class="aqg-code-html-panel__sibling-row">
                             <button type="button" class="aqg-code-html-panel__sibling js-aqg-code-panel-locate" data-index="${entry.index}">
-                                <span>${severityLabel(entry.issue.severity)} ·</span> ${escapeHtml(entry.issue.message || entry.issue.ruleId || 'Accessibility issue')}
+                                <span>${escapeHtml(severityLabel(entry.issue.severity))} ·</span> ${escapeHtml(entry.issue.message || entry.issue.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue'))}
                             </button>
-                            <button type="button" class="btn btn-default btn-sm aqg-code-html-panel__sibling-ignore js-aqg-code-panel-ignore" data-index="${entry.index}">Ignore this issue</button>
+                            <button type="button" class="btn btn-default btn-sm aqg-code-html-panel__sibling-ignore js-aqg-code-panel-ignore" data-index="${entry.index}">${editorLabelHtml('ignoreIssue', 'Ignore this issue')}</button>
                         </div>
                     `).join('')}
                 </div>`
@@ -634,7 +668,7 @@ class PlainHtmlA11yValidator {
                 <span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}">
                     <span class="ck-a11y-panel__severity-dot" aria-hidden="true"></span>${severityLabel(severity)}
                 </span>
-                <span class="aqg-code-html-panel__kicker">HTML source issue</span>
+                <span class="aqg-code-html-panel__kicker">${editorLabelHtml('htmlSourceIssue', 'HTML source issue')}</span>
             </div>
             ${body}
         `;
@@ -660,29 +694,29 @@ class PlainHtmlA11yValidator {
     renderPanelIssue(issue, index) {
         const hint = issue.hint ? `
             <div class="ck-a11y-panel__hint">
-                <span class="ck-a11y-panel__hint-label">How to fix</span>
+                <span class="ck-a11y-panel__hint-label">${editorLabelHtml('howToFix', 'How to fix')}</span>
                 <p class="ck-a11y-panel__hint-text">${escapeHtml(issue.hint)}</p>
             </div>
         ` : '';
         const snippet = issue.snippet ? `<code class="ck-a11y-panel__snippet">${escapeHtml(issue.snippet)}</code>` : '';
 
         return `
-            <h4 class="ck-a11y-panel__title">${escapeHtml(issue.message || issue.ruleId || 'Accessibility issue')}</h4>
+            <h4 class="ck-a11y-panel__title">${escapeHtml(issue.message || issue.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue'))}</h4>
             ${hint}
             <div class="ck-a11y-panel__details">
                 <div class="ck-a11y-panel__details-row">
-                    <span class="ck-a11y-panel__details-key">Rule</span>
+                    <span class="ck-a11y-panel__details-key">${editorLabelHtml('rule', 'Rule')}</span>
                     <span class="ck-a11y-panel__details-val">${escapeHtml(issue.ruleId || '')}</span>
                 </div>
                 <div class="ck-a11y-panel__details-row">
-                    <span class="ck-a11y-panel__details-key">Location</span>
-                    <span class="ck-a11y-panel__details-val">${escapeHtml(issue.contextPath || 'HTML source')}</span>
+                    <span class="ck-a11y-panel__details-key">${editorLabelHtml('location', 'Location')}</span>
+                    <span class="ck-a11y-panel__details-val">${escapeHtml(issue.contextPath || editorLabel('htmlSource', 'HTML source'))}</span>
                 </div>
                 ${snippet}
             </div>
             <div class="aqg-code-html-panel__actions">
-                <button type="button" class="btn btn-default btn-sm js-aqg-code-panel-locate" data-index="${index}">Locate</button>
-                <button type="button" class="btn btn-default btn-sm js-aqg-code-panel-ignore" data-index="${index}">Ignore this issue</button>
+                <button type="button" class="btn btn-default btn-sm js-aqg-code-panel-locate" data-index="${index}">${editorLabelHtml('locate', 'Locate')}</button>
+                <button type="button" class="btn btn-default btn-sm js-aqg-code-panel-ignore" data-index="${index}">${editorLabelHtml('ignoreIssue', 'Ignore this issue')}</button>
             </div>
         `;
     }
@@ -1405,14 +1439,14 @@ class PlainHtmlA11yValidator {
                     recordUid: this.recordUid,
                     fieldName: this.fieldName,
                     html: this.getHtmlValue(),
-                    reason: 'Ignored via HTML editor',
+                    reason: editorLabel('ignoredReasonHtml', 'Ignored via HTML editor'),
                 }),
             });
 
             const data = await response.json();
             if (!response.ok || !data.success) {
                 button.disabled = false;
-                button.textContent = 'Ignore failed';
+                button.textContent = editorLabel('ignoreFailed', 'Ignore failed');
                 return;
             }
 
@@ -1424,7 +1458,7 @@ class PlainHtmlA11yValidator {
             this.hideEditorPanel();
         } catch (error) {
             button.disabled = false;
-            button.textContent = 'Ignore failed';
+            button.textContent = editorLabel('ignoreFailed', 'Ignore failed');
         }
     }
 }

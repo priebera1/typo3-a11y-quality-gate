@@ -85,7 +85,7 @@
             aria-selected="{settingsTabSelected.statement}"
             aria-current="{f:if(condition: '{activeTab} == \'statement\'', then: 'page', else: '')}"
     >
-        <span>Statement</span>
+        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.statement" default="Statement" /></span>
         <f:if condition="{statementGeneratorAvailable}">
             <f:then></f:then>
             <f:else><span class="aqg-tab__badge aqg-tab__badge--pro">PRO</span></f:else>

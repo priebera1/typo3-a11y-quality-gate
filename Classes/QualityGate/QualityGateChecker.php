@@ -38,6 +38,7 @@ final class QualityGateChecker
 
         $triggered = false;
         $reasons = [];
+        $reasonDetails = [];
 
         if ($counts['critical'] > $thresholdCritical) {
             $triggered = true;
@@ -46,6 +47,7 @@ final class QualityGateChecker
                 $counts['critical'],
                 $thresholdCritical
             );
+            $reasonDetails[] = ['severity' => 'critical', 'count' => (int)$counts['critical'], 'threshold' => $thresholdCritical];
         }
 
         if ($thresholdWarning >= 0 && $counts['warning'] > $thresholdWarning) {
@@ -55,6 +57,7 @@ final class QualityGateChecker
                 $counts['warning'],
                 $thresholdWarning
             );
+            $reasonDetails[] = ['severity' => 'warning', 'count' => (int)$counts['warning'], 'threshold' => $thresholdWarning];
         }
 
         if (!$triggered) {
@@ -68,6 +71,7 @@ final class QualityGateChecker
             mode: $publishMode,
             counts: $counts,
             reasons: $reasons,
+            reasonDetails: $reasonDetails,
         );
     }
 }

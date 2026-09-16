@@ -389,7 +389,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 message: $exception->getMessage(),
                 status: 400,
                 code: 'invalid_free_submit_intent',
-                title: 'Free Remote Preview request expired',
+                title: $this->translate('proCrawler.freeIntentExpired.title', 'Free Remote Preview request expired'),
             );
         } catch (TokenRefreshException $exception) {
             return $this->buildTokenRefreshExceptionResponse(
@@ -938,19 +938,19 @@ final class ProCrawlerAjaxController extends AbstractApiController
         $scan = $this->remoteScanRepository->findScanByJobId($jobId);
         if (!is_array($scan)) {
             return $this->buildSimpleErrorResponse(
-                message: 'Unknown remote scan job.',
+                message: $this->translate('proCrawler.unknownJob.message', 'Unknown remote scan job.'),
                 status: 404,
                 code: 'unknown_remote_scan_job',
-                title: 'Unknown remote scan job'
+                title: $this->translate('proCrawler.unknownJob.title', 'Unknown remote scan job')
             );
         }
 
         if ((string)($scan['site_identifier'] ?? '') !== $siteIdentifier) {
             return $this->buildSimpleErrorResponse(
-                message: 'The remote scan job does not belong to the requested site.',
+                message: $this->translate('proCrawler.jobSiteMismatch.message', 'The remote scan job does not belong to the requested site.'),
                 status: 403,
                 code: 'job_site_mismatch',
-                title: 'Remote scan job site mismatch'
+                title: $this->translate('proCrawler.jobSiteMismatch.title', 'Remote scan job site mismatch')
             );
         }
 
@@ -958,10 +958,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
         $accessPageUid = $pageUid > 0 ? $pageUid : (int)$site->getRootPageId();
         if ($accessPageUid > 0 && !$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $accessPageUid)) {
             return $this->buildSimpleErrorResponse(
-                message: 'Access denied for this remote scan job.',
+                message: $this->translate('proCrawler.jobAccessDenied.message', 'Access denied for this remote scan job.'),
                 status: 403,
                 code: 'job_access_denied',
-                title: 'Access denied'
+                title: $this->translate('proCrawler.jobAccessDenied.title', 'Access denied')
             );
         }
 
@@ -985,10 +985,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
     private function buildRemoteJobResponseMismatchResponse(): ResponseInterface
     {
         return $this->buildSimpleErrorResponse(
-            message: 'Remote crawler response did not match the requested scan job.',
+            message: $this->translate('proCrawler.responseMismatch.message', 'Remote crawler response did not match the requested scan job.'),
             status: 409,
             code: 'remote_job_response_mismatch',
-            title: 'Remote scan response mismatch'
+            title: $this->translate('proCrawler.responseMismatch.title', 'Remote scan response mismatch')
         );
     }
 
@@ -1010,10 +1010,10 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return $this->buildSimpleErrorResponse(
-            message: 'Remote crawler is available with a valid remote-scanning licence.',
+            message: $this->translate('proCrawler.licenceRequired.message', 'The remote crawler requires a valid Trial, PRO or Agency licence.'),
             status: 403,
             code: 'pro_crawler_required',
-            title: 'Remote-scanning licence required'
+            title: $this->translate('proCrawler.licenceRequired.title', 'Remote-scanning licence required')
         );
     }
 
@@ -1284,7 +1284,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         return $this->jsonResponse([
             'success' => false,
             'error' => 'A remote scan submit is already in progress for this site.',
-            'message' => 'A remote scan submit is already in progress for this site. Please wait a moment and try again.',
+            'message' => $this->translate('proCrawler.submitInProgress', 'A remote scan submit is already in progress for this site. Please wait a moment and try again.'),
             'code' => 'remote_scan_submit_in_progress',
             'siteIdentifier' => $siteIdentifier,
         ], 409);
@@ -1337,7 +1337,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             message: $exception->getMessage(),
             status: 403,
             code: 'token_refresh_failed',
-            title: 'PRO authentication failed'
+            title: $this->translate('proCrawler.authFailed.title', 'Licence authentication failed')
         );
     }
 
@@ -1348,18 +1348,18 @@ final class ProCrawlerAjaxController extends AbstractApiController
             'code' => $exception->errorCode,
             'state' => $exception->state,
             'title' => match ($exception->state) {
-                'FREE_LIMIT_REACHED' => 'Free scan limit reached',
-                'FEATURE_NOT_AVAILABLE' => 'Available in PRO',
-                'PROOF_ERROR' => 'Free Preview proof could not be verified',
-                'IDEMPOTENCY_CONFLICT' => 'Free Preview submit conflict',
-                'TOKEN_ERROR' => 'Free Preview authentication failed',
-                'MISSING_INSTALLATION_ID' => 'Free Preview installation identity missing',
-                'INSTALLATION_IDENTITY_MISMATCH' => 'Free Preview installation identity mismatch',
-                'SITE_IDENTITY_MISMATCH' => 'Free Preview site identity mismatch',
-                'INVALID_SITE' => 'Free Preview site configuration invalid',
-                'ENDPOINT_NOT_FOUND' => 'Free Preview API route unavailable',
-                'TOKEN_CONTRACT_ERROR', 'API_CONTRACT_ERROR' => 'Free Preview API contract rejected',
-                default => 'Free Remote Preview unavailable',
+                'FREE_LIMIT_REACHED' => $this->translate('freePreview.error.limitReached.title', 'Free scan limit reached'),
+                'FEATURE_NOT_AVAILABLE' => $this->translate('freePreview.error.featureUnavailable.title', 'Not included in the Free Remote Preview'),
+                'PROOF_ERROR' => $this->translate('freePreview.error.proof.title', 'Free Preview proof could not be verified'),
+                'IDEMPOTENCY_CONFLICT' => $this->translate('freePreview.error.idempotency.title', 'Free Preview submit conflict'),
+                'TOKEN_ERROR' => $this->translate('freePreview.error.token.title', 'Free Preview authentication failed'),
+                'MISSING_INSTALLATION_ID' => $this->translate('freePreview.error.missingInstallation.title', 'Free Preview installation identity missing'),
+                'INSTALLATION_IDENTITY_MISMATCH' => $this->translate('freePreview.error.installationMismatch.title', 'Free Preview installation identity mismatch'),
+                'SITE_IDENTITY_MISMATCH' => $this->translate('freePreview.error.siteMismatch.title', 'Free Preview site identity mismatch'),
+                'INVALID_SITE' => $this->translate('freePreview.error.invalidSite.title', 'Free Preview site configuration invalid'),
+                'ENDPOINT_NOT_FOUND' => $this->translate('freePreview.error.endpoint.title', 'Free Preview API route unavailable'),
+                'TOKEN_CONTRACT_ERROR', 'API_CONTRACT_ERROR' => $this->translate('freePreview.error.contract.title', 'Free Preview API contract rejected'),
+                default => $this->translate('freePreview.error.unavailable.title', 'Free Remote Preview unavailable'),
             },
             'message' => $exception->getMessage(),
             'status' => $exception->httpStatus,

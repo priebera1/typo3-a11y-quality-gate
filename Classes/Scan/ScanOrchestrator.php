@@ -12,7 +12,9 @@ use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Rendered\RenderedPageScanner;
 use Priebera\A11yQualityGate\Rendered\RenderedPageTypeGuard;
+use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Log\LoggerInterface;
 
 final class ScanOrchestrator
@@ -54,6 +56,7 @@ final class ScanOrchestrator
         private readonly ScanRepository $scanRepository,
         private readonly SourceStateRepository $sourceStateRepository,
         private readonly LoggerInterface $logger,
+        private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
     ) {
     }
 
@@ -131,6 +134,9 @@ final class ScanOrchestrator
         ?\Closure $onRunStarted,
         bool $includeRenderedPageCheck,
     ): ScanResult {
+        // A first scan on a fresh installation (module, Page module, CLI or Scheduler) must check content.
+        $this->fieldConfigurationBootstrapService->initializeIfUnconfigured();
+
         $scanUid = $this->scanRepository->createScanRun(
             siteIdentifier: $siteIdentifier,
             rootPid: $rootPid,
@@ -449,7 +455,10 @@ final class ScanOrchestrator
                     $renderedCheckCompleted = true;
                     $result->addWarning(
                         code: 'rendered_check_skipped_unsupported_doktype',
-                        message: 'Rendered page check was skipped because this page type does not render a standard frontend page. Local content checks were still completed.',
+                        message: BackendLabelUtility::translate(
+                            'renderedCheck.warning.unsupportedDoktype',
+                            'Rendered page check was skipped because this page type does not render a standard frontend page. Local content checks were still completed.'
+                        ),
                         context: [
                             'pageUid' => $pageUid,
                             'languageUid' => $renderedLanguageUid,

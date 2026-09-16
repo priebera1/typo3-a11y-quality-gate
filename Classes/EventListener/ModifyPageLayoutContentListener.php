@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\EventListener;
 
+use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\PageModuleIndicatorService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -17,6 +18,7 @@ final class ModifyPageLayoutContentListener
         private readonly SiteResolutionService $siteResolutionService,
         private readonly PageModuleIndicatorService $pageModuleIndicatorService,
         private readonly PageRenderer $pageRenderer,
+        private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
     ) {
     }
 
@@ -41,6 +43,7 @@ final class ModifyPageLayoutContentListener
         }
 
         $this->pageRenderer->addCssFile('EXT:a11y_quality_gate/Resources/Public/Css/page-module-indicator.css');
+        $this->backendJavaScriptModuleService->registerJavaScriptLabels($this->pageRenderer);
         $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/page-module-indicator.js');
 
         $event->addHeaderContent($content);

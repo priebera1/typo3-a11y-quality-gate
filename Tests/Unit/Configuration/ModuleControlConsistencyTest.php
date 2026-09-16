@@ -106,9 +106,9 @@ final class ModuleControlConsistencyTest extends TestCase
             'An aria-label replaces the visible current language in the trigger\'s accessible name (WCAG 2.5.3).'
         );
         self::assertMatchesRegularExpression(
-            '/<span class="visually-hidden">[^<]*Site language[^<]*<\/span>/',
+            '/<span class="visually-hidden">\s*<f:translate key="[^"]*:module\.language\.siteLanguageLabel"[^>]*\/>\s*<\/span>/',
             $content,
-            'The trigger purpose stays announced through visually hidden text.'
+            'The trigger purpose stays announced through visually hidden, translated text.'
         );
         self::assertStringContainsString('{currentLanguageOption.title}', $content);
     }

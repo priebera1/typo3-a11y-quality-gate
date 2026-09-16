@@ -470,7 +470,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         if (($alert['comparisonRows'] ?? []) === [] && is_int($previousFindings) && is_int($currentFindings)) {
             $delta = $currentFindings - $previousFindings;
             $alert['comparisonRows'] = [[
-                'label' => 'Findings change',
+                'label' => $this->translateWithFallback('remote.regression.findingsChange', 'Findings change'),
                 'value' => $delta > 0 ? '+' . $delta : (string)$delta,
                 'tone' => $delta > 0 ? 'warning' : ($delta < 0 ? 'positive' : 'neutral'),
             ]];
@@ -525,7 +525,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $item = $this->enrichRemotePageHistoryItemUrls($request, $item, $siteIdentifier, $remotePageUid, $pageUid, $languageUid);
             if ($currentJobId !== '' && (string)($item['jobId'] ?? '') !== $currentJobId) {
                 $item['compareUrl'] = '';
-                $item['compareLabel'] = 'Compare is available from the current scan only.';
+                $item['compareLabel'] = $this->translateWithFallback('remote.history.compareCurrentOnly', 'Compare is available from the current scan only.');
             }
             $items[] = $item;
         }
@@ -534,7 +534,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             return [
                 'available' => true,
                 'hasItems' => false,
-                'message' => 'No previous page scans for this URL were returned yet.',
+                'message' => $this->translateWithFallback('remote.history.noPreviousPageScans', 'No previous page scans for this URL were returned yet.'),
                 'items' => [],
             ];
         }
@@ -718,10 +718,11 @@ final class RemotePageDetailController extends AbstractBackendModuleController
     private function groupIssuesByRule(array $issues, array $pageRecommendation = []): array
     {
         $groups = [];
+        $language = $this->getBackendLanguageCode();
 
         foreach ($issues as $issue) {
             $ruleId = (string)($issue['rule_id'] ?? 'unknown');
-            $metadata = $this->ruleMetadataPresentationService->present($issue);
+            $metadata = $this->ruleMetadataPresentationService->present($issue, $language);
             $helpUrl = trim((string)($issue['help_url'] ?? ''));
             $documentationLinkCandidates = is_array($metadata['documentationLinks'] ?? null)
                 ? $metadata['documentationLinks']
@@ -1002,7 +1003,10 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             return '';
         }
 
-        return ucwords(str_replace(['_', '-'], ' ', $value));
+        return $this->translateWithFallback(
+            'badge.' . strtolower(str_replace('-', '_', $value)),
+            ucwords(str_replace(['_', '-'], ' ', $value))
+        );
     }
 
     private function resolveImpactTone(string $impact): string
@@ -1190,8 +1194,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         return [
-            'title' => 'Keyboard & structure review',
-            'subtitle' => 'Automated helper signals for manual review. These checks do not replace a full accessibility audit.',
+            'title' => $this->translateWithFallback('module.remotePageDetail.review.aria', 'Keyboard and structure review'),
+            'subtitle' => $this->translateWithFallback('module.remotePageDetail.review.subtitle', 'Automated helper signals for manual review. These checks do not replace a full accessibility audit.'),
             'keyboard' => $keyboard,
             'hasKeyboard' => $keyboard !== [],
             'structure' => $structure,
@@ -1521,8 +1525,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         return [
-            'title' => 'Start here',
-            'subtitle' => 'Suggested first step based on automated findings',
+            'title' => $this->translateWithFallback('module.remotePageDetail.startHere.title', 'Start here'),
+            'subtitle' => $this->translateWithFallback('module.remotePageDetail.startHere.subtitle', 'Suggested first step based on automated findings'),
             'summary' => $summary,
             'primaryRuleId' => $primaryRuleId,
             'primaryFixType' => $primaryFixType,
@@ -1530,17 +1534,17 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'primaryOwner' => $primaryOwner,
             'primaryOwnerLabel' => $this->formatBadgeLabel($primaryOwner),
             'quickWinsTotal' => $quickWinsTotal,
-            'quickWinsLabel' => $quickWinsTotal > 0 ? $quickWinsTotal . ' ' . ($quickWinsTotal === 1 ? 'quick win' : 'quick wins') : '',
+            'quickWinsLabel' => $quickWinsTotal > 0 ? $this->formatCountLabel($quickWinsTotal, 'module.remotePageDetail.count.quickWins', '%d quick win', '%d quick wins') : '',
             'templateIssuesTotal' => $templateIssuesTotal,
-            'templateIssuesLabel' => $templateIssuesTotal > 0 ? $templateIssuesTotal . ' ' . ($templateIssuesTotal === 1 ? 'template issue' : 'template issues') : '',
+            'templateIssuesLabel' => $templateIssuesTotal > 0 ? $this->formatCountLabel($templateIssuesTotal, 'module.remotePageDetail.count.templateIssues', '%d template issue', '%d template issues') : '',
             'contentIssuesTotal' => $contentIssuesTotal,
-            'contentIssuesLabel' => $contentIssuesTotal > 0 ? $contentIssuesTotal . ' ' . ($contentIssuesTotal === 1 ? 'content issue' : 'content issues') : '',
+            'contentIssuesLabel' => $contentIssuesTotal > 0 ? $this->formatCountLabel($contentIssuesTotal, 'module.remotePageDetail.count.contentIssues', '%d content issue', '%d content issues') : '',
             'designIssuesTotal' => $designIssuesTotal,
-            'designIssuesLabel' => $designIssuesTotal > 0 ? $designIssuesTotal . ' ' . ($designIssuesTotal === 1 ? 'design issue' : 'design issues') : '',
+            'designIssuesLabel' => $designIssuesTotal > 0 ? $this->formatCountLabel($designIssuesTotal, 'module.remotePageDetail.count.designIssues', '%d design issue', '%d design issues') : '',
             'firstSteps' => $firstSteps,
             'hasFirstSteps' => $firstSteps !== [],
             'manualReviewRequired' => $manualReviewRequired,
-            'manualReviewLabel' => $manualReviewRequired ? 'Manual review required' : '',
+            'manualReviewLabel' => $manualReviewRequired ? $this->translateWithFallback('remote.label.manualReviewRequired', 'Manual review required') : '',
         ];
     }
 
@@ -1587,7 +1591,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 }
             }
 
-            $item = $this->normalizeRemediationSummaryItem((string)$key, (string)$config['label'], $value);
+            $label = $this->translateWithFallback('remote.remediation.' . $key, (string)$config['label']);
+            $item = $this->normalizeRemediationSummaryItem((string)$key, $label, $value);
             if ($item !== null) {
                 $items[] = $item;
             }
@@ -1601,7 +1606,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         return [
-            'title' => 'Suggested remediation grouping',
+            'title' => $this->translateWithFallback('overview.remote.additionalSignals.remediation.title', 'Suggested remediation grouping'),
             'items' => $items,
             'hasItems' => $items !== [],
             'recommendation' => $recommendation,
@@ -1854,9 +1859,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         $typeLabel = match ($type) {
-            'foreground', 'fg', 'text' => 'Foreground',
-            'background', 'bg' => 'Background',
-            default => 'Candidate',
+            'foreground', 'fg', 'text' => $this->translateWithFallback('overview.remote.additionalSignals.contrast.foreground', 'Foreground'),
+            'background', 'bg' => $this->translateWithFallback('overview.remote.additionalSignals.contrast.background', 'Background'),
+            default => $this->translateWithFallback('module.remotePageDetail.contrast.candidate', 'Candidate'),
         };
 
         return [

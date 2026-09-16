@@ -302,20 +302,11 @@
             <trans-unit id="module.remotePageDetail.userAgent">
                 <source>User agent</source>
             </trans-unit>
-            <trans-unit id="pageDetail.filterSummary.open">
-                <source>open</source>
-            </trans-unit>
-            <trans-unit id="pageDetail.filterSummary.ignored">
-                <source>ignored</source>
-            </trans-unit>
-            <trans-unit id="pageDetail.filterSummary.resolved">
-                <source>resolved</source>
-            </trans-unit>
             <trans-unit id="pageDetail.filterSummary.template.singular">
-                <source>Showing %d %sissue</source>
+                <source>Showing %d issue</source>
             </trans-unit>
             <trans-unit id="pageDetail.filterSummary.template.plural">
-                <source>Showing %d %sissues</source>
+                <source>Showing %d issues</source>
             </trans-unit>
             <trans-unit id="module.title">
                 <source>Accessibility</source>
@@ -419,20 +410,8 @@
             <trans-unit id="overview.noScanYet.text">
                 <source>Run a content scan to check this page tree for accessibility issues.</source>
             </trans-unit>
-            <trans-unit id="overview.notice.settingsRequired.text">
-                <source>Open Settings, choose which fields should be scanned, save your changes, and then start the first scan.</source>
-            </trans-unit>
-            <trans-unit id="overview.notice.settingsRequired.title">
-                <source>Scanner fields are not configured yet.</source>
-            </trans-unit>
             <trans-unit id="overview.pageHead.site">
                 <source>Site</source>
-            </trans-unit>
-            <trans-unit id="overview.proHint.text">
-                <source>AQG PRO adds frontend scans for published pages and advanced reporting.</source>
-            </trans-unit>
-            <trans-unit id="overview.proHint.title">
-                <source>Need frontend crawling?</source>
             </trans-unit>
             <trans-unit id="overview.proSummary.empty">
                 <source>No frontend scan has been run yet.</source>
@@ -655,15 +634,6 @@
             </trans-unit>
             <trans-unit id="overview.localScan.cancellingShort">
                 <source>Cancelling</source>
-            </trans-unit>
-            <trans-unit id="overview.proHint.sectionSub">
-                <source>Available in AQG PRO.</source>
-            </trans-unit>
-            <trans-unit id="overview.proHint.lockedTitle">
-                <source>Frontend scan is a PRO feature</source>
-            </trans-unit>
-            <trans-unit id="overview.proHint.lockedText">
-                <source>Local content scans stay free and unlimited. Frontend crawling is part of AQG PRO.</source>
             </trans-unit>
             <trans-unit id="overview.proStatus.trial">
                 <source>TRIAL</source>
@@ -1011,13 +981,13 @@
                 <source>This section is only available to TYPO3 administrators.</source>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.locked.title">
-                <source>Remote scanning requires a valid remote-scanning licence</source>
+                <source>Remote scan access settings need a Trial, PRO or Agency licence</source>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.locked.description">
-                <source>Remote scan access is available with a valid Trial, PRO, Agency or Enterprise licence. Add a licence key or start a trial to configure remote crawling, scanner tokens and protected staging access.</source>
+                <source>Scanner tokens, HTTP authentication for protected staging, cookie selectors and crawl rules apply to licensed frontend scans. Add a licence key or start a trial to configure them.</source>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.locked.text">
-                <source>The FREE edition keeps local TYPO3 content checks available, but browser-based remote crawling is gated. Configure a valid remote-scanning licence to unlock this setup.</source>
+                <source>FREE includes local TYPO3 content checks and the daily Free Remote Preview, which scans publicly reachable pages without these access settings.</source>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.learnMore">
                 <source>Learn about remote scanning</source>
@@ -1047,7 +1017,7 @@
                 <source>Paste your AQG licence key to unlock PRO features for this installation.</source>
             </trans-unit>
             <trans-unit id="settings.licence.key.portalHelp">
-                <source>The key is bound to a single domain. Find it in your purchase email or in the AQG customer portal:</source>
+                <source>The key is bound to the domains registered for your licence. Find it in your purchase email or in the AQG customer portal:</source>
             </trans-unit>
             <trans-unit id="settings.licence.boundTo">
                 <source>bound to</source>
@@ -1071,10 +1041,10 @@
                 <source>Validating...</source>
             </trans-unit>
             <trans-unit id="settings.licence.showProHints">
-                <source>Show PRO hints when licence is not active</source>
+                <source>Show PRO upgrade offers</source>
             </trans-unit>
             <trans-unit id="settings.licence.showProHintsHint">
-                <source>When off, PRO upgrade hints in Overview and Page Detail are hidden. Existing PRO features keep working if you have a licence.</source>
+                <source>Shows the upgrade card with trial and pricing links in the Free Remote Preview. Turn it off to hide these offers from editors; locked features still say that they need a licence.</source>
             </trans-unit>
             <trans-unit id="settings.licence.statusTitle">
                 <source>Current status</source>
@@ -1200,7 +1170,7 @@
                 <source>Trial is active</source>
             </trans-unit>
             <trans-unit id="settings.licence.trial.activeText">
-                <source>PRO features are enabled until the trial expires. Add a licence key to keep them after expiry.</source>
+                <source>Frontend scans with screenshots, scan history and the blocking quality gate are enabled until the trial ends. PDF export, AI suggestions and the Statement Assistant need PRO or Agency.</source>
             </trans-unit>
             <trans-unit id="settings.licence.trialStarted">
                 <source>Trial started</source>
@@ -1249,9 +1219,6 @@
             </trans-unit>
             <trans-unit id="settings.licence.pro.activeText">
                 <source>All PRO features unlocked for this installation.</source>
-            </trans-unit>
-            <trans-unit id="settings.licence.singleSite">
-                <source>single site</source>
             </trans-unit>
             <trans-unit id="settings.licence.seats">
                 <source>Seats</source>
@@ -1389,7 +1356,7 @@
                 <source>A paid AQG licence is active for this TYPO3 instance.</source>
             </trans-unit>
             <trans-unit id="settings.licence.trial.featuresTitle">
-                <source>What’s included in the trial</source>
+                <source>Trial scope and limits</source>
             </trans-unit>
             <trans-unit id="settings.licence.original.featuresTitle">
                 <source>What’s included in this licence</source>
@@ -1409,11 +1376,8 @@
             <trans-unit id="settings.licence.feature.pdfExport">
                 <source>PDF export</source>
             </trans-unit>
-            <trans-unit id="settings.licence.feature.allRules">
-                <source>All 21 WCAG 2.1 AA rules</source>
-            </trans-unit>
             <trans-unit id="settings.licence.feature.advancedRuleOverrides">
-                <source>Advanced rule overrides</source>
+                <source>Custom phrase lists for link-text rules</source>
             </trans-unit>
             <trans-unit id="settings.licence.feature.localScanning">
                 <source>Local backend scanning</source>
@@ -1804,9 +1768,6 @@
             </trans-unit>
             <trans-unit id="pageModuleIndicator.proHint.remoteScanAvailable">
                 <source>Frontend scan available — run a frontend scan</source>
-            </trans-unit>
-            <trans-unit id="pageModuleIndicator.proHint.frontendScan">
-                <source>Frontend scan available in PRO</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.row.local">
                 <source>Local scan</source>
@@ -3924,6 +3885,2544 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="aiIframeTitle.providerError">
                 <source>The AI provider could not return an iframe title. Please try again later.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.available">
+                <source>Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free page scans per day.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.remaining">
+                <source>Free Remote Preview: %1$d of %2$d free page scans left today.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.limitReached">
+                <source>Daily Free limit reached — all free page scans for today are used.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.nextScans">
+                <source>Next free scans: %s.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.unavailable">
+                <source>Free Remote Preview status is temporarily unavailable.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.open">
+                <source>Open frontend scan</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialExpired.title">
+                <source>Your trial has ended</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialExpired.text">
+                <source>Frontend scans, screenshots and scan history are switched off. Choose a plan to continue with PRO — Free features keep working.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.expired.title">
+                <source>Licence expired</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.expired.text">
+                <source>Renew the licence in the customer portal to restore PRO features. Free features keep working in the meantime.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.inactive.title">
+                <source>Licence inactive</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.inactive.text">
+                <source>This licence is currently deactivated, for example after a cancelled or unpaid subscription. Check its status in the customer portal.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainLimitReached.title">
+                <source>Domain limit reached</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainLimitReached.text">
+                <source>All domains included in this licence are in use. Release a domain in the customer portal, or switch to Agency for unlimited domains.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainMismatch.title">
+                <source>Domain not assigned to this licence</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainMismatch.text">
+                <source>The licence is valid, but the domain of this TYPO3 site is not assigned to it. Add the domain in the customer portal.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.projectMismatch.title">
+                <source>Licence belongs to another TYPO3 project</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.projectMismatch.text">
+                <source>This key is already registered to a different TYPO3 installation. Use a separate licence for this project, or contact support if the installation was moved.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialDomainMismatch.title">
+                <source>Trial belongs to another domain</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialDomainMismatch.text">
+                <source>This trial is bound to a different domain. Choose a plan to use AQG PRO on this site.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialProjectMismatch.title">
+                <source>Trial belongs to another TYPO3 project</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialProjectMismatch.text">
+                <source>This trial is registered to a different TYPO3 installation. Choose a plan to use AQG PRO here.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialNotVerified.title">
+                <source>Trial not confirmed yet</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialNotVerified.text">
+                <source>Confirm the trial with the link in the verification email, then validate the key again.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialRevoked.title">
+                <source>Trial revoked</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.trialRevoked.text">
+                <source>This trial was revoked. Contact support if you think this is a mistake.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.invalidKey.title">
+                <source>Licence key not recognised</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.invalidKey.text">
+                <source>Check the key for typos, or copy it again from your purchase email or the customer portal.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.unavailable.title">
+                <source>Licence check temporarily unavailable</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.unavailable.text">
+                <source>AQG could not reach the licence service. PRO features stay off until the next successful check; Free features keep working.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.rateLimited.title">
+                <source>Too many validation attempts</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.rateLimited.text">
+                <source>The licence service paused validation for this installation. Wait a few minutes, then retry.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.unknown.title">
+                <source>Licence could not be validated</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.unknown.text">
+                <source>The licence service returned an unexpected answer. Retry, and contact support if it keeps happening.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.cta.choosePlan">
+                <source>Choose a plan</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.cta.comparePlans">
+                <source>Compare plans</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.cta.renew">
+                <source>Renew licence</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.cta.validateAgain">
+                <source>Validate again</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.tag.inactive">
+                <source>INACTIVE</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.reasonCode">
+                <source>Reason code</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.limit.paidOnly">
+                <source>PDF export, AI suggestions and the Statement Assistant are not part of the trial</source>
+            </trans-unit>
+            <trans-unit id="overview.licenceNotice.settings">
+                <source>Licence settings</source>
+            </trans-unit>
+            <trans-unit id="overview.firstRun.title">
+                <source>AQG is ready to scan</source>
+            </trans-unit>
+            <trans-unit id="overview.firstRun.text">
+                <source>AQG found %1$d rich-text and media fields in your TYPO3 content and enabled them for scanning. Next: Scan this page or Scan site.</source>
+            </trans-unit>
+            <trans-unit id="overview.firstRun.reviewFields">
+                <source>Review scan fields</source>
+            </trans-unit>
+            <trans-unit id="overview.notice.fieldsDisabled.title">
+                <source>No content fields are enabled for scanning</source>
+            </trans-unit>
+            <trans-unit id="overview.notice.fieldsDisabled.text">
+                <source>Content scans skip all TYPO3 content fields until at least one field is enabled.</source>
+            </trans-unit>
+            <trans-unit id="overview.notice.noFieldsFound.title">
+                <source>No scannable content fields found</source>
+            </trans-unit>
+            <trans-unit id="overview.notice.noFieldsFound.text">
+                <source>AQG found no rich-text or media fields in TCA. Refresh the field list after installing the extensions that provide your content.</source>
+            </trans-unit>
+            <trans-unit id="overview.notice.chooseFields">
+                <source>Choose scan fields</source>
+            </trans-unit>
+            <trans-unit id="module.language.active">
+                <source>Active</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.label">
+                <source>Reopen automatically</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.optional">
+                <source>optional</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.ariaLabel">
+                <source>Ignore duration</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.never">
+                <source>Ignore permanently</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.days7">
+                <source>Ignore for 7 days</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.days30">
+                <source>Ignore for 30 days</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.days90">
+                <source>Ignore for 90 days</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.custom">
+                <source>Ignore until date…</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.reopenOn">
+                <source>Reopen on</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.customHelp">
+                <source>The issue will reopen at the start of this day in your TYPO3 timezone.</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.permanentPreview">
+                <source>The issue stays ignored until someone unignores it manually.</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.pastDateError">
+                <source>The reopen date must be at least one day in the future.</source>
+            </trans-unit>
+            <trans-unit id="module.language.siteLanguageLabel">
+                <source>Site language:</source>
+            </trans-unit>
+            <trans-unit id="module.language.siteLanguage">
+                <source>Site language</source>
+            </trans-unit>
+            <trans-unit id="module.language.available">
+                <source>%d available</source>
+            </trans-unit>
+            <trans-unit id="module.language.noResults">
+                <source>no results</source>
+            </trans-unit>
+            <trans-unit id="module.language.switchHint">
+                <source>Switching changes which site language AQG reports on. Backend language is unchanged.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.kicker">
+                <source>Accessibility progress signal</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.title">
+                <source>Automated scan comparison</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.subtitle">
+                <source>Manual review may still be required. Changes are based on automated scan results.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.comparedScans">
+                <source>Compared scans</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.previousScan">
+                <source>Previous scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.currentScan">
+                <source>Current scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notReported">
+                <source>Not reported</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.summary">
+                <source>Scan comparison summary</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.newIssues">
+                <source>new in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.resolvedIssues">
+                <source>resolved in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.unchangedIssues">
+                <source>unchanged in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.scoreDelta">
+                <source>score change</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.improvedPages">
+                <source>improved pages</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.worsenedPages">
+                <source>worsened pages</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.byRule">
+                <source>Changes by rule</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.byPage">
+                <source>Changes by page</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.topChanges">
+                <source>Top changes</source>
+            </trans-unit>
+            <trans-unit id="remote.history.finished">
+                <source>Finished</source>
+            </trans-unit>
+            <trans-unit id="remote.history.scope">
+                <source>Scope</source>
+            </trans-unit>
+            <trans-unit id="remote.history.urlOrSite">
+                <source>URL / Site</source>
+            </trans-unit>
+            <trans-unit id="remote.history.pagesScanned">
+                <source>Pages scanned</source>
+            </trans-unit>
+            <trans-unit id="remote.history.findings">
+                <source>Findings</source>
+            </trans-unit>
+            <trans-unit id="remote.history.score">
+                <source>Score</source>
+            </trans-unit>
+            <trans-unit id="remote.history.impact">
+                <source>Impact</source>
+            </trans-unit>
+            <trans-unit id="remote.history.job">
+                <source>Job</source>
+            </trans-unit>
+            <trans-unit id="remote.history.viewReport">
+                <source>View report</source>
+            </trans-unit>
+            <trans-unit id="remote.history.notAvailable">
+                <source>Not available in TYPO3</source>
+            </trans-unit>
+            <trans-unit id="remote.history.compare">
+                <source>Compare with previous compatible scan</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.kicker">
+                <source>Recommended remediation plan</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.title">
+                <source>What to fix first</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.subtitle">
+                <source>Automated remediation plan. Manual review may still be required.</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.owner">
+                <source>Suggested owner</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.fixType">
+                <source>Fix type</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.affectedPages">
+                <source>Affected pages</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.effort">
+                <source>Estimated effort</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.steps">
+                <source>Recommended steps</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.examples">
+                <source>Examples</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.kicker">
+                <source>Accessibility change signal</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.sincePrevious">
+                <source>Change since previous frontend scan</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.findings">
+                <source>%s findings</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.score">
+                <source>Score %s</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.unavailable">
+                <source>Regression signal unavailable</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.pagePath">
+                <source>Page path</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.rendered.title">
+                <source>Rendered page checks</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.rendered.text">
+                <source>Rendered checks inspect the server-rendered HTML returned by TYPO3. They do not execute JavaScript or load AJAX/lazy-loaded content, but may detect issues from Fluid templates, plugins, TypoScript wrapping or sitepackage components.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.selected">
+                <source>issues selected</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.hint">
+                <source>Ignored issues stay in the report but stop blocking the quality gate.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.escHint">
+                <source>Press Esc to clear the selection.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.clear">
+                <source>Clear selection</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.ignoreSelected">
+                <source>Ignore selected</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.confirmTitle">
+                <source>Ignore selected issues</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.confirmText">
+                <source>These issues will be marked as ignored. They stay visible in the report but no longer block the quality gate.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.close">
+                <source>Close ignore confirmation</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.reason">
+                <source>Reason for ignoring</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.reasonPlaceholder">
+                <source>e.g. Tables are decorative on this page — captions intentionally omitted per editorial guideline.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.reasonRequired">
+                <source>A reason is required for batch ignore.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.reasonHint">
+                <source>Required · the same reason is saved on every selected issue.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.selectIssue">
+                <source>Select issue for batch ignore</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.selectAll">
+                <source>Select all in group</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.source">
+                <source>Source: %s</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.contentElement">
+                <source>Content element #%s</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.reopensSoon">
+                <source>Reopens soon</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.permanentPill">
+                <source>Ignored · permanent</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.reopened">
+                <source>Reopened</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.ignoredBy">
+                <source>Ignored by</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.reopensOn">
+                <source>Reopens automatically on</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.permanentText">
+                <source>Permanent ignore — this issue stays ignored until someone unignores it manually.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.ignore.reopenedText">
+                <source>This issue reopened automatically because its ignore expiry date was reached. The original reason is kept for context.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.unknownEditor">
+                <source>Unknown editor</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.rule.selectAll">
+                <source>Select all with this rule</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.rule.ignoreOnPage">
+                <source>Ignore all on this page (%d)</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.rule.ignoreOnSite">
+                <source>Ignore all on site (%d)</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.resolved.pill">
+                <source>Fixed or no longer found</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.resolved.by">
+                <source>Resolved by</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.resolved.systemScan">
+                <source>System scan</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.frontendUrl">
+                <source>Frontend URL</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.cssSelector">
+                <source>CSS selector</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.pagination.aria">
+                <source>Issue pagination</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.issueGroups">
+                <source>Issue groups</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.aria">
+                <source>Suggested first step</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.kicker">
+                <source>Start here</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.title">
+                <source>Suggested first step based on automated findings</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.primaryRule">
+                <source>Primary rule:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.primaryFixType">
+                <source>Primary fix type: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.owner">
+                <source>Suggested owner: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.strategy">
+                <source>Fix strategy</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.topRecommendation">
+                <source>Top recommendation</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.confidence">
+                <source>%s confidence</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.primaryFix">
+                <source>Primary fix: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.showDetails">
+                <source>Show details</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.hideDetails">
+                <source>Hide details</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.ruleGuidance">
+                <source>Rule guidance</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.nodeRemediation.aria">
+                <source>Suggested remediation for this finding</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.nodeRemediation.title">
+                <source>Suggested remediation</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.nodeRemediation.fixType">
+                <source>Fix type: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.nodeRemediation.confidence">
+                <source>Confidence: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.title">
+                <source>Contrast details</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.actualRatio">
+                <source>Actual ratio:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.requiredRatio">
+                <source>Required ratio:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.foreground">
+                <source>Foreground:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.background">
+                <source>Background:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.candidates">
+                <source>Candidate colors</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.candidateType">
+                <source>Candidate type: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.riskSignal">
+                <source>Risk signal: %s</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.currentForeground">
+                <source>Current foreground:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.currentBackground">
+                <source>Current background:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.preferred">
+                <source>Preferred candidate:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.estimatedRatio">
+                <source>Estimated contrast ratio:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.foregroundCandidates">
+                <source>Foreground candidates:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.backgroundCandidates">
+                <source>Background candidates:</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.aria">
+                <source>Keyboard and structure review</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.kicker">
+                <source>Review assistant</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.toggle">
+                <source>View review signals</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.keyboardKicker">
+                <source>Keyboard exploration</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.keyboardTitle">
+                <source>Automated keyboard exploration signal</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.focusSteps">
+                <source>focus steps</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.uniqueFocused">
+                <source>unique focused elements</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.focusVisibilityWarnings">
+                <source>focus visibility warnings</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.focusPath">
+                <source>Focus path</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.step">
+                <source>Step</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.nameSignal">
+                <source>Name / visible text signal</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.selector">
+                <source>Selector</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.visibleFocus">
+                <source>Visible focus</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.reliability">
+                <source>Reliability</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.noFocusPath">
+                <source>No focus path details were returned for this scan.</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.structureKicker">
+                <source>Structure outline</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.structureTitle">
+                <source>Automated structure signal</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.headings">
+                <source>Heading outline</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.landmarks">
+                <source>Landmarks</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.structureWarnings">
+                <source>Structure warnings</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.detailsUnavailable.title">
+                <source>Issue details are not available for this scan</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.detailsUnavailable.text">
+                <source>The page summary reports %d automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.kicker">
+                <source>Accessibility progress</source>
+            </trans-unit>
+            <trans-unit id="remote.history.pageTitle">
+                <source>Page scan history</source>
+            </trans-unit>
+            <trans-unit id="remote.history.pageSubtitle">
+                <source>Previous automated scans for this URL. Manual review may still be required.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.show">
+                <source>Show history</source>
+            </trans-unit>
+            <trans-unit id="remote.history.hide">
+                <source>Hide history</source>
+            </trans-unit>
+            <trans-unit id="remote.history.emptyFrontend">
+                <source>No frontend scan history available yet.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.notTranslated">
+                <source>This page is not translated in the selected site language.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.metricsAria">
+                <source>Frontend scan metrics</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityRank">
+                <source>Priority %s</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.quickWin">
+                <source>Quick win</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.suggestedFix">
+                <source>Suggested fix:</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pageScanFallback.title">
+                <source>Page-scan fallback</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pageScanFallback.text">
+                <source>No completed site scan exists yet. Showing recently scanned pages from page-level frontend scans.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pageIdentifiers">
+                <source>Page UID %1$s · Frontend page UID %2$s · Frontend scan UID %3$s</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.viewFindings">
+                <source>View findings</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pagination.aria">
+                <source>Frontend scanned pages pagination</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.failedPages.paginationAria">
+                <source>Failed frontend pages pagination</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.aria">
+                <source>Report summary</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportSummary.metricsAria">
+                <source>Report summary metrics</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.reportingAid.groupsAria">
+                <source>WCAG reporting groups</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.title">
+                <source>Additional automated signals</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.subtitle">
+                <source>Compact technical signals for report support. Review them in context.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.remediation.kicker">
+                <source>Remediation</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.remediation.title">
+                <source>Suggested remediation grouping</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.recommendation">
+                <source>Recommendation: %s</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.suggestedAction">
+                <source>Suggested action: %s</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.components.kicker">
+                <source>Components</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.components.title">
+                <source>Likely shared template/component issue</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.components.topRulesAria">
+                <source>Top repeated component rules</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.kicker">
+                <source>Structure</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.title">
+                <source>Template / structure signal</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.across">
+                <source>across %s</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.metricsAria">
+                <source>Structure signal metrics</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.outlineIssues">
+                <source>outline issues</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.headingIssues">
+                <source>heading issues</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.likelyTemplate">
+                <source>Likely template/layout issue — review shared landmarks and heading structure.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.topWarningsAria">
+                <source>Top structure warnings</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.structure.topRulesAria">
+                <source>Top structure rules</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.keyboard.kicker">
+                <source>Keyboard</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.keyboard.title">
+                <source>Keyboard exploration signal</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.keyboard.metricsAria">
+                <source>Keyboard exploration metrics</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.keyboard.focusedElements">
+                <source>focused elements</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.keyboard.manualReview">
+                <source>Manual review required. Automated keyboard exploration is only a signal.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.keyboard.topWarningsAria">
+                <source>Top keyboard warnings</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.kicker">
+                <source>Contrast</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.title">
+                <source>Contrast samples</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.actual">
+                <source>Actual</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.required">
+                <source>Required</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.fg">
+                <source>FG</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.bg">
+                <source>BG</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.foreground">
+                <source>Foreground</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.additionalSignals.contrast.background">
+                <source>Background</source>
+            </trans-unit>
+            <trans-unit id="remote.history.siteTitle">
+                <source>Frontend scan history</source>
+            </trans-unit>
+            <trans-unit id="remote.history.siteSubtitle">
+                <source>Previous automated frontend scans. Manual review may still be required.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.siteScans">
+                <source>Site scans</source>
+            </trans-unit>
+            <trans-unit id="remote.history.emptySite">
+                <source>No site frontend scan history available yet.</source>
+            </trans-unit>
+            <trans-unit id="overview.local.paginationAria">
+                <source>Content scan pages pagination</source>
+            </trans-unit>
+            <trans-unit id="overview.search.label">
+                <source>Search pages</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.pagination.page">
+                <source>Page</source>
+            </trans-unit>
+            <trans-unit id="settings.tabs.ariaLabel">
+                <source>Settings sections</source>
+            </trans-unit>
+            <trans-unit id="toolbar.summary">
+                <source>Current scan health snapshot</source>
+            </trans-unit>
+            <trans-unit id="toolbar.synced">
+                <source>Updated now</source>
+            </trans-unit>
+            <trans-unit id="toolbar.ariaLabel">
+                <source>Accessibility Quality Gate toolbar summary</source>
+            </trans-unit>
+            <trans-unit id="settings.tab.statement">
+                <source>Statement</source>
+            </trans-unit>
+            <trans-unit id="settings.lastSaved">
+                <source>Last saved</source>
+            </trans-unit>
+            <trans-unit id="action.cancelling">
+                <source>Cancelling…</source>
+            </trans-unit>
+            <trans-unit id="settings.ai.summaryAria">
+                <source>OpenAI configuration summary</source>
+            </trans-unit>
+            <trans-unit id="settings.resetDefaults">
+                <source>Reset to defaults</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.of">
+                <source>of</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.group.content">
+                <source>Content elements</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.group.pages">
+                <source>Page properties</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.group.news">
+                <source>News records</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.group.custom">
+                <source>Custom records</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.groupHelp.content">
+                <source>Standard TYPO3 content fields. Use this group to control what is scanned inside content elements on the page.</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.groupHelp.pages">
+                <source>Fields stored on the page itself — page title, navigation and metadata.</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.groupHelp.news">
+                <source>Detected from EXT:news. Add or remove fields if your team extends the news model.</source>
+            </trans-unit>
+            <trans-unit id="settings.scanFields.groupHelp.custom">
+                <source>Detected database fields for this table. Enable the fields AQG should include in future scans.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.meta.appliesTo">
+                <source>Applies to publish and unhide</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.meta.perSite.singular">
+                <source>Per-site · %d override</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.meta.perSite.plural">
+                <source>Per-site · %d overrides</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.title">
+                <source>Quality Gate scope</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.text">
+                <source>Decide whether every site uses the same publish rules, or whether individual sites can override the default.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.global">
+                <source>Global configuration</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.globalMeta">
+                <source>Default</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.globalText">
+                <source>One Quality Gate setup applies to every site in this TYPO3 installation. Editors see the same publish rules wherever they work.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.globalFoot">
+                <source>shared ruleset · applies to all sites</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.perSite">
+                <source>Per-site configuration</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.perSiteMeta">
+                <source>Override</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.perSiteText">
+                <source>Configure selected sites individually. Sites without their own configuration inherit the global default.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.perSiteFoot.singular">
+                <source>site override · others inherit global</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.scope.perSiteFoot.plural">
+                <source>site overrides · others inherit global</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.global.noticeTitle">
+                <source>This setup applies to all sites.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.global.noticeText">
+                <source>If you need different rules for selected sites, switch to per-site configuration above.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.title">
+                <source>Publishing mode</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.text">
+                <source>Pick how strictly AQG reacts when an editor publishes a page that does not meet the thresholds. The same mode applies to unhiding pages.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.disabled">
+                <source>Disabled</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.disabledText">
+                <source>AQG runs in the background but does not warn or block on publish. Editors can still open issues from the Overview.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.disabledImpact">
+                <source>Editors are never interrupted</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.warn">
+                <source>Warn editors</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.warnText">
+                <source>Show a warning in the publish/unhide flow when configured thresholds are exceeded. Editors can review the report before continuing.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.warnImpact">
+                <source>Editors confirm to continue</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.block">
+                <source>Block publish</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.strict">
+                <source>Strict</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.blockText">
+                <source>Prevent publish/unhide when thresholds fail. Editors must resolve or ignore issues with a documented reason before publishing.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.mode.blockImpact">
+                <source>Publishing is blocked until issues are resolved</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.thresholds.title">
+                <source>Thresholds</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.thresholds.text">
+                <source>Define what counts as a failing page. Thresholds are evaluated after the editor saves but before the page is published.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.criticalThreshold">
+                <source>Critical threshold</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.criticalThresholdSuffix">
+                <source>open critical issues allowed</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.criticalThresholdHelp">
+                <source>Set to 0 to react to any open critical issue.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.warningThreshold">
+                <source>Warning threshold</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.warningThresholdHelp">
+                <source>Keep “Ignore warnings” to evaluate critical issues only.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.title">
+                <source>Site overrides</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.text">
+                <source>Each site listed below uses its own publish rules. Sites that are not listed inherit the global configuration.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.add">
+                <source>Add site override</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.addConfirm">
+                <source>Add</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.addHint">
+                <source>The new site starts from the global default — adjust mode and thresholds, then save.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.emptyTitle">
+                <source>No site-specific rules yet</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.sites.emptyText">
+                <source>All sites currently inherit the global Quality Gate configuration. Add a site override if a particular site needs different publish rules.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.storedFor">
+                <source>Stored for site identifier</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.remove">
+                <source>Remove custom configuration</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.removeConfirm">
+                <source>Remove custom configuration?</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.removeConfirmed">
+                <source>Remove</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.modeDisabled">
+                <source>Disabled — do not warn or block</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.modeWarn">
+                <source>Warn editors before publish</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.modeBlock">
+                <source>Block publish on failure</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.modeHelp">
+                <source>Disabled · Warn editors · Block publishing.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.criticalSuffix">
+                <source>allowed</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.criticalHelp">
+                <source>Open critical issues allowed. 0 = any open critical issue fails.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.fyi">
+                <source>FYI</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.inheritNote">
+                <source>Removing this configuration makes the site inherit the global default again.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.title">
+                <source>How the Quality Gate decides which configuration to use</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.step1">
+                <source>An editor saves and publishes the page, or unhides it.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.step2">
+                <source>AQG looks for a site-specific configuration matching the page’s site.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.step3">
+                <source>If none exists, it falls back to the global configuration.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.step4">
+                <source>If neither exists, the Quality Gate is disabled for that page.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.step5">
+                <source>Open issues are compared against the matching thresholds; the mode decides whether AQG warns or blocks.</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.compare.warningDialog">
+                <source>Warning dialog before publish</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.compare.criticalCheck">
+                <source>Checks open critical issues</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.compare.block">
+                <source>Block-on-publish gate</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.compare.perSite">
+                <source>Per-site rulesets</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.compare.thresholds">
+                <source>Adjustable critical and warning thresholds</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.compare.everythingFree">
+                <source>Everything in FREE</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.freeGuidance.step1">
+                <source>An editor saves and publishes a page.</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.freeGuidance.step2">
+                <source>AQG counts open critical issues.</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.freeGuidance.step3">
+                <source>If any critical issue is open, a warning dialog appears.</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.freeGuidance.step4">
+                <source>The editor can confirm or open the report.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.saved">
+                <source>All changes saved</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.unsaved">
+                <source>You have unsaved changes</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.savedToast">
+                <source>✓ Settings saved</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.save">
+                <source>Save remote scan settings</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.adminBadge">
+                <source>Admin only</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.adminBannerTitle">
+                <source>Only administrators should change Remote scan access settings.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.adminBannerText">
+                <source>These options control how the AQG crawler reaches your frontend — including hidden pages, protected staging environments, and the URL crawl rules.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.signedInAs">
+                <source>signed in as %s</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.title">
+                <source>Scanner preview token</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.text">
+                <source>Generate a private token so the remote crawler can access hidden pages and hidden content during scans. Keep this token secret.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.regenerated">
+                <source>✓ Scanner token regenerated</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.label">
+                <source>Token</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.maskedAria">
+                <source>Scanner token masked value</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.copyAria">
+                <source>Copy newly generated scanner token</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.copy">
+                <source>Copy</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.copied">
+                <source>Copied</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.empty">
+                <source>No token set — click “Generate token” to create one. Without a token, the remote crawler scans only publicly visible pages and mapping to TYPO3 records may be limited.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.help1">
+                <source>Optional. When set, the crawler sends this token with every request so TYPO3 can expose AQG debug markers for record mapping and scanner-only access during the scan.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.help2">
+                <source>Without a token, the crawler scans only publicly visible pages and mapping to TYPO3 records may be limited.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.help3">
+                <source>For security, the full token is shown only once immediately after generation.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.generate">
+                <source>Generate token</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.regenerate">
+                <source>Regenerate token</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.regenerating">
+                <source>Regenerating…</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.warning">
+                <source>Regenerating invalidates the current token immediately. Running scans may fail until the crawler uses the new token.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.error">
+                <source>Scanner token could not be regenerated.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.title">
+                <source>HTTP Basic Authentication</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.text">
+                <source>For password-protected staging environments. The remote crawler will use these credentials when scanning. Credentials are stored encrypted and never shown again.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.username">
+                <source>Username</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.usernamePlaceholder">
+                <source>e.g. crawler</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.usernameHelp">
+                <source>The HTTP Basic Auth user that has access to the staging frontend.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.password">
+                <source>Password</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.passwordPlaceholder">
+                <source>enter password…</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.passwordSaved">
+                <source>A password is saved. Type a new value to replace it; leave blank to keep the current password.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.passwordHelp">
+                <source>The saved password is encrypted and never shown again.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.removePassword">
+                <source>Remove saved password</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.test">
+                <source>Test connection</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.testing">
+                <source>Testing connection…</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.testingShort">
+                <source>Testing…</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.ok">
+                <source>Connection OK.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.failed">
+                <source>Connection failed.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.failedHint">
+                <source>Connection failed. Please check the credentials or the frontend protection.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.optional">
+                <source>optional</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.examples">
+                <source>Examples</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.recommended">
+                <source>Recommended</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.cookie.title">
+                <source>Cookie accept selectors</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.cookie.text">
+                <source>Use custom selectors only when the crawler cannot dismiss your cookie banner automatically. Leave this field empty if remote scans work correctly.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.cookie.hint">
+                <source>one CSS selector per line</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.cookie.help">
+                <source>Selectors are tried before AQG’s automatic cookie detection. Leave empty if the cookie banner does not block scan results.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.excluded.title">
+                <source>Excluded URL patterns</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.excluded.text">
+                <source>URLs the remote crawler should skip. Use this for admin areas, file folders, internal tools and other paths that should never be scanned.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.excluded.label">
+                <source>Patterns</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.excluded.hint">
+                <source>(one per line · supports the * wildcard)</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.excluded.help">
+                <source>Matching URLs will not be crawled. Examples: /fileadmin/* skips every file path; /preview?token=* skips preview URLs.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.priority.title">
+                <source>Priority URLs</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.priority.text">
+                <source>Pages the remote crawler scans first. Use this for the homepage, contact page and other high-traffic pages — so issues appear in the report early.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.priority.label">
+                <source>URL paths</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.priority.hint">
+                <source>(one per line · paths relative to the site root)</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.priority.help">
+                <source>Other URLs are still crawled in their normal order — this list only affects ordering, not visibility.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.title">
+                <source>Rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.savedMeta">
+                <source>All changes saved · %s</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.notice.title">
+                <source>Rules management</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.notice.text">
+                <source>Choose which accessibility rules AQG should use during scans. Disabled rules are not reported in editor highlights, local scans or quality-gate checks. Disabling a rule is a project-wide configuration — not the same as ignoring an individual issue.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.enabled.title">
+                <source>Enabled rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.enabled.text">
+                <source>Every local accessibility rule AQG ships with. Toggle a rule off to remove it from scans across this project.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.search.label">
+                <source>Search rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.search.placeholder">
+                <source>Search rules by name or id (e.g. table_caption)</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.filter.aria">
+                <source>Filter rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.filter.all">
+                <source>All</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.filter.enabled">
+                <source>Enabled</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.filter.disabled">
+                <source>Disabled</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.on">
+                <source>on</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.reset.title">
+                <source>Reset every rule to its default state?</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.reset.text">
+                <source>Re-enables the default set of accessibility rules. Custom phrase lists below are not affected.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.reset.confirm">
+                <source>Yes, reset rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.empty.title">
+                <source>No rules match your search</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.empty.before">
+                <source>Nothing in the rules catalog matches</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.empty.after">
+                <source>Try a different keyword, a rule id fragment, or the category filters above.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.enableAll">
+                <source>Enable all in group</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.disableAll">
+                <source>Disable all in group</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.offTag">
+                <source>OFF</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.status.reported">
+                <source>Reported in scans</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.status.notReported">
+                <source>Not reported in scans</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.changes.singular">
+                <source>%d change</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.changes.plural">
+                <source>%d changes</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.title">
+                <source>Rendered page check</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.text">
+                <source>Controls the FREE, manual HTML-only rendered check used by Scan this page and manual Scan site actions.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.enable">
+                <source>Enable rendered page checks</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.enableText">
+                <source>Runs DOM-only checks against the final frontend HTML output during manual page and site scans. It is not used by Scheduler/CLI subtree scans or the AQG crawler.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.privateHosts">
+                <source>Allow private/local frontend hosts for rendered checks</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.privateHostsText">
+                <source>Use only for DDEV, local development or isolated staging. Keep disabled in production to protect against SSRF.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.scopeTitle">
+                <source>Rendered check scope</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.step1">
+                <source>FREE rendered checks run only when an editor manually starts Scan this page or Scan site.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.step2">
+                <source>They inspect the server-rendered HTML returned by TYPO3 and do not execute JavaScript.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.step3">
+                <source>They do not load AJAX or lazy-loaded content, run sitemap crawls, Playwright, axe-core or screenshots.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.rendered.step4">
+                <source>Manual Scan site fetches each TYPO3 page one by one. Browser-based frontend scans with JavaScript execution run in the AQG crawler — as the daily Free Remote Preview or with a Trial, PRO or Agency licence.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionaryLabel">
+                <source>Dictionary-based phrase detection</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionaryHelp">
+                <source>Phrase-based RTE rules use built-in multilingual dictionaries and automatically resolve the TYPO3 site language. Project-specific overrides belong in TYPO3 Site Settings.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.mode">
+                <source>Dictionary mode</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.modeAuto">
+                <source>Auto — uses TYPO3 page language</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.modeForce">
+                <source>Force a single language</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.modeDisable">
+                <source>Disable phrase-based checks</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.modeHelp">
+                <source>Auto is recommended for multilingual TYPO3 sites. The scanner resolves the language from the scanned content record and TYPO3 SiteLanguage.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.forceLanguage">
+                <source>Forced language code</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.forceLanguageHelp">
+                <source>Used only when the dictionary mode forces a single language. Examples:</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.languagesTitle">
+                <source>Built-in dictionary languages</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.languagesStep1">
+                <source>Phrase dictionaries are shipped for EN, DE, SK, FR, NL, PL, CS, IT, ES, PT, DA, SV, NB and FI.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.languagesStep2">
+                <source>Phrase matching is normalized, language-aware and cached for scans.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.languagesStep3">
+                <source>Needs review findings are informational and never block the quality gate.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.nonDescAdditional">
+                <source>Additional non-descriptive link phrases</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.onePerLine">
+                <source>one phrase per line</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.nonDescAdditionalHelp">
+                <source>Adds project-specific phrases to</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.nonDescDisabled">
+                <source>Disabled built-in non-descriptive link phrases</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.dictionary.nonDescDisabledHelp">
+                <source>Removes selected built-in phrases for this project to reduce false positives.</source>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.selectPage.title">
+                <source>Select a page to start</source>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.selectPage.body">
+                <source>Choose a page in the TYPO3 page tree to open accessibility results for that context.</source>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.selectPage.hint">
+                <source>Site roots show the full overview. Content pages show page-specific issues and scan actions.</source>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.noSite.title">
+                <source>No site context selected</source>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.noSite.body">
+                <source>AQG needs a valid site context before it can show content scans, frontend scan results and page-level issues.</source>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.noSite.hint">
+                <source>Tip: Select a page inside a configured TYPO3 site root.</source>
+            </trans-unit>
+            <trans-unit id="module.accessDenied">
+                <source>Access denied.</source>
+            </trans-unit>
+            <trans-unit id="module.language.pages.singular">
+                <source>%d page</source>
+            </trans-unit>
+            <trans-unit id="module.language.pages.plural">
+                <source>%d pages</source>
+            </trans-unit>
+            <trans-unit id="module.language.issues.singular">
+                <source>%d issue</source>
+            </trans-unit>
+            <trans-unit id="module.language.issues.plural">
+                <source>%d issues</source>
+            </trans-unit>
+            <trans-unit id="module.language.default">
+                <source>Default language</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.sourceType.rendered">
+                <source>Rendered HTML</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.sourceType.structured">
+                <source>Structured content</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.sourceType.remote">
+                <source>Frontend crawler</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.sourceType.content">
+                <source>Content source</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.sourceHint.rendered">
+                <source>Likely: template, layout or plugin output</source>
+            </trans-unit>
+            <trans-unit id="toolbar.status.idleNew">
+                <source>Idle · %d new</source>
+            </trans-unit>
+            <trans-unit id="toolbar.status.idleClean">
+                <source>Idle · clean</source>
+            </trans-unit>
+            <trans-unit id="toolbar.status.completedNew">
+                <source>Completed · %d new</source>
+            </trans-unit>
+            <trans-unit id="toolbar.queuedSince">
+                <source>Queued since</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.failed">
+                <source>Last scan needs attention</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.newIssues.singular">
+                <source>%d new issue found</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.newIssues.plural">
+                <source>%d new issues found</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.notScanned">
+                <source>No scan result yet</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.ok">
+                <source>No new issues in the latest scan</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.remoteRunning">
+                <source>Frontend scan is running</source>
+            </trans-unit>
+            <trans-unit id="toolbar.footnote.remoteRunningProgress">
+                <source>Frontend scan is running · %1$d/%2$d pages</source>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.running">
+                <source>Accessibility scan is running</source>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.failed">
+                <source>Accessibility scan failed</source>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.issues.singular">
+                <source>Accessibility: %d new issue</source>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.issues.plural">
+                <source>Accessibility: %d new issues</source>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.ok">
+                <source>Accessibility: no new issues</source>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.notScanned">
+                <source>Accessibility: not scanned yet</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.contentIssues">
+                <source>This content element has %s accessibility issue(s). Open the Accessibility module to review details.</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.gate">
+                <source>Accessibility quality gate: %1$s. Current open findings: %2$s. Needs review items are manual checks and do not block publishing.</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.reason.critical">
+                <source>%1$d critical issue(s) exceed threshold %2$d</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.reason.warning">
+                <source>%1$d warning(s) exceed threshold %2$d</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.count.critical">
+                <source>%d critical</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.count.warning">
+                <source>%d warning</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.count.info">
+                <source>%d info</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.count.needsReview">
+                <source>%d needs review</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.none">
+                <source>none</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.trialNote">
+                <source>Trial licence active — upgrade to PRO to keep this feature after the trial ends.</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.warningTitle">
+                <source>AQG Warning</source>
+            </trans-unit>
+            <trans-unit id="settings.adminOnly.licence">
+                <source>Only administrators can validate AQG licence keys.</source>
+            </trans-unit>
+            <trans-unit id="settings.adminOnly.token">
+                <source>Only administrators can regenerate the scanner token.</source>
+            </trans-unit>
+            <trans-unit id="settings.adminOnly.httpAuth">
+                <source>Only administrators can test HTTP Basic Auth.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.lockedMessage">
+                <source>Remote scan access settings need a valid Trial, PRO or Agency licence. Add a licence key or start a trial to configure them.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.regeneratedMessage">
+                <source>Scanner token regenerated.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.rateLimited">
+                <source>Too many test requests. Please wait a minute and try again.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.missingInput">
+                <source>Select a configured site and enter username and password before testing.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.okDetail">
+                <source>Connection OK — the crawler reached the frontend with these credentials.</source>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.authFailed">
+                <source>Authentication failed — the username or password is wrong.</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.rte.title">
+                <source>RTE content rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.rte.subtitle">
+                <source>Rich-text editor checks · run on every save</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.rte.category">
+                <source>RTE</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.structured.title">
+                <source>Structured field rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.structured.subtitle">
+                <source>Records, fields and file references · run on every save</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.structured.category">
+                <source>Structured</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.media.title">
+                <source>Media and embed rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.media.subtitle">
+                <source>Images, video, audio and embeds · run on every save</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.media.category">
+                <source>Media</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.remote.title">
+                <source>Remote / frontend rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.remote.subtitle">
+                <source>Frontend crawler checks · run during remote scans</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.remote.category">
+                <source>Remote</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.other.title">
+                <source>Other rules</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.other.subtitle">
+                <source>Additional project checks</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.group.other.category">
+                <source>Other</source>
+            </trans-unit>
+            <trans-unit id="settings.rules.defaultLabel">
+                <source>Accessibility rule</source>
+            </trans-unit>
+            <trans-unit id="scanAjax.alreadyRunning">
+                <source>A scan is already running.</source>
+            </trans-unit>
+            <trans-unit id="scanAjax.cancelled">
+                <source>Scan was cancelled.</source>
+            </trans-unit>
+            <trans-unit id="scanAjax.failed">
+                <source>Scan failed: %s</source>
+            </trans-unit>
+            <trans-unit id="scanAjax.noScanRunning">
+                <source>No content scan is running.</source>
+            </trans-unit>
+            <trans-unit id="scanAjax.cancellationRequested">
+                <source>Content scan cancellation was requested.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.unknownJob.title">
+                <source>Unknown remote scan job</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.unknownJob.message">
+                <source>Unknown remote scan job.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.jobSiteMismatch.title">
+                <source>Remote scan job site mismatch</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.jobSiteMismatch.message">
+                <source>The remote scan job does not belong to the requested site.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.jobAccessDenied.title">
+                <source>Access denied</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.jobAccessDenied.message">
+                <source>Access denied for this remote scan job.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.responseMismatch.title">
+                <source>Remote scan response mismatch</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.responseMismatch.message">
+                <source>Remote crawler response did not match the requested scan job.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.licenceRequired.title">
+                <source>Remote-scanning licence required</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.licenceRequired.message">
+                <source>The remote crawler requires a valid Trial, PRO or Agency licence.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.submitInProgress">
+                <source>A remote scan submit is already in progress for this site. Please wait a moment and try again.</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.authFailed.title">
+                <source>Licence authentication failed</source>
+            </trans-unit>
+            <trans-unit id="proCrawler.freeIntentExpired.title">
+                <source>Free Remote Preview request expired</source>
+            </trans-unit>
+            <trans-unit id="aiLinkText.reviewNotice">
+                <source>Review the suggested link text and update the RTE content manually. Nothing was changed automatically.</source>
+            </trans-unit>
+            <trans-unit id="aiIframeTitle.reviewNotice">
+                <source>Review the suggested iframe title and update the template, plugin or content source manually. Nothing was changed automatically.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.findingsChange">
+                <source>Findings change</source>
+            </trans-unit>
+            <trans-unit id="remote.history.compareCurrentOnly">
+                <source>Compare is available from the current scan only.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.noPreviousPageScans">
+                <source>No previous page scans for this URL were returned yet.</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.review.subtitle">
+                <source>Automated helper signals for manual review. These checks do not replace a full accessibility audit.</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.startHere.title">
+                <source>Start here</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.startHere.subtitle">
+                <source>Suggested first step based on automated findings</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.quickWins.singular">
+                <source>%d quick win</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.quickWins.plural">
+                <source>%d quick wins</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.templateIssues.singular">
+                <source>%d template issue</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.templateIssues.plural">
+                <source>%d template issues</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.contentIssues.singular">
+                <source>%d content issue</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.contentIssues.plural">
+                <source>%d content issues</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.designIssues.singular">
+                <source>%d design issue</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.count.designIssues.plural">
+                <source>%d design issues</source>
+            </trans-unit>
+            <trans-unit id="remote.label.manualReviewRequired">
+                <source>Manual review required</source>
+            </trans-unit>
+            <trans-unit id="remote.remediation.editorContentFixes">
+                <source>Editor/content fixes</source>
+            </trans-unit>
+            <trans-unit id="remote.remediation.developerTemplateFixes">
+                <source>Developer/template fixes</source>
+            </trans-unit>
+            <trans-unit id="remote.remediation.designFixes">
+                <source>Design fixes</source>
+            </trans-unit>
+            <trans-unit id="remote.remediation.quickWins">
+                <source>Quick wins</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.contrast.candidate">
+                <source>Candidate</source>
+            </trans-unit>
+            <trans-unit id="remote.history.error.noSite">
+                <source>Remote scan history is not available without a site context.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.error.noDomain">
+                <source>Remote scan history is not available without a valid domain context.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.error.unavailable">
+                <source>Remote scan history is not available for this licence or environment.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.error.licenceRequired">
+                <source>Remote scan history is available with a remote-scanning licence (Trial, PRO or Agency) when enabled.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.error.foreignScan">
+                <source>The selected scan does not belong to this site/domain.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.error.unavailableShort">
+                <source>Scan history is not available for this licence or environment.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.empty">
+                <source>No completed remote scan history was returned yet.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.noComparable">
+                <source>No comparable previous scan found.</source>
+            </trans-unit>
+            <trans-unit id="remote.history.pageScan">
+                <source>Page scan</source>
+            </trans-unit>
+            <trans-unit id="remote.history.siteScan">
+                <source>Site scan</source>
+            </trans-unit>
+            <trans-unit id="remote.history.compareWithPrevious">
+                <source>Compare with previous compatible scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.error.chooseTwo">
+                <source>Choose two compatible scans to compare.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.error.noDomain">
+                <source>The selected scans cannot be compared without a valid domain context.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.error.incompatible">
+                <source>The selected scans cannot be compared.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.noSite">
+                <source>Regression signal is not available without a site context.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.invalidType">
+                <source>Invalid scan type for regression signal.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.noDomain">
+                <source>Regression signal is not available without a valid domain context.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.unavailableNow">
+                <source>Regression signal is not available right now.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.licenceRequired">
+                <source>Regression signal is available with a remote-scanning licence (Trial, PRO or Agency) when enabled.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.unavailable">
+                <source>Regression signal is not available for this licence or environment.</source>
+            </trans-unit>
+            <trans-unit id="remote.error.sourceTypeMissing">
+                <source>Internal configuration issue: source type is missing.</source>
+            </trans-unit>
+            <trans-unit id="remote.error.pageUrlMissing">
+                <source>Internal configuration issue: page URL is missing.</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.unavailable">
+                <source>Recommended remediation plan is not available for this scan.</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.unavailableLicence">
+                <source>Recommended remediation plan is not available for this licence or environment.</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.taskFallback">
+                <source>Recommended remediation task</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.notSpecified">
+                <source>Not specified</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.contextFrontend">
+                <source>Compared with previous compatible frontend scan.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.contextAutomated">
+                <source>Compared with previous compatible automated scan.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.titleDetected">
+                <source>Review regression before publishing</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.titleClear">
+                <source>No new regression detected in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.summaryDetected">
+                <source>Review the change against the previous compatible frontend scan.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.summaryClear">
+                <source>No meaningful regression was detected compared with the previous compatible frontend scan.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.action">
+                <source>Review automated scan comparison</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.scoreChange">
+                <source>Score change</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.newCritical">
+                <source>New critical</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.newSerious">
+                <source>New serious</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.resolvedFindings">
+                <source>Resolved findings</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.label">
+                <source>Regression signal</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.messageRegression">
+                <source>The latest automated scan found more issues than the previous comparable scan. Review before publishing.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.improved">
+                <source>Improved</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.messageImproved">
+                <source>The latest automated scan found fewer issues than the previous comparable scan. Manual review may still be required.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.stable">
+                <source>Stable</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.messageStable">
+                <source>No meaningful regression detected. Findings may have changed, but total issues and score stayed stable.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.change">
+                <source>Change</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.newInScan">
+                <source>%d new in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.resolvedInScan">
+                <source>%d resolved in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.unchangedInScan">
+                <source>%d unchanged in automated scan</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.noCountChange">
+                <source>No issue count change reported.</source>
+            </trans-unit>
+            <trans-unit id="reporting.guidanceFallback">
+                <source>Review this finding in context.</source>
+            </trans-unit>
+            <trans-unit id="reporting.keyboard.tested">
+                <source>Available</source>
+            </trans-unit>
+            <trans-unit id="reporting.keyboard.notTested">
+                <source>Not available</source>
+            </trans-unit>
+            <trans-unit id="reporting.keyboard.trap">
+                <source>Possible trap signal</source>
+            </trans-unit>
+            <trans-unit id="reporting.keyboard.noTrap">
+                <source>No trap signal</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.invisibleFocusWarnings.singular">
+                <source>%d invisible focus warning</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.invisibleFocusWarnings.plural">
+                <source>%d invisible focus warnings</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.items.singular">
+                <source>%d item</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.items.plural">
+                <source>%d items</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.repeatedIssues.singular">
+                <source>%d repeated issue</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.repeatedIssues.plural">
+                <source>%d repeated issues</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.outlineIssues.singular">
+                <source>%d outline issue</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.outlineIssues.plural">
+                <source>%d outline issues</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.headingIssues.singular">
+                <source>%d heading issue</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.headingIssues.plural">
+                <source>%d heading issues</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.landmarkHeadingIssues.singular">
+                <source>%d landmark/heading issue</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.landmarkHeadingIssues.plural">
+                <source>%d landmark/heading issues</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.mappedIssues.singular">
+                <source>%d mapped issue</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.mappedIssues.plural">
+                <source>%d mapped issues</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.wcagMappedFindings.singular">
+                <source>%d WCAG-mapped automated finding</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.wcagMappedFindings.plural">
+                <source>%d WCAG-mapped automated findings</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.occurrences.singular">
+                <source>%d occurrence</source>
+            </trans-unit>
+            <trans-unit id="reporting.count.occurrences.plural">
+                <source>%d occurrences</source>
+            </trans-unit>
+            <trans-unit id="reporting.manualReview.mayBeRequired">
+                <source>Manual review may still be required</source>
+            </trans-unit>
+            <trans-unit id="reporting.manualReview.notFlagged">
+                <source>Manual review not flagged</source>
+            </trans-unit>
+            <trans-unit id="reporting.components.note">
+                <source>Repeated findings can indicate a shared template or component issue. Review the shared layout before assigning work to editors.</source>
+            </trans-unit>
+            <trans-unit id="reporting.structure.likelyTemplate">
+                <source>Likely template/layout issue</source>
+            </trans-unit>
+            <trans-unit id="reporting.structure.reviewInContext">
+                <source>Review structure in context</source>
+            </trans-unit>
+            <trans-unit id="reporting.contrast.note">
+                <source>Candidate colors are generated as an automated remediation aid and must be reviewed in the brand/design context.</source>
+            </trans-unit>
+            <trans-unit id="reporting.wcag.noneMapped">
+                <source>None mapped</source>
+            </trans-unit>
+            <trans-unit id="reporting.priority.accessibility">
+                <source>Accessibility</source>
+            </trans-unit>
+            <trans-unit id="reporting.priority.reasonWithWcag">
+                <source>%1$s %2$s issue with %3$s across %4$s.</source>
+            </trans-unit>
+            <trans-unit id="reporting.priority.reason">
+                <source>%1$s issue with %2$s across %3$s.</source>
+            </trans-unit>
+            <trans-unit id="badge.developer">
+                <source>Developer</source>
+            </trans-unit>
+            <trans-unit id="badge.editor">
+                <source>Editor</source>
+            </trans-unit>
+            <trans-unit id="badge.mixed">
+                <source>Mixed</source>
+            </trans-unit>
+            <trans-unit id="badge.content">
+                <source>Content</source>
+            </trans-unit>
+            <trans-unit id="badge.design">
+                <source>Design</source>
+            </trans-unit>
+            <trans-unit id="badge.template">
+                <source>Template</source>
+            </trans-unit>
+            <trans-unit id="badge.template_content">
+                <source>Template Content</source>
+            </trans-unit>
+            <trans-unit id="badge.critical">
+                <source>Critical</source>
+            </trans-unit>
+            <trans-unit id="badge.serious">
+                <source>Serious</source>
+            </trans-unit>
+            <trans-unit id="badge.moderate">
+                <source>Moderate</source>
+            </trans-unit>
+            <trans-unit id="badge.minor">
+                <source>Minor</source>
+            </trans-unit>
+            <trans-unit id="badge.high">
+                <source>High</source>
+            </trans-unit>
+            <trans-unit id="badge.medium">
+                <source>Medium</source>
+            </trans-unit>
+            <trans-unit id="badge.low">
+                <source>Low</source>
+            </trans-unit>
+            <trans-unit id="badge.needs_review">
+                <source>Needs Review</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.titleFallback">
+                <source>Recommended remediation plan</source>
+            </trans-unit>
+            <trans-unit id="rte.accessibilityIssue">
+                <source>Accessibility issue</source>
+            </trans-unit>
+            <trans-unit id="rte.issueFallback">
+                <source>issue</source>
+            </trans-unit>
+            <trans-unit id="rte.multipleRules">
+                <source>multiple rules</source>
+            </trans-unit>
+            <trans-unit id="rte.elementIssues">
+                <source>%d issues</source>
+            </trans-unit>
+            <trans-unit id="rte.issuesOnElement">
+                <source>%d issues on this element</source>
+            </trans-unit>
+            <trans-unit id="rte.issuesOnLine">
+                <source>%d issues on this line</source>
+            </trans-unit>
+            <trans-unit id="rte.checking">
+                <source>Checking accessibility…</source>
+            </trans-unit>
+            <trans-unit id="rte.checkingHelp">
+                <source>Scanning the current draft for issues.</source>
+            </trans-unit>
+            <trans-unit id="rte.updating">
+                <source>Updating accessibility status…</source>
+            </trans-unit>
+            <trans-unit id="rte.updatingHelp">
+                <source>Refreshing highlights after your content change.</source>
+            </trans-unit>
+            <trans-unit id="rte.loadFailed">
+                <source>Accessibility issues could not be loaded</source>
+            </trans-unit>
+            <trans-unit id="rte.loadFailedHelp">
+                <source>You can keep editing. We'll try again on save.</source>
+            </trans-unit>
+            <trans-unit id="rte.retry">
+                <source>Retry</source>
+            </trans-unit>
+            <trans-unit id="rte.passed">
+                <source>Accessibility check passed</source>
+            </trans-unit>
+            <trans-unit id="rte.passedHelp">
+                <source>No issues found in this field.</source>
+            </trans-unit>
+            <trans-unit id="rte.lastChecked">
+                <source>Last checked just now</source>
+            </trans-unit>
+            <trans-unit id="rte.issuesFoundOne">
+                <source>%d issue found</source>
+            </trans-unit>
+            <trans-unit id="rte.issuesFoundOther">
+                <source>%d issues found</source>
+            </trans-unit>
+            <trans-unit id="rte.selectHighlight">
+                <source>Select a highlight to see how to fix it.</source>
+            </trans-unit>
+            <trans-unit id="rte.howToFix">
+                <source>How to fix</source>
+            </trans-unit>
+            <trans-unit id="rte.noGuidance">
+                <source>No editor guidance is available for this rule yet. Review the highlighted content and the rule details below.</source>
+            </trans-unit>
+            <trans-unit id="rte.rule">
+                <source>Rule</source>
+            </trans-unit>
+            <trans-unit id="rte.location">
+                <source>Location</source>
+            </trans-unit>
+            <trans-unit id="rte.ignoreIssue">
+                <source>Ignore this issue</source>
+            </trans-unit>
+            <trans-unit id="rte.ignoreFailed">
+                <source>Ignore failed</source>
+            </trans-unit>
+            <trans-unit id="rte.showDetails">
+                <source>Show details</source>
+            </trans-unit>
+            <trans-unit id="rte.hideDetails">
+                <source>Hide details</source>
+            </trans-unit>
+            <trans-unit id="rte.ignoredReason">
+                <source>Ignored via editor</source>
+            </trans-unit>
+            <trans-unit id="rte.ignoredReasonHtml">
+                <source>Ignored via HTML editor</source>
+            </trans-unit>
+            <trans-unit id="rte.severityCritical">
+                <source>Critical</source>
+            </trans-unit>
+            <trans-unit id="rte.severityCriticalPlural">
+                <source>Criticals</source>
+            </trans-unit>
+            <trans-unit id="rte.severityWarning">
+                <source>Warning</source>
+            </trans-unit>
+            <trans-unit id="rte.severityWarningPlural">
+                <source>Warnings</source>
+            </trans-unit>
+            <trans-unit id="rte.severityInfo">
+                <source>Info</source>
+            </trans-unit>
+            <trans-unit id="rte.severityNeedsReview">
+                <source>Needs review</source>
+            </trans-unit>
+            <trans-unit id="rte.plainChecking">
+                <source>Checking HTML accessibility…</source>
+            </trans-unit>
+            <trans-unit id="rte.plainCheckingHelp">
+                <source>Live validation for this HTML element.</source>
+            </trans-unit>
+            <trans-unit id="rte.plainUpdatingHelp">
+                <source>Refreshing live issues for this HTML field.</source>
+            </trans-unit>
+            <trans-unit id="rte.plainPassedHelp">
+                <source>No issues found in this HTML field.</source>
+            </trans-unit>
+            <trans-unit id="rte.plainLinesMarked">
+                <source>Lines with issues are marked directly in the HTML editor.</source>
+            </trans-unit>
+            <trans-unit id="rte.htmlSource">
+                <source>HTML source</source>
+            </trans-unit>
+            <trans-unit id="rte.htmlSourceIssue">
+                <source>HTML source issue</source>
+            </trans-unit>
+            <trans-unit id="rte.locateInHtml">
+                <source>Locate in HTML</source>
+            </trans-unit>
+            <trans-unit id="rte.locate">
+                <source>Locate</source>
+            </trans-unit>
+            <trans-unit id="rte.liveUnavailable">
+                <source>Live validation endpoint is not available.</source>
+            </trans-unit>
+            <trans-unit id="rte.htmlTooLarge">
+                <source>HTML is too large for live validation. Save the record and run a page scan instead.</source>
+            </trans-unit>
+            <trans-unit id="rte.liveFailedStatus">
+                <source>Live validation failed (%s).</source>
+            </trans-unit>
+            <trans-unit id="rte.liveFailed">
+                <source>Live validation failed.</source>
+            </trans-unit>
+            <trans-unit id="rte.liveFailedRetry">
+                <source>Live validation failed. You can keep editing and try again after saving.</source>
+            </trans-unit>
+            <trans-unit id="action.close">
+                <source>Close</source>
+            </trans-unit>
+            <trans-unit id="notification.highlight.missing">
+                <source>Highlight failed: missing uid or page URL.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.alreadyRunning">
+                <source>A frontend scan is already running. Restoring progress.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.cancelFailed">
+                <source>Frontend scan cancel request failed.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.cancelFinished">
+                <source>Frontend scan was already finished.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.cancelMissing">
+                <source>Remote scan could not be cancelled because the cancel endpoint, job ID or site identifier is missing.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.cancelled">
+                <source>Frontend scan was cancelled.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.cancelling">
+                <source>Cancelling frontend scan…</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.didNotComplete">
+                <source>Frontend scan did not complete successfully.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.leaveWarning">
+                <source>Frontend scan request is still being started. Please wait a moment before leaving this page.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.missingPageContext">
+                <source>Remote page scan failed: missing endpoint, page UID, page URL or site identifier.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.ownershipError">
+                <source>Frontend scan access was lost. Please start a new scan.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.ownershipErrorTitle">
+                <source>Frontend scan access lost</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.pageFailed">
+                <source>Remote page scan failed.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.pageStarted">
+                <source>Frontend page scan started.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.progress.starting">
+                <source>Frontend scan is running in background. Progress will appear shortly.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.progress.withCount">
+                <source>Frontend scan is running in background. %d pages processed so far.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.progress.withTotal">
+                <source>Frontend scan is running in background. %d/%d pages processed so far.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.restoreFailed">
+                <source>Frontend scan restore failed.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.statusFailed">
+                <source>Frontend scan status request failed.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.statusMissing">
+                <source>Missing frontend scan status endpoint, job ID or site identifier.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.statusTimeout">
+                <source>Frontend scan status polling timed out.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.summaryFailed">
+                <source>Frontend scan summary request failed.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.summaryMissing">
+                <source>Missing frontend scan summary endpoint, job ID or site identifier.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.trialLimitMessage">
+                <source>Trial allows %d crawl jobs per 24 hours. Try again later, or choose a PRO or Agency plan.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.trialLimitTitle">
+                <source>Trial limit reached</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.restoreMissing">
+                <source>Frontend scan is already active, but restore data is missing.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.jobContextMissing">
+                <source>Missing crawler job ID or site identifier.</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.warning">
+                <source>Scan completed with a warning: %s</source>
+            </trans-unit>
+            <trans-unit id="notification.screenshot.missing">
+                <source>Screenshot could not be opened.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.completedBody">
+                <source>Content scan completed. Reloading results...</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.completedBodyCombined">
+                <source>Content and frontend scans completed. Reloading results...</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.completedHeadline">
+                <source>Scan completed</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.completedMeta">
+                <source>Reloading results...</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.completedStatus">
+                <source>Completed</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.runningBody">
+                <source>Checking this page for accessibility issues...</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.runningHeadline">
+                <source>Scan running</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.runningMeta">
+                <source>Started just now</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.runningStatus">
+                <source>Scanning</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.previewDays">
+                <source>Reopens automatically in %d days.</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.previewDate">
+                <source>Reopens automatically on %s.</source>
+            </trans-unit>
+            <trans-unit id="ignore.expiry.previewSelectDate">
+                <source>Select a future date when AQG should reopen the issue.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.groupSelected">
+                <source>Selected</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.groupSelectRemaining">
+                <source>Select remaining</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.groupSelectAll">
+                <source>Select all in group</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.ignoreRuleOnPage">
+                <source>Ignore all %s issues on this page</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.ignoreRuleOnSite">
+                <source>Ignore all %s issues on this site</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.ignoreRuleText">
+                <source>This will mark %d open issues with this rule as ignored. They stay visible in the report but no longer block the quality gate.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.ignoreSelectedTitle.singular">
+                <source>Ignore %d selected issue</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.ignoreSelectedTitle.plural">
+                <source>Ignore %d selected issues</source>
+            </trans-unit>
+            <trans-unit id="js.error.unknown">
+                <source>Unknown error</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.limitReached.title">
+                <source>Free scan limit reached</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.featureUnavailable.title">
+                <source>Not included in the Free Remote Preview</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.proof.title">
+                <source>Free Preview proof could not be verified</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.idempotency.title">
+                <source>Free Preview submit conflict</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.token.title">
+                <source>Free Preview authentication failed</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.missingInstallation.title">
+                <source>Free Preview installation identity missing</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.installationMismatch.title">
+                <source>Free Preview installation identity mismatch</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.siteMismatch.title">
+                <source>Free Preview site identity mismatch</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.invalidSite.title">
+                <source>Free Preview site configuration invalid</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.endpoint.title">
+                <source>Free Preview API route unavailable</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.contract.title">
+                <source>Free Preview API contract rejected</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.unavailable.title">
+                <source>Free Remote Preview unavailable</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.limitReached">
+                <source>The Free Remote Preview daily scan limit has been reached.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.featureUnavailable">
+                <source>This feature is not included in the Free Remote Preview. Start a trial or choose a PRO or Agency plan to use it.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.idempotency">
+                <source>This Free Remote Preview request conflicts with an earlier submit. Reload before starting a new scan.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.proof">
+                <source>The public Free Remote Preview proof could not be verified.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.missingInstallation">
+                <source>Free Remote Preview installation identity is missing.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.installationMismatch">
+                <source>The Free Remote Preview installation identity does not match its token.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.siteMismatch">
+                <source>The TYPO3 site identifier does not match the Free Remote Preview token.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.invalidSite">
+                <source>The configured TYPO3 site URL is not valid for Free Remote Preview.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.token">
+                <source>Free Remote Preview authentication was rejected.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.endpoint">
+                <source>The Free Remote Preview status endpoint is not available.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.contract">
+                <source>The Free Remote Preview request was rejected by the API contract.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.unavailable">
+                <source>Free Remote Preview is temporarily unavailable.</source>
+            </trans-unit>
+            <trans-unit id="export.pdf.paidOnly">
+                <source>PDF export needs a PRO or Agency licence.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.invalidUrl">
+                <source>Rendered page URL is invalid.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.scheme">
+                <source>Rendered page URL must use HTTP or HTTPS.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.host">
+                <source>Rendered page URL does not belong to the configured site host.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.port">
+                <source>Rendered page URL port does not match the configured site port.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.privateHost">
+                <source>Rendered page check was skipped because the frontend URL resolves to a private/local address. For trusted DDEV or staging environments, enable “Allow private/local frontend hosts for rendered checks” in Settings → Rules.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.finalUrl">
+                <source>Rendered page fetch ended on a URL that does not match the configured site host or port.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.httpStatus">
+                <source>Rendered page returned HTTP %d. The local rendered check can only inspect successful HTML responses.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.notHtml">
+                <source>Rendered page response is not HTML. The local rendered check can only inspect server-rendered HTML pages.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.tooLarge">
+                <source>Rendered HTML response is too large for the local rendered check. Try scanning a smaller page, or use a frontend scan for browser-based checks.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.empty">
+                <source>Rendered page response body is empty. The local rendered check could not inspect the page output.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.timeout">
+                <source>Rendered page fetch timed out. This can happen on very large, protected or slow pages. Try scanning a smaller page, or use a frontend scan for browser-based checks.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.redirect">
+                <source>Rendered page check was stopped because a redirect led outside the configured site host or port. Check your TYPO3 site base URL configuration.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.failed">
+                <source>Rendered page fetch failed. This can happen on very large, protected or slow pages. Check that the frontend URL is reachable from TYPO3, or use a frontend scan for browser-based checks.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.warning.unsupportedDoktype">
+                <source>Rendered page check was skipped because this page type does not render a standard frontend page. Local content checks were still completed.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.warning.urlUnresolved">
+                <source>Frontend URL could not be resolved.</source>
+            </trans-unit>
+            <trans-unit id="renderedCheck.warning.errorPage">
+                <source>Rendered page check received an error page instead of the expected frontend HTML. Check frontend rendering, middleware or external dependencies, or use a frontend scan for browser-based checks.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.button_label_missing.title">
+                <source>Button has no accessible name</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.button_label_missing.howToFix">
+                <source>Add visible button text or an accessible label such as aria-label.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.empty_link.title">
+                <source>Link has no accessible name</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.empty_link.howToFix">
+                <source>Add a valid href and visible link text, or an aria-label attribute describing the destination or action.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.heading_hierarchy_jump.title">
+                <source>Heading levels are not sequential</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.heading_hierarchy_jump.howToFix">
+                <source>Heading levels should increase by one at a time, for example H2 to H3, not H2 to H4.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.iframe_missing_title.title">
+                <source>Iframe is missing a title attribute</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.iframe_missing_title.howToFix">
+                <source>Add a meaningful title attribute describing the embedded content.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.image_in_link_missing_alt.title">
+                <source>Linked image has no accessible text alternative</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.image_in_link_missing_alt.howToFix">
+                <source>Provide meaningful alt text for the linked image or add an accessible name to the link.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_is_filename.title">
+                <source>Image alt text looks like a file name</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_is_filename.howToFix">
+                <source>Replace the file name with a meaningful text alternative.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_missing.title">
+                <source>Image is missing an alt text attribute</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.img_alt_missing.howToFix">
+                <source>Add descriptive alt text for meaningful images. For decorative images that add no information, use an empty alt attribute: alt=&quot;&quot;.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_new_window_no_warning.title">
+                <source>Link opens in a new window or tab without warning the user</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.link_new_window_no_warning.howToFix">
+                <source>Add a visible or accessible hint such as &quot;opens in a new window or tab&quot; so users know what to expect.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.marquee_or_blink.title">
+                <source>Deprecated moving or blinking content element found</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.marquee_or_blink.howToFix">
+                <source>Remove marquee or blink elements and replace them with accessible static content.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.non_descriptive_link.title">
+                <source>Link text is not descriptive</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.non_descriptive_link.howToFix">
+                <source>Replace generic link text with text that describes the destination or action.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.svg_missing_title.title">
+                <source>Inline SVG has no accessible label</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.svg_missing_title.howToFix">
+                <source>Add a &lt;title&gt; element or aria-label to meaningful inline SVG graphics.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.table_missing_caption.title">
+                <source>Data table has no accessible name</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.table_missing_caption.howToFix">
+                <source>Add a &lt;caption&gt; element or an aria-label/aria-labelledby attribute to describe the table purpose.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.table_missing_header.title">
+                <source>Data table has no header cells</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.table_missing_header.howToFix">
+                <source>Add &lt;th&gt; elements for column or row headers. If this is a layout table, add role=&quot;presentation&quot;.</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.table_th_missing_scope.title">
+                <source>Table header cell is missing a scope attribute</source>
+            </trans-unit>
+            <trans-unit id="rule.rte.table_th_missing_scope.howToFix">
+                <source>Add scope=&quot;col&quot; for column headers or scope=&quot;row&quot; for row headers.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.file_reference_alt.title">
+                <source>Image file reference is missing alt text</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.file_reference_alt.howToFix">
+                <source>Open the record and add a description in the &quot;Alternative text&quot; field for each image.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.header_ctype_empty.title">
+                <source>Header content element has an empty headline</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.header_ctype_empty.howToFix">
+                <source>Add a meaningful headline or use a different content element type.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.header_link_no_text.title">
+                <source>Header link is set, but the headline text is empty</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.header_link_no_text.howToFix">
+                <source>Add visible headline text or remove the header link.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.table_missing_caption.title">
+                <source>Table content element has no caption</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.table_missing_caption.howToFix">
+                <source>Add a short table caption to describe the table purpose.</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.uploads_file_missing_description.title">
+                <source>Uploaded file link is missing a description</source>
+            </trans-unit>
+            <trans-unit id="rule.structured.uploads_file_missing_description.howToFix">
+                <source>Add a meaningful file description instead of relying only on the file name.</source>
             </trans-unit>
         </body>
     </file>

@@ -72,7 +72,7 @@
                         </f:else>
                     </f:if>
                     <div class="aqg-lang__context">
-                        Active · {currentLanguageOption.title}
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.active" default="Active" /> · {currentLanguageOption.title}
                         <f:if condition="{currentLanguageOption.hasResults}">
                             · {currentLanguageOption.pageLabel}
                         </f:if>
@@ -103,7 +103,7 @@
                         </f:if>
                     </h1>
 
-                    <div class="aqg-hero__path" aria-label="Page path">
+                    <div class="aqg-hero__path" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagePath', default: 'Page path')}">
                         <f:if condition="{pagePath}">
                             <f:then>
                                 <span class="aqg-hero__path-seg aqg-hero__path-seg--last text-break">{pagePath}</span>
@@ -494,9 +494,9 @@
         <f:if condition="{hasRenderedIssues}">
             <section class="aqg-section aqg-section--compact">
                 <div class="aqg-callout">
-                    <div class="aqg-callout__label">Rendered page checks</div>
+                    <div class="aqg-callout__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rendered.title" default="Rendered page checks" /></div>
                     <div class="aqg-callout__text">
-                        Rendered checks inspect the server-rendered HTML returned by TYPO3. They do not execute JavaScript or load AJAX/lazy-loaded content, but may detect issues from Fluid templates, plugins, TypoScript wrapping or sitepackage components.
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rendered.text" default="Rendered checks inspect the server-rendered HTML returned by TYPO3. They do not execute JavaScript or load AJAX/lazy-loaded content, but may detect issues from Fluid templates, plugins, TypoScript wrapping or sitepackage components." />
                     </div>
                 </div>
             </section>
@@ -507,14 +507,15 @@
                 <div class="aqg-bulkbar" data-a11y-bulkbar="true" hidden="hidden">
                     <div class="aqg-bulkbar__count">
                         <span class="aqg-bulkbar__count-num" data-a11y-bulk-count="true">0</span>
-                        <span data-a11y-bulk-count-label="true">issues selected</span>
+                        <span data-a11y-bulk-count-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.selected" default="issues selected" /></span>
                     </div>
                     <div class="aqg-bulkbar__hint">
-                        Ignored issues stay in the report but stop blocking the quality gate. Press <kbd>Esc</kbd> to clear selection.
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.hint" default="Ignored issues stay in the report but stop blocking the quality gate." />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.escHint" default="Press Esc to clear the selection." />
                     </div>
                     <div class="aqg-bulkbar__actions">
-                        <button type="button" class="btn btn-sm aqg-bulkbar__clear" data-action="a11y-bulk-clear">Clear selection</button>
-                        <button type="button" class="btn btn-default btn-sm aqg-bulkbar__ignore" data-action="a11y-bulk-open-confirm">Ignore selected</button>
+                        <button type="button" class="btn btn-sm aqg-bulkbar__clear" data-action="a11y-bulk-clear"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.clear" default="Clear selection" /></button>
+                        <button type="button" class="btn btn-default btn-sm aqg-bulkbar__ignore" data-action="a11y-bulk-open-confirm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.ignoreSelected" default="Ignore selected" /></button>
                     </div>
                 </div>
 
@@ -536,18 +537,18 @@
                             </svg>
                         </span>
                         <div>
-                            <h2 class="aqg-bulkconfirm__title" data-a11y-bulk-confirm-title="true">Ignore selected issues</h2>
-                            <p class="aqg-bulkconfirm__sub" data-a11y-bulk-confirm-sub="true">These issues will be marked as ignored. They stay visible in the report but no longer block the quality gate.</p>
+                            <h2 class="aqg-bulkconfirm__title" data-a11y-bulk-confirm-title="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.confirmTitle" default="Ignore selected issues" /></h2>
+                            <p class="aqg-bulkconfirm__sub" data-a11y-bulk-confirm-sub="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.confirmText" default="These issues will be marked as ignored. They stay visible in the report but no longer block the quality gate." /></p>
                         </div>
-                        <button type="button" class="aqg-bulkconfirm__close" data-action="a11y-bulk-close-confirm" aria-label="Close ignore confirmation">×</button>
+                        <button type="button" class="aqg-bulkconfirm__close" data-action="a11y-bulk-close-confirm" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.close', default: 'Close ignore confirmation')}">×</button>
                     </div>
 
                     <div class="aqg-bulkconfirm__summary" data-a11y-bulk-summary="true"></div>
 
                     <div class="aqg-bulkconfirm__body">
-                        <label class="aqg-bulkconfirm__label" for="aqg-bulk-ignore-reason">Reason for ignoring <span class="aqg-bulkconfirm__req">*</span></label>
-                        <textarea id="aqg-bulk-ignore-reason" name="reason" class="aqg-bulkconfirm__textarea" maxlength="280" required="required" placeholder="e.g. Tables are decorative on this page — captions intentionally omitted per editorial guideline." data-a11y-bulk-reason="true"></textarea>
-                        <div class="aqg-bulkconfirm__error" data-a11y-bulk-error="true" hidden="hidden">A reason is required for batch ignore.</div>
+                        <label class="aqg-bulkconfirm__label" for="aqg-bulk-ignore-reason"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reason" default="Reason for ignoring" /> <span class="aqg-bulkconfirm__req">*</span></label>
+                        <textarea id="aqg-bulk-ignore-reason" name="reason" class="aqg-bulkconfirm__textarea" maxlength="280" required="required" placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reasonPlaceholder', default: 'e.g. Tables are decorative on this page — captions intentionally omitted per editorial guideline.')}" data-a11y-bulk-reason="true"></textarea>
+                        <div class="aqg-bulkconfirm__error" data-a11y-bulk-error="true" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reasonRequired" default="A reason is required for batch ignore." /></div>
                     </div>
 
                     <div class="aqg-bulkconfirm__row-expiry">
@@ -555,10 +556,10 @@
                     </div>
 
                     <div class="aqg-bulkconfirm__actions">
-                        <div class="aqg-bulkconfirm__actions-left">Required · the same reason is saved on every selected issue.</div>
+                        <div class="aqg-bulkconfirm__actions-left"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reasonHint" default="Required · the same reason is saved on every selected issue." /></div>
                         <div class="aqg-bulkconfirm__actions-right">
-                            <button type="button" class="btn btn-default btn-sm" data-action="a11y-bulk-close-confirm">Cancel</button>
-                            <button type="submit" class="btn btn-primary btn-sm" data-a11y-bulk-submit="true">Confirm ignore</button>
+                            <button type="button" class="btn btn-default btn-sm" data-action="a11y-bulk-close-confirm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel" default="Cancel" /></button>
+                            <button type="submit" class="btn btn-primary btn-sm" data-a11y-bulk-submit="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.confirmIgnore" default="Confirm ignore" /></button>
                         </div>
                     </div>
                 </form>
@@ -599,7 +600,7 @@
                                         data-action="a11y-bulk-toggle-group"
                                         data-group-key="{groupKey}"
                                         aria-pressed="false"
-                                >Select all in group</button>
+                                ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.selectAll" default="Select all in group" /></button>
                             </div>
                         </f:if>
                     </div>
@@ -617,7 +618,7 @@
                                             data-group-key="{groupKey}"
                                             aria-checked="false"
                                             role="checkbox"
-                                            aria-label="Select issue for batch ignore"
+                                            aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.selectIssue', default: 'Select issue for batch ignore')}"
                                     >
                                         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
                                             <path d="M2.2 6.2 4.8 8.8 9.8 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -630,7 +631,7 @@
                                     <f:if condition="{issue.sourceTypeLabel}">
                                         <span class="aqg-pill tone-none">
                                             <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            Source: {issue.sourceTypeLabel}
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.source" default="Source: %s" arguments="{0: issue.sourceTypeLabel}" />
                                         </span>
                                     </f:if>
 
@@ -644,7 +645,7 @@
                                     <f:if condition="{issue.sourceType} == 'rendered' && {issue.source_table} == 'tt_content'">
                                         <span class="aqg-pill tone-none">
                                             <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            Content element #{issue.source_uid}
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.contentElement" default="Content element #%s" arguments="{0: issue.source_uid}" />
                                         </span>
                                     </f:if>
 
@@ -668,7 +669,7 @@
                                                         <f:then>
                                                             <span class="aqg-pill tone-soon">
                                                                 <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                                                Reopens soon
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopensSoon" default="Reopens soon" />
                                                                 <span class="aqg-pill__sep" aria-hidden="true"></span>
                                                                 <span class="aqg-pill__date">{issue.ignoredUntilLabel}</span>
                                                             </span>
@@ -676,7 +677,7 @@
                                                         <f:else>
                                                             <span class="aqg-pill tone-temp">
                                                                 <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                                                Ignored
+                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" />
                                                                 <span class="aqg-pill__sep" aria-hidden="true"></span>
                                                                 <span class="aqg-pill__date">{issue.ignoredUntilLabel}</span>
                                                             </span>
@@ -686,7 +687,7 @@
                                                 <f:else>
                                                     <span class="aqg-pill tone-none">
                                                         <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                                        Ignored · permanent
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.permanentPill" default="Ignored · permanent" />
                                                     </span>
                                                 </f:else>
                                             </f:if>
@@ -695,7 +696,7 @@
                                     <f:if condition="{issue.ignoreWasReopened}">
                                         <span class="aqg-pill tone-reopened">
                                             <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            Reopened
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopened" default="Reopened" />
                                             <span class="aqg-pill__sep" aria-hidden="true"></span>
                                             <span class="aqg-pill__date">{issue.ignoredReopenedAtLabel}</span>
                                         </span>
@@ -706,21 +707,21 @@
                                         <f:if condition="{issue.statusEnum.value} == 0">
                                             <button type="button" class="aqg-rule-action" data-action="a11y-bulk-select-rule" data-rule-id="{issue.rule_id}">
                                                 <span class="aqg-rule-action__plus" aria-hidden="true">+</span>
-                                                Select all with this rule
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.selectAll" default="Select all with this rule" />
                                             </button>
                                             <button type="button" class="aqg-rule-action aqg-rule-action--page" data-action="a11y-bulk-open-rule-page" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnPage}">
-                                                Ignore all on this page ({issue.openRuleCountOnPage})
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: issue.openRuleCountOnPage}" />
                                             </button>
                                             <f:if condition="{canIgnoreRuleOnSite}">
                                                 <button type="button" class="aqg-rule-action aqg-rule-action--site" data-action="a11y-bulk-open-rule-site" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnSite}">
-                                                    Ignore all on site ({issue.openRuleCountOnSite})
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnSite" default="Ignore all on site (%d)" arguments="{0: issue.openRuleCountOnSite}" />
                                                 </button>
                                             </f:if>
                                         </f:if>
                                     </f:if>
                                 </div>
 
-                                <h2 class="aqg-issue__title">{issue.message}</h2>
+                                <h2 class="aqg-issue__title">{issue.displayTitle}</h2>
                             </header>
 
                             <f:if condition="{issue.statusEnum.value} != 2">
@@ -732,19 +733,19 @@
                             <f:if condition="{issue.statusEnum.value} == 2 && {issue.ignored_reason}">
                                 <div class="aqg-issue-state-card aqg-issue-state-card--ignored">
                                     <div class="aqg-issue-state-card__head">
-                                        <span class="aqg-issue-state-card__label">Ignored</span>
+                                        <span class="aqg-issue-state-card__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" /></span>
                                         <span class="aqg-issue-state-card__pill">{issue.ignored_reason}</span>
                                     </div>
                                     <f:if condition="{issue.ignored_by_name} || {issue.ignored_by_username} || {issue.ignored_at}">
                                         <div class="aqg-issue-state-card__meta">
-                                            <span class="aqg-issue-state-card__meta-label">Ignored by</span>
+                                            <span class="aqg-issue-state-card__meta-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.ignoredBy" default="Ignored by" /></span>
                                             <strong class="aqg-issue-state-card__user">
                                                 <f:if condition="{issue.ignored_by_name}">
                                                     <f:then>{issue.ignored_by_name}</f:then>
                                                     <f:else>
                                                         <f:if condition="{issue.ignored_by_username}">
                                                             <f:then>{issue.ignored_by_username}</f:then>
-                                                            <f:else>Unknown editor</f:else>
+                                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.unknownEditor" default="Unknown editor" /></f:else>
                                                         </f:if>
                                                     </f:else>
                                                 </f:if>
@@ -753,7 +754,7 @@
                                                 <span class="aqg-issue-state-card__uid">UID {issue.ignored_by}</span>
                                             </f:if>
                                             <f:if condition="{issue.ignored_at}">
-                                                <span class="aqg-issue-state-card__date"><f:format.date format="d M Y · H:i">@{issue.ignored_at}</f:format.date></span>
+                                                <span class="aqg-issue-state-card__date"><f:format.date format="d.m.Y · H:i">@{issue.ignored_at}</f:format.date></span>
                                             </f:if>
                                         </div>
                                     </f:if>
@@ -762,7 +763,7 @@
                                             <div class="aqg-ignored-reason__expiry {f:if(condition: issue.ignoreReopensSoon, then: 'tone-soon')}">
                                                 <span class="aqg-ignored-reason__expiry-icon" aria-hidden="true">↻</span>
                                                 <span class="aqg-ignored-reason__expiry-text">
-                                                    This issue will reopen automatically on <strong>{issue.ignoredUntilLabel}</strong>.
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopensOn" default="Reopens automatically on" /> <strong>{issue.ignoredUntilLabel}</strong>.
                                                 </span>
                                                 <span class="aqg-ignored-reason__expiry-date">{issue.ignoredUntilRelative}</span>
                                             </div>
@@ -771,7 +772,7 @@
                                             <div class="aqg-ignored-reason__expiry">
                                                 <span class="aqg-ignored-reason__expiry-icon" aria-hidden="true">○</span>
                                                 <span class="aqg-ignored-reason__expiry-text">
-                                                    Permanent ignore — this issue stays ignored until someone unignores it manually.
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.permanentText" default="Permanent ignore — this issue stays ignored until someone unignores it manually." />
                                                 </span>
                                             </div>
                                         </f:else>
@@ -784,7 +785,7 @@
                                     <div class="aqg-ignored-reason__expiry tone-reopened">
                                         <span class="aqg-ignored-reason__expiry-icon" aria-hidden="true">↻</span>
                                         <span class="aqg-ignored-reason__expiry-text">
-                                            This issue reopened automatically because its ignore expiry date was reached. The original reason is kept for context.
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopenedText" default="This issue reopened automatically because its ignore expiry date was reached. The original reason is kept for context." />
                                         </span>
                                         <span class="aqg-ignored-reason__expiry-date">{issue.ignoredReopenedAtLabel}</span>
                                     </div>
@@ -795,18 +796,18 @@
                                 <f:if condition="{issue.resolved_by_name} || {issue.resolved_by_username} || {issue.resolved_at}">
                                     <div class="aqg-issue-state-card aqg-issue-state-card--resolved">
                                         <div class="aqg-issue-state-card__head">
-                                            <span class="aqg-issue-state-card__label">Resolved</span>
-                                            <span class="aqg-issue-state-card__pill">Fixed or no longer found</span>
+                                            <span class="aqg-issue-state-card__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" default="Resolved" /></span>
+                                            <span class="aqg-issue-state-card__pill"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.pill" default="Fixed or no longer found" /></span>
                                         </div>
                                         <div class="aqg-issue-state-card__meta">
-                                            <span class="aqg-issue-state-card__meta-label">Resolved by</span>
+                                            <span class="aqg-issue-state-card__meta-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.by" default="Resolved by" /></span>
                                             <strong class="aqg-issue-state-card__user">
                                                 <f:if condition="{issue.resolved_by_name}">
                                                     <f:then>{issue.resolved_by_name}</f:then>
                                                     <f:else>
                                                         <f:if condition="{issue.resolved_by_username}">
                                                             <f:then>{issue.resolved_by_username}</f:then>
-                                                            <f:else>System scan</f:else>
+                                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.systemScan" default="System scan" /></f:else>
                                                         </f:if>
                                                     </f:else>
                                                 </f:if>
@@ -815,7 +816,7 @@
                                                 <span class="aqg-issue-state-card__uid">UID {issue.resolved_by}</span>
                                             </f:if>
                                             <f:if condition="{issue.resolved_at}">
-                                                <span class="aqg-issue-state-card__date"><f:format.date format="d M Y · H:i">@{issue.resolved_at}</f:format.date></span>
+                                                <span class="aqg-issue-state-card__date"><f:format.date format="d.m.Y · H:i">@{issue.resolved_at}</f:format.date></span>
                                             </f:if>
                                         </div>
                                     </div>
@@ -996,7 +997,7 @@
                                         </dt>
                                         <dd>{issue.rule_id}</dd>
                                         <f:if condition="{issue.frontend_url}">
-                                            <dt>Frontend URL</dt>
+                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.frontendUrl" default="Frontend URL" /></dt>
                                             <dd>
                                                 <a href="{issue.frontend_url}" target="_blank" rel="noopener noreferrer">
                                                     {issue.frontend_url}
@@ -1004,7 +1005,7 @@
                                             </dd>
                                         </f:if>
                                         <f:if condition="{issue.css_selector}">
-                                            <dt>CSS selector</dt>
+                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.cssSelector" default="CSS selector" /></dt>
                                             <dd>{issue.css_selector}</dd>
                                         </f:if>
                                     </dl>
@@ -1029,7 +1030,7 @@
         </f:for>
 
         <f:if condition="{pagination.totalPages} > 1">
-            <nav aria-label="Issue pagination" class="aqg-detail-pagination">
+            <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.aria', default: 'Issue pagination')}" class="aqg-detail-pagination">
                 <ul class="pagination mb-0">
                     <f:if condition="{pagination.hasPrevious}">
                         <li class="page-item">

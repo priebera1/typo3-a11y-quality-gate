@@ -54,7 +54,7 @@ final class LicenceValidationResult
 
         if (!$dto->success || !$dto->valid) {
             return self::invalid(
-                reason: $dto->reason ?? 'invalid',
+                reason: $dto->reason ?? self::reasonFromErrorCode($dto->errorCode),
                 plan: $dto->plan,
                 features: $dto->features,
                 expiresAt: $dto->expiresAt,
@@ -74,6 +74,23 @@ final class LicenceValidationResult
             trialExpiresAt: $dto->trialExpiresAt,
             trialStartedAt: $dto->trialStartedAt,
         );
+    }
+
+    /**
+     * The licence API names every licence problem in `error.details.reason`. A rejection without one is
+     * not a verdict on the key: an unhandled server error must read as an outage the user can retry,
+     * never as "invalid licence".
+     */
+    private static function reasonFromErrorCode(?string $errorCode): string
+    {
+        return match (trim((string)$errorCode)) {
+            'licence_invalid' => 'invalid_key',
+            'licence_rate_limited' => 'rate_limited',
+            'domain_limit_reached' => 'domain_limit_reached',
+            'licence_project_mismatch' => 'licence_project_mismatch',
+            '', 'internal_error', 'service_unavailable' => 'api_unreachable',
+            default => 'validation_failed',
+        };
     }
 
     public function hasFeature(FeatureFlag $featureFlag): bool

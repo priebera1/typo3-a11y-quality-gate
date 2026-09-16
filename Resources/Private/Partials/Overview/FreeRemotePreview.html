@@ -93,14 +93,16 @@
     </div>
 </section>
 
-<div class="aqg-pro-card">
-    <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
-    <div class="aqg-pro-card__body">
-        <div class="aqg-pro-card__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.upsell" default="Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO." /></div>
+<f:if condition="{showProHints}">
+    <div class="aqg-pro-card" data-aqg-upgrade-offer="true">
+        <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
+        <div class="aqg-pro-card__body">
+            <div class="aqg-pro-card__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.upsell" default="Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO." /></div>
+        </div>
+        <div class="aqg-pro-card__actions">
+            <a href="{freePreview.trialUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start PRO trial" /></a>
+            <a href="{freePreview.upgradeUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPricing" default="View pricing" /></a>
+        </div>
     </div>
-    <div class="aqg-pro-card__actions">
-        <a href="{freePreview.trialUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start PRO trial" /></a>
-        <a href="{freePreview.upgradeUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPricing" default="View pricing" /></a>
-    </div>
-</div>
+</f:if>
 </html>

@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.9.5] - 2026-09-16
+
+### Changed
+
+* The German translation now covers all AQG backend screens, including the page module, toolbar, publish notifications, editor feedback in CKEditor and HTML content elements, and AQG record labels. Issue titles and fix guidance appear in the backend language wherever a translation is available. PDF exports remain in English.
+* On first use, AQG detects the rich-text and image fields in your TYPO3 content and enables them for scanning. The Overview shows how many fields were enabled and links to the scan field settings. An existing scan field configuration is never changed.
+* Licence problems are now explained in the licence settings together with the matching next step, such as renewing, choosing a plan, managing domains or validating again. Users with access to the AQG settings also see this notice in the Overview.
+* In Free installations, the page module shows the page's latest Free Remote Preview result and free scan availability, with a link to the frontend scan, instead of a PRO notice.
+* The "Show PRO upgrade offers" setting (previously "Show PRO hints in the AQG UI") now controls the upgrade card with trial and pricing links in the Free Remote Preview. The PRO hint in the Overview was removed.
+* Plan descriptions in the backend and documentation now match what each plan includes: Trial includes frontend scans, scan history and the blocking quality gate, while PDF export, AI suggestions and the Statement Assistant require PRO or Agency. Frontend scanning is no longer described as PRO-only, because Free installations include the Free Remote Preview.
+
+### Fixed
+
+* A licence service outage no longer shows a valid licence as inactive. AQG now reports that the service is temporarily unavailable and offers to try again.
+* The page module no longer shows Free Remote Preview results as the frontend scan status of licensed installations.
+* Quality gate threshold labels now state how many open issues are allowed. They previously read "or more", although a page only fails when its issue count exceeds the threshold.
+
+### Security
+
+* Hardened licence validation so that a failed licence service request no longer returns internal error details.
+
 ## [1.9.4] - 2026-09-15
 
 ### Changed
