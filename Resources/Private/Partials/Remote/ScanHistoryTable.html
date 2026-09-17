@@ -13,7 +13,7 @@
                             <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.pagesScanned" default="Pages scanned" /></th>
                         </f:else>
                     </f:if>
-                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" /></th>
+                    <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.occurrences" default="Occurrences" /></th>
                     <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.score" default="Score" /></th>
                     <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.impact" default="Impact" /></th>
                     <th><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" /></th>
@@ -26,7 +26,7 @@
                 <f:for each="{items}" as="item">
                     <f:variable name="jobLabel"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.job" default="Job" /></f:variable>
                     <tr>
-                        <td title="{jobLabel}: {item.jobId}">{item.finishedAtFormatted}<br /><span class="aqg-history-table__job">{jobLabel}: {item.jobIdShort}</span></td>
+                        <td title="{jobLabel}: {item.jobId}">{item.finishedAtFormatted}<f:if condition="{viewedJobId} && {item.jobId} == {viewedJobId}"><br /><span class="aqg-scan-marker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.shownHere" default="Shown on this page" /></span></f:if></td>
                         <f:if condition="{compactPageHistory}">
                             <f:then></f:then>
                             <f:else>

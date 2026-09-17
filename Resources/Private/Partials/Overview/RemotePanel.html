@@ -122,7 +122,7 @@
                     </div>
 
                     <div class="aqg-signal__metrics" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metricsAria', default: 'Frontend scan metrics')}">
-                        <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">{remoteScan.issues_total}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.issuesTotal" default="total issues" /></span>
+                        <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">{remoteScan.issues_total}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metric.occurrences" default="occurrences" /></span>
                         <span class="aqg-signal__metric-sep" aria-hidden="true">·</span>
                         <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">
                             <f:if condition="{remoteReportSummary.affectedPagesTotal}">
@@ -131,12 +131,14 @@
                             </f:if>
                         </span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.affectedPages" default="affected pages" /></span>
                         <span class="aqg-signal__metric-sep" aria-hidden="true">·</span>
-                        <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">
-                            <f:if condition="{remoteReportingGroups.automatedIssuesTotal}">
-                                <f:then>{remoteReportingGroups.automatedIssuesTotal}</f:then>
-                                <f:else>{remoteReportSummary.wcagCriteriaTotal}</f:else>
-                            </f:if>
-                        </span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.wcagMapped" default="WCAG-mapped findings" /></span>
+                        <f:if condition="{remoteReportingGroups.automatedIssuesTotal}">
+                            <f:then>
+                                <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">{remoteReportingGroups.automatedIssuesTotal}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.wcagMapped" default="WCAG-mapped findings" /></span>
+                            </f:then>
+                            <f:else>
+                                <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">{remoteReportSummary.wcagCriteriaTotal}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.wcagCriteria" default="WCAG criteria" /></span>
+                            </f:else>
+                        </f:if>
                         <span class="aqg-signal__metric-sep" aria-hidden="true">·</span>
                         <span class="aqg-signal__metric"><span class="aqg-signal__metric-value">
                             <f:if condition="{remoteReportSummary.priorityFixesTotal}">
@@ -285,36 +287,23 @@
                                     <f:if condition="{fix.impact}">
                                         <span class="aqg-impact aqg-impact--{fix.impact}">{fix.impact}</span>
                                     </f:if>
-
-                                    <f:if condition="{fix.wcagCriterion}">
-                                        <span class="aqg-wcag-pill">WCAG {fix.wcagCriterion}</span>
-                                    </f:if>
-
-                                    <f:if condition="{fix.quickWin}">
-                                        <span class="aqg-guidance-badge aqg-guidance-badge--neutral"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.quickWin" default="Quick win" /></span>
-                                    </f:if>
                                 </div>
 
                                 <div class="aqg-pfix-item__meta">
-                                    <f:if condition="{fix.help}">
-                                        <span class="aqg-pfix-item__ruleid">{fix.ruleId}</span>
-                                        <span class="aqg-pfix-item__meta-sep" aria-hidden="true">·</span>
-                                    </f:if>
-
                                     <span class="aqg-issue-count">
                                         <span class="aqg-issue-count__part">
                                             <span class="aqg-issue-count__num">{fix.issuesTotal}</span>
                                             <f:if condition="{fix.issuesTotal} == 1">
                                                 <f:then>
                                                     <f:translate
-                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.issue"
-                                                            default="issue"
+                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.occurrence"
+                                                            default="occurrence"
                                                     />
                                                 </f:then>
                                                 <f:else>
                                                     <f:translate
-                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.issues"
-                                                            default="issues"
+                                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.occurrences"
+                                                            default="occurrences"
                                                     />
                                                 </f:else>
                                             </f:if>
@@ -339,7 +328,7 @@
                                         </span>
                                     </span>
 
-                                    <a href="#a11y-remote-top-pages" class="aqg-pfix-item__action">
+                                    <a href="{f:if(condition: fix.affectedPagesUrl, then: fix.affectedPagesUrl, else: '#a11y-remote-top-pages')}" class="aqg-pfix-item__action" data-aqg-rule-filter="{fix.ruleId}">
                                         <f:translate
                                                 key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.viewAffectedPages"
                                                 default="View affected pages"
@@ -347,62 +336,67 @@
                                     </a>
                                 </div>
 
-                                <div class="aqg-guidance-badges aqg-guidance-badges--compact">
-                                    <f:if condition="{fix.whoShouldFix}">
-                                        <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{fix.whoShouldFix}">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.guidance.who" default="Suggested owner" />: {fix.whoShouldFixLabel}
-                                        </span>
-                                    </f:if>
-                                    <f:if condition="{fix.fixType}">
-                                        <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{fix.fixType}">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.guidance.fixType" default="Suggested fix type" />: {fix.fixTypeLabel}
-                                        </span>
-                                    </f:if>
-                                    <f:if condition="{fix.confidence}">
-                                        <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{fix.confidence}">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.guidance.confidence" default="Guidance confidence" />: {fix.confidenceLabel}
-                                        </span>
-                                    </f:if>
-                                </div>
-
                                 <f:if condition="{fix.shortFix}">
                                     <p class="aqg-pfix-guidance-inline"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.suggestedFix" default="Suggested fix:" /></strong> {fix.shortFix}</p>
                                 </f:if>
 
-                                <f:if condition="{fix.guidanceDetail}">
-                                    <p class="aqg-pfix-guidance-inline">{fix.guidanceDetail}</p>
-                                </f:if>
-
-                                <f:if condition="{fix.reason}">
-                                    <p class="aqg-pfix-item__reason">{fix.reason}</p>
-                                </f:if>
-
-                                <f:if condition="{fix.hasStandardsAndImpact}">
-                                    <details class="aqg-rule-metadata aqg-rule-metadata--compact">
-                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standardsAndImpact" default="Standards and impact" /></summary>
-                                        <div class="aqg-rule-metadata__body">
-                                            <f:if condition="{fix.affectedUserItems}">
-                                                <div class="aqg-rule-metadata__group">
-                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" /></h3>
-                                                    <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
-                                                        <f:for each="{fix.affectedUserItems}" as="affectedUser">
-                                                            <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
-                                                        </f:for>
-                                                    </div>
-                                                </div>
+                                <details class="aqg-rule-metadata aqg-rule-metadata--compact aqg-pfix-item__details">
+                                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.moreDetails" default="More details" /></summary>
+                                    <div class="aqg-rule-metadata__body">
+                                        <div class="aqg-guidance-badges aqg-guidance-badges--compact">
+                                            <span class="aqg-pfix-item__ruleid">{fix.ruleId}</span>
+                                            <f:if condition="{fix.wcagCriterion}">
+                                                <span class="aqg-wcag-pill">WCAG {fix.wcagCriterion}</span>
                                             </f:if>
-                                            <f:if condition="{fix.wcagReferences}">
-                                                <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3><ul><f:for each="{fix.wcagReferences}" as="wcag"><li>{wcag.label}</li></f:for></ul></div>
+                                            <f:if condition="{fix.quickWin}">
+                                                <span class="aqg-guidance-badge aqg-guidance-badge--neutral"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.quickWin" default="Quick win" /></span>
                                             </f:if>
-                                            <f:if condition="{fix.standards}">
-                                                <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3><div class="aqg-rule-metadata__chips"><f:for each="{fix.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for></div></div>
+                                            <f:if condition="{fix.whoShouldFix}">
+                                                <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{fix.whoShouldFix}">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.guidance.who" default="Suggested owner" />: {fix.whoShouldFixLabel}
+                                                </span>
                                             </f:if>
-                                            <f:if condition="{fix.documentationLinks}">
-                                                <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3><ul><f:for each="{fix.documentationLinks}" as="doc"><li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li></f:for></ul></div>
+                                            <f:if condition="{fix.fixType}">
+                                                <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{fix.fixType}">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.guidance.fixType" default="Suggested fix type" />: {fix.fixTypeLabel}
+                                                </span>
+                                            </f:if>
+                                            <f:if condition="{fix.confidence}">
+                                                <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{fix.confidence}">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.guidance.confidence" default="Guidance confidence" />: {fix.confidenceLabel}
+                                                </span>
                                             </f:if>
                                         </div>
-                                    </details>
-                                </f:if>
+
+                                        <f:if condition="{fix.guidanceDetail}">
+                                            <p class="aqg-pfix-guidance-inline">{fix.guidanceDetail}</p>
+                                        </f:if>
+
+                                        <f:if condition="{fix.reason}">
+                                            <p class="aqg-pfix-item__reason">{fix.reason}</p>
+                                        </f:if>
+
+                                        <f:if condition="{fix.affectedUserItems}">
+                                            <div class="aqg-rule-metadata__group">
+                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" /></h3>
+                                                <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
+                                                    <f:for each="{fix.affectedUserItems}" as="affectedUser">
+                                                        <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
+                                                    </f:for>
+                                                </div>
+                                            </div>
+                                        </f:if>
+                                        <f:if condition="{fix.wcagReferences}">
+                                            <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3><ul><f:for each="{fix.wcagReferences}" as="wcag"><li>{wcag.label}</li></f:for></ul></div>
+                                        </f:if>
+                                        <f:if condition="{fix.standards}">
+                                            <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3><div class="aqg-rule-metadata__chips"><f:for each="{fix.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for></div></div>
+                                        </f:if>
+                                        <f:if condition="{fix.documentationLinks}">
+                                            <div class="aqg-rule-metadata__group"><h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3><ul><f:for each="{fix.documentationLinks}" as="doc"><li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li></f:for></ul></div>
+                                        </f:if>
+                                    </div>
+                                </details>
                             </div>
                         </article>
                     </f:for>
@@ -547,6 +541,10 @@
                         <input type="hidden" name="remoteFailedQuery" value="{remoteFailedQuery}" />
                     </f:if>
 
+                    <f:if condition="{remoteRule}">
+                        <input type="hidden" name="remoteRule" value="{remoteRule}" />
+                    </f:if>
+
                     <label class="visually-hidden" for="a11y-overview-search-remote">
                         <f:translate
                                 key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.label"
@@ -569,6 +567,13 @@
             </div>
         </div>
 
+        <f:if condition="{remoteRuleFilter}">
+            <div class="aqg-filter-note" role="status">
+                <span class="aqg-filter-note__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pages.ruleFilter" default="Showing pages with: %s" arguments="{0: remoteRuleFilter.label}" /></span>
+                <a href="{remoteRuleFilter.clearUrl}" class="aqg-filter-note__clear"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pages.showAll" default="Show all pages" /></a>
+            </div>
+        </f:if>
+
         <f:if condition="{remotePagesArePageScanFallback}">
             <div class="aqg-page-scan-fallback-note" role="status">
                 <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pageScanFallback.title" default="Page-scan fallback" /></strong>
@@ -590,7 +595,7 @@
                                     />
                                 </th>
                                 <th scope="col" class="num">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" />
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.table.issueTypes" default="Issue types" />
                                 </th>
                                 <th scope="col" class="num">
                                     <f:translate
@@ -823,6 +828,10 @@
                         
                                                 <f:if condition="{remoteQuery}">
                                                     <input type="hidden" name="remoteQuery" value="{remoteQuery}" />
+                                                </f:if>
+
+                                                <f:if condition="{remoteRule}">
+                                                    <input type="hidden" name="remoteRule" value="{remoteRule}" />
                                                 </f:if>
                         
                                                 <label class="visually-hidden" for="a11y-overview-search-remote-failed">
@@ -1068,7 +1077,7 @@
 
                     <div class="aqg-report-summary-strip__metrics" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.metricsAria', default: 'Report summary metrics')}">
                         <f:if condition="{remoteReportSummary.issuesTotal}">
-                            <span><strong>{remoteReportSummary.issuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.issues" default="issues" /></span>
+                            <span><strong>{remoteReportSummary.issuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metric.occurrences" default="occurrences" /></span>
                         </f:if>
                         <f:if condition="{remoteReportSummary.affectedPagesTotal}">
                             <span>
@@ -1431,11 +1440,11 @@
 
 
     <f:if condition="!{freePreview.isFree} &amp;&amp; ({remoteScanCompare.available} || {remoteScanCompare.message})">
-        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare}" />
+        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare, viewedJobId: remoteScan.job_id}" />
     </f:if>
 
     <f:if condition="!{freePreview.isFree} &amp;&amp; {regressionAlert.available}">
-        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert}" />
+        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert, viewedJobId: remoteScan.job_id}" />
     </f:if>
 
 

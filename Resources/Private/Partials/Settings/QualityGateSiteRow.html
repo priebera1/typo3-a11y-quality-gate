@@ -5,11 +5,15 @@
                 {siteRuleset.site_label}
                 <span class="aqg-site__id">{siteRuleset.site_identifier}</span>
                 <span class="aqg-mode-pill js-aqg-mode-pill" data-mode="{siteRuleset.publish_mode}">
-                    <span class="aqg-mode-pill__dot"></span>
+                    <span class="aqg-mode-pill__dot" aria-hidden="true"></span>
                     <span class="js-aqg-mode-label"><f:if condition="{siteRuleset.publish_mode} == 2"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.block" default="Block publish" /></f:then><f:else><f:if condition="{siteRuleset.publish_mode} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.warn" default="Warn editors" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.disabled" default="Disabled" /></f:else></f:if></f:else></f:if></span>
                 </span>
             </span>
-            <span class="aqg-site__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.storedFor" default="Stored for site identifier" /> <code>{siteRuleset.site_identifier}</code></span>
+            <span class="aqg-site__summary">
+                <span class="aqg-site__summary-text js-aqg-site-summary-critical"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.summaryCritical" default="Critical issues allowed: %d" arguments="{0: siteRuleset.threshold_critical}" /></span>
+                <span class="aqg-site__summary-sep" aria-hidden="true">·</span>
+                <span class="aqg-site__summary-text js-aqg-site-summary-warning"><f:if condition="{siteRuleset.threshold_warning} == -1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.summaryWarningsIgnored" default="Warnings ignored" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.summaryWarnings" default="Warnings allowed: %d" arguments="{0: siteRuleset.threshold_warning}" /></f:else></f:if></span>
+            </span>
         </div>
         <div class="aqg-site__actions">
             <button type="button" class="btn btn-default btn-sm js-aqg-remove-site"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.remove" default="Remove custom configuration" /></button>
@@ -20,37 +24,39 @@
             </span>
         </div>
     </header>
-    <div class="aqg-site__body aqg-site__body--compact">
-        <div class="aqg-field">
-            <label class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.title" default="Publishing mode" /></label>
-            <select class="aqg-select js-aqg-site-mode" name="qualityGate[sites][{siteRuleset.site_identifier}][publish_mode]">
-                <option value="0" {f:if(condition: '{siteRuleset.publish_mode} == 0', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeDisabled" default="Disabled — do not warn or block" /></option>
-                <option value="1" {f:if(condition: '{siteRuleset.publish_mode} == 1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeWarn" default="Warn editors before publish" /></option>
-                <option value="2" {f:if(condition: '{siteRuleset.publish_mode} == 2', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeBlock" default="Block publish on failure" /></option>
-            </select>
-            <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeHelp" default="Disabled · Warn editors · Block publishing." /></div>
-        </div>
-        <div class="aqg-field">
-            <label class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.criticalThreshold" default="Critical threshold" /></label>
-            <div class="aqg-inline-row">
-                <input type="number" min="0" class="aqg-input aqg-input--num" name="qualityGate[sites][{siteRuleset.site_identifier}][threshold_critical]" value="{siteRuleset.threshold_critical}" />
-                <span class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.criticalSuffix" default="allowed" /></span>
+    <details class="aqg-site__details js-aqg-site-details">
+        <summary class="aqg-site__details-summary"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.editRules" default="Edit mode and thresholds" /></summary>
+        <div class="aqg-site__body aqg-site__body--compact">
+            <div class="aqg-field">
+                <label class="aqg-field__label" for="aqg-site-{siteRuleset.site_identifier}-publish-mode"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.title" default="Publishing mode" /></label>
+                <select class="aqg-select js-aqg-site-mode" id="aqg-site-{siteRuleset.site_identifier}-publish-mode" name="qualityGate[sites][{siteRuleset.site_identifier}][publish_mode]">
+                    <option value="0" {f:if(condition: '{siteRuleset.publish_mode} == 0', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeDisabled" default="Disabled — do not warn or block" /></option>
+                    <option value="1" {f:if(condition: '{siteRuleset.publish_mode} == 1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeWarn" default="Warn editors before publish" /></option>
+                    <option value="2" {f:if(condition: '{siteRuleset.publish_mode} == 2', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeBlock" default="Block publish on failure" /></option>
+                </select>
             </div>
-            <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.criticalHelp" default="Open critical issues allowed. 0 = any open critical issue fails." /></div>
+            <div class="aqg-field">
+                <label class="aqg-field__label" for="aqg-site-{siteRuleset.site_identifier}-threshold-critical"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.criticalThreshold" default="Critical threshold" /></label>
+                <div class="aqg-inline-row">
+                    <input type="number" min="0" class="aqg-input aqg-input--num js-aqg-site-critical" id="aqg-site-{siteRuleset.site_identifier}-threshold-critical" name="qualityGate[sites][{siteRuleset.site_identifier}][threshold_critical]" value="{siteRuleset.threshold_critical}" aria-describedby="aqg-site-{siteRuleset.site_identifier}-threshold-critical-help" />
+                    <span class="aqg-field__help" aria-hidden="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.criticalSuffix" default="allowed" /></span>
+                </div>
+                <div class="aqg-field__help" id="aqg-site-{siteRuleset.site_identifier}-threshold-critical-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.criticalHelp" default="Open critical issues allowed. 0 = any open critical issue fails." /></div>
+            </div>
+            <div class="aqg-field">
+                <label class="aqg-field__label" for="aqg-site-{siteRuleset.site_identifier}-threshold-warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.warningThreshold" default="Warning threshold" /></label>
+                <select class="aqg-select js-aqg-site-warning" id="aqg-site-{siteRuleset.site_identifier}-threshold-warning" name="qualityGate[sites][{siteRuleset.site_identifier}][threshold_warning]" aria-describedby="aqg-site-{siteRuleset.site_identifier}-threshold-warning-help">
+                    <option value="-1" {f:if(condition: '{siteRuleset.threshold_warning} == -1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.ignore" default="Ignore warnings" /></option>
+                    <option value="0" {f:if(condition: '{siteRuleset.threshold_warning} == 0', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.0" default="0 warnings allowed" /></option>
+                    <option value="1" {f:if(condition: '{siteRuleset.threshold_warning} == 1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.1" default="1 warning allowed" /></option>
+                    <option value="3" {f:if(condition: '{siteRuleset.threshold_warning} == 3', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.3" default="3 warnings allowed" /></option>
+                    <option value="5" {f:if(condition: '{siteRuleset.threshold_warning} == 5', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.5" default="5 warnings allowed" /></option>
+                    <option value="10" {f:if(condition: '{siteRuleset.threshold_warning} == 10', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.10" default="10 warnings allowed" /></option>
+                </select>
+                <div class="aqg-field__help" id="aqg-site-{siteRuleset.site_identifier}-threshold-warning-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.warningThresholdHelp" default="Keep “Ignore warnings” to evaluate critical issues only." /></div>
+            </div>
         </div>
-        <div class="aqg-field">
-            <label class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.warningThreshold" default="Warning threshold" /></label>
-            <select class="aqg-select" name="qualityGate[sites][{siteRuleset.site_identifier}][threshold_warning]">
-                <option value="-1" {f:if(condition: '{siteRuleset.threshold_warning} == -1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.ignore" default="Ignore warnings" /></option>
-                <option value="0" {f:if(condition: '{siteRuleset.threshold_warning} == 0', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.0" default="0 warnings allowed" /></option>
-                <option value="1" {f:if(condition: '{siteRuleset.threshold_warning} == 1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.1" default="1 warning allowed" /></option>
-                <option value="3" {f:if(condition: '{siteRuleset.threshold_warning} == 3', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.3" default="3 warnings allowed" /></option>
-                <option value="5" {f:if(condition: '{siteRuleset.threshold_warning} == 5', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.5" default="5 warnings allowed" /></option>
-                <option value="10" {f:if(condition: '{siteRuleset.threshold_warning} == 10', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.warningThreshold.10" default="10 warnings allowed" /></option>
-            </select>
-            <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.warningThresholdHelp" default="Keep “Ignore warnings” to evaluate critical issues only." /></div>
-        </div>
-    </div>
+    </details>
     <div class="aqg-inherit-note js-aqg-inherit-note" hidden="hidden">
         <span class="aqg-inherit-note__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.fyi" default="FYI" /></span>
         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.inheritNote" default="Removing this configuration makes the site inherit the global default again." />

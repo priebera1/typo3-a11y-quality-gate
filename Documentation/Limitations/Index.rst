@@ -96,9 +96,11 @@ Frontend scan
 Quality gate
 ============
 
-*   The gate evaluates stored findings. A page that has not been scanned since
-    its last change is evaluated against outdated data. Schedule regular scans,
-    see :ref:`automation`.
+*   The gate scans the content of a page when the page is published or
+    unhidden and decides on that fresh result. Frontend scan results are not
+    part of the decision. If that scan fails, the page is published without a
+    decision and the editor sees a warning. Schedule regular scans to keep the
+    reports current, see :ref:`automation`.
 *   Blocking mode requires an active licence. Without one, the gate can only
     warn.
 *   The gate is an editorial safeguard. It is not a security control and not a

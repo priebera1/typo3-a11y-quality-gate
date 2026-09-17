@@ -15,6 +15,17 @@ final class QualityGateChecker
     ) {
     }
 
+    /**
+     * Whether the ruleset that applies to the site warns or blocks at all. Only tells callers if a missing
+     * decision is worth reporting; it never produces a verdict.
+     */
+    public function isEnabledForSite(string $siteIdentifier): bool
+    {
+        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
+
+        return $ruleset !== null && (int)($ruleset['publish_mode'] ?? 0) !== 0;
+    }
+
     public function check(int $pageUid, string $siteIdentifier, int $languageUid = -1): QualityGateVerdict
     {
         $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);

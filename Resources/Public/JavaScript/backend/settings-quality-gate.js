@@ -16,6 +16,7 @@ class AqgQualityGateSettings {
 
     this.bindEvents();
     this.updateModePills();
+    this.updateSummaries();
     this.updateState();
     this.updateAvailableSiteUi();
   }
@@ -33,7 +34,26 @@ class AqgQualityGateSettings {
       if (target instanceof HTMLSelectElement && target.matches('.js-aqg-site-mode')) {
         this.updateModePillForRow(target.closest('.js-aqg-site-row'));
       }
+      if (target instanceof HTMLSelectElement && target.matches('.js-aqg-site-warning')) {
+        this.updateSummaryForRow(target.closest('.js-aqg-site-row'));
+      }
     });
+
+    this.form.addEventListener('input', (event) => {
+      const target = event.target;
+      if (target instanceof HTMLInputElement && target.matches('.js-aqg-site-critical')) {
+        this.updateSummaryForRow(target.closest('.js-aqg-site-row'));
+      }
+    });
+
+    // A collapsed site row still submits its fields; reveal it when one of them blocks the submit,
+    // otherwise the browser cannot show its validation message.
+    this.form.addEventListener('invalid', (event) => {
+      const details = event.target instanceof Element ? event.target.closest('.js-aqg-site-details') : null;
+      if (details instanceof HTMLDetailsElement && !details.open) {
+        details.open = true;
+      }
+    }, true);
 
     this.form.addEventListener('click', (event) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -178,8 +198,16 @@ class AqgQualityGateSettings {
     option?.remove();
     this.closeAddPanel();
     this.updateModePillForRow(row);
+    this.updateSummaryForRow(row);
     this.updateCounts();
     this.updateAvailableSiteUi();
+
+    // A new override starts from the defaults, so open it for editing right away.
+    const details = row.querySelector('.js-aqg-site-details');
+    if (details instanceof HTMLDetailsElement) {
+      details.open = true;
+    }
+    row.querySelector('.js-aqg-site-mode')?.focus();
   }
 
   renderSiteRow(identifier, label) {
@@ -296,6 +324,33 @@ class AqgQualityGateSettings {
     }
   }
 
+  updateSummaries() {
+    this.form.querySelectorAll('.js-aqg-site-row').forEach((row) => this.updateSummaryForRow(row));
+  }
+
+  updateSummaryForRow(row) {
+    if (!row) {
+      return;
+    }
+    const critical = row.querySelector('.js-aqg-site-critical');
+    const warning = row.querySelector('.js-aqg-site-warning');
+    const criticalSummary = row.querySelector('.js-aqg-site-summary-critical');
+    const warningSummary = row.querySelector('.js-aqg-site-summary-warning');
+
+    if (critical instanceof HTMLInputElement && criticalSummary) {
+      const value = Number.parseInt(critical.value, 10);
+      criticalSummary.textContent = this.label('labelSummaryCritical', 'Critical issues allowed: %d')
+        .replace('%d', String(Number.isNaN(value) ? 0 : Math.max(0, value)));
+    }
+
+    if (warning instanceof HTMLSelectElement && warningSummary) {
+      const value = Number.parseInt(warning.value, 10);
+      warningSummary.textContent = Number.isNaN(value) || value < 0
+        ? this.label('labelSummaryWarningsIgnored', 'Warnings ignored')
+        : this.label('labelSummaryWarnings', 'Warnings allowed: %d').replace('%d', String(value));
+    }
+  }
+
   label(name, fallback) {
     return this.form.dataset[name] || fallback;
   }
@@ -310,10 +365,14 @@ class AqgQualityGateSettings {
   }
 }
 
-document.querySelectorAll('.js-aqg-quality-gate-form').forEach((form) => {
+export function initializeQualityGateSettings(form) {
   if (form.dataset.aqgQualityGateInitialized === '1') {
-    return;
+    return null;
   }
   form.dataset.aqgQualityGateInitialized = '1';
-  new AqgQualityGateSettings(form);
+  return new AqgQualityGateSettings(form);
+}
+
+document.querySelectorAll('.js-aqg-quality-gate-form').forEach((form) => {
+  initializeQualityGateSettings(form);
 });

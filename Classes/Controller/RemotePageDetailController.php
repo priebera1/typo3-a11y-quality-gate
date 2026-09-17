@@ -19,6 +19,7 @@ use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
+use Priebera\A11yQualityGate\Utility\RuleAnchorUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -279,7 +280,11 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         $pageRecommendation = $isFreePreview
             ? []
             : $this->decodePageRecommendation((string)($remotePage['page_recommendation_json'] ?? ''));
-        $groupedIssues = $this->groupIssuesByRule($issuesWithNodes, $pageRecommendation);
+        $groupedIssues = $this->groupIssuesByRule(
+            $issuesWithNodes,
+            $pageRecommendation,
+            $this->requestParameterService->getRuleId($request, 'rule')
+        );
         $pageSummaryIssuesCount = (int)($remotePage['issues_count'] ?? 0);
         $pageFindingsCount = $this->countPageFindings($issuesWithNodes, $pageSummaryIssuesCount);
         $issueDetailsUnavailable = $groupedIssues === [] && $pageSummaryIssuesCount > 0;
@@ -311,6 +316,11 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $remotePageUid,
             (int)($remoteScan['page_uid'] ?? 0) ?: $scanPageUid,
             (int)($remoteScan['language_uid'] ?? 0)
+        );
+        $newerScan = $this->resolveNewerScan(
+            $remotePageHistory,
+            is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
+            is_array($remoteScan) ? (int)($remoteScan['finished_at'] ?? 0) : 0
         );
         $remoteScanCompare = $isFreePreview
             ? ['available' => false, 'message' => '']
@@ -363,6 +373,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'isFreePreview' => $isFreePreview,
             'freePreviewTrialUrl' => $isFreePreview ? $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::TRIAL) : '',
             'remotePageHistory' => $remotePageHistory,
+            'newerScan' => $newerScan,
             'remoteScanCompare' => $remoteScanCompare,
             'regressionAlert' => $regressionAlert,
             'remediationPlan' => $remediationPlan,
@@ -371,6 +382,33 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         return $moduleTemplate->renderResponse('RemotePageDetail/Show');
     }
 
+
+    /**
+     * The newest completed scan of this URL when the page shows an older one, so the page can say which
+     * scan it describes. History items arrive newest first.
+     *
+     * @param array<string, mixed> $remotePageHistory
+     * @return array{finishedAtFormatted:string,url:string}|array{}
+     */
+    private function resolveNewerScan(array $remotePageHistory, string $viewedJobId, int $viewedFinishedAt): array
+    {
+        $latest = is_array($remotePageHistory['items'] ?? null) ? ($remotePageHistory['items'][0] ?? null) : null;
+        if (!is_array($latest) || $viewedJobId === '') {
+            return [];
+        }
+
+        $latestJobId = trim((string)($latest['jobId'] ?? ''));
+        $latestFinishedAt = (int)($latest['finishedAt'] ?? 0);
+        $url = (string)($latest['viewReportUrl'] ?? '');
+        if ($latestJobId === '' || $latestJobId === $viewedJobId || $url === '' || $latestFinishedAt <= $viewedFinishedAt) {
+            return [];
+        }
+
+        return [
+            'finishedAtFormatted' => (string)($latest['finishedAtFormatted'] ?? ''),
+            'url' => $url,
+        ];
+    }
 
     /**
      * @return array<string, mixed>
@@ -715,7 +753,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
      * @param array<int, array<string, mixed>> $issues
      * @return array<int, array<string, mixed>>
      */
-    private function groupIssuesByRule(array $issues, array $pageRecommendation = []): array
+    private function groupIssuesByRule(array $issues, array $pageRecommendation = [], string $requestedRuleId = ''): array
     {
         $groups = [];
         $language = $this->getBackendLanguageCode();
@@ -847,7 +885,10 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $group['guidanceHowToFix'] = $group['guidanceHowToFix'] ?? 'Review this finding in context.';
             $group['primaryFixSummary'] = $this->buildPrimaryFixSummary($group['guidanceHowToFix']);
             $group['isPrimaryRecommendation'] = $primaryRuleId !== '' && strtolower((string)$group['rule_id']) === $primaryRuleId;
-            $group['isDefaultOpen'] = false;
+            $group['anchorId'] = RuleAnchorUtility::anchorId((string)$group['rule_id']);
+            // A link from a rule ("View affected pages") opens that rule on the page.
+            $group['isRequestedRule'] = $requestedRuleId !== '' && strcasecmp((string)$group['rule_id'], $requestedRuleId) === 0;
+            $group['isDefaultOpen'] = $group['isRequestedRule'];
             if ($group['isPrimaryRecommendation']) {
                 $hasPrimaryMatch = true;
             }
@@ -1076,6 +1117,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         return [
             'scanType' => 'frontend_http',
             'httpStatusLabel' => $httpStatus > 0 ? (string)$httpStatus : '—',
+            // A routine success status is technical detail; anything else belongs in the page summary.
+            'httpStatusIsSuccess' => $httpStatus >= 200 && $httpStatus < 300,
             'httpStatusTone' => $httpStatus > 0 && $httpStatus < 400 ? 'tone-ok' : ($httpStatus >= 500 ? 'tone-critical' : 'tone-warning'),
             'lastScanAt' => $finishedAt,
             'lastScanAtFormatted' => BackendTimeUtility::formatDateTime($finishedAt, 'd.m.Y · H:i'),
@@ -1545,6 +1588,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'hasFirstSteps' => $firstSteps !== [],
             'manualReviewRequired' => $manualReviewRequired,
             'manualReviewLabel' => $manualReviewRequired ? $this->translateWithFallback('remote.label.manualReviewRequired', 'Manual review required') : '',
+            'hasDetails' => $primaryRuleId !== null || $primaryFixType !== '' || $primaryOwner !== '' || $quickWinsTotal > 0
+                || $templateIssuesTotal > 0 || $contentIssuesTotal > 0 || $designIssuesTotal > 0 || $manualReviewRequired,
         ];
     }
 

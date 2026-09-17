@@ -296,7 +296,9 @@ final class FreeRemotePreviewService
     private function mapApiException(ApiRequestFailedException $exception): FreePreviewException
     {
         $code = trim($exception->apiErrorCode);
-        $state = match ($code) {
+        // API throttling is temporary: the request may succeed later, so it is neither a contract nor a site error.
+        $rateLimited = in_array($code, FreePreviewException::RATE_LIMIT_CODES, true);
+        $state = $rateLimited ? 'API_UNAVAILABLE' : match ($code) {
             'free_daily_limit_reached' => 'FREE_LIMIT_REACHED',
             'feature_not_available', 'free_remote_preview_disabled' => 'FEATURE_NOT_AVAILABLE',
             'idempotency_key_reused' => 'IDEMPOTENCY_CONFLICT',
@@ -306,7 +308,6 @@ final class FreeRemotePreviewService
             'invalid_site', 'invalid_site_url', 'unsafe_site_url', 'invalid_request' => 'INVALID_SITE',
             'invalid_token', 'token_expired', 'unauthorized' => 'TOKEN_ERROR',
             'route_not_found' => 'ENDPOINT_NOT_FOUND',
-            'rate_limit_exceeded' => 'API_UNAVAILABLE',
             'invalid_installation_proof', 'installation_proof_missing',
             'installation_proof_unavailable', 'installation_proof_timeout',
             'installation_proof_too_large', 'installation_proof_redirect_blocked' => 'PROOF_ERROR',
@@ -315,20 +316,22 @@ final class FreeRemotePreviewService
                 : 'API_CONTRACT_ERROR',
         };
 
-        $message = match ($state) {
-            'FREE_LIMIT_REACHED' => BackendLabelUtility::translate('freePreview.error.limitReached', 'The Free Remote Preview daily scan limit has been reached.'),
-            'FEATURE_NOT_AVAILABLE' => BackendLabelUtility::translate('freePreview.error.featureUnavailable', 'This feature is not included in the Free Remote Preview. Start a trial or choose a PRO or Agency plan to use it.'),
-            'IDEMPOTENCY_CONFLICT' => BackendLabelUtility::translate('freePreview.error.idempotency', 'This Free Remote Preview request conflicts with an earlier submit. Reload before starting a new scan.'),
-            'PROOF_ERROR' => BackendLabelUtility::translate('freePreview.error.proof', 'The public Free Remote Preview proof could not be verified.'),
-            'MISSING_INSTALLATION_ID' => BackendLabelUtility::translate('freePreview.error.missingInstallation', 'Free Remote Preview installation identity is missing.'),
-            'INSTALLATION_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.installationMismatch', 'The Free Remote Preview installation identity does not match its token.'),
-            'SITE_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.siteMismatch', 'The TYPO3 site identifier does not match the Free Remote Preview token.'),
-            'INVALID_SITE' => BackendLabelUtility::translate('freePreview.error.invalidSite', 'The configured TYPO3 site URL is not valid for Free Remote Preview.'),
-            'TOKEN_ERROR' => BackendLabelUtility::translate('freePreview.error.token', 'Free Remote Preview authentication was rejected.'),
-            'ENDPOINT_NOT_FOUND' => BackendLabelUtility::translate('freePreview.error.endpoint', 'The Free Remote Preview status endpoint is not available.'),
-            'API_CONTRACT_ERROR' => BackendLabelUtility::translate('freePreview.error.contract', 'The Free Remote Preview request was rejected by the API contract.'),
-            default => BackendLabelUtility::translate('freePreview.error.unavailable', 'Free Remote Preview is temporarily unavailable.'),
-        };
+        $message = $rateLimited
+            ? BackendLabelUtility::translate('freePreview.error.rateLimited', 'AQG paused Free Remote Preview requests from this site for now. Try again later.')
+            : match ($state) {
+                'FREE_LIMIT_REACHED' => BackendLabelUtility::translate('freePreview.error.limitReached', 'The Free Remote Preview daily scan limit has been reached.'),
+                'FEATURE_NOT_AVAILABLE' => BackendLabelUtility::translate('freePreview.error.featureUnavailable', 'This feature is not included in the Free Remote Preview. Start a trial or choose a PRO or Agency plan to use it.'),
+                'IDEMPOTENCY_CONFLICT' => BackendLabelUtility::translate('freePreview.error.idempotency', 'This Free Remote Preview request conflicts with an earlier submit. Reload before starting a new scan.'),
+                'PROOF_ERROR' => BackendLabelUtility::translate('freePreview.error.proof', 'The public Free Remote Preview proof could not be verified.'),
+                'MISSING_INSTALLATION_ID' => BackendLabelUtility::translate('freePreview.error.missingInstallation', 'Free Remote Preview installation identity is missing.'),
+                'INSTALLATION_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.installationMismatch', 'The Free Remote Preview installation identity does not match its token.'),
+                'SITE_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.siteMismatch', 'The TYPO3 site identifier does not match the Free Remote Preview token.'),
+                'INVALID_SITE' => BackendLabelUtility::translate('freePreview.error.invalidSite', 'The configured TYPO3 site URL is not valid for Free Remote Preview.'),
+                'TOKEN_ERROR' => BackendLabelUtility::translate('freePreview.error.token', 'Free Remote Preview authentication was rejected.'),
+                'ENDPOINT_NOT_FOUND' => BackendLabelUtility::translate('freePreview.error.endpoint', 'The Free Remote Preview status endpoint is not available.'),
+                'API_CONTRACT_ERROR' => BackendLabelUtility::translate('freePreview.error.contract', 'The Free Remote Preview request was rejected by the API contract.'),
+                default => BackendLabelUtility::translate('freePreview.error.unavailable', 'Free Remote Preview is temporarily unavailable.'),
+            };
 
         return new FreePreviewException(
             $message,

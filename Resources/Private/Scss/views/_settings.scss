@@ -2734,6 +2734,88 @@
         align-items: start;
     }
 
+    /* Licence key: one primary action below the fields it saves. */
+    .aqg-licence-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--aqi-border-soft);
+    }
+
+    .aqg-card__upgrade-text {
+        margin: 12px 0;
+        color: var(--aqi-fg);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .aqg-licence-status__upgrade-text {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    /* Site overrides: a one-line summary by default, the fields on demand. */
+    .aqg-site__summary {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    .aqg-site__summary-sep {
+        color: var(--aqi-fg-subtle);
+    }
+
+    .aqg-site__details > .aqg-site__details-summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        color: var(--aqi-fg);
+        font-size: 12px;
+        font-weight: 600;
+        list-style: none;
+        cursor: pointer;
+    }
+
+    .aqg-site__details > .aqg-site__details-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .aqg-site__details > .aqg-site__details-summary::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform 120ms ease;
+    }
+
+    .aqg-site__details[open] > .aqg-site__details-summary {
+        border-bottom: 1px solid var(--aqi-border-soft);
+    }
+
+    .aqg-site__details[open] > .aqg-site__details-summary::before {
+        transform: rotate(45deg);
+    }
+
+    .aqg-site__details > .aqg-site__details-summary:hover {
+        background: var(--aqi-surface-2);
+    }
+
+    .aqg-site__details > .aqg-site__details-summary:focus-visible {
+        outline: none;
+        box-shadow: var(--aqi-focus-ring-inset);
+    }
+
     .aqg-mode-pill {
         display: inline-flex;
         align-items: center;
@@ -4056,6 +4138,75 @@
         align-items: center;
         gap: 12px;
         flex-wrap: wrap;
+    }
+
+    /* Optional statement content: grouped and closed, so the source and required inputs stay in view. */
+    .aqg-statement-required-note {
+        margin: 0;
+    }
+
+    .aqg-statement-optional {
+        border: 1px dashed var(--aqi-border);
+        border-radius: 10px;
+    }
+
+    .aqg-statement-optional > .aqg-statement-optional__summary {
+        position: relative;
+        display: grid;
+        gap: 2px;
+        padding: 12px 16px 12px 34px;
+        border-radius: 10px;
+        list-style: none;
+        cursor: pointer;
+    }
+
+    .aqg-statement-optional > .aqg-statement-optional__summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .aqg-statement-optional > .aqg-statement-optional__summary::before {
+        content: "";
+        position: absolute;
+        top: 18px;
+        left: 16px;
+        width: 6px;
+        height: 6px;
+        border-right: 1.5px solid var(--aqi-fg);
+        border-bottom: 1.5px solid var(--aqi-fg);
+        transform: rotate(-45deg);
+        transition: transform 120ms ease;
+    }
+
+    .aqg-statement-optional[open] > .aqg-statement-optional__summary {
+        border-bottom: 1px dashed var(--aqi-border);
+        border-radius: 10px 10px 0 0;
+    }
+
+    .aqg-statement-optional[open] > .aqg-statement-optional__summary::before {
+        transform: rotate(45deg);
+    }
+
+    .aqg-statement-optional > .aqg-statement-optional__summary:focus-visible {
+        outline: none;
+        box-shadow: var(--aqi-focus-ring);
+    }
+
+    .aqg-statement-optional__title {
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .aqg-statement-optional__hint {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .aqg-statement-optional__body {
+        display: grid;
+        gap: 18px;
+        padding: 16px;
     }
 
 

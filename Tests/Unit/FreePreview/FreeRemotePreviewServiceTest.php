@@ -152,6 +152,53 @@ final class FreeRemotePreviewServiceTest extends TestCase
         self::assertTrue($status['retryable']);
     }
 
+    /**
+     * A throttled request is refused for now: the editor is told to try again later, never that the request
+     * broke the API contract or that the site or licence is wrong.
+     */
+    #[DataProvider('rateLimitCodes')]
+    #[Test]
+    public function throttledRequestsTellTheEditorToTryAgainLater(string $code): void
+    {
+        $throttled = new ApiRequestFailedException('AQG crawler HTTP 429 | code=' . $code, 429, null, $code);
+
+        $submitCrawler = $this->createMock(AqgCrawlerClient::class);
+        $submitCrawler->method('submitFree')->willThrowException($throttled);
+        try {
+            $this->service($submitCrawler)->submit('https://example.test/', 'main', 'https://example.test/', '1.9.0', 'aqg-free-key');
+            self::fail('Expected a Free Remote Preview exception.');
+        } catch (FreePreviewException $exception) {
+            self::assertTrue($exception->isRateLimited());
+            self::assertSame('API_UNAVAILABLE', $exception->state);
+            self::assertSame($code, $exception->errorCode);
+            self::assertSame(429, $exception->httpStatus);
+            self::assertSame('AQG paused Free Remote Preview requests from this site for now. Try again later.', $exception->getMessage());
+        }
+
+        $statusCrawler = $this->createMock(AqgCrawlerClient::class);
+        $statusCrawler->method('entitlementStatus')->willThrowException($throttled);
+        $status = $this->service($statusCrawler)->getEntitlementStatus('https://example.test/', 'main', '1.9.0');
+
+        self::assertSame('API_UNAVAILABLE', $status['state']);
+        self::assertTrue($status['retryable']);
+        self::assertSame('AQG paused Free Remote Preview requests from this site for now. Try again later.', $status['message']);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function rateLimitCodes(): iterable
+    {
+        yield 'Free submit limit' => ['free_preview_rate_limited'];
+        yield 'API request limit' => ['rate_limit_exceeded'];
+    }
+
+    #[Test]
+    public function onlyThrottlingCodesCountAsRateLimited(): void
+    {
+        self::assertFalse((new FreePreviewException('Rejected.', 'API_CONTRACT_ERROR', 'new_client_error', 400))->isRateLimited());
+        self::assertFalse((new FreePreviewException('Limit.', 'FREE_LIMIT_REACHED', 'free_daily_limit_reached', 429))->isRateLimited());
+        self::assertTrue((new FreePreviewException('Throttled.', 'API_UNAVAILABLE', 'free_preview_rate_limited', 429))->isRateLimited());
+    }
+
     #[Test]
     public function missingLiveEntitlementRouteIsNotHiddenAsGenericApiUnavailable(): void
     {
@@ -329,6 +376,7 @@ final class FreeRemotePreviewServiceTest extends TestCase
         yield 'feature' => ['feature_not_available', 403, 'FEATURE_NOT_AVAILABLE'];
         yield 'idempotency' => ['idempotency_key_reused', 409, 'IDEMPOTENCY_CONFLICT'];
         yield 'proof' => ['invalid_installation_proof', 403, 'PROOF_ERROR'];
+        yield 'free submit rate limit' => ['free_preview_rate_limited', 429, 'API_UNAVAILABLE'];
     }
 
     /** @param array<string, mixed> $payload */

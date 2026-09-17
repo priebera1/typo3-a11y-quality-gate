@@ -42,9 +42,11 @@ There are two ways to set the key:
     :file:`config/system/settings.php` under
     ``EXTENSIONS/a11y_quality_gate/licenceKey``.
 
-After saving, press :guilabel:`Validate` in the :guilabel:`Licence` tab. AQG
-contacts the licence service, shows the resolved plan, the bound domains, the
-expiry date and the limits of the plan.
+In the :guilabel:`Licence` tab, paste the key and press
+:guilabel:`Save and validate`. AQG stores the key, contacts the licence service
+and shows the resolved plan, the bound domains, the expiry date and the limits
+of the plan. To check a saved key again, for example after registering a domain
+in the customer portal, press :guilabel:`Revalidate` next to the key.
 
 ..  _configuration-licence-validation:
 

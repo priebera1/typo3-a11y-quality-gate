@@ -76,6 +76,35 @@ final class CommercialCopyConsistencyTest extends TestCase
     }
 
     #[Test]
+    public function trialIsNeverPresentedAsPro(): void
+    {
+        // The trial lacks PDF export, AI suggestions and the Statement Assistant, so it is no "PRO trial".
+        $offenders = array_filter(
+            $this->englishSources(),
+            static fn (string $source): bool => preg_match('/\bPRO trial\b|\bupgrade to PRO\b/i', $source) === 1
+        );
+        unset($offenders['settings.licence.upgradeToPro']);
+
+        self::assertSame([], $offenders);
+
+        $status = (string)file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Settings/LicenceStatus.html');
+        self::assertStringNotContainsString('settings.licence.type.trial" default="Trial" /> · PRO', $status);
+        self::assertStringNotContainsString('settings.licence.upgradeToPro', $status);
+    }
+
+    #[Test]
+    public function lockedFeaturesNameEveryPlanThatIncludesThem(): void
+    {
+        foreach (['freePreview.screenshotsLocked', 'freePreview.recordMappingLocked', 'freePreview.upsell', 'settings.publishingRules.freeUpgrade', 'settings.licence.free.advancedRemote'] as $id) {
+            $source = $this->englishSource($id);
+            self::assertStringContainsString('PRO', $source, $id);
+            self::assertStringContainsString('Agency', $source, $id);
+        }
+        // PDF export is the one frontend-scan extra the trial lacks.
+        self::assertStringContainsString('PDF export needs PRO or Agency', $this->englishSource('freePreview.upsell'));
+    }
+
+    #[Test]
     public function blockingModeIsDescribedAsTrialProAndAgency(): void
     {
         // PublishHook blocks for any valid licence, trial included.

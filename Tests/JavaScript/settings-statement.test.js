@@ -267,6 +267,24 @@ describe('Statement Assistant generate', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
+    it('opens the collapsed optional details and focuses the field that failed validation', async () => {
+        const root = createRoot();
+        const url = el(root, '.js-aqg-statement-evaluation-url');
+        const optional = document.createElement('details');
+        optional.className = 'aqg-statement-optional js-aqg-statement-optional';
+        optional.append(document.createElement('summary'));
+        url.replaceWith(optional);
+        optional.append(url);
+        url.value = 'javascript:alert(2)';
+
+        await generate(root);
+
+        expectError(root, 'Enter a valid evaluation report URL.');
+        expect(optional.open).toBe(true);
+        expect(document.activeElement).toBe(url);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it('requires the manual confirmation for a non-default conformance status', async () => {
         const root = createRoot();
         el(root, '.js-aqg-statement-conformity-status').value = 'mostly_compliant';

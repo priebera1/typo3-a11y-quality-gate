@@ -11,6 +11,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
         this.bindDocumentClickEvents();
         this.bindBatchIgnoreEvents();
+        this.initDisclosureMenus();
         this.initOverviewSearch();
         this.initSettingsTree();
         this.initRulesTab();
@@ -109,6 +110,32 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             if (localCancelButton) {
                 event.preventDefault();
                 await this.handleLocalScanCancel(localCancelButton);
+            }
+        });
+    }
+
+    /**
+     * "More actions" menus are <details> elements: close them once an item was chosen, on a click
+     * elsewhere and on Escape, returning focus to the toggle.
+     */
+    initDisclosureMenus() {
+        document.addEventListener('click', (event) => {
+            const target = event.target instanceof Element ? event.target : null;
+            document.querySelectorAll('details[data-aqg-menu="true"][open]').forEach((menu) => {
+                if (!target || !menu.contains(target) || target.closest('.aqg-menu__item')) {
+                    menu.open = false;
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape' || !(event.target instanceof Element)) {
+                return;
+            }
+            const menu = event.target.closest('details[data-aqg-menu="true"]');
+            if (menu instanceof HTMLDetailsElement && menu.open) {
+                menu.open = false;
+                menu.querySelector('summary')?.focus();
             }
         });
     }
@@ -986,8 +1013,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         const toggleButton = document.querySelector(FREE_SELECTORS.licenceToggleButton);
         const validateButton = document.querySelector(FREE_SELECTORS.licenceValidateButton);
         const resultBox = document.querySelector(FREE_SELECTORS.licenceValidateResult);
+        const submitButton = document.querySelector('[data-aqg-licence-submit="true"]');
 
-        if (!input || !validateButton || !resultBox) {
+        if (!input || !resultBox) {
             return;
         }
 
@@ -1006,115 +1034,158 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             });
         }
 
-        validateButton.addEventListener('click', async () => {
-            const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
-            const endpoint = ajaxUrls.a11y_validate_licence || '';
-            const licenceKey = String(input.value || '').trim();
+        // A new or changed key is checked by saving it ("Save and validate"); the stored key is checked
+        // again with "Revalidate", which only makes sense while the field still holds that key.
+        const savedKey = String(input.defaultValue || '').trim();
+        const syncLicenceActions = () => {
+            const currentKey = String(input.value || '').trim();
+            const keyChanged = currentKey !== savedKey;
 
-            if (licenceKey === '') {
-                resultBox.innerHTML = `
-                    <span class="aqg-validation tone-error">
-                        ${this.translate('settings.licence.validation.emptyKey', 'Please enter a licence key first.')}
-                    </span>
-                `;
-                return;
+            if (validateButton) {
+                validateButton.hidden = keyChanged || savedKey === '';
             }
 
-            if (endpoint === '') {
-                resultBox.innerHTML = `
-                    <span class="aqg-validation tone-error">
-                        ${this.translate('settings.licence.validation.unreachable', 'Validation failed because the API could not be reached.')}
-                    </span>
-                `;
-                return;
+            if (submitButton) {
+                submitButton.textContent = keyChanged && currentKey !== ''
+                    ? (submitButton.dataset.labelSaveValidate || 'Save and validate')
+                    : (submitButton.dataset.labelSave || 'Save changes');
             }
+        };
 
-            const originalText = validateButton.textContent.trim();
-            validateButton.disabled = true;
-            validateButton.textContent = this.translate('settings.licence.validating', 'Validating...');
+        input.addEventListener('input', syncLicenceActions);
+        syncLicenceActions();
 
+        if (savedKey === '') {
+            return;
+        }
+
+        const revalidate = () => this.revalidateLicence(savedKey, resultBox, validateButton);
+
+        validateButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            revalidate();
+        });
+
+        // The status card's retry action re-checks the stored key in place; without JavaScript it reloads.
+        document.querySelectorAll('[data-aqg-licence-action="retry"]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                revalidate();
+            });
+        });
+    }
+
+    async revalidateLicence(licenceKey, resultBox, validateButton) {
+        const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
+        const endpoint = ajaxUrls.a11y_validate_licence || '';
+
+        if (endpoint === '') {
             resultBox.innerHTML = `
-                <span class="aqg-validation tone-running">
-                    <svg class="aqi-spin" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-                        <circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".35"></circle>
-                        <path d="M10.5 6 A4.5 4.5 0 0 0 6 1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
-                    </svg>
-                    <span>${this.translate('settings.licence.validation.contacting', 'Contacting licence server...')}</span>
+                <span class="aqg-validation tone-error">
+                    ${this.escapeHtml(this.translate('settings.licence.validation.unreachable', 'Validation failed because the API could not be reached.'))}
                 </span>
             `;
+            return;
+        }
 
-            try {
-                const response = await new AjaxRequest(endpoint).post({
-                    licenceKey,
-                });
+        const originalText = validateButton ? validateButton.textContent.trim() : '';
+        if (validateButton) {
+            validateButton.disabled = true;
+            validateButton.textContent = this.translate('settings.licence.validating', 'Validating...');
+        }
 
-                const data = await response.resolve();
+        resultBox.innerHTML = `
+            <span class="aqg-validation tone-running">
+                <svg class="aqi-spin" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                    <circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".35"></circle>
+                    <path d="M10.5 6 A4.5 4.5 0 0 0 6 1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+                </svg>
+                <span>${this.escapeHtml(this.translate('settings.licence.validation.contacting', 'Contacting licence server...'))}</span>
+            </span>
+        `;
 
-                if (data.valid) {
-                    const validationParts = [
-                        this.escapeHtml(this.translate('settings.licence.validation.validated', 'Validated')),
-                    ];
+        try {
+            const response = await new AjaxRequest(endpoint).post({
+                licenceKey,
+            });
 
-                    const planLabel = data.isTrial
-                        ? this.translate('settings.licence.plan.trialShort', 'TRIAL')
-                        : this.formatPlanLabel(data.plan || 'PRO');
+            const data = await response.resolve();
 
-                    if (planLabel) {
-                        validationParts.push(this.escapeHtml(String(planLabel)));
-                    }
+            if (data.valid) {
+                const validationParts = [
+                    this.escapeHtml(this.translate('settings.licence.validation.validated', 'Validated')),
+                ];
 
-                    if (data.domain) {
-                        validationParts.push(`${this.escapeHtml(this.translate('settings.licence.boundTo', 'bound to'))} <strong>${this.escapeHtml(String(data.domain))}</strong>`);
-                    }
+                const planLabel = data.isTrial
+                    ? this.translate('settings.licence.plan.trialShort', 'TRIAL')
+                    : this.formatPlanLabel(data.plan || 'PRO');
 
-                    resultBox.innerHTML = `
-                        <span class="aqg-validation tone-ok">
-                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-                                <path d="M2.5 6.2 L5 8.4 L9.5 3.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                            <span>${validationParts.join(' · ')}</span>
-                        </span>
-                    `;
-                } else {
-                    const invalidMessage = String(
-                        data.message
-                        || data.error
-                        || data.reasonLabel
-                        || data.reason
-                        || this.translate('settings.licence.validation.invalidFallback', 'The licence could not be validated.')
-                    );
-
-                    const invalidTitle = String(
-                        data.title
-                        || this.translate('settings.licence.validation.invalid', 'Licence is not valid.')
-                    );
-
-                    resultBox.innerHTML = `
-                        <span class="aqg-validation tone-error">
-                            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-                                <circle cx="6" cy="6" r="4.7" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
-                                <path d="M4.2 4.2 L7.8 7.8 M7.8 4.2 L4.2 7.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
-                            </svg>
-                            <span><strong>${this.escapeHtml(invalidTitle)}</strong> · ${this.escapeHtml(invalidMessage)}</span>
-                        </span>
-                    `;
+                if (planLabel) {
+                    validationParts.push(this.escapeHtml(String(planLabel)));
                 }
-            } catch {
+
+                if (data.domain) {
+                    validationParts.push(`${this.escapeHtml(this.translate('settings.licence.boundTo', 'bound to'))} <strong>${this.escapeHtml(String(data.domain))}</strong>`);
+                }
+
+                resultBox.innerHTML = `
+                    <span class="aqg-validation tone-ok">
+                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                            <path d="M2.5 6.2 L5 8.4 L9.5 3.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <span>${validationParts.join(' · ')}</span>
+                    </span>
+                `;
+
+                // A licence that was shown as not valid is active now: reload so the status card and the
+                // licensed features reflect it (the server dropped the cached result).
+                if (document.querySelector('[data-aqg-licence-state]')) {
+                    window.setTimeout(() => this.reloadPage(), 800);
+                }
+            } else {
+                const invalidMessage = String(
+                    data.message
+                    || data.error
+                    || data.reasonLabel
+                    || this.translate('settings.licence.validation.invalidFallback', 'The licence could not be validated.')
+                );
+
+                const invalidTitle = String(
+                    data.title
+                    || this.translate('settings.licence.validation.invalid', 'Licence is not valid.')
+                );
+
                 resultBox.innerHTML = `
                     <span class="aqg-validation tone-error">
                         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
                             <circle cx="6" cy="6" r="4.7" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
-                            <path d="M6 3.3 V6.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
-                            <circle cx="6" cy="8.5" r=".65" fill="currentColor"></circle>
+                            <path d="M4.2 4.2 L7.8 7.8 M7.8 4.2 L4.2 7.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
                         </svg>
-                        <span>${this.translate('settings.licence.validation.unreachable', 'Validation failed because the API could not be reached.')}</span>
+                        <span><strong>${this.escapeHtml(invalidTitle)}</strong> · ${this.escapeHtml(invalidMessage)}</span>
                     </span>
                 `;
-            } finally {
+            }
+        } catch {
+            resultBox.innerHTML = `
+                <span class="aqg-validation tone-error">
+                    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                        <circle cx="6" cy="6" r="4.7" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
+                        <path d="M6 3.3 V6.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+                        <circle cx="6" cy="8.5" r=".65" fill="currentColor"></circle>
+                    </svg>
+                    <span>${this.escapeHtml(this.translate('settings.licence.validation.unreachable', 'Validation failed because the API could not be reached.'))}</span>
+                </span>
+            `;
+        } finally {
+            if (validateButton) {
                 validateButton.disabled = false;
                 validateButton.textContent = originalText;
             }
-        });
+        }
+    }
+
+    reloadPage() {
+        window.location.reload();
     }
 
     escapeHtml(value) {

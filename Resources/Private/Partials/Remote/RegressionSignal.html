@@ -13,15 +13,15 @@
                     <f:if condition="{alert.hasScanComparison}">
                         <div class="aqg-regression-signal__comparison" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.sincePrevious', default: 'Change since previous frontend scan')}">
                             <div class="aqg-regression-signal__scan-row">
-                                <span class="aqg-regression-signal__scan-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.previousScan" default="Previous scan" /></span>
+                                <span class="aqg-regression-signal__scan-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.earlierScan" default="Earlier scan" /> <f:if condition="{viewedJobId} && {alert.previousScan.jobId} == {viewedJobId}"><span class="aqg-scan-marker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.shownHere" default="Shown on this page" /></span></f:if></span>
                                 <span><f:if condition="{alert.previousScan.finishedAtFormatted}"><f:then>{alert.previousScan.finishedAtFormatted}</f:then><f:else>—</f:else></f:if></span>
-                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.findings" default="%s findings" arguments="{0: alert.previousScan.findingsLabel}" /></span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.occurrences" default="%s occurrences" arguments="{0: alert.previousScan.findingsLabel}" /></span>
                                 <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.score" default="Score %s" arguments="{0: alert.previousScan.scoreLabel}" /></span>
                             </div>
                             <div class="aqg-regression-signal__scan-row">
-                                <span class="aqg-regression-signal__scan-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.currentScan" default="Current scan" /></span>
+                                <span class="aqg-regression-signal__scan-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.laterScan" default="Later scan" /> <f:if condition="{viewedJobId} && {alert.currentScan.jobId} == {viewedJobId}"><span class="aqg-scan-marker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.shownHere" default="Shown on this page" /></span></f:if></span>
                                 <span><f:if condition="{alert.currentScan.finishedAtFormatted}"><f:then>{alert.currentScan.finishedAtFormatted}</f:then><f:else>—</f:else></f:if></span>
-                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.findings" default="%s findings" arguments="{0: alert.currentScan.findingsLabel}" /></span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.occurrences" default="%s occurrences" arguments="{0: alert.currentScan.findingsLabel}" /></span>
                                 <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.score" default="Score %s" arguments="{0: alert.currentScan.scoreLabel}" /></span>
                             </div>
                             <f:if condition="{alert.hasComparisonRows}">

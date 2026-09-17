@@ -64,8 +64,8 @@ final class FreeRemotePreviewUiTest extends TestCase
         self::assertIsString($german);
         self::assertStringContainsString('settings.licence.free.remotePreview', $licence);
         self::assertStringContainsString('settings.licence.free.advancedRemote', $licence);
-        self::assertStringContainsString('up to 5 remote single-page scans per day', $english);
-        self::assertStringContainsString('bis zu 5 Remote-Scans einzelner Seiten pro Tag', $german);
+        self::assertStringContainsString('up to 5 free single-page scans per day', $english);
+        self::assertStringContainsString('bis zu 5 kostenlose Scans einzelner Seiten pro Tag', $german);
         self::assertStringNotContainsString(
             'Frontend crawling, block-on-publish gate and exports require PRO.',
             $english,

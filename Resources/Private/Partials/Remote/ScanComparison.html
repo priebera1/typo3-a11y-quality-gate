@@ -14,7 +14,7 @@
         <f:if condition="{comparison.hasScanMeta}">
             <div class="aqg-history-compare__meta" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.comparedScans', default: 'Compared scans')}">
                 <div class="aqg-history-compare__meta-item">
-                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.previousScan" default="Previous scan" /></span>
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.earlierScan" default="Earlier scan" /> <f:if condition="{viewedJobId} && {comparison.previousScan.jobId} == {viewedJobId}"><span class="aqg-scan-marker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.shownHere" default="Shown on this page" /></span></f:if></span>
                     <strong>
                         <f:if condition="{comparison.previousScan.finishedAtFormatted}">
                             <f:then>{comparison.previousScan.finishedAtFormatted}</f:then>
@@ -23,7 +23,7 @@
                     </strong>
                 </div>
                 <div class="aqg-history-compare__meta-item">
-                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.currentScan" default="Current scan" /></span>
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.laterScan" default="Later scan" /> <f:if condition="{viewedJobId} && {comparison.currentScan.jobId} == {viewedJobId}"><span class="aqg-scan-marker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.shownHere" default="Shown on this page" /></span></f:if></span>
                     <strong>
                         <f:if condition="{comparison.currentScan.finishedAtFormatted}">
                             <f:then>{comparison.currentScan.finishedAtFormatted}</f:then>

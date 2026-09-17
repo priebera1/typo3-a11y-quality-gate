@@ -25,12 +25,15 @@
 
         <div class="aqg-page-module-indicator__status-list">
             <f:for each="{rows}" as="row">
-                <div class="aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--{row.state}">
+                <div class="aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--{row.state}" data-aqg-indicator-source="{row.source}">
                     <span class="aqg-page-module-indicator__status-kind">{row.label}</span>
                     <span class="aqg-page-module-indicator__status-value">
                         <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: row.state}" />
                         <span>{row.headline}</span>
                     </span>
+                    <f:if condition="{row.meta}">
+                        <span class="aqg-page-module-indicator__status-meta">{row.meta}</span>
+                    </f:if>
                 </div>
             </f:for>
         </div>

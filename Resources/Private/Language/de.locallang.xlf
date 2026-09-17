@@ -15,8 +15,8 @@
                 <target>Assistent für den Entwurf einer Barrierefreiheitserklärung</target>
             </trans-unit>
             <trans-unit id="settings.statement.intro">
-                <source>Generate a draft accessibility statement based on automated scan data. This draft must be reviewed, completed and approved before publication.</source>
-                <target>Erstellen Sie einen Entwurf einer Barrierefreiheitserklärung auf Basis automatisierter Prüfdaten. Dieser Entwurf muss vor der Veröffentlichung geprüft, ergänzt und freigegeben werden.</target>
+                <source>Creates a draft accessibility statement from your frontend scan data. Review, complete and approve it before you publish it.</source>
+                <target>Erstellt aus den Daten Ihrer Frontend-Scans den Entwurf einer Barrierefreiheitserklärung. Prüfen, ergänzen und genehmigen Sie ihn vor der Veröffentlichung.</target>
             </trans-unit>
             <trans-unit id="settings.statement.form.aria">
                 <source>Accessibility Statement Draft Assistant</source>
@@ -459,16 +459,16 @@
                 <target>Assistent für den Entwurf einer Barrierefreiheitserklärung</target>
             </trans-unit>
             <trans-unit id="settings.statement.locked.subtitle">
-                <source>Accessibility Statement Draft Assistant is available with PRO.</source>
-                <target>Der Assistent für den Entwurf einer Barrierefreiheitserklärung ist mit PRO verfügbar.</target>
+                <source>Available with a PRO or Agency licence.</source>
+                <target>Mit einer PRO- oder Agency-Lizenz verfügbar.</target>
             </trans-unit>
             <trans-unit id="settings.statement.locked.text">
-                <source>Generate an automated draft statement from completed frontend scans with a PRO or Agency licence.</source>
-                <target>Erstellen Sie mit einer PRO- oder Agency-Lizenz einen automatisierten Entwurf aus abgeschlossenen Frontend-Scans.</target>
+                <source>Turn your latest frontend scan into a draft accessibility statement that you can review, complete and publish. The Statement Assistant is not part of the trial.</source>
+                <target>Machen Sie aus Ihrem letzten Frontend-Scan den Entwurf einer Barrierefreiheitserklärung, den Sie prüfen, ergänzen und veröffentlichen können. Der Assistent ist nicht Teil der Testphase.</target>
             </trans-unit>
             <trans-unit id="settings.statement.locked.button">
-                <source>View PRO options</source>
-                <target>PRO-Optionen ansehen</target>
+                <source>Compare plans</source>
+                <target>Tarife vergleichen</target>
             </trans-unit>
             <trans-unit id="settings.statement.validation.pageUrl">
                 <source>Enter a page URL for the latest page scan statement.</source>
@@ -1811,20 +1811,20 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>KI-generierter Vorschlag. Prüfen und bearbeiten Sie ihn vor dem Übernehmen. Es gelten die Richtlinien des Anbieters zur Datenverarbeitung.</target>
             </trans-unit>
             <trans-unit id="settings.tab.ai">
-                <source>AI alt text</source>
-                <target>KI-Alternativtext</target>
+                <source>AI suggestions</source>
+                <target>KI-Vorschläge</target>
             </trans-unit>
             <trans-unit id="settings.ai.title">
-                <source>AI-assisted alt-text suggestions</source>
-                <target>KI-gestützte Alternativtext-Vorschläge</target>
+                <source>AI suggestions for alt text, link text and iframe titles</source>
+                <target>KI-Vorschläge für Alternativtexte, Linktexte und iframe-Titel</target>
             </trans-unit>
             <trans-unit id="settings.ai.description">
                 <source>Configure your own OpenAI project key for this site. Suggestions are never applied automatically; an editor must review and confirm them.</source>
                 <target>Konfigurieren Sie Ihren eigenen OpenAI-Projektschlüssel für diese Website. Vorschläge werden nie automatisch übernommen; eine Redakteurin oder ein Redakteur muss sie prüfen und bestätigen.</target>
             </trans-unit>
             <trans-unit id="settings.ai.privacy">
-                <source>When an editor requests an AI suggestion, the selected image and limited page context are sent to the configured OpenAI API account. No content is sent automatically. OpenAI does not use API data to train its models by default unless the account owner has explicitly opted in. Depending on the OpenAI account and data-retention configuration, submitted content may be retained for up to 30 days for service operation and abuse monitoring. Review the applicable OpenAI API data controls and confirm that this use is acceptable for your project and client data.</source>
-                <target>Wenn eine Redakteurin oder ein Redakteur einen KI-Vorschlag anfordert, werden das ausgewählte Bild und ein begrenzter Seitenkontext an das konfigurierte OpenAI-API-Konto gesendet. Inhalte werden nicht automatisch übertragen. OpenAI verwendet API-Daten standardmäßig nicht zum Trainieren seiner Modelle, sofern die Kontoinhaberin oder der Kontoinhaber nicht ausdrücklich zugestimmt hat. Abhängig vom OpenAI-Konto und der Konfiguration zur Datenaufbewahrung können übermittelte Inhalte für den Betrieb des Dienstes und die Missbrauchsüberwachung bis zu 30 Tage gespeichert werden. Prüfen Sie die geltenden OpenAI-API-Datenkontrollen und bestätigen Sie, dass diese Nutzung für Ihr Projekt und die Kundendaten akzeptabel ist.</target>
+                <source>When an editor requests an AI suggestion, the selected image or element and limited page context are sent to the configured OpenAI API account. No content is sent automatically. OpenAI does not use API data to train its models by default unless the account owner has explicitly opted in. Depending on the OpenAI account and data-retention configuration, submitted content may be retained for up to 30 days for service operation and abuse monitoring. Review the applicable OpenAI API data controls and confirm that this use is acceptable for your project and client data.</source>
+                <target>Wenn eine Redakteurin oder ein Redakteur einen KI-Vorschlag anfordert, werden das ausgewählte Bild oder Element und ein begrenzter Seitenkontext an das konfigurierte OpenAI-API-Konto gesendet. Inhalte werden nicht automatisch übertragen. OpenAI verwendet API-Daten standardmäßig nicht zum Trainieren seiner Modelle, sofern die Kontoinhaberin oder der Kontoinhaber nicht ausdrücklich zugestimmt hat. Abhängig vom OpenAI-Konto und der Konfiguration zur Datenaufbewahrung können übermittelte Inhalte für den Betrieb des Dienstes und die Missbrauchsüberwachung bis zu 30 Tage gespeichert werden. Prüfen Sie die geltenden OpenAI-API-Datenkontrollen und bestätigen Sie, dass diese Nutzung für Ihr Projekt und die Kundendaten akzeptabel ist.</target>
             </trans-unit>
             <trans-unit id="imageRemediation.confirmDecorative">
                 <source>Mark this image as decorative and clear its alternative text?</source>
@@ -2077,8 +2077,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
 
             <trans-unit id="settings.ai.keySecurity">
-                <source>Your key is encrypted before it is stored and is only used to request alt-text suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them.</source>
-                <target>Ihr Schlüssel wird vor dem Speichern verschlüsselt und nur verwendet, um Alternativtext-Vorschläge für diese TYPO3-Website anzufordern. Vorschläge werden nie automatisch übernommen — eine Redakteurin oder ein Redakteur prüft und bestätigt sie immer.</target>
+                <source>Your key is encrypted before it is stored and is only used to request AI suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them.</source>
+                <target>Ihr Schlüssel wird vor dem Speichern verschlüsselt und nur verwendet, um KI-Vorschläge für diese TYPO3-Website anzufordern. Vorschläge werden nie automatisch übernommen — eine Redakteurin oder ein Redakteur prüft und bestätigt sie immer.</target>
             </trans-unit>
 
             <trans-unit id="settings.ai.siteScopeHelp">
@@ -2392,24 +2392,24 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Der KI-Anbieter konnte keinen Iframe-Titel zurückgeben. Bitte später erneut versuchen.</target>
             </trans-unit>
             <trans-unit id="settings.licence.free.text">
-                <source>AQG works without a licence. Free includes local accessibility checks and up to 5 remote single-page scans per day. Full-site crawling and advanced remote features require PRO.</source>
-                <target>AQG funktioniert ohne Lizenz. FREE umfasst lokale Barrierefreiheitsprüfungen und bis zu 5 Remote-Scans einzelner Seiten pro Tag. Website-weites Crawling und erweiterte Remote-Funktionen erfordern PRO.</target>
+                <source>AQG works without a licence. Free includes local accessibility checks and up to 5 free single-page scans per day.</source>
+                <target>AQG funktioniert ohne Lizenz. FREE umfasst lokale Barrierefreiheitsprüfungen und bis zu 5 kostenlose Scans einzelner Seiten pro Tag.</target>
             </trans-unit>
             <trans-unit id="settings.licence.free.remotePreview">
-                <source>Free Remote Preview — 5 single-page scans per day</source>
-                <target>Free Remote Preview — 5 Scans einzelner Seiten pro Tag</target>
+                <source>Free Remote Preview — 5 free single-page scans per day</source>
+                <target>Free Remote Preview — 5 kostenlose Scans einzelner Seiten pro Tag</target>
             </trans-unit>
             <trans-unit id="settings.licence.free.proFeaturesTitle">
-                <source>Available in PRO</source>
-                <target>In PRO verfügbar</target>
+                <source>With a trial or licence</source>
+                <target>Mit Testphase oder Lizenz</target>
             </trans-unit>
             <trans-unit id="settings.licence.free.noFrontendCrawler">
                 <source>Full-site frontend crawler</source>
                 <target>Frontend-Crawler für die gesamte Website</target>
             </trans-unit>
             <trans-unit id="settings.licence.free.advancedRemote">
-                <source>Screenshots, record mapping, history and PDF exports</source>
-                <target>Screenshots, Datensatzzuordnung, Verlauf und PDF-Exporte</target>
+                <source>Scan the whole site, see screenshots and open the TYPO3 record behind each finding, with scan history and a Quality Gate that can block publishing. PDF export needs PRO or Agency.</source>
+                <target>Scannen Sie die ganze Website, sehen Sie Screenshots und öffnen Sie den TYPO3-Datensatz hinter jedem Befund – mit Scan-Verlauf und einem Quality Gate, das Veröffentlichungen blockieren kann. Der PDF-Export erfordert PRO oder Agency.</target>
             </trans-unit>
             <trans-unit id="freePreview.title">
                 <source>Free Remote Preview</source>
@@ -2425,7 +2425,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="freePreview.freeScansToday">
                 <source>Free scans today</source>
-                <target>Heutige Free-Scans</target>
+                <target>Kostenlose Scans heute</target>
             </trans-unit>
             <trans-unit id="freePreview.todayUsage">
                 <source>Today's usage</source>
@@ -2437,11 +2437,11 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="freePreview.scansRemaining">
                 <source>%1$d free scans remaining today</source>
-                <target>Heute sind noch %1$d Free-Scans verfügbar</target>
+                <target>Heute noch %1$d kostenlose Scans verfügbar</target>
             </trans-unit>
             <trans-unit id="freePreview.limitReached">
                 <source>Free scan limit reached for today.</source>
-                <target>Das heutige Free-Scan-Limit ist erreicht.</target>
+                <target>Das Tageslimit für kostenlose Scans ist erreicht.</target>
             </trans-unit>
             <trans-unit id="freePreview.pagesScanned">
                 <source>Pages scanned</source>
@@ -2453,7 +2453,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="freePreview.scanUsedToday">
                 <source>scan used today</source>
-                <target>Scan heute verwendet</target>
+                <target>Scan heute verbraucht</target>
             </trans-unit>
             <trans-unit id="freePreview.pages">
                 <source>pages</source>
@@ -2461,19 +2461,19 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="freePreview.nextReset">
                 <source>Next reset</source>
-                <target>Nächster Reset</target>
+                <target>Nächste Zurücksetzung</target>
             </trans-unit>
             <trans-unit id="freePreview.nextScan">
                 <source>Next free scan</source>
                 <target>Nächster kostenloser Scan</target>
             </trans-unit>
             <trans-unit id="freePreview.resets">
-                <source>Resets</source>
-                <target>Zurücksetzung</target>
+                <source>Limit resets</source>
+                <target>Limit wird zurückgesetzt</target>
             </trans-unit>
             <trans-unit id="freePreview.nextScans">
                 <source>Next free scans</source>
-                <target>Nächste Free-Scans</target>
+                <target>Nächste kostenlose Scans</target>
             </trans-unit>
             <trans-unit id="freePreview.countdown.hm">
                 <source>in %dh %dm</source>
@@ -2484,8 +2484,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>in %dm</target>
             </trans-unit>
             <trans-unit id="freePreview.screenshotsLocked">
-                <source>Screenshots available in PRO</source>
-                <target>Screenshots verfügbar in PRO</target>
+                <source>See where each issue appears: in a trial and with a PRO or Agency licence, frontend scans keep a screenshot of the page.</source>
+                <target>Sehen Sie, wo jedes Problem auftritt: In der Testphase und mit einer PRO- oder Agency-Lizenz speichern Frontend-Scans einen Screenshot der Seite.</target>
             </trans-unit>
             <trans-unit id="freePreview.run">
                 <source>Scan this page — Free</source>
@@ -2508,40 +2508,40 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Erneut versuchen</target>
             </trans-unit>
             <trans-unit id="freePreview.upsell">
-                <source>Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO.</source>
-                <target>Website-weites Crawling, Screenshots, Datensatzzuordnung, Verlauf und PDF-Exporte sind in PRO verfügbar.</target>
+                <source>Want the whole site? A trial or a PRO or Agency licence adds full-site frontend scans with screenshots, record mapping and scan history. PDF export needs PRO or Agency.</source>
+                <target>Die ganze Website prüfen? In der Testphase und mit einer PRO- oder Agency-Lizenz kommen Frontend-Scans der ganzen Website mit Screenshots, Datensatzzuordnung und Scan-Verlauf hinzu. Der PDF-Export erfordert PRO oder Agency.</target>
             </trans-unit>
             <trans-unit id="freePreview.proLabel">
                 <source>PRO</source>
                 <target>PRO</target>
             </trans-unit>
             <trans-unit id="freePreview.startTrial">
-                <source>Start PRO trial</source>
-                <target>PRO-Testphase starten</target>
+                <source>Start a free trial</source>
+                <target>Kostenlose Testphase starten</target>
             </trans-unit>
             <trans-unit id="freePreview.viewPricing">
                 <source>View pricing</source>
                 <target>Preise anzeigen</target>
             </trans-unit>
             <trans-unit id="freePreview.recordMappingLocked">
-                <source>Record mapping is available in PRO</source>
-                <target>Datensatzzuordnung ist in PRO verfügbar</target>
+                <source>Which TYPO3 record contains this element? With a trial or a PRO or Agency licence, frontend scans link each finding to its record so you can open it directly.</source>
+                <target>Welcher TYPO3-Datensatz enthält dieses Element? In der Testphase und mit einer PRO- oder Agency-Lizenz verknüpfen Frontend-Scans jeden Befund mit seinem Datensatz, damit Sie ihn direkt öffnen können.</target>
             </trans-unit>
             <trans-unit id="settings.flash.configurationNotWritable">
                 <source>The settings could not be stored because the TYPO3 configuration file is not writable. Ask an administrator to make config/system/settings.php writable, then save again.</source>
                 <target>Die Einstellungen konnten nicht gespeichert werden, da die TYPO3-Konfigurationsdatei nicht beschreibbar ist. Bitte lassen Sie config/system/settings.php durch einen Administrator beschreibbar machen und speichern Sie anschließend erneut.</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.available">
-                <source>Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free page scans per day.</source>
-                <target>Free Remote Preview: Prüfen Sie diese Seite im AQG-Modul in einem echten Browser – mit einer begrenzten Anzahl kostenloser Seitenscans pro Tag.</target>
+                <source>Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free scans per day.</source>
+                <target>Free Remote Preview: Prüfen Sie diese Seite im AQG-Modul in einem echten Browser – mit einer begrenzten Anzahl kostenloser Scans pro Tag.</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.remaining">
-                <source>Free Remote Preview: %1$d of %2$d free page scans left today.</source>
-                <target>Free Remote Preview: Heute sind noch %1$d von %2$d kostenlosen Seitenscans verfügbar.</target>
+                <source>Free Remote Preview: %1$d of %2$d free scans left today.</source>
+                <target>Free Remote Preview: Heute noch %1$d von %2$d kostenlosen Scans verfügbar.</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.limitReached">
-                <source>Daily Free limit reached — all free page scans for today are used.</source>
-                <target>Tageslimit von Free erreicht – alle kostenlosen Seitenscans für heute sind verbraucht.</target>
+                <source>Free scan limit reached for today.</source>
+                <target>Das Tageslimit für kostenlose Scans ist erreicht.</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.nextScans">
                 <source>Next free scans: %s.</source>
@@ -2549,7 +2549,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.unavailable">
                 <source>Free Remote Preview status is temporarily unavailable.</source>
-                <target>Der Status von Free Remote Preview ist vorübergehend nicht verfügbar.</target>
+                <target>Der Status der Free Remote Preview ist vorübergehend nicht verfügbar.</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.open">
                 <source>Open frontend scan</source>
@@ -2560,16 +2560,16 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Ihre Testphase ist beendet</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.trialExpired.text">
-                <source>Frontend scans, screenshots and scan history are switched off. Choose a plan to continue with PRO — Free features keep working.</source>
-                <target>Frontend-Scans, Screenshots und Scan-Verlauf sind deaktiviert. Wählen Sie einen Tarif, um mit PRO weiterzuarbeiten – die Free-Funktionen bleiben verfügbar.</target>
+                <source>Frontend scans, screenshots and scan history are switched off. Choose a PRO or Agency plan to continue — Free features keep working.</source>
+                <target>Frontend-Scans, Screenshots und Scan-Verlauf sind deaktiviert. Wählen Sie einen PRO- oder Agency-Tarif, um weiterzuarbeiten – die Free-Funktionen bleiben verfügbar.</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.expired.title">
                 <source>Licence expired</source>
                 <target>Lizenz abgelaufen</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.expired.text">
-                <source>Renew the licence in the customer portal to restore PRO features. Free features keep working in the meantime.</source>
-                <target>Verlängern Sie die Lizenz im Kundenportal, um die PRO-Funktionen wiederherzustellen. Die Free-Funktionen bleiben bis dahin verfügbar.</target>
+                <source>Renew the licence in the customer portal to restore its features. Free features keep working in the meantime.</source>
+                <target>Verlängern Sie die Lizenz im Kundenportal, um ihre Funktionen wiederherzustellen. Die Free-Funktionen bleiben bis dahin verfügbar.</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.inactive.title">
                 <source>Licence inactive</source>
@@ -2648,8 +2648,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Lizenzprüfung vorübergehend nicht möglich</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.unavailable.text">
-                <source>AQG could not reach the licence service. PRO features stay off until the next successful check; Free features keep working.</source>
-                <target>AQG konnte den Lizenzdienst nicht erreichen. PRO-Funktionen bleiben bis zur nächsten erfolgreichen Prüfung deaktiviert; die Free-Funktionen bleiben verfügbar.</target>
+                <source>AQG could not reach the licence service. Licensed features stay off until the next successful check; Free features keep working.</source>
+                <target>AQG konnte den Lizenzdienst nicht erreichen. Lizenzierte Funktionen bleiben bis zur nächsten erfolgreichen Prüfung deaktiviert; die Free-Funktionen bleiben verfügbar.</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.rateLimited.title">
                 <source>Too many validation attempts</source>
@@ -3236,16 +3236,16 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Frontend-Scan für diese Seite fehlgeschlagen</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanFailedText">
-                <source>The crawler reached the URL but the server returned an error. Issue counts above are from the last successful scan and may be stale.</source>
-                <target>Der Crawler hat die URL erreicht, aber der Server hat einen Fehler zurückgegeben. Die Problemzahlen oben stammen aus dem letzten erfolgreichen Scan und sind möglicherweise veraltet.</target>
+                <source>Check that the page loads for visitors, then scan it again. The server answered the crawler with an error, so this scan has no results for the page.</source>
+                <target>Prüfen Sie, ob die Seite für Besucher lädt, und scannen Sie sie dann erneut. Der Server hat dem Crawler mit einem Fehler geantwortet, daher enthält dieser Scan keine Ergebnisse für die Seite.</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanDisabledTitle">
                 <source>Scan disabled for this URL</source>
                 <target>Scan für diese URL deaktiviert</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanDisabledText">
-                <source>This frontend URL could not be resolved to a TYPO3 page, so Scan this page is disabled. Existing crawler results are still shown below.</source>
-                <target>Diese Frontend-URL konnte keiner TYPO3-Seite zugeordnet werden, daher ist „Diese Seite scannen“ deaktiviert. Vorhandene Crawler-Ergebnisse werden weiterhin unten angezeigt.</target>
+                <source>Scan this page from the page tree instead: this URL is not linked to a TYPO3 page, so it cannot be scanned from here. The existing results stay visible below.</source>
+                <target>Scannen Sie die Seite stattdessen über den Seitenbaum: Diese URL ist keiner TYPO3-Seite zugeordnet und kann hier nicht gescannt werden. Die vorhandenen Ergebnisse bleiben unten sichtbar.</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanUsesSiteRootTitle">
                 <source>Scan will use the site root context</source>
@@ -4316,8 +4316,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Das Quality Gate läuft jedes Mal, wenn ein Redakteur eine Seite veröffentlicht oder einblendet.</target>
             </trans-unit>
             <trans-unit id="settings.publishingRules.freeDescription">
-                <source>FREE keeps the warning gate active. Block-on-publish and custom publishing rules require AQG PRO.</source>
-                <target>FREE lässt das Warn-Gate aktiv. Das Blockieren beim Veröffentlichen und eigene Veröffentlichungsregeln erfordern AQG PRO.</target>
+                <source>FREE warns editors before they publish a page with open critical issues.</source>
+                <target>FREE warnt Redakteurinnen und Redakteure, bevor sie eine Seite mit offenen kritischen Problemen veröffentlichen.</target>
             </trans-unit>
             <trans-unit id="settings.publishingRules.freeNoticeTitle">
                 <source>Warning gate is active on FREE</source>
@@ -4456,8 +4456,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Lizenzschlüssel</target>
             </trans-unit>
             <trans-unit id="settings.licence.key.intro">
-                <source>Paste your AQG licence key to unlock PRO features for this installation.</source>
-                <target>Fügen Sie Ihren AQG-Lizenzschlüssel ein, um die PRO-Funktionen für diese Installation freizuschalten.</target>
+                <source>Paste your AQG trial or licence key, then choose Save and validate.</source>
+                <target>Fügen Sie Ihren AQG-Test- oder Lizenzschlüssel ein und wählen Sie dann „Speichern und prüfen“.</target>
             </trans-unit>
             <trans-unit id="settings.licence.boundTo">
                 <source>bound to</source>
@@ -4936,8 +4936,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Warnungen</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.status.error">
-                <source>Errors</source>
-                <target>Fehler</target>
+                <source>Issues</source>
+                <target>Probleme</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.status.running">
                 <source>Scanning</source>
@@ -5084,8 +5084,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Frontend-Scan verfügbar – starten Sie einen Frontend-Scan</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.row.local">
-                <source>Local scan</source>
-                <target>Lokaler Scan</target>
+                <source>Content scan</source>
+                <target>Inhaltsscan</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.row.frontend">
                 <source>Frontend</source>
@@ -5984,8 +5984,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Für diesen Scan sind keine Problemdetails verfügbar</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.detailsUnavailable.text">
-                <source>The page summary reports %d automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.</source>
-                <target>Die Seitenzusammenfassung meldet %d automatisierte Befunde, für diese Seite sind aber keine detaillierten Problemzeilen verfügbar. Führen Sie den Scan erneut aus oder prüfen Sie die Speicherung der Remote-Probleme.</target>
+                <source>Scan the page again to load the issue details. The page summary reports %d issue types, but no details were stored for them.</source>
+                <target>Scannen Sie die Seite erneut, um die Details zu laden. Die Seitenzusammenfassung meldet %d Problemtypen, zu denen keine Details gespeichert wurden.</target>
             </trans-unit>
             <trans-unit id="remote.history.kicker">
                 <source>Accessibility progress</source>
@@ -7200,8 +7200,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>keine</target>
             </trans-unit>
             <trans-unit id="publish.flash.trialNote">
-                <source>Trial licence active — upgrade to PRO to keep this feature after the trial ends.</source>
-                <target>Trial-Lizenz aktiv – wechseln Sie zu PRO, um diese Funktion nach dem Ende der Testphase zu behalten.</target>
+                <source>Trial active — choose a PRO or Agency plan to keep blocking publishing after the trial ends.</source>
+                <target>Testphase aktiv – wählen Sie einen PRO- oder Agency-Tarif, damit Veröffentlichungen auch nach der Testphase blockiert werden können.</target>
             </trans-unit>
             <trans-unit id="publish.flash.warningTitle">
                 <source>AQG Warning</source>
@@ -8257,47 +8257,47 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="freePreview.error.limitReached.title">
                 <source>Free scan limit reached</source>
-                <target>Limit für kostenlose Scans erreicht</target>
+                <target>Tageslimit für kostenlose Scans erreicht</target>
             </trans-unit>
             <trans-unit id="freePreview.error.featureUnavailable.title">
                 <source>Not included in the Free Remote Preview</source>
                 <target>Nicht in der Free Remote Preview enthalten</target>
             </trans-unit>
             <trans-unit id="freePreview.error.proof.title">
-                <source>Free Preview proof could not be verified</source>
-                <target>Nachweis für die Free Preview konnte nicht geprüft werden</target>
+                <source>Free Remote Preview proof could not be verified</source>
+                <target>Nachweis für die Free Remote Preview konnte nicht geprüft werden</target>
             </trans-unit>
             <trans-unit id="freePreview.error.idempotency.title">
-                <source>Free Preview submit conflict</source>
-                <target>Konflikt bei der Übermittlung der Free Preview</target>
+                <source>Free Remote Preview submit conflict</source>
+                <target>Konflikt bei der Übermittlung der Free Remote Preview</target>
             </trans-unit>
             <trans-unit id="freePreview.error.token.title">
-                <source>Free Preview authentication failed</source>
-                <target>Authentifizierung der Free Preview fehlgeschlagen</target>
+                <source>Free Remote Preview authentication failed</source>
+                <target>Authentifizierung der Free Remote Preview fehlgeschlagen</target>
             </trans-unit>
             <trans-unit id="freePreview.error.missingInstallation.title">
-                <source>Free Preview installation identity missing</source>
-                <target>Installationskennung der Free Preview fehlt</target>
+                <source>Free Remote Preview installation identity missing</source>
+                <target>Installationskennung der Free Remote Preview fehlt</target>
             </trans-unit>
             <trans-unit id="freePreview.error.installationMismatch.title">
-                <source>Free Preview installation identity mismatch</source>
-                <target>Installationskennung der Free Preview stimmt nicht überein</target>
+                <source>Free Remote Preview installation identity mismatch</source>
+                <target>Installationskennung der Free Remote Preview stimmt nicht überein</target>
             </trans-unit>
             <trans-unit id="freePreview.error.siteMismatch.title">
-                <source>Free Preview site identity mismatch</source>
-                <target>Website-Kennung der Free Preview stimmt nicht überein</target>
+                <source>Free Remote Preview site identity mismatch</source>
+                <target>Website-Kennung der Free Remote Preview stimmt nicht überein</target>
             </trans-unit>
             <trans-unit id="freePreview.error.invalidSite.title">
-                <source>Free Preview site configuration invalid</source>
-                <target>Website-Konfiguration für die Free Preview ungültig</target>
+                <source>Free Remote Preview site configuration invalid</source>
+                <target>Website-Konfiguration für die Free Remote Preview ungültig</target>
             </trans-unit>
             <trans-unit id="freePreview.error.endpoint.title">
-                <source>Free Preview API route unavailable</source>
-                <target>API-Route der Free Preview nicht verfügbar</target>
+                <source>Free Remote Preview API route unavailable</source>
+                <target>API-Route der Free Remote Preview nicht verfügbar</target>
             </trans-unit>
             <trans-unit id="freePreview.error.contract.title">
-                <source>Free Preview API contract rejected</source>
-                <target>API-Vertrag der Free Preview abgelehnt</target>
+                <source>Free Remote Preview API contract rejected</source>
+                <target>API-Vertrag der Free Remote Preview abgelehnt</target>
             </trans-unit>
             <trans-unit id="freePreview.error.unavailable.title">
                 <source>Free Remote Preview unavailable</source>
@@ -8305,7 +8305,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="freePreview.error.limitReached">
                 <source>The Free Remote Preview daily scan limit has been reached.</source>
-                <target>Das tägliche Scan-Limit der Free Remote Preview ist erreicht.</target>
+                <target>Das Tageslimit für kostenlose Scans der Free Remote Preview ist erreicht.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.featureUnavailable">
                 <source>This feature is not included in the Free Remote Preview. Start a trial or choose a PRO or Agency plan to use it.</source>
@@ -8570,6 +8570,242 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="rule.structured.uploads_file_missing_description.howToFix">
                 <source>Add a meaningful file description instead of relying only on the file name.</source>
                 <target>Ergänzen Sie eine aussagekräftige Dateibeschreibung, statt sich nur auf den Dateinamen zu verlassen.</target>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.summaryCritical">
+                <source>Critical issues allowed: %d</source>
+                <target>Erlaubte kritische Probleme: %d</target>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.summaryWarnings">
+                <source>Warnings allowed: %d</source>
+                <target>Erlaubte Warnungen: %d</target>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.summaryWarningsIgnored">
+                <source>Warnings ignored</source>
+                <target>Warnungen werden ignoriert</target>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.editRules">
+                <source>Edit mode and thresholds</source>
+                <target>Modus und Schwellenwerte bearbeiten</target>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.stepScan">
+                <source>AQG scans the page content right away, so every decision uses a fresh content scan. Frontend scan results are not part of the decision.</source>
+                <target>AQG scannt den Seiteninhalt sofort, damit jede Entscheidung auf einem aktuellen Inhaltsscan beruht. Ergebnisse von Frontend-Scans fließen nicht in die Entscheidung ein.</target>
+            </trans-unit>
+            <trans-unit id="publish.flash.notChecked">
+                <source>The Quality Gate could not check this page because its content scan failed. Run a content scan in the Accessibility module to see its current issues.</source>
+                <target>Das Quality Gate konnte diese Seite nicht prüfen, weil ihr Inhaltsscan fehlgeschlagen ist. Starten Sie im Modul „Barrierefreiheit“ einen Inhaltsscan, um die aktuellen Probleme zu sehen.</target>
+            </trans-unit>
+            <trans-unit id="publish.flash.scanBasis">
+                <source>Decision based on the content scan from %s.</source>
+                <target>Entscheidung auf Basis des Inhaltsscans vom %s.</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.row.lastScan">
+                <source>Last scan %s</source>
+                <target>Letzter Scan %s</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.critical">
+                <source>%d critical</source>
+                <target>%d kritisch</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.issueTypes.singular">
+                <source>%d issue type</source>
+                <target>%d Problemtyp</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.issueTypes.plural">
+                <source>%d issue types</source>
+                <target>%d Problemtypen</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.occurrences.singular">
+                <source>%d occurrence</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.occurrences.plural">
+                <source>%d occurrences</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.headline.issues">
+                <source>Accessibility issues found</source>
+                <target>Barrierefreiheitsprobleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.headline.attention">
+                <source>Some checks need attention</source>
+                <target>Einige Prüfungen brauchen Aufmerksamkeit</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.body.noOpenIssues">
+                <source>Automated checks found no open issues. Manual review may still be required.</source>
+                <target>Die automatischen Prüfungen haben keine offenen Probleme gefunden. Eine manuelle Prüfung kann trotzdem nötig sein.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.metric.occurrences">
+                <source>occurrences</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.occurrence">
+                <source>occurrence</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.occurrences">
+                <source>occurrences</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.moreDetails">
+                <source>More details</source>
+                <target>Weitere Details</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.table.issueTypes">
+                <source>Issue types</source>
+                <target>Problemtypen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.title">
+                <source>Affected pages</source>
+                <target>Betroffene Seiten</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.subtitle">
+                <source>Pages with the most issue types come first. Open a page to review its findings.</source>
+                <target>Seiten mit den meisten Problemtypen stehen oben. Öffnen Sie eine Seite, um ihre Befunde zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.emptyTitle">
+                <source>No completed site frontend scan yet</source>
+                <target>Noch kein abgeschlossener Frontend-Scan der Website</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.emptyBody">
+                <source>Run a site scan to list the affected pages of this site.</source>
+                <target>Starten Sie einen Website-Scan, um die betroffenen Seiten dieser Website aufzulisten.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleSubtitle">
+                <source>Pages on which “%s” was found in this scan.</source>
+                <target>Seiten, auf denen „%s“ in diesem Scan gefunden wurde.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleEmptyTitle">
+                <source>No page with this rule in this scan</source>
+                <target>Keine Seite mit dieser Regel in diesem Scan</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleEmptyBody">
+                <source>Show all pages to see the other results of this scan.</source>
+                <target>Zeigen Sie alle Seiten an, um die übrigen Ergebnisse dieses Scans zu sehen.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleFilter">
+                <source>Showing pages with: %s</source>
+                <target>Angezeigt werden Seiten mit: %s</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.showAll">
+                <source>Show all pages</source>
+                <target>Alle Seiten anzeigen</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.earlierScan">
+                <source>Earlier scan</source>
+                <target>Früherer Scan</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.laterScan">
+                <source>Later scan</source>
+                <target>Späterer Scan</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.shownHere">
+                <source>Shown on this page</source>
+                <target>Auf dieser Seite angezeigt</target>
+            </trans-unit>
+            <trans-unit id="remote.regression.occurrences">
+                <source>%s occurrences</source>
+                <target>%s Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="remote.history.occurrences">
+                <source>Occurrences</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.issueTypes">
+                <source>Issue types</source>
+                <target>Problemtypen</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.occurrencesTotal">
+                <source>Occurrences</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.scanShown">
+                <source>Scan shown</source>
+                <target>Angezeigter Scan</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.olderScan.title">
+                <source>You are viewing an earlier scan</source>
+                <target>Sie sehen einen früheren Scan</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.olderScan.text">
+                <source>This page was scanned again on %s. Open the latest scan to see its current results.</source>
+                <target>Diese Seite wurde am %s erneut gescannt. Öffnen Sie den neuesten Scan, um die aktuellen Ergebnisse zu sehen.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.olderScan.open">
+                <source>Open latest scan</source>
+                <target>Neuesten Scan öffnen</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.details">
+                <source>Why this step</source>
+                <target>Warum dieser Schritt</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.moreDetails">
+                <source>More details</source>
+                <target>Weitere Details</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotFile">
+                <source>Screenshot file</source>
+                <target>Screenshot-Datei</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.requiredNote">
+                <source>Fields marked with * must be completed before you publish the statement.</source>
+                <target>Mit * markierte Angaben müssen vor der Veröffentlichung der Erklärung ausgefüllt sein.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.optionalDetails">
+                <source>Optional details</source>
+                <target>Optionale Angaben</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.optionalDetails.hint">
+                <source>Standard, measures, remediation notes, compatibility, technologies, assessment approach and formal approval</source>
+                <target>Standard, Maßnahmen, Hinweise zur Behebung, Kompatibilität, Technologien, Bewertungsmethode und formale Freigabe</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.reviewNotice">
+                <source>Automated draft: review it manually, complete it and have it approved before you publish it.</source>
+                <target>Automatisch erstellter Entwurf: Prüfen Sie ihn manuell, ergänzen Sie ihn und lassen Sie ihn vor der Veröffentlichung freigeben.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.revalidate">
+                <source>Revalidate</source>
+                <target>Erneut prüfen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.saveAndValidate">
+                <source>Save and validate</source>
+                <target>Speichern und prüfen</target>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.freeUpgrade">
+                <source>Need a hard stop before publishing? With a trial or a PRO or Agency licence, the Quality Gate can block publishing, use your own thresholds and apply different rules per site.</source>
+                <target>Sie brauchen einen harten Stopp vor der Veröffentlichung? In der Testphase und mit einer PRO- oder Agency-Lizenz kann das Quality Gate Veröffentlichungen blockieren, eigene Schwellenwerte nutzen und je Website andere Regeln anwenden.</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.moreActions">
+                <source>More actions</source>
+                <target>Weitere Aktionen</target>
+            </trans-unit>
+            <trans-unit id="remote.plan.disclosure">
+                <source>Remediation plan for this scan</source>
+                <target>Behebungsplan für diesen Scan</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.tag.unverified">
+                <source>NOT CHECKED</source>
+                <target>NICHT GEPRÜFT</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.statusUnverified">
+                <source>Licence could not be checked</source>
+                <target>Lizenz konnte nicht geprüft werden</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.statusUnverifiedValue">
+                <source>Not checked</source>
+                <target>Nicht geprüft</target>
+            </trans-unit>
+            <trans-unit id="freePreview.error.rateLimited">
+                <source>AQG paused Free Remote Preview requests from this site for now. Try again later.</source>
+                <target>AQG hat die Anfragen dieser Website an die Free Remote Preview vorübergehend angehalten. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.error.rateLimited.title">
+                <source>Too many free scan requests</source>
+                <target>Zu viele Anfragen für kostenlose Scans</target>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.noHistory">
+                <source>No regression signal yet: this page has no compatible frontend scans to compare.</source>
+                <target>Noch kein Regressionssignal: Für diese Seite gibt es keine kompatiblen Frontend-Scans zum Vergleich.</target>
             </trans-unit>
         </body>
     </file>

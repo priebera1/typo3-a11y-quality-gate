@@ -18,6 +18,12 @@
     transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease, box-shadow 80ms ease;
 }
 
+/* The display value above would otherwise override the hidden attribute on AQG buttons. */
+.aqg-module .btn[hidden],
+.a11y-page-detail .btn[hidden] {
+    display: none !important;
+}
+
 .aqg-module .btn-sm,
 .a11y-page-detail .btn-sm {
     min-height: 29px;
