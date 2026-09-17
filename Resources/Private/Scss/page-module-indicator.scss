@@ -264,6 +264,15 @@
   font-weight: 600;
 }
 
+/* Scan time of this source; spans below the value so each source carries its own freshness. */
+.aqg-page-module-indicator__status-meta {
+  grid-column: 2;
+  margin-top: -3px;
+  color: var(--aqg-indicator-fg-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .aqg-page-module-indicator__status-value {
   display: inline-flex;
   min-width: 0;
@@ -396,7 +405,15 @@
 .aqg-page-module-indicator__button.is-focus {
   outline: none;
   border-color: var(--aqg-indicator-focus);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqg-indicator-focus) 25%, transparent);
+  box-shadow: 0 0 0 1px var(--aqg-indicator-surface), 0 0 0 3px var(--aqg-indicator-focus);
+}
+
+@media (forced-colors: active) {
+  .aqg-page-module-indicator :focus-visible,
+  .aqg-page-module-badge:focus-visible {
+    outline: 2px solid CanvasText !important;
+    outline-offset: 1px;
+  }
 }
 
 .aqg-page-module-indicator__button:disabled,
@@ -454,6 +471,10 @@
 
 p.aqg-page-module-indicator__meta {
   margin: 0;
+}
+
+p.aqg-page-module-indicator__meta:empty {
+  display: none;
 }
 
 .aqg-page-module-indicator__pro-hint {
@@ -530,7 +551,7 @@ p.aqg-page-module-indicator__meta {
 .aqg-page-module-badge:focus-visible {
   outline: none;
   border-color: var(--aqg-indicator-focus);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--aqg-indicator-focus) 25%, transparent);
+  box-shadow: 0 0 0 1px var(--aqg-indicator-surface), 0 0 0 3px var(--aqg-indicator-focus);
 }
 
 @media (max-width: 420px) {

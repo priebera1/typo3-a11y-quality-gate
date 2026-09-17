@@ -231,13 +231,13 @@
                 <source>Frontend scan failed for this page</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanFailedText">
-                <source>The crawler reached the URL but the server returned an error. Issue counts above are from the last successful scan and may be stale.</source>
+                <source>Check that the page loads for visitors, then scan it again. The server answered the crawler with an error, so this scan has no results for the page.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanDisabledTitle">
                 <source>Scan disabled for this URL</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanDisabledText">
-                <source>This frontend URL could not be resolved to a TYPO3 page, so Scan this page is disabled. Existing crawler results are still shown below.</source>
+                <source>Scan this page from the page tree instead: this URL is not linked to a TYPO3 page, so it cannot be scanned from here. The existing results stay visible below.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.scanUsesSiteRootTitle">
                 <source>Scan will use the site root context</source>
@@ -1014,7 +1014,7 @@
                 <source>Licence management is only available to TYPO3 administrators.</source>
             </trans-unit>
             <trans-unit id="settings.licence.key.intro">
-                <source>Paste your AQG licence key to unlock PRO features for this installation.</source>
+                <source>Paste your AQG trial or licence key, then choose Save and validate.</source>
             </trans-unit>
             <trans-unit id="settings.licence.key.portalHelp">
                 <source>The key is bound to the domains registered for your licence. Find it in your purchase email or in the AQG customer portal:</source>
@@ -1239,7 +1239,7 @@
                 <source>Running the free edition</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.text">
-                <source>AQG works without a licence. Free includes local accessibility checks and up to 5 remote single-page scans per day. Full-site crawling and advanced remote features require PRO.</source>
+                <source>AQG works without a licence. Free includes local accessibility checks and up to 5 free single-page scans per day.</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.featuresTitle">
                 <source>Included on FREE</source>
@@ -1248,10 +1248,10 @@
                 <source>Warning gate on publish</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.remotePreview">
-                <source>Free Remote Preview — 5 single-page scans per day</source>
+                <source>Free Remote Preview — 5 free single-page scans per day</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.proFeaturesTitle">
-                <source>Available in PRO</source>
+                <source>With a trial or licence</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.noFrontendCrawler">
                 <source>Full-site frontend crawler</source>
@@ -1260,7 +1260,7 @@
                 <source>Block-on-publish gate</source>
             </trans-unit>
             <trans-unit id="settings.licence.free.advancedRemote">
-                <source>Screenshots, record mapping, history and PDF exports</source>
+                <source>Scan the whole site, see screenshots and open the TYPO3 record behind each finding, with scan history and a Quality Gate that can block publishing. PDF export needs PRO or Agency.</source>
             </trans-unit>
             <trans-unit id="freePreview.title">
                 <source>Free Remote Preview</source>
@@ -1305,7 +1305,7 @@
                 <source>Next free scan</source>
             </trans-unit>
             <trans-unit id="freePreview.resets">
-                <source>Resets</source>
+                <source>Limit resets</source>
             </trans-unit>
             <trans-unit id="freePreview.nextScans">
                 <source>Next free scans</source>
@@ -1317,7 +1317,7 @@
                 <source>in %dm</source>
             </trans-unit>
             <trans-unit id="freePreview.screenshotsLocked">
-                <source>Screenshots available in PRO</source>
+                <source>See where each issue appears: in a trial and with a PRO or Agency licence, frontend scans keep a screenshot of the page.</source>
             </trans-unit>
             <trans-unit id="freePreview.run">
                 <source>Scan this page — Free</source>
@@ -1335,19 +1335,19 @@
                 <source>Retry</source>
             </trans-unit>
             <trans-unit id="freePreview.upsell">
-                <source>Full-site crawling, screenshots, record mapping, history and PDF exports are available in PRO.</source>
+                <source>Want the whole site? A trial or a PRO or Agency licence adds full-site frontend scans with screenshots, record mapping and scan history. PDF export needs PRO or Agency.</source>
             </trans-unit>
             <trans-unit id="freePreview.proLabel">
                 <source>PRO</source>
             </trans-unit>
             <trans-unit id="freePreview.startTrial">
-                <source>Start PRO trial</source>
+                <source>Start a free trial</source>
             </trans-unit>
             <trans-unit id="freePreview.viewPricing">
                 <source>View pricing</source>
             </trans-unit>
             <trans-unit id="freePreview.recordMappingLocked">
-                <source>Record mapping is available in PRO</source>
+                <source>Which TYPO3 record contains this element? With a trial or a PRO or Agency licence, frontend scans link each finding to its record so you can open it directly.</source>
             </trans-unit>
             <trans-unit id="settings.licence.trial.description">
                 <source>Trial gives you frontend scan and the core paid workflow, but with trial limits.</source>
@@ -1557,7 +1557,7 @@
                 <source>The quality gate runs every time an editor publishes or unhides a page.</source>
             </trans-unit>
             <trans-unit id="settings.publishingRules.freeDescription">
-                <source>FREE keeps the warning gate active. Block-on-publish and custom publishing rules require AQG PRO.</source>
+                <source>FREE warns editors before they publish a page with open critical issues.</source>
             </trans-unit>
             <trans-unit id="settings.publishingRules.freeNoticeTitle">
                 <source>Warning gate is active on FREE</source>
@@ -1659,7 +1659,7 @@
                 <source>Warnings</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.status.error">
-                <source>Errors</source>
+                <source>Issues</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.status.running">
                 <source>Scanning</source>
@@ -1770,7 +1770,7 @@
                 <source>Frontend scan available — run a frontend scan</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.row.local">
-                <source>Local scan</source>
+                <source>Content scan</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.row.frontend">
                 <source>Frontend</source>
@@ -2187,7 +2187,7 @@
                 <source>Accessibility Statement Draft Assistant</source>
             </trans-unit>
             <trans-unit id="settings.statement.intro">
-                <source>Generate a draft accessibility statement based on automated scan data. This draft must be reviewed, completed and approved before publication.</source>
+                <source>Creates a draft accessibility statement from your frontend scan data. Review, complete and approve it before you publish it.</source>
             </trans-unit>
             <trans-unit id="settings.statement.form.aria">
                 <source>Accessibility Statement Draft Assistant</source>
@@ -2520,13 +2520,13 @@
                 <source>Accessibility Statement Draft Assistant</source>
             </trans-unit>
             <trans-unit id="settings.statement.locked.subtitle">
-                <source>Accessibility Statement Draft Assistant is available with PRO.</source>
+                <source>Available with a PRO or Agency licence.</source>
             </trans-unit>
             <trans-unit id="settings.statement.locked.text">
-                <source>Generate an automated draft statement from completed frontend scans with a PRO or Agency licence.</source>
+                <source>Turn your latest frontend scan into a draft accessibility statement that you can review, complete and publish. The Statement Assistant is not part of the trial.</source>
             </trans-unit>
             <trans-unit id="settings.statement.locked.button">
-                <source>View PRO options</source>
+                <source>Compare plans</source>
             </trans-unit>
             <trans-unit id="settings.statement.validation.pageUrl">
                 <source>Enter a page URL for the latest page scan statement.</source>
@@ -3480,16 +3480,16 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>AI-generated suggestion. Review and edit it before applying. Provider data handling policies apply.</source>
             </trans-unit>
             <trans-unit id="settings.tab.ai">
-                <source>AI alt text</source>
+                <source>AI suggestions</source>
             </trans-unit>
             <trans-unit id="settings.ai.title">
-                <source>AI-assisted alt-text suggestions</source>
+                <source>AI suggestions for alt text, link text and iframe titles</source>
             </trans-unit>
             <trans-unit id="settings.ai.description">
                 <source>Configure your own OpenAI project key for this site. Suggestions are never applied automatically; an editor must review and confirm them.</source>
             </trans-unit>
             <trans-unit id="settings.ai.privacy">
-                <source>When an editor requests an AI suggestion, the selected image and limited page context are sent to the configured OpenAI API account. No content is sent automatically. OpenAI does not use API data to train its models by default unless the account owner has explicitly opted in. Depending on the OpenAI account and data-retention configuration, submitted content may be retained for up to 30 days for service operation and abuse monitoring. Review the applicable OpenAI API data controls and confirm that this use is acceptable for your project and client data.</source>
+                <source>When an editor requests an AI suggestion, the selected image or element and limited page context are sent to the configured OpenAI API account. No content is sent automatically. OpenAI does not use API data to train its models by default unless the account owner has explicitly opted in. Depending on the OpenAI account and data-retention configuration, submitted content may be retained for up to 30 days for service operation and abuse monitoring. Review the applicable OpenAI API data controls and confirm that this use is acceptable for your project and client data.</source>
             </trans-unit>
             <trans-unit id="imageRemediation.confirmDecorative">
                 <source>Mark this image as decorative and clear its alternative text?</source>
@@ -3680,7 +3680,7 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
 
             <trans-unit id="settings.ai.keySecurity">
-                <source>Your key is encrypted before it is stored and is only used to request alt-text suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them.</source>
+                <source>Your key is encrypted before it is stored and is only used to request AI suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them.</source>
             </trans-unit>
 
             <trans-unit id="settings.ai.siteScopeHelp">
@@ -3887,13 +3887,13 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>The AI provider could not return an iframe title. Please try again later.</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.available">
-                <source>Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free page scans per day.</source>
+                <source>Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free scans per day.</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.remaining">
-                <source>Free Remote Preview: %1$d of %2$d free page scans left today.</source>
+                <source>Free Remote Preview: %1$d of %2$d free scans left today.</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.limitReached">
-                <source>Daily Free limit reached — all free page scans for today are used.</source>
+                <source>Free scan limit reached for today.</source>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.nextScans">
                 <source>Next free scans: %s.</source>
@@ -3908,13 +3908,13 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Your trial has ended</source>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.trialExpired.text">
-                <source>Frontend scans, screenshots and scan history are switched off. Choose a plan to continue with PRO — Free features keep working.</source>
+                <source>Frontend scans, screenshots and scan history are switched off. Choose a PRO or Agency plan to continue — Free features keep working.</source>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.expired.title">
                 <source>Licence expired</source>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.expired.text">
-                <source>Renew the licence in the customer portal to restore PRO features. Free features keep working in the meantime.</source>
+                <source>Renew the licence in the customer portal to restore its features. Free features keep working in the meantime.</source>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.inactive.title">
                 <source>Licence inactive</source>
@@ -3974,7 +3974,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Licence check temporarily unavailable</source>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.unavailable.text">
-                <source>AQG could not reach the licence service. PRO features stay off until the next successful check; Free features keep working.</source>
+                <source>AQG could not reach the licence service. Licensed features stay off until the next successful check; Free features keep working.</source>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.rateLimited.title">
                 <source>Too many validation attempts</source>
@@ -4484,7 +4484,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Issue details are not available for this scan</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.detailsUnavailable.text">
-                <source>The page summary reports %d automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.</source>
+                <source>Scan the page again to load the issue details. The page summary reports %d issue types, but no details were stored for them.</source>
             </trans-unit>
             <trans-unit id="remote.history.kicker">
                 <source>Accessibility progress</source>
@@ -5396,7 +5396,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>none</source>
             </trans-unit>
             <trans-unit id="publish.flash.trialNote">
-                <source>Trial licence active — upgrade to PRO to keep this feature after the trial ends.</source>
+                <source>Trial active — choose a PRO or Agency plan to keep blocking publishing after the trial ends.</source>
             </trans-unit>
             <trans-unit id="publish.flash.warningTitle">
                 <source>AQG Warning</source>
@@ -6194,31 +6194,31 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Not included in the Free Remote Preview</source>
             </trans-unit>
             <trans-unit id="freePreview.error.proof.title">
-                <source>Free Preview proof could not be verified</source>
+                <source>Free Remote Preview proof could not be verified</source>
             </trans-unit>
             <trans-unit id="freePreview.error.idempotency.title">
-                <source>Free Preview submit conflict</source>
+                <source>Free Remote Preview submit conflict</source>
             </trans-unit>
             <trans-unit id="freePreview.error.token.title">
-                <source>Free Preview authentication failed</source>
+                <source>Free Remote Preview authentication failed</source>
             </trans-unit>
             <trans-unit id="freePreview.error.missingInstallation.title">
-                <source>Free Preview installation identity missing</source>
+                <source>Free Remote Preview installation identity missing</source>
             </trans-unit>
             <trans-unit id="freePreview.error.installationMismatch.title">
-                <source>Free Preview installation identity mismatch</source>
+                <source>Free Remote Preview installation identity mismatch</source>
             </trans-unit>
             <trans-unit id="freePreview.error.siteMismatch.title">
-                <source>Free Preview site identity mismatch</source>
+                <source>Free Remote Preview site identity mismatch</source>
             </trans-unit>
             <trans-unit id="freePreview.error.invalidSite.title">
-                <source>Free Preview site configuration invalid</source>
+                <source>Free Remote Preview site configuration invalid</source>
             </trans-unit>
             <trans-unit id="freePreview.error.endpoint.title">
-                <source>Free Preview API route unavailable</source>
+                <source>Free Remote Preview API route unavailable</source>
             </trans-unit>
             <trans-unit id="freePreview.error.contract.title">
-                <source>Free Preview API contract rejected</source>
+                <source>Free Remote Preview API contract rejected</source>
             </trans-unit>
             <trans-unit id="freePreview.error.unavailable.title">
                 <source>Free Remote Preview unavailable</source>
@@ -6423,6 +6423,183 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="rule.structured.uploads_file_missing_description.howToFix">
                 <source>Add a meaningful file description instead of relying only on the file name.</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.summaryCritical">
+                <source>Critical issues allowed: %d</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.summaryWarnings">
+                <source>Warnings allowed: %d</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.summaryWarningsIgnored">
+                <source>Warnings ignored</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.site.editRules">
+                <source>Edit mode and thresholds</source>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.guidance.stepScan">
+                <source>AQG scans the page content right away, so every decision uses a fresh content scan. Frontend scan results are not part of the decision.</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.notChecked">
+                <source>The Quality Gate could not check this page because its content scan failed. Run a content scan in the Accessibility module to see its current issues.</source>
+            </trans-unit>
+            <trans-unit id="publish.flash.scanBasis">
+                <source>Decision based on the content scan from %s.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.row.lastScan">
+                <source>Last scan %s</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.critical">
+                <source>%d critical</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.issueTypes.singular">
+                <source>%d issue type</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.issueTypes.plural">
+                <source>%d issue types</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.occurrences.singular">
+                <source>%d occurrence</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.occurrences.plural">
+                <source>%d occurrences</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.headline.issues">
+                <source>Accessibility issues found</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.headline.attention">
+                <source>Some checks need attention</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.body.noOpenIssues">
+                <source>Automated checks found no open issues. Manual review may still be required.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.metric.occurrences">
+                <source>occurrences</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.occurrence">
+                <source>occurrence</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.occurrences">
+                <source>occurrences</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.moreDetails">
+                <source>More details</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.table.issueTypes">
+                <source>Issue types</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.title">
+                <source>Affected pages</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.subtitle">
+                <source>Pages with the most issue types come first. Open a page to review its findings.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.emptyTitle">
+                <source>No completed site frontend scan yet</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.emptyBody">
+                <source>Run a site scan to list the affected pages of this site.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleSubtitle">
+                <source>Pages on which “%s” was found in this scan.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleEmptyTitle">
+                <source>No page with this rule in this scan</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleEmptyBody">
+                <source>Show all pages to see the other results of this scan.</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.ruleFilter">
+                <source>Showing pages with: %s</source>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.showAll">
+                <source>Show all pages</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.earlierScan">
+                <source>Earlier scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.laterScan">
+                <source>Later scan</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.shownHere">
+                <source>Shown on this page</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.occurrences">
+                <source>%s occurrences</source>
+            </trans-unit>
+            <trans-unit id="remote.history.occurrences">
+                <source>Occurrences</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.issueTypes">
+                <source>Issue types</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.occurrencesTotal">
+                <source>Occurrences</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.scanShown">
+                <source>Scan shown</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.olderScan.title">
+                <source>You are viewing an earlier scan</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.olderScan.text">
+                <source>This page was scanned again on %s. Open the latest scan to see its current results.</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.olderScan.open">
+                <source>Open latest scan</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recommendation.details">
+                <source>Why this step</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.moreDetails">
+                <source>More details</source>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotFile">
+                <source>Screenshot file</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.requiredNote">
+                <source>Fields marked with * must be completed before you publish the statement.</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.optionalDetails">
+                <source>Optional details</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.optionalDetails.hint">
+                <source>Standard, measures, remediation notes, compatibility, technologies, assessment approach and formal approval</source>
+            </trans-unit>
+            <trans-unit id="settings.statement.result.reviewNotice">
+                <source>Automated draft: review it manually, complete it and have it approved before you publish it.</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.revalidate">
+                <source>Revalidate</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.saveAndValidate">
+                <source>Save and validate</source>
+            </trans-unit>
+            <trans-unit id="settings.publishingRules.freeUpgrade">
+                <source>Need a hard stop before publishing? With a trial or a PRO or Agency licence, the Quality Gate can block publishing, use your own thresholds and apply different rules per site.</source>
+            </trans-unit>
+            <trans-unit id="pageDetail.moreActions">
+                <source>More actions</source>
+            </trans-unit>
+            <trans-unit id="remote.plan.disclosure">
+                <source>Remediation plan for this scan</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.tag.unverified">
+                <source>NOT CHECKED</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.statusUnverified">
+                <source>Licence could not be checked</source>
+            </trans-unit>
+            <trans-unit id="settings.licence.statusUnverifiedValue">
+                <source>Not checked</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.rateLimited">
+                <source>AQG paused Free Remote Preview requests from this site for now. Try again later.</source>
+            </trans-unit>
+            <trans-unit id="freePreview.error.rateLimited.title">
+                <source>Too many free scan requests</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.error.noHistory">
+                <source>No regression signal yet: this page has no compatible frontend scans to compare.</source>
             </trans-unit>
         </body>
     </file>

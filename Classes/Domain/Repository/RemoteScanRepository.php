@@ -876,7 +876,7 @@ final class RemoteScanRepository extends AbstractRepository
         }
     }
 
-    public function countPagesForScan(int $remoteScanUid, bool $failed, string $search = ''): int
+    public function countPagesForScan(int $remoteScanUid, bool $failed, string $search = '', string $ruleId = ''): int
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
 
@@ -897,6 +897,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addRemotePageSearchConstraint($queryBuilder, $search, $failed);
+        $this->addRemoteRuleConstraint($queryBuilder, $remoteScanUid, $ruleId);
 
         $row = $queryBuilder
             ->executeQuery()
@@ -905,17 +906,20 @@ final class RemoteScanRepository extends AbstractRepository
         return (int)($row['cnt'] ?? 0);
     }
 
-    public function findPagesForScan(int $remoteScanUid, string $search = ''): array
+    public function findPagesForScan(int $remoteScanUid, string $search = '', string $ruleId = ''): array
     {
-        $total = $this->countPagesForScan($remoteScanUid, false, $search);
+        $total = $this->countPagesForScan($remoteScanUid, false, $search, $ruleId);
         if ($total <= 0) {
             return [];
         }
 
-        return $this->findPagesForScanPaginated($remoteScanUid, $total, 0, $search);
+        return $this->findPagesForScanPaginated($remoteScanUid, $total, 0, $search, $ruleId);
     }
 
-    public function findPagesForScanPaginated(int $remoteScanUid, int $limit, int $offset, string $search = ''): array
+    /**
+     * @param string $ruleId limits the pages to those with an open finding of this rule in the scan
+     */
+    public function findPagesForScanPaginated(int $remoteScanUid, int $limit, int $offset, string $search = '', string $ruleId = ''): array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
 
@@ -936,6 +940,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addRemotePageSearchConstraint($queryBuilder, $search, false);
+        $this->addRemoteRuleConstraint($queryBuilder, $remoteScanUid, $ruleId);
 
         return $queryBuilder
             ->orderBy('issues_count', 'DESC')
@@ -1328,6 +1333,7 @@ final class RemoteScanRepository extends AbstractRepository
 
         $queryBuilder
             ->select('rsp.*')
+            ->addSelectLiteral('rs.finished_at AS remote_scan_finished_at')
             ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
             ->innerJoin(
                 'rsp',
@@ -1378,6 +1384,7 @@ final class RemoteScanRepository extends AbstractRepository
 
         $queryBuilder
             ->select('rsp.*')
+            ->addSelectLiteral('rs.finished_at AS remote_scan_finished_at')
             ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
             ->innerJoin(
                 'rsp',
@@ -1579,6 +1586,29 @@ final class RemoteScanRepository extends AbstractRepository
                 'uid' => (int)$existing['uid'],
             ]
         );
+    }
+
+    /**
+     * Keeps the pages of the scan on which the rule has a finding that is not ignored — the pages a
+     * "View affected pages" link for that rule refers to.
+     */
+    private function addRemoteRuleConstraint(QueryBuilder $queryBuilder, int $remoteScanUid, string $ruleId): void
+    {
+        if ($ruleId === '') {
+            return;
+        }
+
+        $issues = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+        $issues
+            ->select('ri.remote_scan_page')
+            ->from(Tables::REMOTE_ISSUE, 'ri')
+            ->where(
+                $issues->expr()->eq('ri.remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)),
+                $issues->expr()->eq('ri.rule_id', $queryBuilder->createNamedParameter($ruleId)),
+                $issues->expr()->neq('ri.status', $queryBuilder->createNamedParameter('ignored')),
+            );
+
+        $queryBuilder->andWhere($queryBuilder->expr()->in('uid', $issues->getSQL()));
     }
 
     private function addRemotePageSearchConstraint(QueryBuilder $qb, string $search, bool $includeFailureReason, string $alias = ''): void

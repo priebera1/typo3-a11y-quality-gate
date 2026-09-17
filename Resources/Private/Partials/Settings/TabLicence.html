@@ -26,14 +26,8 @@
                                     <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.title" default="Licence key" /></span>
                                 </h3>
                                 <p class="aqg-card__sub">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.intro" default="Paste your AQG licence key to unlock PRO features for this installation." />
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.intro" default="Paste your AQG trial or licence key, then choose Save and validate." />
                                 </p>
-                            </div>
-
-                            <div class="aqg-card__actions">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.save" default="Save" />
-                                </button>
                             </div>
                         </header>
 
@@ -58,9 +52,11 @@
                                             aria-describedby="aqg-licence-validation"
                                     />
 
-                                    <button type="button" class="btn btn-primary btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validate" default="Validate" />
-                                    </button>
+                                    <f:if condition="{hasLicenceKey}">
+                                        <button type="button" class="btn btn-default btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence" data-aqg-licence-revalidate="true">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.revalidate" default="Revalidate" />
+                                        </button>
+                                    </f:if>
                                 </div>
 
                                 <div id="aqg-licence-validation" data-a11y-licence-validate-result="true" aria-live="polite">
@@ -85,7 +81,7 @@
                                                 </f:then>
                                                 <f:else>
                                                     <div class="aqg-field__help">
-                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.portalHelp" default="The key is bound to a single domain. Find it in your purchase email or in the AQG customer portal:" />
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.portalHelp" default="The key is bound to the domains registered for your licence. Find it in your purchase email or in the AQG customer portal:" />
                                                         <a href="{portalUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.openCustomerPortal" default="Open AQG customer portal" /></a>.
                                                     </div>
                                                 </f:else>
@@ -116,6 +112,21 @@
                                     </span>
                                 </span>
                             </label>
+
+                            <div class="aqg-licence-actions">
+                                <button
+                                        type="submit"
+                                        class="btn btn-primary btn-sm"
+                                        data-aqg-licence-submit="true"
+                                        data-label-save-validate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.saveAndValidate', default: 'Save and validate')}"
+                                        data-label-save="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save', default: 'Save changes')}"
+                                >
+                                    <f:if condition="{hasLicenceKey}">
+                                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" /></f:then>
+                                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.saveAndValidate" default="Save and validate" /></f:else>
+                                    </f:if>
+                                </button>
+                            </div>
                         </div>
                     </section>
                 </f:then>

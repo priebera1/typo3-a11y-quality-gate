@@ -129,6 +129,7 @@ final class FreeSubmitEntitlementInvalidationTest extends TestCase
         yield 'idempotency key reused' => [409, 'idempotency_key_reused'];
         yield 'unsafe site url' => [400, 'unsafe_site_url'];
         yield 'request rate limit' => [429, 'rate_limit_exceeded'];
+        yield 'free submit rate limit' => [429, 'free_preview_rate_limited'];
     }
 
     /**

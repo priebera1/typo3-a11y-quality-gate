@@ -19,6 +19,9 @@
                     data-label-global="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.scope.global', default: 'Global configuration')}"
                     data-label-per-site-one="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.meta.perSite.singular', default: 'Per-site · %d override')}"
                     data-label-per-site-other="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.meta.perSite.plural', default: 'Per-site · %d overrides')}"
+                    data-label-summary-critical="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.summaryCritical', default: 'Critical issues allowed: %d')}"
+                    data-label-summary-warnings="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.summaryWarnings', default: 'Warnings allowed: %d')}"
+                    data-label-summary-warnings-ignored="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.summaryWarningsIgnored', default: 'Warnings ignored')}"
             >
                 <f:for each="{returnParameters}" as="value" key="name">
                     <input type="hidden" name="{name}" value="{value}" />
@@ -52,7 +55,7 @@
                         </div>
                     </header>
                     <div class="aqg-card__body">
-                        <div class="aqg-scope" role="radiogroup" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.scope.title', default: 'Quality Gate scope')}">
+                        <div class="aqg-scope" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.scope.title', default: 'Quality Gate scope')}">
                             <button type="button" class="aqg-scope__card js-aqg-scope-card{f:if(condition: '{qualityGateRuleset.is_global} == 0', else: ' is-active')}" data-scope="global" aria-pressed="{f:if(condition: '{qualityGateRuleset.is_global} == 0', then: 'false', else: 'true')}">
                                 <span class="aqg-radio{f:if(condition: '{qualityGateRuleset.is_global} == 0', else: ' is-checked')}" aria-hidden="true"></span>
                                 <span class="aqg-scope__body">
@@ -215,6 +218,7 @@
                         <span class="aqg-guidance__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.guidance.title" default="How the Quality Gate decides which configuration to use" /></span>
                         <ol class="aqg-guidance__steps">
                             <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.guidance.step1" default="An editor saves and publishes the page, or unhides it." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.guidance.stepScan" default="AQG scans the page content right away, so every decision uses a fresh content scan. Frontend scan results are not part of the decision." /></li>
                             <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.guidance.step2" default="AQG looks for a site-specific configuration matching the page’s site." /></li>
                             <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.guidance.step3" default="If none exists, it falls back to the global configuration." /></li>
                             <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.guidance.step4" default="If neither exists, the Quality Gate is disabled for that page." /></li>
@@ -250,7 +254,7 @@
                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.title" default="Publishing rules" />
                             </h3>
                             <p class="aqg-card__sub">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeDescription" default="FREE keeps the warning gate active. Block-on-publish and custom publishing rules require AQG PRO." />
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeDescription" default="FREE warns editors before they publish a page with open critical issues." />
                             </p>
                         </div>
                     </header>
@@ -268,27 +272,9 @@
                         </span>
                     </div>
 
-                    <div class="aqg-compare">
-                        <div class="aqg-compare__col aqg-compare__col--free">
-                            <div class="aqg-compare__col-head"><h4 class="aqg-compare__title">FREE</h4><span class="aqg-compare__plan">FREE</span></div>
-                            <ul class="aqg-compare__list">
-                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.warningDialog" default="Warning dialog before publish" /></span></li>
-                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.criticalCheck" default="Checks open critical issues" /></span></li>
-                                <li class="aqg-compare__item aqg-compare__item--off"><span class="aqg-compare__mark">–</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.block" default="Block-on-publish gate" /></span></li>
-                                <li class="aqg-compare__item aqg-compare__item--off"><span class="aqg-compare__mark">–</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.perSite" default="Per-site rulesets" /></span></li>
-                                <li class="aqg-compare__item aqg-compare__item--off"><span class="aqg-compare__mark">–</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.thresholds" default="Adjustable critical and warning thresholds" /></span></li>
-                            </ul>
-                        </div>
-                        <div class="aqg-compare__col aqg-compare__col--pro">
-                            <div class="aqg-compare__col-head"><h4 class="aqg-compare__title">PRO</h4><span class="aqg-compare__plan">PRO</span></div>
-                            <ul class="aqg-compare__list">
-                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.everythingFree" default="Everything in FREE" /></span></li>
-                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.block" default="Block-on-publish gate" /></span></li>
-                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.perSite" default="Per-site rulesets" /></span></li>
-                                <li class="aqg-compare__item"><span class="aqg-compare__mark">✓</span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.compare.thresholds" default="Adjustable critical and warning thresholds" /></span></li>
-                            </ul>
-                        </div>
-                    </div>
+                    <p class="aqg-card__upgrade-text" data-aqg-upgrade-context="quality-gate">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeUpgrade" default="Need a hard stop before publishing? With a trial or a PRO or Agency licence, the Quality Gate can block publishing, use your own thresholds and apply different rules per site." />
+                    </p>
 
                     <div class="aqg-guidance">
                         <span class="aqg-guidance__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>

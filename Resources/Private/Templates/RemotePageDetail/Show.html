@@ -103,17 +103,19 @@
                                 </button>
                             </f:then>
                             <f:else>
-                                <button
-                                        type="button"
-                                        class="btn btn-sm btn-primary"
-                                        disabled="disabled"
-                                        title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanUnavailable', default: 'Scan this page is unavailable because the TYPO3 page could not be resolved.')}"
-                                >
-                                    <f:translate
-                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
-                                            default="Scan this page"
-                                    />
-                                </button>
+                                <f:if condition="!{isFreePreview}">
+                                    <button
+                                            type="button"
+                                            class="btn btn-sm btn-primary"
+                                            disabled="disabled"
+                                            title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanUnavailable', default: 'Scan this page is unavailable because the TYPO3 page could not be resolved.')}"
+                                    >
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
+                                                default="Scan this page"
+                                        />
+                                    </button>
+                                </f:if>
                             </f:else>
                         </f:if>
                     </div>
@@ -150,14 +152,6 @@
                                     </f:if>
                                 </span>
                             </div>
-                            <div class="aqg-hero-stat">
-                                <span class="aqg-hero-stat__label">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.source" default="Scan type" />
-                                </span>
-                                <span class="aqg-hero-stat__value aqg-hero-stat__value--plain">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanType.frontendHttp" default="Frontend HTTP" />
-                                </span>
-                            </div>
                         </f:then>
                         <f:else>
                             <f:if condition="{remoteDetail.isFailed}">
@@ -189,7 +183,7 @@
                                     </div>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issueGroups" default="Issue groups" />
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issueTypes" default="Issue types" />
                                         </span>
                                         <span class="aqg-hero-stat__value">—</span>
                                     </div>
@@ -197,25 +191,19 @@
                                 <f:else>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.httpStatus" default="HTTP" />
-                                        </span>
-                                        <span class="aqg-hero-stat__value aqg-hero-stat__value--mono {remoteDetail.httpStatusTone}">{remoteDetail.httpStatusLabel}</span>
-                                    </div>
-                                    <div class="aqg-hero-stat">
-                                        <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issueGroups" default="Issue groups" />
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.issueTypes" default="Issue types" />
                                         </span>
                                         <span class="aqg-hero-stat__value {f:if(condition: remotePage.issues_count, then: 'tone-critical', else: 'tone-ok')}">{remotePage.issues_count}</span>
                                     </div>
                                     <f:if condition="{pageFindingsCount}">
                                         <div class="aqg-hero-stat">
-                                            <span class="aqg-hero-stat__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.findings" default="Findings" /></span>
+                                            <span class="aqg-hero-stat__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.occurrencesTotal" default="Occurrences" /></span>
                                             <span class="aqg-hero-stat__value {f:if(condition: pageFindingsCount, then: 'tone-critical', else: 'tone-ok')}">{pageFindingsCount}</span>
                                         </div>
                                     </f:if>
                                     <div class="aqg-hero-stat">
                                         <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.lastRemoteScan" default="Last frontend scan" />
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanShown" default="Scan shown" />
                                         </span>
                                         <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
                                             <f:if condition="{remoteDetail.lastScanAt}">
@@ -224,14 +212,14 @@
                                             </f:if>
                                         </span>
                                     </div>
-                                    <div class="aqg-hero-stat">
-                                        <span class="aqg-hero-stat__label">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.source" default="Scan type" />
-                                        </span>
-                                        <span class="aqg-hero-stat__value aqg-hero-stat__value--plain">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanType.frontendHttp" default="Frontend HTTP" />
-                                        </span>
-                                    </div>
+                                    <f:if condition="!{remoteDetail.httpStatusIsSuccess}">
+                                        <div class="aqg-hero-stat">
+                                            <span class="aqg-hero-stat__label">
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.httpStatus" default="HTTP" />
+                                            </span>
+                                            <span class="aqg-hero-stat__value aqg-hero-stat__value--mono {remoteDetail.httpStatusTone}">{remoteDetail.httpStatusLabel}</span>
+                                        </div>
+                                    </f:if>
                                 </f:else>
                             </f:if>
                         </f:else>
@@ -245,6 +233,27 @@
                         activeRemoteScan: activeRemoteScan
                     }"
             />
+
+            <f:if condition="{newerScan}">
+                <div class="aqg-notice aqg-tone-info" role="status" data-aqg-newer-scan="true">
+                    <span class="aqg-notice__icon" aria-hidden="true">
+                        <core:icon identifier="actions-history" size="small" />
+                    </span>
+                    <div class="aqg-notice__body">
+                        <div class="aqg-notice__title">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.olderScan.title" default="You are viewing an earlier scan" />
+                        </div>
+                        <div class="aqg-notice__text">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.olderScan.text" default="This page was scanned again on %s. Open the latest scan to see its current results." arguments="{0: newerScan.finishedAtFormatted}" />
+                        </div>
+                    </div>
+                    <div class="aqg-notice__actions">
+                        <a href="{newerScan.url}" class="btn btn-sm btn-default">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.olderScan.open" default="Open latest scan" />
+                        </a>
+                    </div>
+                </div>
+            </f:if>
 
             <f:if condition="{remoteDetail.hasActiveScan}">
                 <div class="aqg-notice aqg-tone-info" role="status">
@@ -268,7 +277,7 @@
                 </div>
             </f:if>
 
-            <f:if condition="{canScanRemotePage} == 0">
+            <f:if condition="!{isFreePreview} && !{canScanRemotePage}">
                 <div class="aqg-notice aqg-tone-warning" role="status">
                     <span class="aqg-notice__icon" aria-hidden="true">
                         <f:render partial="Overview/Icon" arguments="{name: 'warning'}" />
@@ -283,7 +292,7 @@
                         <div class="aqg-notice__text">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanDisabledText"
-                                    default="This remote URL could not be resolved to a TYPO3 page, so Scan this page is disabled. Existing crawler results are still shown below."
+                                    default="Scan this page from the page tree instead: this URL is not linked to a TYPO3 page, so it cannot be scanned from here. The existing results stay visible below."
                             />
                         </div>
                     </div>
@@ -328,7 +337,7 @@
                             <div class="aqg-notice__text">
                                 <f:translate
                                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanFailedText"
-                                        default="The crawler reached the URL but the server returned an error. Issue counts above are from the last successful scan and may be stale."
+                                        default="Check that the page loads for visitors, then scan it again. The server answered the crawler with an error, so this scan has no results for the page."
                                 />
                             </div>
                         </div>
@@ -375,34 +384,8 @@
                                         <f:else>—</f:else>
                                     </f:if>
                                 </dd>
-                                <dt>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.startUrl" default="Start URL" />
-                                </dt>
-                                <dd>
-                                    <f:if condition="{remoteScan.start_url}">
-                                        <f:then><a href="{remoteScan.start_url}" target="_blank" rel="noopener noreferrer">{remoteScan.start_url}</a></f:then>
-                                        <f:else>—</f:else>
-                                    </f:if>
-                                </dd>
-                                <dt>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.jobId" default="Job ID" />
-                                </dt>
-                                <dd>
-                                    <f:if condition="{remoteScan.job_id}">
-                                        <f:then>{remoteScan.job_id}</f:then>
-                                        <f:else>—</f:else>
-                                    </f:if>
-                                </dd>
-                                <dt>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.progress.started" default="Started" />
-                                </dt>
-                                <dd>
-                                    <f:if condition="{remoteDetail.startedAt}">
-                                        <f:then>{remoteDetail.startedAtFormatted}</f:then>
-                                        <f:else>—</f:else>
-                                    </f:if>
-                                </dd>
                             </dl>
+                            <f:render section="RemoteMetadata" arguments="{remotePage: remotePage, remoteScan: remoteScan, remoteDetail: remoteDetail}" />
                         </div>
                     </section>
                 </f:then>
@@ -426,58 +409,64 @@
                                                     </f:for>
                                                 </ol>
                                             </f:if>
-                                            <div class="aqg-page-recommendation__meta">
-                                                <f:if condition="{pageRecommendation.primaryRuleId}">
-                                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.primaryRule" default="Primary rule:" /> <code>{pageRecommendation.primaryRuleId}</code></span>
-                                                </f:if>
-                                                <f:if condition="{pageRecommendation.primaryFixType}">
-                                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.primaryFixType" default="Primary fix type: %s" arguments="{0: pageRecommendation.primaryFixTypeLabel}" /></span>
-                                                </f:if>
-                                                <f:if condition="{pageRecommendation.primaryOwner}">
-                                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.owner" default="Suggested owner: %s" arguments="{0: pageRecommendation.primaryOwnerLabel}" /></span>
-                                                </f:if>
-                                                <f:if condition="{pageRecommendation.quickWinsLabel}">
-                                                    <span>{pageRecommendation.quickWinsLabel}</span>
-                                                </f:if>
-                                                <f:if condition="{pageRecommendation.manualReviewRequired}">
-                                                    <span>{pageRecommendation.manualReviewLabel}</span>
-                                                </f:if>
-                                            </div>
-                                            <div class="aqg-page-recommendation__counts">
-                                                <f:if condition="{pageRecommendation.contentIssuesLabel}"><span>{pageRecommendation.contentIssuesLabel}</span></f:if>
-                                                <f:if condition="{pageRecommendation.templateIssuesLabel}"><span>{pageRecommendation.templateIssuesLabel}</span></f:if>
-                                                <f:if condition="{pageRecommendation.designIssuesLabel}"><span>{pageRecommendation.designIssuesLabel}</span></f:if>
-                                            </div>
-                                            <f:if condition="{hasPageRemediationSummary}">
-                                                <div class="aqg-page-recommendation__strategy" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.strategy', default: 'Fix strategy')}">
-                                                    <span class="aqg-page-recommendation__strategy-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.strategy" default="Fix strategy" /></span>
-                                                    <f:if condition="{pageRemediationSummary.recommendation}">
-                                                        <f:then>
-                                                            <p>{pageRemediationSummary.recommendation}</p>
-                                                        </f:then>
-                                                        <f:else>
-                                                            <f:if condition="{pageRemediationSummary.note}">
-                                                                <p>{pageRemediationSummary.note}</p>
+                                            <f:if condition="{pageRecommendation.hasDetails} || {hasPageRemediationSummary}">
+                                                <details class="aqg-page-recommendation__details">
+                                                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.details" default="Why this step" /></summary>
+                                                    <div class="aqg-page-recommendation__meta">
+                                                        <f:if condition="{pageRecommendation.primaryRuleId}">
+                                                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.primaryRule" default="Primary rule:" /> <code>{pageRecommendation.primaryRuleId}</code></span>
+                                                        </f:if>
+                                                        <f:if condition="{pageRecommendation.primaryFixType}">
+                                                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.primaryFixType" default="Primary fix type: %s" arguments="{0: pageRecommendation.primaryFixTypeLabel}" /></span>
+                                                        </f:if>
+                                                        <f:if condition="{pageRecommendation.primaryOwner}">
+                                                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.owner" default="Suggested owner: %s" arguments="{0: pageRecommendation.primaryOwnerLabel}" /></span>
+                                                        </f:if>
+                                                        <f:if condition="{pageRecommendation.quickWinsLabel}">
+                                                            <span>{pageRecommendation.quickWinsLabel}</span>
+                                                        </f:if>
+                                                        <f:if condition="{pageRecommendation.manualReviewRequired}">
+                                                            <span>{pageRecommendation.manualReviewLabel}</span>
+                                                        </f:if>
+                                                    </div>
+                                                    <div class="aqg-page-recommendation__counts">
+                                                        <f:if condition="{pageRecommendation.contentIssuesLabel}"><span>{pageRecommendation.contentIssuesLabel}</span></f:if>
+                                                        <f:if condition="{pageRecommendation.templateIssuesLabel}"><span>{pageRecommendation.templateIssuesLabel}</span></f:if>
+                                                        <f:if condition="{pageRecommendation.designIssuesLabel}"><span>{pageRecommendation.designIssuesLabel}</span></f:if>
+                                                    </div>
+                                                    <f:if condition="{hasPageRemediationSummary}">
+                                                        <div class="aqg-page-recommendation__strategy" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.strategy', default: 'Fix strategy')}">
+                                                            <span class="aqg-page-recommendation__strategy-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.strategy" default="Fix strategy" /></span>
+                                                            <f:if condition="{pageRemediationSummary.recommendation}">
+                                                                <f:then>
+                                                                    <p>{pageRemediationSummary.recommendation}</p>
+                                                                </f:then>
+                                                                <f:else>
+                                                                    <f:if condition="{pageRemediationSummary.note}">
+                                                                        <p>{pageRemediationSummary.note}</p>
+                                                                    </f:if>
+                                                                </f:else>
                                                             </f:if>
-                                                        </f:else>
+                                                        </div>
                                                     </f:if>
-                                                </div>
+                                                </details>
                                             </f:if>
                                         </section>
                                     </f:if>
 
                                     <f:if condition="!{isFreePreview} &amp;&amp; ({regressionAlert.available} || {regressionAlert.message})">
-                                        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert}" />
-                                    </f:if>
-
-                                    <f:if condition="!{isFreePreview} &amp;&amp; {remediationPlan.hasTasks}">
-                                        <f:render partial="Remote/RemediationPlan" arguments="{plan: remediationPlan, variant: 'page'}" />
+                                        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert, viewedJobId: remoteScan.job_id}" />
                                     </f:if>
 
 
+
+
+                                    <p class="aqg-guidance-note aqg-rule-list__note">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.note" default="AQG guidance is based on the rule type and scan context. Review the affected element before applying changes." />
+                                    </p>
 
                                     <f:for each="{issues}" as="issue" iteration="issueIterator">
-                                        <details class="aqg-rule{f:if(condition: issue.isDefaultOpen, then: ' aqg-rule--primary')}" {f:if(condition: issue.isDefaultOpen, then: 'open="open"')}>
+                                        <details class="aqg-rule{f:if(condition: issue.isPrimaryRecommendation, then: ' aqg-rule--primary')}{f:if(condition: issue.isRequestedRule, then: ' aqg-rule--requested')}" id="{issue.anchorId}" {f:if(condition: issue.isDefaultOpen, then: 'open="open"')}>
                                             <summary class="aqg-rule__head aqg-rule__summary">
                                                 <f:render partial="Shared/ToneBadge" arguments="{tone: issue.impact_tone, name: issue.impact}" />
 
@@ -498,38 +487,10 @@
                                                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.occurrences" default="occurrences" />:
                                                             <strong>{issue.count}</strong>
                                                         </span>
-                                                        <span>
-                                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" default="rule" />:
-                                                            <strong>{issue.rule_id}</strong>
-                                                        </span>
-                                                    </span>
-                                                    <span class="aqg-guidance-badges aqg-rule__summary-badges">
                                                         <f:if condition="{issue.isPrimaryRecommendation}">
                                                             <span class="aqg-guidance-badge aqg-guidance-badge--neutral"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.topRecommendation" default="Top recommendation" /></span>
                                                         </f:if>
-                                                        <f:if condition="{issue.whoShouldFix}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{issue.whoShouldFix}">{issue.whoShouldFixLabel}</span>
-                                                        </f:if>
-                                                        <f:if condition="{issue.fixType}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{issue.fixType}">{issue.fixTypeLabel}</span>
-                                                        </f:if>
-                                                        <f:if condition="{issue.confidence}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.confidence" default="%s confidence" arguments="{0: issue.confidenceLabel}" /></span>
-                                                        </f:if>
-                                                        <f:if condition="{issue.wcagPrimaryLabel}">
-                                                            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{issue.wcagPrimaryLabel}</span>
-                                                        </f:if>
                                                     </span>
-                                                    <f:if condition="{issue.affectedUserItems}">
-                                                        <span class="aqg-rule__affected-users">
-                                                            <span class="aqg-rule__affected-users-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" />:</span>
-                                                            <span class="aqg-affected-user-badges">
-                                                                <f:for each="{issue.affectedUserItems}" as="affectedUser">
-                                                                    <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
-                                                                </f:for>
-                                                            </span>
-                                                        </span>
-                                                    </f:if>
                                                     <f:if condition="{issue.primaryFixSummary}">
                                                         <span class="aqg-rule__primary-fix"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.primaryFix" default="Primary fix: %s" arguments="{0: issue.primaryFixSummary}" /></span>
                                                     </f:if>
@@ -582,84 +543,94 @@
                                                             <p>{issue.guidanceHowToFix}</p>
                                                         </div>
                                                     </f:if>
-                                                    <p class="aqg-guidance-note aqg-rule-guidance__note">
-                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.note" default="AQG guidance is based on the rule type and scan context. Review the affected element before applying changes." />
-                                                    </p>
                                                 </section>
 
-                                                <f:if condition="{issue.hasStandardsAndImpact}">
-                                                    <details class="aqg-rule-metadata">
-                                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standardsAndImpact" default="Standards and impact" /></summary>
-                                                        <div class="aqg-rule-metadata__body">
-                                                            <f:if condition="{issue.affectedUserItems}">
-                                                                <div class="aqg-rule-metadata__group">
-                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" /></h3>
-                                                                    <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
-                                                                        <f:for each="{issue.affectedUserItems}" as="affectedUser">
-                                                                            <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
-                                                                        </f:for>
-                                                                    </div>
-                                                                </div>
+                                                <details class="aqg-rule-metadata">
+                                                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.moreDetails" default="More details" /></summary>
+                                                    <div class="aqg-rule-metadata__body">
+                                                        <div class="aqg-guidance-badges">
+                                                            <span class="aqg-rule-metadata__tag"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" default="rule" />: {issue.rule_id}</span>
+                                                            <f:if condition="{issue.wcagPrimaryLabel}">
+                                                                <span class="aqg-guidance-badge aqg-guidance-badge--neutral">{issue.wcagPrimaryLabel}</span>
                                                             </f:if>
-                                                            <f:if condition="{issue.wcagReferences}">
-                                                                <div class="aqg-rule-metadata__group">
-                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3>
-                                                                    <ul>
-                                                                        <f:for each="{issue.wcagReferences}" as="wcag">
-                                                                            <li>
-                                                                                <f:if condition="{wcag.url}">
-                                                                                    <f:then><a href="{wcag.url}" target="_blank" rel="noopener noreferrer">{wcag.label}</a></f:then>
-                                                                                    <f:else>{wcag.label}</f:else>
-                                                                                </f:if>
-                                                                            </li>
-                                                                        </f:for>
-                                                                    </ul>
-                                                                </div>
+                                                            <f:if condition="{issue.whoShouldFix}">
+                                                                <span class="aqg-guidance-badge aqg-guidance-badge--who aqg-guidance-badge--{issue.whoShouldFix}">{issue.whoShouldFixLabel}</span>
                                                             </f:if>
-                                                            <f:if condition="{issue.techniques}">
-                                                                <div class="aqg-rule-metadata__group">
-                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technique" default="Technique" /></h3>
-                                                                    <ul>
-                                                                        <f:for each="{issue.techniques}" as="technique">
-                                                                            <li>
-                                                                                <f:if condition="{technique.url}">
-                                                                                    <f:then><a href="{technique.url}" target="_blank" rel="noopener noreferrer">{technique.label}</a></f:then>
-                                                                                    <f:else>{technique.label}</f:else>
-                                                                                </f:if>
-                                                                            </li>
-                                                                        </f:for>
-                                                                    </ul>
-                                                                </div>
+                                                            <f:if condition="{issue.fixType}">
+                                                                <span class="aqg-guidance-badge aqg-guidance-badge--type aqg-guidance-badge--{issue.fixType}">{issue.fixTypeLabel}</span>
                                                             </f:if>
-                                                            <f:if condition="{issue.standards}">
-                                                                <div class="aqg-rule-metadata__group">
-                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3>
-                                                                    <div class="aqg-rule-metadata__chips">
-                                                                        <f:for each="{issue.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for>
-                                                                    </div>
-                                                                </div>
-                                                            </f:if>
-                                                            <f:if condition="{issue.documentationLinks}">
-                                                                <div class="aqg-rule-metadata__group">
-                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3>
-                                                                    <ul>
-                                                                        <f:for each="{issue.documentationLinks}" as="doc">
-                                                                            <li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li>
-                                                                        </f:for>
-                                                                    </ul>
-                                                                </div>
-                                                            </f:if>
-                                                            <f:if condition="{issue.technicalTags}">
-                                                                <div class="aqg-rule-metadata__group aqg-rule-metadata__group--technical">
-                                                                    <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technicalTags" default="Technical tags" /></h3>
-                                                                    <div class="aqg-rule-metadata__chips aqg-rule-metadata__chips--tags">
-                                                                        <f:for each="{issue.technicalTags}" as="tag"><span class="aqg-rule-metadata__tag">{tag}</span></f:for>
-                                                                    </div>
-                                                                </div>
+                                                            <f:if condition="{issue.confidence}">
+                                                                <span class="aqg-guidance-badge aqg-guidance-badge--confidence aqg-guidance-badge--{issue.confidence}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.confidence" default="%s confidence" arguments="{0: issue.confidenceLabel}" /></span>
                                                             </f:if>
                                                         </div>
-                                                    </details>
-                                                </f:if>
+                                                        <f:if condition="{issue.affectedUserItems}">
+                                                            <div class="aqg-rule-metadata__group">
+                                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.affectedUsers" default="Affected users" /></h3>
+                                                                <div class="aqg-affected-user-badges aqg-affected-user-badges--metadata">
+                                                                    <f:for each="{issue.affectedUserItems}" as="affectedUser">
+                                                                        <f:render partial="RuleMetadata/AffectedUserBadge" arguments="{item: affectedUser}" />
+                                                                    </f:for>
+                                                                </div>
+                                                            </div>
+                                                        </f:if>
+                                                        <f:if condition="{issue.wcagReferences}">
+                                                            <div class="aqg-rule-metadata__group">
+                                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.wcagReference" default="WCAG reference" /></h3>
+                                                                <ul>
+                                                                    <f:for each="{issue.wcagReferences}" as="wcag">
+                                                                        <li>
+                                                                            <f:if condition="{wcag.url}">
+                                                                                <f:then><a href="{wcag.url}" target="_blank" rel="noopener noreferrer">{wcag.label}</a></f:then>
+                                                                                <f:else>{wcag.label}</f:else>
+                                                                            </f:if>
+                                                                        </li>
+                                                                    </f:for>
+                                                                </ul>
+                                                            </div>
+                                                        </f:if>
+                                                        <f:if condition="{issue.techniques}">
+                                                            <div class="aqg-rule-metadata__group">
+                                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technique" default="Technique" /></h3>
+                                                                <ul>
+                                                                    <f:for each="{issue.techniques}" as="technique">
+                                                                        <li>
+                                                                            <f:if condition="{technique.url}">
+                                                                                <f:then><a href="{technique.url}" target="_blank" rel="noopener noreferrer">{technique.label}</a></f:then>
+                                                                                <f:else>{technique.label}</f:else>
+                                                                            </f:if>
+                                                                        </li>
+                                                                    </f:for>
+                                                                </ul>
+                                                            </div>
+                                                        </f:if>
+                                                        <f:if condition="{issue.standards}">
+                                                            <div class="aqg-rule-metadata__group">
+                                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.standards" default="Standards" /></h3>
+                                                                <div class="aqg-rule-metadata__chips">
+                                                                    <f:for each="{issue.standards}" as="standard"><span class="aqg-guidance-badge aqg-guidance-badge--neutral">{standard}</span></f:for>
+                                                                </div>
+                                                            </div>
+                                                        </f:if>
+                                                        <f:if condition="{issue.documentationLinks}">
+                                                            <div class="aqg-rule-metadata__group">
+                                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.documentation" default="Documentation" /></h3>
+                                                                <ul>
+                                                                    <f:for each="{issue.documentationLinks}" as="doc">
+                                                                        <li><a href="{doc.url}" target="_blank" rel="noopener noreferrer">{doc.label}</a></li>
+                                                                    </f:for>
+                                                                </ul>
+                                                            </div>
+                                                        </f:if>
+                                                        <f:if condition="{issue.technicalTags}">
+                                                            <div class="aqg-rule-metadata__group aqg-rule-metadata__group--technical">
+                                                                <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.localGuidance.technicalTags" default="Technical tags" /></h3>
+                                                                <div class="aqg-rule-metadata__chips aqg-rule-metadata__chips--tags">
+                                                                    <f:for each="{issue.technicalTags}" as="tag"><span class="aqg-rule-metadata__tag">{tag}</span></f:for>
+                                                                </div>
+                                                            </div>
+                                                        </f:if>
+                                                    </div>
+                                                </details>
 
                                                 <f:for each="{issue.nodes}" as="node" iteration="iterator">
                                                     <div class="aqg-node">
@@ -674,16 +645,11 @@
                                                             </f:if>
 
                                                             <f:if condition="{node.hasNodeRemediation}">
-                                                                <div class="aqg-node-remediation" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.aria', default: 'Suggested remediation for this finding')}">
-                                                                    <div class="aqg-node-remediation__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.title" default="Suggested remediation" /></div>
+                                                                <details class="aqg-node-remediation">
+                                                                    <summary class="aqg-node-remediation__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.title" default="Suggested remediation" /></summary>
                                                                     <f:if condition="{node.nodeRemediation.summary}">
                                                                         <p>{node.nodeRemediation.summary}</p>
                                                                     </f:if>
-                                                                    <div class="aqg-node-remediation__meta">
-                                                                        <f:if condition="{node.nodeRemediation.recommendedOwnerLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.owner" default="Suggested owner: %s" arguments="{0: node.nodeRemediation.recommendedOwnerLabel}" /></span></f:if>
-                                                                        <f:if condition="{node.nodeRemediation.fixTypeLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.fixType" default="Fix type: %s" arguments="{0: node.nodeRemediation.fixTypeLabel}" /></span></f:if>
-                                                                        <f:if condition="{node.nodeRemediation.confidenceLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.confidence" default="Confidence: %s" arguments="{0: node.nodeRemediation.confidenceLabel}" /></span></f:if>
-                                                                    </div>
                                                                     <f:if condition="{node.nodeRemediation.hasSteps}">
                                                                         <ol class="aqg-node-remediation__steps">
                                                                             <f:for each="{node.nodeRemediation.steps}" as="step">
@@ -691,10 +657,15 @@
                                                                             </f:for>
                                                                         </ol>
                                                                     </f:if>
+                                                                    <div class="aqg-node-remediation__meta">
+                                                                        <f:if condition="{node.nodeRemediation.recommendedOwnerLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.owner" default="Suggested owner: %s" arguments="{0: node.nodeRemediation.recommendedOwnerLabel}" /></span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.fixTypeLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.fixType" default="Fix type: %s" arguments="{0: node.nodeRemediation.fixTypeLabel}" /></span></f:if>
+                                                                        <f:if condition="{node.nodeRemediation.confidenceLabel}"><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.nodeRemediation.confidence" default="Confidence: %s" arguments="{0: node.nodeRemediation.confidenceLabel}" /></span></f:if>
+                                                                    </div>
                                                                     <f:if condition="{node.nodeRemediation.documentationHint}">
                                                                         <p class="aqg-node-remediation__hint">{node.nodeRemediation.documentationHint}</p>
                                                                     </f:if>
-                                                                </div>
+                                                                </details>
                                                             </f:if>
 
                                                             <f:if condition="{node.hasContrastDetails}">
@@ -803,10 +774,9 @@
                                                                 <f:else>
                                                                     <f:if condition="{isFreePreview}">
                                                                         <f:then>
-                                                                            <div class="aqg-node__mapped aqg-pro-card">
-                                                                                <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
-                                                                                <span class="aqg-pro-card__body aqg-node__mapped-label">
-                                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.recordMappingLocked" default="Record mapping is available in PRO" />
+                                                                            <div class="aqg-node__mapped aqg-node__mapped--locked" data-aqg-locked-feature="record-mapping">
+                                                                                <span class="aqg-node__mapped-label">
+                                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.recordMappingLocked" default="Which TYPO3 record contains this element? With a trial or a PRO or Agency licence, frontend scans link each finding to its record so you can open it directly." />
                                                                                 </span>
                                                                             </div>
                                                                         </f:then>
@@ -863,6 +833,13 @@
                                         </details>
                                     </f:for>
 
+                                    <f:if condition="!{isFreePreview} &amp;&amp; {remediationPlan.hasTasks}">
+                                        <details class="aqg-tech-details aqg-remediation-plan-disclosure">
+                                            <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.disclosure" default="Remediation plan for this scan" /></summary>
+                                            <f:render partial="Remote/RemediationPlan" arguments="{plan: remediationPlan, variant: 'page'}" />
+                                        </details>
+                                    </f:if>
+
 
                                 </div>
 
@@ -873,7 +850,7 @@
                             </div>
 
                                     <f:if condition="!{isFreePreview} &amp;&amp; ({remoteScanCompare.available} || {remoteScanCompare.message})">
-                                        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare}" />
+                                        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare, viewedJobId: remoteScan.job_id}" />
                                     </f:if>
 
                                     <f:if condition="{hasKeyboardStructureReview}">
@@ -1051,7 +1028,7 @@
                                         <div class="aqg-history-panel__body">
                                             <f:if condition="{remotePageHistory.items}">
                                                 <f:then>
-                                                    <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.items, compactPageHistory: 1}" />
+                                                    <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.items, compactPageHistory: 1, viewedJobId: remoteScan.job_id}" />
                                                 </f:then>
                                                 <f:else>
                                                     <div class="aqg-history-notice">
@@ -1082,7 +1059,7 @@
                                             <f:then>
                                                 <div class="aqg-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.detailsUnavailable.title" default="Issue details are not available for this scan" /></div>
                                                 <div class="aqg-empty__body">
-                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.detailsUnavailable.text" default="The page summary reports %d automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence." arguments="{0: pageSummaryIssuesCount}" />
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.detailsUnavailable.text" default="Scan the page again to load the issue details. The page summary reports %d issue types, but no details were stored for them." arguments="{0: pageSummaryIssuesCount}" />
                                                 </div>
                                             </f:then>
                                             <f:else>
@@ -1140,19 +1117,18 @@
 <f:section name="RemoteScreenshot">
     <f:if condition="{isFreePreview}">
         <f:then>
-            <div class="aqg-shot aqg-pro-card">
-                <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
+            <div class="aqg-shot aqg-pro-card" data-aqg-locked-feature="screenshot">
                 <div class="aqg-pro-card__body">
                     <div class="aqg-pro-card__title">
                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.pageScreenshot" default="Page screenshot" />
                     </div>
                     <div class="aqg-pro-card__text">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.screenshotsLocked" default="Screenshots available in PRO" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.screenshotsLocked" default="See where each issue appears: in a trial and with a PRO or Agency licence, frontend scans keep a screenshot of the page." />
                     </div>
                 </div>
                 <div class="aqg-pro-card__actions">
                     <a href="{freePreviewTrialUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start PRO trial" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start a free trial" />
                     </a>
                 </div>
             </div>
@@ -1205,34 +1181,28 @@
                 </div>
             </f:else>
         </f:if>
-        <f:if condition="{remotePage.screenshot_path}">
-            <div class="aqg-shot__caption">{remotePage.screenshot_path}</div>
-        </f:if>
     </section>
         </f:else>
     </f:if>
 </f:section>
 
 <f:section name="RemoteMetadata">
-    <section class="aqg-section">
-        <div class="aqg-section__head">
-            <div>
-                <h2 class="aqg-section__title">
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanMetadata" default="Scan metadata" />
-                </h2>
-                <div class="aqg-section__sub">
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.lastRemoteScan" default="Last frontend scan" />
-                </div>
-            </div>
-        </div>
+    <details class="aqg-section aqg-tech-details" data-aqg-technical-details="true">
+        <summary class="aqg-tech-details__summary">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.technicalDetails" default="Technical details" />
+        </summary>
         <div class="aqg-section__body">
             <dl class="aqg-kv">
+                <dt>
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.table.httpStatus" default="HTTP status" />
+                </dt>
+                <dd>{remoteDetail.httpStatusLabel}</dd>
                 <dt>
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.jobId" default="Job ID" />
                 </dt>
                 <dd>
                     <f:if condition="{remoteScan.job_id}">
-                        <f:then>{remoteScan.job_id}</f:then>
+                        <f:then><code>{remoteScan.job_id}</code></f:then>
                         <f:else>—</f:else>
                     </f:if>
                 </dd>
@@ -1273,8 +1243,14 @@
                         <f:else>—</f:else>
                     </f:if>
                 </dd>
+                <f:if condition="{remotePage.screenshot_path}">
+                    <dt>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotFile" default="Screenshot file" />
+                    </dt>
+                    <dd class="text-break"><code>{remotePage.screenshot_path}</code></dd>
+                </f:if>
             </dl>
         </div>
-    </section>
+    </details>
 </f:section>
 </html>

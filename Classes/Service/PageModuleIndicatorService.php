@@ -123,23 +123,29 @@ final class PageModuleIndicatorService
         $remoteState = $this->resolveRemoteState($remoteCompletedScan, $remotePage, $isRemoteScanRunning);
         $hasRemoteScanRun = $this->hasRemoteScanRun($remoteCompletedScan, $remotePage);
         $overallState = $this->resolveOverallState($localState, $remoteState, $hasRemoteScanRun);
-        $meta = $this->buildMeta($overallState, $counts, $scanStatus, $remoteActiveScan, $remoteCompletedScan, $latestLocalScanAt);
+        $meta = $this->buildMeta($overallState, $scanStatus, $remoteActiveScan);
         $actions = $this->buildActions($overallState, $aqgPageUrl, $overviewUrl);
         $progress = $this->buildProgress($overallState, $remoteActiveScan);
-        $headline = $this->buildPanelHeadline($overallState, $localState, $remoteState, $counts, $remoteCompletedScan, $remotePage, $hasRemoteScanRun);
-        $body = $this->buildBody($overallState, $isRemoteScanRunning, $hasRemoteScanRun);
+        $headline = $this->buildPanelHeadline($overallState);
+        $body = $this->buildBody($overallState, $isRemoteScanRunning);
         $remoteScanEnabled = $hasRemoteScanCapability && $currentPageUrl !== '';
         $scanMode = $remoteScanEnabled ? 'combined' : 'local';
+        // Content (TYPO3 records) and frontend (rendered page) results are separate sources: each row names
+        // its own source, count unit and scan time, and neither is presented as the other.
         $rows = [
             [
-                'label' => $this->translate('pageModuleIndicator.row.local', 'Local scan'),
+                'source' => 'content',
+                'label' => $this->translate('pageModuleIndicator.row.local', 'Content scan'),
                 'state' => $localState,
                 'headline' => $this->buildHeadline($localState, $counts),
+                'meta' => $this->buildRowMeta($localState, $latestLocalScanAt),
             ],
             [
+                'source' => 'frontend',
                 'label' => $this->translate('pageModuleIndicator.row.remote', 'Frontend scan'),
                 'state' => $remoteState,
                 'headline' => $this->buildRemoteHeadline($remoteState, $remoteCompletedScan, $remotePage),
+                'meta' => $this->buildRowMeta($remoteState, $this->resolveRemoteScanTimestamp($remoteCompletedScan, $remotePage)),
             ],
         ];
 
@@ -203,16 +209,16 @@ final class PageModuleIndicatorService
         if ($status === null || ($state === 'FREE_AVAILABLE' && $jobsLimit === 0)) {
             $text = $this->translate(
                 'pageModuleIndicator.freeHint.available',
-                'Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free page scans per day.'
+                'Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free scans per day.'
             );
         } elseif ($state === 'FREE_AVAILABLE') {
             $text = sprintf(
-                $this->translate('pageModuleIndicator.freeHint.remaining', 'Free Remote Preview: %1$d of %2$d free page scans left today.'),
+                $this->translate('pageModuleIndicator.freeHint.remaining', 'Free Remote Preview: %1$d of %2$d free scans left today.'),
                 $scansRemaining,
                 $jobsLimit
             );
         } elseif ($state === 'FREE_USED_TODAY' || $state === 'FREE_LIMIT_REACHED') {
-            $text = $this->translate('pageModuleIndicator.freeHint.limitReached', 'Daily Free limit reached — all free page scans for today are used.');
+            $text = $this->translate('pageModuleIndicator.freeHint.limitReached', 'Free scan limit reached for today.');
             $resetsAt = strtotime((string)($status['resetsAt'] ?? '')) ?: 0;
             if ($resetsAt > 0) {
                 $text .= ' ' . sprintf(
@@ -360,7 +366,7 @@ final class PageModuleIndicatorService
 
         $parts = [];
         if ($critical > 0) {
-            $parts[] = sprintf($this->translate('pageModuleIndicator.metric.errors', '%d errors'), $critical);
+            $parts[] = sprintf($this->translate('pageModuleIndicator.metric.critical', '%d critical'), $critical);
         }
         if ($warning > 0) {
             $parts[] = sprintf($this->translate('pageModuleIndicator.metric.warnings', '%d warnings'), $warning);
@@ -394,44 +400,61 @@ final class PageModuleIndicatorService
         }
 
         $issuesTotal = $this->getRemoteIssueCount($remoteCompletedScan, $remotePage);
-        return sprintf($this->translate('pageModuleIndicator.metric.errors', '%d errors'), $issuesTotal);
+
+        // A page row counts issue types (one per rule); a bare page scan only reports its occurrences.
+        return is_array($remotePage)
+            ? $this->countLabelFor($issuesTotal, 'pageModuleIndicator.metric.issueTypes', '%d issue type', '%d issue types')
+            : $this->countLabelFor($issuesTotal, 'pageModuleIndicator.metric.occurrences', '%d occurrence', '%d occurrences');
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
+     * The panel headline summarises the overall state only; source-specific counts stay in their rows.
+     */
+    private function buildPanelHeadline(string $overallState): string
+    {
+        return match ($overallState) {
+            'running' => $this->translate('pageModuleIndicator.headline.running', 'Scan running'),
+            'none' => $this->translate('pageModuleIndicator.headline.none', 'Not scanned yet'),
+            'error' => $this->translate('pageModuleIndicator.headline.issues', 'Accessibility issues found'),
+            'warning' => $this->translate('pageModuleIndicator.headline.attention', 'Some checks need attention'),
+            default => $this->translate('pageModuleIndicator.headline.ok', 'No issues found'),
+        };
+    }
+
+    private function buildRowMeta(string $state, int $scannedAt): string
+    {
+        if ($state === 'running' || $scannedAt <= 0) {
+            return '';
+        }
+
+        return sprintf(
+            $this->translate('pageModuleIndicator.row.lastScan', 'Last scan %s'),
+            BackendTimeUtility::formatDateTime($scannedAt)
+        );
+    }
+
+    /**
      * @param array<string,mixed>|null $remoteCompletedScan
      * @param array<string,mixed>|null $remotePage
      */
-    private function buildPanelHeadline(
-        string $overallState,
-        string $localState,
-        string $remoteState,
-        array $counts,
-        ?array $remoteCompletedScan,
-        ?array $remotePage,
-        bool $hasRemoteScanRun,
-    ): string {
-        if ($overallState === 'running') {
-            return $this->translate('pageModuleIndicator.headline.running', 'Scan running');
+    private function resolveRemoteScanTimestamp(?array $remoteCompletedScan, ?array $remotePage): int
+    {
+        if (is_array($remotePage) && (int)($remotePage['remote_scan_finished_at'] ?? 0) > 0) {
+            return (int)$remotePage['remote_scan_finished_at'];
         }
 
-        if ($localState === 'none' && (!$hasRemoteScanRun || $remoteState === 'none')) {
-            return $this->translate('pageModuleIndicator.headline.none', 'Not scanned yet');
+        if (is_array($remoteCompletedScan) && (string)($remoteCompletedScan['scan_scope'] ?? '') === 'page') {
+            return max(0, (int)($remoteCompletedScan['finished_at'] ?? 0));
         }
 
-        if ($localState === 'error' || $localState === 'warning') {
-            return $this->buildHeadline($localState, $counts);
-        }
+        return 0;
+    }
 
-        if ($hasRemoteScanRun && $remoteState === 'error') {
-            return $this->buildRemoteHeadline($remoteState, $remoteCompletedScan, $remotePage);
-        }
-
-        if ($hasRemoteScanRun && $remoteState === 'warning') {
-            return $this->buildRemoteHeadline($remoteState, $remoteCompletedScan, $remotePage);
-        }
-
-        return $this->translate('pageModuleIndicator.headline.ok', 'No issues found');
+    private function countLabelFor(int $count, string $prefix, string $singular, string $plural): string
+    {
+        return $count === 1
+            ? sprintf($this->translate($prefix . '.singular', $singular), $count)
+            : sprintf($this->translate($prefix . '.plural', $plural), $count);
     }
 
     /**
@@ -456,7 +479,7 @@ final class PageModuleIndicatorService
         return 0;
     }
 
-    private function buildBody(string $state, bool $isRemoteScanRunning, bool $hasRemoteCompletedScan): string
+    private function buildBody(string $state, bool $isRemoteScanRunning): string
     {
         if ($state === 'running') {
             return $isRemoteScanRunning
@@ -469,9 +492,7 @@ final class PageModuleIndicatorService
         }
 
         if ($state === 'ok') {
-            return $hasRemoteCompletedScan
-                ? $this->translate('pageModuleIndicator.body.okWithRemote', 'No automated local findings are currently stored for this page. Review AQG for frontend results.')
-                : $this->translate('pageModuleIndicator.body.ok', 'No automated local findings are currently stored for this page.');
+            return $this->translate('pageModuleIndicator.body.noOpenIssues', 'Automated checks found no open issues. Manual review may still be required.');
         }
 
         if ($state === 'warning') {
@@ -557,18 +578,15 @@ final class PageModuleIndicatorService
     }
 
     /**
-     * @param array{critical:int,warning:int,info:int,needs_review?:int} $counts
+     * Progress of a running scan. Scan times are shown per source in the status rows.
+     *
      * @param array<string,mixed> $scanStatus
      * @param array<string,mixed>|null $remoteActiveScan
-     * @param array<string,mixed>|null $remoteCompletedScan
      */
     private function buildMeta(
         string $state,
-        array $counts,
         array $scanStatus,
         ?array $remoteActiveScan,
-        ?array $remoteCompletedScan,
-        int $latestLocalScanAt,
     ): string {
         if ($state === 'running') {
             if (is_array($remoteActiveScan)) {
@@ -590,30 +608,7 @@ final class PageModuleIndicatorService
             return $this->translate('pageModuleIndicator.meta.running', 'Started just now');
         }
 
-        if ($state === 'none') {
-            return $this->translate('pageModuleIndicator.meta.none', 'No scan on record');
-        }
-
-        if ($latestLocalScanAt > 0) {
-            return sprintf(
-                $this->translate('pageModuleIndicator.meta.lastScanned', 'Last scanned %s'),
-                BackendTimeUtility::formatDateTime($latestLocalScanAt)
-            );
-        }
-
-        $openTotal = (int)($counts['critical'] ?? 0) + (int)($counts['warning'] ?? 0) + (int)($counts['info'] ?? 0) + (int)($counts['needs_review'] ?? 0);
-        if ($openTotal > 0) {
-            return sprintf($this->translate('pageModuleIndicator.meta.openTotal', '%d open findings in local checks.'), $openTotal);
-        }
-
-        if (is_array($remoteCompletedScan) && (int)($remoteCompletedScan['finished_at'] ?? 0) > 0) {
-            return sprintf(
-                $this->translate('pageModuleIndicator.meta.remoteCompleted', 'Frontend scan available. Last frontend sync: %s.'),
-                BackendTimeUtility::formatDateTime((int)$remoteCompletedScan['finished_at'])
-            );
-        }
-
-        return $this->translate('pageModuleIndicator.meta.ok', 'Last scanned recently');
+        return '';
     }
 
     private function buildStatusLabel(string $state): string
@@ -621,7 +616,7 @@ final class PageModuleIndicatorService
         return match ($state) {
             'ok' => $this->translate('pageModuleIndicator.status.ok', 'OK'),
             'warning' => $this->translate('pageModuleIndicator.status.warning', 'Warnings'),
-            'error' => $this->translate('pageModuleIndicator.status.error', 'Errors'),
+            'error' => $this->translate('pageModuleIndicator.status.error', 'Issues'),
             'running' => $this->translate('pageModuleIndicator.status.running', 'Scanning'),
             default => $this->translate('pageModuleIndicator.status.none', 'Not scanned'),
         };

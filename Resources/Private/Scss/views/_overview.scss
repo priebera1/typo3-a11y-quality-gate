@@ -1823,6 +1823,13 @@
 .a11y-overview .aqg-table-wrap .aqg-table tbody tr:first-child td:last-child {
   border-radius: 0;
 }
+// A table that fills its section card (content scan pages, frontend affected pages) is framed by the
+// card. Its own border and radius inside the card's doubled the edge and cut rounded notches beside
+// the first and last header cell. A table set inside padding keeps its own frame.
+.a11y-overview .aqg-section .aqg-table-wrap:not(.aqg-report-collapse__body .aqg-table-wrap) {
+  border: 0;
+  border-radius: 0;
+}
 
 .a11y-overview .aqg-remote-token-notice {
     display: grid;
@@ -2797,6 +2804,14 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-impact--serious,
 
 .a11y-overview .aqg-pfix-guidance-inline + .aqg-pfix-item__reason {
     margin-top: 2px;
+}
+
+.a11y-overview .aqg-pfix-item__details {
+    margin-top: 6px;
+}
+
+.a11y-overview .aqg-pfix-item__details .aqg-guidance-badges {
+    margin-bottom: 8px;
 }
 
 .a11y-overview .aqg-report-support {

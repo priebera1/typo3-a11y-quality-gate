@@ -218,33 +218,51 @@ class AqgStatementSettings {
   }
 
   validatePayload(payload) {
+    // Remembers the field to reveal: optional fields live in a closed disclosure.
+    this.invalidField = null;
+    const fail = (message, field) => {
+      this.invalidField = field || null;
+      return message;
+    };
+
     if (payload.scope === 'latest_page') {
       if (!payload.startUrl) {
-        return this.message('PageUrl');
+        return fail(this.message('PageUrl'), this.pageUrl);
       }
       if (!this.isHttpUrl(payload.startUrl)) {
-        return this.message('InvalidPageUrl');
+        return fail(this.message('InvalidPageUrl'), this.pageUrl);
       }
     }
     if (payload.scope === 'specific_job' && !payload.jobId) {
-      return this.message('JobId');
+      return fail(this.message('JobId'), this.jobId);
     }
     if (payload.draftOptions.conformityStatus && payload.draftOptions.conformityStatus !== 'not_confirmed' && !payload.draftOptions.statusConfirmed) {
-      return this.message('ConfirmStatus');
+      return fail(this.message('ConfirmStatus'), this.statusConfirmed);
     }
     if (payload.draftOptions.enforcementProcedure === 'custom' && !payload.draftOptions.customEnforcementText) {
-      return this.message('CustomEnforcement');
+      return fail(this.message('CustomEnforcement'), this.enforcementCustom);
     }
     if (payload.draftOptions.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.draftOptions.contactEmail)) {
-      return this.message('InvalidEmail');
+      return fail(this.message('InvalidEmail'), this.contactEmail);
     }
     if (payload.draftOptions.evaluationReportUrl && !this.isHttpUrl(payload.draftOptions.evaluationReportUrl)) {
-      return this.message('InvalidUrl');
+      return fail(this.message('InvalidUrl'), this.evaluationUrl);
     }
     if (payload.draftOptions.accessibilityStandard === 'custom' && !payload.draftOptions.customAccessibilityStandard) {
-      return this.message('CustomStandard');
+      return fail(this.message('CustomStandard'), this.standardCustom);
     }
     return '';
+  }
+
+  revealField(field) {
+    if (!(field instanceof HTMLElement)) {
+      return;
+    }
+    const disclosure = field.closest('details');
+    if (disclosure instanceof HTMLDetailsElement && !disclosure.open) {
+      disclosure.open = true;
+    }
+    field.focus();
   }
 
   // Same rule as the server: an absolute http(s) URL with a host and without whitespace.
@@ -272,6 +290,7 @@ class AqgStatementSettings {
     const validationError = this.validatePayload(payload);
     if (validationError) {
       this.setStatus(validationError, 'error');
+      this.revealField(this.invalidField);
       return;
     }
 

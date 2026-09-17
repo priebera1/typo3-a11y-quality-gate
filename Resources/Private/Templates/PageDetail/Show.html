@@ -625,9 +625,11 @@
                                         </svg>
                                     </button>
                                 </f:if>
-                                <div class="aqg-issue__pills">
+                                <div class="aqg-issue__title-row">
                                     <f:render partial="Shared/ToneBadge" arguments="{tone: groupKey, name: groupKey}" />
-
+                                    <h2 class="aqg-issue__title">{issue.displayTitle}</h2>
+                                </div>
+                                <div class="aqg-issue__pills aqg-issue__pills--context">
                                     <f:if condition="{issue.sourceTypeLabel}">
                                         <span class="aqg-pill tone-none">
                                             <span class="aqg-pill__dot" aria-hidden="true"></span>
@@ -701,27 +703,7 @@
                                             <span class="aqg-pill__date">{issue.ignoredReopenedAtLabel}</span>
                                         </span>
                                     </f:if>
-
-                                    <f:if condition="{issue.rule_id}">
-                                        <span class="aqg-rule-id">{issue.rule_id}</span>
-                                        <f:if condition="{issue.statusEnum.value} == 0">
-                                            <button type="button" class="aqg-rule-action" data-action="a11y-bulk-select-rule" data-rule-id="{issue.rule_id}">
-                                                <span class="aqg-rule-action__plus" aria-hidden="true">+</span>
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.selectAll" default="Select all with this rule" />
-                                            </button>
-                                            <button type="button" class="aqg-rule-action aqg-rule-action--page" data-action="a11y-bulk-open-rule-page" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnPage}">
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: issue.openRuleCountOnPage}" />
-                                            </button>
-                                            <f:if condition="{canIgnoreRuleOnSite}">
-                                                <button type="button" class="aqg-rule-action aqg-rule-action--site" data-action="a11y-bulk-open-rule-site" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnSite}">
-                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnSite" default="Ignore all on site (%d)" arguments="{0: issue.openRuleCountOnSite}" />
-                                                </button>
-                                            </f:if>
-                                        </f:if>
-                                    </f:if>
                                 </div>
-
-                                <h2 class="aqg-issue__title">{issue.displayTitle}</h2>
                             </header>
 
                             <f:if condition="{issue.statusEnum.value} != 2">
@@ -856,6 +838,27 @@
                                                 key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.ignore"
                                         />
                                     </button>
+
+                                    <f:if condition="{issue.rule_id}">
+                                        <details class="aqg-menu" data-aqg-menu="true">
+                                            <summary class="btn btn-default btn-sm aqg-menu__toggle">
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.moreActions" default="More actions" />
+                                            </summary>
+                                            <div class="aqg-menu__panel">
+                                                <button type="button" class="aqg-rule-action aqg-menu__item" data-action="a11y-bulk-select-rule" data-rule-id="{issue.rule_id}">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.selectAll" default="Select all with this rule" />
+                                                </button>
+                                                <button type="button" class="aqg-rule-action aqg-rule-action--page aqg-menu__item" data-action="a11y-bulk-open-rule-page" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnPage}">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: issue.openRuleCountOnPage}" />
+                                                </button>
+                                                <f:if condition="{canIgnoreRuleOnSite}">
+                                                    <button type="button" class="aqg-rule-action aqg-rule-action--site aqg-menu__item" data-action="a11y-bulk-open-rule-site" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnSite}">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnSite" default="Ignore all on site (%d)" arguments="{0: issue.openRuleCountOnSite}" />
+                                                    </button>
+                                                </f:if>
+                                            </div>
+                                        </details>
+                                    </f:if>
                                 </f:if>
 
                                 <f:if condition="{issue.statusEnum.value} == 2">

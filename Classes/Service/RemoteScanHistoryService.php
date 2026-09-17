@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
@@ -182,7 +183,7 @@ final class RemoteScanHistoryService
             );
         } catch (TokenRefreshException $exception) {
             $this->logHistoryError('AQG regression alert request failed', $exception);
-            return $this->emptyRegressionAlert($this->mapRegressionAlertErrorMessage($exception->getMessage()));
+            return $this->emptyRegressionAlert($this->mapRegressionAlertError($exception));
         } catch (\Throwable $exception) {
             $this->logHistoryError('AQG regression alert request failed unexpectedly', $exception);
             return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.'));
@@ -878,31 +879,26 @@ final class RemoteScanHistoryService
         return BackendLabelUtility::translate('remote.plan.unavailable', 'Recommended remediation plan is not available for this scan.');
     }
 
-    private function mapRegressionAlertErrorMessage(string $message): string
+    /**
+     * Classified by the API's HTTP status and error code. The exception message also carries the request
+     * URL, payload and token length, so a "404" found in it says nothing about the answer.
+     */
+    private function mapRegressionAlertError(TokenRefreshException $exception): string
     {
-        $normalized = strtolower($message);
+        $apiError = $exception->getPrevious();
+        $status = $apiError instanceof ApiRequestFailedException ? $apiError->httpStatus : 0;
+        $code = $apiError instanceof ApiRequestFailedException ? $apiError->apiErrorCode : '';
 
-        if (str_contains($normalized, 'history_disabled') || str_contains($normalized, '404')) {
-            return BackendLabelUtility::translate('remote.regression.error.licenceRequired', 'Regression signal is available with a remote-scanning licence (Trial, PRO or Agency) when enabled.');
-        }
-
-        if (str_contains($normalized, '401') || str_contains($normalized, '403')) {
-            return BackendLabelUtility::translate('remote.regression.error.unavailable', 'Regression signal is not available for this licence or environment.');
-        }
-
-        if (str_contains($normalized, 'missing_source_type')) {
-            return BackendLabelUtility::translate('remote.error.sourceTypeMissing', 'Internal configuration issue: source type is missing.');
-        }
-
-        if (str_contains($normalized, 'missing_start_url')) {
-            return BackendLabelUtility::translate('remote.error.pageUrlMissing', 'Internal configuration issue: page URL is missing.');
-        }
-
-        if (str_contains($normalized, 'invalid_source_type_filter')) {
-            return BackendLabelUtility::translate('remote.regression.error.invalidType', 'Invalid scan type for regression signal.');
-        }
-
-        return BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.');
+        return match (true) {
+            $code === 'history_disabled' => BackendLabelUtility::translate('remote.regression.error.licenceRequired', 'Regression signal is available with a remote-scanning licence (Trial, PRO or Agency) when enabled.'),
+            // The history has no completed scan of this page and scan type yet, whatever the licence.
+            $code === 'not_found' => BackendLabelUtility::translate('remote.regression.error.noHistory', 'No regression signal yet: this page has no compatible frontend scans to compare.'),
+            $status === 401, $status === 403, $code === 'route_not_found' => BackendLabelUtility::translate('remote.regression.error.unavailable', 'Regression signal is not available for this licence or environment.'),
+            $code === 'missing_source_type' => BackendLabelUtility::translate('remote.error.sourceTypeMissing', 'Internal configuration issue: source type is missing.'),
+            $code === 'missing_start_url' => BackendLabelUtility::translate('remote.error.pageUrlMissing', 'Internal configuration issue: page URL is missing.'),
+            $code === 'invalid_source_type_filter' => BackendLabelUtility::translate('remote.regression.error.invalidType', 'Invalid scan type for regression signal.'),
+            default => BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.'),
+        };
     }
 
     /**

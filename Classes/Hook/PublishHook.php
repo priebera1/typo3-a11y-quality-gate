@@ -16,6 +16,7 @@ use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
@@ -246,9 +247,23 @@ final class PublishHook
                 resolvedBy: $this->backendUserService->getBackendUserSnapshot(),
             );
         } catch (\Throwable) {
+            // Without a fresh scan there is no decision; say so instead of letting the page pass silently.
+            if ($this->qualityGateChecker->isEnabledForSite($site->getIdentifier())) {
+                $this->addFlashMessage(
+                    message: $this->translate(
+                        'publish.flash.notChecked',
+                        'The Quality Gate could not check this page because its content scan failed. Run a content scan in the Accessibility module to see its current issues.'
+                    ),
+                    title: $this->translate('publish.flash.warningTitle', 'AQG Warning'),
+                    severity: ContextualFeedbackSeverity::WARNING,
+                    deduplicationKey: 'page-not-checked:' . $pageUid,
+                );
+            }
+
             return;
         }
 
+        $scannedAt = time();
         $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier(), $languageUid);
 
         if ($verdict->isPassed()) {
@@ -256,7 +271,7 @@ final class PublishHook
         }
 
         if ($verdict->isWarningOnly()) {
-            $message = $this->buildVerdictMessage($verdict);
+            $message = $this->buildVerdictMessage($verdict, $scannedAt);
 
             $this->addFlashMessage(
                 message: $message,
@@ -273,12 +288,12 @@ final class PublishHook
         if ($verdict->isBlockingMode() && $proStatus->valid) {
             $this->reHidePage($pageUid);
 
-            $message = $this->buildVerdictMessage($verdict);
+            $message = $this->buildVerdictMessage($verdict, $scannedAt);
 
             if ($proStatus->isTrial) {
                 $message .= ' ' . $this->translate(
                     'publish.flash.trialNote',
-                    'Trial licence active — upgrade to PRO to keep this feature after the trial ends.'
+                    'Trial active — choose a PRO or Agency plan to keep blocking publishing after the trial ends.'
                 );
             }
 
@@ -292,7 +307,7 @@ final class PublishHook
             return;
         }
 
-        $message = $this->buildVerdictMessage($verdict);
+        $message = $this->buildVerdictMessage($verdict, $scannedAt);
 
         $this->addFlashMessage(
             message: $message,
@@ -302,7 +317,7 @@ final class PublishHook
         );
     }
 
-    private function buildVerdictMessage(QualityGateVerdict $verdict): string
+    private function buildVerdictMessage(QualityGateVerdict $verdict, int $scannedAt): string
     {
         $reasons = [];
         foreach ($verdict->reasonDetails as $detail) {
@@ -323,13 +338,19 @@ final class PublishHook
             }
         }
 
-        return sprintf(
+        $message = sprintf(
             $this->translate(
                 'publish.flash.gate',
                 'Accessibility quality gate: %1$s. Current open findings: %2$s. Needs review items are manual checks and do not block publishing.'
             ),
             implode(', ', $reasons),
             $counts !== [] ? implode(', ', $counts) : $this->translate('publish.flash.none', 'none'),
+        );
+
+        // The decision always rests on the content scan that ran just before it; frontend scans are not part of it.
+        return $message . ' ' . sprintf(
+            $this->translate('publish.flash.scanBasis', 'Decision based on the content scan from %s.'),
+            BackendTimeUtility::formatDateTime($scannedAt)
         );
     }
 

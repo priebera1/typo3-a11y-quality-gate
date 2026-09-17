@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.9.6] - 2026-09-17
+
+### Changed
+
+* AQG screens are less crowded. "What to fix first" cards and the rules on a frontend page lead with the title, impact, counts and a suggested fix. Owner, fix type, confidence, WCAG and standards references, the remediation plan and technical scan data are one click away.
+* Counts now say what they count: "Issue types" are the distinct rules found on a page, "Occurrences" are their individual instances. The Overview, frontend page detail, scan history, regression signal and page module use these terms instead of "Findings" or "Errors".
+* "View affected pages" in "What to fix first" lists only the pages on which that rule was found, and opening one of these pages shows that rule expanded. Search and pagination keep the filter, and "Show all pages" removes it.
+* The frontend page detail says which scan it shows and links to the latest scan when the page has been scanned again. Scan history, scan comparison and the regression signal mark the scan shown on the page and label compared scans as earlier and later.
+* The page module labels its rows "Content scan" and "Frontend scan", each with its own count and last scan time. The panel headline summarises the overall state instead of repeating one row's count.
+* On the page findings screen, each issue leads with its title. Rule-wide actions (select all with this rule, ignore on this page or site) are grouped in a "More actions" menu, so "Edit record" stays the main action.
+* Quality Gate site overrides show a one-line summary of the publishing mode and thresholds, and their fields open on demand. A newly added site opens for editing, and every field is labelled for assistive technologies.
+* Quality Gate messages shown on publishing now include the time of the content scan the decision is based on. The settings and the manual explain that frontend scan results are not part of the decision.
+* The licence tab has one main button: "Save and validate" stores a new key and checks it. "Revalidate" and the "Retry" action in the licence status check the saved key again, and the status updates once the check succeeds.
+* The Statement Assistant keeps the scan source and required fields in view and groups the optional sections under "Optional details". Required fields are marked, and a validation error opens and focuses the field concerned.
+* Upgrade hints now explain what a trial, PRO or Agency licence adds where it is relevant: in the Free Remote Preview, on locked screenshots and record mapping, in the Quality Gate and licence settings and in the Statement Assistant. The AI settings tab is now called "AI suggestions", matching its alt text, link text and iframe title suggestions.
+
+### Fixed
+
+* Free Remote Preview request limits are now reported as a temporary pause ("Too many free scan requests") with a hint to try again later, instead of an API error.
+* When the licence service cannot be reached or limits requests, the licence status shows "Not checked" instead of "Inactive".
+* If the content scan fails while a page is published or unhidden, editors now see a warning that the Quality Gate could not check the page, instead of the page passing without notice.
+* The regression signal no longer asks for a licence when a page has no earlier frontend scan to compare. It now says that no compatible scans exist yet.
+* The licence key help no longer states that a key is bound to a single domain.
+* The affected pages list in the Overview is now translated.
+* Improved the AQG backend layout and accessibility: Overview page tables no longer show a doubled border with notched header corners, keyboard focus in the page module is clearly visible, also in forced-colors (high contrast) mode, and the Quality Gate scope buttons are announced correctly by screen readers.
+
 ## [1.9.5] - 2026-09-16
 
 ### Changed

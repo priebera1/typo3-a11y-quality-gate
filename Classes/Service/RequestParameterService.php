@@ -119,6 +119,16 @@ final class RequestParameterService
         return trim((string)($request->getQueryParams()[$name] ?? $default));
     }
 
+    /**
+     * A rule identifier from the query, such as "color-contrast" or "rte.empty_link"; any other value is dropped.
+     */
+    public function getRuleId(ServerRequestInterface $request, string $name): string
+    {
+        $value = $this->getString($request, $name);
+
+        return preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,189}$/', $value) === 1 ? $value : '';
+    }
+
     public function getA11yModuleReturnParameters(ServerRequestInterface $request): array
     {
         $queryParams = $request->getQueryParams();
@@ -140,6 +150,7 @@ final class RequestParameterService
             'localQuery',
             'remoteQuery',
             'remoteFailedQuery',
+            'remoteRule',
             'remotePageUid',
             'tab',
             'rulesetSite',

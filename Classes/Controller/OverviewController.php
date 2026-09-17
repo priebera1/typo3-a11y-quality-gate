@@ -33,6 +33,7 @@ use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Utility\PaginationUtility;
+use Priebera\A11yQualityGate\Utility\RuleAnchorUtility;
 use Priebera\A11yQualityGate\Utility\ScanUrlUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -150,6 +151,7 @@ final class OverviewController extends AbstractBackendModuleController
         $localQuery = trim((string)($queryParams['localQuery'] ?? ''));
         $remoteQuery = trim((string)($queryParams['remoteQuery'] ?? ''));
         $remoteFailedQuery = trim((string)($queryParams['remoteFailedQuery'] ?? ''));
+        $remoteRule = $this->requestParameterService->getRuleId($request, 'remoteRule');
 
         $availableLanguages = $site !== null ? $this->siteLanguageService->getLanguagesForSiteObject($site) : [];
         if ($site !== null && $currentPageUid > 0) {
@@ -343,11 +345,11 @@ final class OverviewController extends AbstractBackendModuleController
         $totalRemotePages = 0;
         $totalRemoteFailedPages = 0;
         $remotePagesArePageScanFallback = false;
-        $remotePagesTitle = 'Affected pages';
-        $remotePagesSubtitle = 'Pages with the most accessibility findings. Open a page to review concrete findings.';
-        $remotePagesEmptyTitle = 'No completed site frontend scan yet';
-        $remotePagesEmptyBody = 'Run a site scan to generate affected pages for this site/root.';
-        $remotePagesCountLabel = 'pages';
+        $remotePagesTitle = $this->translateWithFallback('overview.remote.pages.title', 'Affected pages');
+        $remotePagesSubtitle = $this->translateWithFallback('overview.remote.pages.subtitle', 'Pages with the most issue types come first. Open a page to review its findings.');
+        $remotePagesEmptyTitle = $this->translateWithFallback('overview.remote.pages.emptyTitle', 'No completed site frontend scan yet');
+        $remotePagesEmptyBody = $this->translateWithFallback('overview.remote.pages.emptyBody', 'Run a site scan to list the affected pages of this site.');
+        $remotePagesCountLabel = $this->translateWithFallback('overview.proSummary.pages', 'pages');
 
         $remotePagination = PaginationUtility::buildPagination(0, $currentRemotePage, self::REMOTE_PER_PAGE);
         $remoteFailedPagination = PaginationUtility::buildPagination(0, $currentRemoteFailedPage, self::REMOTE_FAILED_PER_PAGE);
@@ -357,7 +359,7 @@ final class OverviewController extends AbstractBackendModuleController
         if (is_array($remoteScan) && isset($remoteScan['uid'])) {
             $remoteScanUid = (int)$remoteScan['uid'];
 
-            $totalRemotePages = $this->remoteScanRepository->countPagesForScan($remoteScanUid, false, $remoteQuery);
+            $totalRemotePages = $this->remoteScanRepository->countPagesForScan($remoteScanUid, false, $remoteQuery, $remoteRule);
             $totalRemoteFailedPages = $this->remoteScanRepository->countPagesForScan($remoteScanUid, true, $remoteFailedQuery);
 
             $remotePagination = PaginationUtility::buildPagination(
@@ -376,13 +378,14 @@ final class OverviewController extends AbstractBackendModuleController
                 $remoteScanUid,
                 self::REMOTE_PER_PAGE,
                 $remotePagination['offset'],
-                $remoteQuery
+                $remoteQuery,
+                $remoteRule
             );
             $remotePages = $this->enrichRemoteOverviewPages($remotePages, $site, $currentLanguageUid);
 
             if ($remoteQuery !== '' && $totalRemotePages === 0) {
                 $allRemotePages = $this->enrichRemoteOverviewPages(
-                    $this->remoteScanRepository->findPagesForScan($remoteScanUid),
+                    $this->remoteScanRepository->findPagesForScan($remoteScanUid, '', $remoteRule),
                     $site,
                     $currentLanguageUid
                 );
@@ -516,13 +519,15 @@ final class OverviewController extends AbstractBackendModuleController
         }
 
 
+        // Pages listed for a rule open with that rule expanded, so the rule context survives the click.
         $remotePages = array_map(
             fn(array $page): array => $page + [
-                    'detailUrl' => $this->buildRouteUrl('web_a11y.remotePageDetail', [
+                    'detailUrl' => $this->buildRouteUrl('web_a11y.remotePageDetail', array_filter([
                         'remotePageUid' => (int)$page['uid'],
                         'site' => $siteIdentifier,
                         'language' => $currentLanguageUid,
-                    ]),
+                        'rule' => $remoteRule,
+                    ], static fn (mixed $value): bool => $value !== '')) . ($remoteRule !== '' ? '#' . RuleAnchorUtility::anchorId($remoteRule) : ''),
                 ],
             $remotePages
         );
@@ -675,6 +680,31 @@ final class OverviewController extends AbstractBackendModuleController
         $remoteShowKeyboardSummary = !empty($remoteKeyboardSummary['tested']);
         $remoteHasAdditionalAutomatedSignals = $remoteStructureSummary !== [] || $remoteShowKeyboardSummary || $remoteContrastDetails !== [] || $remoteRemediationSummary !== [] || $remoteComponentSummary !== [];
         $remoteHasPriorityFixes = !empty($remoteReportingSummary['priorityFixesVisible']);
+        foreach (['priorityFixes', 'priorityFixesVisible'] as $fixListKey) {
+            $remoteReportingSummary[$fixListKey] = array_map(
+                fn (array $fix): array => $fix + [
+                    'affectedPagesUrl' => (string)($fix['ruleId'] ?? '') !== ''
+                        ? $this->buildRemoteRuleFilterUrl($request, $siteIdentifier, (string)$fix['ruleId'])
+                        : '',
+                ],
+                is_array($remoteReportingSummary[$fixListKey] ?? null) ? $remoteReportingSummary[$fixListKey] : []
+            );
+        }
+        $remoteRuleFilter = $remoteRule !== ''
+            ? [
+                'ruleId' => $remoteRule,
+                'label' => $this->resolveRuleFilterLabel($remoteRule, $remoteReportingSummary['priorityFixes']),
+                'clearUrl' => $this->buildRemoteRuleFilterUrl($request, $siteIdentifier, ''),
+            ]
+            : [];
+        if ($remoteRuleFilter !== []) {
+            $remotePagesSubtitle = sprintf(
+                $this->translateWithFallback('overview.remote.pages.ruleSubtitle', 'Pages on which “%s” was found in this scan.'),
+                $remoteRuleFilter['label']
+            );
+            $remotePagesEmptyTitle = $this->translateWithFallback('overview.remote.pages.ruleEmptyTitle', 'No page with this rule in this scan');
+            $remotePagesEmptyBody = $this->translateWithFallback('overview.remote.pages.ruleEmptyBody', 'Show all pages to see the other results of this scan.');
+        }
         $remoteSignalTone = $this->resolveRemoteSignalTone(
             is_array($remoteScan) ? $remoteScan : null,
             is_array($remoteScore) ? $remoteScore : [],
@@ -799,6 +829,8 @@ final class OverviewController extends AbstractBackendModuleController
             'localQuery' => $localQuery,
             'remoteQuery' => $remoteQuery,
             'remoteFailedQuery' => $remoteFailedQuery,
+            'remoteRule' => $remoteRule,
+            'remoteRuleFilter' => $remoteRuleFilter,
             'availableLanguages' => $availableLanguages,
             'languageOptions' => $languageOptions,
             'currentLanguageOption' => $currentLanguageOption,
@@ -1319,6 +1351,43 @@ final class OverviewController extends AbstractBackendModuleController
         ));
     }
 
+    /**
+     * The Overview with the frontend page list limited to one rule, or without the rule filter when $ruleId is
+     * empty. Pagination restarts because the filtered list has its own pages.
+     */
+    private function buildRemoteRuleFilterUrl(ServerRequestInterface $request, string $siteIdentifier, string $ruleId): string
+    {
+        $parameters = $this->getA11yModuleReturnParameters($request);
+        if ($siteIdentifier !== '') {
+            $parameters['site'] = $siteIdentifier;
+        }
+        $parameters['language'] = $this->requestParameterService->getLanguageUid($request, 0);
+        unset($parameters['languageUid'], $parameters['remotePage'], $parameters['remoteRule']);
+        if ($ruleId !== '') {
+            $parameters['remoteRule'] = $ruleId;
+        }
+        $parameters['aqgSource'] = 'remote';
+
+        return $this->buildRouteUrl('web_a11y', $parameters) . '#a11y-remote-top-pages';
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $priorityFixes
+     */
+    private function resolveRuleFilterLabel(string $ruleId, array $priorityFixes): string
+    {
+        foreach ($priorityFixes as $fix) {
+            if (strcasecmp((string)($fix['ruleId'] ?? ''), $ruleId) === 0) {
+                $title = trim((string)($fix['displayTitle'] ?? $fix['title'] ?? ''));
+                if ($title !== '') {
+                    return $title;
+                }
+            }
+        }
+
+        return $ruleId;
+    }
+
     private function buildOverviewPaginationUrl(
         ServerRequestInterface $request,
         string $siteIdentifier,
@@ -1373,6 +1442,13 @@ final class OverviewController extends AbstractBackendModuleController
             $parameters['remoteFailedQuery'] = $remoteFailedQuery;
         } else {
             unset($parameters['remoteFailedQuery']);
+        }
+
+        $remoteRule = $this->requestParameterService->getRuleId($request, 'remoteRule');
+        if ($remoteRule !== '') {
+            $parameters['remoteRule'] = $remoteRule;
+        } else {
+            unset($parameters['remoteRule']);
         }
 
         return $this->buildRouteUrl('web_a11y', $parameters);

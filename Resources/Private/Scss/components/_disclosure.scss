@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════
+   Progressive disclosure: secondary detail stays one click away.
+   Summaries keep the shared AQG focus ring; content inherits the module tokens.
+═══════════════════════════════════════════ */
+.aqg-module .aqg-tech-details > summary,
+.aqg-module .aqg-page-recommendation__details > summary,
+.aqg-module details.aqg-node-remediation > summary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: fit-content;
+    max-width: 100%;
+    border-radius: var(--aqi-radius-sm);
+    color: var(--aqi-fg);
+    font-size: 12px;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+}
+
+.aqg-module .aqg-tech-details > summary::-webkit-details-marker,
+.aqg-module .aqg-page-recommendation__details > summary::-webkit-details-marker,
+.aqg-module details.aqg-node-remediation > summary::-webkit-details-marker {
+    display: none;
+}
+
+.aqg-module .aqg-tech-details > summary::before,
+.aqg-module .aqg-page-recommendation__details > summary::before,
+.aqg-module details.aqg-node-remediation > summary::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 120ms ease;
+}
+
+.aqg-module .aqg-tech-details[open] > summary::before,
+.aqg-module .aqg-page-recommendation__details[open] > summary::before,
+.aqg-module details.aqg-node-remediation[open] > summary::before {
+    transform: rotate(45deg);
+}
+
+.aqg-module .aqg-tech-details > summary:focus-visible,
+.aqg-module .aqg-page-recommendation__details > summary:focus-visible,
+.aqg-module details.aqg-node-remediation > summary:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+/* Technical run data (job id, user agent, storage paths): a quiet section that opens on demand. */
+.aqg-module .aqg-tech-details {
+    display: block;
+}
+
+.aqg-module .aqg-tech-details > summary {
+    width: 100%;
+    padding: 11px 14px;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module .aqg-tech-details > summary:focus-visible {
+    box-shadow: var(--aqi-focus-ring-inset);
+}
+
+.aqg-module .aqg-tech-details[open] > summary {
+    border-bottom: 1px solid var(--aqi-border-soft);
+    color: var(--aqi-fg);
+}
+
+.aqg-module .aqg-tech-details .aqg-kv code {
+    font-size: 11px;
+    word-break: break-all;
+}
+
+.aqg-module .aqg-page-recommendation__details[open] > summary {
+    margin-bottom: 8px;
+}
+
+.aqg-module .aqg-page-recommendation__details > * + * {
+    margin-top: 8px;
+}
+
+/* Per-element remediation repeats the rule guidance in most cases, so it starts closed. */
+.aqg-module details.aqg-node-remediation {
+    display: block;
+}
+
+.aqg-module details.aqg-node-remediation > * + * {
+    margin-top: 7px;
+}
+
+/* Marks the scan a comparison row or history row refers to when it is the scan shown on the page. */
+.aqg-module .aqg-scan-marker {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px solid var(--aqi-run-border);
+    border-radius: 999px;
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+/* An active list filter, with the way back to the full list. */
+.aqg-module .aqg-filter-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    margin: 0 0 14px;
+    padding: 8px 0 8px 11px;
+    border-left: 3px solid var(--aqi-run);
+    color: var(--aqi-fg);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.aqg-module .aqg-filter-note__clear {
+    color: var(--aqi-fg);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.aqg-module .aqg-filter-note__clear:focus-visible {
+    outline: none;
+    border-radius: 2px;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+/* Required-before-publishing marker: one short sign, explained once per form. */
+.aqg-module .aqg-required-mark {
+    margin-left: 2px;
+    color: var(--aqi-err);
+    font-weight: 700;
+}

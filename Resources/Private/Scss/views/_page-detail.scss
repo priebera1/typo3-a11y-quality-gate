@@ -118,6 +118,93 @@
     color: var(--aqi-fg-muted);
 }
 
+/* The finding leads: severity and title first, source and status as quieter context below. */
+.a11y-page-detail .aqg-issue__title-row {
+    display: flex;
+    flex: 1 1 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.a11y-page-detail .aqg-issue__title-row .aqg-issue__title {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+
+.a11y-page-detail .aqg-issue__pills--context {
+    flex-basis: 100%;
+}
+
+/* "More actions": rule-wide selection and ignore actions, kept out of the finding header. */
+.a11y-page-detail .aqg-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.a11y-page-detail .aqg-menu > .aqg-menu__toggle {
+    list-style: none;
+    cursor: pointer;
+}
+
+.a11y-page-detail .aqg-menu > .aqg-menu__toggle::-webkit-details-marker {
+    display: none;
+}
+
+.a11y-page-detail .aqg-menu > .aqg-menu__toggle::after {
+    content: "";
+    width: 5px;
+    height: 5px;
+    margin: -3px 0 0 2px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+}
+
+.a11y-page-detail .aqg-menu[open] > .aqg-menu__toggle::after {
+    margin-top: 3px;
+    transform: rotate(-135deg);
+}
+
+.a11y-page-detail .aqg-menu__panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    display: grid;
+    gap: 2px;
+    min-width: 240px;
+    padding: 6px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+    background: var(--aqi-surface);
+    box-shadow: 0 14px 32px -18px rgba(15, 23, 42, .45), 0 2px 8px rgba(15, 23, 42, .08);
+}
+
+.a11y-page-detail .aqg-menu .aqg-menu__item {
+    display: flex;
+    width: 100%;
+    margin: 0;
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--aqi-radius-sm);
+    color: var(--aqi-fg);
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.a11y-page-detail .aqg-menu .aqg-menu__item:hover {
+    border-color: transparent;
+    background: var(--aqi-surface-2);
+}
+
+.a11y-page-detail .aqg-menu .aqg-menu__item:focus-visible {
+    border-color: var(--aqi-focus);
+    box-shadow: var(--aqi-focus-ring-inset);
+}
+
 .a11y-page-detail .aqg-issue__pills,
 .a11y-page-detail .aqg-issue__actions,
 .a11y-page-detail .aqg-ignore-form__actions,

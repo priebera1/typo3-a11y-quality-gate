@@ -38,7 +38,19 @@ final class PageModuleIndicatorServiceTest extends TestCase
         'pageModuleIndicator.freeHint.unavailable' => 'FREE-UNAVAILABLE',
         'pageModuleIndicator.freeHint.open' => 'OPEN-FRONTEND-SCAN',
         'pageModuleIndicator.proHint.remoteScanAvailable' => 'PAID-RUN-FRONTEND-SCAN',
-        'pageModuleIndicator.metric.errors' => '%d ERRORS',
+        'pageModuleIndicator.metric.critical' => '%d CRITICAL',
+        'pageModuleIndicator.metric.warnings' => '%d WARNINGS',
+        'pageModuleIndicator.metric.issueTypes.singular' => '%d ISSUE TYPE',
+        'pageModuleIndicator.metric.issueTypes.plural' => '%d ISSUE TYPES',
+        'pageModuleIndicator.metric.occurrences.singular' => '%d OCCURRENCE',
+        'pageModuleIndicator.metric.occurrences.plural' => '%d OCCURRENCES',
+        'pageModuleIndicator.row.local' => 'CONTENT-SCAN',
+        'pageModuleIndicator.row.remote' => 'FRONTEND-SCAN',
+        'pageModuleIndicator.row.lastScan' => 'LAST %s',
+        'pageModuleIndicator.headline.none' => 'NOT-SCANNED',
+        'pageModuleIndicator.headline.ok' => 'NO-ISSUES',
+        'pageModuleIndicator.headline.issues' => 'ISSUES-FOUND',
+        'pageModuleIndicator.headline.attention' => 'NEEDS-ATTENTION',
     ];
 
     /** @var array<string, mixed> */
@@ -129,8 +141,60 @@ final class PageModuleIndicatorServiceTest extends TestCase
 
         $this->render($this->freeLicence(), $free, $remoteScans);
 
+        self::assertSame('frontend', $this->assigned['rows'][1]['source']);
         self::assertSame('error', $this->assigned['rows'][1]['state']);
-        self::assertSame('3 ERRORS', $this->assigned['rows'][1]['headline']);
+        // A Free page scan only reports its total, which counts occurrences.
+        self::assertSame('3 OCCURRENCES', $this->assigned['rows'][1]['headline']);
+        self::assertStringStartsWith('LAST ', $this->assigned['rows'][1]['meta']);
+    }
+
+    #[Test]
+    public function contentAndFrontendRowsKeepTheirOwnCountsAndScanTimes(): void
+    {
+        $remoteScans = $this->createMock(RemoteScanRepository::class);
+        $remoteScans->method('findLatestPageForCompletedPageScan')->willReturn([
+            'uid' => 7,
+            'issues_count' => 1,
+            'remote_scan_finished_at' => 1789200000,
+        ]);
+
+        $this->render(
+            $this->proLicence(),
+            $this->createMock(FreeRemotePreviewService::class),
+            $remoteScans,
+            ['critical' => 2, 'warning' => 1, 'info' => 0, 'needs_review' => 0],
+            1789100000,
+        );
+
+        [$content, $frontend] = $this->assigned['rows'];
+        self::assertSame(['content', 'CONTENT-SCAN', 'error'], [$content['source'], $content['label'], $content['state']]);
+        self::assertSame('2 CRITICAL · 1 WARNINGS', $content['headline']);
+        self::assertSame(['frontend', 'FRONTEND-SCAN', 'error'], [$frontend['source'], $frontend['label'], $frontend['state']]);
+        // A page row counts the rules found on the page.
+        self::assertSame('1 ISSUE TYPE', $frontend['headline']);
+        self::assertNotSame($content['meta'], $frontend['meta'], 'Each source reports its own scan time.');
+        self::assertStringContainsString('2026', $content['meta']);
+        self::assertStringContainsString('2026', $frontend['meta']);
+        self::assertSame('', $this->assigned['meta'], 'Scan times live in the rows, not in an unlabelled footer.');
+    }
+
+    #[Test]
+    public function panelHeadlineNeverPresentsFrontendCountsAsThePageContentResult(): void
+    {
+        $remoteScans = $this->createMock(RemoteScanRepository::class);
+        $remoteScans->method('findLatestPageForCompletedPageScan')->willReturn([
+            'uid' => 7,
+            'issues_count' => 5,
+            'remote_scan_finished_at' => 1789200000,
+        ]);
+
+        $this->render($this->proLicence(), $this->createMock(FreeRemotePreviewService::class), $remoteScans);
+
+        self::assertSame('error', $this->assigned['overallState']);
+        self::assertSame('ISSUES-FOUND', $this->assigned['headline']);
+        self::assertSame('NOT-SCANNED', $this->assigned['rows'][0]['headline']);
+        self::assertSame('', $this->assigned['rows'][0]['meta']);
+        self::assertSame('5 ISSUE TYPES', $this->assigned['rows'][1]['headline']);
     }
 
     #[Test]
@@ -153,16 +217,24 @@ final class PageModuleIndicatorServiceTest extends TestCase
         self::assertSame('combined', $this->assigned['scanMode']);
     }
 
+    /**
+     * @param array{critical:int,warning:int,info:int,needs_review:int}|null $localCounts
+     */
     private function render(
         ProStatusViewModel $licence,
         FreeRemotePreviewService $free,
         ?RemoteScanRepository $remoteScans = null,
+        ?array $localCounts = null,
+        int $localScannedAt = 0,
     ): void {
         $proStatusResolver = $this->createMock(ProStatusResolverService::class);
         $proStatusResolver->method('resolveForSite')->willReturn($licence);
 
         $issues = $this->createMock(IssueRepository::class);
-        $issues->method('countOpenBySeverity')->willReturn(['critical' => 0, 'warning' => 0, 'info' => 0, 'needs_review' => 0]);
+        $issues->method('countOpenBySeverity')->willReturn($localCounts ?? ['critical' => 0, 'warning' => 0, 'info' => 0, 'needs_review' => 0]);
+
+        $sourceStates = $this->createMock(SourceStateRepository::class);
+        $sourceStates->method('findLatestScanTimestampForPage')->willReturn($localScannedAt);
 
         $scanStatus = $this->createMock(ScanStatusService::class);
         $scanStatus->method('getStatus')->willReturn([]);
@@ -181,7 +253,7 @@ final class PageModuleIndicatorServiceTest extends TestCase
 
         $service = new PageModuleIndicatorService(
             $issues,
-            $this->createMock(SourceStateRepository::class),
+            $sourceStates,
             $this->createMock(ScanRepository::class),
             $remoteScans ?? $this->createMock(RemoteScanRepository::class),
             $proStatusResolver,
