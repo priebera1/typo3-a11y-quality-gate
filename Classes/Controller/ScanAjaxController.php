@@ -14,6 +14,7 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Exception\ScanCancelledException;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -21,10 +22,14 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 #[AsController]
 final class ScanAjaxController extends AbstractApiController
 {
+    private const STORED_FAILURE_MESSAGE = 'The content scan failed. Details are in the TYPO3 log.';
+
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
@@ -37,6 +42,7 @@ final class ScanAjaxController extends AbstractApiController
         private readonly ScanRepository $scanRepository,
         private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly LanguageUidResolver $languageUidResolver,
+        private readonly ScopeAccessService $scopeAccessService,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -52,7 +58,7 @@ final class ScanAjaxController extends AbstractApiController
             return $this->jsonResponse([
                 'success' => false,
                 'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ], 409);
         }
 
@@ -113,7 +119,7 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
                 'warnings' => $result->warnings,
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ]);
         } catch (ScanCancelledException) {
             $this->scanStatusService->markCancelled();
@@ -122,7 +128,7 @@ final class ScanAjaxController extends AbstractApiController
                 'success' => false,
                 'code' => 'local_scan_cancelled',
                 'message' => $this->translate('scanAjax.cancelled', 'Scan was cancelled.'),
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ]);
         } catch (\Throwable $e) {
             if ($this->isMissingSiteConfigurationException($e)) {
@@ -132,14 +138,17 @@ final class ScanAjaxController extends AbstractApiController
                 );
             }
 
+            // The shared status is visible to every AQG user; the exception text stays in the log.
+            $this->logScanFailure($e);
             if ($scanStarted) {
-                $this->scanStatusService->markFailed($e->getMessage());
+                $this->scanStatusService->markFailed(self::STORED_FAILURE_MESSAGE);
             }
 
             return $this->jsonResponse([
                 'success' => false,
-                'error' => sprintf($this->translate('scanAjax.failed', 'Scan failed: %s'), $e->getMessage()),
-                'status' => $this->scanStatusService->getStatus(),
+                'code' => 'local_scan_failed',
+                'error' => $this->translate('scanAjax.failedGeneric', 'The content scan failed. Details are in the TYPO3 log.'),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ], 500);
         }
     }
@@ -155,7 +164,7 @@ final class ScanAjaxController extends AbstractApiController
             return $this->jsonResponse([
                 'success' => false,
                 'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ], 409);
         }
 
@@ -217,7 +226,7 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
                 'warnings' => $result->warnings,
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ]);
         } catch (ScanCancelledException) {
             $this->scanStatusService->markCancelled();
@@ -226,7 +235,7 @@ final class ScanAjaxController extends AbstractApiController
                 'success' => false,
                 'code' => 'local_scan_cancelled',
                 'message' => $this->translate('scanAjax.cancelled', 'Scan was cancelled.'),
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ]);
         } catch (\Throwable $e) {
             if ($this->isMissingSiteConfigurationException($e)) {
@@ -236,14 +245,17 @@ final class ScanAjaxController extends AbstractApiController
                 );
             }
 
+            // The shared status is visible to every AQG user; the exception text stays in the log.
+            $this->logScanFailure($e);
             if ($scanStarted) {
-                $this->scanStatusService->markFailed($e->getMessage());
+                $this->scanStatusService->markFailed(self::STORED_FAILURE_MESSAGE);
             }
 
             return $this->jsonResponse([
                 'success' => false,
-                'error' => sprintf($this->translate('scanAjax.failed', 'Scan failed: %s'), $e->getMessage()),
-                'status' => $this->scanStatusService->getStatus(),
+                'code' => 'local_scan_failed',
+                'error' => $this->translate('scanAjax.failedGeneric', 'The content scan failed. Details are in the TYPO3 log.'),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ], 500);
         }
     }
@@ -265,12 +277,22 @@ final class ScanAjaxController extends AbstractApiController
         if (!$this->scanStatusService->isRunning()) {
             return $this->jsonResponse([
                 'success' => true,
-                'status' => $this->scanStatusService->getStatus(),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
                 'message' => $this->translate('scanAjax.noScanRunning', 'No content scan is running.'),
             ]);
         }
 
         $status = $this->scanStatusService->getStatus();
+        // One content scan runs per installation; only someone who may edit its page or site root may stop it.
+        if (!$this->canActOnLocalScan($status)) {
+            return $this->jsonResponse([
+                'success' => false,
+                'code' => 'local_scan_access_denied',
+                'error' => $this->translate('scanAjax.cancelDenied', 'This content scan was started for a page you cannot edit.'),
+                'status' => $this->presentLocalStatus($status),
+            ], 403);
+        }
+
         $scanUid = (int)($status['scanUid'] ?? 0);
         if ($scanUid > 0) {
             $this->scanRepository->requestScanCancellation($scanUid);
@@ -280,7 +302,7 @@ final class ScanAjaxController extends AbstractApiController
 
         return $this->jsonResponse([
             'success' => true,
-            'status' => $this->scanStatusService->getStatus(),
+            'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             'message' => $this->translate('scanAjax.cancellationRequested', 'Content scan cancellation was requested.'),
         ]);
     }
@@ -293,7 +315,7 @@ final class ScanAjaxController extends AbstractApiController
 
         return $this->jsonResponse([
             'success' => true,
-            'status' => $this->scanStatusService->getStatus(),
+            'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             'remoteStatus' => $this->resolveRemoteStatusForRequest($request),
         ]);
     }
@@ -330,7 +352,7 @@ final class ScanAjaxController extends AbstractApiController
             }
         }
 
-        if ($siteIdentifier === '') {
+        if ($siteIdentifier === '' || !$this->scopeAccessService->canReadSiteIdentifier($siteIdentifier)) {
             return null;
         }
 
@@ -372,6 +394,39 @@ final class ScanAjaxController extends AbstractApiController
         return $this->languageUidResolver->fromParameters($queryParams, [], 0, true) ?? 0;
     }
 
+    /**
+     * @param array<string, mixed> $status
+     */
+    private function canActOnLocalScan(array $status): bool
+    {
+        $pageUid = (int)($status['pageUid'] ?? 0);
+        $rootPid = (int)($status['rootPid'] ?? 0);
+
+        return $this->scopeAccessService->canEditPage($pageUid > 0 ? $pageUid : $rootPid);
+    }
+
+    /**
+     * @param array<string, mixed> $status
+     * @return array<string, mixed>
+     */
+    private function presentLocalStatus(array $status): array
+    {
+        return $this->scopeAccessService->restrictLocalScanStatus($status);
+    }
+
+    private function logScanFailure(\Throwable $exception): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->error('AQG content scan failed', [
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (\Throwable) {
+        }
+    }
+
     private function isMissingSiteConfigurationException(\Throwable $exception): bool
     {
         return $exception instanceof \RuntimeException
@@ -394,7 +449,7 @@ final class ScanAjaxController extends AbstractApiController
             'success' => false,
             'error' => $message,
             'code' => 'missing_site_configuration',
-            'status' => $this->scanStatusService->getStatus(),
+            'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
         ], 400);
     }
 }

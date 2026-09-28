@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Hook\PublishHook;
 use Priebera\A11yQualityGate\Pro\Service\ProCapabilityService;
+use Priebera\A11yQualityGate\Pro\ViewModel\ProStatusViewModel;
 use Priebera\A11yQualityGate\QualityGate\QualityGateChecker;
 use Priebera\A11yQualityGate\QualityGate\QualityGateVerdict;
 use Priebera\A11yQualityGate\Scan\ContentCollector;
@@ -90,10 +91,76 @@ final class PublishHookTest extends TestCase
         self::assertSame([], $this->flashMessages);
     }
 
-    private function unhidePage(QualityGateChecker $checker, ScanOrchestrator $scans): void
+    #[Test]
+    public function editorWithoutAqgModuleAccessIsStillWarnedByTheGate(): void
     {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->method('check')->willReturn(QualityGateVerdict::fail(
+            mode: 1,
+            counts: ['critical' => 1, 'warning' => 0, 'info' => 0, 'needs_review' => 0],
+            reasons: ['1 critical issue(s) exceed threshold 0'],
+            reasonDetails: [['severity' => 'critical', 'count' => 1, 'threshold' => 0]],
+        ));
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->expects(self::once())->method('scanPage')->willReturn(new ScanResult(11));
+
+        $this->unhidePage($checker, $scans, false);
+
+        self::assertCount(1, $this->flashMessages);
+        self::assertStringContainsString('1 critical issue(s) exceed threshold 0', $this->flashMessages[0]['message']);
+    }
+
+    #[Test]
+    public function blockingGateRehidesThePageForAnEditorWithoutAqgModuleAccess(): void
+    {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->method('check')->willReturn(QualityGateVerdict::fail(
+            mode: 2,
+            counts: ['critical' => 3, 'warning' => 0, 'info' => 0, 'needs_review' => 0],
+            reasons: ['3 critical issue(s) exceed threshold 0'],
+            reasonDetails: [['severity' => 'critical', 'count' => 3, 'threshold' => 0]],
+        ));
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->method('scanPage')->willReturn(new ScanResult(11));
+
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->expects(self::once())->method('update')->with('pages', ['hidden' => 1], ['uid' => 42]);
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getConnectionForTable')->willReturn($connection);
+
+        $this->unhidePage($checker, $scans, false, $pool, true);
+
+        self::assertCount(1, $this->flashMessages);
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $this->flashMessages[0]['severity']);
+    }
+
+    #[Test]
+    public function contentFeedbackStaysWithAqgModuleUsers(): void
+    {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $scans = $this->createMock(ScanOrchestrator::class);
+        // Only the page unhide in the datamap is scanned; the content element change is not.
+        $scans->expects(self::once())->method('scanPage')->willReturn(new ScanResult(11));
+        $checker->method('check')->willReturn(QualityGateVerdict::pass());
+
+        $this->unhidePage($checker, $scans, false, null, false, ['tt_content' => [7 => ['pid' => 42, 'bodytext' => '<p>x</p>']]]);
+
+        self::assertSame([], $this->flashMessages);
+    }
+
+    /**
+     * @param array<string, mixed> $extraDatamap
+     */
+    private function unhidePage(
+        QualityGateChecker $checker,
+        ScanOrchestrator $scans,
+        bool $moduleAccess = true,
+        ?ConnectionPool $pool = null,
+        bool $licenceValid = false,
+        array $extraDatamap = [],
+    ): void {
         $users = $this->createMock(BackendUserService::class);
-        $users->method('canAccessAccessibilityModule')->willReturn(true);
+        $users->method('canAccessAccessibilityModule')->willReturn($moduleAccess);
         $users->method('getBackendUserSnapshot')->willReturn(['uid' => 1]);
 
         $sites = $this->createMock(SiteResolutionService::class);
@@ -108,6 +175,23 @@ final class PublishHookTest extends TestCase
             }
         );
 
+        $capabilities = $this->createMock(ProCapabilityService::class);
+        $capabilities->method('getStatus')->willReturn(new ProStatusViewModel(
+            configured: true,
+            valid: $licenceValid,
+            proAvailable: $licenceValid,
+            plan: $licenceValid ? 'pro' : '',
+            features: [],
+            reason: null,
+            reasonLabel: null,
+            statusLabel: '',
+            showProHints: false,
+            hasCrawler: $licenceValid,
+            hasExportPdf: $licenceValid,
+            hasMultiSite: false,
+            hasProRules: $licenceValid,
+        ));
+
         $hook = new PublishHook(
             $checker,
             $scans,
@@ -115,14 +199,14 @@ final class PublishHookTest extends TestCase
             $sites,
             $this->createMock(ContentCollector::class),
             $users,
-            $this->createMock(ConnectionPool::class),
+            $pool ?? $this->createMock(ConnectionPool::class),
             $context,
-            $this->createMock(ProCapabilityService::class),
+            $capabilities,
             $this->createMock(ExtensionContextService::class),
         );
 
         $dataHandler = $this->createMock(DataHandler::class);
-        $dataHandler->datamap = ['pages' => [42 => ['hidden' => 0]]];
+        $dataHandler->datamap = ['pages' => [42 => ['hidden' => 0]]] + $extraDatamap;
 
         $hook->processDatamap_afterAllOperations($dataHandler);
     }

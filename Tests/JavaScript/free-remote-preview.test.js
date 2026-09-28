@@ -37,8 +37,9 @@ describe('Free Remote Preview browser boundary', () => {
         expect(freePreviewTemplate).toContain("{freePreview.state} == 'FREE_AVAILABLE'");
         expect(freePreviewTemplate).toContain('Scan this page — Free');
         expect(freePreviewTemplate).toContain('Free scans today');
+        // One quota expression: "used of limit", never a second "remaining" line saying the same.
         expect(freePreviewTemplate).toContain('%1$d of %2$d used');
-        expect(freePreviewTemplate).toContain('freePreview.scansRemaining');
+        expect(freePreviewTemplate).not.toContain('freePreview.scansRemaining');
         expect(freePreviewTemplate).toContain('Free scan limit reached for today.');
         expect(freePreviewTemplate).toContain('{freePreview.hasTodayResult}');
         expect(freePreviewTemplate).toContain("View this page's result");
@@ -78,6 +79,7 @@ describe('Free Remote Preview browser boundary', () => {
             rootPid: 1,
             pageUid: 42,
             siteIdentifier: 'main',
+            languageUid: 0,
             freeSubmitIntent: 'signed-intent',
         });
         const payload = post.mock.calls[0][1];

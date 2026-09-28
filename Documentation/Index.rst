@@ -21,11 +21,12 @@ Accessibility Quality Gate
 
 ----
 
-Accessibility Quality Gate (AQG) is a TYPO3 extension that brings accessibility
-checks into the editorial workflow. It analyses RTE content, structured TCA
-field values and server-rendered HTML, reports findings in a dedicated backend
-module, highlights problems directly in CKEditor and can warn or block editors
-when a page is published above a configured issue threshold.
+Accessibility Quality Gate (AQG) is a TYPO3-native accessibility checker and
+quality gate. It analyses RTE content, structured TCA field values and
+server-rendered HTML, runs browser-based frontend scans with axe-core in the
+hosted AQG scanner, reports findings in a dedicated backend module, highlights
+problems directly in CKEditor and can warn or block editors when a page is
+published above a configured issue threshold.
 
 AQG helps teams find common accessibility problems early. It does not certify
 accessibility and does not replace a manual accessibility audit. See

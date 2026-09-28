@@ -31,7 +31,11 @@ final class LicenceGuidanceTest extends TestCase
             'paid licence expired → renew' => ['expired', 'expired', LicenceGuidance::ACTION_PORTAL],
             'domain limit → manage domains' => ['domain_limit_reached', 'domain_limit_reached', LicenceGuidance::ACTION_PORTAL],
             'wrong domain → manage domains' => ['domain_mismatch', 'domain_mismatch', LicenceGuidance::ACTION_PORTAL],
-            'other project → support' => ['licence_project_mismatch', 'project_mismatch', LicenceGuidance::ACTION_SUPPORT],
+            // Agency enrols further installations itself, so a mismatch is a single-project licence: choose a plan.
+            'other project → compare plans' => ['licence_project_mismatch', 'project_mismatch', LicenceGuidance::ACTION_PRICING],
+            'Agency project slots full → manage projects' => ['licence_project_limit_reached', 'project_limit_reached', LicenceGuidance::ACTION_PORTAL],
+            // Removed in the portal: restore it there, never buy a plan or retry.
+            'Agency project removed → restore in portal' => ['licence_project_removed', 'project_removed', LicenceGuidance::ACTION_PORTAL],
             'invalid key → portal' => ['invalid_key', 'invalid_key', LicenceGuidance::ACTION_PORTAL],
             'API outage → retry' => ['api_unreachable', 'api_unreachable', LicenceGuidance::ACTION_RETRY],
             'rate limited → retry' => ['rate_limited', 'rate_limited', LicenceGuidance::ACTION_RETRY],

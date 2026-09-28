@@ -182,7 +182,9 @@ final class FreeRemotePreviewUiTest extends TestCase
         self::assertIsString($controller);
         self::assertIsString($intent);
         self::assertStringContainsString('resolveSiteByPageId($requestedPageUid)', $controller);
-        self::assertStringContainsString('resolvePublicForPage($site, $requestedPageUid, 0)', $controller);
+        // The selected language's URL, never a hardcoded default language.
+        self::assertStringContainsString('resolvePublicForPage($site, $requestedPageUid, $freeLanguageUid)', $controller);
+        self::assertStringNotContainsString('resolvePublicForPage($site, $requestedPageUid, 0)', $controller);
         self::assertStringContainsString('resolveForFreePreview($site, $freePageUrl)', $controller);
         self::assertStringContainsString("scanScope: \$isFreePreview ? 'page' : 'site'", $controller);
         self::assertStringContainsString('pageUid: $isFreePreview ? $requestedPageUid : 0', $controller);

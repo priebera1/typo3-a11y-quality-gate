@@ -45,11 +45,13 @@ final class PublishHook
 
     public function processDatamap_afterAllOperations(DataHandler $dataHandler): void
     {
-        if (!$this->backendUserService->canAccessAccessibilityModule()) {
-            return;
+        // Content feedback points editors to the AQG module, so only module users get it. The Quality Gate
+        // is enforcement: it applies to everyone who can publish or unhide a page, including users without
+        // access to the AQG module, and it never grants that access.
+        if ($this->backendUserService->canAccessAccessibilityModule()) {
+            $this->handleContentElementChanges($dataHandler);
         }
 
-        $this->handleContentElementChanges($dataHandler);
         $this->handlePageUnhide($dataHandler);
     }
 

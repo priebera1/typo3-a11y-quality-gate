@@ -16,6 +16,7 @@ use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
@@ -28,7 +29,9 @@ use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
 use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
+use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
@@ -88,6 +91,9 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly FreeSubmitIntentService $freeSubmitIntentService,
         private readonly PublicLinkProvider $publicLinkProvider,
         private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
+        private readonly ScopeAccessService $scopeAccessService,
+        private readonly RemoteScanErrorPresenter $remoteScanErrorPresenter,
+        private readonly RemoteScanPairingService $remoteScanPairingService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -140,6 +146,36 @@ final class OverviewController extends AbstractBackendModuleController
                 'currentLanguageUid' => 0,
                 'hasPageContext' => false,
                 'emptyState' => $emptyState,
+                'hasLanguageOptions' => false,
+                'languageOptionCount' => 0,
+                'availableLanguageCount' => 0,
+            ]);
+
+            return $moduleTemplate->renderResponse('Overview/Index');
+        }
+
+        // The Overview lists results of the whole site, so it needs read access to the site root; a
+        // page that the user may read but whose site root is outside their mounts has its own Page Detail.
+        if (!$this->scopeAccessService->canReadSite($site)) {
+            $this->configureDocHeader($moduleTemplate, $returnParameters);
+            $pageIsReadable = $this->scopeAccessService->canReadPage($currentPageUid)
+                && $this->scopeAccessService->isPageInSite($currentPageUid, $site);
+
+            $moduleTemplate->assignMultiple([
+                'siteIdentifier' => '',
+                'currentPageUid' => $currentPageUid,
+                'currentLanguageUid' => 0,
+                'hasPageContext' => false,
+                'emptyState' => [
+                    'title' => $this->translateWithFallback('overview.emptyState.siteAccess.title', 'Site results need access to the site root'),
+                    'body' => $pageIsReadable
+                        ? $this->translateWithFallback('overview.emptyState.siteAccess.body', 'The Overview lists results for the whole site. Your access covers this page, so open its findings instead.')
+                        : $this->translateWithFallback('overview.emptyState.noAccess.body', 'You do not have access to this page.'),
+                    'actionUrl' => $pageIsReadable
+                        ? $this->buildRouteUrl('web_a11y.pageDetail', ['id' => $currentPageUid, 'pageUid' => $currentPageUid])
+                        : '',
+                    'actionLabel' => $this->translateWithFallback('overview.emptyState.siteAccess.action', 'Open page findings'),
+                ],
                 'hasLanguageOptions' => false,
                 'languageOptionCount' => 0,
                 'availableLanguageCount' => 0,
@@ -646,6 +682,7 @@ final class OverviewController extends AbstractBackendModuleController
 
         $backendUser = $this->backendContextService->getBackendUser();
         $canScanAll = $this->accessControlService->canShowScanAll($backendUser);
+        $canScanNow = $this->accessControlService->canShowScanNow($backendUser);
         $canManageRemoteAccessSettings = $this->accessControlService->canManageAdminOnlySettings($backendUser);
         $showRemoteScannerTokenNotice = !$isFreePreview
             && $canManageRemoteAccessSettings
@@ -666,6 +703,9 @@ final class OverviewController extends AbstractBackendModuleController
         $licenceNotice = $canShowSettings
             ? $this->buildLicenceNotice($proStatus, $this->buildRouteUrl('web_a11y', $returnParameters), $returnParameters)
             : null;
+        // A licence notice already names the next step (renew, choose a plan, manage projects); the Free
+        // Preview upgrade card would be a second offer for the same state.
+        $freePreview['showUpgradeOffer'] = (bool)($proStatus->showProHints ?? false) && $licenceNotice === null;
         $remoteReportingSummary = $this->resolveRemoteReportingSummary(
             is_array($remoteScan) ? $remoteScan : null,
             $siteBase
@@ -738,7 +778,7 @@ final class OverviewController extends AbstractBackendModuleController
         ]);
         $remoteScanCompare = $isFreePreview
             ? ['available' => false, 'message' => '']
-            : $this->buildRemoteScanCompare($request, $siteBase);
+            : $this->buildRemoteScanCompare($request, $siteBase, $siteIdentifier);
         $regressionAlert = $isFreePreview
             ? ['available' => false, 'message' => '']
             : $this->buildOverviewRegressionAlert($request, $siteBase, $siteIdentifier, is_array($remoteScan) ? $remoteScan : null, $currentPageUid, $currentLanguageUid);
@@ -756,6 +796,7 @@ final class OverviewController extends AbstractBackendModuleController
             'localNewCounts' => $localNewCounts,
             'localScanDelta' => $localScanDelta,
             'canScanAll' => $canScanAll,
+            'canScanNow' => $canScanNow,
             'siteRootPid' => $siteRootPid,
             'currentPageUid' => $currentPageUid,
             'isPageContext' => $isPageContext,
@@ -1233,7 +1274,15 @@ final class OverviewController extends AbstractBackendModuleController
                 resultsData: $resultsPayload,
             );
         } catch (\Throwable $exception) {
-            $this->remoteScanRepository->markSyncError($jobId, $exception->getMessage());
+            $this->logRemoteReportingDebug('AQG remote scan result persistence failed', [
+                'jobId' => $jobId,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ], 'warning');
+            $this->remoteScanRepository->markSyncError(
+                $jobId,
+                $this->remoteScanErrorPresenter->storedMessage($exception, 'Remote scan completed but its results could not be saved'),
+            );
         }
     }
 
@@ -1904,12 +1953,15 @@ final class OverviewController extends AbstractBackendModuleController
             $sourceType = 'sitemap';
         }
 
+        // The start URL is the language's base, so the API compares scans of the same language only.
         $alert = $this->remoteScanHistoryService->loadRegressionAlert(
             $siteBase,
             $siteIdentifier,
             $sourceType,
-            ''
+            trim((string)($remoteScan['start_url'] ?? '')),
+            $languageUid >= 0 ? $languageUid : null,
         );
+        $alert = $this->guardRegressionPair($alert, $siteIdentifier);
 
         $previousJobId = trim((string)($alert['previousJobId'] ?? ''));
         $currentJobId = trim((string)($alert['currentJobId'] ?? ''));
@@ -1938,6 +1990,28 @@ final class OverviewController extends AbstractBackendModuleController
         $alert['actionUrl'] = $this->buildRouteUrl('web_a11y', $parameters) . '#scan-comparison';
 
         return $alert;
+    }
+
+    /**
+     * The API pairs scans by its own history, which an older API or another installation using the same
+     * licence and site identifier can widen. A signal is only shown for two scans stored here that are
+     * compatible — same scope, type, language and start URL.
+     *
+     * @param array<string, mixed> $alert
+     * @return array<string, mixed>
+     */
+    private function guardRegressionPair(array $alert, string $siteIdentifier): array
+    {
+        $previousJobId = trim((string)($alert['previousJobId'] ?? ''));
+        $currentJobId = trim((string)($alert['currentJobId'] ?? ''));
+        if ($previousJobId === '' || $currentJobId === ''
+            || $this->remoteScanPairingService->resolveComparePair($siteIdentifier, $previousJobId, $currentJobId) !== null) {
+            return $alert;
+        }
+
+        return $this->remoteScanHistoryService->emptyRegressionAlert(
+            $this->translateWithFallback('remote.regression.error.noHistory', 'No regression signal yet: this page has no compatible frontend scans to compare.')
+        );
     }
 
     /**
@@ -1983,7 +2057,7 @@ final class OverviewController extends AbstractBackendModuleController
         if (($alert['comparisonRows'] ?? []) === [] && is_int($previousFindings) && is_int($currentFindings)) {
             $delta = $currentFindings - $previousFindings;
             $alert['comparisonRows'] = [[
-                'label' => $this->translateWithFallback('remote.regression.findingsChange', 'Findings change'),
+                'label' => $this->translateWithFallback('remote.regression.findingsChange', 'Occurrences change'),
                 'value' => $delta > 0 ? '+' . $delta : (string)$delta,
                 'tone' => $delta > 0 ? 'warning' : ($delta < 0 ? 'positive' : 'neutral'),
             ]];
@@ -2004,7 +2078,7 @@ final class OverviewController extends AbstractBackendModuleController
     /**
      * @return array<string, mixed>
      */
-    private function buildRemoteScanCompare(ServerRequestInterface $request, string $siteBase): array
+    private function buildRemoteScanCompare(ServerRequestInterface $request, string $siteBase, string $siteIdentifier): array
     {
         $queryParams = $request->getQueryParams();
         $fromJobId = trim((string)($queryParams['compareFromJobId'] ?? ''));
@@ -2013,7 +2087,21 @@ final class OverviewController extends AbstractBackendModuleController
             return ['available' => false, 'message' => ''];
         }
 
-        return $this->remoteScanHistoryService->loadCompare($siteBase, $fromJobId, $toJobId);
+        // Job IDs come from the URL: only two readable, compatible scans of this site are compared.
+        $pair = $this->remoteScanPairingService->resolveComparePair($siteIdentifier, $fromJobId, $toJobId);
+        if ($pair === null) {
+            return [
+                'available' => false,
+                'message' => $this->translateWithFallback('remote.comparison.error.incompatible', 'The selected scans cannot be compared.'),
+            ];
+        }
+
+        $comparison = $this->remoteScanHistoryService->loadCompare($siteBase, (string)$pair['from']['job_id'], (string)$pair['to']['job_id']);
+        if ($comparison['available'] ?? false) {
+            $comparison['acceptanceEvidence'] = $this->buildAcceptanceEvidenceLinks($siteIdentifier, $pair);
+        }
+
+        return $comparison;
     }
 
     /**
@@ -2099,5 +2187,32 @@ final class OverviewController extends AbstractBackendModuleController
         int $languageUid,
     ): ?array {
         return $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
+    }
+
+    /**
+     * Acceptance evidence links for a validated pair of compatible scans: PRO/Agency, and the same edit
+     * access as any remote export. The export action checks all of it again.
+     *
+     * @param array{from:array<string, mixed>,to:array<string, mixed>} $pair
+     * @return array{pdfUrl:string,csvUrl:string}|array{}
+     */
+    private function buildAcceptanceEvidenceLinks(string $siteIdentifier, array $pair): array
+    {
+        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+        if (!(bool)($proStatus->valid ?? false) || (bool)($proStatus->isTrial ?? false) || !(bool)($proStatus->hasExportPdf ?? false)
+            || !$this->scopeAccessService->canEditRemoteScan($pair['to'])) {
+            return [];
+        }
+
+        $parameters = [
+            'site' => $siteIdentifier,
+            'fromJobId' => (string)$pair['from']['job_id'],
+            'toJobId' => (string)$pair['to']['job_id'],
+        ];
+
+        return [
+            'pdfUrl' => $this->buildRouteUrl('web_a11y.exportAcceptance', $parameters + ['format' => 'pdf']),
+            'csvUrl' => $this->buildRouteUrl('web_a11y.exportAcceptance', $parameters + ['format' => 'csv']),
+        ];
     }
 }

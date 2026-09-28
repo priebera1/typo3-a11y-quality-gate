@@ -28,6 +28,18 @@ defined('TYPO3') || die();
             'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.task.description',
             'additionalFields' => A11yScanTaskAdditionalFieldProvider::class,
         ];
+        // TYPO3 14: Configuration/TCA/Overrides/scheduler_a11y_monitoring_task.php.
+        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['scheduler']['tasks']
+        [\Priebera\A11yQualityGate\Scheduler\MonitoringTask::class] = [
+            'extension' => 'a11y_quality_gate',
+            'title' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.monitoring.task.title',
+            'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.monitoring.task.description',
+            'additionalFields' => \Priebera\A11yQualityGate\Scheduler\MonitoringTaskAdditionalFieldProvider::class,
+        ];
+    } else {
+        // The TYPO3 14 monitoring task form saves when the site changes: keep its language one of that site's.
+        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
+            = \Priebera\A11yQualityGate\Hook\MonitoringTaskLanguageHook::class;
     }
 
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]

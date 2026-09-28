@@ -15,6 +15,26 @@ use Priebera\A11yQualityGate\Pro\Http\AqgApiClient;
 
 final class ProTokenService
 {
+    /**
+     * Answers from the token endpoint that are a verdict on the licence or trial. A rate limit or an
+     * unavailable entitlement service is not among them: those keep the bounded last-known-good state.
+     */
+    private const DEFINITIVE_TOKEN_ERRORS = [
+        'licence_invalid',
+        'licence_project_mismatch',
+        'licence_project_limit_reached',
+        'licence_project_removed',
+        'domain_limit_reached',
+        'product_mismatch',
+        'feature_not_available',
+        'trial_invalid',
+        'trial_revoked',
+        'trial_not_verified',
+        'trial_expired',
+        'trial_domain_mismatch',
+        'trial_project_mismatch',
+    ];
+
     public function __construct(
         private readonly AqgApiClient $apiClient,
         private readonly ProCacheManager $cacheManager,
@@ -54,6 +74,12 @@ final class ProTokenService
         }
 
         if (!$responseDto->success || $responseDto->accessToken === null) {
+            // A licence verdict from the token endpoint is as definitive as one from validation: no cached
+            // positive licence state may keep the paid UI open for another hour.
+            if (in_array((string)$responseDto->errorCode, self::DEFINITIVE_TOKEN_ERRORS, true)) {
+                $this->cacheManager->flushAll();
+            }
+
             throw new TokenRefreshException(
                 $responseDto->errorMessage ?? 'AQG token issuance failed.'
             );

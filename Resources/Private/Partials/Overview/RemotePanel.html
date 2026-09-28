@@ -9,12 +9,12 @@
                 arguments="{
                     freePreview: freePreview,
                     freeSubmitIntent: freeSubmitIntent,
-                    canScanAll: canScanAll,
+                    canScanNow: canScanNow,
                     siteRootPid: siteRootPid,
                     currentPageUid: currentPageUid,
                     siteIdentifier: siteIdentifier,
                     remoteScan: remoteScan,
-                    showProHints: proStatus.showProHints
+                    showProHints: freePreview.showUpgradeOffer
                 }"
         />
     </f:if>
@@ -59,7 +59,7 @@
 
                         <f:if condition="!{freePreview.isFree}">
                         <div class="aqg-signal__actions">
-                            <f:if condition="{currentPageUid}">
+                            <f:if condition="{currentPageUid} && {canScanNow}">
                                 <f:if condition="{currentPageUrl}">
                                     <f:then>
                                         <button
@@ -203,7 +203,7 @@
                         </div>
                         <f:if condition="!{freePreview.isFree}">
                         <div class="aqg-signal__actions">
-                            <f:if condition="{currentPageUid}">
+                            <f:if condition="{currentPageUid} && {canScanNow}">
                                 <f:if condition="{currentPageUrl}">
                                     <button
                                             type="button"

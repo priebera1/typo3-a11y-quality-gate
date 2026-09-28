@@ -18,6 +18,8 @@ final class Tables
     public const REMOTE_SCAN_PAGE = 'tx_a11y_remote_scan_page';
     public const REMOTE_ISSUE = 'tx_a11y_remote_issue';
     public const REMOTE_ISSUE_NODE = 'tx_a11y_remote_issue_node';
+    public const FIX_VERIFICATION = 'tx_a11y_fix_verification';
+    public const MONITORING_RUN = 'tx_a11y_monitoring_run';
 
     public const PAGES = 'pages';
     public const TT_CONTENT = 'tt_content';

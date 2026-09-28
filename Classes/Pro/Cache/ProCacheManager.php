@@ -12,7 +12,7 @@ use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 
 final class ProCacheManager
 {
-    private const LICENCE_GRACE_TTL = 172800; // 48h
+    private const TOKEN_TAG = 'aqg_access_token';
 
     public function __construct(
         private readonly CacheManager $cacheManager,
@@ -31,17 +31,38 @@ final class ProCacheManager
         );
     }
 
-    public function setLicenceResult(string $cacheKey, LicenceValidationResult $result, int $ttl): void
+    /**
+     * Stores an answer and its offline grace copy. A grace TTL of 0 removes the grace copy, so an
+     * entitlement that already ended leaves nothing for an outage to fall back on.
+     */
+    public function setLicenceResult(string $cacheKey, LicenceValidationResult $result, int $ttl, int $graceTtl = ProConstants::CACHE_TTL_GRACE): void
     {
         $payload = $result->toArray();
 
         $this->getCache()->set($cacheKey, $payload, [], max(1, $ttl));
-        $this->getCache()->set(
-            $this->buildGraceKey($cacheKey),
-            $payload,
-            [],
-            self::LICENCE_GRACE_TTL
-        );
+        if ($graceTtl <= 0) {
+            $this->getCache()->remove($this->buildGraceKey($cacheKey));
+            return;
+        }
+
+        $this->getCache()->set($this->buildGraceKey($cacheKey), $payload, [], $graceTtl);
+    }
+
+    /**
+     * Caches an answer for the request path only; the offline grace copy is left as it is.
+     */
+    public function setFreshLicenceResult(string $cacheKey, LicenceValidationResult $result, int $ttl): void
+    {
+        $this->getCache()->set($cacheKey, $result->toArray(), [], max(1, $ttl));
+    }
+
+    /**
+     * Drops every cached access token, so no request runs on a token issued before a definitive
+     * licence rejection.
+     */
+    public function flushTokens(): void
+    {
+        $this->getCache()->flushByTag(self::TOKEN_TAG);
     }
 
     public function getToken(string $cacheKey): ?AccessTokenResult
@@ -61,7 +82,7 @@ final class ProCacheManager
 
     public function setToken(string $cacheKey, AccessTokenResult $result, int $ttl): void
     {
-        $this->getCache()->set($cacheKey, $result->toArray(), [], max(1, $ttl));
+        $this->getCache()->set($cacheKey, $result->toArray(), [self::TOKEN_TAG], max(1, $ttl));
     }
 
     /**

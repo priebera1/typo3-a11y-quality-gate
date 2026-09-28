@@ -37,37 +37,103 @@ final class ProLicenceService
 
         $cacheKey = $this->buildCacheKey($domain, $allSites);
         $cached = $this->cacheManager->getFreshLicenceResult($cacheKey);
-        if ($cached !== null) {
+        if ($cached !== null && !$this->isPastEntitlementEnd($cached)) {
             return $cached;
         }
 
         try {
-            $responseDto = $this->apiClient->validate(
+            $result = LicenceValidationResult::fromResponseDto($this->apiClient->validate(
                 $licenceKey,
                 $domain,
                 $version,
                 $allSites,
-            );
-
-            $result = LicenceValidationResult::fromResponseDto($responseDto);
-
-            $isTrialPlan = $result->plan === 'trial' || $result->isTrial;
-
-            $ttl = $isTrialPlan
-                ? ProConstants::CACHE_TTL_TRIAL
-                : ($result->valid ? ProConstants::CACHE_TTL_VALID : ProConstants::CACHE_TTL_INVALID);
-
-            $this->cacheManager->setLicenceResult($cacheKey, $result, $ttl);
-
-            return $result;
+            ));
         } catch (ApiRequestFailedException $exception) {
-            $graceResult = $this->cacheManager->getGraceLicenceResult($cacheKey);
-            if ($graceResult !== null) {
-                return $graceResult;
+            $result = LicenceValidationResult::invalid(self::failureReason($exception));
+        }
+
+        return $this->storeResult($cacheKey, $result);
+    }
+
+    /**
+     * Caches a validation answer by what it says about the licence.
+     *
+     * - An outage, a rate limit or an answer without a verdict says nothing about the licence: the last
+     *   known good entitlement stays in force while it has not reached its end, and it is never replaced.
+     * - A valid answer is cached no longer than the entitlement lasts.
+     * - A definitive rejection (invalid, expired, revoked, domain or project) replaces every positive
+     *   state at once: the cached answer, the offline grace copy and the issued access tokens.
+     */
+    public function storeResult(string $cacheKey, LicenceValidationResult $result): LicenceValidationResult
+    {
+        if ($result->isTransientFailure()) {
+            $grace = $this->cacheManager->getGraceLicenceResult($cacheKey);
+            if ($grace !== null && $grace->valid && !$this->isPastEntitlementEnd($grace)) {
+                $this->cacheManager->setFreshLicenceResult(
+                    $cacheKey,
+                    $grace,
+                    $this->capToEntitlementEnd($grace, ProConstants::CACHE_TTL_TRANSIENT)
+                );
+
+                return $grace;
             }
 
-            return LicenceValidationResult::invalid(self::failureReason($exception));
+            $this->cacheManager->setFreshLicenceResult($cacheKey, $result, ProConstants::CACHE_TTL_TRANSIENT);
+
+            return $result;
         }
+
+        if ($result->valid) {
+            $isTrialPlan = $result->plan === 'trial' || $result->isTrial;
+            $this->cacheManager->setLicenceResult(
+                $cacheKey,
+                $result,
+                $this->capToEntitlementEnd($result, $isTrialPlan ? ProConstants::CACHE_TTL_TRIAL : ProConstants::CACHE_TTL_VALID),
+                $this->capToEntitlementEnd($result, ProConstants::CACHE_TTL_GRACE, 0),
+            );
+
+            return $result;
+        }
+
+        $this->cacheManager->setLicenceResult(
+            $cacheKey,
+            $result,
+            ProConstants::CACHE_TTL_INVALID,
+            ProConstants::CACHE_TTL_GRACE,
+        );
+        $this->cacheManager->flushTokens();
+
+        return $result;
+    }
+
+    /**
+     * A cached valid answer is unusable once the entitlement it describes has ended; the API decides again.
+     */
+    private function isPastEntitlementEnd(LicenceValidationResult $result): bool
+    {
+        $end = $result->entitlementExpiresAt();
+
+        return $result->valid && $end !== null && $end <= time();
+    }
+
+    /**
+     * A TTL that ends no later than the entitlement. When the API still confirmed a licence past its
+     * paid-through date (Stripe retrying a failed renewal), only a short re-check interval is cached and
+     * no offline grace is kept: whether the licence continues is the API's decision.
+     */
+    private function capToEntitlementEnd(LicenceValidationResult $result, int $ttl, ?int $afterEndTtl = null): int
+    {
+        $end = $result->entitlementExpiresAt();
+        if ($end === null) {
+            return $ttl;
+        }
+
+        $remaining = $end - time();
+        if ($remaining > 0) {
+            return min($ttl, $remaining);
+        }
+
+        return $afterEndTtl ?? min($ttl, ProConstants::CACHE_TTL_TRANSIENT);
     }
 
     /**

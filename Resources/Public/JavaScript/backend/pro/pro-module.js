@@ -322,6 +322,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                     rootPid,
                     pageUid: currentPageUid > 0 ? currentPageUid : rootPid,
                     siteIdentifier,
+                    languageUid,
                     freeSubmitIntent,
                 }
                 : {
@@ -424,11 +425,11 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const submitEndpoint = ajaxUrls.a11y_pro_crawl_submit_page || '';
 
         const pageUid = Number.parseInt(button.dataset.pageUid || '0', 10);
-        const pageUrl = String(button.dataset.pageUrl || '').trim();
+        const remotePageUid = Number.parseInt(button.dataset.remotePageUid || '0', 10);
         const siteIdentifier = String(button.dataset.siteIdentifier || '').trim();
         const languageUid = this.resolveScanLanguageUid(button);
 
-        if (!submitEndpoint || pageUid <= 0 || pageUrl === '' || siteIdentifier === '') {
+        if (!submitEndpoint || pageUid <= 0 || siteIdentifier === '') {
             this.showNotification(
                 this.translate(
                     'notification.proScan.missingPageContext',
@@ -444,13 +445,18 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         this.remoteSubmitInProgress = true;
 
         try {
-            const submitResponse = await new AjaxRequest(submitEndpoint).post({
+            // The server resolves the scanned URL from the page (or the stored frontend page); the browser
+            // never sends one.
+            const payload = {
                 pageUid,
-                pageUrl,
                 siteIdentifier,
                 languageUid,
                 axeLocale: 'en',
-            });
+            };
+            if (remotePageUid > 0) {
+                payload.remotePageUid = remotePageUid;
+            }
+            const submitResponse = await new AjaxRequest(submitEndpoint).post(payload);
 
             const submitData = await submitResponse.resolve();
             await this.handleProSubmitPayload(button, submitData, {

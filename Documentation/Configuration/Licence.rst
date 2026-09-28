@@ -56,19 +56,36 @@ How validation works
 *   The extension calls ``https://api.priebera.sk`` with the licence key and a
     site fingerprint derived from the domain of the installation.
 *   The result is cached. Valid results are cached for one hour, invalid results
-    for five minutes, trial results for fifteen minutes.
+    for five minutes, trial results for fifteen minutes — never beyond the end
+    of the licence or trial that the service reported.
 *   Licences are bound to domains. A key that was activated for another domain
     is reported as ``domain_mismatch``; a key that has used all its domain slots
     is reported as ``domain_limit_reached``.
+*   PRO and trial licences cover one TYPO3 installation (project). Another
+    installation using the same key is reported as ``project_mismatch``.
+    An Agency licence covers several client installations: each one is enrolled
+    as its own project on its first validation, up to the licence's project
+    limit (``project_limit_reached``), and keeps its own frontend scans, history
+    and evidence. A project belongs to its TYPO3 installation, not to its site
+    list, so no other installation can take it over. Additional projects need
+    AQG 1.9.7 or later on that installation; older versions keep using the
+    licence's first project. The :guilabel:`Licence` tab shows the projects in
+    use; free a slot in the customer portal. A removed project is reported as
+    ``project_removed`` and stays removed until you restore it in the portal,
+    with its previous scan history.
 *   Trial keys do not start their runtime when they are issued. The trial window
     starts on the first successful validation from a production domain;
     validating from a development host such as ``localhost`` or a
     ``*.ddev.site`` domain does not start it. The :guilabel:`Licence` tab shows
     the start time and the remaining trial time once the window is running.
 
-If the licence service cannot be reached, AQG keeps the last validation result
-for up to 48 hours. Without one it reports ``api_unreachable`` and falls back
-to the Free feature set until the next successful validation. Local
+If the licence service cannot be reached, limits requests or answers without a
+verdict, AQG keeps the last valid result for up to 48 hours, and never past the
+end of the licence. Without one it reports ``api_unreachable`` (or
+``rate_limited``) and falls back to the Free feature set until the next
+successful validation. A definitive answer — invalid, expired, revoked, another
+domain or project — replaces the cached licence state and the cached scanner
+tokens at once, including after :guilabel:`Revalidate`. Local
 content scans, rendered page checks, CLI and Scheduler runs are not affected by
 licence service outages.
 

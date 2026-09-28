@@ -6,17 +6,15 @@ namespace Priebera\A11yQualityGate\Command;
 
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(
-    name: 'a11y:scan',
-    description: 'Scan TYPO3 content for accessibility issues.',
-)]
+/**
+ * `a11y:scan`. Registered in Configuration/Services.yaml only; see the note there before adding #[AsCommand].
+ */
 final class ScanCommand extends Command
 {
     public function __construct(

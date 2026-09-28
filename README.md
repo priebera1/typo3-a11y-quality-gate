@@ -6,7 +6,9 @@
 ![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-blue.svg)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green.svg)
 
-Accessibility Quality Gate is a TYPO3-native accessibility checker that brings CKEditor feedback, WCAG issue management, rendered page checks and publishing safeguards into the editorial workflow.
+Accessibility Quality Gate (AQG) is a TYPO3-native accessibility checker and quality gate. It runs WCAG-related checks on editor content, on the rendered page and in a real browser, keeps every finding attached to the TYPO3 record that caused it, and can warn or block publishing while open findings exceed your thresholds.
+
+AQG automates the repeatable part of accessibility testing inside the editorial workflow. It does not replace manual testing and does not certify conformance — see [Scope](#scope).
 
 [Product](https://typo3.priebera.sk/products/accessibility-quality-gate) ·
 [Documentation](https://typo3.priebera.sk/docs) ·
@@ -55,17 +57,24 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 - Remote CSV export
 - Per-site quality gate configuration
 - Quality gate blocking mode on publish / unhide
-- Diff tracking for new and resolved issues across scans
+- Scan history and comparison of compatible scans (same site, scope, scan type, language and start URL)
+
+The trial runs for 5 days with up to 10 pages per frontend scan and 5 frontend scans per day.
 
 ### PRO / Agency
 
 - PDF export for overview and page detail reports
 - AI-assisted alt text, link text and iframe title suggestions (bring your own OpenAI key; editors review every suggestion)
 - Accessibility Statement Draft Assistant based on a completed frontend site scan
+- **Verify fix** — from a frontend finding, scan that page again and see *Resolved*, *Still present* or *Not verified*; a failed or incomplete scan never counts as resolved
+- **Scheduled monitoring** — `a11y:monitor` scans a site on a schedule and e-mails only when new or worse issues appear, or when a scan is incomplete or failed
+- **Acceptance evidence** — a PDF/CSV comparing a baseline and a current scan (fixed, new, still open, not compared) for clients and stakeholders
 
 ### Agency
 
-- Multi-site licence for agencies
+- Several client TYPO3 installations on one licence: each installation is enrolled as its own project on its first validation, up to the licence's project limit, with its own scans and history
+- Project slots are managed in the customer portal
+- Monitoring several sites in one `a11y:monitor` run
 
 Plan details, trial access and pricing:
 
@@ -272,6 +281,19 @@ configuration identifier.
 ./vendor/bin/typo3 a11y:scan --root-pid=1 --language=1
 ```
 
+### Scheduled frontend monitoring (PRO / Agency)
+
+```bash
+./vendor/bin/typo3 a11y:monitor --site=main --notify=web@example.org --backend-url=https://cms.example.org
+```
+
+In the TYPO3 Scheduler, add the task *Accessibility monitoring (AQG PRO/Agency)* (daily or weekly): it offers the
+configured sites and the languages enabled for the selected site, plus the recipients and limits. Each run scans the site,
+compares the result with the previous compatible scan and mails the recipients only when new or worse issues appear,
+or when the scan was incomplete or failed. An unchanged result is not mailed again. A run that finds the previous
+monitoring scan still running waits for it instead of starting another one. Several `--site` options (or
+`--site=all`) need an Agency licence.
+
 ---
 
 ## Backend User TSconfig
@@ -287,8 +309,12 @@ options.a11y_quality_gate {
 | Option | Default | Description |
 |---|---|---|
 | `showToolbarItem` | `1` | Show the AQG item in the TYPO3 backend toolbar |
-| `showScanAll` | `1` | Show the "Scan site" button in the overview module |
-| `showScanNow` | `1` | Show the "Scan this page" button in page and record-related views |
+| `showScanAll` | `1` | Allow site scans ("Scan site", content and frontend) |
+| `showScanNow` | `1` | Allow single-page scans ("Scan this page", the Free Remote Preview and Verify fix) |
+
+These options gate the actions server-side as well. In addition, every result follows TYPO3 page permissions:
+page findings need read access to the page, site-wide results (Overview, site scans, statements) need read access to
+the site root, and scanning or cancelling needs edit access to the page or site root.
 
 ---
 

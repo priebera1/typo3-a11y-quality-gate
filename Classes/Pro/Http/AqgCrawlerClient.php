@@ -282,7 +282,8 @@ final class AqgCrawlerClient
         string $siteId,
         string $sourceType,
         string $startUrl = '',
-        string $language = 'en'
+        string $language = 'en',
+        ?int $languageId = null,
     ): array {
         $queryParameters = [
             'siteId' => $siteId,
@@ -292,6 +293,10 @@ final class AqgCrawlerClient
 
         if (trim($startUrl) !== '') {
             $queryParameters['startUrl'] = trim($startUrl);
+        }
+
+        if ($languageId !== null && $languageId >= 0) {
+            $queryParameters['languageId'] = $languageId;
         }
 
         $query = http_build_query($queryParameters, '', '&', PHP_QUERY_RFC3986);

@@ -2274,3 +2274,53 @@ body[data-color-scheme="dark"] .aqg-module .aqg-rule-metadata__tag,
     border-color: #334155 !important;
     color: #cbd5e1 !important;
 }
+
+// Verify fix: the outcome of the last check sits under the rule's actions. Text carries the meaning; the
+// border tone only repeats it.
+.a11y-page-detail .aqg-verify-fix__result {
+    margin: 0 16px 10px;
+    color: var(--aqi-fg);
+    font-size: 13px;
+
+    &:empty {
+        display: none;
+    }
+
+    &[data-aqg-verify-fix-outcome] {
+        padding: 8px 12px;
+        border: 1px solid var(--aqi-none-border);
+        border-left-width: 4px;
+        border-radius: 4px;
+        background: var(--aqi-none-bg);
+    }
+
+    &[data-aqg-verify-fix-outcome="resolved"] {
+        border-color: var(--aqi-ok-border);
+        border-left-color: var(--aqi-ok);
+        background: var(--aqi-ok-bg);
+    }
+
+    &[data-aqg-verify-fix-outcome="still_present"] {
+        border-color: var(--aqi-warn-border);
+        border-left-color: var(--aqi-warn);
+        background: var(--aqi-warn-bg);
+    }
+
+    &[data-aqg-verify-fix-outcome="not_verified"],
+    &[data-aqg-verify-fix-outcome="error"] {
+        border-color: var(--aqi-err-border);
+        border-left-color: var(--aqi-err);
+        background: var(--aqi-err-bg);
+    }
+
+    &[data-aqg-verify-fix-outcome=""] {
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+
+    a:focus-visible {
+        outline: none;
+        box-shadow: var(--aqi-focus-ring);
+    }
+}

@@ -1,4 +1,13 @@
 let postHandler = null;
+let getHandler = null;
+
+export const setAjaxGetHandler = (handler) => {
+    getHandler = handler;
+};
+
+export const resetAjaxGetHandler = () => {
+    getHandler = null;
+};
 
 export const setAjaxPostHandler = (handler) => {
     postHandler = handler;
@@ -19,5 +28,13 @@ export default class AjaxRequest {
         }
 
         return postHandler(this.endpoint, payload);
+    }
+
+    get() {
+        if (typeof getHandler !== 'function') {
+            throw new Error('Missing AjaxRequest GET test handler.');
+        }
+
+        return getHandler(this.endpoint);
     }
 }

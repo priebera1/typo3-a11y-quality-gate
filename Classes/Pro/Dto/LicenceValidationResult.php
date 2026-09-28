@@ -20,6 +20,8 @@ final class LicenceValidationResult
         public readonly bool $isTrial = false,
         public readonly ?string $trialExpiresAt = null,
         public readonly ?string $trialStartedAt = null,
+        public readonly ?int $projectsActive = null,
+        public readonly ?int $projectsMax = null,
     ) {
     }
 
@@ -73,6 +75,8 @@ final class LicenceValidationResult
             isTrial: $isTrial,
             trialExpiresAt: $dto->trialExpiresAt,
             trialStartedAt: $dto->trialStartedAt,
+            projectsActive: $dto->projectsActive,
+            projectsMax: $dto->projectsMax,
         );
     }
 
@@ -88,9 +92,40 @@ final class LicenceValidationResult
             'licence_rate_limited' => 'rate_limited',
             'domain_limit_reached' => 'domain_limit_reached',
             'licence_project_mismatch' => 'licence_project_mismatch',
+            'licence_project_limit_reached' => 'project_limit_reached',
+            'licence_project_removed' => 'project_removed',
             '', 'internal_error', 'service_unavailable' => 'api_unreachable',
             default => 'validation_failed',
         };
+    }
+
+    /**
+     * Reasons that describe the request, not the licence: the API could not be reached, limited the
+     * request, or answered without a licence verdict. They never replace a known entitlement.
+     */
+    private const TRANSIENT_REASONS = ['api_unreachable', 'rate_limited', 'validation_failed'];
+
+    public function isTransientFailure(): bool
+    {
+        return !$this->valid && in_array((string)$this->reason, self::TRANSIENT_REASONS, true);
+    }
+
+    /**
+     * The end of the entitlement as the API reported it: the trial end for a trial, otherwise the licence
+     * paid-through date. Null when the API reported none (open-ended or unknown).
+     */
+    public function entitlementExpiresAt(): ?int
+    {
+        $value = $this->isTrial && $this->trialExpiresAt !== null && trim($this->trialExpiresAt) !== ''
+            ? $this->trialExpiresAt
+            : $this->expiresAt;
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? $timestamp : null;
     }
 
     public function hasFeature(FeatureFlag $featureFlag): bool
@@ -112,6 +147,8 @@ final class LicenceValidationResult
             'isTrial' => $this->isTrial,
             'trialExpiresAt' => $this->trialExpiresAt,
             'trialStartedAt' => $this->trialStartedAt,
+            'projectsActive' => $this->projectsActive,
+            'projectsMax' => $this->projectsMax,
         ];
     }
 
@@ -137,6 +174,8 @@ final class LicenceValidationResult
             isTrial: (bool)($payload['isTrial'] ?? false),
             trialExpiresAt: isset($payload['trialExpiresAt']) ? (string)$payload['trialExpiresAt'] : null,
             trialStartedAt: isset($payload['trialStartedAt']) ? (string)$payload['trialStartedAt'] : null,
+            projectsActive: isset($payload['projectsActive']) ? (int)$payload['projectsActive'] : null,
+            projectsMax: isset($payload['projectsMax']) ? (int)$payload['projectsMax'] : null,
         );
     }
 }

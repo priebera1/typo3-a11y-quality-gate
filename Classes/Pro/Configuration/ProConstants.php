@@ -13,6 +13,10 @@ final class ProConstants
     public const CACHE_TTL_VALID = 3600;
     public const CACHE_TTL_INVALID = 300;
     public const CACHE_TTL_TRIAL = 900;
+    /** Re-check interval after an outage or rate limit, so the API is not asked on every request. */
+    public const CACHE_TTL_TRANSIENT = 120;
+    /** Offline grace: how long the last valid answer outlives an unreachable API (never past its end). */
+    public const CACHE_TTL_GRACE = 172800;
 
     public const TOKEN_REFRESH_MARGIN = 300;
 

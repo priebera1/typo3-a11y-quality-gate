@@ -25,6 +25,7 @@ use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SecretEncryptionService;
 use Priebera\A11yQualityGate\Service\ScannerAccessTokenService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -115,6 +116,7 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly StreamFactoryInterface $streamFactory,
         private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
+        private readonly ScopeAccessService $scopeAccessService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -599,10 +601,11 @@ final class SettingsController extends AbstractBackendModuleController
             $allSites,
         );
 
-        if ($result->valid) {
-            // A re-validation request is often followed by returning to the
-            // overview without saving the form again. Drop stale invalid licence
-            // cache entries so the overview resolves the current PRO capability.
+        if ($result->valid || !$result->isTransientFailure()) {
+            // A re-validation request is often followed by returning to the overview without saving the
+            // form again. A definitive answer — valid or rejected — replaces every cached licence state and
+            // token, so neither a stale invalid nor a stale positive state survives it. An outage or rate
+            // limit says nothing about the key and keeps the last known good state.
             $this->proCacheManager->flushAll();
         }
 
@@ -764,6 +767,11 @@ final class SettingsController extends AbstractBackendModuleController
         $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
         if (!$site instanceof Site) {
             return $this->statementRequestError('site_not_resolved', 400, 'settings.statement.error.siteNotResolved');
+        }
+
+        // A statement summarises the site's scan results, so it needs the same access as the site's Overview.
+        if (!$this->scopeAccessService->canReadSite($site)) {
+            return $this->statementRequestError('access_denied', 403, 'settings.statement.error.accessDenied');
         }
 
         $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
@@ -1819,6 +1827,9 @@ final class SettingsController extends AbstractBackendModuleController
             'domain_mismatch' => $this->translate('settings.licence.validation.reason.domain_mismatch'),
             'domain_limit_reached' => $this->translate('settings.licence.validation.reason.domain_limit_reached'),
             'project_mismatch', 'licence_project_mismatch' => $this->translate('settings.licence.validation.reason.licence_project_mismatch'),
+            'project_limit_reached' => $this->translate('settings.licence.validation.reason.project_limit_reached'),
+            'project_removed', 'licence_project_removed' => $this->translate('settings.licence.validation.reason.project_removed'),
+            'rate_limited' => $this->translate('settings.licence.validation.reason.rate_limited'),
             'trial_expired' => $this->translate('settings.licence.validation.reason.trial_expired'),
             'trial_domain_mismatch' => $this->translate('settings.licence.validation.reason.trial_domain_mismatch'),
             'trial_project_mismatch' => $this->translate('settings.licence.validation.reason.trial_project_mismatch'),

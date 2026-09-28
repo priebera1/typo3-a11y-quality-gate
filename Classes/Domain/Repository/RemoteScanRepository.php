@@ -204,6 +204,19 @@ final class RemoteScanRepository extends AbstractRepository
         );
     }
 
+    /**
+     * The last step of persisting a scan: set only once all of its pages and findings are stored, so a stored
+     * scan is never read as complete evidence while its rows are still being written or after an interruption.
+     */
+    public function markPersisted(int $remoteScanUid, int $persistedAt): void
+    {
+        $this->getConnection(Tables::REMOTE_SCAN)->update(
+            Tables::REMOTE_SCAN,
+            ['persisted_at' => $persistedAt, 'tstamp' => time()],
+            ['uid' => $remoteScanUid]
+        );
+    }
+
     public function isPersisted(string $jobId): bool
     {
         $existing = $this->findScanByJobId($jobId);
@@ -951,6 +964,33 @@ final class RemoteScanRepository extends AbstractRepository
             ->fetchAllAssociative();
     }
 
+    /**
+     * Every stored page of a scan, scanned or failed.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findAllPagesForScan(int $remoteScanUid): array
+    {
+        if ($remoteScanUid <= 0) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
+
+        return array_values($queryBuilder
+            ->select('*')
+            ->from(Tables::REMOTE_SCAN_PAGE)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'remote_scan',
+                    $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)
+                )
+            )
+            ->orderBy('uid', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative());
+    }
+
     public function findFailedPagesForScan(int $remoteScanUid, string $search = ''): array
     {
         $total = $this->countPagesForScan($remoteScanUid, true, $search);
@@ -1508,6 +1548,51 @@ final class RemoteScanRepository extends AbstractRepository
         return is_array($row) ? $row : null;
     }
 
+    /**
+     * Completed scans with the same scope, type, language and provenance, newest first. The caller still
+     * checks start URL identity (RemoteScanPairingService::isCompatible()); language -1 only matches -1.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findCompletedScansForPairing(
+        string $siteIdentifier,
+        string $scanScope,
+        string $sourceType,
+        int $languageUid,
+        bool $isFreePreview,
+        int $finishedBefore,
+        int $excludeUid,
+        int $limit,
+    ): array {
+        if ($siteIdentifier === '' || $scanScope === '') {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+        $queryBuilder
+            ->select('*')
+            ->from(Tables::REMOTE_SCAN)
+            ->where(
+                $queryBuilder->expr()->eq('site_identifier', $queryBuilder->createNamedParameter($siteIdentifier)),
+                $queryBuilder->expr()->eq('scan_scope', $queryBuilder->createNamedParameter($scanScope)),
+                $queryBuilder->expr()->eq('source_type', $queryBuilder->createNamedParameter($sourceType)),
+                $queryBuilder->expr()->eq('language_uid', $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('is_free_preview', $queryBuilder->createNamedParameter($isFreePreview ? 1 : 0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('status', $queryBuilder->createNamedParameter('completed')),
+                $queryBuilder->expr()->neq('uid', $queryBuilder->createNamedParameter($excludeUid, Connection::PARAM_INT))
+            )
+            ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
+            ->setMaxResults(max(1, $limit));
+
+        if ($finishedBefore > 0) {
+            $queryBuilder->andWhere(
+                $queryBuilder->expr()->lte('finished_at', $queryBuilder->createNamedParameter($finishedBefore, Connection::PARAM_INT))
+            );
+        }
+
+        return array_values($queryBuilder->executeQuery()->fetchAllAssociative());
+    }
 
     /**
      * @param list<string> $sourceTypes

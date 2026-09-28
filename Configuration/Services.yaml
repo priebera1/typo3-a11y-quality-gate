@@ -114,12 +114,43 @@ services:
         identifier: 'a11y-quality-gate/modify-page-layout-content-listener'
         event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
 
+  # Console commands are registered here only, never also with #[AsCommand]: TYPO3 13 and 14 autoconfigure
+  # that attribute into a second console.command tag, and the second tag of a command registers it as an
+  # alias of itself, which hides it from `typo3 list` and from the TYPO3 14 Scheduler task types
+  # (Tests/Unit/Command/ConsoleCommandRegistrationTest.php).
   Priebera\A11yQualityGate\Command\ScanCommand:
     tags:
       - name: console.command
         command: 'a11y:scan'
         description: 'Scan TYPO3 content for accessibility issues.'
+        # Offered by "Execute console commands" on TYPO3 13 since 1.0.0; kept so existing tasks keep working.
+        schedulable: true
+
+  Priebera\A11yQualityGate\Command\MonitorCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:monitor'
+        description: 'Scan a site with the AQG frontend scanner and notify on accessibility regressions (PRO/Agency).'
+        # Scheduled with the "Accessibility monitoring" task (site and language selectors), not as a raw command.
         schedulable: false
+
+  Priebera\A11yQualityGate\Service\RemoteMonitoringService:
+    public: true
+
+  Priebera\A11yQualityGate\Monitoring\MonitoringTargetResolver:
+    public: true
+
+  Priebera\A11yQualityGate\Monitoring\MonitoringTaskValidator:
+    public: true
+
+  Priebera\A11yQualityGate\Scheduler\MonitoringTaskAdditionalFieldProvider:
+    public: true
+
+  Priebera\A11yQualityGate\Scheduler\MonitoringTaskTcaItems:
+    public: true
+
+  Priebera\A11yQualityGate\Hook\MonitoringTaskLanguageHook:
+    public: true
 
   Priebera\A11yQualityGate\Ai\Service\AiAltSuggestionService:
     arguments:

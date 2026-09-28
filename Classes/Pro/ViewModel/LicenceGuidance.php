@@ -28,7 +28,12 @@ final class LicenceGuidance
         'inactive' => ['inactive', [self::ACTION_PORTAL, 'settings.licence.openCustomerPortal'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         'domain_limit_reached' => ['domainLimitReached', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_PRICING, 'settings.licence.cta.comparePlans']],
         'domain_mismatch' => ['domainMismatch', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
-        'project_mismatch' => ['projectMismatch', [self::ACTION_SUPPORT, 'settings.licence.contactSupport'], [self::ACTION_PRICING, 'settings.licence.cta.comparePlans']],
+        // PRO and trials cover one TYPO3 installation; Agency covers several client installations.
+        'project_mismatch' => ['projectMismatch', [self::ACTION_PRICING, 'settings.licence.cta.comparePlans'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
+        // An Agency licence whose project slots are all taken: free one in the portal, it is not an invalid key.
+        'project_limit_reached' => ['projectLimitReached', [self::ACTION_PORTAL, 'settings.licence.manageProjects'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
+        // This installation's Agency project was removed in the portal: it comes back only by restoring it there.
+        'project_removed' => ['projectRemoved', [self::ACTION_PORTAL, 'settings.licence.manageProjects'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         'trial_domain_mismatch' => ['trialDomainMismatch', [self::ACTION_PRICING, 'settings.licence.cta.choosePlan'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         'trial_project_mismatch' => ['trialProjectMismatch', [self::ACTION_PRICING, 'settings.licence.cta.choosePlan'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         'trial_not_verified' => ['trialNotVerified', [self::ACTION_RETRY, 'settings.licence.cta.validateAgain'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
@@ -42,6 +47,8 @@ final class LicenceGuidance
     /** @var array<string, string> reason codes that share a state */
     private const ALIASES = [
         'licence_project_mismatch' => 'project_mismatch',
+        'licence_project_limit_reached' => 'project_limit_reached',
+        'licence_project_removed' => 'project_removed',
         'trial_invalid' => 'invalid_key',
         'empty_key' => 'invalid_key',
         'invalid' => 'invalid_key',

@@ -14,6 +14,7 @@ use Priebera\A11yQualityGate\Scan\ScanResult;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
@@ -78,6 +79,7 @@ final class ScanAjaxControllerTest extends TestCase
             $this->scanRepository,
             $this->backendRecordAccessService,
             new LanguageUidResolver(),
+            $this->createAllowingScopeAccessService(),
         );
 
         $this->request = $this->createMock(ServerRequestInterface::class);
@@ -281,10 +283,11 @@ final class ScanAjaxControllerTest extends TestCase
             ->method('scanPage')
             ->willThrowException(new \RuntimeException('DB connection lost'));
 
+        // The shared status is visible to every AQG user: the exception text stays in the log.
         $this->scanStatusService
             ->expects($this->once())
             ->method('markFailed')
-            ->with('DB connection lost');
+            ->with(self::logicalNot(self::stringContains('DB connection lost')));
 
         $this->scanStatusService
             ->expects($this->once())
@@ -547,6 +550,7 @@ final class ScanAjaxControllerTest extends TestCase
             $this->scanRepository,
             $this->backendRecordAccessService,
             new LanguageUidResolver(),
+            $this->createAllowingScopeAccessService(),
         );
 
         $response = $controller->scanStatusAction($request);
@@ -577,6 +581,19 @@ final class ScanAjaxControllerTest extends TestCase
         $this->expectExceptionMessage('json_encode error: Malformed UTF-8 characters, possibly incorrectly encoded');
 
         $this->controller->scanStatusAction($this->request);
+    }
+
+    private function createAllowingScopeAccessService(): ScopeAccessService
+    {
+        $scopeAccessService = $this->getMockBuilder(ScopeAccessService::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['canReadPage', 'canEditPage', 'canReadSiteIdentifier'])
+            ->getMock();
+        $scopeAccessService->method('canReadPage')->willReturn(true);
+        $scopeAccessService->method('canEditPage')->willReturn(true);
+        $scopeAccessService->method('canReadSiteIdentifier')->willReturn(true);
+
+        return $scopeAccessService;
     }
 
     private function mockLoggedInUser(int $uid, string $username = 'admin'): BackendUserAuthentication

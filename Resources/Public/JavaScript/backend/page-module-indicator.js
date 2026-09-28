@@ -364,16 +364,16 @@ async function fetchRemoteSummary(jobId, siteIdentifier) {
     return response.resolve();
 }
 
-async function runRemotePageScan({ pageUid, pageUrl, siteIdentifier, languageUid }) {
+async function runRemotePageScan({ pageUid, siteIdentifier, languageUid }) {
     const endpoint = window.TYPO3?.settings?.ajaxUrls?.a11y_pro_crawl_submit_page || '';
 
-    if (!endpoint || pageUid <= 0 || pageUrl === '' || siteIdentifier === '') {
+    if (!endpoint || pageUid <= 0 || siteIdentifier === '') {
         throw new Error(translate('notification.proScan.missingPageContext', 'Remote page scan failed: missing endpoint, page UID, page URL or site identifier.'));
     }
 
+    // The server resolves the page URL from the page and language.
     const submitResponse = await new AjaxRequest(endpoint).post({
         pageUid,
-        pageUrl,
         siteIdentifier,
         languageUid,
         axeLocale: 'en',
@@ -430,7 +430,7 @@ async function scanPage(button) {
         let remoteSummary = null;
 
         if (scanMode === 'combined') {
-            remoteSummary = await runRemotePageScan({ pageUid, pageUrl, siteIdentifier, languageUid });
+            remoteSummary = await runRemotePageScan({ pageUid, siteIdentifier, languageUid });
         }
 
         if (remoteSummary) {

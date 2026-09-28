@@ -5,16 +5,22 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
+use Priebera\A11yQualityGate\Domain\Repository\FixVerificationRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
+use Priebera\A11yQualityGate\Service\FixVerificationService;
+use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
+use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -27,7 +33,6 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\RedirectResponse;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
@@ -55,6 +60,12 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         private readonly ProStatusResolverService $proStatusResolverService,
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
         private readonly PublicLinkProvider $publicLinkProvider,
+        private readonly ScopeAccessService $scopeAccessService,
+        private readonly RemotePageScanTargetResolver $remotePageScanTargetResolver,
+        private readonly AccessControlService $accessControlService,
+        private readonly RemoteScanPairingService $remoteScanPairingService,
+        private readonly FixVerificationRepository $fixVerificationRepository,
+        private readonly FixVerificationService $fixVerificationService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -167,14 +178,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             return $moduleTemplate->renderResponse('RemotePageDetail/Show');
         }
 
-        $remoteScanUid = (int)($remotePage['remote_scan'] ?? 0);
-        $remoteScan = $remoteScanUid > 0
-            ? $this->remoteScanRepository->findScanByUid($remoteScanUid)
-            : null;
+        // The stored scan decides the site and the scope; the request's site and page are only navigation.
+        $remoteScan = $this->scopeAccessService->resolveReadableScanForRemotePage($remotePage);
+        if (!is_array($remoteScan)) {
+            return $this->resourceAccessDeniedResponse();
+        }
 
-        $resolvedSiteIdentifier = is_array($remoteScan)
-            ? (string)($remoteScan['site_identifier'] ?? $siteIdentifier)
-            : $siteIdentifier;
+        $resolvedSiteIdentifier = (string)($remoteScan['site_identifier'] ?? '');
 
         $resolvedSite = $resolvedSiteIdentifier !== ''
             ? $this->siteResolutionService->resolveSiteByIdentifier($resolvedSiteIdentifier)
@@ -186,12 +196,16 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         );
 
         $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($resolvedSiteIdentifier);
+        // Two different facts: today's licence decides which paid tools are available ($isFreePreview), the
+        // scan's own provenance decides what the stored result contains ($scanIsFreePreview). A Free Preview
+        // result never gains screenshots or record mapping because the licence was upgraded later.
         $isFreePreview = !(bool)($proStatus->valid ?? false) || !(bool)($proStatus->hasCrawler ?? false);
+        $scanIsFreePreview = (int)($remoteScan['is_free_preview'] ?? 0) === 1;
 
         $remotePageDebugUrl = $this->buildRemotePageDebugUrl((string)($remotePage['url'] ?? ''));
 
         $remoteScreenshotProxyUrl = '';
-        if (!$isFreePreview && !empty($remotePage['screenshot_path']) && $remotePageUid > 0) {
+        if (!$isFreePreview && !$scanIsFreePreview && !empty($remotePage['screenshot_path']) && $remotePageUid > 0) {
             $remoteScreenshotProxyUrl = $this->buildRemoteScreenshotProxyUrl(
                 $resolvedSiteIdentifier,
                 $remotePageUid
@@ -200,13 +214,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         $issues = $this->remoteIssueRepository->findByRemoteScanPage($remotePageUid);
 
-        $issuesWithNodes = array_map(function (array $issue) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview): array {
+        $issuesWithNodes = array_map(function (array $issue) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview, $scanIsFreePreview): array {
             $issueUid = (int)($issue['uid'] ?? 0);
             $nodes = $issueUid > 0
                 ? $this->remoteIssueNodeRepository->findByRemoteIssue($issueUid)
                 : [];
 
-            $nodes = array_map(function (array $node) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview): array {
+            $nodes = array_map(function (array $node) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview, $scanIsFreePreview): array {
                 $mappedTable = trim((string)($node['mapped_table'] ?? ''));
                 $mappedUid = (int)($node['mapped_uid'] ?? 0);
 
@@ -215,7 +229,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 $node['hasEditAccess'] = false;
                 $node['contrastDetails'] = $this->decodeContrastDetails((string)($node['contrast_details_json'] ?? ''));
                 $node['hasContrastDetails'] = $node['contrastDetails'] !== [];
-                $node['nodeRemediation'] = $isFreePreview
+                $node['nodeRemediation'] = $isFreePreview || $scanIsFreePreview
                     ? []
                     : $this->decodeNodeRemediation((string)($node['node_remediation_json'] ?? ''));
                 $node['hasNodeRemediation'] = $node['nodeRemediation'] !== [];
@@ -246,10 +260,27 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }, $issues);
 
         $siteRootPid = $resolvedSite !== null ? (int)$resolvedSite->getRootPageId() : 0;
-        $resolvedTypo3PageUid = $this->resolveTypo3PageUid($remoteScan, $issuesWithNodes);
+        $resolvedTypo3PageUid = $this->remotePageScanTargetResolver->resolveMappedPageUid($remoteScan, $issuesWithNodes, $resolvedSite);
         $scanPageUid = $resolvedTypo3PageUid > 0 ? $resolvedTypo3PageUid : $siteRootPid;
-        $canScanRemotePage = !$isFreePreview && $scanPageUid > 0;
+        // The same page the submit endpoint binds this URL to, and the same permissions it checks.
+        $canScanRemotePage = !$isFreePreview
+            && $scanPageUid > 0
+            && $this->accessControlService->canShowScanNow($this->backendContextService->getBackendUser())
+            && $this->scopeAccessService->canEditPage($scanPageUid);
         $usesSiteRootContext = $canScanRemotePage && $resolvedTypo3PageUid <= 0;
+
+        // Verify fix re-scans this URL: the same permission as "Scan this page", on a PRO or Agency licence.
+        $canVerifyFix = $canScanRemotePage && !(bool)($proStatus->isTrial ?? false);
+        $lastVerifications = $canVerifyFix
+            ? $this->buildLastVerificationsByRule(
+                $resolvedSiteIdentifier,
+                (string)($remotePage['url'] ?? ''),
+                is_array($remoteScan) ? (int)($remoteScan['finished_at'] ?? 0) : 0
+            )
+            : [];
+        if ($canVerifyFix) {
+            $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/pro/verify-fix.js');
+        }
 
         $activeRemoteScan = null;
         if ($resolvedSiteIdentifier !== '') {
@@ -324,7 +355,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         );
         $remoteScanCompare = $isFreePreview
             ? ['available' => false, 'message' => '']
-            : $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $remotePageHistory);
+            : $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $resolvedSiteIdentifier, $remotePageHistory);
         $regressionAlert = $isFreePreview ? ['available' => false, 'message' => ''] : $this->buildRemotePageRegressionAlert(
             $remotePageUid,
             $scanPageUid,
@@ -333,7 +364,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $resolvedSiteIdentifier,
             (string)($remotePage['url'] ?? '')
         );
-        $remediationPlan = $isFreePreview ? ['available' => false, 'hasTasks' => false] : $this->remoteScanHistoryService->loadRemediationPlanByJobId(
+        $remediationPlan = $isFreePreview || $scanIsFreePreview ? ['available' => false, 'hasTasks' => false] : $this->remoteScanHistoryService->loadRemediationPlanByJobId(
             $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
             is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
             5
@@ -371,6 +402,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'usesSiteRootContext' => $usesSiteRootContext,
             'proStatus' => $proStatus,
             'isFreePreview' => $isFreePreview,
+            'scanIsFreePreview' => $scanIsFreePreview,
+            'canVerifyFix' => $canVerifyFix,
+            'lastVerifications' => $lastVerifications,
             'freePreviewTrialUrl' => $isFreePreview ? $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::TRIAL) : '',
             'remotePageHistory' => $remotePageHistory,
             'newerScan' => $newerScan,
@@ -382,6 +416,38 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         return $moduleTemplate->renderResponse('RemotePageDetail/Show');
     }
 
+
+    /**
+     * The newest decided verification per rule on this URL, so a finding shows what its last check found.
+     *
+     * @return array<string, array<string, mixed>> keyed by rule id
+     */
+    /**
+     * The newest verification per rule of this URL, including one that is still running: after a reload it
+     * shows as "Checking…" and the page resumes following it. A Resolved verdict older than the viewed scan —
+     * which reports the finding again — is shown as superseded, never as reassurance.
+     */
+    private function buildLastVerificationsByRule(string $siteIdentifier, string $url, int $viewedScanFinishedAt): array
+    {
+        if ($siteIdentifier === '' || trim($url) === '') {
+            return [];
+        }
+
+        $byRule = [];
+        foreach ($this->fixVerificationRepository->findLatestForSiteAndUrl($siteIdentifier, $url) as $verification) {
+            $ruleId = (string)($verification['rule_id'] ?? '');
+            if ($ruleId === '' || isset($byRule[$ruleId])) {
+                continue;
+            }
+            $byRule[$ruleId] = $this->fixVerificationService->presentOutcome(
+                $verification,
+                static fn (int $uid): string => '',
+                $viewedScanFinishedAt
+            );
+        }
+
+        return $byRule;
+    }
 
     /**
      * The newest completed scan of this URL when the page shows an older one, so the page can say which
@@ -425,8 +491,18 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $siteBase,
             $siteIdentifier,
             'single_page',
-            $pageUrl
+            $pageUrl,
+            $languageUid >= 0 ? $languageUid : null,
         );
+        $previousJobId = trim((string)($alert['previousJobId'] ?? ''));
+        $currentJobId = trim((string)($alert['currentJobId'] ?? ''));
+        // Only two stored, compatible scans of this site make a signal (see OverviewController).
+        if ($previousJobId !== '' && $currentJobId !== ''
+            && $this->remoteScanPairingService->resolveComparePair($siteIdentifier, $previousJobId, $currentJobId) === null) {
+            return $this->remoteScanHistoryService->emptyRegressionAlert(
+                $this->translateWithFallback('remote.regression.error.noHistory', 'No regression signal yet: this page has no compatible frontend scans to compare.')
+            );
+        }
 
         return $this->enrichRegressionAlertActionUrl(
             $alert,
@@ -508,7 +584,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         if (($alert['comparisonRows'] ?? []) === [] && is_int($previousFindings) && is_int($currentFindings)) {
             $delta = $currentFindings - $previousFindings;
             $alert['comparisonRows'] = [[
-                'label' => $this->translateWithFallback('remote.regression.findingsChange', 'Findings change'),
+                'label' => $this->translateWithFallback('remote.regression.findingsChange', 'Occurrences change'),
                 'value' => $delta > 0 ? '+' . $delta : (string)$delta,
                 'tone' => $delta > 0 ? 'warning' : ($delta < 0 ? 'positive' : 'neutral'),
             ]];
@@ -639,7 +715,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
     /**
      * @return array<string, mixed>
      */
-    private function buildRemotePageCompare(ServerRequestInterface $request, string $siteBase, array $remotePageHistory = []): array
+    private function buildRemotePageCompare(ServerRequestInterface $request, string $siteBase, string $siteIdentifier, array $remotePageHistory = []): array
     {
         $queryParams = $request->getQueryParams();
         $fromJobId = trim((string)($queryParams['compareFromJobId'] ?? ''));
@@ -648,7 +724,21 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             return ['available' => false, 'message' => ''];
         }
 
+        // Job IDs come from the URL: only two readable, compatible scans of this site are compared.
+        $pair = $this->remoteScanPairingService->resolveComparePair($siteIdentifier, $fromJobId, $toJobId);
+        if ($pair === null) {
+            return [
+                'available' => false,
+                'message' => $this->translateWithFallback('remote.comparison.error.incompatible', 'The selected scans cannot be compared.'),
+            ];
+        }
+        $fromJobId = (string)$pair['from']['job_id'];
+        $toJobId = (string)$pair['to']['job_id'];
+
         $comparison = $this->remoteScanHistoryService->loadCompare($siteBase, $fromJobId, $toJobId);
+        if ($comparison['available'] ?? false) {
+            $comparison['acceptanceEvidence'] = $this->buildAcceptanceEvidenceLinks($siteIdentifier, $pair);
+        }
 
         return $this->enrichCompareWithHistoryMeta($comparison, $remotePageHistory, $fromJobId, $toJobId);
     }
@@ -785,6 +875,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 }
                 $groups[$ruleId] = [
                     'rule_id' => $ruleId,
+                    // "Verify fix" names the finding by the id of its first stored issue row.
+                    'findingId' => (int)($issue['uid'] ?? 0),
                     'impact' => (string)($issue['impact'] ?? ''),
                     'impact_tone' => $this->resolveImpactTone((string)($issue['impact'] ?? '')),
                     'help' => (string)($issue['help'] ?? ''),
@@ -1152,47 +1244,6 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $remainingSeconds);
     }
-
-    /**
-     * @param array<string, mixed>|null $remoteScan
-     * @param array<int, array<string, mixed>> $issuesWithNodes
-     */
-    private function resolveTypo3PageUid(?array $remoteScan, array $issuesWithNodes): int
-    {
-        $scanPageUid = (int)($remoteScan['page_uid'] ?? 0);
-        if ($scanPageUid > 0) {
-            return $scanPageUid;
-        }
-
-        foreach ($issuesWithNodes as $issue) {
-            $nodes = is_array($issue['nodes'] ?? null) ? $issue['nodes'] : [];
-
-            foreach ($nodes as $node) {
-                if (!is_array($node)) {
-                    continue;
-                }
-
-                $mappedTable = trim((string)($node['mapped_table'] ?? ''));
-                $mappedUid = (int)($node['mapped_uid'] ?? 0);
-
-                if ($mappedTable === '' || $mappedUid <= 0) {
-                    continue;
-                }
-
-                if ($mappedTable === 'pages') {
-                    return $mappedUid;
-                }
-
-                $record = BackendUtility::getRecord($mappedTable, $mappedUid, 'pid');
-                if (is_array($record) && (int)($record['pid'] ?? 0) > 0) {
-                    return (int)$record['pid'];
-                }
-            }
-        }
-
-        return 0;
-    }
-
 
     /**
      * @return array<string, mixed>
@@ -2102,5 +2153,32 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'site' => $siteIdentifier,
             'remotePageUid' => $remotePageUid,
         ]);
+    }
+
+    /**
+     * Acceptance evidence links for a validated pair of compatible scans: PRO/Agency, and the same edit
+     * access as any remote export. The export action checks all of it again.
+     *
+     * @param array{from:array<string, mixed>,to:array<string, mixed>} $pair
+     * @return array{pdfUrl:string,csvUrl:string}|array{}
+     */
+    private function buildAcceptanceEvidenceLinks(string $siteIdentifier, array $pair): array
+    {
+        $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+        if (!(bool)($proStatus->valid ?? false) || (bool)($proStatus->isTrial ?? false) || !(bool)($proStatus->hasExportPdf ?? false)
+            || !$this->scopeAccessService->canEditRemoteScan($pair['to'])) {
+            return [];
+        }
+
+        $parameters = [
+            'site' => $siteIdentifier,
+            'fromJobId' => (string)$pair['from']['job_id'],
+            'toJobId' => (string)$pair['to']['job_id'],
+        ];
+
+        return [
+            'pdfUrl' => $this->buildRouteUrl('web_a11y.exportAcceptance', $parameters + ['format' => 'pdf']),
+            'csvUrl' => $this->buildRouteUrl('web_a11y.exportAcceptance', $parameters + ['format' => 'csv']),
+        ];
     }
 }

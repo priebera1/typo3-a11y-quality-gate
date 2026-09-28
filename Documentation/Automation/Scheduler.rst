@@ -41,6 +41,11 @@ for the CLI command:
     additional field provider of the task. The stored parameters are identical,
     so a task keeps working across the upgrade.
 
+PRO and Agency also add the task **Accessibility monitoring (AQG PRO/Agency)**
+(:php:`Priebera\A11yQualityGate\Scheduler\MonitoringTask`): scheduled frontend
+monitoring of one site language, chosen from the configured sites and their
+languages. See :ref:`automation-monitoring`.
+
 ..  _automation-scheduler-recommendation:
 
 Recommended setup

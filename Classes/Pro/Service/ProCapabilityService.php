@@ -67,6 +67,8 @@ final class ProCapabilityService
             isTrial: $effectiveIsTrial,
             trialExpiresAt: $result->trialExpiresAt,
             trialStartedAt: $result->trialStartedAt,
+            projectsActive: $result->projectsActive,
+            projectsMax: $result->projectsMax,
         );
     }
 
@@ -118,6 +120,7 @@ final class ProCapabilityService
             'domain_mismatch' => 'Domain mismatch',
             'domain_limit_reached' => 'Domain limit reached',
             'project_mismatch', 'licence_project_mismatch', 'trial_project_mismatch' => 'Different TYPO3 project',
+            'project_limit_reached' => 'Project limit reached',
             'trial_expired' => 'Trial expired',
             'trial_domain_mismatch' => 'Trial domain mismatch',
             'trial_revoked' => 'Trial revoked',
@@ -146,7 +149,8 @@ final class ProCapabilityService
             'inactive' => 'The configured licence is inactive.',
             'domain_mismatch' => 'This TYPO3 site domain is not allowed for the configured licence.',
             'domain_limit_reached' => 'Domain limit reached for this licence. Log in to your portal to manage domains.',
-            'project_mismatch', 'licence_project_mismatch' => 'This licence is registered to a different TYPO3 project. If this is unexpected, contact support.',
+            'project_mismatch', 'licence_project_mismatch' => 'This licence is registered to a different TYPO3 project. PRO covers one project; Agency covers several client projects.',
+            'project_limit_reached' => 'All project slots of this Agency licence are in use. Remove a project in the customer portal to add this one.',
             'trial_expired' => 'This trial has expired.',
             'trial_domain_mismatch' => 'This trial belongs to a different domain.',
             'trial_project_mismatch' => 'This trial is registered to a different TYPO3 project.',

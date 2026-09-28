@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Export\AcceptanceEvidenceBuilder;
 use Priebera\A11yQualityGate\Export\IssueExporter;
 use Priebera\A11yQualityGate\Export\PdfReportBuilder;
 use Priebera\A11yQualityGate\Database\Tables;
@@ -12,6 +13,8 @@ use Priebera\A11yQualityGate\Export\RemoteExportBuilder;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Priebera\A11yQualityGate\Utility\FilterValueUtility;
@@ -34,6 +37,9 @@ final class ExportController
         private readonly SiteResolutionService $siteResolutionService,
         private readonly RequestParameterService $requestParameterService,
         private readonly ProStatusResolverService $proStatusResolverService,
+        private readonly RemoteScanPairingService $remoteScanPairingService,
+        private readonly ScopeAccessService $scopeAccessService,
+        private readonly AcceptanceEvidenceBuilder $acceptanceEvidenceBuilder,
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly StreamFactoryInterface $streamFactory,
     ) {
@@ -285,6 +291,51 @@ final class ExportController
             ),
             contentType: 'application/pdf',
         );
+    }
+
+    /**
+     * Baseline → current acceptance evidence (PDF or CSV) for two compatible stored scans of a site.
+     *
+     * The job IDs come from the comparison link; they must be two readable, compatible scans of the named
+     * site (RemoteScanPairingService), the user needs the same edit access as for any remote export, and the
+     * site needs a PRO or Agency licence.
+     */
+    public function acceptanceAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $params = $request->getQueryParams();
+        $siteIdentifier = trim((string)($params['site'] ?? ''));
+        $format = strtolower(trim((string)($params['format'] ?? 'pdf'))) === 'csv' ? 'csv' : 'pdf';
+        $pair = $this->remoteScanPairingService->resolveComparePair(
+            $siteIdentifier,
+            (string)($params['fromJobId'] ?? ''),
+            (string)($params['toJobId'] ?? ''),
+        );
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+
+        if ($pair === null || !$site instanceof Site || !$this->scopeAccessService->canEditRemoteScan($pair['to'])) {
+            return $this->downloadResponse(
+                content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
+                filename: 'aqg-acceptance-evidence-access-denied.txt',
+                contentType: 'text/plain; charset=UTF-8',
+                statusCode: 403,
+            );
+        }
+
+        if (!$this->canExportPdf($site, $siteIdentifier)) {
+            return $this->downloadResponse(
+                content: BackendLabelUtility::translate('export.acceptance.paidOnly', 'Acceptance evidence needs a PRO or Agency licence.'),
+                filename: 'aqg-acceptance-evidence-unavailable.txt',
+                contentType: 'text/plain; charset=UTF-8',
+                statusCode: 403,
+            );
+        }
+
+        $evidence = $this->acceptanceEvidenceBuilder->build($site, $pair['from'], $pair['to']);
+        $filename = sprintf('aqg-acceptance-%s-%s.%s', preg_replace('/[^a-z0-9_-]+/i', '-', $siteIdentifier), date('Y-m-d'), $format);
+
+        return $format === 'csv'
+            ? $this->downloadResponse($this->acceptanceEvidenceBuilder->renderCsv($evidence), $filename, 'text/csv; charset=UTF-8')
+            : $this->downloadResponse($this->acceptanceEvidenceBuilder->renderPdf($evidence, $request), $filename, 'application/pdf');
     }
 
     private function canAccessLocalExport(

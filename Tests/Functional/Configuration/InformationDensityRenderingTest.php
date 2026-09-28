@@ -111,7 +111,8 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
         $xpath = $this->render('Settings/LicenceStatus', $this->statusArguments('api_unreachable', 'retry', 'Retry'));
 
         self::assertSame('NOT CHECKED', $this->text($xpath, '//*[contains(@class, "aqg-licence-status__plan-tag")]'));
-        self::assertStringContainsString('Not checked', $this->text($xpath, '//dl'));
+        // The tag states it once; the details list does not repeat the status.
+        self::assertStringNotContainsString('Not checked', $this->text($xpath, '//dl'));
         self::assertStringNotContainsString('INACTIVE', $this->text($xpath, '//section'));
         self::assertSame('Retry', $this->text($xpath, '//a[@data-aqg-licence-action="retry"]'));
     }

@@ -8,8 +8,11 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\Pro\Enum\CrawlerJobStatus;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
+use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Service\DateTimeService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class RemoteScanRecoveryService
 {
@@ -21,8 +24,8 @@ final class RemoteScanRecoveryService
         private readonly RemoteScanPersistenceService $remoteScanPersistenceService,
         private readonly ExtensionContextService $extensionContextService,
         private readonly DateTimeService $dateTimeService,
-        private readonly ProCapabilityService $proCapabilityService,
         private readonly FreeRemotePreviewService $freeRemotePreviewService,
+        private readonly RemoteScanErrorPresenter $remoteScanErrorPresenter,
     ) {
     }
 
@@ -54,8 +57,9 @@ final class RemoteScanRecoveryService
 
         $version = $this->extensionContextService->getExtensionVersion();
         $siteIdentifier = trim((string)($remoteScan['site_identifier'] ?? ''));
-        $proStatus = $this->proCapabilityService->getStatus($domain, $version);
-        $isFreePreview = !(bool)($proStatus->valid ?? false) || !(bool)($proStatus->hasCrawler ?? false);
+        // A job is read back through the channel that submitted it: a Free Preview job belongs to the Free
+        // token's subject and a paid job to the licence, whatever the licence is today.
+        $isFreePreview = (int)($remoteScan['is_free_preview'] ?? 0) === 1;
 
         try {
             $statusResult = $isFreePreview
@@ -185,9 +189,10 @@ final class RemoteScanRecoveryService
                 resultsData: $resultsPayload,
             );
         } catch (\Throwable $exception) {
+            $this->logRecoveryFailure('AQG remote scan result persistence failed', $jobId, $exception);
             $this->remoteScanRepository->markSyncError(
                 $jobId,
-                'Remote scan completed but result persistence failed: ' . $this->extractPrimaryExceptionMessage($exception),
+                $this->remoteScanErrorPresenter->storedMessage($exception, 'Remote scan completed but its results could not be saved'),
             );
 
             return $this->remoteScanRepository->findScanByJobId($jobId) ?? $remoteScan;
@@ -205,7 +210,7 @@ final class RemoteScanRecoveryService
         string $jobId,
         \Throwable $exception,
     ): ?array {
-        $message = $this->extractPrimaryExceptionMessage($exception);
+        $this->logRecoveryFailure('AQG remote scan recovery failed', $jobId, $exception);
 
         if ($this->isMissingRemoteJob($exception)) {
             $this->remoteScanRepository->markFailed(
@@ -219,7 +224,7 @@ final class RemoteScanRecoveryService
         if ($this->isStaleRunningScan($remoteScan)) {
             $this->remoteScanRepository->markFailed(
                 $jobId,
-                'Recovered stale remote scan: ' . $message,
+                $this->remoteScanErrorPresenter->storedMessage($exception, 'Recovered stale remote scan'),
             );
 
             return $this->remoteScanRepository->findScanByJobId($jobId);
@@ -227,7 +232,7 @@ final class RemoteScanRecoveryService
 
         $this->remoteScanRepository->markSyncError(
             $jobId,
-            'Remote scan recovery failed: ' . $message,
+            $this->remoteScanErrorPresenter->storedMessage($exception, 'Remote scan status could not be refreshed'),
         );
 
         return $this->remoteScanRepository->findScanByJobId($jobId) ?? $remoteScan;
@@ -255,73 +260,50 @@ final class RemoteScanRecoveryService
         return ($lastActivityAt + self::STALE_SCAN_TIMEOUT) < time();
     }
 
+    /**
+     * The crawler answers 404 for a job it no longer has and 403 `forbidden_resource` for one the current
+     * token may not read. Decided from the HTTP status and API error code, never from the message text.
+     */
     private function isMissingRemoteJob(\Throwable $exception): bool
     {
-        foreach ($this->collectExceptionMessages($exception) as $message) {
-            $normalized = strtolower($message);
+        $apiException = $this->findApiException($exception);
 
-            if (
-                str_contains($normalized, 'http 404')
-                || str_contains($normalized, 'http=404')
-                || str_contains($normalized, 'not_found')
-                || str_contains($normalized, 'resource not found')
-                || str_contains($normalized, 'job not found')
-                || str_contains($normalized, 'no longer exists')
-                || str_contains($normalized, 'forbidden_resource')
-                || str_contains($normalized, 'does not belong to the current token')
-            ) {
-                return true;
-            }
-        }
-
-        return false;
+        return $apiException instanceof ApiRequestFailedException
+            && ($apiException->httpStatus === 404
+                || in_array($apiException->apiErrorCode, ['not_found', 'forbidden_resource'], true));
     }
 
     private function resolveMissingRemoteJobFailureMessage(\Throwable $exception): string
     {
-        foreach ($this->collectExceptionMessages($exception) as $message) {
-            $normalized = strtolower($message);
-
-            if (
-                str_contains($normalized, 'forbidden_resource')
-                || str_contains($normalized, 'does not belong to the current token')
-            ) {
-                return 'Remote crawler job is no longer accessible for the current token.';
-            }
-        }
-
-        return 'Remote crawler job no longer exists.';
+        return $this->findApiException($exception)?->apiErrorCode === 'forbidden_resource'
+            ? 'Remote crawler job is no longer accessible for the current token.'
+            : 'Remote crawler job no longer exists.';
     }
 
-    private function extractPrimaryExceptionMessage(\Throwable $exception): string
+    private function findApiException(\Throwable $exception): ?ApiRequestFailedException
     {
-        foreach ($this->collectExceptionMessages($exception) as $message) {
-            $message = trim($message);
-            if ($message !== '') {
-                return $message;
-            }
-        }
-
-        return $exception::class;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function collectExceptionMessages(\Throwable $exception): array
-    {
-        $messages = [];
         $current = $exception;
-
         do {
-            $message = trim($current->getMessage());
-            if ($message !== '') {
-                $messages[] = $message;
+            if ($current instanceof ApiRequestFailedException) {
+                return $current;
             }
-
             $current = $current->getPrevious();
         } while ($current instanceof \Throwable);
 
-        return $messages;
+        return null;
+    }
+
+    private function logRecoveryFailure(string $message, string $jobId, \Throwable $exception): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->warning($message, [
+                    'jobId' => $jobId,
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (\Throwable) {
+        }
     }
 }

@@ -31,6 +31,7 @@ final class BackendJavaScriptModuleService
         'pageDetail.bulk.',
         'pageModuleIndicator.',
         'settings.licence.',
+        'verifyFix.',
     ];
 
     public function __construct(

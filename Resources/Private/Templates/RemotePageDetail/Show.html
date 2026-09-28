@@ -11,6 +11,7 @@
             data-a11y-site-identifier="{resolvedSiteIdentifier}"
             data-a11y-remote-page-uid="{remotePage.uid}"
         data-a11y-language-uid="{remoteScan.language_uid}"
+            data-aqg-verify-fix-root="true"
     >
         <f:if condition="{errorMessage}">
             <div class="alert alert-danger">
@@ -81,7 +82,7 @@
                                         class="btn btn-sm btn-primary"
                                         data-action="a11y-pro-scan-page"
                                         data-page-uid="{scanPageUid}"
-                                        data-page-url="{remotePage.url}"
+                                        data-remote-page-uid="{remotePage.uid}"
                                         data-site-identifier="{resolvedSiteIdentifier}"
                                         data-language-uid="{remoteScan.language_uid}"
                                         data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
@@ -277,6 +278,22 @@
                 </div>
             </f:if>
 
+            <f:if condition="{scanIsFreePreview} && !{isFreePreview}">
+                <div class="aqg-notice aqg-tone-info" role="status" data-aqg-free-preview-result="notice">
+                    <span class="aqg-notice__icon" aria-hidden="true">
+                        <f:render partial="Overview/Icon" arguments="{name: 'ok'}" />
+                    </span>
+                    <div class="aqg-notice__body">
+                        <div class="aqg-notice__title">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.resultProvenance.title" default="Free Remote Preview result" />
+                        </div>
+                        <div class="aqg-notice__text">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.resultProvenance.text" default="This scan ran as a Free Remote Preview: it has no screenshot and no record mapping. Scan the page again for a full result." />
+                        </div>
+                    </div>
+                </div>
+            </f:if>
+
             <f:if condition="!{isFreePreview} && !{canScanRemotePage}">
                 <div class="aqg-notice aqg-tone-warning" role="status">
                     <span class="aqg-notice__icon" aria-hidden="true">
@@ -348,7 +365,7 @@
                                         class="btn btn-sm btn-primary"
                                         data-action="a11y-pro-scan-page"
                                         data-page-uid="{scanPageUid}"
-                                        data-page-url="{remotePage.url}"
+                                        data-remote-page-uid="{remotePage.uid}"
                                         data-site-identifier="{resolvedSiteIdentifier}"
                                         data-language-uid="{remoteScan.language_uid}"
                                 >
@@ -500,8 +517,20 @@
                                             </summary>
 
                                             <div class="aqg-rule__body">
-                                                <f:if condition="{issue.highlightUids} || {issue.help_url}">
+                                                <f:if condition="{issue.highlightUids} || {issue.help_url} || {canVerifyFix}">
                                                     <div class="aqg-rule__actions aqg-rule__actions--body">
+                                                        <f:if condition="{canVerifyFix} && {issue.findingId}">
+                                                            <button
+                                                                    type="button"
+                                                                    class="btn btn-sm btn-primary"
+                                                                    data-action="a11y-verify-fix"
+                                                                    data-finding-id="{issue.findingId}"
+                                                                    aria-describedby="aqg-verify-fix-result-{issue.findingId}"
+                                                            >
+                                                                <core:icon identifier="actions-refresh" size="small" />
+                                                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:verifyFix.action" default="Verify fix" /></span>
+                                                            </button>
+                                                        </f:if>
                                                         <f:if condition="{issue.highlightUids}">
                                                             <button
                                                                     type="button"
@@ -525,6 +554,20 @@
                                                             </a>
                                                         </f:if>
                                                     </div>
+                                                </f:if>
+                                                <f:if condition="{canVerifyFix} && {issue.findingId}">
+                                                    <f:variable name="lastVerification" value="{lastVerifications.{issue.rule_id}}" />
+                                                    <p
+                                                            class="aqg-verify-fix__result"
+                                                            id="aqg-verify-fix-result-{issue.findingId}"
+                                                            data-aqg-verify-fix-result="{issue.findingId}"
+                                                            data-aqg-verify-fix-outcome="{lastVerification.outcome}"
+                                                            data-aqg-verify-fix-verification="{lastVerification.verificationUid}"
+                                                            data-aqg-verify-fix-job="{lastVerification.verificationJobId}"
+                                                            data-aqg-verify-fix-site="{lastVerification.siteIdentifier}"
+                                                            role="status"
+                                                            aria-live="polite"
+                                                    ><f:if condition="{lastVerification}"><strong>{lastVerification.label}</strong> {lastVerification.message}<f:if condition="{lastVerification.evaluatedAt}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:verifyFix.checkedAt" default="Checked %s." arguments="{0: lastVerification.evaluatedAt}" /></f:if></f:if></p>
                                                 </f:if>
                                                 <section class="aqg-rule-guidance" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.ruleGuidance', default: 'Rule guidance')}">
                                                     <f:if condition="{issue.guidanceWhyItMatters}">
@@ -772,11 +815,14 @@
                                                                     </div>
                                                                 </f:then>
                                                                 <f:else>
-                                                                    <f:if condition="{isFreePreview}">
+                                                                    <f:if condition="{isFreePreview} || {scanIsFreePreview}">
                                                                         <f:then>
                                                                             <div class="aqg-node__mapped aqg-node__mapped--locked" data-aqg-locked-feature="record-mapping">
                                                                                 <span class="aqg-node__mapped-label">
-                                                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.recordMappingLocked" default="Which TYPO3 record contains this element? With a trial or a PRO or Agency licence, frontend scans link each finding to its record so you can open it directly." />
+                                                                                    <f:if condition="{isFreePreview}">
+                                                                                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.recordMappingLocked" default="Which TYPO3 record contains this element? With a trial or a PRO or Agency licence, frontend scans link each finding to its record so you can open it directly." /></f:then>
+                                                                                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.recordMappingNotInScan" default="This Free Remote Preview result does not link findings to TYPO3 records. Scan the page again to get record mapping." /></f:else>
+                                                                                    </f:if>
                                                                                 </span>
                                                                             </div>
                                                                         </f:then>
@@ -844,7 +890,7 @@
                                 </div>
 
                                 <aside class="aqg-stack">
-                                    <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, freePreviewTrialUrl: freePreviewTrialUrl}" />
+                                    <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, scanIsFreePreview: scanIsFreePreview, freePreviewTrialUrl: freePreviewTrialUrl}" />
                                     <f:render section="RemoteMetadata" arguments="{remotePage: remotePage, remoteScan: remoteScan, remoteDetail: remoteDetail}" />
                                 </aside>
                             </div>
@@ -1084,7 +1130,7 @@
                                                         class="btn btn-sm btn-primary"
                                                         data-action="a11y-pro-scan-page"
                                                         data-page-uid="{scanPageUid}"
-                                                        data-page-url="{remotePage.url}"
+                                                        data-remote-page-uid="{remotePage.uid}"
                                                         data-site-identifier="{resolvedSiteIdentifier}"
                                                         data-language-uid="{remoteScan.language_uid}"
                                                 >
@@ -1104,7 +1150,7 @@
                                         </div>
                                     </div>
                                 </section>
-                                <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, freePreviewTrialUrl: freePreviewTrialUrl}" />
+                                <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, scanIsFreePreview: scanIsFreePreview, freePreviewTrialUrl: freePreviewTrialUrl}" />
                             </div>
                         </f:else>
                     </f:if>
@@ -1132,6 +1178,22 @@
                     </a>
                 </div>
             </div>
+        </f:then>
+        <f:else>
+    <f:if condition="{scanIsFreePreview}">
+        <f:then>
+            <section class="aqg-shot" data-aqg-free-preview-result="screenshot">
+                <div class="aqg-shot__head">
+                    <div>
+                        <h2 class="aqg-shot__title">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.pageScreenshot" default="Page screenshot" />
+                        </h2>
+                        <div class="aqg-shot__sub">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.screenshotNotInScan" default="This Free Remote Preview result has no screenshot. Scan the page again to capture one." />
+                        </div>
+                    </div>
+                </div>
+            </section>
         </f:then>
         <f:else>
     <section class="aqg-shot">
@@ -1182,6 +1244,8 @@
             </f:else>
         </f:if>
     </section>
+        </f:else>
+    </f:if>
         </f:else>
     </f:if>
 </f:section>
