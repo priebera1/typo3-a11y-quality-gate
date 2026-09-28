@@ -12,6 +12,7 @@ use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ServerRequestInterface;
@@ -36,6 +37,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         private readonly RequestParameterService $requestParameterService,
         private readonly SiteResolutionService $siteResolutionService,
         private readonly BackendContextService $backendContextService,
+        private readonly ScopeAccessService $scopeAccessService,
     ) {
     }
 
@@ -130,7 +132,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
      */
     private function resolveLocalStatus(): array
     {
-        $status = $this->scanStatusService->getStatus();
+        $status = $this->scopeAccessService->restrictLocalScanStatus($this->scanStatusService->getStatus());
 
         if ((bool)($status['running'] ?? false)) {
             return $this->languageAwareLocalStatus($status);
@@ -148,6 +150,9 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     private function mergeWithPersistedLocalScan(array $status): array
     {
         $siteIdentifier = $this->resolveSiteIdentifierFromRequestOrStatus($status);
+        if (!$this->scopeAccessService->canReadSiteIdentifier($siteIdentifier)) {
+            return $status;
+        }
         $languageUid = $this->requestParameterService->getLanguageUid($this->request);
 
         try {
@@ -690,7 +695,7 @@ HTML;
     private function resolveRemoteStatus(): array
     {
         $siteIdentifier = $this->resolveSiteIdentifierFromRequest();
-        if ($siteIdentifier === '') {
+        if ($siteIdentifier === '' || !$this->scopeAccessService->canReadSiteIdentifier($siteIdentifier)) {
             return [];
         }
 

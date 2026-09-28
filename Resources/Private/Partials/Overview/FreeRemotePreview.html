@@ -20,7 +20,7 @@
         </div>
 
         <div class="aqg-section__actions">
-            <f:if condition="{freePreview.submitCapable} &amp;&amp; {freePreview.state} == 'FREE_AVAILABLE' &amp;&amp; {canScanAll}">
+            <f:if condition="{freePreview.submitCapable} &amp;&amp; {freePreview.state} == 'FREE_AVAILABLE' &amp;&amp; {canScanNow}">
                 <button
                         type="button"
                         class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
@@ -63,11 +63,6 @@
                 <div class="aqg-meta-item">
                     <span class="aqg-meta-item__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.freeScansToday" default="Free scans today" /></span>
                     <span class="aqg-meta-item__value"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.scanUsage" default="%1$d of %2$d used" arguments="{0: freePreview.jobsUsed, 1: freePreview.jobsLimit}" /></span>
-                    <f:if condition="{freePreview.jobsUsed}">
-                        <f:if condition="{freePreview.scansRemaining}">
-                            <span class="aqg-meta-item__hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.scansRemaining" default="%1$d free scans remaining today" arguments="{0: freePreview.scansRemaining}" /></span>
-                        </f:if>
-                    </f:if>
                     <f:if condition="!{freePreview.available}">
                         <span class="aqg-meta-item__hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.limitReached" default="Free scan limit reached for today." /></span>
                     </f:if>

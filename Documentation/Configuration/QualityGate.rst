@@ -68,6 +68,9 @@ How the gate behaves
     scans so that the gate works on current data; see :ref:`automation`.
 *   In warn mode the editor is informed but keeps control over the publication.
     In block mode the DataHandler operation is rejected.
+*   The gate applies to everyone who publishes or unhides a page, including
+    backend users without access to the Accessibility module. It never grants
+    access to the module.
 
 ..  warning::
     The quality gate is an editorial safeguard, not a security control, and not

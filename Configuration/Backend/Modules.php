@@ -109,6 +109,10 @@ return [
                 'path' => '/export/pdf',
                 'target' => \Priebera\A11yQualityGate\Controller\ExportController::class . '::pdfAction',
             ],
+            'exportAcceptance' => [
+                'path' => '/export/acceptance',
+                'target' => \Priebera\A11yQualityGate\Controller\ExportController::class . '::acceptanceAction',
+            ],
             'remoteScreenshot' => [
                 'path' => '/remote-screenshot',
                 'target' => \Priebera\A11yQualityGate\Controller\RemoteScreenshotController::class . '::showAction',

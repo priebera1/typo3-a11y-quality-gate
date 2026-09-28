@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.9.7] - 2026-09-28
+
+### Changed
+
+* PRO and Agency can check a single finding again with "Verify fix" on the frontend page detail. A fresh scan of that page reports the finding as Resolved, Still present or Not verified. Resolved is shown only when the page was checked completely; a check that is still running continues after a reload, and an earlier Resolved verdict is marked as outdated when a newer scan reports the issue again.
+* PRO and Agency can monitor a site with the new Scheduler task "Accessibility monitoring", which offers the configured sites and the languages of the selected site, or with the new `a11y:monitor` console command. A removed site or language fails the run with a message instead of scanning something else. Monitoring scans the site, compares the result with the last complete scan and e-mails new or worse issues, incomplete scans and failed scans. An incomplete scan is never reported as "no change", and a notification that could not be sent is sent again on the next run.
+* A scan comparison can be exported as acceptance evidence (PDF or CSV) with fixed, new, worse and open findings. Pages that were not checked completely in both scans are listed as not compared. The CSV names the site, scope, language and scan dates in every row and closes with the coverage and the limits of automated checks.
+* Agency licences cover several client TYPO3 installations. Each installation is its own project with separate frontend scans, history and evidence. The licence tab shows how many projects are in use and links to the customer portal to manage them; an installation whose project was removed there is told so and can be restored.
+* A single-page frontend scan now needs the "Scan this page" permission instead of "Scan all". The frontend scan buttons in the Overview and the page module are hidden for users without the permission.
+* Trial texts in the licence settings no longer mention a 24-hour trial period.
+* The regression signal is headed "Changes since the previous scan". The Free Remote Preview shows its remaining scans once, and its upgrade offer is hidden while a licence problem is shown. The licence tab and statement settings show less repeated status text.
+
+### Fixed
+
+* Scan comparisons, the regression signal and scan history now only pair scans of the same site, scope, language, start URL and scan type.
+* The Free Remote Preview scans the selected site language instead of always the default language.
+* The frontend page detail and running scans follow how a scan was made (Free Remote Preview or paid), not the licence that is active now. Upgrading while a Free scan runs no longer interrupts it.
+* The Quality Gate now checks pages that are unhidden by editors without access to the AQG module.
+* Frontend scan results are marked as saved only after all of their pages and findings are stored. An interrupted save is completed automatically instead of showing partial results as complete.
+* A temporary licence service outage or request limit no longer replaces the last valid licence state, which is kept for up to 48 hours and never beyond the licence end. An expired, revoked or removed licence takes effect immediately, including after "Revalidate". A request limit is now reported as such instead of as an unreachable service.
+* Ignoring a rule for a whole site now requires access to that site.
+* `vendor/bin/typo3 list` now shows the AQG console commands, and on TYPO3 14 `a11y:scan` can be chosen in the Scheduler task "Execute console commands", as on TYPO3 13.
+* The settings tabs wrap onto a second row when the backend content area is narrow (for example with the page tree open) instead of running past the edge of the module.
+
+### Security
+
+* Frontend scans started from a page are bound to that page on the server: a site, URL or stored page sent by the browser can no longer direct a scan, together with the site's scan credentials, to another site or page.
+* Frontend scan results, comparisons, statements, page details and scan status are only shown for sites and pages the backend user may access. Scan job IDs in a URL can no longer open another site's results, and only users who may edit a page can cancel its content scan.
+* Error messages no longer expose internal details of the scanning and licence services.
+* Agency projects are bound to their TYPO3 installation, so another installation using the same licence key cannot take over a project's scans, history or evidence. Removed projects and revoked licences lose frontend scan access without waiting for already issued access tokens to expire.
+
 ## [1.9.6] - 2026-09-17
 
 ### Changed

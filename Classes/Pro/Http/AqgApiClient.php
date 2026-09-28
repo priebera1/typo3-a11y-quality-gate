@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Pro\Http;
 
+use Priebera\A11yQualityGate\Contract\InstallationIdentityServiceInterface;
 use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 use Priebera\A11yQualityGate\Pro\Configuration\ProSettings;
 use Priebera\A11yQualityGate\Pro\Dto\AccessTokenResponseDto;
@@ -18,6 +19,7 @@ final class AqgApiClient
 {
     public function __construct(
         private readonly RequestFactory $requestFactory,
+        private readonly ?InstallationIdentityServiceInterface $installationIdentityService = null,
     ) {
     }
 
@@ -30,13 +32,13 @@ final class AqgApiClient
         string $version,
         array $allSites = [],
     ): LicenceValidationResponseDto {
-        $payload = $this->postJson('/licence/validate', [
+        $payload = $this->postJson('/licence/validate', $this->withProjectInstallation([
             'key' => $licenceKey,
             'domain' => $domain,
             'version' => $version,
             'productSlug' => ProConstants::PRODUCT_SLUG,
             'allSites' => $this->normalizeAllSites($allSites),
-        ]);
+        ]));
 
         return LicenceValidationResponseDto::fromArray($payload);
     }
@@ -50,13 +52,13 @@ final class AqgApiClient
         string $version,
         array $allSites = [],
     ): AccessTokenResponseDto {
-        $payload = $this->postJson('/auth/token', [
+        $payload = $this->postJson('/auth/token', $this->withProjectInstallation([
             'key' => $licenceKey,
             'domain' => $domain,
             'version' => $version,
             'productSlug' => ProConstants::PRODUCT_SLUG,
             'allSites' => $this->normalizeAllSites($allSites),
-        ]);
+        ]));
 
         return AccessTokenResponseDto::fromArray($payload);
     }
@@ -75,6 +77,24 @@ final class AqgApiClient
         ], true);
 
         return AccessTokenResponseDto::fromArray($payload);
+    }
+
+    /**
+     * Paid requests name the installation, so an Agency licence binds each client project to its TYPO3
+     * installation instead of to its public site list. Not `installationId`: on /auth/token that field asks
+     * for the Free fallback, which a paid request must never silently receive.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function withProjectInstallation(array $payload): array
+    {
+        $installationId = trim((string)$this->installationIdentityService?->getOrCreateInstallationId());
+        if ($installationId !== '') {
+            $payload['projectInstallationId'] = $installationId;
+        }
+
+        return $payload;
     }
 
     /**
@@ -164,6 +184,13 @@ final class AqgApiClient
         $errorCode = trim((string)($error['code'] ?? ''));
         if ($errorCode === '' && $statusCode === 404) {
             $errorCode = 'route_not_found';
+        }
+        if ($errorCode === '' && $statusCode === 429 && isset($payload['key'])) {
+            // The API's per-route limiter answers without AQG's error body. It is still a rate limit — the
+            // licence was not checked — not an unreachable service.
+            $errorCode = 'licence_rate_limited';
+            $error = ['code' => $errorCode, 'message' => 'Too many licence requests.', 'status' => 429];
+            $decoded['error'] = $error;
         }
 
         if ($statusCode >= 400) {

@@ -20,6 +20,8 @@ final class LicenceValidationResponseDto
         public readonly ?string $reason,
         public readonly ?string $errorCode,
         public readonly ?string $errorMessage,
+        public readonly ?int $projectsActive = null,
+        public readonly ?int $projectsMax = null,
     ) {
     }
 
@@ -57,6 +59,13 @@ final class LicenceValidationResponseDto
             reason: isset($details['reason']) ? (string)$details['reason'] : null,
             errorCode: isset($error['code']) ? (string)$error['code'] : null,
             errorMessage: isset($error['message']) ? (string)$error['message'] : null,
+            // Agency licences cover several TYPO3 projects; the API reports how many slots are in use.
+            projectsActive: is_array($payload['project'] ?? null) && ($payload['project']['multi_project'] ?? false)
+                ? max(0, (int)($payload['project']['active_projects'] ?? 0))
+                : null,
+            projectsMax: is_array($payload['project'] ?? null) && ($payload['project']['multi_project'] ?? false)
+                ? max(0, (int)($payload['project']['max_projects'] ?? 0))
+                : null,
         );
     }
 }

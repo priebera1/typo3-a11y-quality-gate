@@ -66,19 +66,12 @@
                                                 <f:render partial="Settings/Icon" arguments="{name: 'check'}" />
                                                 <span>
                                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.validated" default="Validated" />
-                                                    <f:if condition="{proStatus.isTrial}"><f:then> · TRIAL</f:then><f:else> · <f:if condition="{proStatus.plan}"><f:then>{proStatus.plan}</f:then><f:else>PRO</f:else></f:if></f:else></f:if>
-                                                    <f:if condition="{proStatus.domain}"> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.boundTo" default="bound to" /> <strong>{proStatus.domain}</strong></f:if>
                                                 </span>
                                             </span>
                                         </f:then>
                                         <f:else>
                                             <f:if condition="{licenceKey}">
-                                                <f:then>
-                                                    <span class="aqg-validation tone-error">
-                                                        <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
-                                                        <span><f:if condition="{licenceGuidance.title}"><f:then>{licenceGuidance.title}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.validation.invalidFallback" default="Licence validation failed." /></f:else></f:if></span>
-                                                    </span>
-                                                </f:then>
+                                                <f:then></f:then>
                                                 <f:else>
                                                     <div class="aqg-field__help">
                                                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key.portalHelp" default="The key is bound to the domains registered for your licence. Find it in your purchase email or in the AQG customer portal:" />

@@ -14,11 +14,13 @@ the TYPO3 Scheduler. Both are available in all editions.
     local rules (``rte.*`` and ``structured.*``) only. Single-page runs
     (``--page-uid``, or a Scheduler task with a page UID) additionally run the
     rendered page check, see :ref:`usage-rendered-checks`. Changed-only runs never
-    include it. Frontend crawler scans are always started from the backend module,
-    see :ref:`usage-remote-scans`.
+    include it. Interactive frontend crawler scans are started from the backend
+    module, see :ref:`usage-remote-scans`; scheduled frontend monitoring uses
+    ``a11y:monitor``, see :ref:`automation-monitoring`.
 
 ..  toctree::
     :titlesonly:
 
     Cli
     Scheduler
+    Monitoring

@@ -1,0 +1,97 @@
+<f:layout name="Pdf" />
+
+<f:section name="Content">
+    <style>
+        .aqge-table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; }
+        .aqge-table th { text-align: left; font-size: 8.5pt; background: #eef0f3; padding: 1.6mm 2mm; border-bottom: 0.3mm solid #c9ced6; }
+        .aqge-table td { font-size: 8.5pt; padding: 1.4mm 2mm; border-bottom: 0.2mm solid #e3e6ea; vertical-align: top; }
+        .aqge-muted { color: #4f5866; }
+        .aqge-count { font-size: 16pt; font-weight: bold; }
+        .aqge-h2 { font-size: 12pt; margin: 6mm 0 1mm; }
+        .aqge-note { font-size: 8.5pt; color: #4f5866; }
+        .aqge-url { font-family: courier; font-size: 7.5pt; }
+    </style>
+
+    <htmlpagefooter name="aqgAcceptanceFooter">
+        <table width="100%"><tr>
+            <td class="aqge-note">AQG · Accessibility acceptance evidence · {evidence.site.identifier}</td>
+            <td class="aqge-note" align="right" style="text-align:right;">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
+        </tr></table>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="aqgAcceptanceFooter" value="on" show-this-page="1" />
+
+    <h1>Accessibility acceptance evidence</h1>
+    <p class="aqge-muted">{evidence.site.identifier} · {evidence.site.base} · prepared {evidence.preparedAt}</p>
+    <p><strong>Automated evidence, not a conformance statement.</strong> This comparison shows how the automated findings changed between two compatible frontend scans. It does not confirm WCAG conformance or compliance with accessibility law.</p>
+
+    <table class="aqge-table">
+        <tr><th></th><th>Baseline</th><th>Current</th></tr>
+        <tr><td>Scan finished</td><td>{evidence.baseline.finishedAt}</td><td>{evidence.current.finishedAt}</td></tr>
+        <tr><td>Scope</td><td>{evidence.baseline.scope}</td><td>{evidence.current.scope}</td></tr>
+        <tr><td>Start URL</td><td class="aqge-url">{evidence.baseline.startUrl}</td><td class="aqge-url">{evidence.current.startUrl}</td></tr>
+        <tr><td>Pages scanned</td><td>{evidence.baseline.pagesScanned}</td><td>{evidence.current.pagesScanned}</td></tr>
+        <tr><td>Pages failed</td><td>{evidence.baseline.pagesFailed}</td><td>{evidence.current.pagesFailed}</td></tr>
+        <tr><td>Scan job</td><td class="aqge-url">{evidence.baseline.jobId}</td><td class="aqge-url">{evidence.current.jobId}</td></tr>
+    </table>
+
+    <table class="aqge-table">
+        <tr>
+            <th>Fixed</th><th>New</th><th>Worse</th><th>Still open</th><th>Not compared</th><th>Pages compared</th>
+        </tr>
+        <tr>
+            <td class="aqge-count">{evidence.counts.fixed}</td>
+            <td class="aqge-count">{evidence.counts.new}</td>
+            <td class="aqge-count">{evidence.counts.regressed}</td>
+            <td class="aqge-count">{evidence.counts.unresolved}</td>
+            <td class="aqge-count">{evidence.counts.unverified}</td>
+            <td class="aqge-count">{evidence.counts.comparedPages}</td>
+        </tr>
+    </table>
+    <p class="aqge-note">Counts are issue types per page: one rule reported on one URL. Occurrences are the individual elements.</p>
+
+    <f:render section="Findings" arguments="{title: 'Fixed', items: evidence.fixed, empty: 'No finding of the baseline disappeared on a compared page.'}" />
+    <f:render section="Findings" arguments="{title: 'New', items: evidence.new, empty: 'No new finding on a compared page.'}" />
+    <f:render section="Findings" arguments="{title: 'Worse', items: evidence.regressed, empty: 'No finding has more occurrences than in the baseline.'}" />
+    <f:render section="Findings" arguments="{title: 'Still open', items: evidence.unresolved, empty: 'No finding of the baseline is still reported.'}" />
+
+    <h2 class="aqge-h2">Not compared</h2>
+    <f:if condition="{evidence.unverified}">
+        <f:then>
+            <table class="aqge-table">
+                <tr><th>URL</th><th>Reason</th></tr>
+                <f:for each="{evidence.unverified}" as="entry">
+                    <tr><td class="aqge-url">{entry.url}</td><td>{entry.reasonLabel}</td></tr>
+                </f:for>
+            </table>
+        </f:then>
+        <f:else><p class="aqge-note">Both scans covered the same pages completely.</p></f:else>
+    </f:if>
+
+    <h2 class="aqge-h2">Limitations and manual review</h2>
+    <ul>
+        <f:for each="{evidence.limitations}" as="limitation">
+            <li class="aqge-note">{limitation}</li>
+        </f:for>
+    </ul>
+</f:section>
+
+<f:section name="Findings">
+    <h2 class="aqge-h2">{title}</h2>
+    <f:if condition="{items}">
+        <f:then>
+            <table class="aqge-table">
+                <tr><th>Rule</th><th>Impact</th><th>URL</th><th>Baseline</th><th>Current</th></tr>
+                <f:for each="{items}" as="entry">
+                    <tr>
+                        <td>{entry.ruleId}</td>
+                        <td>{entry.impact}</td>
+                        <td class="aqge-url">{entry.url}</td>
+                        <td>{entry.before}</td>
+                        <td>{entry.after}</td>
+                    </tr>
+                </f:for>
+            </table>
+        </f:then>
+        <f:else><p class="aqge-note">{empty}</p></f:else>
+    </f:if>
+</f:section>

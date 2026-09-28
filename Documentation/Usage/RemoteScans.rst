@@ -65,6 +65,50 @@ access token.
 Only one remote scan per site can run at a time. A second submit while a scan is
 active is rejected with a conflict message; wait for the running scan to finish.
 
+A single-page scan needs edit access to the page (for a URL without a TYPO3 page:
+to the site root) and the ``showScanNow`` permission; a site scan needs edit
+access to the site root and ``showScanAll``. Results follow the same page
+permissions: page scans are visible to users who can read the page, site scans
+to users who can read the site root.
+
+Comparisons, the regression signal, fix verification and acceptance evidence
+only pair compatible scans: same site, scope, scan type, language and start URL,
+and the same kind of scan (a Free Remote Preview is never compared with a
+licensed scan). A Free Remote Preview result keeps that label after an upgrade:
+it has no screenshot and no record mapping.
+
+..  _usage-remote-scans-verify-fix:
+
+Verify fix (PRO, Agency)
+========================
+
+On the frontend page detail, each finding offers :guilabel:`Verify fix`. AQG
+scans that page again and reports the outcome next to the finding:
+
+*   **Resolved** — the fresh scan of the same language completed, the page
+    loaded, every issue type the scanner reported for it was stored, and the
+    rule is not among them.
+*   **Still present** — the rule is still reported, with the number of
+    occurrences.
+*   **Not verified** — the scan failed or was cancelled, it checked another
+    language, the page did not load or is missing from the result, or fewer
+    issue types were stored for the page than the scanner reported. A finding
+    that is merely absent from incomplete results is never marked resolved.
+
+The verification records the scan that decided it. It uses the same scan
+permission, submit lock and one-scan-per-site rule as :guilabel:`Scan this page`.
+
+..  _usage-remote-scans-acceptance:
+
+Acceptance evidence (PRO, Agency)
+=================================
+
+When two compatible scans are compared, the comparison offers the acceptance
+evidence as PDF and CSV: baseline and current scan dates and coverage, fixed,
+new, worse and still open findings, the pages that could not be compared, and
+the limits of automated testing. It is evidence of automated results, not a
+statement of WCAG conformance.
+
 ..  note::
     The crawler requests your site from the public internet. Installations that
     are not reachable from outside, or that block unknown user agents, cannot be

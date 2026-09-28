@@ -28,6 +28,8 @@ final class ProStatusViewModel
         public readonly bool $isTrial = false,
         public readonly ?string $trialExpiresAt = null,
         public readonly ?string $trialStartedAt = null,
+        public readonly ?int $projectsActive = null,
+        public readonly ?int $projectsMax = null,
     ) {
     }
 

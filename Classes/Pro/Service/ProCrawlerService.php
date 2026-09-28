@@ -327,12 +327,13 @@ final class ProCrawlerService
         string $siteId,
         string $sourceType,
         string $startUrl = '',
-        string $language = 'en'
+        string $language = 'en',
+        ?int $languageId = null,
     ): array {
         $token = $this->proTokenService->getValidToken($domain, $version);
 
         try {
-            return $this->crawlerClient->regressionAlert($token->accessToken, $siteId, $sourceType, $startUrl);
+            return $this->crawlerClient->regressionAlert($token->accessToken, $siteId, $sourceType, $startUrl, $language, $languageId);
         } catch (ApiRequestFailedException $exception) {
             if (!$this->isTokenExpiredCrawlerException($exception)) {
                 throw new TokenRefreshException(
@@ -344,7 +345,7 @@ final class ProCrawlerService
 
             try {
                 $token = $this->proTokenService->getValidToken($domain, $version, true);
-                return $this->crawlerClient->regressionAlert($token->accessToken, $siteId, $sourceType, $startUrl);
+                return $this->crawlerClient->regressionAlert($token->accessToken, $siteId, $sourceType, $startUrl, $language, $languageId);
             } catch (ApiRequestFailedException $retryException) {
                 throw new TokenRefreshException(
                     'Remote crawler regression alert request failed after token refresh: ' . $retryException->getMessage(),

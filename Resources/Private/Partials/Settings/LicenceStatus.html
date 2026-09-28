@@ -57,13 +57,17 @@
                                     <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.planLine" default="Multi-site licence" /></span>
                                 </div>
                                 <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.activeTitle" default="AQG Agency is active" /></h3>
-                                <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.activeText" default="Use this licence across multiple TYPO3 sites and client projects." /></p>
+                                <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.activeText" default="Use this licence for several client TYPO3 projects. Each installation is its own project with its own scans and history." /></p>
                             </div>
                             <dl class="aqg-licence-status__kv">
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.plan" default="Plan" /></dt>
-                                <dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.originalPlan.agency" default="Agency" /> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.feature.multiSite" default="Multi-site usage" /></dd>
+                                <dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.originalPlan.agency" default="Agency" /></dd>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.thisSite" default="This site" /></dt>
                                 <dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
+                                <f:if condition="{proStatus.projectsMax}">
+                                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.projects" default="TYPO3 projects" /></dt>
+                                    <dd data-aqg-licence-projects="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.projectsUsage" default="%1$d of %2$d in use" arguments="{0: proStatus.projectsActive, 1: proStatus.projectsMax}" /></dd>
+                                </f:if>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
                                 <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>
                             </dl>
@@ -74,7 +78,7 @@
                                 <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.agency.prioritySupport" default="Priority support" /></div>
                             </div>
                             <div class="aqg-licence-status__foot">
-                                <a href="{portalUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageLicence" default="Manage licence" /></a>
+                                <a href="{portalUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.manageProjects" default="Manage projects" /></a>
                                 <a href="{supportUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.contactSupport" default="Contact support" /></a>
                             </div>
                         </section>
@@ -142,7 +146,6 @@
                         </f:if>
                     </div>
                     <dl class="aqg-licence-status__kv">
-                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusTitle" default="Status" /></dt><dd><f:if condition="{licenceUnverified}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusUnverifiedValue" default="Not checked" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusInactiveValue" default="Inactive" /></f:else></f:if></dd>
                         <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt><dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
                         <f:if condition="{proStatus.reason}">
                             <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.reasonCode" default="Reason code" /></dt><dd><code>{proStatus.reason}</code></dd>

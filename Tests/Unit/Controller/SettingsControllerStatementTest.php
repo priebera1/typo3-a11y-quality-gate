@@ -14,6 +14,7 @@ use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\AccessibilityStatementService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseInterface;
 use ReflectionClass;
@@ -302,6 +303,31 @@ final class SettingsControllerStatementTest extends TestCase
         return $decoded;
     }
 
+    private ?ScopeAccessService $scopeAccess = null;
+
+    private function allowingScopeAccess(): ScopeAccessService
+    {
+        $scopeAccess = $this->createMock(ScopeAccessService::class);
+        $scopeAccess->method('canReadSite')->willReturn(true);
+
+        return $scopeAccess;
+    }
+
+    #[Test]
+    public function statementForASiteOutsideTheUsersPagesIsRefusedBeforeAnyApiCall(): void
+    {
+        $this->scopeAccess = $this->createMock(ScopeAccessService::class);
+        $this->scopeAccess->method('canReadSite')->willReturn(false);
+        $this->statementService->expects(self::never())->method('loadLatestSiteScan');
+        $this->statementService->expects(self::never())->method('loadByJobId');
+        $this->statementService->expects(self::never())->method('loadLatest');
+
+        $response = $this->subject()->generateAccessibilityStatementAction($this->request());
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('access_denied', $this->decode($response)['code']);
+    }
+
     private function subject(): SettingsController
     {
         $backendContext = $this->createMock(BackendContextService::class);
@@ -328,6 +354,7 @@ final class SettingsControllerStatementTest extends TestCase
             [SettingsController::class, 'pdfGenerator', $this->pdfGenerator],
             [SettingsController::class, 'responseFactory', new ResponseFactory()],
             [SettingsController::class, 'streamFactory', new StreamFactory()],
+            [SettingsController::class, 'scopeAccessService', $this->scopeAccess ??= $this->allowingScopeAccess()],
         ] as [$class, $property, $value]) {
             (new ReflectionProperty($class, $property))->setValue($subject, $value);
         }

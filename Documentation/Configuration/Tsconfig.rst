@@ -32,14 +32,17 @@ options.
     :type: boolean
     :Default: 1
 
-    Shows the :guilabel:`Scan site` button in the overview module.
+    Allows site scans: the :guilabel:`Scan site` buttons for content and
+    frontend scans, and cancelling a frontend site scan. Enforced by the
+    server as well.
 
 ..  confval:: options.a11y_quality_gate.showScanNow
     :type: boolean
     :Default: 1
 
-    Shows the :guilabel:`Scan this page` button in page-related and
-    record-related views.
+    Allows single-page scans: :guilabel:`Scan this page` (content and
+    frontend), the Free Remote Preview and :guilabel:`Verify fix`. Enforced by
+    the server as well.
 
 ..  confval:: options.a11y_quality_gate.allowImageRemediation
     :type: boolean

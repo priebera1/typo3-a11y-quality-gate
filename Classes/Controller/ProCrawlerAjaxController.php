@@ -4,38 +4,38 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
-use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
-use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
 use Priebera\A11yQualityGate\FreePreview\FreePreviewException;
 use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
 use Priebera\A11yQualityGate\Pro\Enum\FeatureFlag;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
+use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\ProCapabilityService;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanInputResolver;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
-use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\DateTimeService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\FixVerificationService;
 use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RemoteScanResponseService;
+use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
-use Priebera\A11yQualityGate\Service\SecretEncryptionService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
-use Priebera\A11yQualityGate\Utility\StringListUtility;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
@@ -48,7 +48,6 @@ final class ProCrawlerAjaxController extends AbstractApiController
     public function __construct(
         private readonly ProCrawlerService $proCrawlerService,
         private readonly AccessControlService $accessControlService,
-        private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly SiteResolutionService $siteResolutionService,
         private readonly RemoteScanPersistenceService $remoteScanPersistenceService,
         private readonly RemoteScanInputResolver $remoteScanInputResolver,
@@ -58,13 +57,16 @@ final class ProCrawlerAjaxController extends AbstractApiController
         private readonly DateTimeService $dateTimeService,
         private readonly RemoteScanResponseService $remoteScanResponseService,
         private readonly RemoteScanRecoveryService $remoteScanRecoveryService,
-        private readonly RulesetRepository $rulesetRepository,
-        private readonly SecretEncryptionService $secretEncryptionService,
         private readonly SiteLanguageService $siteLanguageService,
         private readonly RequestParameterService $requestParameterService,
         private readonly FreeRemotePreviewService $freeRemotePreviewService,
         private readonly FreeSubmitIntentService $freeSubmitIntentService,
         private readonly FrontendPageUrlService $frontendPageUrlService,
+        private readonly ScopeAccessService $scopeAccessService,
+        private readonly RemotePageScanTargetResolver $remotePageScanTargetResolver,
+        private readonly RemoteScanErrorPresenter $remoteScanErrorPresenter,
+        private readonly FixVerificationService $fixVerificationService,
+        private readonly RemoteScanAccessSettingsService $remoteScanAccessSettingsService,
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         BackendUserService $backendUserService,
@@ -74,7 +76,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
     public function submitSiteAction(ServerRequestInterface $request): ResponseInterface
     {
-        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
+        // The scope decides the permission: a paid site crawl needs scanAll, the Free Remote Preview scans
+        // one page and needs scanNow. Both are checked once the entitlement is known.
+        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService);
         if ($accessResponse !== null) {
             return $accessResponse;
         }
@@ -147,6 +151,15 @@ final class ProCrawlerAjaxController extends AbstractApiController
             );
             $isFreePreview = !$this->hasPaidCrawlerAccess($proStatus);
             $freePageUrl = '';
+            $freeLanguageUid = max(0, $languageUid);
+
+            $scopeAccessResponse = $this->ensureBackendUserAccess(
+                $this->accessControlService,
+                $isFreePreview ? 'scanNow' : 'scanAll'
+            );
+            if ($scopeAccessResponse !== null) {
+                return $scopeAccessResponse;
+            }
 
             if ($isFreePreview) {
                 if ($requestedPageUid <= 0) {
@@ -164,24 +177,27 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     ]);
                 }
 
-                if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $requestedPageUid)) {
+                if (!$this->scopeAccessService->canEditPage($requestedPageUid)) {
                     return $this->forbiddenResponse();
                 }
 
-                $freePageUrl = trim($this->frontendPageUrlService->resolvePublicForPage($site, $requestedPageUid, 0));
+                // The selected language's public URL: a translated page is scanned as translated, and an
+                // untranslated one is refused instead of silently scanning the default language.
+                $freePageUrl = trim($this->frontendPageUrlService->resolvePublicForPage($site, $requestedPageUid, $freeLanguageUid));
                 if ($freePageUrl === '') {
                     return $this->badRequestResponse('Unable to resolve selected page URL', [
                         'code' => 'unresolved_page_url',
                         'requestId' => $requestId,
                     ]);
                 }
-            } elseif (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
+            } elseif (!$this->scopeAccessService->canEditSite($site)) {
                 return $this->forbiddenResponse();
             }
 
-            $languageContext = $isFreePreview
-                ? null
-                : $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
+            $languageContext = $this->siteLanguageService->resolveLanguageContext(
+                $site,
+                $isFreePreview ? $freeLanguageUid : $languageUid
+            );
             $resolved = $isFreePreview
                 ? $this->remoteScanInputResolver->resolveForFreePreview($site, $freePageUrl)
                 : ($languageContext !== null
@@ -303,6 +319,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                         trim((string)($data['freeSubmitIntent'] ?? '')),
                         $resolved->siteIdentifier,
                         $requestedPageUid,
+                        $freeLanguageUid,
                     ),
                 )
                 : $this->proCrawlerService->submit(
@@ -384,9 +401,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
             ]);
         } catch (FreePreviewException $exception) {
             return $this->buildFreePreviewExceptionResponse($exception);
-        } catch (\InvalidArgumentException $exception) {
+        } catch (\InvalidArgumentException) {
             return $this->buildSimpleErrorResponse(
-                message: $exception->getMessage(),
+                message: $this->translate('proCrawler.freeIntentExpired.message', 'Reload the page and start the Free Remote Preview again.'),
                 status: 400,
                 code: 'invalid_free_submit_intent',
                 title: $this->translate('proCrawler.freeIntentExpired.title', 'Free Remote Preview request expired'),
@@ -412,7 +429,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
     public function submitPageAction(ServerRequestInterface $request): ResponseInterface
     {
-        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
+        // A single-page scan is "Scan this page", not a site crawl.
+        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanNow');
         if ($accessResponse !== null) {
             return $accessResponse;
         }
@@ -421,57 +439,228 @@ final class ProCrawlerAjaxController extends AbstractApiController
         $data = is_array($body) ? $body : [];
 
         $pageUid = (int)($data['pageUid'] ?? 0);
-        $pageUrl = trim((string)($data['pageUrl'] ?? ''));
-        $siteIdentifier = trim((string)($data['siteIdentifier'] ?? ''));
+        $remotePageUid = (int)($data['remotePageUid'] ?? 0);
+        $requestedSiteIdentifier = trim((string)($data['siteIdentifier'] ?? ''));
         $axeLocale = trim((string)($data['axeLocale'] ?? 'en'));
         $cookieDismiss = array_key_exists('cookieDismiss', $data)
             ? (bool)$data['cookieDismiss']
             : true;
         $languageUid = $this->requestParameterService->getLanguageUidFromParameters($data);
-        $submitLock = null;
 
-        if ($pageUid <= 0 || $pageUrl === '' || $siteIdentifier === '') {
-            return $this->badRequestResponse('Missing pageUid, pageUrl or siteIdentifier');
+        if ($pageUid <= 0) {
+            return $this->badRequestResponse('Missing pageUid');
         }
 
-        if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+        if (!$this->scopeAccessService->canEditPage($pageUid)) {
             return $this->forbiddenResponse();
         }
 
         try {
-            $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
-            if ($site === null) {
-                return $this->badRequestResponse('Unknown siteIdentifier');
+            $target = $this->resolveSinglePageScanTarget($pageUid, $remotePageUid, $requestedSiteIdentifier, $languageUid);
+            if ($target instanceof ResponseInterface) {
+                return $target;
             }
-            $languageContext = $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
-            $languageCode = $this->siteLanguageService->resolveLanguageCode($languageContext);
 
-            $resolved = $this->remoteScanInputResolver->resolveForSinglePage(
-                site: $site,
-                pageUrl: $pageUrl,
-                axeLocale: $axeLocale !== '' ? $axeLocale : 'en',
+            $submission = $this->submitBoundSinglePageScan(
+                site: $target['site'],
+                pageUrl: $target['pageUrl'],
+                pageUid: $pageUid,
+                languageUid: $target['languageUid'],
+                axeLocale: $axeLocale,
+                cookieDismiss: $cookieDismiss,
+                requireProOrAgency: false,
             );
 
-            if (
-                $resolved->domain === ''
-                || $resolved->siteIdentifier === ''
-                || $resolved->startUrl === ''
-            ) {
-                return $this->badRequestResponse('Missing page configuration');
+            return $submission instanceof ResponseInterface
+                ? $submission
+                : $this->jsonResponse($submission['payload']);
+        } catch (\InvalidArgumentException) {
+            return $this->badRequestResponse(
+                $this->translate('proCrawler.pageOutsideSite.message', 'This page URL does not belong to the configured TYPO3 site.'),
+                ['code' => 'page_url_outside_site']
+            );
+        } catch (TokenRefreshException $exception) {
+            return $this->buildTokenRefreshExceptionResponse(
+                $exception,
+                'Remote page scan failed.',
+                $request
+            );
+        } catch (\Throwable $exception) {
+            return $this->buildCrawlerExceptionResponse(
+                $exception,
+                'Remote page scan failed.',
+                $request
+            );
+        }
+    }
+
+    /**
+     * "Verify fix": scans the finding's frontend URL again, so the remediation workflow can say whether the
+     * finding is gone. The finding is named by its id only; its URL, site, language and page are read from
+     * the stored scan and bound to the user's page permissions exactly like "Scan this page".
+     */
+    public function verifyFixAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanNow');
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
+        $body = $request->getParsedBody();
+        $findingId = (int)((is_array($body) ? $body : [])['findingId'] ?? 0);
+        $finding = $findingId > 0 ? $this->fixVerificationService->resolveFinding($findingId) : null;
+        if ($finding === null) {
+            return $this->notFoundResponse(
+                $this->translate('verifyFix.error.findingNotFound', 'This finding no longer exists. Open the latest scan of the page.'),
+                ['code' => 'finding_not_found']
+            );
+        }
+
+        $site = $this->siteResolutionService->resolveSiteByIdentifier((string)($finding['scan']['site_identifier'] ?? ''));
+        if (!$site instanceof Site) {
+            return $this->badRequestResponse('Unknown site context', ['code' => 'unknown_site_context']);
+        }
+
+        $scanPageUid = $this->remotePageScanTargetResolver->resolveScanPageUid($finding['page'], $finding['scan'], $site);
+        if (!$this->scopeAccessService->canEditPage($scanPageUid)) {
+            return $this->forbiddenResponse();
+        }
+
+        try {
+            $scanLanguageUid = (int)($finding['scan']['language_uid'] ?? -1);
+            $submission = $this->submitBoundSinglePageScan(
+                site: $site,
+                pageUrl: (string)($finding['page']['url'] ?? ''),
+                pageUid: $scanPageUid,
+                languageUid: $scanLanguageUid >= 0 ? $scanLanguageUid : 0,
+                axeLocale: 'en',
+                cookieDismiss: true,
+                requireProOrAgency: true,
+            );
+            if ($submission instanceof ResponseInterface) {
+                return $submission;
             }
 
-            $proStatus = $this->resolveProStatus($resolved->domain);
-            $crawlerAccessResponse = $this->ensureCrawlerAccess($proStatus);
+            $verificationUid = $this->fixVerificationService->recordRequest(
+                finding: $finding,
+                pageUid: $scanPageUid,
+                verificationJobId: $submission['jobId'],
+                requestedBy: $this->getBackendUserUid(),
+            );
 
-            if ($crawlerAccessResponse !== null) {
-                return $crawlerAccessResponse;
-            }
+            return $this->jsonResponse($submission['payload'] + [
+                'verificationUid' => $verificationUid,
+                'outcome' => 'pending',
+            ]);
+        } catch (\InvalidArgumentException) {
+            return $this->badRequestResponse(
+                $this->translate('proCrawler.pageOutsideSite.message', 'This page URL does not belong to the configured TYPO3 site.'),
+                ['code' => 'page_url_outside_site']
+            );
+        } catch (TokenRefreshException $exception) {
+            return $this->buildTokenRefreshExceptionResponse($exception, 'Fix verification scan failed.', $request);
+        } catch (\Throwable $exception) {
+            return $this->buildCrawlerExceptionResponse($exception, 'Fix verification scan failed.', $request);
+        }
+    }
 
-            $submitLock = $this->acquireRemoteSubmitLock($resolved->siteIdentifier);
-            if (!$submitLock instanceof LockingStrategyInterface) {
-                return $this->buildRemoteSubmitLockConflictResponse($resolved->siteIdentifier);
-            }
+    /**
+     * The outcome of a verification once its scan has been saved: Resolved, Still present or Not verified.
+     */
+    public function verifyFixResultAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $accessResponse = $this->ensureAnyScanPermission();
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
 
+        $verificationUid = (int)($request->getQueryParams()['verificationUid'] ?? 0);
+        $verification = $verificationUid > 0 ? $this->fixVerificationService->findVerification($verificationUid) : null;
+        if ($verification === null) {
+            return $this->notFoundResponse('Unknown verification', ['code' => 'verification_not_found']);
+        }
+
+        $baselineScan = $this->remoteScanRepository->findScanByUid((int)($verification['baseline_scan'] ?? 0));
+        if (!is_array($baselineScan) || !$this->scopeAccessService->canReadRemoteScan($baselineScan)) {
+            return $this->forbiddenResponse();
+        }
+
+        return $this->jsonResponse(['success' => true] + $this->fixVerificationService->presentOutcome(
+            $this->fixVerificationService->evaluate($verification),
+            fn (int $remotePageUid): string => $this->buildRemotePageDetailUrl($remotePageUid, $verification),
+        ));
+    }
+
+    /**
+     * @param array<string, mixed> $verification
+     */
+    private function buildRemotePageDetailUrl(int $remotePageUid, array $verification): string
+    {
+        if ($remotePageUid <= 0) {
+            return '';
+        }
+
+        try {
+            return (string)GeneralUtility::makeInstance(\TYPO3\CMS\Backend\Routing\UriBuilder::class)->buildUriFromRoute(
+                'web_a11y.remotePageDetail',
+                [
+                    'remotePageUid' => $remotePageUid,
+                    'site' => (string)($verification['site_identifier'] ?? ''),
+                    'id' => (int)($verification['page_uid'] ?? 0),
+                ]
+            );
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /**
+     * Submits a single-page scan for a target already bound to the user's page: entitlement, the per-site
+     * submit lock and the one-active-scan-per-site rule, the site's access settings, and the local scan row.
+     *
+     * @return array{payload:array<string, mixed>,jobId:string}|ResponseInterface
+     */
+    private function submitBoundSinglePageScan(
+        Site $site,
+        string $pageUrl,
+        int $pageUid,
+        int $languageUid,
+        string $axeLocale,
+        bool $cookieDismiss,
+        bool $requireProOrAgency,
+    ): array|ResponseInterface {
+        $siteIdentifier = $site->getIdentifier();
+        $languageContext = $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
+        $languageCode = $this->siteLanguageService->resolveLanguageCode($languageContext);
+
+        $resolved = $this->remoteScanInputResolver->resolveForSinglePage(
+            site: $site,
+            pageUrl: $pageUrl,
+            axeLocale: $axeLocale !== '' ? $axeLocale : 'en',
+        );
+
+        if (
+            $resolved->domain === ''
+            || $resolved->siteIdentifier === ''
+            || $resolved->startUrl === ''
+        ) {
+            return $this->badRequestResponse('Missing page configuration');
+        }
+
+        $proStatus = $this->resolveProStatus($resolved->domain);
+        $crawlerAccessResponse = $requireProOrAgency
+            ? $this->ensureProOrAgencyCrawlerAccess($proStatus)
+            : $this->ensureCrawlerAccess($proStatus);
+        if ($crawlerAccessResponse !== null) {
+            return $crawlerAccessResponse;
+        }
+
+        $submitLock = $this->acquireRemoteSubmitLock($resolved->siteIdentifier);
+        if (!$submitLock instanceof LockingStrategyInterface) {
+            return $this->buildRemoteSubmitLockConflictResponse($resolved->siteIdentifier);
+        }
+
+        try {
             $activeScan = $this->remoteScanRepository->findLatestActiveScanBySite($resolved->siteIdentifier);
 
             if (is_array($activeScan)) {
@@ -564,46 +753,33 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 languageUid: $languageContext !== null ? (int)$languageContext['languageId'] : -1,
             );
 
-            return $this->jsonResponse([
-                'success' => true,
+            return [
                 'jobId' => $result->jobId,
-                'status' => $result->status,
-                'siteIdentifier' => $resolved->siteIdentifier,
-                'startUrl' => $resolved->startUrl,
-                'sourceType' => RemoteScanSourceType::SinglePage->value,
-                'sitemapUrl' => null,
-                'languageId' => $languageContext !== null ? (int)$languageContext['languageId'] : null,
-                'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
-                'languageCode' => $languageCode,
-                'captureScreenshot' => $captureScreenshot,
-                'cookieDismiss' => $cookieDismiss,
-                'cookieSelectorsConfigured' => $remoteAccessSettings['cookieSelectors'] !== [],
-                'cookieSelectorsCount' => count($remoteAccessSettings['cookieSelectors']),
-            ]);
-        } catch (\InvalidArgumentException $exception) {
-            return $this->badRequestResponse($exception->getMessage());
-        } catch (TokenRefreshException $exception) {
-            return $this->buildTokenRefreshExceptionResponse(
-                $exception,
-                'Remote page scan failed.',
-                $request
-            );
-        } catch (\Throwable $exception) {
-            return $this->buildCrawlerExceptionResponse(
-                $exception,
-                'Remote page scan failed.',
-                $request
-            );
+                'payload' => [
+                    'success' => true,
+                    'jobId' => $result->jobId,
+                    'status' => $result->status,
+                    'siteIdentifier' => $resolved->siteIdentifier,
+                    'startUrl' => $resolved->startUrl,
+                    'sourceType' => RemoteScanSourceType::SinglePage->value,
+                    'sitemapUrl' => null,
+                    'languageId' => $languageContext !== null ? (int)$languageContext['languageId'] : null,
+                    'languageUid' => $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                    'languageCode' => $languageCode,
+                    'captureScreenshot' => $captureScreenshot,
+                    'cookieDismiss' => $cookieDismiss,
+                    'cookieSelectorsConfigured' => $remoteAccessSettings['cookieSelectors'] !== [],
+                    'cookieSelectorsCount' => count($remoteAccessSettings['cookieSelectors']),
+                ],
+            ];
         } finally {
-            if ($submitLock instanceof LockingStrategyInterface) {
-                $this->releaseRemoteSubmitLock($submitLock);
-            }
+            $this->releaseRemoteSubmitLock($submitLock);
         }
     }
 
     public function cancelSiteAction(ServerRequestInterface $request): ResponseInterface
     {
-        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
+        $accessResponse = $this->ensureAnyScanPermission();
         if ($accessResponse !== null) {
             return $accessResponse;
         }
@@ -627,6 +803,15 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $validatedScan = $this->resolveValidatedLocalScanJob($jobId, $siteIdentifier, $site);
             if ($validatedScan instanceof ResponseInterface) {
                 return $validatedScan;
+            }
+
+            // Cancelling a site crawl is a site-wide action; a page scan only needs "Scan this page".
+            $scopeAccessResponse = $this->ensureBackendUserAccess(
+                $this->accessControlService,
+                (string)($validatedScan['scan_scope'] ?? '') === 'page' ? 'scanNow' : 'scanAll'
+            );
+            if ($scopeAccessResponse !== null) {
+                return $scopeAccessResponse;
             }
 
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
@@ -686,7 +871,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
     public function statusAction(ServerRequestInterface $request): ResponseInterface
     {
-        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
+        $accessResponse = $this->ensureAnyScanPermission();
         if ($accessResponse !== null) {
             return $accessResponse;
         }
@@ -712,16 +897,15 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
-            $proStatus = $this->resolveProStatus($domain);
-            $result = $this->hasPaidCrawlerAccess($proStatus)
-                ? $this->proCrawlerService->getStatus(
-                    domain: $domain,
+            $result = $this->scanUsesFreeChannel($validatedScan)
+                ? $this->freeRemotePreviewService->getStatus(
+                    siteUrl: rtrim((string)$site->getBase(), '/') . '/',
+                    siteIdentifier: $siteIdentifier,
                     version: $this->extensionContextService->getExtensionVersion(),
                     jobId: $jobId,
                 )
-                : $this->freeRemotePreviewService->getStatus(
-                    siteUrl: rtrim((string)$site->getBase(), '/') . '/',
-                    siteIdentifier: $siteIdentifier,
+                : $this->proCrawlerService->getStatus(
+                    domain: $domain,
                     version: $this->extensionContextService->getExtensionVersion(),
                     jobId: $jobId,
                 );
@@ -786,7 +970,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
     public function summaryAction(ServerRequestInterface $request): ResponseInterface
     {
-        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
+        $accessResponse = $this->ensureAnyScanPermission();
         if ($accessResponse !== null) {
             return $accessResponse;
         }
@@ -821,8 +1005,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
 
-            $proStatus = $this->resolveProStatus($domain);
-            $isFreePreview = !$this->hasPaidCrawlerAccess($proStatus);
+            $isFreePreview = $this->scanUsesFreeChannel($validatedScan);
             $summaryResult = $isFreePreview
                 ? $this->freeRemotePreviewService->getSummary(
                     siteUrl: rtrim((string)$site->getBase(), '/') . '/',
@@ -931,8 +1114,86 @@ final class ProCrawlerAjaxController extends AbstractApiController
     }
 
     /**
+     * Derives what a single-page scan may target from the page the user may edit.
+     *
+     * The site is the page's site; a site identifier from the browser may only agree with it. The URL is
+     * resolved here — from the page and language, or from a stored frontend page whose URL is bound to
+     * that page (a URL without a mapped page belongs to the site root). The browser never names the URL,
+     * so it cannot point the scan, and the site's HTTP credentials and scanner token, at another site.
+     *
+     * @return array{site:Site,pageUrl:string,languageUid:int}|ResponseInterface
+     */
+    private function resolveSinglePageScanTarget(
+        int $pageUid,
+        int $remotePageUid,
+        string $requestedSiteIdentifier,
+        int $languageUid,
+    ): array|ResponseInterface {
+        $site = $this->siteResolutionService->resolveSiteByPageId($pageUid);
+        if (!$site instanceof Site) {
+            return $this->badRequestResponse('Unknown site context for pageUid', ['code' => 'unknown_site_context']);
+        }
+
+        if ($requestedSiteIdentifier !== '' && $requestedSiteIdentifier !== $site->getIdentifier()) {
+            return $this->badRequestResponse(
+                $this->translate('proCrawler.sitePageMismatch.message', 'The selected page does not belong to the requested site.'),
+                ['code' => 'site_page_mismatch']
+            );
+        }
+
+        if ($remotePageUid > 0) {
+            $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
+            $remoteScan = is_array($remotePage)
+                ? $this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0))
+                : null;
+            if (!is_array($remotePage) || !is_array($remoteScan)
+                || (string)($remoteScan['site_identifier'] ?? '') !== $site->getIdentifier()) {
+                return $this->badRequestResponse(
+                    $this->translate('proCrawler.sitePageMismatch.message', 'The selected page does not belong to the requested site.'),
+                    ['code' => 'site_page_mismatch']
+                );
+            }
+
+            if ($this->remotePageScanTargetResolver->resolveScanPageUid($remotePage, $remoteScan, $site) !== $pageUid) {
+                return $this->forbiddenResponse();
+            }
+
+            $scanLanguageUid = (int)($remoteScan['language_uid'] ?? -1);
+
+            return [
+                'site' => $site,
+                'pageUrl' => trim((string)($remotePage['url'] ?? '')),
+                'languageUid' => $scanLanguageUid >= 0 ? $scanLanguageUid : max(0, $languageUid),
+            ];
+        }
+
+        $languageUid = max(0, $languageUid);
+        $pageUrl = trim($this->frontendPageUrlService->resolveForPage($site, $pageUid, $languageUid));
+        if ($pageUrl === '') {
+            return $this->badRequestResponse(
+                $this->translate('overview.remote.notTranslated', 'This page is not translated in the selected site language.'),
+                ['code' => 'unresolved_page_url']
+            );
+        }
+
+        return ['site' => $site, 'pageUrl' => $pageUrl, 'languageUid' => $languageUid];
+    }
+
+    /**
      * @return array<string, mixed>|ResponseInterface
      */
+    /**
+     * A scan is followed through the channel that submitted it, recorded on the scan: a Free scan keeps its
+     * Free token and quota identity after an upgrade, and a paid scan never falls back to the Free channel
+     * when the paid entitlement changes while it runs — it then fails with the licence state instead.
+     *
+     * @param array<string, mixed> $scan
+     */
+    private function scanUsesFreeChannel(array $scan): bool
+    {
+        return (int)($scan['is_free_preview'] ?? 0) === 1;
+    }
+
     private function resolveValidatedLocalScanJob(string $jobId, string $siteIdentifier, Site $site): array|ResponseInterface
     {
         $scan = $this->remoteScanRepository->findScanByJobId($jobId);
@@ -954,9 +1215,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             );
         }
 
-        $pageUid = (int)($scan['page_uid'] ?? 0);
-        $accessPageUid = $pageUid > 0 ? $pageUid : (int)$site->getRootPageId();
-        if ($accessPageUid > 0 && !$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $accessPageUid)) {
+        if (!$this->scopeAccessService->canEditRemoteScan($scan)) {
             return $this->buildSimpleErrorResponse(
                 message: $this->translate('proCrawler.jobAccessDenied.message', 'Access denied for this remote scan job.'),
                 status: 403,
@@ -966,6 +1225,25 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return $scan;
+    }
+
+    /**
+     * Following a scan (status, results, cancel) is open to anyone who may start one of either kind;
+     * the job itself is then bound to the user's page or site by resolveValidatedLocalScanJob().
+     */
+    private function ensureAnyScanPermission(): ?ResponseInterface
+    {
+        $accessResponse = $this->ensureBackendUserAccess($this->accessControlService);
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+
+        $backendUser = $this->getBackendUser();
+
+        return $this->accessControlService->canShowScanNow($backendUser)
+            || $this->accessControlService->canShowScanAll($backendUser)
+            ? null
+            : $this->forbiddenResponse();
     }
 
     private function remoteJobIdMatches(?string $responseJobId, string $requestJobId): bool
@@ -1017,6 +1295,23 @@ final class ProCrawlerAjaxController extends AbstractApiController
         );
     }
 
+    /**
+     * Fix verification is a PRO/Agency remediation feature; a trial keeps its scan budget for scanning.
+     */
+    private function ensureProOrAgencyCrawlerAccess(object $proStatus): ?ResponseInterface
+    {
+        if ((bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false) && !(bool)($proStatus->isTrial ?? false)) {
+            return null;
+        }
+
+        return $this->buildSimpleErrorResponse(
+            message: $this->translate('verifyFix.error.planRequired', 'Verify fix is part of AQG PRO and Agency.'),
+            status: 403,
+            code: 'pro_plan_required',
+            title: $this->translate('remoteScanError.notAllowed.title', 'Remote scan not allowed')
+        );
+    }
+
     private function hasPaidCrawlerAccess(object $proStatus): bool
     {
         return (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
@@ -1046,102 +1341,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
      */
     private function buildRemoteAccessSettingsForCrawl(string $siteIdentifier = ''): array
     {
-        $defaultRuleset = $this->rulesetRepository->findDefault();
-        $siteRuleset = $siteIdentifier !== ''
-            ? $this->rulesetRepository->findBySiteIdentifier($siteIdentifier)
-            : null;
-
-        if (!is_array($defaultRuleset) && !is_array($siteRuleset)) {
-            return [
-                'scannerPreviewToken' => '',
-                'scannerTokenLength' => 0,
-                'resolvedRulesetUid' => 0,
-                'resolvedRulesetSiteIdentifier' => '',
-                'httpAuthUser' => '',
-                'httpAuthPass' => '',
-                'excludedPatterns' => [],
-                'priorityUrls' => [],
-                'cookieSelectors' => [],
-            ];
-        }
-
-        $scannerToken = $this->firstNonEmptyRulesetValue($siteRuleset, $defaultRuleset, 'scanner_token');
-        $scannerTokenRuleset = $this->resolveRulesetForFirstNonEmptyValue($siteRuleset, $defaultRuleset, 'scanner_token');
-        $httpAuthUser = $this->firstNonEmptyRulesetValue($siteRuleset, $defaultRuleset, 'http_auth_user');
-        $encryptedHttpAuthPass = $this->firstNonEmptyRulesetValue($siteRuleset, $defaultRuleset, 'http_auth_pass');
-        $excludedPatterns = $this->firstNonEmptyRulesetList($siteRuleset, $defaultRuleset, 'excluded_patterns');
-        $priorityUrls = $this->firstNonEmptyRulesetList($siteRuleset, $defaultRuleset, 'crawl_priority_urls');
-        $cookieSelectors = $this->firstNonEmptyRulesetList($siteRuleset, $defaultRuleset, 'cookie_accept_selectors');
-
-        $httpAuthPass = $encryptedHttpAuthPass;
-        if ($httpAuthPass !== '') {
-            $httpAuthPass = $this->secretEncryptionService->decrypt($httpAuthPass);
-        }
-
-        return [
-            'scannerPreviewToken' => $scannerToken,
-            'scannerTokenLength' => strlen($scannerToken),
-            'resolvedRulesetUid' => is_array($scannerTokenRuleset) ? (int)($scannerTokenRuleset['uid'] ?? 0) : 0,
-            'resolvedRulesetSiteIdentifier' => is_array($scannerTokenRuleset) ? (string)($scannerTokenRuleset['site_identifier'] ?? '') : '',
-            'httpAuthUser' => $httpAuthUser,
-            'httpAuthPass' => $httpAuthPass,
-            'excludedPatterns' => $excludedPatterns,
-            'priorityUrls' => $priorityUrls,
-            'cookieSelectors' => $cookieSelectors,
-        ];
+        return $this->remoteScanAccessSettingsService->buildForSite($siteIdentifier);
     }
-
-    /**
-     * @param array<string, mixed>|null $siteRuleset
-     * @param array<string, mixed>|null $defaultRuleset
-     */
-    private function firstNonEmptyRulesetValue(?array $siteRuleset, ?array $defaultRuleset, string $field): string
-    {
-        $siteValue = trim((string)($siteRuleset[$field] ?? ''));
-        if ($siteValue !== '') {
-            return $siteValue;
-        }
-
-        return trim((string)($defaultRuleset[$field] ?? ''));
-    }
-
-    /**
-     * @param array<string, mixed>|null $siteRuleset
-     * @param array<string, mixed>|null $defaultRuleset
-     * @return array<string, mixed>|null
-     */
-    private function resolveRulesetForFirstNonEmptyValue(?array $siteRuleset, ?array $defaultRuleset, string $field): ?array
-    {
-        $siteValue = trim((string)($siteRuleset[$field] ?? ''));
-        if ($siteValue !== '') {
-            return $siteRuleset;
-        }
-
-        $defaultValue = trim((string)($defaultRuleset[$field] ?? ''));
-        if ($defaultValue !== '') {
-            return $defaultRuleset;
-        }
-
-        return $siteRuleset ?? $defaultRuleset;
-    }
-
-    /**
-     * @param array<string, mixed>|null $siteRuleset
-     * @param array<string, mixed>|null $defaultRuleset
-     * @return list<string>
-     */
-    private function firstNonEmptyRulesetList(?array $siteRuleset, ?array $defaultRuleset, string $field): array
-    {
-        $siteList = StringListUtility::decodeJsonList((string)($siteRuleset[$field] ?? '[]'));
-        if ($siteList !== []) {
-            return $siteList;
-        }
-
-        return StringListUtility::decodeJsonList((string)($defaultRuleset[$field] ?? '[]'));
-    }
-
-
-
 
     /**
      * @param array{scannerPreviewToken:string,httpAuthUser:string,httpAuthPass:string,excludedPatterns:list<string>,priorityUrls:list<string>,cookieSelectors:list<string>} $remoteAccessSettings
@@ -1317,28 +1518,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         string $fallbackMessage,
         ?ServerRequestInterface $request = null,
     ): ResponseInterface {
-        foreach ($this->collectExceptionMessages($exception) as $message) {
-            $normalized = strtolower($message);
-
-            if (
-                str_contains($normalized, 'aqg crawler http')
-                || str_contains($normalized, 'aqg crawler logical error')
-                || str_contains($normalized, 'remote crawler submit failed:')
-                || str_contains($normalized, 'remote crawler results request failed:')
-                || str_contains($normalized, 'remote crawler status request failed:')
-                || str_contains($normalized, 'remote crawler summary request failed:')
-                || str_contains($normalized, 'remote crawler cancel request failed:')
-            ) {
-                return $this->buildCrawlerExceptionResponse($exception, $fallbackMessage, $request);
-            }
-        }
-
-        return $this->buildSimpleErrorResponse(
-            message: $exception->getMessage(),
-            status: 403,
-            code: 'token_refresh_failed',
-            title: $this->translate('proCrawler.authFailed.title', 'Licence authentication failed')
-        );
+        return $this->buildCrawlerExceptionResponse($exception, $fallbackMessage, $request);
     }
 
     private function buildFreePreviewExceptionResponse(FreePreviewException $exception): ResponseInterface
@@ -1373,56 +1553,6 @@ final class ProCrawlerAjaxController extends AbstractApiController
         return $this->jsonResponse($payload, $exception->httpStatus);
     }
 
-    /**
-     * @return list<string>
-     */
-    private function collectExceptionMessages(\Throwable $exception): array
-    {
-        $messages = [];
-        $current = $exception;
-
-        do {
-            $message = trim($current->getMessage());
-            if ($message !== '') {
-                $messages[] = $message;
-            }
-
-            $current = $current->getPrevious();
-        } while ($current instanceof \Throwable);
-
-        return $messages;
-    }
-
-    private function resolveCrawlerExceptionMessage(\Throwable $exception, string $fallbackMessage): string
-    {
-        $messages = $this->collectExceptionMessages($exception);
-
-        foreach ($messages as $message) {
-            $normalized = strtolower($message);
-
-            if (
-                str_contains($normalized, 'aqg crawler http')
-                || str_contains($normalized, 'aqg crawler logical error')
-                || str_contains($normalized, 'remote crawler submit failed:')
-                || str_contains($normalized, 'remote crawler results request failed:')
-                || str_contains($normalized, 'remote crawler status request failed:')
-                || str_contains($normalized, 'remote crawler summary request failed:')
-                || str_contains($normalized, 'remote crawler cancel request failed:')
-                || str_contains($normalized, '| body=')
-            ) {
-                return $message;
-            }
-        }
-
-        foreach ($messages as $message) {
-            if ($message !== '') {
-                return $message;
-            }
-        }
-
-        return $fallbackMessage;
-    }
-
     private function buildSimpleErrorResponse(
         string $message,
         int $status,
@@ -1452,90 +1582,57 @@ final class ProCrawlerAjaxController extends AbstractApiController
         ?ServerRequestInterface $request = null,
     ): ResponseInterface {
         $payload = $this->buildCrawlerExceptionPayload($exception, $fallbackMessage, $request);
-        $status = (int)($payload['status'] ?? 500);
+        $response = $this->jsonResponse($payload, (int)$payload['status']);
 
-        if ($status < 400 || $status > 599) {
-            $status = 500;
-        }
-
-        return $this->jsonResponse($payload, $status);
+        return isset($payload['retryAfter'])
+            ? $response->withHeader('Retry-After', (string)$payload['retryAfter'])
+            : $response;
     }
 
+    /**
+     * The browser gets a bounded code and a translated message; the exception text — crawler URL, payload
+     * keys, transport or database errors — goes to the log only. Administrators can ask for the crawler's
+     * sanitized details with debug=1.
+     *
+     * @return array<string, mixed>
+     */
     private function buildCrawlerExceptionPayload(
         \Throwable $exception,
         string $fallbackMessage,
         ?ServerRequestInterface $request = null,
     ): array {
-        $rawMessage = $this->resolveCrawlerExceptionMessage($exception, $fallbackMessage);
-        $status = 500;
-        $code = 'remote_crawler_request_failed';
-        $message = $rawMessage !== '' ? $rawMessage : $fallbackMessage;
-        $details = [];
-
-        if (
-            preg_match('/AQG crawler HTTP\s+(?<status>\d+):\s*(?<message>[^|]+)/i', $rawMessage, $matches) === 1
-        ) {
-            $status = (int)($matches['status'] ?? 500);
-            $message = trim((string)($matches['message'] ?? $message));
-        }
-
-        $decodedBody = $this->decodeCrawlerErrorBody($rawMessage);
-        if (is_array($decodedBody)) {
-            $errorPayload = is_array($decodedBody['error'] ?? null)
-                ? $decodedBody['error']
-                : $decodedBody;
-
-            $resolvedCode = trim((string)($errorPayload['code'] ?? ''));
-            if ($resolvedCode !== '') {
-                $code = $resolvedCode;
-            }
-
-            $resolvedMessage = trim((string)($errorPayload['message'] ?? ''));
-            if ($resolvedMessage !== '') {
-                $message = $resolvedMessage;
-            }
-
-            $resolvedStatus = (int)($errorPayload['status'] ?? $decodedBody['status'] ?? 0);
-            if ($resolvedStatus >= 400 && $resolvedStatus <= 599) {
-                $status = $resolvedStatus;
-            }
-
-            $resolvedDetails = $errorPayload['details'] ?? null;
-            if (is_array($resolvedDetails)) {
-                $details = $resolvedDetails;
-            }
-        }
-
-        if ($message === '') {
-            $message = $fallbackMessage;
-        }
-
-        if ($status < 400 || $status > 599) {
-            $status = 500;
-        }
+        $presented = $this->remoteScanErrorPresenter->present(
+            $exception,
+            $exception instanceof TokenRefreshException ? 'token_refresh_failed' : 'remote_crawler_request_failed'
+        );
 
         $payload = [
             'success' => false,
-            'code' => $code,
-            'title' => $this->resolveCrawlerErrorTitle($code, $status),
-            'message' => $message,
-            'status' => $status,
-            'error' => $message,
+            'code' => $presented['code'],
+            'title' => $presented['title'],
+            'message' => $presented['message'],
+            'status' => $presented['status'],
+            'error' => $presented['message'],
         ];
-
-        $debug = $this->extractCrawlerDebugFromRawMessage($rawMessage);
-        if ($details !== [] || $debug !== []) {
-            $this->logRemoteCrawlerError($exception, [
-                'code' => $code,
-                'status' => $status,
-                'details' => $details,
-                'debug' => $debug,
-            ]);
+        if ($presented['retryAfter'] !== null && $presented['retryAfter'] > 0) {
+            $payload['retryAfter'] = $presented['retryAfter'];
         }
+
+        $apiException = $this->findApiRequestFailedException($exception);
+        $details = $apiException instanceof ApiRequestFailedException ? $apiException->details : [];
+        $debug = $this->extractCrawlerDebugFromRawMessage($apiException?->getMessage() ?? '');
+
+        $this->logRemoteCrawlerError($exception, [
+            'context' => $fallbackMessage,
+            'code' => $presented['code'],
+            'status' => $presented['status'],
+            'details' => $details,
+            'debug' => $debug,
+        ]);
 
         if ($this->shouldExposeCrawlerDebug($request)) {
             if ($details !== []) {
-                $payload['details'] = $details;
+                $payload['details'] = $this->sanitizeLogContext($details);
             }
             if ($debug !== []) {
                 $payload['debug'] = $debug;
@@ -1545,6 +1642,18 @@ final class ProCrawlerAjaxController extends AbstractApiController
         return $payload;
     }
 
+    private function findApiRequestFailedException(\Throwable $exception): ?ApiRequestFailedException
+    {
+        $current = $exception;
+        do {
+            if ($current instanceof ApiRequestFailedException) {
+                return $current;
+            }
+            $current = $current->getPrevious();
+        } while ($current instanceof \Throwable);
+
+        return null;
+    }
 
     /**
      * @param array<string, mixed> $context
@@ -1569,10 +1678,6 @@ final class ProCrawlerAjaxController extends AbstractApiController
 
     private function shouldExposeCrawlerDebug(?ServerRequestInterface $request): bool
     {
-        if (Environment::getContext()->isDevelopment()) {
-            return true;
-        }
-
         if ($request === null) {
             return false;
         }
@@ -1620,32 +1725,5 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return $debug;
-    }
-
-    private function decodeCrawlerErrorBody(string $rawMessage): ?array
-    {
-        if (
-            preg_match('/\|\s*body=(\{.*\})\s*$/s', $rawMessage, $matches) !== 1
-            || !isset($matches[1])
-        ) {
-            return null;
-        }
-
-        $decoded = json_decode($matches[1], true);
-
-        return is_array($decoded) ? $decoded : null;
-    }
-
-    private function resolveCrawlerErrorTitle(string $code, int $status): string
-    {
-        return match ($code) {
-            'trial_crawl_limit' => 'Trial limit reached',
-            'token_refresh_failed' => 'PRO authentication failed',
-            'pro_crawler_required' => 'AQG PRO required',
-            'forbidden_resource' => 'Remote scan access lost',
-            default => $status === 429
-                ? 'Remote scan limit reached'
-                : ($status === 403 ? 'Remote scan not allowed' : 'Remote scan failed'),
-        };
     }
 }

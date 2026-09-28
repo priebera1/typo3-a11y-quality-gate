@@ -24,6 +24,7 @@ use Priebera\A11yQualityGate\Remediation\ImageRemediationPreviewService;
 use Priebera\A11yQualityGate\Service\LocalIssueGuidanceService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
+use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
@@ -75,6 +76,7 @@ final class PageDetailController extends AbstractBackendModuleController
         private readonly ImageRemediationPreviewService $imageRemediationPreviewService,
         private readonly LocalIssueGuidanceService $localIssueGuidanceService,
         private readonly AiConfigurationRepositoryInterface $aiConfigurationRepository,
+        private readonly ScopeAccessService $scopeAccessService,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -90,7 +92,14 @@ final class PageDetailController extends AbstractBackendModuleController
     {
         $moduleTemplate = $this->createModuleTemplate($request);
         $pageUid = $this->requestParameterService->getPageUidOrZero($request);
-        $site = $this->resolveSiteForPage($request, $pageUid);
+        // Page findings are scoped by the page: its own site, never one named by the request, and only
+        // for a page the user may read.
+        $site = $pageUid > 0
+            ? $this->siteResolutionService->resolveSiteByPageId($pageUid)
+            : $this->resolveSiteForPage($request, $pageUid);
+        if ($pageUid > 0 && !$this->scopeAccessService->canReadPage($pageUid)) {
+            return $this->resourceAccessDeniedResponse();
+        }
 
         $this->backendJavaScriptModuleService->loadBackendModule(
             $this->pageRenderer,
@@ -705,6 +714,11 @@ final class PageDetailController extends AbstractBackendModuleController
         $this->activeLanguageUidForUrls = $languageUid;
 
         $expiry = $this->resolveIgnoreExpiry($body);
+
+        // A site-wide ignore changes findings on every page of the site, so it needs the site root.
+        if (!$this->scopeAccessService->canEditSite($this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier))) {
+            return $this->resourceAccessDeniedResponse();
+        }
 
         if (!$expiry['valid']) {
             $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');

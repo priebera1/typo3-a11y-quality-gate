@@ -75,6 +75,39 @@ final class ProLicenceFailureClassificationTest extends TestCase
 
         self::assertSame('expired', $expired->reason);
         self::assertSame('invalid_key', $invalidWithoutDetails->reason);
+
+        // A removed Agency project is a definitive answer: it replaces cached paid state instead of riding grace.
+        $removed = LicenceValidationResult::fromResponseDto(LicenceValidationResponseDto::fromArray([
+            'success' => false,
+            'error' => ['code' => 'licence_project_removed', 'details' => ['reason' => 'project_removed']],
+        ]));
+        $removedWithoutDetails = LicenceValidationResult::fromResponseDto(LicenceValidationResponseDto::fromArray([
+            'success' => false,
+            'error' => ['code' => 'licence_project_removed', 'message' => 'removed'],
+        ]));
+        self::assertSame('project_removed', $removed->reason);
+        self::assertSame('project_removed', $removedWithoutDetails->reason);
+        self::assertFalse($removed->isTransientFailure());
+    }
+
+    #[Test]
+    public function anAgencyValidationCarriesItsProjectUsageThroughTheCache(): void
+    {
+        $result = LicenceValidationResult::fromResponseDto(LicenceValidationResponseDto::fromArray([
+            'success' => true,
+            'valid' => true,
+            'plan' => 'agency',
+            'project' => ['multi_project' => true, 'id' => 'primary', 'active_projects' => 3, 'max_projects' => 25],
+        ]));
+        $restored = LicenceValidationResult::fromCacheArray($result->toArray());
+
+        self::assertSame(3, $restored->projectsActive);
+        self::assertSame(25, $restored->projectsMax);
+
+        $pro = LicenceValidationResult::fromResponseDto(LicenceValidationResponseDto::fromArray([
+            'success' => true, 'valid' => true, 'plan' => 'pro', 'project' => ['multi_project' => false],
+        ]));
+        self::assertNull($pro->projectsMax, 'A single-project licence shows no project slots.');
     }
 
     private function service(AqgApiClient $apiClient): ProLicenceService

@@ -375,5 +375,77 @@ CREATE TABLE tx_scheduler_task (
     tx_a11yqualitygate_root_pid int(11) DEFAULT '0' NOT NULL,
     tx_a11yqualitygate_depth int(11) DEFAULT '99' NOT NULL,
     tx_a11yqualitygate_language_uid int(11) DEFAULT '-1' NOT NULL,
-    tx_a11yqualitygate_changed_only tinyint(1) DEFAULT '0' NOT NULL
+    tx_a11yqualitygate_changed_only tinyint(1) DEFAULT '0' NOT NULL,
+    tx_a11yqualitygate_monitor_site varchar(255) DEFAULT '' NOT NULL,
+    tx_a11yqualitygate_monitor_language int(11) DEFAULT '0' NOT NULL,
+    tx_a11yqualitygate_monitor_recipients varchar(1000) DEFAULT '' NOT NULL,
+    tx_a11yqualitygate_monitor_max_pages int(11) DEFAULT '500' NOT NULL,
+    tx_a11yqualitygate_monitor_max_wait int(11) DEFAULT '1200' NOT NULL,
+    tx_a11yqualitygate_monitor_backend_url varchar(255) DEFAULT '' NOT NULL
+);
+
+#
+# Table structure for table 'tx_a11y_fix_verification'
+#
+# One "Verify fix" request: which finding (rule on a frontend URL) was checked again, by which scan,
+# and what that scan showed. The baseline scan and the verification scan stay referenced, so the
+# outcome can always be traced to the scan that produced it.
+#
+CREATE TABLE tx_a11y_fix_verification (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    rule_id varchar(255) DEFAULT '' NOT NULL,
+    url varchar(2048) DEFAULT '' NOT NULL,
+    page_uid int(11) DEFAULT '0' NOT NULL,
+    language_uid int(11) DEFAULT '-1' NOT NULL,
+    baseline_issue int(11) DEFAULT '0' NOT NULL,
+    baseline_scan int(11) DEFAULT '0' NOT NULL,
+    baseline_occurrences int(11) DEFAULT '0' NOT NULL,
+    verification_job_id varchar(255) DEFAULT '' NOT NULL,
+    verification_scan int(11) DEFAULT '0' NOT NULL,
+    outcome varchar(20) DEFAULT 'pending' NOT NULL,
+    outcome_reason varchar(50) DEFAULT '' NOT NULL,
+    remaining_occurrences int(11) DEFAULT '0' NOT NULL,
+    requested_by int(11) DEFAULT '0' NOT NULL,
+    evaluated_at int(11) DEFAULT '0' NOT NULL,
+
+    PRIMARY KEY (uid),
+    KEY baseline_issue (baseline_issue),
+    KEY verification_job_id (verification_job_id(64)),
+    KEY site_rule (site_identifier(50), rule_id(100))
+);
+
+#
+# Table structure for table 'tx_a11y_monitoring_run'
+#
+# Scheduled monitoring (a11y:monitor): one row per monitoring scan, with the compatible baseline it was
+# compared with, whether its scan covered everything the baseline had checked (only then is it the next
+# runs baseline), and the state that was (or was not) notified.
+#
+CREATE TABLE tx_a11y_monitoring_run (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    language_uid int(11) DEFAULT '-1' NOT NULL,
+    job_id varchar(255) DEFAULT '' NOT NULL,
+    status varchar(20) DEFAULT 'submitted' NOT NULL,
+    outcome varchar(30) DEFAULT '' NOT NULL,
+    baseline_job_id varchar(255) DEFAULT '' NOT NULL,
+    new_issue_types int(11) DEFAULT '0' NOT NULL,
+    regressed_issue_types int(11) DEFAULT '0' NOT NULL,
+    state_fingerprint varchar(100) DEFAULT '' NOT NULL,
+    coverage_complete tinyint(1) unsigned DEFAULT '0' NOT NULL,
+    notified_at int(11) DEFAULT '0' NOT NULL,
+    evaluated_at int(11) DEFAULT '0' NOT NULL,
+
+    PRIMARY KEY (uid),
+    KEY site_language (site_identifier(50), language_uid),
+    KEY job_id (job_id(64))
 );

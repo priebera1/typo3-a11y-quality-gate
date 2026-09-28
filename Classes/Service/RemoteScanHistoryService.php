@@ -146,7 +146,8 @@ final class RemoteScanHistoryService
         string $siteBase,
         string $siteIdentifier,
         string $sourceType,
-        string $startUrl = ''
+        string $startUrl = '',
+        ?int $languageId = null,
     ): array {
         $siteIdentifier = trim($siteIdentifier);
         $sourceType = strtolower(trim($sourceType));
@@ -180,6 +181,7 @@ final class RemoteScanHistoryService
                 siteId: $siteIdentifier,
                 sourceType: $sourceType,
                 startUrl: $startUrl,
+                languageId: $languageId,
             );
         } catch (TokenRefreshException $exception) {
             $this->logHistoryError('AQG regression alert request failed', $exception);
@@ -277,7 +279,7 @@ final class RemoteScanHistoryService
     /**
      * @return array<string, mixed>
      */
-    private function emptyRegressionAlert(string $message = ''): array
+    public function emptyRegressionAlert(string $message = ''): array
     {
         return [
             'available' => false,
@@ -576,7 +578,7 @@ final class RemoteScanHistoryService
             $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.scoreChange', 'Score change'), 'value' => $this->formatSignedInteger($scoreDelta), 'tone' => $scoreDelta < 0 ? 'warning' : ($scoreDelta > 0 ? 'positive' : 'neutral')];
         }
         if ($findingsDelta !== null) {
-            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.findingsChange', 'Findings change'), 'value' => $this->formatSignedInteger($findingsDelta), 'tone' => $findingsDelta > 0 ? 'warning' : ($findingsDelta < 0 ? 'positive' : 'neutral')];
+            $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.findingsChange', 'Occurrences change'), 'value' => $this->formatSignedInteger($findingsDelta), 'tone' => $findingsDelta > 0 ? 'warning' : ($findingsDelta < 0 ? 'positive' : 'neutral')];
         }
         if ($newCritical !== null) {
             $rows[] = ['label' => BackendLabelUtility::translate('remote.regression.newCritical', 'New critical'), 'value' => (string)$newCritical, 'tone' => $newCritical > 0 ? 'warning' : 'neutral'];

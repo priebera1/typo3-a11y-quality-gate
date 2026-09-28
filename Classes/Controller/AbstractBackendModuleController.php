@@ -131,6 +131,21 @@ abstract class AbstractBackendModuleController
         return null;
     }
 
+    /**
+     * For a page or result outside the user's page permissions: flash "Access denied" and open the module
+     * start screen. Never redirects back to the referer, which may be the denied screen itself.
+     */
+    protected function resourceAccessDeniedResponse(): ResponseInterface
+    {
+        $this->addFlashMessage(
+            $this->translateWithFallback('module.accessDenied', 'Access denied.'),
+            ContextualFeedbackSeverity::ERROR,
+            $this->translateWithFallback('module.title', 'Accessibility')
+        );
+
+        return new RedirectResponse($this->buildRouteUrl('web_a11y'), 303);
+    }
+
     private function accessDeniedRedirect(ServerRequestInterface $request): ResponseInterface
     {
         $this->addFlashMessage(

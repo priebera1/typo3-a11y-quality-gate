@@ -15,6 +15,11 @@
         <f:if condition="{emptyState.hint}">
             <p class="aqg-module-empty__hint">{emptyState.hint}</p>
         </f:if>
+        <f:if condition="{emptyState.actionUrl}">
+            <p class="aqg-module-empty__actions">
+                <a href="{emptyState.actionUrl}" class="btn btn-default btn-sm">{emptyState.actionLabel}</a>
+            </p>
+        </f:if>
     </div>
 </div>
 </html>

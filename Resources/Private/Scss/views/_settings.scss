@@ -1270,10 +1270,14 @@
         min-width: 0;
     }
 
+    // Wraps at every width: the module frame is narrower than the viewport whenever the page tree is open,
+    // so a viewport media query alone lets the tabs (with their plan badges) run past the module.
     .aqg-tabs {
         display: flex;
+        flex-wrap: wrap;
         align-items: stretch;
         gap: 0;
+        row-gap: 2px;
         margin: 0 0 2px;
         padding: 0;
         border: 0;

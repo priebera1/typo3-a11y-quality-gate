@@ -6,6 +6,8 @@ namespace Priebera\A11yQualityGate\Tests\Unit\FreePreview;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Priebera\A11yQualityGate\Contract\InstallationIdentityServiceInterface;
+use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Http\AqgApiClient;
 use Priebera\A11yQualityGate\Pro\Http\AqgCrawlerClient;
@@ -43,6 +45,49 @@ final class FreeApiClientContractTest extends TestCase
             'version' => '1.9.0',
         ], $captured['payload']);
         self::assertStringEndsWith('/auth/token', $captured['url']);
+    }
+
+    #[Test]
+    public function paidRequestsNameTheInstallationForAgencyProjectBinding(): void
+    {
+        $identity = $this->createMock(InstallationIdentityServiceInterface::class);
+        $identity->method('getOrCreateInstallationId')->willReturn('installation-secret');
+        $captured = [];
+        $client = new AqgApiClient($this->capturingFactory($captured, ['success' => true, 'valid' => true, 'plan' => 'agency']), $identity);
+
+        $client->validate('aqg_live_key', 'client.example', '1.9.7', ['www.client.example', 'client.example', 'client.example']);
+        self::assertSame([
+            'key' => 'aqg_live_key',
+            'domain' => 'client.example',
+            'version' => '1.9.7',
+            'productSlug' => 'accessibility-quality-gate',
+            'allSites' => ['client.example', 'www.client.example'],
+            'projectInstallationId' => 'installation-secret',
+        ], $captured['payload']);
+
+        $client->issueToken('aqg_live_key', 'client.example', '1.9.7', ['client.example']);
+        self::assertSame('installation-secret', $captured['payload']['projectInstallationId']);
+        // Not the Free field: a paid token request must never be answered with a Free token.
+        self::assertArrayNotHasKey('installationId', $captured['payload']);
+        self::assertStringEndsWith('/auth/token', $captured['url']);
+    }
+
+    #[Test]
+    public function theApiRateLimiterIsARateLimitNotAnOutage(): void
+    {
+        $captured = [];
+        // The body @fastify/rate-limit sends: no AQG error code.
+        $client = new AqgApiClient($this->capturingFactory($captured, [
+            'statusCode' => 429,
+            'error' => 'Too Many Requests',
+            'message' => 'Rate limit exceeded, retry in 1 minute',
+        ], 429));
+
+        $result = LicenceValidationResult::fromResponseDto($client->validate('aqg_live_key', 'client.example', '1.9.7', ['client.example']));
+
+        self::assertFalse($result->valid);
+        self::assertSame('rate_limited', $result->reason);
+        self::assertTrue($result->isTransientFailure(), 'cached licence state rides grace, it is not replaced');
     }
 
     #[Test]

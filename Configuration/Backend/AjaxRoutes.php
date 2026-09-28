@@ -169,6 +169,21 @@ return [
         'methods' => ['GET'],
         'inheritAccessFromModule' => 'web_a11y',
     ],
+    'a11y_pro_verify_fix' => [
+        'path' => '/a11y/pro/verify-fix',
+        'target' => ProCrawlerAjaxController::class . '::verifyFixAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_pro_verify_fix_result' => [
+        'path' => '/a11y/pro/verify-fix/result',
+        'target' => ProCrawlerAjaxController::class . '::verifyFixResultAction',
+        'methods' => ['GET'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
     'a11y_pro_crawl_cancel' => [
         'path' => '/a11y/pro/crawl/cancel',
         'target' => ProCrawlerAjaxController::class . '::cancelSiteAction',

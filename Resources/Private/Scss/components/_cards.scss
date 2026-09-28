@@ -71,3 +71,14 @@
     text-transform: uppercase;
     letter-spacing: .06em;
 }
+
+// Acceptance evidence downloads under a scan comparison (Overview and frontend page detail).
+.aqg-module .aqg-history-compare__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 12px;
+    color: var(--aqi-fg-muted);
+    font-size: 13px;
+}

@@ -35,7 +35,11 @@ final class FreeSubmitIntentService
         return $encoded . '.' . $this->sign($encoded);
     }
 
-    public function buildIdempotencyKey(string $intent, string $siteIdentifier, int $pageUid): string
+    /**
+     * The language is part of the key: one intent submitted for two languages of the page is two scans,
+     * never a replay of the first language's job.
+     */
+    public function buildIdempotencyKey(string $intent, string $siteIdentifier, int $pageUid, int $languageUid = 0): string
     {
         $payload = $this->decodeAndValidate($intent);
         if (
@@ -46,7 +50,7 @@ final class FreeSubmitIntentService
             throw new \InvalidArgumentException('Free Remote Preview submit intent does not match this request.');
         }
 
-        return 'aqg-free-' . hash('sha256', $intent);
+        return 'aqg-free-' . hash('sha256', $intent . '|' . max(0, $languageUid));
     }
 
     /**

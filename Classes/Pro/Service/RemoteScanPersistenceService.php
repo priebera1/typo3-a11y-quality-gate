@@ -50,7 +50,10 @@ final class RemoteScanPersistenceService
             scanScope: $sourceType === RemoteScanSourceType::SinglePage ? 'page' : 'site',
             pageUid: (int)($resultsData['pageUid'] ?? 0),
             lastSyncedAt: time(),
-            persistedAt: time(),
+            // Marked persisted only after pages and findings are stored (markPersisted() below): an interrupted
+            // persist stays "completed, not persisted" and is picked up by recovery, instead of reading as
+            // complete evidence.
+            persistedAt: 0,
             syncError: '',
             languageUid: (int)($resultsData['languageUid'] ?? $resultsData['languageId'] ?? -1),
         );
@@ -127,6 +130,8 @@ final class RemoteScanPersistenceService
                 }
             }
         }
+
+        $this->remoteScanRepository->markPersisted($remoteScanUid, time());
 
         $logger->info('AQG remote persist: save result', [
             'jobId' => $jobId,

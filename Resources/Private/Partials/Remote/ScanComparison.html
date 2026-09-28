@@ -11,6 +11,14 @@
             <span class="aqg-history-status aqg-history-status--{comparison.statusTone}">{comparison.statusLabel}</span>
         </div>
 
+        <f:if condition="{comparison.acceptanceEvidence.pdfUrl}">
+            <div class="aqg-history-compare__actions">
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.label" default="Acceptance evidence for a client or stakeholder:" /></span>
+                <a href="{comparison.acceptanceEvidence.pdfUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.pdf" default="Download PDF" /></a>
+                <a href="{comparison.acceptanceEvidence.csvUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.csv" default="Download CSV" /></a>
+            </div>
+        </f:if>
+
         <f:if condition="{comparison.hasScanMeta}">
             <div class="aqg-history-compare__meta" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.comparedScans', default: 'Compared scans')}">
                 <div class="aqg-history-compare__meta-item">

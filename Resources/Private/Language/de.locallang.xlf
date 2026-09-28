@@ -430,10 +430,6 @@
                 <source>No statement generated yet.</source>
                 <target>Noch kein Statement generiert.</target>
             </trans-unit>
-            <trans-unit id="settings.statement.result.empty.text">
-                <source>Choose a scan scope and click Generate statement.</source>
-                <target>Wählen Sie eine Prüfquelle und klicken Sie auf „Entwurf erstellen“.</target>
-            </trans-unit>
             <trans-unit id="settings.statement.result.title">
                 <source>Draft accessibility statement</source>
                 <target>Entwurf einer Barrierefreiheitserklärung</target>
@@ -2435,10 +2431,6 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>%1$d of %2$d used</source>
                 <target>%1$d von %2$d verwendet</target>
             </trans-unit>
-            <trans-unit id="freePreview.scansRemaining">
-                <source>%1$d free scans remaining today</source>
-                <target>Heute noch %1$d kostenlose Scans verfügbar</target>
-            </trans-unit>
             <trans-unit id="freePreview.limitReached">
                 <source>Free scan limit reached for today.</source>
                 <target>Das Tageslimit für kostenlose Scans ist erreicht.</target>
@@ -2600,8 +2592,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Lizenz gehört zu einem anderen TYPO3-Projekt</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.projectMismatch.text">
-                <source>This key is already registered to a different TYPO3 installation. Use a separate licence for this project, or contact support if the installation was moved.</source>
-                <target>Dieser Schlüssel ist bereits für eine andere TYPO3-Installation registriert. Verwenden Sie für dieses Projekt eine eigene Lizenz oder wenden Sie sich an den Support, falls die Installation umgezogen ist.</target>
+                <source>This key is registered to another TYPO3 installation. PRO and trial licences cover one installation; an Agency licence covers several client installations. Contact support if this installation was moved.</source>
+                <target>Dieser Schlüssel ist für eine andere TYPO3-Installation registriert. PRO- und Testlizenzen gelten für eine Installation, eine Agency-Lizenz für mehrere Kundeninstallationen. Wenden Sie sich an den Support, falls diese Installation umgezogen ist.</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.trialDomainMismatch.title">
                 <source>Trial belongs to another domain</source>
@@ -4487,10 +4479,6 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Validating...</source>
                 <target>Wird geprüft...</target>
             </trans-unit>
-            <trans-unit id="settings.licence.statusTitle">
-                <source>Current status</source>
-                <target>Aktueller Status</target>
-            </trans-unit>
             <trans-unit id="settings.licence.statusActive">
                 <source>Licence is active</source>
                 <target>Lizenz ist aktiv</target>
@@ -4643,10 +4631,6 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Trial licence is active</source>
                 <target>Testlizenz ist aktiv</target>
             </trans-unit>
-            <trans-unit id="settings.licence.statusInactiveValue">
-                <source>Inactive</source>
-                <target>Inaktiv</target>
-            </trans-unit>
             <trans-unit id="settings.licence.trial.activeTitle">
                 <source>Trial is active</source>
                 <target>Testphase ist aktiv</target>
@@ -4688,8 +4672,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>AQG Agency ist aktiv</target>
             </trans-unit>
             <trans-unit id="settings.licence.agency.activeText">
-                <source>Use this licence across multiple TYPO3 sites and client projects.</source>
-                <target>Nutzen Sie diese Lizenz für mehrere TYPO3-Websites und Kundenprojekte.</target>
+                <source>Use this licence for several client TYPO3 projects. Each installation is its own project with its own scans and history.</source>
+                <target>Nutzen Sie diese Lizenz für mehrere TYPO3-Projekte Ihrer Kunden. Jede Installation ist ein eigenes Projekt mit eigenen Scans und eigenem Verlauf.</target>
             </trans-unit>
             <trans-unit id="settings.licence.thisSite">
                 <source>This site</source>
@@ -4812,7 +4796,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Entwicklungsumgebungen sind ausgenommen.</target>
             </trans-unit>
             <trans-unit id="settings.licence.trial.devExemptText">
-                <source>Testing on localhost or *.ddev.site? The 24h timer only starts when you validate on a production domain.</source>
+                <source>Testing on localhost or *.ddev.site? The trial period only starts when you validate on a production domain.</source>
                 <target>Sie testen auf localhost oder *.ddev.site? Der Testzeitraum beginnt erst, wenn Sie auf einer Produktivdomain prüfen.</target>
             </trans-unit>
             <trans-unit id="settings.licence.trial.productionTimer">
@@ -4820,7 +4804,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Produktiv-Timer</target>
             </trans-unit>
             <trans-unit id="settings.licence.trial.productionTimerText">
-                <source>The 24h trial window starts on first production validation.</source>
+                <source>The trial period starts on the first validation on a production domain.</source>
                 <target>Der Testzeitraum beginnt mit der ersten Prüfung auf einer Produktivdomain.</target>
             </trans-unit>
             <trans-unit id="toolbar.error">
@@ -5580,8 +5564,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Was zuerst beheben?</target>
             </trans-unit>
             <trans-unit id="remote.plan.subtitle">
-                <source>Automated remediation plan. Manual review may still be required.</source>
-                <target>Automatisierter Maßnahmenplan. Eine manuelle Prüfung kann dennoch erforderlich sein.</target>
+                <source>Automated suggestions. Manual review may still be required.</source>
+                <target>Automatische Vorschläge. Eine manuelle Prüfung kann weiterhin nötig sein.</target>
             </trans-unit>
             <trans-unit id="remote.plan.owner">
                 <source>Suggested owner</source>
@@ -5608,12 +5592,12 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Beispiele</target>
             </trans-unit>
             <trans-unit id="remote.regression.kicker">
-                <source>Accessibility change signal</source>
-                <target>Signal für Barrierefreiheitsänderungen</target>
+                <source>Changes since the previous scan</source>
+                <target>Änderungen seit dem letzten Scan</target>
             </trans-unit>
             <trans-unit id="remote.regression.sincePrevious">
-                <source>Change since previous frontend scan</source>
-                <target>Änderung seit dem vorherigen Frontend-Scan</target>
+                <source>Changes since the previous scan</source>
+                <target>Änderungen seit dem letzten Scan</target>
             </trans-unit>
             <trans-unit id="remote.regression.findings">
                 <source>%s findings</source>
@@ -7315,10 +7299,6 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Scan was cancelled.</source>
                 <target>Der Scan wurde abgebrochen.</target>
             </trans-unit>
-            <trans-unit id="scanAjax.failed">
-                <source>Scan failed: %s</source>
-                <target>Scan fehlgeschlagen: %s</target>
-            </trans-unit>
             <trans-unit id="scanAjax.noScanRunning">
                 <source>No content scan is running.</source>
                 <target>Es läuft kein Inhaltsscan.</target>
@@ -7388,8 +7368,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Prüfen Sie den vorgeschlagenen iframe-Titel und passen Sie Template, Plugin oder Inhaltsquelle manuell an. Es wurde nichts automatisch geändert.</target>
             </trans-unit>
             <trans-unit id="remote.regression.findingsChange">
-                <source>Findings change</source>
-                <target>Veränderung der Befunde</target>
+                <source>Occurrences change</source>
+                <target>Veränderung der Vorkommen</target>
             </trans-unit>
             <trans-unit id="remote.history.compareCurrentOnly">
                 <source>Compare is available from the current scan only.</source>
@@ -8791,10 +8771,6 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Licence could not be checked</source>
                 <target>Lizenz konnte nicht geprüft werden</target>
             </trans-unit>
-            <trans-unit id="settings.licence.statusUnverifiedValue">
-                <source>Not checked</source>
-                <target>Nicht geprüft</target>
-            </trans-unit>
             <trans-unit id="freePreview.error.rateLimited">
                 <source>AQG paused Free Remote Preview requests from this site for now. Try again later.</source>
                 <target>AQG hat die Anfragen dieser Website an die Free Remote Preview vorübergehend angehalten. Versuchen Sie es später erneut.</target>
@@ -8806,6 +8782,398 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="remote.regression.error.noHistory">
                 <source>No regression signal yet: this page has no compatible frontend scans to compare.</source>
                 <target>Noch kein Regressionssignal: Für diese Seite gibt es keine kompatiblen Frontend-Scans zum Vergleich.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.trialLimit.title">
+                <source>Trial limit reached</source>
+                <target>Testlimit erreicht</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.trialLimit.message">
+                <source>The trial frontend scan limit has been reached. Choose a PRO or Agency plan to keep scanning.</source>
+                <target>Das Limit für Frontend-Scans in der Testphase ist erreicht. Wählen Sie einen PRO- oder Agency-Plan, um weiter zu scannen.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.limit.title">
+                <source>Remote scan limit reached</source>
+                <target>Limit für Frontend-Scans erreicht</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.limit.message">
+                <source>The AQG scanner is not accepting more scans from this installation right now. Try again later.</source>
+                <target>Der AQG-Scanner nimmt von dieser Installation gerade keine weiteren Scans an. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.auth.title">
+                <source>Licence authentication failed</source>
+                <target>Lizenzanmeldung fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.auth.message">
+                <source>The AQG scanner did not accept the licence. Revalidate the licence in the AQG settings.</source>
+                <target>Der AQG-Scanner hat die Lizenz nicht akzeptiert. Prüfen Sie die Lizenz in den AQG-Einstellungen erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.notAllowed.title">
+                <source>Remote scan not allowed</source>
+                <target>Frontend-Scan nicht erlaubt</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.notAllowed.message">
+                <source>The current licence does not include this frontend scan feature.</source>
+                <target>Die aktuelle Lizenz enthält diese Frontend-Scan-Funktion nicht.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.invalidTarget.title">
+                <source>Remote scan target rejected</source>
+                <target>Scan-Ziel abgelehnt</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.invalidTarget.message">
+                <source>The AQG scanner rejected the page or site address. Check the site configuration.</source>
+                <target>Der AQG-Scanner hat die Seiten- oder Website-Adresse abgelehnt. Prüfen Sie die Site-Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.notFound.title">
+                <source>Remote scan not found</source>
+                <target>Frontend-Scan nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.notFound.message">
+                <source>The AQG scanner no longer has this scan.</source>
+                <target>Der AQG-Scanner hat diesen Scan nicht mehr.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.conflict.title">
+                <source>Remote scan conflict</source>
+                <target>Konflikt beim Frontend-Scan</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.conflict.message">
+                <source>Another frontend scan for this site is still running. Wait for it to finish.</source>
+                <target>Für diese Website läuft noch ein anderer Frontend-Scan. Warten Sie, bis er abgeschlossen ist.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.unavailable.title">
+                <source>Remote scanner unavailable</source>
+                <target>Scanner nicht erreichbar</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.unavailable.message">
+                <source>The AQG scanner could not be reached or is temporarily unavailable. Try again later.</source>
+                <target>Der AQG-Scanner ist nicht erreichbar oder vorübergehend nicht verfügbar. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.failed.title">
+                <source>Remote scan failed</source>
+                <target>Frontend-Scan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.failed.message">
+                <source>The frontend scan request failed. Details are in the TYPO3 log.</source>
+                <target>Die Anfrage für den Frontend-Scan ist fehlgeschlagen. Details stehen im TYPO3-Log.</target>
+            </trans-unit>
+            <trans-unit id="proCrawler.pageOutsideSite.message">
+                <source>This page URL does not belong to the configured TYPO3 site.</source>
+                <target>Diese Seiten-URL gehört nicht zur konfigurierten TYPO3-Site.</target>
+            </trans-unit>
+            <trans-unit id="proCrawler.sitePageMismatch.message">
+                <source>The selected page does not belong to the requested site.</source>
+                <target>Die ausgewählte Seite gehört nicht zur angeforderten Site.</target>
+            </trans-unit>
+            <trans-unit id="proCrawler.freeIntentExpired.message">
+                <source>Reload the page and start the Free Remote Preview again.</source>
+                <target>Laden Sie die Seite neu und starten Sie die Free Remote Preview erneut.</target>
+            </trans-unit>
+            <trans-unit id="scanAjax.failedGeneric">
+                <source>The content scan failed. Details are in the TYPO3 log.</source>
+                <target>Der Inhaltsscan ist fehlgeschlagen. Details stehen im TYPO3-Log.</target>
+            </trans-unit>
+            <trans-unit id="scanAjax.cancelDenied">
+                <source>This content scan was started for a page you cannot edit.</source>
+                <target>Dieser Inhaltsscan wurde für eine Seite gestartet, die Sie nicht bearbeiten dürfen.</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.siteAccess.title">
+                <source>Site results need access to the site root</source>
+                <target>Website-Ergebnisse erfordern Zugriff auf die Startseite der Site</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.siteAccess.body">
+                <source>The Overview lists results for the whole site. Your access covers this page, so open its findings instead.</source>
+                <target>Die Übersicht zeigt Ergebnisse der ganzen Website. Ihr Zugriff umfasst diese Seite, öffnen Sie daher deren Befunde.</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.siteAccess.action">
+                <source>Open page findings</source>
+                <target>Seitenbefunde öffnen</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.noAccess.body">
+                <source>You do not have access to this page.</source>
+                <target>Sie haben keinen Zugriff auf diese Seite.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.recordMappingNotInScan">
+                <source>This Free Remote Preview result does not link findings to TYPO3 records. Scan the page again to get record mapping.</source>
+                <target>Dieses Ergebnis der Free Remote Preview ordnet Befunde keinen TYPO3-Datensätzen zu. Scannen Sie die Seite erneut, um die Zuordnung zu erhalten.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.screenshotNotInScan">
+                <source>This Free Remote Preview result has no screenshot. Scan the page again to capture one.</source>
+                <target>Dieses Ergebnis der Free Remote Preview hat keinen Screenshot. Scannen Sie die Seite erneut, um einen aufzunehmen.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.resultProvenance.title">
+                <source>Free Remote Preview result</source>
+                <target>Ergebnis der Free Remote Preview</target>
+            </trans-unit>
+            <trans-unit id="freePreview.resultProvenance.text">
+                <source>This scan ran as a Free Remote Preview: it has no screenshot and no record mapping. Scan the page again for a full result.</source>
+                <target>Dieser Scan lief als Free Remote Preview: Er hat keinen Screenshot und keine Zuordnung zu Datensätzen. Scannen Sie die Seite erneut für ein vollständiges Ergebnis.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.projectLimitReached.title">
+                <source>All project slots are in use</source>
+                <target>Alle Projektplätze sind belegt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.projectLimitReached.text">
+                <source>This Agency licence already covers its maximum number of TYPO3 projects. Remove a project you no longer look after in the customer portal, then validate again.</source>
+                <target>Diese Agency-Lizenz deckt bereits die maximale Anzahl an TYPO3-Projekten ab. Entfernen Sie im Kundenportal ein Projekt, das Sie nicht mehr betreuen, und prüfen Sie die Lizenz dann erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.manageProjects">
+                <source>Manage projects</source>
+                <target>Projekte verwalten</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.action">
+                <source>Verify fix</source>
+                <target>Behebung prüfen</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.checkedAt">
+                <source>Checked %s.</source>
+                <target>Geprüft am %s.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.openScan">
+                <source>Open verification scan</source>
+                <target>Prüfscan öffnen</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.outcome.resolved">
+                <source>Resolved</source>
+                <target>Behoben</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.outcome.stillPresent">
+                <source>Still present</source>
+                <target>Weiterhin vorhanden</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.outcome.notVerified">
+                <source>Not verified</source>
+                <target>Nicht geprüft</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.outcome.pending">
+                <source>Checking…</source>
+                <target>Wird geprüft …</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.message.resolved">
+                <source>The fresh scan of this page no longer reports this issue. Manual review may still be required.</source>
+                <target>Der neue Scan dieser Seite meldet dieses Problem nicht mehr. Eine manuelle Prüfung kann weiterhin nötig sein.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.message.stillPresent">
+                <source>The fresh scan still reports this issue on the page (%d occurrences).</source>
+                <target>Der neue Scan meldet dieses Problem weiterhin auf der Seite (%d Vorkommen).</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.message.pending">
+                <source>A fresh scan of this page is running.</source>
+                <target>Ein neuer Scan dieser Seite läuft.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.reason.scanFailed">
+                <source>The verification scan failed. Nothing was verified; try again later.</source>
+                <target>Der Prüfscan ist fehlgeschlagen. Es wurde nichts geprüft; versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.reason.scanCancelled">
+                <source>The verification scan was cancelled. Nothing was verified.</source>
+                <target>Der Prüfscan wurde abgebrochen. Es wurde nichts geprüft.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.reason.pageFailed">
+                <source>The page did not load for the scanner, so the fix could not be checked.</source>
+                <target>Die Seite wurde für den Scanner nicht geladen, daher konnte die Behebung nicht geprüft werden.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.reason.pageMissing">
+                <source>The verification scan has no result for this URL, so the fix could not be checked.</source>
+                <target>Der Prüfscan enthält kein Ergebnis für diese URL, daher konnte die Behebung nicht geprüft werden.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.reason.evidenceIncomplete">
+                <source>The fresh scan reported more issue types for this page than AQG stored, so the fix could not be confirmed.</source>
+                <target>Der neue Scan hat für diese Seite mehr Problemarten gemeldet, als AQG gespeichert hat, daher konnte die Korrektur nicht bestätigt werden.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.error.findingNotFound">
+                <source>This finding no longer exists. Open the latest scan of the page.</source>
+                <target>Dieser Befund existiert nicht mehr. Öffnen Sie den neuesten Scan der Seite.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.error.planRequired">
+                <source>Verify fix is part of AQG PRO and Agency.</source>
+                <target>„Behebung prüfen“ ist Teil von AQG PRO und Agency.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.error.requestFailed">
+                <source>The verification scan could not be started.</source>
+                <target>Der Prüfscan konnte nicht gestartet werden.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.error.scanActive">
+                <source>Another frontend scan is running for this site. Verify the fix when it has finished.</source>
+                <target>Für diese Website läuft bereits ein Frontend-Scan. Prüfen Sie die Behebung, wenn er abgeschlossen ist.</target>
+            </trans-unit>
+            <trans-unit id="remote.acceptance.label">
+                <source>Acceptance evidence for a client or stakeholder:</source>
+                <target>Abnahmenachweis für Kunden oder Beteiligte:</target>
+            </trans-unit>
+            <trans-unit id="remote.acceptance.pdf">
+                <source>Download PDF</source>
+                <target>PDF herunterladen</target>
+            </trans-unit>
+            <trans-unit id="remote.acceptance.csv">
+                <source>Download CSV</source>
+                <target>CSV herunterladen</target>
+            </trans-unit>
+            <trans-unit id="export.acceptance.paidOnly">
+                <source>Acceptance evidence needs a PRO or Agency licence.</source>
+                <target>Der Abnahmenachweis erfordert eine PRO- oder Agency-Lizenz.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.projects">
+                <source>TYPO3 projects</source>
+                <target>TYPO3-Projekte</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.projectsUsage">
+                <source>%1$d of %2$d in use</source>
+                <target>%1$d von %2$d belegt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.validation.reason.project_limit_reached">
+                <source>All project slots of this Agency licence are in use. Remove a project in the customer portal to add this installation.</source>
+                <target>Alle Projektplätze dieser Agency-Lizenz sind belegt. Entfernen Sie im Kundenportal ein Projekt, um diese Installation hinzuzufügen.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.validation.reason.rate_limited">
+                <source>The licence service is limiting requests right now. The key was not checked; try again later.</source>
+                <target>Der Lizenzdienst begrenzt gerade die Anfragen. Der Schlüssel wurde nicht geprüft; versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.validation.reason.project_removed">
+                <source>This TYPO3 project was removed from the Agency licence. Restore it in the customer portal to use AQG PRO here again.</source>
+                <target>Dieses TYPO3-Projekt wurde aus der Agency-Lizenz entfernt. Stellen Sie es im Kundenportal wieder her, um AQG PRO hier wieder zu nutzen.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.projectRemoved.title">
+                <source>This project was removed from the licence</source>
+                <target>Dieses Projekt wurde aus der Lizenz entfernt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.projectRemoved.text">
+                <source>This installation's project was removed from the Agency licence in the customer portal. Restore it there to continue with its scan history, or contact support.</source>
+                <target>Das Projekt dieser Installation wurde im Kundenportal aus der Agency-Lizenz entfernt. Stellen Sie es dort wieder her, um mit seinem Scanverlauf weiterzuarbeiten, oder wenden Sie sich an den Support.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.reason.scopeMismatch">
+                <source>The verification scan checked another language version of the page, so the fix could not be confirmed.</source>
+                <target>Der Prüfscan hat eine andere Sprachversion der Seite geprüft, daher konnte die Korrektur nicht bestätigt werden.</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.outcome.superseded">
+                <source>Resolved earlier</source>
+                <target>Früher behoben</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.message.superseded">
+                <source>A check on %s found this resolved. This newer scan reports it again.</source>
+                <target>Eine Prüfung am %s ergab, dass dies behoben war. Dieser neuere Scan meldet es erneut.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.task.title">
+                <source>Accessibility monitoring (AQG PRO/Agency)</source>
+                <target>Barrierefreiheits-Monitoring (AQG PRO/Agency)</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.task.description">
+                <source>Scans one site language with the AQG frontend scanner and e-mails the recipients only when new or worse issues appear, or when a scan is incomplete or failed. Needs an AQG PRO or Agency licence for the site. Create one task per site.</source>
+                <target>Prüft eine Sprache einer Website mit dem AQG-Frontend-Scanner und benachrichtigt die Empfänger nur bei neuen oder verschlechterten Problemen sowie bei unvollständigen oder fehlgeschlagenen Scans. Benötigt eine AQG-PRO- oder Agency-Lizenz für die Website. Legen Sie pro Website eine Aufgabe an.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.site">
+                <source>Site</source>
+                <target>Website</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.site.help">
+                <source>The configured TYPO3 site to monitor.</source>
+                <target>Die konfigurierte TYPO3-Website, die überwacht wird.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.site.placeholder">
+                <source>Choose a site</source>
+                <target>Website auswählen</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.site.option">
+                <source>%1$s (%2$s), root page %3$d</source>
+                <target>%1$s (%2$s), Startseite %3$d</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.language">
+                <source>Language</source>
+                <target>Sprache</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.language.help">
+                <source>The site language to scan. Only the languages enabled for the selected site are offered.</source>
+                <target>Die Sprache der Website, die geprüft wird. Angeboten werden nur die aktivierten Sprachen der ausgewählten Website.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.language.placeholder">
+                <source>Choose a site first</source>
+                <target>Zuerst eine Website auswählen</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.language.default">
+                <source>%s – default language</source>
+                <target>%s – Standardsprache</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.recipients">
+                <source>Notification recipients</source>
+                <target>Empfänger der Benachrichtigungen</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.recipients.help">
+                <source>E-mail addresses, separated by commas. They receive a message only for new or worse issues, incomplete scans and failed scans.</source>
+                <target>E-Mail-Adressen, durch Kommas getrennt. Sie erhalten nur bei neuen oder verschlechterten Problemen, unvollständigen und fehlgeschlagenen Scans eine Nachricht.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.maxPages">
+                <source>Maximum pages per scan</source>
+                <target>Maximale Seiten pro Scan</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.maxPages.help">
+                <source>Between 1 and 1000. Pages beyond the limit are not checked, so keep it above the size of the site.</source>
+                <target>Zwischen 1 und 1000. Seiten über dem Limit werden nicht geprüft; wählen Sie es daher größer als die Website.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.maxWait">
+                <source>Wait for the scan (seconds)</source>
+                <target>Auf den Scan warten (Sekunden)</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.maxWait.help">
+                <source>How long a run waits for its scan to finish, between 0 and 3600. A scan that takes longer is evaluated by the next run.</source>
+                <target>Wie lange ein Lauf auf das Ende seines Scans wartet, zwischen 0 und 3600. Ein längerer Scan wird beim nächsten Lauf ausgewertet.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.backendUrl">
+                <source>Backend address for links in e-mails</source>
+                <target>Backend-Adresse für Links in E-Mails</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.field.backendUrl.help">
+                <source>Scheme and host of this TYPO3 backend, e.g. https://cms.example.org. Leave empty to use the address of the site.</source>
+                <target>Schema und Host dieses TYPO3-Backends, z. B. https://cms.example.org. Leer lassen, um die Adresse der Website zu verwenden.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.siteRequired">
+                <source>Choose the site to monitor.</source>
+                <target>Wählen Sie die Website, die überwacht werden soll.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.siteMissing">
+                <source>The site "%s" is not configured in this TYPO3 installation. Choose a configured site.</source>
+                <target>Die Website „%s“ ist in dieser TYPO3-Installation nicht konfiguriert. Wählen Sie eine konfigurierte Website.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.languageMissing">
+                <source>Language %1$d is not an enabled language of the site "%2$s". Choose one of the site's languages.</source>
+                <target>Sprache %1$d ist keine aktivierte Sprache der Website „%2$s“. Wählen Sie eine Sprache dieser Website.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.recipientsRequired">
+                <source>Enter at least one e-mail address that receives the notifications.</source>
+                <target>Geben Sie mindestens eine E-Mail-Adresse für die Benachrichtigungen ein.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.recipientInvalid">
+                <source>"%s" is not a valid e-mail address.</source>
+                <target>„%s“ ist keine gültige E-Mail-Adresse.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.maxPages">
+                <source>Maximum pages per scan must be between %1$d and %2$d.</source>
+                <target>Die maximale Seitenzahl pro Scan muss zwischen %1$d und %2$d liegen.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.maxWait">
+                <source>The waiting time must be between 0 and %d seconds.</source>
+                <target>Die Wartezeit muss zwischen 0 und %d Sekunden liegen.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.validation.backendUrl">
+                <source>Enter the backend address as https://host (for example https://cms.example.org), or leave it empty.</source>
+                <target>Geben Sie die Backend-Adresse als https://host ein (zum Beispiel https://cms.example.org) oder lassen Sie das Feld leer.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.error.notEntitled">
+                <source>Monitoring needs a valid AQG PRO or Agency licence for the site "%s". Nothing was scanned.</source>
+                <target>Das Monitoring benötigt eine gültige AQG-PRO- oder Agency-Lizenz für die Website „%s“. Es wurde nichts geprüft.</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.info.noSite">
+                <source>No site selected</source>
+                <target>Keine Website ausgewählt</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.info.siteMissing">
+                <source>Site "%s" is no longer configured</source>
+                <target>Website „%s“ ist nicht mehr konfiguriert</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.info.languageMissing">
+                <source>language %d is not enabled</source>
+                <target>Sprache %d ist nicht aktiviert</target>
+            </trans-unit>
+            <trans-unit id="scheduler.monitoring.info.summary">
+                <source>%1$s · %2$s · %3$d recipient(s)</source>
+                <target>%1$s · %2$s · %3$d Empfänger</target>
             </trans-unit>
         </body>
     </file>

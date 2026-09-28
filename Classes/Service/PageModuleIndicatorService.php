@@ -33,6 +33,7 @@ final class PageModuleIndicatorService
         private readonly ViewFactoryInterface $viewFactory,
         private readonly FrontendPageUrlService $frontendPageUrlService,
         private readonly FreeRemotePreviewService $freeRemotePreviewService,
+        private readonly ?AccessControlService $accessControlService = null,
     ) {
     }
 
@@ -125,6 +126,11 @@ final class PageModuleIndicatorService
         $overallState = $this->resolveOverallState($localState, $remoteState, $hasRemoteScanRun);
         $meta = $this->buildMeta($overallState, $scanStatus, $remoteActiveScan);
         $actions = $this->buildActions($overallState, $aqgPageUrl, $overviewUrl);
+        // "Scan this page" follows the same permission as the endpoint it calls.
+        if ($this->accessControlService instanceof AccessControlService
+            && !$this->accessControlService->canShowScanNow($this->backendContextService->getBackendUser())) {
+            $actions = array_values(array_filter($actions, static fn (array $action): bool => !$action['isScan']));
+        }
         $progress = $this->buildProgress($overallState, $remoteActiveScan);
         $headline = $this->buildPanelHeadline($overallState);
         $body = $this->buildBody($overallState, $isRemoteScanRunning);
