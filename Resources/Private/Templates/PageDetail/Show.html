@@ -135,7 +135,7 @@
                     </f:if>
 
                     <f:if condition="{proStatus.hasExportPdf} && {exportPdfUrl}">
-                        <a href="{exportPdfUrl}" class="btn btn-sm btn-default d-inline-flex align-items-center gap-1">
+                        <a href="{exportPdfUrl}" class="btn btn-sm btn-default d-inline-flex align-items-center gap-1" aria-describedby="aqg-page-pdf-note" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote', default: 'The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format.')}">
                             <core:icon identifier="actions-download" size="small" />
                             <span>
                                 <f:translate
@@ -144,6 +144,7 @@
                                 />
                             </span>
                         </a>
+                        <span id="aqg-page-pdf-note" class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote" default="The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format." /></span>
                     </f:if>
 
                     <f:if condition="{canScanNow}">

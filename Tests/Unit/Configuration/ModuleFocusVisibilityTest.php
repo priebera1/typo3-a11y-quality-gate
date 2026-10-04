@@ -76,6 +76,24 @@ final class ModuleFocusVisibilityTest extends TestCase
     }
 
     #[Test]
+    public function theSelectedQualityGateScopeCardKeepsTheRingOnFocus(): void
+    {
+        $css = (string)file_get_contents(self::CSS);
+        $selected = strpos($css, '.aqg-scope__card[aria-pressed=true]{');
+        $selectedFocus = preg_match(
+            '/\.aqg-scope__card\[aria-pressed="?true"?\]:focus-visible\{[^}]*box-shadow:\s*var\(--aqi-focus-ring\)/',
+            $css,
+            $match,
+            PREG_OFFSET_CAPTURE
+        );
+
+        // The selected rule has the same specificity as :focus-visible; only a later selected + focus rule keeps the ring.
+        self::assertNotFalse($selected, 'Expected the selected scope card rule in the built CSS.');
+        self::assertSame(1, $selectedFocus, 'The selected scope card showed no change on keyboard focus.');
+        self::assertGreaterThan($selected, $match[0][1], 'The selected + focus rule must come after the selected rule.');
+    }
+
+    #[Test]
     public function everyFocusRuleThatRemovesTheOutlineRestoresAnIndicator(): void
     {
         $outlineRemoved = [];

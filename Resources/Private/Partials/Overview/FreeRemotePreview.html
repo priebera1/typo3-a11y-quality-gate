@@ -6,7 +6,7 @@
 >
     <div class="aqg-section__head">
         <div>
-            <h2 class="aqg-section__title">
+            <h2 class="aqg-section__title" id="aqg-free-preview-title" tabindex="-1">
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote"
                         default="Frontend scan"
@@ -16,11 +16,12 @@
                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.title" default="Free Remote Preview" />
                 —
                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.description" default="Scan the currently selected page with AQG's remote frontend checks." />
+                <span data-aqg-free-preview-requirements="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.requirements" default="No licence key, account or email needed. The site must be reachable from the internet." /></span>
             </p>
         </div>
 
         <div class="aqg-section__actions">
-            <f:if condition="{freePreview.submitCapable} &amp;&amp; {freePreview.state} == 'FREE_AVAILABLE' &amp;&amp; {canScanNow}">
+            <f:if condition="{freePreview.submitCapable} && {freePreview.state} == 'FREE_AVAILABLE' && {canScanNow}">
                 <button
                         type="button"
                         class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
@@ -49,14 +50,26 @@
 
     <div class="aqg-section__body">
         <div data-aqg-free-preview-message="true">
-            <f:if condition="{freePreview.message}">
-                <div class="aqg-notice aqg-tone-warning mb-3" role="status">
-                    <div class="aqg-notice__body">
-                        <div class="aqg-notice__text">{freePreview.message}</div>
-                    </div>
-                </div>
+            <f:if condition="{freePreview.siteAddressLocal}">
+                <f:then>
+                    <f:render partial="Overview/FreePreviewUnreachable" arguments="{variant: 'local', siteHost: freePreview.siteHost}" />
+                </f:then>
+                <f:else>
+                    <f:if condition="{freePreview.message}">
+                        <div class="aqg-notice aqg-tone-warning mb-3" role="status">
+                            <div class="aqg-notice__body">
+                                <div class="aqg-notice__text">{freePreview.message}</div>
+                            </div>
+                        </div>
+                    </f:if>
+                </f:else>
             </f:if>
         </div>
+        <f:if condition="!{freePreview.siteAddressLocal}">
+            <template data-aqg-free-preview-unreachable-template="true">
+                <f:render partial="Overview/FreePreviewUnreachable" arguments="{variant: 'blocked'}" />
+            </template>
+        </f:if>
 
         <f:if condition="{freePreview.jobsLimit}">
             <div class="aqg-section__meta-row">
@@ -87,17 +100,4 @@
         </f:if>
     </div>
 </section>
-
-<f:if condition="{showProHints}">
-    <div class="aqg-pro-card" data-aqg-upgrade-offer="true">
-        <span class="aqg-pro-card__badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.proLabel" default="PRO" /></span>
-        <div class="aqg-pro-card__body">
-            <div class="aqg-pro-card__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.upsell" default="Want the whole site? A trial or a PRO or Agency licence adds full-site frontend scans with screenshots, record mapping and scan history. PDF export needs PRO or Agency." /></div>
-        </div>
-        <div class="aqg-pro-card__actions">
-            <a href="{freePreview.trialUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.startTrial" default="Start a free trial" /></a>
-            <a href="{freePreview.upgradeUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPricing" default="View pricing" /></a>
-        </div>
-    </div>
-</f:if>
 </html>

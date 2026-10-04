@@ -44,7 +44,10 @@ export const initializeAiIframeTitleSuggestion = (root = document.querySelector(
         }
         if (busy) {
             activeButton.dataset.originalHtml = activeButton.innerHTML;
-            activeButton.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>${activeButton.dataset.loadingLabel || '…'}</span>`;
+            activeButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+            const loadingText = document.createElement('span');
+            loadingText.textContent = activeButton.dataset.loadingLabel || '…';
+            activeButton.append(loadingText);
         } else if (activeButton.dataset.originalHtml) {
             activeButton.innerHTML = activeButton.dataset.originalHtml;
             delete activeButton.dataset.originalHtml;

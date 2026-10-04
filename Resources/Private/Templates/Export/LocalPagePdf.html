@@ -2,12 +2,12 @@
 
 <f:section name="Content">
     <htmlpageheader name="aqgLocalPageHeader">
-        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:courier, monospace; font-size:7.2px;"><tbody><tr>
+        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:helvetica, arial, sans-serif; font-size:8pt;"><tbody><tr>
             <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
                 <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
             </td>
-            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#7c828d; font-family:courier, monospace; font-size:7.2px; letter-spacing:0.04em;">
-                <div class="aqgp-header__context" style="color:#7c828d; font-weight:bold; letter-spacing:0.08em;">LOCAL PAGE DETAIL</div>
+            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#5f6670; font-family:helvetica, arial, sans-serif; font-size:8pt; letter-spacing:0.04em;">
+                <div class="aqgp-header__context" style="color:#5f6670; font-weight:bold; letter-spacing:0.08em;">LOCAL PAGE DETAIL</div>
                 <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
             </td>
         </tr></tbody></table>
@@ -15,9 +15,9 @@
     <sethtmlpageheader name="aqgLocalPageHeader" value="on" show-this-page="1" />
 
     <htmlpagefooter name="aqgLocalPageFooter">
-        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:courier, monospace; font-size:6.8px;"><tbody><tr>
-            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:left; width:55%;">AQG · Local page detail · {pagePathLabel}</td>
-            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#7c828d; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
+        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:helvetica, arial, sans-serif; font-size:8pt;"><tbody><tr>
+            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#5f6670; vertical-align:top; text-align:left; width:55%;">AQG · Local page detail · {pagePathLabel}</td>
+            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#5f6670; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
         </tr></tbody></table>
     </htmlpagefooter>
     <sethtmlpagefooter name="aqgLocalPageFooter" value="on" show-this-page="1" />
@@ -25,6 +25,7 @@
         <h1 class="aqgp-h1">{title}</h1>
         <div class="aqgp-sub">{subtitle}</div>
     </div>
+    <p class="aqgp-a11y-note">Accessibility note: this PDF is a visual report. It is not tagged for screen readers, so its headings, tables and reading order are not available to assistive technology. The same findings are available as a CSV export from the AQG module in the TYPO3 backend.</p>
     <hr class="aqgp-header__rule" />
 
     <table class="aqgp-meta">
@@ -63,6 +64,7 @@
         </tr>
     </table>
 
+    <bookmark content="Totals" level="0" />
     <table class="aqgp-section-title">
         <tr>
             <td>Totals</td>
@@ -110,6 +112,7 @@
         </tr>
     </table>
 
+    <bookmark content="Issues" level="0" />
     <table class="aqgp-section-title">
         <tr>
             <td>Issues</td>

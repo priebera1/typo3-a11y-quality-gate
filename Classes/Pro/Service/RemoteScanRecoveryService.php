@@ -30,6 +30,28 @@ final class RemoteScanRecoveryService
     }
 
     /**
+     * A job the AQG service no longer serves to this installation — removed, or submitted under an earlier licence or
+     * Agency project — can never be followed again. It is recorded as failed, so it is never restored as running.
+     *
+     * @param array<string, mixed> $remoteScan
+     */
+    public function discardUnavailableJob(array $remoteScan, \Throwable $exception): bool
+    {
+        $jobId = trim((string)($remoteScan['job_id'] ?? ''));
+        $status = trim((string)($remoteScan['status'] ?? ''));
+        $isUnfinished = in_array($status, ['waiting', 'queued', 'active', 'running'], true)
+            || ($status === 'completed' && (int)($remoteScan['persisted_at'] ?? 0) <= 0);
+        if ($jobId === '' || !$isUnfinished || !$this->isMissingRemoteJob($exception)) {
+            return false;
+        }
+
+        $this->logRecoveryFailure('AQG remote scan is no longer available', $jobId, $exception);
+        $this->remoteScanRepository->markFailed($jobId, $this->resolveMissingRemoteJobFailureMessage($exception));
+
+        return true;
+    }
+
+    /**
      * @param array<string, mixed> $remoteScan
      * @return array<string, mixed>|null
      */

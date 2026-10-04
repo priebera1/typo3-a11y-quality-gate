@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
 use Priebera\A11yQualityGate\Export\PdfGenerator;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
+use Priebera\A11yQualityGate\Pro\Service\ProLicenceDomainService;
 use Priebera\A11yQualityGate\Pro\Service\ProLicenceService;
 use Priebera\A11yQualityGate\Pro\Service\ProSiteFingerprintService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
@@ -30,6 +31,7 @@ use Priebera\A11yQualityGate\Service\SecretEncryptionService;
 use Priebera\A11yQualityGate\Service\ScannerAccessTokenService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\TcaFieldDiscoveryService;
+use Priebera\A11yQualityGate\UpdateNotice\UpdateNoticeService;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -117,6 +119,8 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
         private readonly ScopeAccessService $scopeAccessService,
+        private readonly ?ProLicenceDomainService $proLicenceDomainService = null,
+        private readonly ?UpdateNoticeService $updateNoticeService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -143,10 +147,15 @@ final class SettingsController extends AbstractBackendModuleController
             $this->pageRenderer,
             $site
         );
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-quality-gate.js');
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-remote-access.js');
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-statement.js');
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/settings-ai.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-quality-gate.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-remote-access.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-statement.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-licence-domains.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-ai.js');
+        $updateNotice = $this->updateNoticeService?->buildForCurrentUser();
+        if ($updateNotice !== null) {
+            $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/update-notice.js');
+        }
 
         $this->fieldConfigurationBootstrapService->initializeIfUnconfigured();
         $fieldGroups = $this->fieldConfigRepository->findGroupedForSettings();
@@ -266,6 +275,8 @@ final class SettingsController extends AbstractBackendModuleController
             'remoteAccessTestHttpAuthUrl' => $this->buildRouteUrl('ajax_a11y_test_http_auth'),
             'statementGenerateUrl' => $this->buildRouteUrl('ajax_a11y_statement_generate'),
             'statementPdfUrl' => $this->buildRouteUrl('ajax_a11y_statement_pdf'),
+            'licenceDomainsUrl' => $this->buildRouteUrl('ajax_a11y_licence_domains'),
+            'licenceDomainsUpdateUrl' => $this->buildRouteUrl('ajax_a11y_licence_domains_update'),
             'statementGeneratorAvailable' => $statementGeneratorAvailable,
             'statementDefaultSiteIdentifier' => $statementDefaultSiteIdentifier,
             'statementProStatus' => $statementProStatus,
@@ -282,8 +293,10 @@ final class SettingsController extends AbstractBackendModuleController
             'currentPageUid' => $pageUid,
             'activeTab' => $activeTab,
             'isAdmin' => $isAdmin,
-            'licenceKey' => $licenceViewData['licenceKey'],
             'hasLicenceKey' => $licenceViewData['hasLicenceKey'],
+            'maskedLicenceKey' => $licenceViewData['maskedLicenceKey'],
+            'licenceKeyEnding' => $licenceViewData['licenceKeyEnding'],
+            'licenceKeyFingerprint' => $licenceViewData['licenceKeyFingerprint'],
             'licenceGuidance' => $licenceGuidance,
             'showProHints' => $showProHints,
             'productUrl' => $publicLinks[PublicLinkProvider::PRODUCT],
@@ -301,6 +314,7 @@ final class SettingsController extends AbstractBackendModuleController
             'aiSettingsSelectModelUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_select_model'),
             'aiSettingsTestUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_test'),
             'aiSettingsLinkTextToggleUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_link_text_toggle'),
+            'updateNotice' => $updateNotice,
         ]);
 
         return $moduleTemplate->renderResponse('Settings/Index');
@@ -512,7 +526,7 @@ final class SettingsController extends AbstractBackendModuleController
         $showProHints = true;
         if ($activeTab === 'licence') {
             $showProHints = $this->submittedBoolean($body['showProHints'] ?? null);
-            $configuration['licenceKey'] = trim((string)($body['licenceKey'] ?? ''));
+            $configuration['licenceKey'] = $this->resolveSubmittedLicenceKey($body, (string)($configuration['licenceKey'] ?? ''));
             $configuration['showProHints'] = $showProHints ? '1' : '0';
         }
 
@@ -575,6 +589,10 @@ final class SettingsController extends AbstractBackendModuleController
 
         $body = $this->parseRequestBody($request);
         $licenceKey = trim((string)($body['licenceKey'] ?? ''));
+        if ($licenceKey === '' && (string)($body['useSavedKey'] ?? '') === '1') {
+            // "Revalidate": the page no longer holds the saved key, so the server checks the stored one.
+            $licenceKey = $this->getExtensionConfigurationString('licenceKey');
+        }
 
         if ($licenceKey === '') {
             return new JsonResponse([
@@ -631,6 +649,66 @@ final class SettingsController extends AbstractBackendModuleController
         ]);
     }
 
+    /**
+     * The licence's domains as the AQG service holds them for this installation (detected sites versus activated
+     * domains). Administrators only, like the licence key itself.
+     */
+    public function licenceDomainsAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyLicenceDomainManagement();
+        if ($denied instanceof ResponseInterface) {
+            return $denied;
+        }
+
+        $result = $this->proLicenceDomainService?->list(
+            $this->resolveValidationDomain($this->resolveSiteForPage($request, $this->requestParameterService->getPageUidOrZero($request))),
+            $this->extensionContextService->getExtensionVersion(),
+        ) ?? ['success' => false, 'code' => 'unavailable', 'message' => $this->translate('settings.licence.domains.error.failed')];
+
+        return new JsonResponse($result, ($result['success'] ?? false) ? 200 : 409);
+    }
+
+    /**
+     * Activates or deactivates domains. The AQG service decides: it activates only hosts this installation reports
+     * and enforces the plan's domain limit and the activation lock, for bulk requests too.
+     */
+    public function updateLicenceDomainsAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyLicenceDomainManagement();
+        if ($denied instanceof ResponseInterface) {
+            return $denied;
+        }
+
+        $body = $this->parseRequestBody($request);
+        $domains = $body['domains'] ?? [];
+        $result = $this->proLicenceDomainService?->change(
+            (string)($body['action'] ?? ''),
+            is_array($domains) ? array_values($domains) : [],
+            (string)($body['all'] ?? '') === '1' || ($body['all'] ?? false) === true,
+            $this->resolveValidationDomain($this->resolveSiteForPage($request, $this->requestParameterService->getPageUidOrZero($request))),
+            $this->extensionContextService->getExtensionVersion(),
+        ) ?? ['success' => false, 'code' => 'unavailable', 'message' => $this->translate('settings.licence.domains.error.failed')];
+
+        return new JsonResponse($result, ($result['success'] ?? false) ? 200 : 409);
+    }
+
+    private function denyLicenceDomainManagement(): ?ResponseInterface
+    {
+        $backendUser = $this->backendContextService->getBackendUser();
+        if (!$this->accessControlService->canShowSettings($backendUser)) {
+            return new JsonResponse(['success' => false, 'code' => 'access_denied', 'message' => $this->translate('settings.accessDenied')], 403);
+        }
+        if (!$this->accessControlService->canManageAdminOnlySettings($backendUser)) {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'admin_only_settings_required',
+                'message' => $this->translateWithFallback('settings.adminOnly.licence', 'Only administrators can validate AQG licence keys.'),
+            ], 403);
+        }
+
+        return null;
+    }
+
     public function generateAccessibilityStatementAction(ServerRequestInterface $request): ResponseInterface
     {
         $result = $this->buildAccessibilityStatementFromRequest($request);
@@ -659,6 +737,7 @@ final class SettingsController extends AbstractBackendModuleController
                 $title,
                 [],
                 $this->accessibilityStatementService->buildPdfCss(),
+                (string)($statement['language'] ?? 'en'),
             );
         } catch (\Throwable $exception) {
             $this->logStatementPdfFailure($exception);
@@ -1826,6 +1905,8 @@ final class SettingsController extends AbstractBackendModuleController
             'inactive' => $this->translate('settings.licence.validation.reason.inactive'),
             'domain_mismatch' => $this->translate('settings.licence.validation.reason.domain_mismatch'),
             'domain_limit_reached' => $this->translate('settings.licence.validation.reason.domain_limit_reached'),
+            'domain_not_activated' => $this->translate('settings.licence.validation.reason.domain_not_activated'),
+            'domain_not_detected' => $this->translate('settings.licence.validation.reason.domain_not_detected'),
             'project_mismatch', 'licence_project_mismatch' => $this->translate('settings.licence.validation.reason.licence_project_mismatch'),
             'project_limit_reached' => $this->translate('settings.licence.validation.reason.project_limit_reached'),
             'project_removed', 'licence_project_removed' => $this->translate('settings.licence.validation.reason.project_removed'),
@@ -1883,16 +1964,42 @@ final class SettingsController extends AbstractBackendModuleController
     }
 
     /**
-     * @return array{licenceKey:string,hasLicenceKey:bool}
+     * The saved key never reaches the page: administrators see its prefix and last characters, which identify
+     * the key without disclosing it in screen shares or support screenshots, and a short SHA-256 fingerprint
+     * lets scripts and tests recognise which key is stored.
+     *
+     * @return array{hasLicenceKey:bool,maskedLicenceKey:string,licenceKeyEnding:string,licenceKeyFingerprint:string}
      */
     private function buildLicenceViewData(string $storedLicenceKey, bool $isAdmin): array
     {
         $storedLicenceKey = trim($storedLicenceKey);
+        $shown = $isAdmin && $storedLicenceKey !== '';
+        $ending = $shown && mb_strlen($storedLicenceKey) > 12 ? mb_substr($storedLicenceKey, -4) : '';
+        $prefix = $shown && preg_match('/^aqg_[a-z]+_/', $storedLicenceKey, $matches) === 1 ? $matches[0] : '';
 
         return [
-            'licenceKey' => $isAdmin ? $storedLicenceKey : '',
             'hasLicenceKey' => $storedLicenceKey !== '',
+            'maskedLicenceKey' => $shown ? $prefix . str_repeat('•', 8) . $ending : '',
+            'licenceKeyEnding' => $ending,
+            'licenceKeyFingerprint' => $shown ? substr(hash('sha256', $storedLicenceKey), 0, 16) : '',
         ];
+    }
+
+    /**
+     * The licence form starts with an empty key field: a typed key replaces the saved one, "Remove the saved
+     * key" clears it, and an empty field keeps it.
+     *
+     * @param array<string, mixed> $body
+     */
+    private function resolveSubmittedLicenceKey(array $body, string $storedLicenceKey): string
+    {
+        if ((string)($body['licenceKeyRemove'] ?? '') === '1') {
+            return '';
+        }
+
+        $submitted = trim((string)($body['licenceKey'] ?? ''));
+
+        return $submitted !== '' ? $submitted : trim($storedLicenceKey);
     }
 
     private function looksLikeTrialKey(string $licenceKey): bool

@@ -377,6 +377,68 @@ final class FreeRemotePreviewServiceTest extends TestCase
         yield 'idempotency' => ['idempotency_key_reused', 409, 'IDEMPOTENCY_CONFLICT'];
         yield 'proof' => ['invalid_installation_proof', 403, 'PROOF_ERROR'];
         yield 'free submit rate limit' => ['free_preview_rate_limited', 429, 'API_UNAVAILABLE'];
+        // The scanner's network boundary: a site configuration to fix, not an API contract error.
+        yield 'site on a private network' => ['private_network_blocked', 400, 'INVALID_SITE'];
+        yield 'unknown site host' => ['dns_lookup_failed', 400, 'INVALID_SITE'];
+        yield 'redirect to another host' => ['cross_host_redirect_blocked', 400, 'INVALID_SITE'];
+        yield 'IP address as site base' => ['ip_literal_blocked', 400, 'INVALID_SITE'];
+        yield 'unsupported port' => ['invalid_url_port', 400, 'INVALID_SITE'];
+        yield 'page on another domain' => ['free_domain_mismatch', 400, 'INVALID_SITE'];
+        yield 'page outside the base path' => ['free_base_path_mismatch', 400, 'INVALID_SITE'];
+        yield 'site identity' => ['site_identity_mismatch', 403, 'SITE_IDENTITY_MISMATCH'];
+        yield 'free submit outage' => ['free_submit_unavailable', 503, 'API_UNAVAILABLE'];
+    }
+
+    /**
+     * Customer-facing Free messages explain what to do; they never name tokens, contracts, endpoints or proofs.
+     */
+    #[Test]
+    public function everyFreeSubmitMessageIsActionableAndFreeOfInternals(): void
+    {
+        foreach ([
+            ['free_domain_mismatch', 400, 'base URL'],
+            ['cross_host_redirect_blocked', 400, 'redirect'],
+            ['invalid_installation_proof', 403, 'publicly reachable'],
+            ['installation_identity_mismatch', 403, 'Reload the page'],
+            ['site_identity_mismatch', 403, 'Reload the page'],
+            ['invalid_token', 401, 'Reload the page'],
+            ['route_not_found', 404, 'Try again later'],
+            ['something_new', 400, 'contact AQG support'],
+        ] as [$code, $status, $hint]) {
+            $crawler = $this->createMock(AqgCrawlerClient::class);
+            $crawler->method('submitFree')->willThrowException(new ApiRequestFailedException('upstream detail https://internal.example', $status, null, $code));
+            try {
+                $this->service($crawler)->submit('https://example.test/', 'main', 'https://example.test/', '1.9.8', 'aqg-free-key');
+                self::fail('Expected Free Preview exception.');
+            } catch (FreePreviewException $exception) {
+                $message = $exception->getMessage();
+                self::assertStringContainsString($hint, $message, $code);
+                foreach (['token', 'contract', 'endpoint', 'proof', 'identity', 'internal.example'] as $internal) {
+                    self::assertStringNotContainsStringIgnoringCase($internal, $message, $code . ' mentions ' . $internal);
+                }
+            }
+        }
+    }
+
+    #[Test]
+    public function aSiteTheScannerCannotReachIsExplainedWithoutNetworkDetails(): void
+    {
+        $crawler = $this->createMock(AqgCrawlerClient::class);
+        $crawler->method('submitFree')->willThrowException(new ApiRequestFailedException(
+            'AQG crawler HTTP 400: Resolved IP 127.0.0.1 is not allowed | code=private_network_blocked',
+            400,
+            null,
+            'private_network_blocked',
+        ));
+
+        try {
+            $this->service($crawler)->submit('https://dev.ddev.site/', 'main', 'https://dev.ddev.site/', '1.9.8', 'aqg-free-key');
+            self::fail('Expected Free Preview exception.');
+        } catch (FreePreviewException $exception) {
+            self::assertStringContainsString('local or private network', $exception->getMessage());
+            self::assertStringContainsString('Site Configuration', $exception->getMessage());
+            self::assertStringNotContainsString('127.0.0.1', $exception->getMessage());
+        }
     }
 
     /** @param array<string, mixed> $payload */

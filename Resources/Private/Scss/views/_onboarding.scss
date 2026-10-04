@@ -1,0 +1,125 @@
+/* First use and Free Remote Preview guidance in the Overview: the getting-started steps, the next step after the
+   first content scan, the explanation for sites the crawler cannot reach, and the trial offer after a Free result. */
+
+.a11y-overview .aqg-tone-info {
+    border-left-color: var(--aqi-run);
+}
+
+.a11y-overview .aqg-tone-info .aqg-notice__icon {
+    color: var(--aqi-run);
+}
+
+.a11y-overview .aqg-getting-started {
+    display: grid;
+    gap: 10px;
+    max-width: 72ch;
+}
+
+.a11y-overview .aqg-getting-started__title {
+    color: var(--aqi-fg);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.a11y-overview .aqg-getting-started__steps {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 20px;
+}
+
+.a11y-overview .aqg-getting-started__step {
+    color: var(--aqi-fg-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.a11y-overview .aqg-getting-started__step::marker {
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.a11y-overview .aqg-getting-started__step-title {
+    display: block;
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.a11y-overview .aqg-free-preview-unreachable {
+    align-items: start;
+    margin-bottom: 12px;
+}
+
+.a11y-overview .aqg-free-preview-unreachable .aqg-notice__body {
+    gap: 6px;
+}
+
+.a11y-overview .aqg-free-preview-unreachable__lead {
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.a11y-overview .aqg-free-preview-unreachable__options {
+    display: grid;
+    gap: 3px;
+    margin: 0;
+    padding-left: 18px;
+    color: var(--aqi-fg-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.a11y-overview .aqg-free-upgrade {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.a11y-overview .aqg-free-upgrade .aqg-pro-card__title {
+    margin: 0 0 4px;
+}
+
+.a11y-overview .aqg-free-upgrade .aqg-pro-card__text {
+    margin: 0;
+    max-width: 78ch;
+}
+
+/* Headings that receive the focus from a guidance action: the ring follows the text, not the whole row. */
+.a11y-overview #aqg-free-preview-title,
+.a11y-overview .aqg-section__title[tabindex="-1"] {
+    width: fit-content;
+}
+
+.a11y-overview #aqg-free-preview-title:focus-visible,
+.a11y-overview .aqg-section__title[tabindex="-1"]:focus-visible {
+    outline: none;
+    border-radius: var(--aqi-radius-sm);
+    box-shadow: var(--aqi-focus-ring);
+}
+
+/* The first screen without a selected page: how to start. */
+.aqg-module .aqg-module-empty__steps {
+    margin-top: 6px;
+    text-align: left;
+}
+
+.aqg-module .aqg-module-empty__steps-title {
+    margin: 0 0 6px;
+    color: var(--aqi-fg);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.aqg-module .aqg-module-empty__steps-list {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 20px;
+    color: var(--aqi-fg-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+    .a11y-overview .aqg-free-upgrade {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

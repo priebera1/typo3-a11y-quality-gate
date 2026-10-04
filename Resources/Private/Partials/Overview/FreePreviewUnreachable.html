@@ -1,0 +1,32 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="aqg-notice aqg-tone-info aqg-free-preview-unreachable" data-aqg-free-preview-unreachable="{variant}">
+    <span class="aqg-notice__icon" aria-hidden="true">
+        <f:render partial="Overview/Icon" arguments="{name: 'info'}" />
+    </span>
+    <div class="aqg-notice__body">
+        <f:if condition="{variant} == 'local'">
+            <f:then>
+                <strong class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.local.title" default="Free Remote Preview needs a public site address" /></strong>
+                <div class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.local.text" default="This site's base URL uses %s, which is only reachable on your computer or in your network." arguments="{0: siteHost}" /></div>
+            </f:then>
+            <f:else>
+                <strong class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.blocked.title" default="The AQG crawler cannot reach this site" /></strong>
+                <div class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.blocked.text" default="This site's address is local, private or internal (for example DDEV, localhost, a VPN or internal DNS), or it cannot be found on the internet." /></div>
+            </f:else>
+        </f:if>
+        <div class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.why" default="The AQG crawler runs outside your TYPO3 installation and only scans sites on the public internet. Refusing local and private addresses is a security safeguard, not a licence limit." /></div>
+        <div class="aqg-notice__text aqg-free-preview-unreachable__lead"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.options" default="What you can do:" /></div>
+        <ul class="aqg-free-preview-unreachable__options">
+            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.option.contentScan" default="Keep using the content scan: it runs inside this installation and works on any address." /></li>
+            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.option.publicInstallation" default="Run the Free Remote Preview in an installation whose site is publicly reachable, such as your staging or production site." /></li>
+            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.option.otherSite" default="If this installation also serves a site at a public address, select a page of that site in the page tree." /></li>
+            <f:if condition="{variant} != 'local'">
+                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.option.checkBase" default="Check that the base URL in the Site Configuration is the site's public address." /></li>
+            </f:if>
+        </ul>
+    </div>
+    <div class="aqg-notice__actions">
+        <button type="button" class="btn btn-default btn-sm" data-action="a11y-show-local-scan"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.unreachable.showContentScan" default="Show content scan" /></button>
+    </div>
+</div>
+</html>

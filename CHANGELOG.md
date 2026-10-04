@@ -1,5 +1,53 @@
 # Changelog
 
+## [1.9.8] - 2026-10-04
+
+### Changed
+
+* Administrators now see a notice in the Overview and Settings when a newer stable AQG release is available, with links to the release notes and update instructions. The notice can be dismissed per administrator and appears again for later releases. AQG never downloads or installs updates automatically, and update checks fail silently if the release service is unavailable.
+* First-use guidance now explains the recommended AQG workflow: select a page, run a content scan, then use a frontend scan to check what visitors' browsers render. Installations without a licence also get clear guidance for using the Free Remote Preview.
+* The Free Remote Preview now states clearly that it needs no licence key, account or email and requires a publicly reachable site. Local, development and private addresses such as DDEV, `localhost`, `.test`, `.local` and private IP addresses show an explanation instead of offering a remote scan that cannot succeed.
+* The Free Remote Preview trial offer is now shown after a Free result instead of before the first scan. It explains what the 5-day trial adds and what PRO and Agency provide beyond the trial.
+* Frontend scans of local, private, VPN-only or otherwise publicly unreachable sites now explain why the site cannot be scanned remotely and clarify that content scans inside TYPO3 continue to work.
+* Saved licence keys are no longer exposed in the licence settings or page source. AQG displays only a masked version of the saved key. Replacing or removing a key is now an explicit action, while Revalidate checks the currently saved key.
+* Overview tables now fit better into typical TYPO3 backend layouts, including when the page tree is open. Long titles and URLs wrap instead of unnecessarily widening the module, and horizontally scrollable tables remain keyboard accessible.
+* Settings tabs now wrap more evenly on narrow backend layouts.
+* Scan spinners, progress indicators and pulsing status elements now respect the operating system's reduced-motion preference.
+* Exported PDF reports have improved readability, including larger minimum text sizes, clearer headers and footers, and better handling of long URLs and identifiers.
+* PDF reports, acceptance evidence and accessibility statement PDFs now declare their document language, use a meaningful document title and include section bookmarks.
+* Licence domains can now be managed directly in AQG Settings and in the customer portal. The domain table shows active, available, no-longer-detected and unavailable domains and supports search, filters and bulk actions. Trial covers one domain, PRO supports up to three active domains and Agency has no domain limit. Removing a TYPO3 site does not automatically free its domain slot, and PRO domain activations remain locked for 90 days.
+* PDF exports now state clearly that they are visual reports and are not tagged for screen readers. Where available, AQG points users to an accessible alternative such as CSV export or the HTML version of the accessibility statement.
+
+### Fixed
+
+* Fixed permission and plan-state checks that could incorrectly show Free Remote Preview actions or paid remediation information to users who should not see them.
+* Improved the contrast of page IDs in the Overview to meet WCAG AA requirements in light mode.
+* Removed unnecessary empty space above the Content scan and Frontend scan tabs when no scan is running.
+* Improved accessibility feedback in the rich text editor: action buttons now have visible keyboard focus, captions and severity information have improved contrast, and the selected TYPO3 colour scheme is respected consistently.
+* The "Show issue list" summary in the HTML editor accessibility check is now translated.
+* Improved contrast of labels, captions and running headers in exported PDF reports.
+* Fixed acceptance evidence PDFs displaying their stylesheet as text instead of applying it to the document.
+* Fixed missing styling in accessibility statement PDFs on case-sensitive systems such as Linux servers.
+* Frontend scans and Free Remote Preview now provide clearer guidance when a configured site points to a local, private or unknown host instead of showing a generic scan failure.
+* The Overview now explains when a selected page is outside every TYPO3 Site Configuration instead of incorrectly asking the editor to select a page.
+* Fixed PRO licence validation for installations with multiple TYPO3 sites while preserving licence isolation between separate TYPO3 installations.
+* Single-page frontend scans now correctly support TYPO3 language bases that use their own domain.
+* The selected Quality Gate scope now has a visible keyboard focus indicator.
+* AQG backend scripts now refresh reliably after extension updates, preventing outdated Page module, Settings or page detail behaviour caused by cached browser assets.
+* Free Remote Preview and frontend scan errors now explain the next step with user-facing messages for cases such as pages outside the configured site, redirects to another host, unsupported site addresses or licence/project mismatches.
+* The Page module indicator now follows a frontend scan that was already running when the page was opened and updates its progress and final state without requiring a page reload.
+* Frontend scans left over from an earlier licence or Agency project identity are no longer restored as new failed scans. Stale scan state is discarded safely and no longer keeps Local Scan controls disabled.
+* Agency licence summaries now distinguish between domains active in the current TYPO3 project and the total active domains across all Agency projects.
+* Screenshots that are no longer available to the current project now show an explanatory unavailable state instead of a broken image.
+* Report and PDF dates now use the timezone configured for the TYPO3 application.
+
+### Security
+
+* Hardened sitemap handling so frontend site scans only follow sitemap redirects and sitemap entries that belong to the configured site.
+* Frontend scan screenshots are served only as supported image formats.
+* Monitoring backend URLs are restricted to secure HTTPS host URLs.
+* Hardened screenshot isolation so separate licence or Agency projects cannot replace or remove screenshots belonging to another project.
+
 ## [1.9.7] - 2026-09-28
 
 ### Changed

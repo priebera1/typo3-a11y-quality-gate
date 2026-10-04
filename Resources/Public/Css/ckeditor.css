@@ -1325,8 +1325,8 @@ body[data-bs-theme="dark"] .ck-a11y-panel,
 @keyframes ck-a11y-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-color-scheme: dark) {
-  .ck-a11y-panel,
-  .ck-a11y-summary {
+  :where(html:not([data-color-scheme="light"])) .ck-a11y-panel,
+  :where(html:not([data-color-scheme="light"])) .ck-a11y-summary {
     --cka-fg: #e6e9ee;
     --cka-fg-muted: #b4bcc7;
     --cka-fg-subtle: #89929f;
@@ -1802,8 +1802,8 @@ body[data-bs-theme="dark"],
 }
 
 @media (prefers-color-scheme: dark) {
-  .ck-balloon-panel .ck-a11y-panel,
-  .ck-a11y-summary {
+  :where(html:not([data-color-scheme="light"])) .ck-balloon-panel .ck-a11y-panel,
+  :where(html:not([data-color-scheme="light"])) .ck-a11y-summary {
     --cka-fg: #eef2f7;
     --cka-fg-muted: #b7c0cc;
     --cka-fg-subtle: #8e99a8;
@@ -2086,36 +2086,36 @@ body[data-bs-theme="dark"],
 }
 
 @media (prefers-color-scheme: dark) {
-    .aqg-plain-html-a11y__issue {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__issue {
         background: #1c2128;
         border-color: #2d343d;
         color: #e6e9ee;
     }
 
-    .aqg-plain-html-a11y__issue-head,
-    .aqg-plain-html-a11y__meta,
-    .aqg-plain-html-a11y__snippet {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__issue-head,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__meta,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__snippet {
         background: #232931;
         border-color: #2d343d;
     }
 
-    .aqg-plain-html-a11y__issue-title,
-    .aqg-plain-html-a11y__meta dd,
-    .aqg-plain-html-a11y__snippet {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__issue-title,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__meta dd,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__snippet {
         color: #e6e9ee;
     }
 
-    .aqg-plain-html-a11y__fix {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__fix {
         background: #18253a;
         border-color: #26466f;
     }
 
-    .aqg-plain-html-a11y__details-list {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__details-list {
         background: #1c2128;
         border-color: #2d343d;
     }
 
-    .aqg-plain-html-a11y__details-list > summary {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__details-list > summary {
         background: #232931;
         border-bottom-color: #2d343d;
         color: #c9d0da;
@@ -2311,47 +2311,47 @@ typo3-t3editor-codemirror .cm-line.aqg-cm-line.is-selected {
 
 @media (prefers-color-scheme: dark) {
 
-    typo3-t3editor-codemirror .cm-line.aqg-cm-line--critical {
+    :where(html:not([data-color-scheme="light"])) typo3-t3editor-codemirror .cm-line.aqg-cm-line--critical {
         background-image: linear-gradient(90deg, rgba(248, 113, 113, 0.22), rgba(248, 113, 113, 0.06));
     }
 
-    typo3-t3editor-codemirror .cm-line.aqg-cm-line--warning {
+    :where(html:not([data-color-scheme="light"])) typo3-t3editor-codemirror .cm-line.aqg-cm-line--warning {
         background-image: linear-gradient(90deg, rgba(250, 204, 21, 0.20), rgba(250, 204, 21, 0.06));
     }
 
-    typo3-t3editor-codemirror .cm-line.aqg-cm-line--info {
+    :where(html:not([data-color-scheme="light"])) typo3-t3editor-codemirror .cm-line.aqg-cm-line--info {
         background-image: linear-gradient(90deg, rgba(96, 165, 250, 0.20), rgba(96, 165, 250, 0.06));
     }
 
-    .aqg-code-html-panel {
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel {
         color: #e6e9ee;
         background: #1c2128;
         border-color: #2d343d;
         box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
     }
 
-    .aqg-code-html-panel__kicker,
-    .aqg-code-html-panel__siblings > strong,
-    .aqg-code-html-panel__sibling span {
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel__kicker,
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel__siblings > strong,
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel__sibling span {
         color: #9ba3ad;
     }
 
-    .aqg-code-html-panel .ck-a11y-panel__details {
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel .ck-a11y-panel__details {
         border-color: #2d343d;
     }
 
-    .aqg-code-html-panel__actions {
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel__actions {
         border-top-color: #2d343d;
         background: #232931;
     }
 
-    .aqg-code-html-panel__sibling {
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel__sibling {
         color: #e6e9ee;
         border-color: #2d343d;
         background: #232931;
     }
 
-    .aqg-code-html-panel__sibling:hover {
+    :where(html:not([data-color-scheme="light"])) .aqg-code-html-panel__sibling:hover {
         border-color: #46515f;
         background: #28303a;
     }
@@ -2877,38 +2877,38 @@ typo3-t3editor-codemirror .cm-line.aqg-cm-line.is-selected {
 }
 
 @media (prefers-color-scheme: dark) {
-    .aqg-plain-html-a11y__details-list {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__details-list {
         background: #1c2128 !important;
         border-color: #2d343d !important;
     }
 
-    .aqg-plain-html-a11y__details-list > summary,
-    .aqg-plain-html-a11y__issue-head,
-    .aqg-plain-html-a11y__meta,
-    .aqg-plain-html-a11y__snippet {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__details-list > summary,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__issue-head,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__meta,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__snippet {
         background: #232931 !important;
         border-color: #2d343d !important;
     }
 
-    .aqg-plain-html-a11y__details-list > summary,
-    .aqg-plain-html-a11y__issue-title,
-    .aqg-plain-html-a11y__meta dd,
-    .aqg-plain-html-a11y__snippet {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__details-list > summary,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__issue-title,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__meta dd,
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__snippet {
         color: #e6e9ee !important;
     }
 
-    .aqg-plain-html-a11y__issue {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__issue {
         background: #1c2128 !important;
         border-color: #2d343d !important;
         color: #e6e9ee !important;
     }
 
-    .aqg-plain-html-a11y__fix {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__fix {
         background: #18253a !important;
         border-color: #26466f !important;
     }
 
-    .aqg-plain-html-a11y__fix p {
+    :where(html:not([data-color-scheme="light"])) .aqg-plain-html-a11y__fix p {
         color: #e6e9ee !important;
     }
 }
@@ -3245,4 +3245,77 @@ body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-
     html[data-color-scheme="auto"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-a11y__issue-head:focus .aqg-plain-html-a11y__issue-title {
         color: var(--typo3-component-color, var(--bs-body-color, #f2f4f8)) !important;
     }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Contrast, focus and motion of the AQG editor feedback (CKEditor panel and summary, plain HTML wizard).
+
+   Text tokens: the layers above redefine --cka-fg-subtle and the severity colours several times; these final
+   values meet WCAG AA 1.4.3 (at least 5.3:1) on every panel, summary and severity background; the dark severity
+   backgrounds are those of the dark-preference layer, so an explicit Dark choice matches Auto. Declared
+   !important so they win over those layers; the dark declarations are more specific than the light ones and
+   apply for an explicit Dark choice and, with a dark OS, for Auto (TYPO3 renders no attribute for Auto). An
+   explicit Light choice stays light on a dark OS, like TYPO3's own editor.
+   ------------------------------------------------------------------------------------------------------------ */
+:root,
+.ck-a11y-summary,
+.ck-a11y-panel,
+.ck-a11y-editor,
+.aqg-plain-html-a11y,
+.aqg-code-html-panel {
+  --cka-fg-subtle: #5b6472 !important;
+  --cka-crit: #b42318 !important;
+  --cka-warn: #8a5300 !important;
+  --cka-info: #1f5f9e !important;
+  --cka-focus-ring: #2563eb;
+}
+
+html[data-color-scheme="dark"] :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-editor, .aqg-plain-html-a11y, .aqg-code-html-panel) {
+  --cka-fg-subtle: #a0a8b5 !important;
+  --cka-crit: #ff9b91 !important;
+  --cka-warn: #f2c46b !important;
+  --cka-info: #8ec5f5 !important;
+  --cka-crit-bg: #42201f !important;
+  --cka-crit-border: #7a3430 !important;
+  --cka-warn-bg: #3f2d12 !important;
+  --cka-warn-border: #75510f !important;
+  --cka-info-bg: #17344d !important;
+  --cka-info-border: #275b83 !important;
+  --cka-focus-ring: #56b9f4;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-color-scheme="light"]) :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-editor, .aqg-plain-html-a11y, .aqg-code-html-panel) {
+    --cka-fg-subtle: #a0a8b5 !important;
+    --cka-crit: #ff9b91 !important;
+    --cka-warn: #f2c46b !important;
+    --cka-info: #8ec5f5 !important;
+    --cka-crit-bg: #42201f !important;
+    --cka-crit-border: #7a3430 !important;
+    --cka-warn-bg: #3f2d12 !important;
+    --cka-warn-border: #75510f !important;
+    --cka-info-bg: #17344d !important;
+    --cka-info-border: #275b83 !important;
+    --cka-focus-ring: #56b9f4;
+  }
+}
+
+/* Keyboard focus (WCAG 2.4.7): the panel buttons only changed their background (about 1.07:1). A solid ring
+   in the backend's focus colour, never on mouse clicks. */
+:is(.ck-a11y-panel, .ck-a11y-summary, .aqg-plain-html-a11y, .aqg-code-html-panel) :is(button, a[href], summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--cka-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Reduced motion, following Bootstrap and the TYPO3 backend: spinners keep turning, slower; the reveal pulse
+   of a marked HTML line is skipped (its outline still marks the line). */
+@media (prefers-reduced-motion: reduce) {
+  .ck-a11y-summary__spin {
+    animation-duration: 2s !important;
+  }
+
+  .cm-editor .cm-line.aqg-cm-line-reveal,
+  typo3-t3editor-codemirror .cm-line.aqg-cm-line-reveal {
+    animation: none !important;
+  }
 }

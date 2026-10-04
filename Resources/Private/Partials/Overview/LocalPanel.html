@@ -17,16 +17,21 @@
                 currentPageDetailUrl: currentPageDetailUrl,
                 scanStatus: scanStatus,
                 isRelevantLocalScanRunning: isRelevantLocalScanRunning,
-                currentLanguageUid: currentLanguageUid
+                currentLanguageUid: currentLanguageUid,
+                gettingStarted: gettingStarted
             }"
     />
+
+    <f:if condition="{showFreePreviewNextStep}">
+        <f:render partial="Overview/FreePreviewNextStep" />
+    </f:if>
 
     <f:render partial="Overview/LocalStats" arguments="{totalCounts: totalCounts, localNewCounts: localNewCounts, localScanDelta: localScanDelta, totalLocalPages: totalLocalPages, lastScan: lastScan}" />
 
     <section class="aqg-section">
         <div class="aqg-toolbar-row">
             <div class="aqg-toolbar-row__left">
-                <div class="aqg-toolbar-row__title">
+                <div class="aqg-toolbar-row__title" id="a11y-overview-local-pages-title">
                     <f:translate
                             key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.title"
                             default="Pages with open issues"
@@ -121,7 +126,8 @@
                             show: exportLocalCsvUrl,
                             csvUrl: exportLocalCsvUrl,
                             pdfUrl: exportLocalPdfUrl,
-                            showPdf: proStatus.hasExportPdf
+                            showPdf: proStatus.hasExportPdf,
+                            pdfNoteId: 'aqg-export-pdf-note-local'
                         }"
                 />
             </div>

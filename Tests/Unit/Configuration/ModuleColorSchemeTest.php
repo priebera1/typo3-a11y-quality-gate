@@ -21,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 final class ModuleColorSchemeTest extends TestCase
 {
     private const CSS = __DIR__ . '/../../../Resources/Public/Css/backend.css';
+    private const EDITOR_CSS = __DIR__ . '/../../../Resources/Public/Css/ckeditor.css';
 
     private const AUTO_DARK = 'html:not([data-color-scheme=light])';
 
@@ -64,11 +65,23 @@ final class ModuleColorSchemeTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function stylesheetProvider(): iterable
+    {
+        yield 'backend module' => [self::CSS];
+        // The CKEditor panel and summary and the plain HTML wizard render inside FormEngine, whose <html> carries
+        // the same attribute: an explicit Light choice must keep them light, like TYPO3's own editor.
+        yield 'editor feedback' => [self::EDITOR_CSS];
+    }
+
     #[Test]
-    public function darkPreferenceRulesNeverOverrideAnExplicitLightChoice(): void
+    #[DataProvider('stylesheetProvider')]
+    public function darkPreferenceRulesNeverOverrideAnExplicitLightChoice(string $stylesheet): void
     {
         $offenders = [];
-        foreach ($this->rules() as $rule) {
+        foreach ($this->rules($stylesheet) as $rule) {
             if (!$rule['darkPreference']) {
                 continue;
             }
@@ -116,10 +129,10 @@ final class ModuleColorSchemeTest extends TestCase
     /**
      * @return list<array{darkPreference: bool, selectors: list<string>, body: string}>
      */
-    private function rules(): array
+    private function rules(string $stylesheet = self::CSS): array
     {
-        $css = (string)file_get_contents(self::CSS);
-        self::assertNotSame('', $css, 'backend.css must be built before this test runs.');
+        $css = (string)file_get_contents($stylesheet);
+        self::assertNotSame('', $css, basename($stylesheet) . ' must be built before this test runs.');
 
         $css = str_replace("\u{FEFF}", '', $css);
         $css = (string)preg_replace(['#/\*.*?\*/#s', '/@(charset|import)[^;]*;/'], '', $css);
@@ -168,7 +181,7 @@ final class ModuleColorSchemeTest extends TestCase
             }
         }
 
-        self::fail('Unbalanced braces in backend.css.');
+        self::fail('Unbalanced braces in a stylesheet.');
     }
 
     /**

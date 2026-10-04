@@ -44,7 +44,7 @@ final class ModifyPageLayoutContentListener
 
         $this->pageRenderer->addCssFile('EXT:a11y_quality_gate/Resources/Public/Css/page-module-indicator.css');
         $this->backendJavaScriptModuleService->registerJavaScriptLabels($this->pageRenderer);
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/page-module-indicator.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/page-module-indicator.js');
 
         $event->addHeaderContent($content);
     }

@@ -19,6 +19,7 @@ use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanSubmissionTracker;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\DateTimeService;
@@ -70,6 +71,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
         BackendUserService $backendUserService,
+        private readonly ?RemoteScanSubmissionTracker $remoteScanSubmissionTracker = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -98,6 +100,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             : true;
         $languageUid = $this->requestParameterService->getLanguageUidFromParameters($data);
         $submitLock = null;
+        $trackedSubmissionSite = '';
 
         if ($rootPid <= 0) {
             return $this->badRequestResponse('Missing rootPid');
@@ -244,6 +247,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
             if (!$submitLock instanceof LockingStrategyInterface) {
                 return $this->buildRemoteSubmitLockConflictResponse($resolved->siteIdentifier);
             }
+
+            $trackedSubmissionSite = $resolved->siteIdentifier;
+            $this->remoteScanSubmissionTracker?->begin(
+                $trackedSubmissionSite,
+                $isFreePreview ? 'page' : 'site',
+                $isFreePreview ? $requestedPageUid : 0,
+                $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+            );
 
             $activeScan = $this->remoteScanRepository->findLatestActiveScanBySite($resolved->siteIdentifier);
 
@@ -421,6 +432,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 $request
             );
         } finally {
+            if ($trackedSubmissionSite !== '') {
+                $this->remoteScanSubmissionTracker?->end($trackedSubmissionSite);
+            }
             if ($submitLock instanceof LockingStrategyInterface) {
                 $this->releaseRemoteSubmitLock($submitLock);
             }
@@ -661,6 +675,13 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         try {
+            $this->remoteScanSubmissionTracker?->begin(
+                $resolved->siteIdentifier,
+                'page',
+                $pageUid,
+                $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+            );
+
             $activeScan = $this->remoteScanRepository->findLatestActiveScanBySite($resolved->siteIdentifier);
 
             if (is_array($activeScan)) {
@@ -773,6 +794,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 ],
             ];
         } finally {
+            $this->remoteScanSubmissionTracker?->end($resolved->siteIdentifier);
             $this->releaseRemoteSubmitLock($submitLock);
         }
     }
@@ -884,6 +906,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
             return $this->badRequestResponse('Missing jobId or siteIdentifier');
         }
 
+        $validatedScan = null;
         try {
             $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
             if ($site === null) {
@@ -960,6 +983,22 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 $request
             );
         } catch (\Throwable $exception) {
+            // The AQG service no longer serves this job to this installation: it was removed, or submitted under an
+            // earlier licence or Agency project. It is recorded as failed and answered as gone, so it is never restored
+            // as a running scan again.
+            if (is_array($validatedScan) && $this->remoteScanRecoveryService->discardUnavailableJob($validatedScan, $exception)) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'code' => 'remote_job_unavailable',
+                    'status' => 'failed',
+                    'jobId' => $jobId,
+                    'message' => $this->translate(
+                        'proCrawler.jobUnavailable.message',
+                        'This frontend scan is no longer available for this installation. Start a new scan.'
+                    ),
+                ], 410);
+            }
+
             return $this->buildCrawlerExceptionResponse(
                 $exception,
                 'Remote crawler status request failed.',
@@ -1527,22 +1566,26 @@ final class ProCrawlerAjaxController extends AbstractApiController
             'success' => false,
             'code' => $exception->errorCode,
             'state' => $exception->state,
-            'title' => $exception->isRateLimited()
-                ? $this->translate('freePreview.error.rateLimited.title', 'Too many free scan requests')
-                : match ($exception->state) {
+            'title' => match (true) {
+                $exception->isRateLimited() => $this->translate('freePreview.error.rateLimited.title', 'Too many free scan requests'),
+                // The crawler cannot reach the site from the internet: the same titles as a licensed frontend scan.
+                $exception->errorCode === 'private_network_blocked' => $this->translate('remoteScanError.targetNotPublic.title', 'Site not reachable from the internet'),
+                $exception->errorCode === 'dns_lookup_failed' => $this->translate('remoteScanError.targetNotFound.title', 'Site address not found'),
+                default => match ($exception->state) {
                     'FREE_LIMIT_REACHED' => $this->translate('freePreview.error.limitReached.title', 'Free scan limit reached'),
                     'FEATURE_NOT_AVAILABLE' => $this->translate('freePreview.error.featureUnavailable.title', 'Not included in the Free Remote Preview'),
-                    'PROOF_ERROR' => $this->translate('freePreview.error.proof.title', 'Free Remote Preview proof could not be verified'),
-                    'IDEMPOTENCY_CONFLICT' => $this->translate('freePreview.error.idempotency.title', 'Free Remote Preview submit conflict'),
-                    'TOKEN_ERROR' => $this->translate('freePreview.error.token.title', 'Free Remote Preview authentication failed'),
-                    'MISSING_INSTALLATION_ID' => $this->translate('freePreview.error.missingInstallation.title', 'Free Remote Preview installation identity missing'),
-                    'INSTALLATION_IDENTITY_MISMATCH' => $this->translate('freePreview.error.installationMismatch.title', 'Free Remote Preview installation identity mismatch'),
-                    'SITE_IDENTITY_MISMATCH' => $this->translate('freePreview.error.siteMismatch.title', 'Free Remote Preview site identity mismatch'),
-                    'INVALID_SITE' => $this->translate('freePreview.error.invalidSite.title', 'Free Remote Preview site configuration invalid'),
-                    'ENDPOINT_NOT_FOUND' => $this->translate('freePreview.error.endpoint.title', 'Free Remote Preview API route unavailable'),
-                    'TOKEN_CONTRACT_ERROR', 'API_CONTRACT_ERROR' => $this->translate('freePreview.error.contract.title', 'Free Remote Preview API contract rejected'),
+                    'PROOF_ERROR' => $this->translate('freePreview.error.proof.title', 'Site could not be confirmed'),
+                    'IDEMPOTENCY_CONFLICT' => $this->translate('freePreview.error.idempotency.title', 'Scan already requested'),
+                    'TOKEN_ERROR' => $this->translate('freePreview.error.token.title', 'Free Remote Preview access expired'),
+                    'MISSING_INSTALLATION_ID' => $this->translate('freePreview.error.missingInstallation.title', 'Installation not identified'),
+                    'INSTALLATION_IDENTITY_MISMATCH' => $this->translate('freePreview.error.installationMismatch.title', 'Free Remote Preview access not accepted'),
+                    'SITE_IDENTITY_MISMATCH' => $this->translate('freePreview.error.siteMismatch.title', 'Access issued for another site'),
+                    'INVALID_SITE' => $this->translate('freePreview.error.invalidSite.title', 'Site address cannot be scanned'),
+                    'ENDPOINT_NOT_FOUND' => $this->translate('freePreview.error.endpoint.title', 'Free Remote Preview not offered right now'),
+                    'TOKEN_CONTRACT_ERROR', 'API_CONTRACT_ERROR' => $this->translate('freePreview.error.contract.title', 'Free Remote Preview request not accepted'),
                     default => $this->translate('freePreview.error.unavailable.title', 'Free Remote Preview unavailable'),
                 },
+            },
             'message' => $exception->getMessage(),
             'status' => $exception->httpStatus,
         ];

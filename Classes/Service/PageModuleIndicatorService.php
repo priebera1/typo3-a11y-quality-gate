@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Domain\Repository\SourceStateRepository;
 use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanSubmissionTracker;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -20,6 +21,8 @@ use TYPO3\CMS\Core\View\ViewFactoryInterface;
 
 final class PageModuleIndicatorService
 {
+    private const RUNNING_REMOTE_STATUSES = ['waiting', 'queued', 'active', 'running'];
+
     public function __construct(
         private readonly IssueRepository $issueRepository,
         private readonly SourceStateRepository $sourceStateRepository,
@@ -34,6 +37,7 @@ final class PageModuleIndicatorService
         private readonly FrontendPageUrlService $frontendPageUrlService,
         private readonly FreeRemotePreviewService $freeRemotePreviewService,
         private readonly ?AccessControlService $accessControlService = null,
+        private readonly ?RemoteScanSubmissionTracker $remoteScanSubmissionTracker = null,
     ) {
     }
 
@@ -42,6 +46,26 @@ final class PageModuleIndicatorService
         $variables = $this->buildViewData($pageUid, $site, $languageUid);
 
         return $variables === null ? '' : $this->renderTemplate($variables);
+    }
+
+    /**
+     * The panel as the Page module would render it now, for the indicator's refresh while a scan runs. Rendering
+     * reads a running frontend scan back from the AQG service and stores its results once it has completed
+     * (RemoteScanRecoveryService), exactly as reloading the Page module does.
+     *
+     * @return array{running: bool, html: string}|null null when the page has no site context to report on
+     */
+    public function buildState(int $pageUid, ?Site $site, int $languageUid = 0): ?array
+    {
+        $variables = $this->buildViewData($pageUid, $site, $languageUid);
+        if ($variables === null) {
+            return null;
+        }
+
+        return [
+            'running' => (bool)($variables['isRunning'] ?? false),
+            'html' => $this->renderTemplate($variables),
+        ];
     }
 
     /**
@@ -64,7 +88,13 @@ final class PageModuleIndicatorService
         $counts = $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid);
         $latestPageScan = $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid, $languageUid);
         $latestLocalSourceScanAt = $this->sourceStateRepository->findLatestScanTimestampForPage($siteIdentifier, $pageUid, $languageUid);
-        $latestLocalScanAt = max($latestLocalSourceScanAt, (int)($latestPageScan['finished_at'] ?? 0));
+        // A site scan checks this page too: a page without content records has no source state to show it.
+        $latestSubtreeScan = $this->scanRepository->findLastCompletedSubtreeScanCoveringPage($siteIdentifier, $pageUid, $languageUid);
+        $latestLocalScanAt = max(
+            $latestLocalSourceScanAt,
+            (int)($latestPageScan['finished_at'] ?? 0),
+            (int)($latestSubtreeScan['finished_at'] ?? 0),
+        );
         $hasLocalScanState = $latestLocalScanAt > 0 || $this->hasOpenFindings($counts);
         $scanStatus = $this->scanStatusService->getStatus();
         $remoteActiveScan = $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
@@ -74,17 +104,22 @@ final class PageModuleIndicatorService
                 (string)$site->getBase(),
             );
         }
+        // Only a scan of this page is followed here: a site crawl, or "Scan this page" for this page and language.
+        // A single-page scan of another page of the site is not this page's scan.
+        if (is_array($remoteActiveScan) && !$this->remoteScanCoversPage($remoteActiveScan, $pageUid, $languageUid)) {
+            $remoteActiveScan = null;
+        }
 
         // Free and paid results are never interchangeable: a licensed installation reads licensed scans
         // only, a Free one reads its Free Remote Preview results for this page only.
         if ($hasRemoteScanCapability) {
             $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedRelevantScan($siteIdentifier, $pageUid, $languageUid, false);
             $remotePage = $currentPageUrl !== ''
-                ? $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl, false)
+                ? $this->newestRemotePage(
+                    $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl, false),
+                    $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier, false),
+                )
                 : null;
-            if (!is_array($remotePage) && $currentPageUrl !== '') {
-                $remotePage = $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier, false);
-            }
         } else {
             $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedPageScanByPageOrUrl(
                 $siteIdentifier,
@@ -103,9 +138,18 @@ final class PageModuleIndicatorService
                 || ((int)($scanStatus['rootPid'] ?? 0) > 0 && (int)($scanStatus['rootPid'] ?? 0) === (int)$site->getRootPageId())
             );
 
-        $isRemoteScanRunning = $hasRemoteScanCapability
+        $isRemoteScanActive = $hasRemoteScanCapability
             && is_array($remoteActiveScan)
-            && in_array((string)($remoteActiveScan['status'] ?? ''), ['waiting', 'queued', 'active', 'running'], true);
+            && in_array((string)($remoteActiveScan['status'] ?? ''), self::RUNNING_REMOTE_STATUSES, true);
+        // Submitted from the Accessibility module but not answered by the AQG service yet: there is no scan record to
+        // render, and a panel rendered as not running would have nothing to follow.
+        $isRemoteScanStarting = $hasRemoteScanCapability
+            && !$isRemoteScanActive
+            && $this->isRemoteSubmitPendingForPage($siteIdentifier, $pageUid, $languageUid);
+        $isRemoteScanRunning = $isRemoteScanActive || $isRemoteScanStarting;
+        if (!$isRemoteScanActive) {
+            $remoteActiveScan = null;
+        }
 
         $aqgPageUrl = (string)$this->uriBuilder->buildUriFromRoute('web_a11y.pageDetail', [
             'id' => $pageUid,
@@ -124,7 +168,7 @@ final class PageModuleIndicatorService
         $remoteState = $this->resolveRemoteState($remoteCompletedScan, $remotePage, $isRemoteScanRunning);
         $hasRemoteScanRun = $this->hasRemoteScanRun($remoteCompletedScan, $remotePage);
         $overallState = $this->resolveOverallState($localState, $remoteState, $hasRemoteScanRun);
-        $meta = $this->buildMeta($overallState, $scanStatus, $remoteActiveScan);
+        $meta = $this->buildMeta($overallState, $scanStatus, $remoteActiveScan, $isRemoteScanStarting);
         $actions = $this->buildActions($overallState, $aqgPageUrl, $overviewUrl);
         // "Scan this page" follows the same permission as the endpoint it calls.
         if ($this->accessControlService instanceof AccessControlService
@@ -247,6 +291,56 @@ final class PageModuleIndicatorService
                 'aqgSource' => 'remote',
             ]),
         ];
+    }
+
+    /**
+     * @param array<string,mixed> $remoteScan
+     */
+    private function remoteScanCoversPage(array $remoteScan, int $pageUid, int $languageUid): bool
+    {
+        if ((string)($remoteScan['scan_scope'] ?? '') === 'page' && (int)($remoteScan['page_uid'] ?? 0) !== $pageUid) {
+            return false;
+        }
+
+        return $this->matchesLanguage((int)($remoteScan['language_uid'] ?? -1), $languageUid);
+    }
+
+    private function isRemoteSubmitPendingForPage(string $siteIdentifier, int $pageUid, int $languageUid): bool
+    {
+        $pending = $this->remoteScanSubmissionTracker?->findPending($siteIdentifier);
+
+        return is_array($pending) && $this->remoteScanCoversPage([
+            'scan_scope' => $pending['scope'],
+            'page_uid' => $pending['pageUid'],
+            'language_uid' => $pending['languageUid'],
+        ], $pageUid, $languageUid);
+    }
+
+    /**
+     * The newer of the page's last single-page scan and the last scan that stored its URL, which can be a site crawl.
+     * A failed page proves nothing about the page's findings, so it never replaces a page that was checked.
+     *
+     * @param array<string,mixed>|null $pageScanPage
+     * @param array<string,mixed>|null $urlPage
+     * @return array<string,mixed>|null
+     */
+    private function newestRemotePage(?array $pageScanPage, ?array $urlPage): ?array
+    {
+        if (!is_array($urlPage)) {
+            return $pageScanPage;
+        }
+
+        if (!is_array($pageScanPage)) {
+            return $urlPage;
+        }
+
+        if ((int)($urlPage['is_failed'] ?? 0) === 1) {
+            return $pageScanPage;
+        }
+
+        return (int)($urlPage['remote_scan_finished_at'] ?? 0) > (int)($pageScanPage['remote_scan_finished_at'] ?? 0)
+            ? $urlPage
+            : $pageScanPage;
     }
 
     private function matchesLanguage(int $runningLanguageUid, int $currentLanguageUid): bool
@@ -574,8 +668,11 @@ final class PageModuleIndicatorService
 
         $pagesScanned = is_array($remoteActiveScan) ? (int)($remoteActiveScan['pages_scanned'] ?? 0) : 0;
         $pagesTotal = is_array($remoteActiveScan) ? (int)($remoteActiveScan['pages_total'] ?? 0) : 0;
-        $percent = $pagesTotal > 0 ? max(5, min(100, (int)round(($pagesScanned / $pagesTotal) * 100))) : 42;
-        $modeClass = $pagesTotal > 0 ? 'is-determinate' : 'is-indeterminate';
+        // Page counts are a measure only once a page of several is done. Before that — a single-page scan, a crawl
+        // still starting, a content scan — a fixed 0/1 bar would stand still for the whole scan; the bar moves instead.
+        $isDeterminate = $pagesTotal > 1 && $pagesScanned > 0;
+        $percent = $isDeterminate ? max(5, min(100, (int)round(($pagesScanned / $pagesTotal) * 100))) : 42;
+        $modeClass = $isDeterminate ? 'is-determinate' : 'is-indeterminate';
 
         return [
             'percent' => $percent,
@@ -593,8 +690,13 @@ final class PageModuleIndicatorService
         string $state,
         array $scanStatus,
         ?array $remoteActiveScan,
+        bool $isRemoteScanStarting = false,
     ): string {
         if ($state === 'running') {
+            if ($isRemoteScanStarting) {
+                return $this->translate('pageModuleIndicator.meta.remoteStarting', 'Starting the frontend scan…');
+            }
+
             if (is_array($remoteActiveScan)) {
                 $pagesScanned = (int)($remoteActiveScan['pages_scanned'] ?? 0);
                 $pagesTotal = (int)($remoteActiveScan['pages_total'] ?? 0);

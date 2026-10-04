@@ -84,12 +84,13 @@ final class RemoteScreenshotService
             return null;
         }
 
-        $contentType = trim($apiResponse->getHeaderLine('Content-Type'));
+        $contentType = strtolower(trim(explode(';', $apiResponse->getHeaderLine('Content-Type'))[0]));
         if ($contentType === '') {
             $contentType = 'image/png';
         }
 
-        if (!str_starts_with($contentType, 'image/')) {
+        // Served inline from the backend origin: raster images only. An SVG is a document that can run script.
+        if (!in_array($contentType, ['image/png', 'image/jpeg', 'image/webp'], true)) {
             return null;
         }
 

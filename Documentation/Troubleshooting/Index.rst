@@ -87,13 +87,24 @@ overview.
     domain.
 
 ``domain_mismatch`` / ``trial_domain_mismatch``
-    The key is bound to a different domain. Assign the current domain in the
-    customer portal; for a trial key, choose a plan for this domain or contact
-    support.
+    The key is bound to a different domain. Activate the current domain under
+    :ref:`Licence domains <configuration-licence-domains>` or in the customer
+    portal; for a trial key, choose a plan for this domain or contact support.
+
+``domain_not_activated``
+    A site of this installation uses the domain, but it is not activated for
+    the licence. Activate it under :ref:`Licence domains
+    <configuration-licence-domains>` or in the customer portal.
+
+``domain_not_detected``
+    No site of this installation uses the domain, so the licence cannot cover
+    it. Check the base URL in the Site Configuration, then validate again.
 
 ``domain_limit_reached``
-    All domain slots of the plan are used. Release a domain in the customer
-    portal, or switch to Agency for more domains.
+    All domain slots of the plan are used. Deactivate a domain under
+    :ref:`Licence domains <configuration-licence-domains>` or in the customer
+    portal (on PRO, 90 days after it was activated), or switch to Agency for
+    unlimited domains.
 
 ``licence_project_mismatch`` / ``trial_project_mismatch``
     The key is registered to a different TYPO3 project. Use the key of this
@@ -112,6 +123,24 @@ five minutes, trial results for fifteen minutes. After fixing a problem it can
 take a moment until the new state is visible; pressing :guilabel:`Validate`
 re-checks immediately.
 
+..  _troubleshooting-stale-scripts:
+
+The backend still behaves like the previous version
+===================================================
+
+TYPO3 changes the address of extension scripts only when an extension's
+installed version changes. If AQG's files are updated without a new installed
+version, for example as a path or VCS package (``dev-main``) or by copying files
+without ``composer update``, browsers may keep running the previous scripts for
+as long as the web server allows them to be cached.
+
+*   The Page module indicator, the settings and the page detail load their
+    scripts with a version of the file content and always get the current
+    script.
+*   For the AQG backend module, run ``composer update priebera/typo3-a11y-quality-gate``
+    after updating the files, so the installed version changes, or reload the
+    backend with the browser cache disabled.
+
 ..  _troubleshooting-remote:
 
 Remote scans do not start or find nothing
@@ -127,6 +156,23 @@ Remote scans do not start or find nothing
     site from the scan.
 *   Verify that the site is reachable from the internet. The crawler is a hosted
     service and cannot reach installations that are only available internally.
+*   :guilabel:`Site not reachable from the internet` means the base URL of the
+    site's Site Configuration resolves to a local or private network address —
+    typically a development host such as ``*.ddev.site`` or ``localhost`` on a
+    server that is otherwise public. AQG derives every scan URL from the Site
+    Configuration and the scanner refuses such addresses, so give the site a
+    public base URL, or a base variant for the application context of this
+    installation, or scan the site where it is publicly deployed. This is not a
+    licence problem.
+*   :guilabel:`Site address not found` means the scanner could not resolve the
+    host name of the site's base URL on the internet, for example because it
+    only resolves inside a VPN or an internal DNS. Check the base URL in the
+    Site Configuration.
+*   The Free Remote Preview shows :guilabel:`Free Remote Preview needs a public
+    site address` instead of a scan button when the Site's base URL is a local,
+    development or internal address such as ``*.ddev.site`` or ``localhost``.
+    Content scans work there; run the preview in a publicly reachable
+    installation.
 *   Findings that are not mapped to TYPO3 records usually mean the AQG frontend
     markers are missing, see :ref:`configuration-site-settings`.
 

@@ -318,10 +318,11 @@
                     <div class="aqg-card__actions">
                         <button type="button" class="btn btn-default js-aqg-statement-copy" disabled="disabled"><f:translate key="settings.statement.button.copyHtml" extensionName="A11yQualityGate" /></button>
                         <button type="button" class="btn btn-default js-aqg-statement-download" disabled="disabled"><f:translate key="settings.statement.button.downloadTxt" extensionName="A11yQualityGate" /></button>
-                        <button type="button" class="btn btn-default js-aqg-statement-pdf" disabled="disabled"><f:translate key="settings.statement.button.downloadPdf" extensionName="A11yQualityGate" /></button>
+                        <button type="button" class="btn btn-default js-aqg-statement-pdf" disabled="disabled" aria-describedby="aqg-statement-pdf-note"><f:translate key="settings.statement.button.downloadPdf" extensionName="A11yQualityGate" /></button>
                     </div>
                 </div>
                 <div class="aqg-card__body">
+                    <p class="aqg-help-text" id="aqg-statement-pdf-note"><f:translate key="settings.statement.pdfUntaggedNote" extensionName="A11yQualityGate" /></p>
                     <div class="aqg-warning-banner">
                         <span class="aqg-status-badge aqg-status-badge--warning js-aqg-statement-status-badge"><f:translate key="settings.statement.status.requiresReview" extensionName="A11yQualityGate" /></span>
                         <span><f:translate key="settings.statement.result.reviewNotice" extensionName="A11yQualityGate" /></span>

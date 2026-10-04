@@ -12,10 +12,12 @@
 @use "components/notices";
 @use "components/disclosure";
 @use "components/language-switcher";
+@use "components/update-notice";
 
 @use "views/page-detail";
 @use "views/remote-page-detail";
 @use "views/overview";
+@use "views/onboarding";
 @use "views/settings";
 
 @use "typo3/dark-mode";

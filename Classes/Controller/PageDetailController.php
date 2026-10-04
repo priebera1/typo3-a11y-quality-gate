@@ -105,9 +105,9 @@ final class PageDetailController extends AbstractBackendModuleController
             $this->pageRenderer,
             $site
         );
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/image-remediation.js');
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/ai-link-text-suggestion.js');
-        $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/ai-iframe-title-suggestion.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/image-remediation.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/ai-link-text-suggestion.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/ai-iframe-title-suggestion.js');
 
         $siteIdentifier = $site?->getIdentifier() ?? '';
         $activeStatus = $this->requestParameterService->getStatus($request, 'open');

@@ -19,12 +19,16 @@ final class ProTokenService
      * Answers from the token endpoint that are a verdict on the licence or trial. A rate limit or an
      * unavailable entitlement service is not among them: those keep the bounded last-known-good state.
      */
+    private const DOMAIN_TOKEN_ERRORS = ['domain_limit_reached', 'domain_not_activated', 'domain_not_detected'];
+
     private const DEFINITIVE_TOKEN_ERRORS = [
         'licence_invalid',
         'licence_project_mismatch',
         'licence_project_limit_reached',
         'licence_project_removed',
         'domain_limit_reached',
+        'domain_not_activated',
+        'domain_not_detected',
         'product_mismatch',
         'feature_not_available',
         'trial_invalid',
@@ -80,8 +84,15 @@ final class ProTokenService
                 $this->cacheManager->flushAll();
             }
 
+            // A domain answer names what to fix (activate the domain, or report it from a site), so its code reaches
+            // the scan error presenter; other refusals stay a licence authentication failure.
+            $errorCode = (string)$responseDto->errorCode;
             throw new TokenRefreshException(
-                $responseDto->errorMessage ?? 'AQG token issuance failed.'
+                $responseDto->errorMessage ?? 'AQG token issuance failed.',
+                0,
+                in_array($errorCode, self::DOMAIN_TOKEN_ERRORS, true)
+                    ? new ApiRequestFailedException('AQG token issuance refused for the domain.', 403, null, $errorCode)
+                    : null,
             );
         }
 

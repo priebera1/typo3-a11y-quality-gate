@@ -67,6 +67,8 @@
                                 <f:if condition="{proStatus.projectsMax}">
                                     <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.projects" default="TYPO3 projects" /></dt>
                                     <dd data-aqg-licence-projects="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.projectsUsage" default="%1$d of %2$d in use" arguments="{0: proStatus.projectsActive, 1: proStatus.projectsMax}" /></dd>
+                                    <dt data-aqg-licence-domains-total-term="true" hidden><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.activeDomains" default="Active domains" /></dt>
+                                    <dd data-aqg-licence-domains-total="true" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.activeDomainsAcrossProjects', default: '%s across all projects')}" hidden></dd>
                                 </f:if>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
                                 <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>

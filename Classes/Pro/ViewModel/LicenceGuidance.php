@@ -27,6 +27,11 @@ final class LicenceGuidance
         'expired' => ['expired', [self::ACTION_PORTAL, 'settings.licence.cta.renew'], [self::ACTION_PRICING, 'settings.licence.cta.comparePlans']],
         'inactive' => ['inactive', [self::ACTION_PORTAL, 'settings.licence.openCustomerPortal'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         'domain_limit_reached' => ['domainLimitReached', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_PRICING, 'settings.licence.cta.comparePlans']],
+        // The installation uses the domain, but it is not activated for the licence: the Licence tab and the portal
+        // both activate it (PRO within its domain limit).
+        'domain_not_activated' => ['domainNotActivated', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_PRICING, 'settings.licence.cta.comparePlans']],
+        // No site of this installation uses the domain: fix the Site Configuration, then validate again.
+        'domain_not_detected' => ['domainNotDetected', [self::ACTION_RETRY, 'settings.licence.cta.validateAgain'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         'domain_mismatch' => ['domainMismatch', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         // PRO and trials cover one TYPO3 installation; Agency covers several client installations.
         'project_mismatch' => ['projectMismatch', [self::ACTION_PRICING, 'settings.licence.cta.comparePlans'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],

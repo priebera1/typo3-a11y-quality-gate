@@ -23,15 +23,18 @@ body,
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    /* mPDF: wrap an over-long word instead of shrinking the whole table below 8 pt. */
+    overflow: wrap;
 }
 
 .aqgp-runhead td {
     padding: 0 0 6px 0;
     border-bottom: 1px solid #e4e7ec;
-    color: #7c828d;
-    font-family: courier, monospace;
-    font-size: 7.5pt;
-    letter-spacing: 0.06em;
+    color: #5f6670;
+    /* Sans at 8 pt: the letter-spaced monospace made mPDF shrink the running header below 8 pt. */
+    font-family: helvetica, arial, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.02em;
     vertical-align: bottom;
 }
 
@@ -39,7 +42,7 @@ body,
     width: 18%;
     color: #23304a !important;
     font-weight: bold;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.1em;
     white-space: nowrap;
 }
 
@@ -61,10 +64,10 @@ body,
 .aqgp-runfoot td {
     padding: 6px 0 0 0;
     border-top: 1px solid #e4e7ec;
-    color: #7c828d;
-    font-family: courier, monospace;
-    font-size: 7.2pt;
-    letter-spacing: 0.06em;
+    color: #5f6670;
+    font-family: helvetica, arial, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.02em;
     vertical-align: top;
 }
 
@@ -126,7 +129,7 @@ body,
 
 .aqgp-brandblock__name {
     margin: 7px 0 0 0;
-    color: #7c828d;
+    color: #5f6670;
     font-size: 9.5pt;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -142,9 +145,9 @@ body,
 
 .aqgp-eyebrow {
     margin: 0 0 4px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -194,9 +197,9 @@ body,
 .aqgp-covermeta__label {
     display: block;
     margin: 0 0 3px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.13em;
     text-transform: uppercase;
@@ -241,7 +244,7 @@ body,
     margin: 0 0 6px 0;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -255,7 +258,7 @@ body,
 }
 
 .aqgp-metric__unit {
-    color: #7c828d;
+    color: #5f6670;
     font-size: 11pt;
     font-weight: bold;
 }
@@ -263,9 +266,9 @@ body,
 .aqgp-metric__foot {
     display: block;
     margin-top: 6px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
 }
 
 .aqgp-metric--brand { border-top-color: #23304a; }
@@ -303,7 +306,7 @@ body,
     margin: 0 0 4px 0;
     color: #1f519b;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -391,6 +394,11 @@ body,
     margin: 0 0 16px 0;
 }
 
+/* The standards lines of an issue card read as one list; tight spacing keeps a two-finding card on one page at 8 pt. */
+.aqgp-issue .aqgp-block--compact .aqgp-p {
+    margin-bottom: 3px;
+}
+
 .aqgp-starthere {
     margin: 0 0 16px 0;
     padding: 13px 15px 14px 15px;
@@ -404,7 +412,7 @@ body,
     margin: 0 0 5px 0;
     color: #23304a;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.13em;
     text-transform: uppercase;
@@ -440,7 +448,7 @@ body,
 
 .aqgp-kv td.aqgp-kv__k {
     width: 34mm;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
     font-size: 8pt;
     font-weight: bold;
@@ -459,7 +467,7 @@ body,
     margin: 0 0 7px 0;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -485,7 +493,7 @@ body,
     background: #f0f1f3;
     color: #1e232a;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.06em;
     line-height: 1.5;
@@ -532,7 +540,7 @@ body,
     background: #f5f6f8;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.06em;
     text-align: left;
@@ -573,7 +581,7 @@ body,
 }
 
 .aqgp-empty {
-    color: #7c828d;
+    color: #5f6670;
 }
 
 .aqgp-score {
@@ -595,7 +603,7 @@ body,
     background: #f0f1f3;
     color: #1e232a;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     white-space: nowrap;
 }
@@ -649,8 +657,8 @@ body,
 
 .aqgp-issue__count small {
     display: block;
-    color: #7c828d;
-    font-size: 7pt;
+    color: #5f6670;
+    font-size: 8pt;
     font-weight: normal;
     letter-spacing: 0.04em;
 }
@@ -665,7 +673,7 @@ body,
 
 .aqgp-issue__rule {
     margin: 0 0 9px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
     font-size: 8pt;
 }
@@ -703,9 +711,9 @@ body,
 
 .aqgp-qa__label {
     margin: 0 0 3px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -732,7 +740,7 @@ body,
     margin: 0 0 3px 0;
     color: #23304a;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -754,9 +762,9 @@ body,
     margin: 0;
     padding: 9px 0 7px 0;
     border-top: 1px solid #ebeef2;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -786,9 +794,9 @@ body,
 .aqgp-node__k {
     display: block;
     margin: 0 0 3px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7pt;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -842,9 +850,9 @@ body,
 
 .aqgp-shot__cap {
     margin: 7px 2px 1px 2px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
 }
 
 .aqgp-screenshot-placeholder,
@@ -852,7 +860,7 @@ body,
     padding: 34mm 10px;
     border: 1px dashed #d4d8de;
     background: #f5f6f8;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
     font-size: 9pt;
     text-align: center;
@@ -862,9 +870,9 @@ body,
     margin: 16px 0 0 0;
     padding: 9px 0 0 0;
     border-top: 1px solid #ebeef2;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.5pt;
+    font-size: 8pt;
     text-align: center;
 }
 
@@ -894,7 +902,7 @@ body,
     width: 16mm;
     height: 16mm;
     line-height: 16mm;
-    font-size: 7.5pt;
+    font-size: 8pt;
 }
 
 .aqgp-covermeta td {
@@ -938,7 +946,7 @@ body,
 
 .aqgp-metric__label {
     margin-bottom: 5px;
-    font-size: 7.2pt;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
@@ -1024,11 +1032,11 @@ body,
 
 /* AQG PDF final polish pass: mPDF block rendering + spacing fixes. */
 .aqgp-runfoot td:first-child {
-    width: 68%;
+    width: 60%;
 }
 .aqgp-runfoot td.aqgp-runfoot__page,
 .aqgp-runfoot td:last-child {
-    width: 32%;
+    width: 40%;
     text-align: right !important;
     white-space: nowrap;
 }
@@ -1088,15 +1096,15 @@ body,
     display: block;
     color: #1e232a;
     font-weight: bold;
-    font-size: 8.8pt;
+    font-size: 9pt;
     line-height: 1.2;
 }
 .aqgp-issue__count-sub,
 .aqgp-issue__count small {
     display: block;
     margin-top: 2px;
-    color: #7c828d;
-    font-size: 7pt;
+    color: #5f6670;
+    font-size: 8pt;
     font-weight: normal;
     letter-spacing: 0.04em;
     line-height: 1.25;
@@ -1179,7 +1187,7 @@ body,
     min-height: 8mm !important;
     color: #545b66 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     font-weight: bold !important;
     letter-spacing: 0.08em !important;
     line-height: 1.25 !important;
@@ -1195,15 +1203,15 @@ body,
     white-space: nowrap !important;
 }
 .aqgp-metric__unit {
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-size: 9.5pt !important;
     font-weight: bold !important;
 }
 .aqgp-metric__foot {
     margin: 5px 0 0 0 !important;
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     line-height: 1.25 !important;
 }
 .aqgp-metric--brand { border-top-color: #23304a !important; }
@@ -1261,7 +1269,7 @@ body,
     display: inline-block !important;
     margin: 0 !important;
     color: #1e232a !important;
-    font-size: 8.8pt !important;
+    font-size: 9pt !important;
     font-weight: bold !important;
     line-height: 1.2 !important;
 }
@@ -1269,8 +1277,8 @@ body,
 .aqgp-issue__count small {
     display: inline-block !important;
     margin: 2px 0 0 0 !important;
-    color: #7c828d !important;
-    font-size: 7pt !important;
+    color: #5f6670 !important;
+    font-size: 8pt !important;
     font-weight: normal !important;
     letter-spacing: 0.04em !important;
     line-height: 1.25 !important;
@@ -1326,7 +1334,7 @@ table.aqgp-metric td.aqgp-metric__label {
     padding-bottom: 0 !important;
     color: #545b66 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     font-weight: bold !important;
     letter-spacing: 0.08em !important;
     line-height: 1.25 !important;
@@ -1348,7 +1356,7 @@ table.aqgp-metric td.aqgp-metric__value {
     white-space: nowrap !important;
 }
 table.aqgp-metric .aqgp-metric__unit {
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-size: 9.5pt !important;
     font-weight: bold !important;
 }
@@ -1356,9 +1364,9 @@ table.aqgp-metric td.aqgp-metric__foot {
     height: 6mm !important;
     padding-top: 1px !important;
     padding-bottom: 8px !important;
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     line-height: 1.25 !important;
 }
 
@@ -1394,7 +1402,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     display: block !important;
     margin: 0 !important;
     color: #1e232a !important;
-    font-size: 8.8pt !important;
+    font-size: 9pt !important;
     font-weight: bold !important;
     line-height: 1.2 !important;
 }
@@ -1402,8 +1410,8 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-issue__count small {
     display: block !important;
     margin: 2px 0 0 0 !important;
-    color: #7c828d !important;
-    font-size: 7pt !important;
+    color: #5f6670 !important;
+    font-size: 8pt !important;
     font-weight: normal !important;
     letter-spacing: 0.04em !important;
     line-height: 1.25 !important;
@@ -1488,7 +1496,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     padding-bottom: 0 !important;
     color: #545b66 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     font-weight: bold !important;
     letter-spacing: 0.08em !important;
     line-height: 1.25 !important;
@@ -1511,9 +1519,9 @@ table.aqgp-metric td.aqgp-metric__foot {
     height: 6mm !important;
     padding-top: 1px !important;
     padding-bottom: 8px !important;
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     line-height: 1.25 !important;
 }
 .aqgp-cover .aqgp-disclaimer,
@@ -1616,7 +1624,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     padding-bottom: 0 !important;
     color: #545b66 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     font-weight: bold !important;
     letter-spacing: 0.08em !important;
     line-height: 1.2 !important;
@@ -1639,9 +1647,9 @@ table.aqgp-metric td.aqgp-metric__foot {
     height: 7mm !important;
     padding-top: 0 !important;
     padding-bottom: 8px !important;
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-family: courier, monospace !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     line-height: 1.2 !important;
 }
 .aqgp-cover table.aqgp-cover-notice,
@@ -1704,7 +1712,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     padding: 0 !important;
     color: #545b66 !important;
     font-family: courier, monospace !important;
-    font-size: 6.8pt !important;
+    font-size: 8pt !important;
     font-weight: bold !important;
     letter-spacing: 0.08em !important;
     line-height: 1.25 !important;
@@ -1727,16 +1735,16 @@ table.aqgp-metric td.aqgp-metric__foot {
     white-space: nowrap !important;
 }
 .aqgp-cover .aqgp-cover-metric__unit {
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-size: 9.5pt !important;
     font-weight: bold !important;
 }
 .aqgp-cover .aqgp-cover-metric__foot {
     margin: 0 !important;
     padding: 0 !important;
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-family: courier, monospace !important;
-    font-size: 6.8pt !important;
+    font-size: 8pt !important;
     line-height: 1.25 !important;
     text-align: center !important;
 }
@@ -1758,7 +1766,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     background: #f5f6f8 !important;
     color: #1e232a !important;
     font-family: helvetica, arial, sans-serif !important;
-    font-size: 9.3pt !important;
+    font-size: 9.5pt !important;
     line-height: 1.45 !important;
 }
 .aqgp-cover table.aqgp-cover-disclaimer strong {
@@ -1817,7 +1825,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     padding: 3.2mm 2mm 1.5mm 2mm !important;
     color: #23304a !important;
     font-family: courier, monospace !important;
-    font-size: 6.9pt !important;
+    font-size: 8pt !important;
     font-weight: bold !important;
     letter-spacing: 0.09em !important;
     line-height: 1.25 !important;
@@ -1838,15 +1846,15 @@ table.aqgp-metric td.aqgp-metric__foot {
     white-space: nowrap !important;
 }
 .aqgp-cover .aqgp-cover-metric-card__unit {
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-size: 9.5pt !important;
     font-weight: bold !important;
 }
 .aqgp-cover .aqgp-cover-metric-card__foot {
     padding: 0 2mm 3mm 2mm !important;
-    color: #7c828d !important;
+    color: #5f6670 !important;
     font-family: courier, monospace !important;
-    font-size: 6.9pt !important;
+    font-size: 8pt !important;
     line-height: 1.25 !important;
     text-align: center !important;
 }
@@ -1865,7 +1873,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     background: #f5f6f8 !important;
     color: #1e232a !important;
     font-family: helvetica, arial, sans-serif !important;
-    font-size: 9.3pt !important;
+    font-size: 9.5pt !important;
     line-height: 1.45 !important;
 }
 
@@ -1887,7 +1895,7 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-h1 {
     margin: 0 0 2px 0;
     color: #101419;
-    font-size: 17px;
+    font-size: 13pt;
     font-weight: bold;
     line-height: 1.15;
 }
@@ -1895,7 +1903,7 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-sub {
     margin: 0;
     color: #545b66;
-    font-size: 9.5px;
+    font-size: 8pt;
 }
 
 .aqgp-local-document .aqgp-header__rule {
@@ -1934,9 +1942,9 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-meta__label {
     display: block;
     margin: 0 0 2px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1945,13 +1953,13 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-meta__value {
     display: block;
     color: #1e232a;
-    font-size: 8.6px;
+    font-size: 8pt;
     word-break: break-word;
 }
 
 .aqgp-local-document .aqgp-meta__value--mono {
     font-family: courier, monospace;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-local-document .aqgp-chip,
@@ -1963,7 +1971,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     background: #ffffff;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -1980,7 +1988,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     padding: 0 0 5px 0;
     border: 0;
     color: #1e232a;
-    font-size: 9.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1990,7 +1998,7 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-section-title__right {
     color: #545b66 !important;
     font-family: courier, monospace;
-    font-size: 7.2px !important;
+    font-size: 8pt !important;
     font-weight: bold;
     letter-spacing: 0.06em;
     text-align: right;
@@ -2035,7 +2043,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     padding: 9px 9px 0 9px;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2044,15 +2052,15 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document table.aqgp-card-table .aqgp-card__value {
     padding: 4px 9px 0 9px;
     color: #1e232a;
-    font-size: 21px;
+    font-size: 16pt;
     font-weight: bold;
     line-height: 1.05;
 }
 
 .aqgp-local-document table.aqgp-card-table .aqgp-card__foot {
     padding: 4px 9px 10px 9px;
-    color: #7c828d;
-    font-size: 7px;
+    color: #5f6670;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
@@ -2066,7 +2074,7 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-card--needs_review .aqgp-card__label { color: #7c3aed; }
 .aqgp-local-document .aqgp-card--total { border-left-color: #1e232a; }
 .aqgp-local-document .aqgp-card--total .aqgp-card__label { color: #1e232a; }
-.aqgp-local-document .aqgp-card.is-zero .aqgp-card__value { color: #7c828d; }
+.aqgp-local-document .aqgp-card.is-zero .aqgp-card__value { color: #5f6670; }
 
 .aqgp-local-document .aqgp-local-issue {
     margin: 0 0 10px 0;
@@ -2099,9 +2107,9 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-local-issue__num {
     width: 38px;
     padding: 9px 0 8px 10px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     font-weight: bold;
     line-height: 1.3;
 }
@@ -2113,16 +2121,16 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-local-issue__title {
     margin: 0 0 3px 0;
     color: #101419;
-    font-size: 9.7px;
+    font-size: 8pt;
     font-weight: bold;
     line-height: 1.28;
 }
 
 .aqgp-local-document .aqgp-local-issue__sub {
     margin: 0 0 6px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.25;
 }
 
@@ -2144,7 +2152,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     margin: 0 0 3px 0;
     color: #1f519b;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -2154,7 +2162,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     display: block;
     margin: 0;
     color: #1e232a;
-    font-size: 8px;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
@@ -2175,9 +2183,9 @@ table.aqgp-metric td.aqgp-metric__foot {
 
 .aqgp-local-document .aqgp-local-kv td:first-child {
     width: 96px;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -2186,16 +2194,16 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-local-kv td:last-child {
     color: #4f5661;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     word-break: break-all;
 }
 
 .aqgp-local-document .aqgp-local-snippet__label {
     display: block;
     margin: 0 0 4px 0;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -2209,7 +2217,7 @@ table.aqgp-metric td.aqgp-metric__foot {
     background: #eceff3;
     color: #333943;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.45;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -2224,11 +2232,19 @@ table.aqgp-metric td.aqgp-metric__foot {
 .aqgp-local-document .aqgp-empty__title {
     margin: 0 0 5px 0;
     color: #1e232a;
-    font-size: 10px;
+    font-size: 8pt;
     font-weight: bold;
 }
 
 .aqgp-local-document .aqgp-empty__body {
     color: #545b66;
-    font-size: 8px;
+    font-size: 8pt;
+}
+
+/* Untagged-PDF disclosure on the first page: readable size, AA contrast. */
+.aqgp-a11y-note {
+    margin: 2mm 0 3mm;
+    color: #545b66;
+    font-size: 8pt;
+    line-height: 1.4;
 }

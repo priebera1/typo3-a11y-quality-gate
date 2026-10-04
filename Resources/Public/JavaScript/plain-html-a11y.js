@@ -535,7 +535,7 @@ class PlainHtmlA11yValidator {
         this.issuesContainer.hidden = false;
         this.issuesContainer.innerHTML = `
             <details class="aqg-plain-html-a11y__details-list">
-                <summary>Show issue list (${issues.length})</summary>
+                <summary>${editorLabelHtml('plainShowIssueList', 'Show issue list (%d)').replace('%d', String(issues.length))}</summary>
                 <div class="aqg-plain-html-a11y__details-body">
                     ${issues.map((issue, index) => this.renderIssue(issue, index)).join('')}
                 </div>

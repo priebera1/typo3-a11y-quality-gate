@@ -1271,21 +1271,24 @@
     }
 
     // Wraps at every width: the module frame is narrower than the viewport whenever the page tree is open,
-    // so a viewport media query alone lets the tabs (with their plan badges) run past the module.
+    // so a viewport media query alone lets the tabs (with their plan badges) run past the module. The tabs are
+    // inline boxes so `text-wrap: balance` spreads them evenly over the rows (4 + 3 instead of 6 + 1, where a
+    // last tab alone reads as a separate group); without balance support they wrap as before. The zero font
+    // size removes the white space between the inline tabs.
     .aqg-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: stretch;
-        gap: 0;
-        row-gap: 2px;
+        display: block;
         margin: 0 0 2px;
         padding: 0;
         border: 0;
         border-bottom: 1px solid var(--aqi-border);
+        font-size: 0;
+        text-wrap: balance;
     }
 
     .aqg-tab {
         display: inline-flex;
+        vertical-align: bottom;
+        white-space: nowrap;
         align-items: center;
         gap: 8px;
         margin: 0 0 -1px;
@@ -2565,6 +2568,14 @@
         box-shadow: 0 0 0 1px var(--aqi-fg) inset;
     }
 
+    /* The selected rule above has the same specificity as :focus-visible and comes later, so it replaced the
+       ring: the selected card showed no change on keyboard focus. Keep the selection edge and add the ring. */
+    .aqg-scope__card.is-active:focus-visible,
+    .aqg-scope__card[aria-pressed="true"]:focus-visible {
+        border-color: var(--aqi-focus);
+        box-shadow: var(--aqi-focus-ring), 0 0 0 1px var(--aqi-fg) inset;
+    }
+
     .aqg-scope__body {
         display: flex;
         min-width: 0;
@@ -2747,6 +2758,32 @@
         margin-top: 16px;
         padding-top: 14px;
         border-top: 1px solid var(--aqi-border-soft);
+    }
+
+    /* Saved licence key: a read-only, masked value (the key itself is not in the page), then the field for a
+       replacement key. */
+    .aqg-licence-saved {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+
+    .aqg-licence-saved .aqg-inputgroup {
+        background: var(--aqi-surface-2);
+    }
+
+    .aqg-licence-saved__value {
+        display: flex;
+        align-items: center;
+        color: var(--aqi-fg);
+        letter-spacing: .02em;
+        cursor: default;
+    }
+
+    .aqg-licence-remove {
+        margin-top: 2px;
+        font-size: 12px;
     }
 
     .aqg-card__upgrade-text {
@@ -5369,4 +5406,283 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
   color: var(--aqi-run);
   background: var(--aqi-run-bg);
   border-color: var(--aqi-run-border);
+}
+
+/* ---------- Licence tab: domain manager (compact table, 25 rows per page) ---------- */
+.a11y-settings.aqg-module .aqg-licence-domains {
+  margin-top: 16px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__content[hidden],
+.a11y-settings.aqg-module .aqg-licence-domains [hidden] {
+  display: none !important;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__status {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--aqi-fg-muted);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__summary-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--aqi-fg);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__notes {
+  margin: 0;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__search {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid var(--aqi-border);
+  border-radius: 999px;
+  background: var(--aqi-surface);
+  color: var(--aqi-fg);
+  font-size: 12px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__filter:hover {
+  background: var(--aqi-surface-2);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__filter.is-active {
+  border-color: var(--aqi-run-border);
+  background: var(--aqi-run-bg);
+  color: var(--aqi-run);
+  font-weight: 600;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__filter:focus-visible {
+  outline: none;
+  box-shadow: var(--aqi-focus-ring);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__filter-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--aqi-surface-2);
+  color: var(--aqi-fg-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__bulk,
+.a11y-settings.aqg-module .aqg-licence-domains__confirm-actions,
+.a11y-settings.aqg-module .aqg-licence-domains__pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__selected,
+.a11y-settings.aqg-module .aqg-licence-domains__range {
+  font-size: 12px;
+  color: var(--aqi-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__selected {
+  margin-right: 4px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--aqi-warn-border);
+  border-radius: 6px;
+  background: var(--aqi-warn-bg);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__confirm-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--aqi-fg);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--aqi-border-soft);
+  border-radius: 6px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table:focus-visible {
+  outline: none;
+  box-shadow: var(--aqi-focus-ring-inset);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table th,
+.a11y-settings.aqg-module .aqg-licence-domains__table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--aqi-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table thead th {
+  background: var(--aqi-surface-2);
+  color: var(--aqi-fg-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table tbody tr:last-child th,
+.a11y-settings.aqg-module .aqg-licence-domains__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* .form-check carries TYPO3's checkbox size and colours; its label layout (padding, floated input) is not wanted here. */
+.a11y-settings.aqg-module .aqg-licence-domains__check {
+  display: inline-flex;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__table .aqg-licence-domains__check .form-check-input {
+  float: none;
+  margin: 1px 0 0;
+}
+
+/* Controls inside the scrolling table get the inset ring: the wrapper clips an outer one. */
+.a11y-settings.aqg-module .aqg-licence-domains__table .form-check-input:focus-visible,
+.a11y-settings.aqg-module .aqg-licence-domains__table .btn:focus-visible {
+  outline: none;
+  box-shadow: var(--aqi-focus-ring-inset);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__select {
+  width: 32px;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__domain {
+  min-width: 200px;
+  font-weight: 400;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__name {
+  display: block;
+  font-family: var(--aqi-font-mono);
+  color: var(--aqi-fg);
+  overflow-wrap: anywhere;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--aqi-fg-muted);
+  max-width: 60ch;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__state {
+  display: inline-flex;
+  padding: 1px 8px;
+  border: 1px solid var(--aqi-none-border);
+  border-radius: 999px;
+  background: var(--aqi-none-bg);
+  color: var(--aqi-none);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__state.tone-ok {
+  border-color: var(--aqi-ok-border);
+  background: var(--aqi-ok-bg);
+  color: var(--aqi-ok);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__state.tone-warning {
+  border-color: var(--aqi-warn-border);
+  background: var(--aqi-warn-bg);
+  color: var(--aqi-warn);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__state.tone-error {
+  border-color: var(--aqi-err-border);
+  background: var(--aqi-err-bg);
+  color: var(--aqi-err);
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__sites {
+  color: var(--aqi-fg-muted);
+  overflow-wrap: anywhere;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__more {
+  color: var(--aqi-fg-subtle);
+  white-space: nowrap;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__action {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.a11y-settings.aqg-module .aqg-licence-domains__empty {
+  margin: 0;
+  padding: 12px;
+}
+
+@media (max-width: 575.98px) {
+  .a11y-settings.aqg-module .aqg-licence-domains__search {
+    max-width: none;
+  }
 }

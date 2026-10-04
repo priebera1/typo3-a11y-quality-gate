@@ -38,11 +38,11 @@ final class TableFrameStylesTest extends TestCase
 
         self::assertMatchesRegularExpression('/<section class="aqg-section[^"]*"[\s\S]*partial="Overview\/LocalTable"/', $local);
         self::assertSame(1, preg_match(
-            '/<section class="aqg-section" id="a11y-remote-top-pages">(?:(?!<\/section>)[\s\S])*<div class="aqg-table-wrap">/',
+            '/<section class="aqg-section" id="a11y-remote-top-pages">(?:(?!<\/section>)[\s\S])*<div class="aqg-table-wrap"[^>]*>/',
             $remote,
         ), 'Frontend affected pages fill their section card.');
         self::assertSame(1, preg_match(
-            '/<div class="aqg-report-collapse__body aqg-report-collapse__body--failed">(?:(?!<\/details>)[\s\S])*<div class="aqg-table-wrap">/',
+            '/<div class="aqg-report-collapse__body aqg-report-collapse__body--failed">(?:(?!<\/details>)[\s\S])*<div class="aqg-table-wrap"[^>]*>/',
             $remote,
         ), 'Failed pages sit inside the padded collapse body.');
     }

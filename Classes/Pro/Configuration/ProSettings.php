@@ -74,6 +74,22 @@ final class ProSettings
         return ProConstants::API_BASE_URL;
     }
 
+    /**
+     * A development or staging setup that points AQG at its own service. Such a crawler may be configured to
+     * reach development hosts, so the backend does not predict what it can scan.
+     */
+    public static function usesCustomServiceEndpoint(): bool
+    {
+        foreach (['A11Y_QUALITY_GATE_PRO_API_BASE_URL', 'A11Y_QUALITY_GATE_PRO_CRAWLER_BASE_URL'] as $variable) {
+            $value = getenv($variable);
+            if (is_string($value) && trim($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function resolveCrawlerBaseUrl(): string
     {
         $override = getenv('A11Y_QUALITY_GATE_PRO_CRAWLER_BASE_URL');

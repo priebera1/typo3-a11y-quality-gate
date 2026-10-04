@@ -82,3 +82,10 @@
     color: var(--aqi-fg-muted);
     font-size: 13px;
 }
+
+.aqg-module .aqg-history-compare__note {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+}

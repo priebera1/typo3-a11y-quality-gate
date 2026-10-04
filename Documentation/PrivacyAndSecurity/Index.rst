@@ -50,6 +50,14 @@ Outbound connections
             frontend and stores the findings and, for licensed plans,
             screenshots of the scanned pages.
 
+    *   -   Update notice
+        -   ``https://api.priebera.sk``
+        -   Nothing beyond the HTTP request itself: a ``GET`` of
+            ``/extension/releases/latest`` without licence key, installation
+            id, site or user data. Sent only when an administrator opens an AQG
+            module, at most once in 12 hours (one hour after a failure). The
+            installed version is compared inside TYPO3.
+
     *   -   AI text suggestions
         -   OpenAI, with your own project key
         -   The content context of the individual finding. Requests are sent

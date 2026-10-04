@@ -12,6 +12,7 @@ use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
 use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -407,7 +408,7 @@ final class RemoteExportBuilder
 
             return $this->pdfGenerator->render(
                 html: $html,
-                title: 'AQG',
+                title: 'AQG Frontend Overview Report',
             );
         }
 
@@ -491,7 +492,7 @@ final class RemoteExportBuilder
 
         return $this->pdfGenerator->render(
             html: $html,
-            title: 'AQG',
+            title: 'AQG Frontend Overview Report',
         );
     }
 
@@ -705,7 +706,7 @@ final class RemoteExportBuilder
         try {
             return $this->pdfGenerator->render(
                 html: $html,
-                title: 'AQG',
+                title: 'AQG Frontend Page Detail Report',
                 imageVars: $screenshot['imageVars'] ?? [],
             );
         } catch (\Throwable) {
@@ -725,7 +726,7 @@ final class RemoteExportBuilder
         try {
             return $this->pdfGenerator->render(
                 html: $fallbackHtml,
-                title: 'AQG',
+                title: 'AQG Frontend Page Detail Report',
                 imageVars: [],
             );
         } catch (\Throwable $secondFailure) {
@@ -2796,12 +2797,12 @@ final class RemoteExportBuilder
         return $count . ' ' . ($count === 1 ? $singular : ($plural ?? $singular . 's'));
     }
 
+    /**
+     * In the installation's time zone, as AQG shows scan times in the backend (BackendTimeUtility).
+     */
     private function formatPdfDate(?int $timestamp = null): string
     {
-        $date = new \DateTimeImmutable('@' . (string)($timestamp ?? time()));
-        return $date
-            ->setTimezone(new \DateTimeZone('Europe/Bratislava'))
-            ->format('d M Y · H:i T');
+        return BackendTimeUtility::formatDateTime($timestamp ?? time(), 'd M Y · H:i T');
     }
 
     private function formatPdfDateFromMixed(mixed $value): string

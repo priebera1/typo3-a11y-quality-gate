@@ -239,7 +239,7 @@ final class AccessibilityStatementService
     public function buildPdfCss(): string
     {
         $cssPath = GeneralUtility::getFileAbsFileName(
-            'EXT:a11y_quality_gate/Resources/Public/Css/pdf/statement.css'
+            'EXT:a11y_quality_gate/Resources/Public/Css/Pdf/statement.css'
         );
 
         if ($cssPath === '' || !is_file($cssPath) || !is_readable($cssPath)) {

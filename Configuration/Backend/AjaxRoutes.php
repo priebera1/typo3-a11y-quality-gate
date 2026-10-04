@@ -8,10 +8,12 @@ use Priebera\A11yQualityGate\Controller\AiIframeTitleSuggestionAjaxController;
 use Priebera\A11yQualityGate\Controller\AiLinkTextSuggestionAjaxController;
 use Priebera\A11yQualityGate\Controller\AiSettingsAjaxController;
 use Priebera\A11yQualityGate\Controller\ImageRemediationAjaxController;
+use Priebera\A11yQualityGate\Controller\PageModuleIndicatorAjaxController;
 use Priebera\A11yQualityGate\Controller\ProCrawlerAjaxController;
 use Priebera\A11yQualityGate\Controller\ScanAjaxController;
 use Priebera\A11yQualityGate\Controller\SettingsController;
 use Priebera\A11yQualityGate\Controller\ToolbarScanController;
+use Priebera\A11yQualityGate\Controller\UpdateNoticeAjaxController;
 
 return [
     'a11y_image_mark_decorative' => [
@@ -218,6 +220,35 @@ return [
     'a11y_validate_licence' => [
         'path' => '/a11y/validate-licence',
         'target' => SettingsController::class . '::validateLicenceAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_licence_domains' => [
+        'path' => '/a11y/licence/domains',
+        'target' => SettingsController::class . '::licenceDomainsAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_licence_domains_update' => [
+        'path' => '/a11y/licence/domains/update',
+        'target' => SettingsController::class . '::updateLicenceDomainsAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // The Page module indicator follows a scan that is already running when the page is opened.
+    'a11y_page_module_indicator' => [
+        'path' => '/a11y/page-module-indicator',
+        'target' => PageModuleIndicatorAjaxController::class . '::stateAction',
+        'methods' => ['GET'],
+        'parameters' => [
+            'skipSessionUpdate' => 1,
+        ],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // Dismisses the "new AQG version available" notice of one release for the current backend user.
+    'a11y_update_notice_dismiss' => [
+        'path' => '/a11y/update-notice/dismiss',
+        'target' => UpdateNoticeAjaxController::class . '::dismissAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],

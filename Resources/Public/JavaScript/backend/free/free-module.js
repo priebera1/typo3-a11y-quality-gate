@@ -1,6 +1,6 @@
 import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
-import { A11yBaseModule } from '../core/base-module.js';
-import { FREE_SELECTORS, PRO_SELECTORS } from '../core/constants.js';
+import { A11yBaseModule } from '@priebera/a11y-quality-gate/backend/core/base-module.js';
+import { FREE_SELECTORS, PRO_SELECTORS } from '@priebera/a11y-quality-gate/backend/core/constants.js';
 
 export class A11yFreeBackendModule extends A11yBaseModule {
     constructor() {
@@ -1014,6 +1014,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         const validateButton = document.querySelector(FREE_SELECTORS.licenceValidateButton);
         const resultBox = document.querySelector(FREE_SELECTORS.licenceValidateResult);
         const submitButton = document.querySelector('[data-aqg-licence-submit="true"]');
+        const removeToggle = document.querySelector('[data-aqg-licence-remove="true"]');
 
         if (!input || !resultBox) {
             return;
@@ -1034,32 +1035,41 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             });
         }
 
-        // A new or changed key is checked by saving it ("Save and validate"); the stored key is checked
-        // again with "Revalidate", which only makes sense while the field still holds that key.
-        const savedKey = String(input.defaultValue || '').trim();
+        // The saved key is not in the page, only a masked form of it; the key field starts empty. A key typed
+        // there replaces the saved one and is checked by saving it ("Save and validate"); "Revalidate" asks the
+        // server to check the saved key again and is offered only while no other key is typed or removal chosen.
+        const hasSavedKey = document.querySelector('[data-aqg-licence-saved="true"]') !== null;
         const syncLicenceActions = () => {
-            const currentKey = String(input.value || '').trim();
-            const keyChanged = currentKey !== savedKey;
+            const typedKey = String(input.value || '').trim();
+
+            if (removeToggle) {
+                // A typed key replaces the saved one; removing it at the same time would contradict that.
+                if (typedKey !== '') {
+                    removeToggle.checked = false;
+                }
+                removeToggle.disabled = typedKey !== '';
+            }
 
             if (validateButton) {
-                validateButton.hidden = keyChanged || savedKey === '';
+                validateButton.hidden = !hasSavedKey || typedKey !== '' || removeToggle?.checked === true;
             }
 
             if (submitButton) {
-                submitButton.textContent = keyChanged && currentKey !== ''
+                submitButton.textContent = typedKey !== ''
                     ? (submitButton.dataset.labelSaveValidate || 'Save and validate')
                     : (submitButton.dataset.labelSave || 'Save changes');
             }
         };
 
         input.addEventListener('input', syncLicenceActions);
+        removeToggle?.addEventListener('change', syncLicenceActions);
         syncLicenceActions();
 
-        if (savedKey === '') {
+        if (!hasSavedKey) {
             return;
         }
 
-        const revalidate = () => this.revalidateLicence(savedKey, resultBox, validateButton);
+        const revalidate = () => this.revalidateLicence(resultBox, validateButton);
 
         validateButton?.addEventListener('click', (event) => {
             event.preventDefault();
@@ -1075,7 +1085,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         });
     }
 
-    async revalidateLicence(licenceKey, resultBox, validateButton) {
+    async revalidateLicence(resultBox, validateButton) {
         const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
         const endpoint = ajaxUrls.a11y_validate_licence || '';
 
@@ -1105,8 +1115,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         `;
 
         try {
+            // The server validates the key it has stored; the page does not hold it.
             const response = await new AjaxRequest(endpoint).post({
-                licenceKey,
+                useSavedKey: '1',
             });
 
             const data = await response.resolve();

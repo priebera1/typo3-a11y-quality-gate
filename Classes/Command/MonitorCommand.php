@@ -70,6 +70,11 @@ final class MonitorCommand extends Command
         $maxPages = max(MonitoringTaskValidator::MAX_PAGES_MIN, min(MonitoringTaskValidator::MAX_PAGES_MAX, (int)$input->getOption('max-pages')));
         $maxWait = max(0, min(MonitoringTaskValidator::MAX_WAIT_MAX, (int)$input->getOption('max-wait')));
         $backendUrl = trim((string)$input->getOption('backend-url'));
+        // The same rule as the Scheduler task: the address becomes the link in notification e-mails.
+        if ($backendUrl !== '' && !MonitoringTaskValidator::isBackendBaseUrl($backendUrl)) {
+            $io->error('Enter --backend-url as https://host (for example https://cms.example.org), or leave it out.');
+            return Command::INVALID;
+        }
 
         // Several client sites are the Agency tier; PRO monitors its site.
         if (count($sites) > 1) {

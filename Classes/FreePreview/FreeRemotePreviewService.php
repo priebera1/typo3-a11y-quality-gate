@@ -12,6 +12,7 @@ use Priebera\A11yQualityGate\Pro\Dto\CrawlerSummaryResult;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Http\AqgCrawlerClient;
 use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 
@@ -305,7 +306,11 @@ final class FreeRemotePreviewService
             'missing_installation_id' => 'MISSING_INSTALLATION_ID',
             'installation_identity_mismatch' => 'INSTALLATION_IDENTITY_MISMATCH',
             'site_identity_mismatch' => 'SITE_IDENTITY_MISMATCH',
-            'invalid_site', 'invalid_site_url', 'unsafe_site_url', 'invalid_request' => 'INVALID_SITE',
+            // The scanner refuses a site it cannot reach from the internet (local or private address, unknown host).
+            'invalid_site', 'invalid_site_url', 'unsafe_site_url', 'invalid_request',
+            'private_network_blocked', 'dns_lookup_failed', 'cross_host_redirect_blocked', 'ip_literal_blocked',
+            'invalid_url', 'invalid_url_scheme', 'invalid_url_host', 'invalid_url_port', 'credentials_not_allowed',
+            'invalid_start_url', 'free_domain_mismatch', 'free_base_path_mismatch' => 'INVALID_SITE',
             'invalid_token', 'token_expired', 'unauthorized' => 'TOKEN_ERROR',
             'route_not_found' => 'ENDPOINT_NOT_FOUND',
             'invalid_installation_proof', 'installation_proof_missing',
@@ -318,18 +323,24 @@ final class FreeRemotePreviewService
 
         $message = $rateLimited
             ? BackendLabelUtility::translate('freePreview.error.rateLimited', 'AQG paused Free Remote Preview requests from this site for now. Try again later.')
-            : match ($state) {
+            : match (true) {
+                $code === 'private_network_blocked' => BackendLabelUtility::translate('remoteScanError.targetNotPublic.message', RemoteScanErrorPresenter::TARGET_NOT_PUBLIC_MESSAGE),
+                $code === 'dns_lookup_failed' => BackendLabelUtility::translate('remoteScanError.targetNotFound.message', RemoteScanErrorPresenter::TARGET_NOT_FOUND_MESSAGE),
+                $code === 'cross_host_redirect_blocked' => BackendLabelUtility::translate('remoteScanError.redirectBlocked.message', 'The page redirects to another host name, and the AQG scanner does not follow redirects to other hosts. Scan the address the page redirects to, or correct the redirect or the site\'s base URL.'),
+                in_array($code, ['free_domain_mismatch', 'free_base_path_mismatch'], true) => BackendLabelUtility::translate('freePreview.error.pageOutsideSite', 'The page address is not under this site\'s base URL, so the Free Remote Preview cannot scan it. Check the base URL and the language bases in the Site Configuration.'),
+                default => null,
+            } ?? match ($state) {
                 'FREE_LIMIT_REACHED' => BackendLabelUtility::translate('freePreview.error.limitReached', 'The Free Remote Preview daily scan limit has been reached.'),
                 'FEATURE_NOT_AVAILABLE' => BackendLabelUtility::translate('freePreview.error.featureUnavailable', 'This feature is not included in the Free Remote Preview. Start a trial or choose a PRO or Agency plan to use it.'),
                 'IDEMPOTENCY_CONFLICT' => BackendLabelUtility::translate('freePreview.error.idempotency', 'This Free Remote Preview request conflicts with an earlier submit. Reload before starting a new scan.'),
-                'PROOF_ERROR' => BackendLabelUtility::translate('freePreview.error.proof', 'The public Free Remote Preview proof could not be verified.'),
-                'MISSING_INSTALLATION_ID' => BackendLabelUtility::translate('freePreview.error.missingInstallation', 'Free Remote Preview installation identity is missing.'),
-                'INSTALLATION_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.installationMismatch', 'The Free Remote Preview installation identity does not match its token.'),
-                'SITE_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.siteMismatch', 'The TYPO3 site identifier does not match the Free Remote Preview token.'),
-                'INVALID_SITE' => BackendLabelUtility::translate('freePreview.error.invalidSite', 'The configured TYPO3 site URL is not valid for Free Remote Preview.'),
-                'TOKEN_ERROR' => BackendLabelUtility::translate('freePreview.error.token', 'Free Remote Preview authentication was rejected.'),
-                'ENDPOINT_NOT_FOUND' => BackendLabelUtility::translate('freePreview.error.endpoint', 'The Free Remote Preview status endpoint is not available.'),
-                'API_CONTRACT_ERROR' => BackendLabelUtility::translate('freePreview.error.contract', 'The Free Remote Preview request was rejected by the API contract.'),
+                'PROOF_ERROR' => BackendLabelUtility::translate('freePreview.error.proof', 'The AQG service could not confirm that this TYPO3 installation serves the site. Check that the site is publicly reachable at its base URL, then try again.'),
+                'MISSING_INSTALLATION_ID' => BackendLabelUtility::translate('freePreview.error.missingInstallation', 'This TYPO3 installation could not identify itself to the AQG service. Reload the page and try again.'),
+                'INSTALLATION_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.installationMismatch', 'The AQG service did not accept this installation\'s Free Remote Preview access. Reload the page to get new access and try again.'),
+                'SITE_IDENTITY_MISMATCH' => BackendLabelUtility::translate('freePreview.error.siteMismatch', 'The Free Remote Preview access was issued for another site. Reload the page and start the scan again.'),
+                'INVALID_SITE' => BackendLabelUtility::translate('freePreview.error.invalidSite', 'The AQG scanner cannot use this site\'s address. The base URL in the Site Configuration must be a public http or https address with a host name.'),
+                'TOKEN_ERROR' => BackendLabelUtility::translate('freePreview.error.token', 'The Free Remote Preview access has expired or was not accepted. Reload the page and try again.'),
+                'ENDPOINT_NOT_FOUND' => BackendLabelUtility::translate('freePreview.error.endpoint', 'The AQG service does not offer this Free Remote Preview function right now. Try again later.'),
+                'API_CONTRACT_ERROR' => BackendLabelUtility::translate('freePreview.error.contract', 'The AQG service did not accept this Free Remote Preview request. Reload the page and try again; if it keeps failing, contact AQG support.'),
                 default => BackendLabelUtility::translate('freePreview.error.unavailable', 'Free Remote Preview is temporarily unavailable.'),
             };
 

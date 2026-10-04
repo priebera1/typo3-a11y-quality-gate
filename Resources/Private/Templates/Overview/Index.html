@@ -62,6 +62,8 @@
 
         </header>
 
+        <f:render partial="Shared/UpdateNotice" arguments="{updateNotice: updateNotice}" />
+
         <f:if condition="!{hasPageContext}">
             <f:then>
                 <f:render partial="Shared/ModuleEmptyState" arguments="{emptyState: emptyState}" />
@@ -230,7 +232,9 @@
                         proStatus: proStatus,
                         siteIdentifier: siteIdentifier,
                         currentLanguageUid: currentLanguageUid,
-                        languageOptions: languageOptions
+                        languageOptions: languageOptions,
+                        gettingStarted: gettingStarted,
+                        showFreePreviewNextStep: showFreePreviewNextStep
                     }"
             />
         </div>

@@ -7,14 +7,41 @@ namespace Priebera\A11yQualityGate\Service;
 use Priebera\A11yQualityGate\Contract\SiteResolutionServiceInterface;
 
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
 final class SiteResolutionService implements SiteResolutionServiceInterface
 {
+    public const PAGE_CONTEXT_NO_PAGE = 'no_page';
+    public const PAGE_CONTEXT_NOT_FOUND = 'page_not_found';
+    public const PAGE_CONTEXT_OUTSIDE_SITE = 'outside_site';
+    public const PAGE_CONTEXT_IN_SITE = 'in_site';
+
     public function __construct(
         private readonly SiteFinder $siteFinder,
+        private readonly ?ConnectionPool $connectionPool = null,
     ) {
+    }
+
+    /**
+     * Why a page id has no site context. TYPO3 answers "no site" alike for a page outside every Site Configuration
+     * and for an id that names no page (deleted, or a stale link), but only the first one is fixed by creating a
+     * Site Configuration, so the Overview explains them differently.
+     */
+    public function describePageSiteContext(int $pageUid): string
+    {
+        if ($pageUid <= 0) {
+            return self::PAGE_CONTEXT_NO_PAGE;
+        }
+
+        if ($this->resolveSiteByPageId($pageUid) instanceof Site) {
+            return self::PAGE_CONTEXT_IN_SITE;
+        }
+
+        return $this->pageExists($pageUid) ? self::PAGE_CONTEXT_OUTSIDE_SITE : self::PAGE_CONTEXT_NOT_FOUND;
     }
 
     public function resolveSiteIdentifierFromPageId(int $pageUid): string
@@ -131,5 +158,25 @@ final class SiteResolutionService implements SiteResolutionServiceInterface
         $site = $this->resolveSiteForBackendRequest($request, $pageUid ?? 0);
 
         return $site?->getIdentifier() ?? '';
+    }
+
+    /**
+     * A hidden or access-restricted page is still a page of the tree; only a deleted or missing record is not.
+     */
+    private function pageExists(int $pageUid): bool
+    {
+        if (!$this->connectionPool instanceof ConnectionPool) {
+            return false;
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+        $queryBuilder->getRestrictions()->removeAll()->add(new DeletedRestriction());
+
+        return (int)$queryBuilder
+            ->count('uid')
+            ->from('pages')
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchOne() > 0;
     }
 }

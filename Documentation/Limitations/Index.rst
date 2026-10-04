@@ -79,7 +79,10 @@ Frontend scan
 =============
 
 *   The crawler requests the site from the public internet. Installations behind
-    a VPN, an IP allowlist or a bot filter cannot be scanned.
+    a VPN, an IP allowlist or a bot filter cannot be scanned, and neither can a
+    site whose Site Configuration base URL points to a local or private network
+    address, such as a ``*.ddev.site`` development host. See
+    :ref:`troubleshooting-remote`.
 *   Free Remote Preview is limited to a small daily allowance of single-page
     scans and does not include screenshots, TYPO3 record mapping, scan history
     or PDF export. The extension does not define the allowance itself: the
@@ -115,3 +118,24 @@ Suggestions are proposals that an editor must review. AQG rejects unsafe
 outputs, but it cannot verify that a suggested text is factually correct for the
 image or link it describes. Suggestions are never applied automatically and
 never write to RTE bodytext.
+
+..  _limitations-pdf:
+
+PDF exports are not tagged
+==========================
+
+The PDF library AQG uses (mPDF) cannot write a structure tree, so the PDF
+reports, the acceptance evidence and the accessibility statement PDF are
+untagged: screen readers get no headings, tables or reading order from them.
+AQG sets what mPDF can provide — the document language, the report title as the
+window title and a bookmark outline of the report sections — but that does not
+make the PDF accessible.
+
+Use the accessible alternatives instead:
+
+*   the CSV export, which contains the same findings and evidence as the PDF
+    (overview, page detail and acceptance evidence),
+*   the HTML version of the accessibility statement, which is the one to
+    publish on your site.
+
+The PDF export controls and the first page of each report say this as well.

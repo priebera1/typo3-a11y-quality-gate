@@ -33,8 +33,34 @@
 
                         <div class="aqg-card__body">
                             <div class="aqg-field">
+                                <f:if condition="{hasLicenceKey}">
+                                    <div class="aqg-licence-saved" role="group" aria-labelledby="aqg-licence-saved-label" data-aqg-licence-saved="true" data-aqg-licence-key-fingerprint="{licenceKeyFingerprint}">
+                                        <span class="aqg-field__label" id="aqg-licence-saved-label">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.savedKey" default="Saved licence key" />
+                                        </span>
+                                        <div class="aqg-inputgroup">
+                                            <span class="aqg-inputgroup__prefix" aria-hidden="true">KEY</span>
+                                            <span class="form-control form-control-sm aqg-input aqg-input--mono aqg-licence-saved__value" data-aqg-licence-masked-key="true">
+                                                <span aria-hidden="true">{maskedLicenceKey}</span>
+                                                <f:if condition="{licenceKeyEnding}">
+                                                    <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.savedKeyEnding" default="Key ending in %s" arguments="{0: licenceKeyEnding}" /></span>
+                                                </f:if>
+                                            </span>
+                                            <button type="button" class="btn btn-default btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence" data-aqg-licence-revalidate="true">
+                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.revalidate" default="Revalidate" />
+                                            </button>
+                                        </div>
+                                        <p class="aqg-field__help">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.savedKeyHelp" default="Only the beginning and the last characters are shown, so the key stays out of screen shares and screenshots." />
+                                        </p>
+                                    </div>
+                                </f:if>
+
                                 <label class="aqg-field__label" for="aqg-licence-key">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key" default="AQG licence key" />
+                                    <f:if condition="{hasLicenceKey}">
+                                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.replaceKey" default="Replace with another key" /></f:then>
+                                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.key" default="AQG licence key" /></f:else>
+                                    </f:if>
                                 </label>
 
                                 <div class="aqg-inputgroup">
@@ -44,20 +70,26 @@
                                             class="form-control form-control-sm aqg-input aqg-input--mono"
                                             id="aqg-licence-key"
                                             name="licenceKey"
-                                            value="{licenceKey}"
+                                            value=""
                                             autocomplete="off"
                                             spellcheck="false"
                                             placeholder="aqg_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                                             data-a11y-licence-key-input="true"
-                                            aria-describedby="aqg-licence-validation"
+                                            aria-describedby="{f:if(condition: hasLicenceKey, then: 'aqg-licence-replace-help ')}aqg-licence-validation"
                                     />
-
-                                    <f:if condition="{hasLicenceKey}">
-                                        <button type="button" class="btn btn-default btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence" data-aqg-licence-revalidate="true">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.revalidate" default="Revalidate" />
-                                        </button>
-                                    </f:if>
                                 </div>
+
+                                <f:if condition="{hasLicenceKey}">
+                                    <p class="aqg-field__help" id="aqg-licence-replace-help">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.replaceKeyHelp" default="Leave the field empty to keep the saved key. A new key is validated when you save it." />
+                                    </p>
+                                    <div class="form-check aqg-licence-remove">
+                                        <input class="form-check-input" type="checkbox" id="aqg-licence-remove" name="licenceKeyRemove" value="1" data-aqg-licence-remove="true" />
+                                        <label class="form-check-label" for="aqg-licence-remove">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.removeKey" default="Remove the saved key when saving. AQG then runs as Free." />
+                                        </label>
+                                    </div>
+                                </f:if>
 
                                 <div id="aqg-licence-validation" data-a11y-licence-validate-result="true" aria-live="polite">
                                     <f:if condition="{proStatus.valid}">
@@ -70,7 +102,7 @@
                                             </span>
                                         </f:then>
                                         <f:else>
-                                            <f:if condition="{licenceKey}">
+                                            <f:if condition="{hasLicenceKey}">
                                                 <f:then></f:then>
                                                 <f:else>
                                                     <div class="aqg-field__help">
@@ -153,4 +185,158 @@
             </div>
         </aside>
     </form>
+
+    <f:if condition="{isAdmin}">
+        <f:if condition="{hasLicenceKey}">
+            <section class="aqg-card aqg-licence-domains"
+             aria-labelledby="aqg-licence-domains-title"
+             data-aqg-licence-domains="true"
+             data-list-url="{licenceDomainsUrl}"
+             data-update-url="{licenceDomainsUpdateUrl}"
+             data-label-loading="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.loading', default: 'Loading domains…')}"
+             data-label-unreachable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.error.failed', default: 'The domains could not be loaded or changed. Try again later.')}"
+             data-label-summary-active-of-max="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.summary.activeOfMax', default: '%1$s of %2$s domains active')}"
+             data-label-summary-active-unlimited="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.summary.activeUnlimited', default: '%s domains active, no domain limit')}"
+             data-label-summary-active-project="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.summary.activeProject', default: '%s domains active in this TYPO3 project, no domain limit')}"
+             data-label-summary-available="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.summary.available', default: '%s available')}"
+             data-label-summary-not-detected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.summary.notDetected', default: '%s no longer detected')}"
+             data-label-summary-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.summary.unavailable', default: '%s need another plan')}"
+             data-label-lock-note="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.lockNote', default: 'An activated domain keeps its slot for %s days before it can be deactivated.')}"
+             data-label-trial-note="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.trialNote', default: 'A trial covers the domain it was first used on. Choose PRO to scan more sites.')}"
+             data-label-state-active="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.state.active', default: 'Active')}"
+             data-label-state-active-not-detected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.state.activeNotDetected', default: 'Active, not detected')}"
+             data-label-state-available="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.state.available', default: 'Available')}"
+             data-label-state-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.state.unavailable', default: 'Unavailable')}"
+             data-label-detail-not-detected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.detail.notDetected', default: 'No TYPO3 site uses this domain any more. It keeps its slot until you deactivate it.')}"
+             data-label-detail-plan-limit="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.detail.planLimit', default: 'Every domain of the plan is in use. Deactivate one, or choose Agency for unlimited domains.')}"
+             data-label-detail-trial="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.detail.trial', default: 'A trial covers one domain. Choose PRO to scan this site.')}"
+             data-label-detail-locked="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.detail.locked', default: 'Can be deactivated from %s.')}"
+             data-label-detail-last-domain="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.detail.lastDomain', default: 'The licence keeps at least one active domain.')}"
+             data-label-select="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.select', default: 'Select %s')}"
+             data-label-activate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.activate', default: 'Activate')}"
+             data-label-deactivate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.deactivate', default: 'Deactivate')}"
+             data-label-selected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.selected', default: '%s selected')}"
+             data-label-none-selected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.noneSelected', default: 'No domain selected')}"
+             data-label-empty="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.empty', default: 'No domain matches the search or filter.')}"
+             data-label-empty-all="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.emptyAll', default: 'None of the sites in this installation has a public domain. Development hosts such as .ddev.site need no activation.')}"
+             data-label-range="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.range', default: 'Showing %1$s–%2$s of %3$s')}"
+             data-label-more-sites="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.moreSites', default: '+%s')}"
+             data-label-confirm-activate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.confirmActivate', default: 'Activate %1$s? Each activated domain keeps its slot for %2$s days before it can be deactivated.')}"
+             data-label-confirm-deactivate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.confirmDeactivate', default: 'Deactivate %s? Scans of a deactivated domain stop at once.')}"
+             data-label-result-activated="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.activated', default: 'Activated: %s.')}"
+             data-label-result-deactivated="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.deactivated', default: 'Deactivated: %s.')}"
+             data-label-result-unchanged="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.unchanged', default: 'Unchanged: %s.')}"
+             data-label-result-plan-limit="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.planLimit', default: 'Not activated, the domain limit of the plan is reached: %s.')}"
+             data-label-result-not-detected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.notDetected', default: 'Not activated, no site of this installation uses it: %s.')}"
+             data-label-result-locked="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.locked', default: 'Not deactivated yet, still locked: %s.')}"
+             data-label-result-last-domain="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.lastDomain', default: 'Not deactivated, the licence keeps one active domain: %s.')}"
+             data-label-result-skipped="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.skipped', default: 'Skipped: %s.')}"
+             data-label-result-more="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.result.more', default: '%s more')}"
+            >
+                <header class="aqg-card__head">
+                    <div>
+                        <h3 class="aqg-card__title" id="aqg-licence-domains-title">
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.title" default="Licence domains" /></span>
+                        </h3>
+                        <p class="aqg-card__sub">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.intro" default="Domains come from the sites configured in this TYPO3 installation. Only active domains can be scanned with the licence. The AQG customer portal shows and changes the same list." />
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-default btn-sm" data-aqg-domains-refresh="true">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.refresh" default="Refresh" />
+                    </button>
+                </header>
+
+                <div class="aqg-card__body">
+                    <p class="aqg-inline-status aqg-licence-domains__status" role="status" aria-live="polite" data-aqg-domains-status="true" hidden></p>
+                    <noscript>
+                        <p class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.noscript" default="Managing domains needs JavaScript. You can also manage them in the AQG customer portal." /></p>
+                    </noscript>
+
+                    <div class="aqg-licence-domains__content" data-aqg-domains-content="true" hidden>
+                        <ul class="aqg-licence-domains__summary" data-aqg-domains-summary="true"></ul>
+                        <p class="aqg-field__help aqg-licence-domains__notes" data-aqg-domains-notes="true" hidden></p>
+
+                        <div class="aqg-licence-domains__toolbar">
+                            <div class="aqg-licence-domains__search">
+                                <label class="aqg-field__label" for="aqg-licence-domains-search"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.search" default="Search domains" /></label>
+                                <input type="search" class="form-control form-control-sm aqg-input" id="aqg-licence-domains-search" autocomplete="off" spellcheck="false" data-aqg-domains-search="true" />
+                            </div>
+                            <div class="aqg-licence-domains__filters" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.filter.label', default: 'Filter domains')}">
+                            <button type="button" class="aqg-licence-domains__filter" data-aqg-domains-filter="all" aria-pressed="true">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.filter.all" default="All" /></span>
+                                <span class="aqg-licence-domains__filter-count" data-aqg-domains-filter-count="true">0</span>
+                            </button>
+                            <button type="button" class="aqg-licence-domains__filter" data-aqg-domains-filter="active" aria-pressed="false">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.filter.active" default="Active" /></span>
+                                <span class="aqg-licence-domains__filter-count" data-aqg-domains-filter-count="true">0</span>
+                            </button>
+                            <button type="button" class="aqg-licence-domains__filter" data-aqg-domains-filter="available" aria-pressed="false">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.filter.available" default="Available" /></span>
+                                <span class="aqg-licence-domains__filter-count" data-aqg-domains-filter-count="true">0</span>
+                            </button>
+                            <button type="button" class="aqg-licence-domains__filter" data-aqg-domains-filter="not_detected" aria-pressed="false">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.filter.notDetected" default="Not detected" /></span>
+                                <span class="aqg-licence-domains__filter-count" data-aqg-domains-filter-count="true">0</span>
+                            </button>
+                            <button type="button" class="aqg-licence-domains__filter" data-aqg-domains-filter="unavailable" aria-pressed="false">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.filter.unavailable" default="Unavailable" /></span>
+                                <span class="aqg-licence-domains__filter-count" data-aqg-domains-filter-count="true">0</span>
+                            </button>
+                            </div>
+                        </div>
+
+                        <div class="aqg-licence-domains__bulk">
+                            <span class="aqg-licence-domains__selected" aria-live="polite" data-aqg-domains-selected="true"></span>
+                            <button type="button" class="btn btn-primary btn-sm" data-aqg-domains-bulk="activate" disabled>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.bulk.activate" default="Activate selected" />
+                            </button>
+                            <button type="button" class="btn btn-default btn-sm" data-aqg-domains-bulk="deactivate" disabled>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.bulk.deactivate" default="Deactivate selected" />
+                            </button>
+                            <button type="button" class="btn btn-default btn-sm" data-aqg-domains-bulk="activate-all" hidden>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.bulk.activateAll" default="Activate all detected" />
+                            </button>
+                        </div>
+
+                        <div class="aqg-licence-domains__confirm" role="group" aria-labelledby="aqg-licence-domains-confirm-text" data-aqg-domains-confirm="true" hidden>
+                            <p class="aqg-licence-domains__confirm-text" id="aqg-licence-domains-confirm-text" data-aqg-domains-confirm-text="true"></p>
+                            <div class="aqg-licence-domains__confirm-actions">
+                                <button type="button" class="btn btn-primary btn-sm" data-aqg-domains-confirm-accept="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.confirm" default="Confirm" /></button>
+                                <button type="button" class="btn btn-default btn-sm" data-aqg-domains-confirm-cancel="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.cancel" default="Cancel" /></button>
+                            </div>
+                        </div>
+
+                        <div class="aqg-licence-domains__table-wrap">
+                            <table class="aqg-licence-domains__table" tabindex="-1" data-aqg-domains-table="true">
+                                <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.caption" default="Licence domains of this installation" /></caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="aqg-licence-domains__select">
+                                            <span class="form-check aqg-licence-domains__check">
+                                                <input type="checkbox" class="form-check-input" id="aqg-licence-domains-select-all" data-aqg-domains-select-all="true" />
+                                            </span>
+                                            <label class="visually-hidden" for="aqg-licence-domains-select-all"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.selectAll" default="Select every domain on this page" /></label>
+                                        </th>
+                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.column.domain" default="Domain" /></th>
+                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.column.status" default="Status" /></th>
+                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.column.sites" default="TYPO3 sites" /></th>
+                                        <th scope="col"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.column.actions" default="Actions" /></span></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-aqg-domains-rows="true"></tbody>
+                            </table>
+                            <p class="aqg-field__help aqg-licence-domains__empty" data-aqg-domains-empty="true" hidden></p>
+                        </div>
+
+                        <nav class="aqg-licence-domains__pager" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.label', default: 'Domain pages')}" data-aqg-domains-pager="true" hidden>
+                            <button type="button" class="btn btn-default btn-sm" data-aqg-domains-page="previous"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.previous" default="Previous" /></button>
+                            <span class="aqg-licence-domains__range" aria-live="polite" data-aqg-domains-range="true"></span>
+                            <button type="button" class="btn btn-default btn-sm" data-aqg-domains-page="next"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.next" default="Next" /></button>
+                        </nav>
+                    </div>
+                </div>
+            </section>
+        </f:if>
+    </f:if>
 </div>

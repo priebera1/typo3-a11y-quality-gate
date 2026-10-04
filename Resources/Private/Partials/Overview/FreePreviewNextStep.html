@@ -1,0 +1,14 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="aqg-notice aqg-tone-info aqg-next-step" data-aqg-next-step="free-preview">
+    <span class="aqg-notice__icon" aria-hidden="true">
+        <f:render partial="Overview/Icon" arguments="{name: 'info'}" />
+    </span>
+    <div class="aqg-notice__body">
+        <strong class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.nextStep.title" default="See what your visitors experience" /></strong>
+        <div class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.nextStep.text" default="Run a free browser-based accessibility scan of this page. No licence key, account or email needed." /></div>
+    </div>
+    <div class="aqg-notice__actions">
+        <button type="button" class="btn btn-default btn-sm" data-action="a11y-open-free-preview"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.nextStep.action" default="Open Free Remote Preview" /></button>
+    </div>
+</div>
+</html>

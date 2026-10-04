@@ -13,11 +13,14 @@ use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
+use Priebera\A11yQualityGate\FreePreview\PublicSiteAddressClassifier;
+use Priebera\A11yQualityGate\Pro\Configuration\ProSettings;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
@@ -34,6 +37,7 @@ use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
+use Priebera\A11yQualityGate\UpdateNotice\UpdateNoticeService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Utility\PaginationUtility;
 use Priebera\A11yQualityGate\Utility\RuleAnchorUtility;
@@ -94,6 +98,10 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly ScopeAccessService $scopeAccessService,
         private readonly RemoteScanErrorPresenter $remoteScanErrorPresenter,
         private readonly RemoteScanPairingService $remoteScanPairingService,
+        private readonly ?UpdateNoticeService $updateNoticeService = null,
+        private readonly ?PublicSiteAddressClassifier $publicSiteAddressClassifier = null,
+        private readonly ?ProSettings $proSettings = null,
+        private readonly ?RemoteScanRecoveryService $remoteScanRecoveryService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -115,6 +123,12 @@ final class OverviewController extends AbstractBackendModuleController
             $this->pageRenderer,
             $site
         );
+        $updateNotice = $this->updateNoticeService?->buildForCurrentUser();
+        if ($updateNotice !== null) {
+            $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/update-notice.js');
+        }
+        // Every Overview state renders the notice, the empty states included.
+        $moduleTemplate->assign('updateNotice', $updateNotice);
 
         $siteIdentifier = $site?->getIdentifier() ?? '';
         $siteBase = $site !== null ? (string)$site->getBase() : '';
@@ -128,17 +142,27 @@ final class OverviewController extends AbstractBackendModuleController
                 $returnParameters
             );
 
-            $emptyState = $currentPageUid <= 0
-                ? [
+            $pageSiteContext = $this->siteResolutionService->describePageSiteContext($currentPageUid);
+            $emptyState = match (true) {
+                $currentPageUid <= 0 => [
                     'title' => $this->translateWithFallback('overview.emptyState.selectPage.title', 'Select a page to start'),
                     'body' => $this->translateWithFallback('overview.emptyState.selectPage.body', 'Choose a page in the TYPO3 page tree to open accessibility results for that context.'),
                     'hint' => $this->translateWithFallback('overview.emptyState.selectPage.hint', 'Site roots show the full overview. Content pages show page-specific issues and scan actions.'),
-                ]
-                : [
+                    'stepsTitle' => $this->translateWithFallback('overview.emptyState.selectPage.stepsTitle', 'How AQG works'),
+                    'steps' => $this->buildFirstUseSteps(),
+                ],
+                // A page is selected, so "select a page" would be wrong: it lacks a Site Configuration in its rootline.
+                $pageSiteContext === SiteResolutionService::PAGE_CONTEXT_OUTSIDE_SITE => [
+                    'title' => $this->translateWithFallback('overview.emptyState.pageOutsideSite.title', 'This page is not part of a TYPO3 Site'),
+                    'body' => $this->translateWithFallback('overview.emptyState.pageOutsideSite.body', 'AQG works per TYPO3 Site: the Site Configuration tells it the site\'s base URL and languages. Neither the selected page nor any page above it has a Site Configuration.'),
+                    'hint' => $this->translateWithFallback('overview.emptyState.pageOutsideSite.hint', 'Create a Site Configuration for the root page of this page tree in Site Management › Sites, or select a page inside an existing site.'),
+                ],
+                default => [
                     'title' => $this->translateWithFallback('overview.emptyState.noSite.title', 'No site context selected'),
                     'body' => $this->translateWithFallback('overview.emptyState.noSite.body', 'AQG needs a valid site context before it can show content scans, frontend scan results and page-level issues.'),
                     'hint' => $this->translateWithFallback('overview.emptyState.noSite.hint', 'Tip: Select a page inside a configured TYPO3 site root.'),
-                ];
+                ],
+            };
 
             $moduleTemplate->assignMultiple([
                 'siteIdentifier' => $siteIdentifier,
@@ -642,8 +666,14 @@ final class OverviewController extends AbstractBackendModuleController
         $freeSubmitIntent = $isFreePreview && $currentPageUid > 0 && $currentPageUrl !== ''
             ? $this->freeSubmitIntentService->create($siteIdentifier, $currentPageUid)
             : '';
+        // A local, development or internal site address (DDEV, localhost, .test, private IP …) can never be scanned
+        // by the AQG crawler: say so up front instead of offering a scan that the crawler would refuse.
+        $nonPublicSiteHost = $isFreePreview ? $this->findNonPublicSiteHost($siteBase) : '';
+        $freePreview['siteAddressLocal'] = $nonPublicSiteHost !== '';
+        $freePreview['siteHost'] = $nonPublicSiteHost;
         $freePreview['submitCapable'] = (bool)($freePreview['available'] ?? false)
-            && $freeSubmitIntent !== '';
+            && $freeSubmitIntent !== ''
+            && $nonPublicSiteHost === '';
         $remoteUiAvailable = $isFreePreview || $this->shouldShowRemoteOverviewPanel(
             $proStatus,
             is_array($remoteScan) ? $remoteScan : null,
@@ -706,6 +736,24 @@ final class OverviewController extends AbstractBackendModuleController
         // A licence notice already names the next step (renew, choose a plan, manage projects); the Free
         // Preview upgrade card would be a second offer for the same state.
         $freePreview['showUpgradeOffer'] = (bool)($proStatus->showProHints ?? false) && $licenceNotice === null;
+        // First use: no content scan on record yet. The guide names the next steps, the Free Remote Preview only
+        // for installations without a licence.
+        $gettingStarted = $lastScan === null && $totalLocalPages === 0
+            ? [
+                'isFree' => $isFreePreview,
+                'siteAddressLocal' => $nonPublicSiteHost !== '',
+                'siteHost' => $nonPublicSiteHost,
+            ]
+            : null;
+        // After the first content scan, point once to the browser-based check — until this site has a Free result.
+        $showFreePreviewNextStep = $isFreePreview
+            && $lastScan !== null
+            && $licenceNotice === null
+            && $canScanNow
+            && (bool)$freePreview['submitCapable']
+            && (string)($freePreview['state'] ?? '') === 'FREE_AVAILABLE'
+            && !is_array($remoteScan)
+            && $this->remoteScanRepository->findLastCompletedPageScanBySite($siteIdentifier, -1, true) === null;
         $remoteReportingSummary = $this->resolveRemoteReportingSummary(
             is_array($remoteScan) ? $remoteScan : null,
             $siteBase
@@ -810,6 +858,8 @@ final class OverviewController extends AbstractBackendModuleController
             'hasEnabledFields' => $hasEnabledFields,
             'hasFieldConfiguration' => $hasFieldConfiguration,
             'fieldsInitializedCount' => $fieldsInitializedCount,
+            'gettingStarted' => $gettingStarted,
+            'showFreePreviewNextStep' => $showFreePreviewNextStep,
             'canShowSettings' => $canShowSettings,
             'scanFieldsSettingsUrl' => $this->buildRouteUrl('web_a11y.settings', array_replace($returnParameters, ['tab' => 'fields'])),
             'licenceNotice' => $licenceNotice,
@@ -886,6 +936,32 @@ final class OverviewController extends AbstractBackendModuleController
     }
 
 
+
+    private function findNonPublicSiteHost(string $siteBase): string
+    {
+        // A development setup with its own AQG service decides itself which hosts its crawler may reach.
+        if ($siteBase === '' || ProSettings::usesCustomServiceEndpoint()) {
+            return '';
+        }
+
+        return ($this->publicSiteAddressClassifier ?? new PublicSiteAddressClassifier())->findNonPublicHost($siteBase) ?? '';
+    }
+
+    /**
+     * The first screen without a selected page: what AQG checks and in which order to start.
+     *
+     * @return list<string>
+     */
+    private function buildFirstUseSteps(): array
+    {
+        return [
+            $this->translateWithFallback('overview.firstUse.step.selectPage', 'Select a page of a TYPO3 Site in the page tree.'),
+            $this->translateWithFallback('overview.firstUse.step.contentScan', 'Run a content scan. It checks headings, links, images, tables and forms in your TYPO3 content inside this installation and needs no licence key.'),
+            (bool)$this->proSettings?->isConfigured()
+                ? $this->translateWithFallback('overview.firstUse.step.frontendLicensed', 'Check what visitors\' browsers render with a frontend scan on the Frontend scan tab.')
+                : $this->translateWithFallback('overview.firstUse.step.frontendFree', 'Then see what visitors\' browsers render: the Free Remote Preview scans a page on the AQG service without licence key, account or email. The site must be reachable from the internet.'),
+        ];
+    }
 
     /**
      * Keep existing remote scan results visible even if licence validation is
@@ -2186,7 +2262,24 @@ final class OverviewController extends AbstractBackendModuleController
         int $currentPageUid,
         int $languageUid,
     ): ?array {
-        return $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
+        $activeScan = $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier);
+        if (!is_array($activeScan)) {
+            return null;
+        }
+
+        // Read back from the AQG service before the scan is shown and restored as running, as the Page module and the
+        // page detail do. A job that service no longer serves to this installation — removed, or submitted under an
+        // earlier licence or Agency project — is recorded as failed instead of coming back as a scan that fails.
+        $siteBase = $this->siteResolutionService->resolveSiteBaseByIdentifier($siteIdentifier);
+        if ($siteBase !== '' && $this->remoteScanRecoveryService instanceof RemoteScanRecoveryService) {
+            $activeScan = $this->remoteScanRecoveryService->recoverScanIfNeeded($activeScan, $siteBase) ?? $activeScan;
+        }
+
+        $status = (string)($activeScan['status'] ?? '');
+        $isUnfinished = in_array($status, ['waiting', 'queued', 'active', 'running'], true)
+            || ($status === 'completed' && (int)($activeScan['persisted_at'] ?? 0) <= 0);
+
+        return $isUnfinished ? $activeScan : null;
     }
 
     /**

@@ -63,7 +63,7 @@
                         </f:if>
 
                         <f:if condition="{exportPdfUrl} && {exportPdfAllowed}">
-                            <a href="{exportPdfUrl}" class="btn btn-sm btn-default">
+                            <a href="{exportPdfUrl}" class="btn btn-sm btn-default" aria-describedby="aqg-remote-page-pdf-note" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote', default: 'The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format.')}">
                                 <core:icon identifier="actions-download" size="small" />
                                 <span>
                                     <f:translate
@@ -73,6 +73,7 @@
                                 </span>
                                 <span class="aqg-pro-card__badge">PRO</span>
                             </a>
+                            <span id="aqg-remote-page-pdf-note" class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote" default="The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format." /></span>
                         </f:if>
 
                         <f:if condition="{canScanRemotePage}">
@@ -471,7 +472,7 @@
                                         </section>
                                     </f:if>
 
-                                    <f:if condition="!{isFreePreview} &amp;&amp; ({regressionAlert.available} || {regressionAlert.message})">
+                                    <f:if condition="!{isFreePreview} && ({regressionAlert.available} || {regressionAlert.message})">
                                         <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert, viewedJobId: remoteScan.job_id}" />
                                     </f:if>
 
@@ -879,7 +880,7 @@
                                         </details>
                                     </f:for>
 
-                                    <f:if condition="!{isFreePreview} &amp;&amp; {remediationPlan.hasTasks}">
+                                    <f:if condition="!{isFreePreview} && {remediationPlan.hasTasks}">
                                         <details class="aqg-tech-details aqg-remediation-plan-disclosure">
                                             <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.plan.disclosure" default="Remediation plan for this scan" /></summary>
                                             <f:render partial="Remote/RemediationPlan" arguments="{plan: remediationPlan, variant: 'page'}" />
@@ -895,7 +896,7 @@
                                 </aside>
                             </div>
 
-                                    <f:if condition="!{isFreePreview} &amp;&amp; ({remoteScanCompare.available} || {remoteScanCompare.message})">
+                                    <f:if condition="!{isFreePreview} && ({remoteScanCompare.available} || {remoteScanCompare.message})">
                                         <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare, viewedJobId: remoteScan.job_id}" />
                                     </f:if>
 
@@ -1222,6 +1223,7 @@
                         data-action="a11y-open-screenshot-modal"
                         data-image-url="{remotePage.screenshot_proxy_url}"
                         data-image-title="{remotePage.title}"
+                        data-unavailable-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotUnavailable', default: 'Screenshot not available. Screenshots can only be loaded by the licence or Agency project that ran the scan.')}"
                 >
                     <img
                             src="{remotePage.screenshot_proxy_url}"

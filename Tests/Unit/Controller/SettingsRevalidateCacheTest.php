@@ -20,6 +20,7 @@ use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use ReflectionClass;
 use ReflectionProperty;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Site\Entity\Site;
@@ -59,7 +60,39 @@ final class SettingsRevalidateCacheTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
     }
 
-    private function subject(LicenceValidationResult $answer, ProCacheManager $cache): SettingsController
+    #[Test]
+    public function revalidateChecksTheKeyTheServerHasStored(): void
+    {
+        // The Licence tab no longer holds the saved key; "Revalidate" asks for the stored one.
+        $licence = $this->createMock(ProLicenceService::class);
+        $licence->expects(self::once())->method('validateKeyDirect')
+            ->with('aqg_live_stored-key')
+            ->willReturn(new LicenceValidationResult(valid: true, plan: 'pro'));
+
+        $response = $this->subject(new LicenceValidationResult(valid: true, plan: 'pro'), $this->createMock(ProCacheManager::class), $licence)
+            ->validateLicenceAction(
+                (new ServerRequest('https://example.org/typo3/ajax/a11y/validate-licence', 'POST'))
+                    ->withParsedBody(['useSavedKey' => '1'])
+            );
+
+        self::assertTrue(json_decode((string)$response->getBody(), true)['valid']);
+    }
+
+    #[Test]
+    public function withoutAKeyOrTheSavedKeyNothingIsValidated(): void
+    {
+        $licence = $this->createMock(ProLicenceService::class);
+        $licence->expects(self::never())->method('validateKeyDirect');
+
+        $response = $this->subject(new LicenceValidationResult(valid: true, plan: 'pro'), $this->createMock(ProCacheManager::class), $licence)
+            ->validateLicenceAction(
+                (new ServerRequest('https://example.org/typo3/ajax/a11y/validate-licence', 'POST'))->withParsedBody([])
+            );
+
+        self::assertSame('empty_key', json_decode((string)$response->getBody(), true)['reason']);
+    }
+
+    private function subject(LicenceValidationResult $answer, ProCacheManager $cache, ?ProLicenceService $licence = null): SettingsController
     {
         $backendContext = $this->createMock(BackendContextService::class);
         $backendContext->method('translate')->willReturnCallback(static fn (string $key): string => $key);
@@ -81,8 +114,14 @@ final class SettingsRevalidateCacheTest extends TestCase
         $context->method('getExtensionVersion')->willReturn('1.9.6');
         $fingerprint = $this->createMock(ProSiteFingerprintService::class);
         $fingerprint->method('collectValidationSites')->willReturn(['main']);
-        $licence = $this->createMock(ProLicenceService::class);
-        $licence->method('validateKeyDirect')->willReturn($answer);
+        if ($licence === null) {
+            $licence = $this->createMock(ProLicenceService::class);
+            $licence->method('validateKeyDirect')->willReturn($answer);
+        }
+        $extensionConfiguration = $this->createMock(ExtensionConfiguration::class);
+        $extensionConfiguration->method('get')->willReturnCallback(
+            static fn (string $extension, string $path = ''): mixed => $path === 'licenceKey' ? 'aqg_live_stored-key' : ''
+        );
 
         $subject = (new ReflectionClass(SettingsController::class))->newInstanceWithoutConstructor();
         foreach ([
@@ -95,6 +134,7 @@ final class SettingsRevalidateCacheTest extends TestCase
             [SettingsController::class, 'proSiteFingerprintService', $fingerprint],
             [SettingsController::class, 'proLicenceService', $licence],
             [SettingsController::class, 'proCacheManager', $cache],
+            [SettingsController::class, 'extensionConfiguration', $extensionConfiguration],
         ] as [$class, $property, $value]) {
             (new ReflectionProperty($class, $property))->setValue($subject, $value);
         }

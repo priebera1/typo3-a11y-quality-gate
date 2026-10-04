@@ -4,7 +4,7 @@
 
 body {
     font-family: helvetica, arial, sans-serif;
-    font-size: 9.5px;
+    font-size: 9pt;
     color: #1e232a;
     line-height: 1.45;
     background: #ffffff;
@@ -14,7 +14,7 @@ body {
 .aqgp-doc {
     color: #1e232a;
     font-family: helvetica, arial, sans-serif;
-    font-size: 9.5px;
+    font-size: 9pt;
     line-height: 1.45;
 }
 
@@ -38,14 +38,14 @@ body {
 }
 
 .aqgp-header-mpdf td.right {
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     letter-spacing: 0.04em;
 }
 
 .aqgp-header-mpdf .aqgp-header__context {
-    color: #7c828d;
+    color: #5f6670;
     font-weight: bold;
     letter-spacing: 0.08em;
 }
@@ -62,9 +62,9 @@ body {
 .aqgp-footer-mpdf td {
     padding-top: 5px;
     border-top: 1px solid #d4d8de;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-header {
@@ -84,7 +84,7 @@ body {
     padding-bottom: 4px;
     border-bottom: 1px solid #1e232a;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.22em;
     color: #1e232a;
@@ -93,8 +93,8 @@ body {
 .aqgp-header__date {
     text-align: right;
     font-family: courier, monospace;
-    font-size: 7.2px;
-    color: #7c828d;
+    font-size: 8pt;
+    color: #5f6670;
     letter-spacing: 0.04em;
 }
 
@@ -111,7 +111,7 @@ body {
 h1 {
     margin: 0 0 2px 0;
     color: #101419;
-    font-size: 17px;
+    font-size: 16pt;
     font-weight: bold;
     line-height: 1.15;
 }
@@ -120,7 +120,7 @@ h1 {
 .subtitle {
     margin: 0;
     color: #545b66;
-    font-size: 9.5px;
+    font-size: 9pt;
 }
 
 .aqgp-header__rule {
@@ -134,6 +134,8 @@ h1 {
     width: 100%;
     margin: 0 0 15px 0;
     border-collapse: collapse;
+    /* mPDF: a long URL or path wraps instead of shrinking the whole table below 8 pt. */
+    overflow: wrap;
     background: #fafbfc;
     border: 1px solid #e4e7ec;
 }
@@ -159,24 +161,24 @@ h1 {
     display: block;
     margin-bottom: 2px;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #7c828d;
+    color: #5f6670;
 }
 
 .aqgp-meta__value {
     display: block;
     color: #1e232a;
-    font-size: 8.6px;
+    font-size: 8pt;
     word-break: break-word;
 }
 
 .aqgp-meta__value--mono,
 .aqgp-mono {
     font-family: courier, monospace;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-chip,
@@ -189,7 +191,7 @@ h1 {
     background: #ffffff;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -206,7 +208,7 @@ h1 {
     padding: 0 0 5px 0;
     border: 0;
     color: #1e232a;
-    font-size: 9.8px;
+    font-size: 9.5pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -217,7 +219,7 @@ h1 {
     text-align: right;
     color: #545b66 !important;
     font-family: courier, monospace;
-    font-size: 7.2px !important;
+    font-size: 8pt !important;
     font-weight: bold;
     letter-spacing: 0.06em;
     text-transform: none !important;
@@ -254,7 +256,7 @@ h1 {
     margin-bottom: 4px;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -263,7 +265,7 @@ h1 {
 .aqgp-card__value {
     display: block;
     color: #1e232a;
-    font-size: 20px;
+    font-size: 19pt;
     font-weight: bold;
     line-height: 1;
 }
@@ -271,9 +273,9 @@ h1 {
 .aqgp-card__foot {
     display: block;
     margin-top: 4px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-card--critical { border-left-color: #a32016; }
@@ -290,7 +292,7 @@ h1 {
 .aqgp-card--total .aqgp-card__label { color: #1e232a; }
 .aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-card--delta .aqgp-card__label { color: #1f519b; }
-.aqgp-card.is-zero .aqgp-card__value { color: #7c828d; }
+.aqgp-card.is-zero .aqgp-card__value { color: #5f6670; }
 
 .aqgp-table,
 table.aqgp-table {
@@ -312,7 +314,7 @@ table.aqgp-table {
     background: #f5f6f8;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -329,16 +331,16 @@ table.aqgp-table {
 .aqgp-table__title {
     display: block;
     color: #1e232a;
-    font-size: 8.5px;
+    font-size: 8pt;
     font-weight: bold;
 }
 
 .aqgp-table__sub {
     display: block;
     margin-top: 1px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     word-break: break-all;
 }
 
@@ -350,7 +352,7 @@ table.aqgp-table {
 .aqgp-count--info { color: #1f519b; }
 .aqgp-count--ok { color: #166434; }
 .aqgp-count--total { color: #1e232a; }
-.aqgp-count--zero { color: #7c828d; font-weight: normal; }
+.aqgp-count--zero { color: #5f6670; font-weight: normal; }
 
 .aqgp-empty {
     margin: 0 0 14px 0;
@@ -369,7 +371,7 @@ table.aqgp-table {
 .aqgp-empty__body {
     margin: 0;
     color: #545b66;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-callout {
@@ -387,7 +389,7 @@ table.aqgp-table {
     margin-bottom: 2px;
     color: #8c5a00;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -395,7 +397,7 @@ table.aqgp-table {
 
 .aqgp-callout p {
     margin: 0;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-footer {
@@ -408,9 +410,9 @@ table.aqgp-table {
     padding-top: 6px;
     border: 0;
     border-top: 1px solid #d4d8de;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-footer td:last-child {
@@ -452,7 +454,7 @@ table.aqgp-table {
 }
 
 h2 {
-    font-size: 12px;
+    font-size: 11.5pt;
     margin: 18px 0 8px 0;
     padding-bottom: 4px;
     border-bottom: 1px solid #d1d5db;
@@ -487,13 +489,13 @@ h2 {
 }
 
 .total-value {
-    font-size: 18px;
+    font-size: 17pt;
     font-weight: bold;
 }
 
 .total-label {
     color: #6b7280;
-    font-size: 9px;
+    font-size: 8.5pt;
     margin-top: 4px;
 }
 
@@ -506,7 +508,7 @@ h2 {
 
 .issue-title {
     font-weight: bold;
-    font-size: 11px;
+    font-size: 10.5pt;
     margin-bottom: 5px;
 }
 
@@ -517,7 +519,7 @@ h2 {
 .badge {
     display: inline-block;
     padding: 2px 6px;
-    font-size: 8px;
+    font-size: 8pt;
     margin-right: 4px;
     border: 1px solid transparent;
 }
@@ -584,7 +586,7 @@ pre {
     background: #f9fafb;
     border: 1px solid #e5e7eb;
     padding: 8px;
-    font-size: 9px;
+    font-size: 8.5pt;
 }
 
 /* Page detail PDF components */
@@ -616,23 +618,23 @@ pre {
 .aqgp-issue__num {
     display: inline-block;
     min-width: 23px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     font-weight: bold;
 }
 
 .aqgp-issue__title {
     color: #101419;
-    font-size: 9.5px;
+    font-size: 9pt;
     font-weight: bold;
 }
 
 .aqgp-issue__sub {
     margin: 0 0 5px 23px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-badge-row {
@@ -658,7 +660,7 @@ pre {
     margin-bottom: 2px;
     color: #1f519b;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -667,7 +669,7 @@ pre {
 .aqgp-fixbox__text {
     display: block;
     color: #1e232a;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-kv {
@@ -687,7 +689,7 @@ pre {
     width: 90px;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -696,7 +698,7 @@ pre {
 .aqgp-kv td:last-child {
     color: #1e232a;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     word-break: break-all;
 }
 
@@ -709,7 +711,7 @@ pre {
     margin: 0 0 3px 0;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -723,7 +725,7 @@ pre {
     background: #f0f2f5;
     color: #1e232a;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.45;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -745,7 +747,7 @@ pre {
     margin: 0 0 4px 0;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -754,7 +756,7 @@ pre {
 .aqgp-node__summary {
     margin: 0 0 5px 0;
     color: #1e232a;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-screenshot {
@@ -789,7 +791,7 @@ pre {
     border: 1px dashed #c7ccd4;
     background: #f8f9fb;
     color: #5f6670;
-    font-size: 10px;
+    font-size: 9.5pt;
     line-height: 1.45;
     text-align: center;
     page-break-inside: avoid;
@@ -802,7 +804,7 @@ pre {
 
 /* PDF refinement pass for remote overview/page detail */
 .aqgp-header__brand--large {
-    font-size: 11px;
+    font-size: 10.5pt;
     letter-spacing: 0.18em;
 }
 
@@ -909,7 +911,7 @@ pre {
 
 /* Remote PDF refinement v2 */
 .aqgp-header__brand--large {
-    font-size: 12px;
+    font-size: 11.5pt;
     letter-spacing: 0.20em;
 }
 
@@ -971,9 +973,9 @@ pre {
 .aqgp-issue-head-table__num {
     width: 34px;
     padding: 9px 0 8px 10px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     font-weight: bold;
 }
 
@@ -985,7 +987,7 @@ pre {
     display: block;
     margin: 0 0 2px 0;
     color: #101419;
-    font-size: 9.5px;
+    font-size: 9pt;
     font-weight: bold;
     line-height: 1.3;
 }
@@ -993,9 +995,9 @@ pre {
 .aqgp-issue__sub {
     display: block;
     margin: 0 0 5px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-badge-row--head {
@@ -1008,7 +1010,7 @@ pre {
 }
 
 .aqgp-kv td:first-child {
-    color: #7c828d;
+    color: #5f6670;
     text-transform: uppercase;
 }
 
@@ -1022,7 +1024,7 @@ pre {
 }
 
 .aqgp-node__title {
-    color: #7c828d;
+    color: #5f6670;
     background: #f5f6f8;
     padding: 4px 6px;
     border: 1px solid #e4e7ec;
@@ -1036,11 +1038,11 @@ pre {
 .aqgp-node__mapped {
     margin: 0 0 5px 0;
     color: #545b66;
-    font-size: 7.6px;
+    font-size: 8pt;
 }
 
 .aqgp-node__mapped span {
-    color: #7c828d;
+    color: #5f6670;
 }
 
 .aqgp-node__mapped strong {
@@ -1051,15 +1053,15 @@ pre {
 
 /* AQG PDF remote reports — final mPDF-safe refinement */
 .aqgp-header__brand--large {
-    font-size: 10px;
+    font-size: 9.5pt;
     letter-spacing: 0.18em;
 }
 
 .aqgp-header__date {
     text-align: right;
     font-family: courier, monospace;
-    font-size: 7.2px;
-    color: #7c828d;
+    font-size: 8pt;
+    color: #5f6670;
     letter-spacing: 0.04em;
 }
 
@@ -1077,9 +1079,9 @@ pre {
     padding-top: 4px;
     border: 0;
     border-top: 1px solid #d4d8de;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.6px;
+    font-size: 8pt;
     line-height: 1.25;
 }
 
@@ -1148,9 +1150,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 
 .aqgp-meta__label,
 .aqgp-kv td:first-child {
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -1190,9 +1192,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-issue-head-table__num {
     width: 40px;
     padding: 9px 0 8px 10px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     font-weight: bold;
 }
 
@@ -1204,7 +1206,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     display: block;
     margin: 0 0 2px 0;
     color: #101419;
-    font-size: 9.5px;
+    font-size: 9pt;
     font-weight: bold;
     line-height: 1.3;
 }
@@ -1212,9 +1214,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-issue__sub {
     display: block;
     margin: 0 0 5px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-badge-row--head {
@@ -1253,7 +1255,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-kv td:last-child {
     color: #1e232a;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     word-break: break-all;
 }
 
@@ -1281,9 +1283,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     border: 0;
     border-bottom: 1px solid #e4e7ec;
     background: #f5f6f8;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1300,18 +1302,18 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     margin-top: 6px;
     margin-bottom: 5px;
     color: #1e232a;
-    font-size: 8px;
+    font-size: 8pt;
 }
 
 .aqgp-node__mapped {
     margin-top: 0;
     margin-bottom: 5px;
     color: #545b66;
-    font-size: 7.6px;
+    font-size: 8pt;
 }
 
 .aqgp-node__mapped span {
-    color: #7c828d;
+    color: #5f6670;
 }
 
 .aqgp-node__mapped strong {
@@ -1325,9 +1327,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 
 .aqgp-header__context {
     margin: 0 0 2px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: normal;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1336,7 +1338,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 
 /* AQG PDF final header/footer corrections */
 .aqgp-header__context {
-    color: #7c828d;
+    color: #5f6670;
     font-weight: bold;
     text-transform: uppercase;
 }
@@ -1358,9 +1360,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 .aqgp-footer-mpdf td {
     padding-top: 4px;
     border-top: 1px solid #d4d8de;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.6px;
+    font-size: 8pt;
     line-height: 1.25;
 }
 
@@ -1378,7 +1380,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 }
 
 .aqgp-issue__body .aqgp-kv td:first-child {
-    color: #8b929d;
+    color: #5f6670;
     background: #f6f7f9;
 }
 
@@ -1411,7 +1413,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 }
 
 .aqgp-issue__body .aqgp-kv td:first-child {
-    color: #8b929d;
+    color: #5f6670;
     background: #ffffff;
 }
 
@@ -1426,9 +1428,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
 
 .aqgp-occurrences-title {
     margin: 8px 0 5px 0;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -1441,20 +1443,20 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     border: 1px solid #d4d8de;
     background: #f8fafc;
     color: #5f6670;
-    font-size: 7.6px;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
 .aqgp-occurrences-compact-note {
     margin: -2px 0 5px 0;
     color: #5f6670;
-    font-size: 7.4px;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
 .aqgp-node__title {
     background: #f5f6f8;
-    color: #7c828d;
+    color: #5f6670;
 }
 
 
@@ -1476,9 +1478,9 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     padding: 5px 7px 3px 7px;
     border: 0;
     background: #f5f6f8;
-    color: #7d858f;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1499,7 +1501,7 @@ table.aqgp-card-table.aqgp-card--delta { border-left-color: #1f519b; }
     background: #eceff3;
     color: #333943;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.45;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -1530,7 +1532,7 @@ table.aqgp-card-table .aqgp-card__label {
 
 table.aqgp-card-table .aqgp-card__value {
     padding: 4px 9px 0 9px;
-    font-size: 21px;
+    font-size: 20pt;
     line-height: 1.05;
 }
 
@@ -1557,7 +1559,7 @@ table.aqgp-card-table .aqgp-card__foot {
     background: #eceff3;
     color: #333943;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.45;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -1570,7 +1572,7 @@ table.aqgp-card-table .aqgp-card__foot {
 
 .aqgp-issue__body .aqgp-kv td:first-child {
     width: 92px;
-    color: #8b929d;
+    color: #5f6670;
 }
 
 .aqgp-issue__body .aqgp-kv td:last-child {
@@ -1608,9 +1610,9 @@ table.aqgp-card-table .aqgp-card__foot {
 .aqgp-local-issue__num {
     width: 38px;
     padding: 9px 0 8px 10px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     font-weight: bold;
     line-height: 1.3;
 }
@@ -1622,16 +1624,16 @@ table.aqgp-card-table .aqgp-card__foot {
 .aqgp-local-issue__title {
     margin: 0 0 3px 0;
     color: #101419;
-    font-size: 9.7px;
+    font-size: 9pt;
     font-weight: bold;
     line-height: 1.28;
 }
 
 .aqgp-local-issue__sub {
     margin: 0 0 6px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.25;
 }
 
@@ -1658,7 +1660,7 @@ table.aqgp-card-table .aqgp-card__foot {
     margin: 0 0 3px 0;
     color: #1f519b;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1668,7 +1670,7 @@ table.aqgp-card-table .aqgp-card__foot {
     display: block;
     margin: 0;
     color: #1e232a;
-    font-size: 8px;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
@@ -1689,9 +1691,9 @@ table.aqgp-card-table .aqgp-card__foot {
 
 .aqgp-local-kv td:first-child {
     width: 96px;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -1700,7 +1702,7 @@ table.aqgp-card-table .aqgp-card__foot {
 .aqgp-local-kv td:last-child {
     color: #4f5661;
     font-family: courier, monospace;
-    font-size: 7.2px;
+    font-size: 8pt;
     word-break: break-all;
 }
 
@@ -1712,9 +1714,9 @@ table.aqgp-card-table .aqgp-card__foot {
 .aqgp-local-snippet__label {
     display: block;
     margin: 0 0 4px 0;
-    color: #8b929d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.10em;
     text-transform: uppercase;
@@ -1728,7 +1730,7 @@ table.aqgp-card-table .aqgp-card__foot {
     background: #eceff3;
     color: #333943;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     line-height: 1.45;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -1754,7 +1756,7 @@ table.aqgp-card-table.aqgp-card--needs_review .aqgp-card__label { color: #7c3aed
 
 .aqgp-card__value--text,
 table.aqgp-card-table .aqgp-card__value--text {
-    font-size: 12px;
+    font-size: 11.5pt;
     line-height: 1.15;
 }
 
@@ -1765,12 +1767,12 @@ table.aqgp-card-table .aqgp-card__value--text {
     border: 1px solid #d4d8de;
     background: #f7f8fa;
     color: #545b66;
-    font-size: 7.6px;
+    font-size: 8pt;
     line-height: 1.45;
 }
 
 .aqgp-notice--small {
-    font-size: 7.2px;
+    font-size: 8pt;
 }
 
 .aqgp-priority-fix {
@@ -1807,23 +1809,23 @@ table.aqgp-card-table .aqgp-card__value--text {
 
 .aqgp-priority-fix__rank {
     width: 28px;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 8px;
+    font-size: 8pt;
     font-weight: bold;
 }
 
 .aqgp-priority-fix__title {
     color: #1e232a;
-    font-size: 9px;
+    font-size: 8.5pt;
     font-weight: bold;
 }
 
 .aqgp-priority-fix__sub {
     margin: 1px 0 4px 0;
-    color: #7c828d;
+    color: #5f6670;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
 }
 
 .aqgp-badge-row--pdf {
@@ -1854,7 +1856,7 @@ table.aqgp-card-table .aqgp-card__value--text {
     margin: 0 0 2px 0;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.8px;
+    font-size: 8pt;
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1863,20 +1865,20 @@ table.aqgp-card-table .aqgp-card__value--text {
 .aqgp-guidance-box p {
     margin: 0 0 5px 0;
     color: #1e232a;
-    font-size: 7.8px;
+    font-size: 8pt;
     line-height: 1.45;
 }
 
 .aqgp-guidance-note {
     margin-top: 5px;
-    color: #7c828d;
-    font-size: 6.8px;
+    color: #5f6670;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
 .aqgp-table--wcag th,
 .aqgp-table--wcag td {
-    font-size: 7.2px;
+    font-size: 8pt;
 }
 
 .aqgp-table--wcag th:nth-child(4),
@@ -1892,7 +1894,7 @@ table.aqgp-card-table .aqgp-card__value--text {
     background: #f7f8fa;
     color: #545b66;
     font-family: courier, monospace;
-    font-size: 6.6px;
+    font-size: 8pt;
     white-space: nowrap;
 }
 
@@ -1980,7 +1982,7 @@ table.aqgp-card-table.aqgp-card--none {
 .aqgp-table--manual-review td,
 .aqgp-table--reporting-groups th,
 .aqgp-table--reporting-groups td {
-    font-size: 7.1px;
+    font-size: 8pt;
     line-height: 1.35;
 }
 
@@ -2017,8 +2019,8 @@ table.aqgp-card-table.aqgp-card--none {
 }
 
 .aqgp-table__muted {
-    color: #7c828d;
-    font-size: 6.7px;
+    color: #5f6670;
+    font-size: 8pt;
 }
 
 .aqgp-callout--compact {
@@ -2036,7 +2038,7 @@ table.aqgp-card-table.aqgp-card--none {
   padding: 6px 8px;
   border: 1px solid #d4d8de;
   background: #f8fafc;
-  font-size: 8px;
+  font-size: 8pt;
   line-height: 1.35;
   page-break-inside: avoid;
 }
@@ -2047,7 +2049,7 @@ table.aqgp-card-table.aqgp-card--none {
   border: 1px solid #d4d8de;
   border-left: 3px solid #5b6ee1;
   background: #ffffff;
-  font-size: 8px;
+  font-size: 8pt;
   line-height: 1.35;
   page-break-inside: avoid;
 }
@@ -2066,7 +2068,7 @@ table.aqgp-card-table.aqgp-card--none {
   border: 1px solid #dfe3ea;
   padding: 3px 5px;
   vertical-align: top;
-  font-size: 7.8px;
+  font-size: 8pt;
   line-height: 1.32;
 }
 
@@ -2091,7 +2093,7 @@ table.aqgp-card-table.aqgp-card--none {
   border: 1px solid #d4d8de;
   background: #f8fafc;
   font-family: courier, monospace;
-  font-size: 7.4px;
+  font-size: 8pt;
 }
 
 .aqgp-color-swatch {
@@ -2112,7 +2114,7 @@ table.aqgp-card-table.aqgp-card--none {
   margin: 0 0 2px;
   color: #545b66;
   font-family: courier, monospace;
-  font-size: 6.8px;
+  font-size: 8pt;
   font-weight: bold;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -2132,7 +2134,7 @@ table.aqgp-card-table.aqgp-card--none {
 .aqgp-compact-list {
   margin: 4px 0 0;
   padding-left: 12px;
-  font-size: 8.1px;
+  font-size: 8pt;
   line-height: 1.35;
 }
 
@@ -2150,8 +2152,8 @@ table.aqgp-card-table.aqgp-card--none {
 
 .aqgp-note-small {
   margin: 5px 0 0;
-  color: #7c828d;
-  font-size: 7.2px;
+  color: #5f6670;
+  font-size: 8pt;
   line-height: 1.35;
 }
 
@@ -2160,12 +2162,12 @@ table.aqgp-card-table.aqgp-card--none {
   display: block;
   margin-top: 2px;
   color: #545b66;
-  font-size: 7.1px;
+  font-size: 8pt;
   line-height: 1.25;
 }
 
 .aqgp-candidate-explanation {
-  color: #7c828d;
+  color: #5f6670;
 }
 
 .aqgp-node-remediation {
@@ -2174,7 +2176,15 @@ table.aqgp-card-table.aqgp-card--none {
   border: 1px solid #d4d8de;
   border-left: 3px solid #1b7fbf;
   background: #ffffff;
-  font-size: 8px;
+  font-size: 8pt;
   line-height: 1.35;
   page-break-inside: avoid;
+}
+
+/* Untagged-PDF disclosure on the first page: readable size, AA contrast. */
+.aqgp-a11y-note {
+    margin: 2mm 0 3mm;
+    color: #545b66;
+    font-size: 8pt;
+    line-height: 1.4;
 }

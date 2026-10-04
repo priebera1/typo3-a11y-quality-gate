@@ -1,0 +1,92 @@
+/* "New AQG version available": one quiet line under the module heading, shared by Overview and Settings. */
+.aqg-module .aqg-update-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    padding: 8px 8px 8px 12px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.aqg-module .aqg-update-notice__icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--aqi-run);
+}
+
+.aqg-module .aqg-update-notice__text {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+
+.aqg-module .aqg-update-notice__title {
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.aqg-module .aqg-update-notice__installed {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module .aqg-update-notice__links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+
+.aqg-module .aqg-update-notice__link {
+    color: var(--aqi-fg);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    border-radius: var(--aqi-radius-sm);
+}
+
+.aqg-module .aqg-update-notice__link:hover {
+    color: var(--aqi-fg);
+    text-decoration-thickness: 2px;
+}
+
+.aqg-module .aqg-update-notice__dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--aqi-radius-sm);
+    background: transparent;
+    color: var(--aqi-fg-muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.aqg-module .aqg-update-notice__dismiss:hover {
+    border-color: var(--aqi-border);
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg);
+}
+
+.aqg-module .aqg-update-notice__dismiss:disabled {
+    cursor: progress;
+    opacity: .6;
+}
+
+.aqg-module .aqg-update-notice__link:focus-visible,
+.aqg-module .aqg-update-notice__dismiss:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}

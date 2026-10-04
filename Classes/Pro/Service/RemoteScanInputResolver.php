@@ -87,10 +87,13 @@ final class RemoteScanInputResolver
         string $pageUrl,
         string $axeLocale = 'en',
     ): RemoteScanRequestData {
-        $siteBase = rtrim((string)$site->getBase(), '/');
         $siteIdentifier = trim((string)$site->getIdentifier());
-        $domain = $this->domainNormalizer->normalizeFromSiteBase($siteBase);
         $startUrl = $this->resolveTrustedPageUrl($site, trim($pageUrl));
+        // The licence check and the crawler token are scoped to the host that is scanned. A page on a language
+        // base of another domain (example.de next to example.com) belongs to that host; the crawler refuses a
+        // token issued for the site's default host there. resolveTrustedPageUrl() has already bound the URL to
+        // one of this site's own bases, so the host comes from the Site Configuration, not from the request.
+        $domain = $this->domainNormalizer->normalizeFromSiteBase($startUrl);
 
         return new RemoteScanRequestData(
             siteIdentifier: $siteIdentifier,
@@ -197,7 +200,17 @@ final class RemoteScanInputResolver
                     'Accept' => 'application/xml,text/xml;q=0.9,*/*;q=0.8',
                 ],
                 'timeout' => 10,
-                'allow_redirects' => true,
+                // This server fetches the sitemap itself: a redirect (for example a redirect record for
+                // /sitemap.xml) may stay on the site's own scheme, host and port, never lead to another host.
+                'allow_redirects' => [
+                    'max' => 3,
+                    'protocols' => ['http', 'https'],
+                    'on_redirect' => function ($request, $response, $uri) use ($siteBase): void {
+                        if (!$this->isSameOrigin((string)$uri, $siteBase)) {
+                            throw new \RuntimeException('Sitemap redirect to another origin is not followed.');
+                        }
+                    },
+                ],
                 'http_errors' => false,
             ]);
 
@@ -211,7 +224,8 @@ final class RemoteScanInputResolver
             }
 
             $pagesSitemapUrl = $this->extractPagesSitemapUrl($body);
-            if ($pagesSitemapUrl !== null && $pagesSitemapUrl !== '') {
+            // A sitemap index may name any URL; only one of the site's own origin becomes the scan's sitemap.
+            if ($pagesSitemapUrl !== null && $pagesSitemapUrl !== '' && $this->isSameOrigin($pagesSitemapUrl, $siteBase)) {
                 return $pagesSitemapUrl;
             }
 
@@ -223,6 +237,25 @@ final class RemoteScanInputResolver
         }
 
         return null;
+    }
+
+    private function isSameOrigin(string $url, string $siteBase): bool
+    {
+        $target = parse_url($url);
+        $base = parse_url($siteBase);
+        if (!is_array($target) || !is_array($base)) {
+            return false;
+        }
+
+        $scheme = strtolower((string)($target['scheme'] ?? ''));
+        $baseScheme = strtolower((string)($base['scheme'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || isset($target['user']) || isset($target['pass'])) {
+            return false;
+        }
+
+        return strtolower((string)($target['host'] ?? '')) === strtolower((string)($base['host'] ?? ''))
+            && $scheme === $baseScheme
+            && (int)($target['port'] ?? ($scheme === 'http' ? 80 : 443)) === (int)($base['port'] ?? ($baseScheme === 'http' ? 80 : 443));
     }
 
     private function extractPagesSitemapUrl(string $xmlContent): ?string

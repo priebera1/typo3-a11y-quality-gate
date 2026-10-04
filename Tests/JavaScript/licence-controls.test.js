@@ -4,17 +4,20 @@ import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 import {A11yFreeBackendModule} from '../../Resources/Public/JavaScript/backend/free/free-module.js';
 import {resetAjaxPostHandler, setAjaxPostHandler} from './stubs/ajax-request.js';
 
-const SAVED_KEY = 'aqg_live_saved_key';
-
-const renderLicenceForm = ({savedKey = '', invalidStatus = false} = {}) => {
+// The saved key is not in the page: the Licence tab shows it masked and starts the key field empty.
+const renderLicenceForm = ({saved = false, invalidStatus = false} = {}) => {
     document.body.innerHTML = `
         <form>
-            <input type="text" data-a11y-licence-key-input="true" value="${savedKey}">
-            ${savedKey !== '' ? '<button type="button" data-action="a11y-validate-licence">Revalidate</button>' : ''}
+            ${saved ? `<div data-aqg-licence-saved="true" data-aqg-licence-key-fingerprint="0123456789abcdef">
+                <span aria-hidden="true">aqg_live_••••••••7f3a</span>
+                <button type="button" data-action="a11y-validate-licence">Revalidate</button>
+            </div>` : ''}
+            <input type="text" data-a11y-licence-key-input="true" value="">
+            ${saved ? '<input type="checkbox" data-aqg-licence-remove="true">' : ''}
             <div data-a11y-licence-validate-result="true"></div>
             <button type="submit" data-aqg-licence-submit="true"
                     data-label-save-validate="Save and validate"
-                    data-label-save="Save changes">${savedKey !== '' ? 'Save changes' : 'Save and validate'}</button>
+                    data-label-save="Save changes">${saved ? 'Save changes' : 'Save and validate'}</button>
         </form>
         ${invalidStatus ? '<section data-aqg-licence-state="api_unreachable"><a href="/licence" data-aqg-licence-action="retry">Retry</a></section>' : ''}
     `;
@@ -32,6 +35,7 @@ const renderLicenceForm = ({savedKey = '', invalidStatus = false} = {}) => {
         module,
         input: document.querySelector('[data-a11y-licence-key-input="true"]'),
         revalidate: document.querySelector('[data-action="a11y-validate-licence"]'),
+        remove: document.querySelector('[data-aqg-licence-remove="true"]'),
         submit: document.querySelector('[data-aqg-licence-submit="true"]'),
         result: document.querySelector('[data-a11y-licence-validate-result="true"]'),
     };
@@ -40,6 +44,11 @@ const renderLicenceForm = ({savedKey = '', invalidStatus = false} = {}) => {
 const type = (input, value) => {
     input.value = value;
     input.dispatchEvent(new Event('input', {bubbles: true}));
+};
+
+const toggle = (checkbox, checked) => {
+    checkbox.checked = checked;
+    checkbox.dispatchEvent(new Event('change', {bubbles: true}));
 };
 
 afterEach(() => {
@@ -63,8 +72,15 @@ describe('Licence key actions', () => {
         expect(submit.textContent).toBe('Save changes');
     });
 
-    it('offers Revalidate only while the field still holds the saved key', () => {
-        const {input, revalidate, submit} = renderLicenceForm({savedKey: SAVED_KEY});
+    it('never puts the saved key into the page', () => {
+        const {input} = renderLicenceForm({saved: true});
+
+        expect(input.value).toBe('');
+        expect(document.body.innerHTML).not.toContain('aqg_live_saved');
+    });
+
+    it('offers Revalidate for the saved key while no other key is typed', () => {
+        const {input, revalidate, remove, submit} = renderLicenceForm({saved: true});
 
         expect(revalidate.hidden).toBe(false);
         expect(submit.textContent).toBe('Save changes');
@@ -72,25 +88,40 @@ describe('Licence key actions', () => {
         type(input, 'aqg_live_other_key');
         expect(revalidate.hidden).toBe(true);
         expect(submit.textContent).toBe('Save and validate');
+        expect(remove.disabled).toBe(true);
 
-        type(input, SAVED_KEY);
+        type(input, '');
         expect(revalidate.hidden).toBe(false);
         expect(submit.textContent).toBe('Save changes');
+        expect(remove.disabled).toBe(false);
     });
 
-    it('revalidates the saved key and refreshes a status that showed the licence as not valid', async () => {
+    it('does not offer Revalidate for a key that is about to be removed', () => {
+        const {input, revalidate, remove, submit} = renderLicenceForm({saved: true});
+
+        toggle(remove, true);
+        expect(revalidate.hidden).toBe(true);
+        expect(submit.textContent).toBe('Save changes');
+
+        // Typing a replacement contradicts removing the key: the replacement wins.
+        type(input, 'aqg_live_other_key');
+        expect(remove.checked).toBe(false);
+        expect(remove.disabled).toBe(true);
+    });
+
+    it('revalidates the key the server has stored and refreshes a status that showed the licence as not valid', async () => {
         vi.useFakeTimers();
         globalThis.TYPO3 = {settings: {ajaxUrls: {a11y_validate_licence: '/typo3/ajax/licence/validate'}}};
         const post = vi.fn().mockReturnValue({
             resolve: vi.fn().mockResolvedValue({valid: true, plan: 'pro', domain: 'example.org'}),
         });
         setAjaxPostHandler(post);
-        const {module, revalidate, result} = renderLicenceForm({savedKey: SAVED_KEY, invalidStatus: true});
+        const {module, revalidate, result} = renderLicenceForm({saved: true, invalidStatus: true});
 
         revalidate.click();
         await vi.waitFor(() => expect(result.textContent).toContain('Validated'));
 
-        expect(post).toHaveBeenCalledWith('/typo3/ajax/licence/validate', {licenceKey: SAVED_KEY});
+        expect(post).toHaveBeenCalledWith('/typo3/ajax/licence/validate', {useSavedKey: '1'});
         expect(result.textContent).toContain('PRO');
         expect(result.innerHTML).toContain('<strong>example.org</strong>');
         vi.advanceTimersByTime(1000);
@@ -102,7 +133,7 @@ describe('Licence key actions', () => {
         setAjaxPostHandler(vi.fn().mockReturnValue({
             resolve: vi.fn().mockResolvedValue({valid: false, reason: 'domain_mismatch', reasonLabel: 'This domain is not registered for the licence.'}),
         }));
-        const {module, revalidate, result} = renderLicenceForm({savedKey: SAVED_KEY});
+        const {module, revalidate, result} = renderLicenceForm({saved: true});
 
         revalidate.click();
         await vi.waitFor(() => expect(result.textContent).toContain('This domain is not registered for the licence.'));
@@ -117,14 +148,14 @@ describe('Licence key actions', () => {
             resolve: vi.fn().mockResolvedValue({valid: false, reasonLabel: 'The AQG API could not be reached right now.'}),
         });
         setAjaxPostHandler(post);
-        renderLicenceForm({savedKey: SAVED_KEY, invalidStatus: true});
+        renderLicenceForm({saved: true, invalidStatus: true});
 
         const retry = document.querySelector('[data-aqg-licence-action="retry"]');
         const click = new MouseEvent('click', {bubbles: true, cancelable: true});
         retry.dispatchEvent(click);
 
         expect(click.defaultPrevented).toBe(true);
-        await vi.waitFor(() => expect(post).toHaveBeenCalledWith('/typo3/ajax/licence/validate', {licenceKey: SAVED_KEY}));
+        await vi.waitFor(() => expect(post).toHaveBeenCalledWith('/typo3/ajax/licence/validate', {useSavedKey: '1'}));
     });
 });
 

@@ -91,6 +91,8 @@ final class LicenceValidationResult
             'licence_invalid' => 'invalid_key',
             'licence_rate_limited' => 'rate_limited',
             'domain_limit_reached' => 'domain_limit_reached',
+            'domain_not_activated' => 'domain_not_activated',
+            'domain_not_detected' => 'domain_not_detected',
             'licence_project_mismatch' => 'licence_project_mismatch',
             'licence_project_limit_reached' => 'project_limit_reached',
             'licence_project_removed' => 'project_removed',
