@@ -106,6 +106,33 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
     }
 
     #[Test]
+    public function aSavedLicenceKeyIsShownMaskedAndTheKeyFieldStartsEmpty(): void
+    {
+        $xpath = $this->render('Settings/TabLicence', $this->licenceArguments(true));
+        $html = (string)$xpath->document->saveHTML();
+
+        self::assertStringNotContainsString('aqg_live_saved_secret', $html);
+        self::assertSame('', $xpath->query('//input[@name="licenceKey"]')->item(0)?->getAttribute('value'));
+        self::assertSame('Replace with another key', $this->text($xpath, '//label[@for="aqg-licence-key"]'));
+        self::assertSame('aqg_live_••••••••7f3a', $this->text($xpath, '//*[@data-aqg-licence-masked-key="true"]/span[@aria-hidden="true"]'));
+        self::assertSame('Key ending in 7f3a', $this->text($xpath, '//*[@data-aqg-licence-masked-key="true"]/span[contains(@class, "visually-hidden")]'));
+        self::assertSame('0123456789abcdef', $xpath->query('//*[@data-aqg-licence-saved="true"]')->item(0)?->getAttribute('data-aqg-licence-key-fingerprint'));
+        $remove = $xpath->query('//input[@type="checkbox"][@name="licenceKeyRemove"]');
+        self::assertSame(1, $remove->length);
+        self::assertSame('Remove the saved key when saving. AQG then runs as Free.', $this->text($xpath, '//label[@for="aqg-licence-remove"]'));
+    }
+
+    #[Test]
+    public function withoutASavedKeyThereIsNothingToMaskOrRemove(): void
+    {
+        $xpath = $this->render('Settings/TabLicence', $this->licenceArguments(false));
+
+        self::assertSame(0, $xpath->query('//*[@data-aqg-licence-saved="true"]')->length);
+        self::assertSame(0, $xpath->query('//input[@name="licenceKeyRemove"]')->length);
+        self::assertSame('AQG licence key', $this->text($xpath, '//label[@for="aqg-licence-key"]'));
+    }
+
+    #[Test]
     public function unreachableLicenceServiceIsShownAsNotCheckedWithItsRetryAction(): void
     {
         $xpath = $this->render('Settings/LicenceStatus', $this->statusArguments('api_unreachable', 'retry', 'Retry'));
@@ -307,7 +334,11 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
         return [
             'isAdmin' => true,
             'hasLicenceKey' => $hasKey,
-            'licenceKey' => $hasKey ? 'aqg_live_saved' : '',
+            // Not passed by the controller any more; kept here to prove the template never renders it.
+            'licenceKey' => $hasKey ? 'aqg_live_saved_secret_7f3a' : '',
+            'maskedLicenceKey' => $hasKey ? 'aqg_live_••••••••7f3a' : '',
+            'licenceKeyEnding' => $hasKey ? '7f3a' : '',
+            'licenceKeyFingerprint' => $hasKey ? '0123456789abcdef' : '',
             'proStatus' => ['valid' => false],
             'licenceGuidance' => null,
             'showProHints' => true,

@@ -1,0 +1,42 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="aqg-getting-started" data-aqg-getting-started="{f:if(condition: gettingStarted.isFree, then: 'free', else: 'licensed')}">
+    <div class="aqg-getting-started__title">
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.title" default="Get started with AQG" />
+    </div>
+    <ol class="aqg-getting-started__steps">
+        <li class="aqg-getting-started__step" data-aqg-getting-started-step="content-scan">
+            <strong class="aqg-getting-started__step-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.contentScan.title" default="Run a content scan" /></strong>
+            <span class="aqg-getting-started__step-text">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.contentScan.text" default="It checks headings, links, images, tables and forms in this site's TYPO3 content, inside this installation. No licence key is needed." />
+                <f:if condition="{canScanNow} || {canScanAll}">
+                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.contentScan.action" default="Start it with the scan buttons above." /></f:then>
+                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.contentScan.noPermission" default="Your account cannot start scans: ask a colleague with scan permission to run it." /></f:else>
+                </f:if>
+            </span>
+        </li>
+        <li class="aqg-getting-started__step" data-aqg-getting-started-step="findings">
+            <strong class="aqg-getting-started__step-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.findings.title" default="Review the findings" /></strong>
+            <span class="aqg-getting-started__step-text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.findings.text" default="Open a page to see each issue, where it is and how to fix it." /></span>
+        </li>
+        <f:if condition="{gettingStarted.isFree}">
+            <f:then>
+                <li class="aqg-getting-started__step" data-aqg-getting-started-step="free-preview">
+                    <strong class="aqg-getting-started__step-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.freePreview.title" default="See what visitors' browsers render" /></strong>
+                    <span class="aqg-getting-started__step-text">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.freePreview.text" default="The Free Remote Preview scans a page in a real browser on the AQG service: up to 5 single-page scans a day, without licence key, account or email. The site must be reachable from the internet." />
+                        <f:if condition="{gettingStarted.siteAddressLocal}">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.freePreview.local" default="This site's address, %s, is only reachable in your own network; the Frontend scan tab explains what to do." arguments="{0: gettingStarted.siteHost}" />
+                        </f:if>
+                    </span>
+                </li>
+            </f:then>
+            <f:else>
+                <li class="aqg-getting-started__step" data-aqg-getting-started-step="frontend-scan">
+                    <strong class="aqg-getting-started__step-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.frontendScan.title" default="Scan the frontend" /></strong>
+                    <span class="aqg-getting-started__step-text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.gettingStarted.frontendScan.text" default="Your plan includes browser-based scans of the whole site on the Frontend scan tab." /></span>
+                </li>
+            </f:else>
+        </f:if>
+    </ol>
+</div>
+</html>

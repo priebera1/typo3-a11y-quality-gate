@@ -29,6 +29,12 @@ available for the overview and for the page detail of local and remote results,
 and produces a formatted accessibility findings report with summary figures and
 a per-page breakdown.
 
+The PDF is a visual report and is not tagged for screen readers. It declares
+its language and title and has a bookmark outline of its sections, but its
+headings, tables and reading order are not available to assistive technology.
+The CSV export contains the same findings and is the accessible copy; the export
+menu and the first page of the PDF say so. See :ref:`limitations-pdf`.
+
 ..  important::
     The PDF is a findings report of automated checks. It is not an audit report,
     not a conformance statement and not a legal compliance document. Use it as

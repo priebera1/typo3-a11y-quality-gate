@@ -31,6 +31,8 @@ final class LicenceGuidanceTest extends TestCase
             'paid licence expired → renew' => ['expired', 'expired', LicenceGuidance::ACTION_PORTAL],
             'domain limit → manage domains' => ['domain_limit_reached', 'domain_limit_reached', LicenceGuidance::ACTION_PORTAL],
             'wrong domain → manage domains' => ['domain_mismatch', 'domain_mismatch', LicenceGuidance::ACTION_PORTAL],
+            'domain not activated → manage domains' => ['domain_not_activated', 'domain_not_activated', LicenceGuidance::ACTION_PORTAL],
+            'domain not reported by a site → fix the site, validate again' => ['domain_not_detected', 'domain_not_detected', LicenceGuidance::ACTION_RETRY],
             // Agency enrols further installations itself, so a mismatch is a single-project licence: choose a plan.
             'other project → compare plans' => ['licence_project_mismatch', 'project_mismatch', LicenceGuidance::ACTION_PRICING],
             'Agency project slots full → manage projects' => ['licence_project_limit_reached', 'project_limit_reached', LicenceGuidance::ACTION_PORTAL],

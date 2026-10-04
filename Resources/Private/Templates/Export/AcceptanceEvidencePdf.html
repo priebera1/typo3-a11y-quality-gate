@@ -2,14 +2,14 @@
 
 <f:section name="Content">
     <style>
-        .aqge-table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; }
+        .aqge-table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; overflow: wrap; }
         .aqge-table th { text-align: left; font-size: 8.5pt; background: #eef0f3; padding: 1.6mm 2mm; border-bottom: 0.3mm solid #c9ced6; }
         .aqge-table td { font-size: 8.5pt; padding: 1.4mm 2mm; border-bottom: 0.2mm solid #e3e6ea; vertical-align: top; }
         .aqge-muted { color: #4f5866; }
         .aqge-count { font-size: 16pt; font-weight: bold; }
         .aqge-h2 { font-size: 12pt; margin: 6mm 0 1mm; }
         .aqge-note { font-size: 8.5pt; color: #4f5866; }
-        .aqge-url { font-family: courier; font-size: 7.5pt; }
+        .aqge-url { font-family: courier; font-size: 8pt; }
     </style>
 
     <htmlpagefooter name="aqgAcceptanceFooter">
@@ -21,6 +21,7 @@
     <sethtmlpagefooter name="aqgAcceptanceFooter" value="on" show-this-page="1" />
 
     <h1>Accessibility acceptance evidence</h1>
+    <p class="aqge-note">Accessibility note: this PDF is not tagged for screen readers. The same evidence is available as a CSV export from the same scan comparison in AQG.</p>
     <p class="aqge-muted">{evidence.site.identifier} · {evidence.site.base} · prepared {evidence.preparedAt}</p>
     <p><strong>Automated evidence, not a conformance statement.</strong> This comparison shows how the automated findings changed between two compatible frontend scans. It does not confirm WCAG conformance or compliance with accessibility law.</p>
 
@@ -54,7 +55,7 @@
     <f:render section="Findings" arguments="{title: 'Worse', items: evidence.regressed, empty: 'No finding has more occurrences than in the baseline.'}" />
     <f:render section="Findings" arguments="{title: 'Still open', items: evidence.unresolved, empty: 'No finding of the baseline is still reported.'}" />
 
-    <h2 class="aqge-h2">Not compared</h2>
+    <bookmark content="Not compared" level="0" /><h2 class="aqge-h2">Not compared</h2>
     <f:if condition="{evidence.unverified}">
         <f:then>
             <table class="aqge-table">
@@ -67,7 +68,7 @@
         <f:else><p class="aqge-note">Both scans covered the same pages completely.</p></f:else>
     </f:if>
 
-    <h2 class="aqge-h2">Limitations and manual review</h2>
+    <bookmark content="Limitations and manual review" level="0" /><h2 class="aqge-h2">Limitations and manual review</h2>
     <ul>
         <f:for each="{evidence.limitations}" as="limitation">
             <li class="aqge-note">{limitation}</li>
@@ -76,7 +77,7 @@
 </f:section>
 
 <f:section name="Findings">
-    <h2 class="aqge-h2">{title}</h2>
+    <bookmark content="{title}" level="0" /><h2 class="aqge-h2">{title}</h2>
     <f:if condition="{items}">
         <f:then>
             <table class="aqge-table">

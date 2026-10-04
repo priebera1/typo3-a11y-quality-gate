@@ -279,7 +279,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             )
             : [];
         if ($canVerifyFix) {
-            $this->pageRenderer->loadJavaScriptModule('@priebera/a11y-quality-gate/backend/pro/verify-fix.js');
+            $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/pro/verify-fix.js');
         }
 
         $activeRemoteScan = null;

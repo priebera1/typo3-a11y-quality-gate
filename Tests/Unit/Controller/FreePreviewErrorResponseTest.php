@@ -39,7 +39,7 @@ final class FreePreviewErrorResponseTest extends TestCase
     public function otherFreeFailuresKeepTheirOwnTitles(): void
     {
         self::assertSame(
-            'Free Remote Preview API contract rejected',
+            'Free Remote Preview request not accepted',
             $this->payload(new FreePreviewException('Rejected.', 'API_CONTRACT_ERROR', 'new_client_error', 400))['title'],
         );
         self::assertSame(

@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Pro\Configuration\ProSettings;
 use Priebera\A11yQualityGate\Pro\Dto\AccessTokenResponseDto;
 use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResponseDto;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
+use Priebera\A11yQualityGate\Pro\Service\ProSiteInventoryService;
 use Psr\Http\Client\ClientExceptionInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -20,6 +21,7 @@ final class AqgApiClient
     public function __construct(
         private readonly RequestFactory $requestFactory,
         private readonly ?InstallationIdentityServiceInterface $installationIdentityService = null,
+        private readonly ?ProSiteInventoryService $siteInventoryService = null,
     ) {
     }
 
@@ -32,13 +34,13 @@ final class AqgApiClient
         string $version,
         array $allSites = [],
     ): LicenceValidationResponseDto {
-        $payload = $this->postJson('/licence/validate', $this->withProjectInstallation([
+        $payload = $this->postJson('/licence/validate', $this->withSiteInventory($this->withProjectInstallation([
             'key' => $licenceKey,
             'domain' => $domain,
             'version' => $version,
             'productSlug' => ProConstants::PRODUCT_SLUG,
             'allSites' => $this->normalizeAllSites($allSites),
-        ]));
+        ])));
 
         return LicenceValidationResponseDto::fromArray($payload);
     }
@@ -52,15 +54,76 @@ final class AqgApiClient
         string $version,
         array $allSites = [],
     ): AccessTokenResponseDto {
-        $payload = $this->postJson('/auth/token', $this->withProjectInstallation([
+        $payload = $this->postJson('/auth/token', $this->withSiteInventory($this->withProjectInstallation([
             'key' => $licenceKey,
             'domain' => $domain,
             'version' => $version,
             'productSlug' => ProConstants::PRODUCT_SLUG,
             'allSites' => $this->normalizeAllSites($allSites),
-        ]));
+        ])));
 
         return AccessTokenResponseDto::fromArray($payload);
+    }
+
+    /**
+     * The licence's domains as the verified installation sees them: activated, reported but not activated,
+     * activated but no longer reported, and unavailable under the plan. The answer is the AQG service's state —
+     * the same the customer portal shows — never a local list.
+     *
+     * @param list<string> $allSites
+     * @return array<string, mixed>
+     */
+    public function listDomains(string $licenceKey, string $domain, string $version, array $allSites): array
+    {
+        return $this->postJson('/licence/domains', $this->domainManagementPayload($licenceKey, $domain, $version, $allSites));
+    }
+
+    /**
+     * Activates or deactivates domains. The service only activates hosts this installation reports in its
+     * `siteInventory` and enforces the plan's limit and locks; the domains named here are a request, not a grant.
+     *
+     * @param list<string> $allSites
+     * @param list<string> $domains
+     * @return array<string, mixed>
+     */
+    public function changeDomains(
+        string $action,
+        string $licenceKey,
+        string $domain,
+        string $version,
+        array $allSites,
+        array $domains,
+        bool $all = false,
+    ): array {
+        $path = $action === 'deactivate' ? '/licence/domains/deactivate' : '/licence/domains/activate';
+        $payload = $this->domainManagementPayload($licenceKey, $domain, $version, $allSites);
+        if ($all && $action !== 'deactivate') {
+            $payload['all'] = true;
+        } else {
+            $payload['domains'] = array_values($domains);
+        }
+
+        return $this->postJson($path, $payload);
+    }
+
+    /**
+     * @param list<string> $allSites
+     * @return array<string, mixed>
+     */
+    private function domainManagementPayload(string $licenceKey, string $domain, string $version, array $allSites): array
+    {
+        $payload = $this->withProjectInstallation([
+            'key' => $licenceKey,
+            'version' => $version,
+            'productSlug' => ProConstants::PRODUCT_SLUG,
+            'allSites' => $this->normalizeAllSites($allSites),
+        ]);
+        if ($domain !== '') {
+            $payload['domain'] = $domain;
+        }
+        $payload['siteInventory'] = $this->siteInventoryService?->collect() ?? [];
+
+        return $payload;
     }
 
     public function issueFreeToken(
@@ -92,6 +155,23 @@ final class AqgApiClient
         $installationId = trim((string)$this->installationIdentityService?->getOrCreateInstallationId());
         if ($installationId !== '') {
             $payload['projectInstallationId'] = $installationId;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * 1.9.8+: every configured site with all its hosts. The AQG service issues tokens and activates domains only
+     * for hosts the installation reports; older services ignore the field.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function withSiteInventory(array $payload): array
+    {
+        $inventory = $this->siteInventoryService?->collect() ?? [];
+        if ($inventory !== []) {
+            $payload['siteInventory'] = $inventory;
         }
 
         return $payload;
@@ -184,6 +264,12 @@ final class AqgApiClient
         $errorCode = trim((string)($error['code'] ?? ''));
         if ($errorCode === '' && $statusCode === 404) {
             $errorCode = 'route_not_found';
+            if (str_starts_with($path, '/licence/domains')) {
+                // A licence service older than 1.9.8 has no domain management: the Licence tab says so instead of
+                // reporting a generic failure. Other endpoints keep reading a bare 404 as an unreachable service.
+                $error = ['code' => $errorCode, 'message' => 'Route not found.', 'status' => 404];
+                $decoded['error'] = $error;
+            }
         }
         if ($errorCode === '' && $statusCode === 429 && isset($payload['key'])) {
             // The API's per-route limiter answers without AQG's error body. It is still a rate limit — the

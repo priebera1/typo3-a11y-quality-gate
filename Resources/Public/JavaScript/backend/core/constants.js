@@ -53,6 +53,9 @@ export const FREE_SELECTORS = {
 
 export const PRO_SELECTORS = {
     freePreviewRetry: '[data-action="a11y-free-preview-retry"]',
+    freePreviewUnreachableTemplate: 'template[data-aqg-free-preview-unreachable-template="true"]',
+    openFreePreview: '[data-action="a11y-open-free-preview"]',
+    showLocalScan: '[data-action="a11y-show-local-scan"]',
     proScanSiteButton: '[data-action="a11y-pro-scan-site"]',
     overviewSourceTrigger: '[data-a11y-overview-source-trigger]',
     overviewSourcePanel: '[data-a11y-overview-panel]',

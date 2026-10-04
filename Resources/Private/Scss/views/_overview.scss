@@ -1155,9 +1155,9 @@
 .a11y-overview .aqg-page-cell__meta {
     display: block;
     max-width: min(56ch, 100%);
+    // The literal subtle token alone meets AA; an opacity on top of it dropped the page ID below 4.5:1.
     color: var(--aqi-fg-subtle);
     font-weight: 400;
-    opacity: .82;
 }
 
 .a11y-overview .aqg-empty__actions {
@@ -2422,6 +2422,18 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-impact--serious,
 .a11y-overview .aqg-export-menu__item:focus {
     background: var(--aqi-surface-2);
     color: var(--aqi-fg);
+}
+
+/* Untagged-PDF disclosure below the PDF item; the item points to it with aria-describedby. */
+.a11y-overview .aqg-export-menu__note {
+    max-width: 248px;
+    margin: 4px 0 0;
+    padding: 6px 8px 4px;
+    border-top: 1px solid var(--aqi-border-soft, #d8dce2);
+    color: var(--aqi-fg-muted);
+    font-size: 11.5px;
+    line-height: 1.4;
+    white-space: normal;
 }
 
 @media (max-width: 575.98px) {
@@ -4742,4 +4754,54 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric--positi
         width: 100%;
         max-width: none;
     }
+}
+
+// Overview page tables fit the module at desktop widths, also with the page tree open: page titles and URLs wrap
+// (two lines, full title in the link's title attribute) instead of sizing the first column to the longest title.
+// Where the columns cannot fit, the table scrolls: scrollable-tables.js then names the wrapper, makes it
+// focusable and pins the Actions column, so the row's main action never sits unseen past the edge.
+.a11y-overview .aqg-table-wrap .aqg-table {
+    min-width: 0;
+}
+
+.a11y-overview .aqg-table-wrap .aqg-page-cell {
+    min-width: 180px;
+}
+
+.a11y-overview .aqg-table-wrap .aqg-page-cell__title a {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.a11y-overview .aqg-table-wrap .aqg-page-cell__meta {
+    overflow-wrap: anywhere;
+}
+
+.a11y-overview .aqg-table-wrap[data-aqg-scrollable="true"] .aqg-table :is(th, td).actions {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--aqg-indicator-surface, var(--aqi-surface));
+    box-shadow: inset 1px 0 0 var(--aqi-border), -8px 0 10px -8px rgb(0 0 0 / .22);
+}
+
+.a11y-overview .aqg-table-wrap[data-aqg-scrollable="true"] .aqg-table tbody tr:hover td.actions {
+    background: var(--aqg-indicator-surface-2, var(--aqi-surface-2));
+}
+
+// Scrolled to the end: nothing is hidden behind the pinned column any more.
+.a11y-overview .aqg-table-wrap[data-aqg-scrollable="true"][data-aqg-scroll-end="true"] .aqg-table :is(th, td).actions {
+    box-shadow: inset 1px 0 0 var(--aqi-border);
+}
+
+// An outline paints above the pinned column and header cells, where an inset ring would be covered.
+.a11y-overview .aqg-table-wrap[data-aqg-scrollable="true"]:focus-visible {
+    outline: 2px solid var(--aqi-focus);
+    outline-offset: -2px;
 }

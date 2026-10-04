@@ -70,7 +70,9 @@ Output
 
 The result can be copied as HTML, downloaded as plain text or exported as PDF,
 and is meant to be published on a dedicated accessibility statement page of your
-site. AQG does not publish the statement for you.
+site. AQG does not publish the statement for you. Publish the HTML version: the
+PDF is not tagged for screen readers and is only a printable copy, see
+:ref:`limitations-pdf`.
 
 ..  warning::
     The generated text is a draft that you must review, complete and approve.

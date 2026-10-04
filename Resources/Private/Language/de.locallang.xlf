@@ -2500,16 +2500,16 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Erneut versuchen</target>
             </trans-unit>
             <trans-unit id="freePreview.upsell">
-                <source>Want the whole site? A trial or a PRO or Agency licence adds full-site frontend scans with screenshots, record mapping and scan history. PDF export needs PRO or Agency.</source>
-                <target>Die ganze Website prüfen? In der Testphase und mit einer PRO- oder Agency-Lizenz kommen Frontend-Scans der ganzen Website mit Screenshots, Datensatzzuordnung und Scan-Verlauf hinzu. Der PDF-Export erfordert PRO oder Agency.</target>
+                <source>A 5-day trial adds full-site frontend scans with screenshots, record mapping, scan history and comparison. PDF export needs PRO or Agency, which also add acceptance evidence, monitoring and Verify fix.</source>
+                <target>Eine 5-tägige Testphase ergänzt Frontend-Scans der ganzen Website mit Screenshots, Datensatzzuordnung, Scan-Verlauf und Vergleich. Der PDF-Export erfordert PRO oder Agency; diese Pläne bieten außerdem Abnahmenachweise, Monitoring und „Behebung prüfen“.</target>
             </trans-unit>
             <trans-unit id="freePreview.proLabel">
                 <source>PRO</source>
                 <target>PRO</target>
             </trans-unit>
             <trans-unit id="freePreview.startTrial">
-                <source>Start a free trial</source>
-                <target>Kostenlose Testphase starten</target>
+                <source>Start 5-day trial</source>
+                <target>5-tägige Testphase starten</target>
             </trans-unit>
             <trans-unit id="freePreview.viewPricing">
                 <source>View pricing</source>
@@ -2576,16 +2576,16 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Domain-Limit erreicht</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.domainLimitReached.text">
-                <source>All domains included in this licence are in use. Release a domain in the customer portal, or switch to Agency for unlimited domains.</source>
-                <target>Alle in dieser Lizenz enthaltenen Domains sind belegt. Geben Sie im Kundenportal eine Domain frei oder wechseln Sie für unbegrenzt viele Domains zu Agency.</target>
+                <source>All domains included in this licence are in use. Deactivate a domain under Licence domains or in the customer portal, or switch to Agency for unlimited domains.</source>
+                <target>Alle in dieser Lizenz enthaltenen Domains sind belegt. Deaktivieren Sie eine Domain unter Lizenz-Domains oder im Kundenportal, oder wechseln Sie für unbegrenzt viele Domains zu Agency.</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.domainMismatch.title">
                 <source>Domain not assigned to this licence</source>
                 <target>Domain ist dieser Lizenz nicht zugeordnet</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.domainMismatch.text">
-                <source>The licence is valid, but the domain of this TYPO3 site is not assigned to it. Add the domain in the customer portal.</source>
-                <target>Die Lizenz ist gültig, aber die Domain dieser TYPO3-Website ist ihr nicht zugeordnet. Fügen Sie die Domain im Kundenportal hinzu.</target>
+                <source>The licence is valid, but the domain of this TYPO3 site is not assigned to it. Activate the domain under Licence domains or in the customer portal.</source>
+                <target>Die Lizenz ist gültig, aber die Domain dieser TYPO3-Website ist ihr nicht zugeordnet. Aktivieren Sie die Domain unter Lizenz-Domains oder im Kundenportal.</target>
             </trans-unit>
             <trans-unit id="settings.licence.guidance.projectMismatch.title">
                 <source>Licence belongs to another TYPO3 project</source>
@@ -2740,8 +2740,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>PRO-Upgrade-Angebote anzeigen</target>
             </trans-unit>
             <trans-unit id="settings.licence.showProHintsHint">
-                <source>Shows the upgrade card with trial and pricing links in the Free Remote Preview. Turn it off to hide these offers from editors; locked features still say that they need a licence.</source>
-                <target>Zeigt in Free Remote Preview die Upgrade-Karte mit Links zur Testphase und zu den Preisen. Deaktivieren Sie die Option, um diese Angebote für Redakteure auszublenden; gesperrte Funktionen weisen weiterhin darauf hin, dass sie eine Lizenz erfordern.</target>
+                <source>Shows the upgrade card with trial and pricing links below a Free Remote Preview result. Turn it off to hide these offers from editors; locked features still say that they need a licence.</source>
+                <target>Zeigt unter einem Ergebnis der Free Remote Preview die Upgrade-Karte mit Links zur Testphase und zu den Preisen. Deaktivieren Sie die Option, um diese Angebote für Redakteure auszublenden; gesperrte Funktionen weisen weiterhin darauf hin, dass sie eine Lizenz erfordern.</target>
             </trans-unit>
             <trans-unit id="pageDetail.filterSummary.template.singular">
                 <source>Showing %d issue</source>
@@ -3266,6 +3266,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="module.remotePageDetail.screenshotPreview">
                 <source>Screenshot preview</source>
                 <target>Screenshot-Vorschau</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotUnavailable">
+                <source>Screenshot not available. Screenshots can only be loaded by the licence or Agency project that ran the scan.</source>
+                <target>Screenshot nicht verfügbar. Screenshots kann nur die Lizenz bzw. das Agency-Projekt laden, das den Scan ausgeführt hat.</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.screenshotSub">
                 <source>Captured at scan time · click to enlarge</source>
@@ -4592,8 +4596,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Diese Domain ist für die eingegebene Lizenz nicht zugelassen.</target>
             </trans-unit>
             <trans-unit id="settings.licence.validation.reason.domain_limit_reached">
-                <source>Domain limit reached for this licence. Log in to your portal to manage domains.</source>
-                <target>Das Domain-Limit dieser Lizenz ist erreicht. Verwalten Sie die Domains in Ihrem Kundenportal.</target>
+                <source>Every domain of this licence is in use. Deactivate one under Licence domains or in the customer portal, or choose Agency.</source>
+                <target>Alle Domains dieser Lizenz sind belegt. Deaktivieren Sie eine unter Lizenz-Domains oder im Kundenportal, oder wählen Sie Agency.</target>
             </trans-unit>
             <trans-unit id="settings.licence.validation.reason.licence_project_mismatch">
                 <source>This licence is registered to a different TYPO3 project. If you believe this is an error, contact support@priebera.sk.</source>
@@ -4986,6 +4990,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="pageModuleIndicator.metric.needsReview">
                 <source>%d needs review</source>
                 <target>%d zu prüfen</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.meta.remoteStarting">
+                <source>Starting the frontend scan…</source>
+                <target>Frontend-Scan wird gestartet…</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.meta.remoteProgressTotal">
                 <source>Frontend scan: %d/%d pages processed.</source>
@@ -8244,40 +8252,40 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Nicht in der Free Remote Preview enthalten</target>
             </trans-unit>
             <trans-unit id="freePreview.error.proof.title">
-                <source>Free Remote Preview proof could not be verified</source>
-                <target>Nachweis für die Free Remote Preview konnte nicht geprüft werden</target>
+                <source>Site could not be confirmed</source>
+                <target>Site konnte nicht bestätigt werden</target>
             </trans-unit>
             <trans-unit id="freePreview.error.idempotency.title">
-                <source>Free Remote Preview submit conflict</source>
-                <target>Konflikt bei der Übermittlung der Free Remote Preview</target>
+                <source>Scan already requested</source>
+                <target>Scan bereits angefordert</target>
             </trans-unit>
             <trans-unit id="freePreview.error.token.title">
-                <source>Free Remote Preview authentication failed</source>
-                <target>Authentifizierung der Free Remote Preview fehlgeschlagen</target>
+                <source>Free Remote Preview access expired</source>
+                <target>Zugang zur Free Remote Preview abgelaufen</target>
             </trans-unit>
             <trans-unit id="freePreview.error.missingInstallation.title">
-                <source>Free Remote Preview installation identity missing</source>
-                <target>Installationskennung der Free Remote Preview fehlt</target>
+                <source>Installation not identified</source>
+                <target>Installation nicht erkannt</target>
             </trans-unit>
             <trans-unit id="freePreview.error.installationMismatch.title">
-                <source>Free Remote Preview installation identity mismatch</source>
-                <target>Installationskennung der Free Remote Preview stimmt nicht überein</target>
+                <source>Free Remote Preview access not accepted</source>
+                <target>Zugang zur Free Remote Preview nicht angenommen</target>
             </trans-unit>
             <trans-unit id="freePreview.error.siteMismatch.title">
-                <source>Free Remote Preview site identity mismatch</source>
-                <target>Website-Kennung der Free Remote Preview stimmt nicht überein</target>
+                <source>Access issued for another site</source>
+                <target>Zugang für eine andere Site ausgestellt</target>
             </trans-unit>
             <trans-unit id="freePreview.error.invalidSite.title">
-                <source>Free Remote Preview site configuration invalid</source>
-                <target>Website-Konfiguration für die Free Remote Preview ungültig</target>
+                <source>Site address cannot be scanned</source>
+                <target>Site-Adresse kann nicht gescannt werden</target>
             </trans-unit>
             <trans-unit id="freePreview.error.endpoint.title">
-                <source>Free Remote Preview API route unavailable</source>
-                <target>API-Route der Free Remote Preview nicht verfügbar</target>
+                <source>Free Remote Preview not offered right now</source>
+                <target>Free Remote Preview derzeit nicht angeboten</target>
             </trans-unit>
             <trans-unit id="freePreview.error.contract.title">
-                <source>Free Remote Preview API contract rejected</source>
-                <target>API-Vertrag der Free Remote Preview abgelehnt</target>
+                <source>Free Remote Preview request not accepted</source>
+                <target>Anfrage der Free Remote Preview nicht angenommen</target>
             </trans-unit>
             <trans-unit id="freePreview.error.unavailable.title">
                 <source>Free Remote Preview unavailable</source>
@@ -8296,36 +8304,36 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Diese Anfrage für die Free Remote Preview kollidiert mit einer früheren Übermittlung. Laden Sie die Seite neu, bevor Sie einen neuen Scan starten.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.proof">
-                <source>The public Free Remote Preview proof could not be verified.</source>
-                <target>Der öffentliche Nachweis für die Free Remote Preview konnte nicht geprüft werden.</target>
+                <source>The AQG service could not confirm that this TYPO3 installation serves the site. Check that the site is publicly reachable at its base URL, then try again.</source>
+                <target>Der AQG-Dienst konnte nicht bestätigen, dass diese TYPO3-Installation die Site ausliefert. Prüfen Sie, ob die Site unter ihrer Basis-URL öffentlich erreichbar ist, und versuchen Sie es dann erneut.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.missingInstallation">
-                <source>Free Remote Preview installation identity is missing.</source>
-                <target>Die Installationskennung der Free Remote Preview fehlt.</target>
+                <source>This TYPO3 installation could not identify itself to the AQG service. Reload the page and try again.</source>
+                <target>Diese TYPO3-Installation konnte sich beim AQG-Dienst nicht ausweisen. Laden Sie die Seite neu und versuchen Sie es erneut.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.installationMismatch">
-                <source>The Free Remote Preview installation identity does not match its token.</source>
-                <target>Die Installationskennung der Free Remote Preview passt nicht zu ihrem Token.</target>
+                <source>The AQG service did not accept this installation's Free Remote Preview access. Reload the page to get new access and try again.</source>
+                <target>Der AQG-Dienst hat den Zugang dieser Installation zur Free Remote Preview nicht angenommen. Laden Sie die Seite neu, um einen neuen Zugang zu erhalten, und versuchen Sie es erneut.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.siteMismatch">
-                <source>The TYPO3 site identifier does not match the Free Remote Preview token.</source>
-                <target>Die TYPO3-Website-Kennung passt nicht zum Token der Free Remote Preview.</target>
+                <source>The Free Remote Preview access was issued for another site. Reload the page and start the scan again.</source>
+                <target>Der Zugang zur Free Remote Preview wurde für eine andere Site ausgestellt. Laden Sie die Seite neu und starten Sie den Scan erneut.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.invalidSite">
-                <source>The configured TYPO3 site URL is not valid for Free Remote Preview.</source>
-                <target>Die konfigurierte URL der TYPO3-Website ist für die Free Remote Preview nicht gültig.</target>
+                <source>The AQG scanner cannot use this site's address. The base URL in the Site Configuration must be a public http or https address with a host name.</source>
+                <target>Der AQG-Scanner kann die Adresse dieser Site nicht verwenden. Die Basis-URL in der Site-Konfiguration muss eine öffentliche http- oder https-Adresse mit einem Hostnamen sein.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.token">
-                <source>Free Remote Preview authentication was rejected.</source>
-                <target>Die Authentifizierung der Free Remote Preview wurde abgelehnt.</target>
+                <source>The Free Remote Preview access has expired or was not accepted. Reload the page and try again.</source>
+                <target>Der Zugang zur Free Remote Preview ist abgelaufen oder wurde nicht angenommen. Laden Sie die Seite neu und versuchen Sie es erneut.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.endpoint">
-                <source>The Free Remote Preview status endpoint is not available.</source>
-                <target>Der Status-Endpunkt der Free Remote Preview ist nicht verfügbar.</target>
+                <source>The AQG service does not offer this Free Remote Preview function right now. Try again later.</source>
+                <target>Der AQG-Dienst bietet diese Funktion der Free Remote Preview derzeit nicht an. Versuchen Sie es später erneut.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.contract">
-                <source>The Free Remote Preview request was rejected by the API contract.</source>
-                <target>Die Anfrage für die Free Remote Preview wurde vom API-Vertrag abgelehnt.</target>
+                <source>The AQG service did not accept this Free Remote Preview request. Reload the page and try again; if it keeps failing, contact AQG support.</source>
+                <target>Der AQG-Dienst hat diese Anfrage der Free Remote Preview nicht angenommen. Laden Sie die Seite neu und versuchen Sie es erneut; wenn der Fehler bleibt, wenden Sie sich an den AQG-Support.</target>
             </trans-unit>
             <trans-unit id="freePreview.error.unavailable">
                 <source>Free Remote Preview is temporarily unavailable.</source>
@@ -8855,6 +8863,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>The frontend scan request failed. Details are in the TYPO3 log.</source>
                 <target>Die Anfrage für den Frontend-Scan ist fehlgeschlagen. Details stehen im TYPO3-Log.</target>
             </trans-unit>
+            <trans-unit id="proCrawler.jobUnavailable.message">
+                <source>This frontend scan is no longer available for this installation. Start a new scan.</source>
+                <target>Dieser Frontend-Scan ist für diese Installation nicht mehr verfügbar. Starten Sie einen neuen Scan.</target>
+            </trans-unit>
             <trans-unit id="proCrawler.pageOutsideSite.message">
                 <source>This page URL does not belong to the configured TYPO3 site.</source>
                 <target>Diese Seiten-URL gehört nicht zur konfigurierten TYPO3-Site.</target>
@@ -9174,6 +9186,610 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="scheduler.monitoring.info.summary">
                 <source>%1$s · %2$s · %3$d recipient(s)</source>
                 <target>%1$s · %2$s · %3$d Empfänger</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.savedKey">
+                <source>Saved licence key</source>
+                <target>Gespeicherter Lizenzschlüssel</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.savedKeyEnding">
+                <source>Key ending in %s</source>
+                <target>Schlüssel endet auf %s</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.savedKeyHelp">
+                <source>Only the beginning and the last characters are shown, so the key stays out of screen shares and screenshots.</source>
+                <target>Nur der Anfang und die letzten Zeichen werden angezeigt, damit der Schlüssel nicht in Bildschirmfreigaben und Screenshots erscheint.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.replaceKey">
+                <source>Replace with another key</source>
+                <target>Durch einen anderen Schlüssel ersetzen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.replaceKeyHelp">
+                <source>Leave the field empty to keep the saved key. A new key is validated when you save it.</source>
+                <target>Lassen Sie das Feld leer, um den gespeicherten Schlüssel zu behalten. Ein neuer Schlüssel wird beim Speichern geprüft.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.removeKey">
+                <source>Remove the saved key when saving. AQG then runs as Free.</source>
+                <target>Gespeicherten Schlüssel beim Speichern entfernen. AQG läuft danach als Free.</target>
+            </trans-unit>
+            <trans-unit id="rte.plainShowIssueList">
+                <source>Show issue list (%d)</source>
+                <target>Problemliste anzeigen (%d)</target>
+            </trans-unit>
+            <trans-unit id="export.pdf.untaggedNote">
+                <source>The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format.</source>
+                <target>Das PDF ist ein visueller Bericht und nicht für Screenreader getaggt. Der CSV-Export enthält dieselben Befunde in einem barrierefreien Format.</target>
+            </trans-unit>
+            <trans-unit id="remote.acceptance.pdfUntaggedNote">
+                <source>The PDF is not tagged for screen readers; the CSV contains the same evidence.</source>
+                <target>Das PDF ist nicht für Screenreader getaggt; die CSV enthält dieselben Nachweise.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.pdfUntaggedNote">
+                <source>The PDF is not tagged for screen readers. Publish the statement as HTML on your website and use the PDF only as a printable copy.</source>
+                <target>Das PDF ist nicht für Screenreader getaggt. Veröffentlichen Sie die Erklärung als HTML auf Ihrer Website und verwenden Sie das PDF nur als Druckversion.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.targetNotPublic.title">
+                <source>Site not reachable from the internet</source>
+                <target>Website im Internet nicht erreichbar</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.targetNotPublic.message">
+                <source>The AQG scanner runs outside your TYPO3 installation and only reaches sites on the public internet. This site's address points to a local or private network (for example DDEV, localhost, a VPN or internal DNS), so the scan was refused as a security safeguard, not because of the licence. Content scans keep working. Give the site a publicly reachable base URL in its Site Configuration (a base variant for this application context works too), or scan the site's public installation.</source>
+                <target>Der AQG-Scanner läuft außerhalb Ihrer TYPO3-Installation und erreicht nur Websites im öffentlichen Internet. Die Adresse dieser Website verweist auf ein lokales oder privates Netzwerk (zum Beispiel DDEV, localhost, ein VPN oder internes DNS), daher wurde der Scan aus Sicherheitsgründen abgelehnt – nicht wegen der Lizenz. Inhaltsscans funktionieren weiterhin. Geben Sie der Website in ihrer Site-Konfiguration eine öffentlich erreichbare Basis-URL (eine Base-Variante für diesen Application Context ist ebenfalls möglich) oder scannen Sie die öffentliche Installation der Website.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.targetNotFound.title">
+                <source>Site address not found</source>
+                <target>Website-Adresse nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.targetNotFound.message">
+                <source>The AQG scanner could not find this site's host name on the internet. A host name that only resolves inside a VPN or internal DNS cannot be scanned from outside. Check that the base URL in the site's Site Configuration is its public address.</source>
+                <target>Der AQG-Scanner konnte den Hostnamen dieser Website im Internet nicht finden. Ein Hostname, der nur in einem VPN oder internen DNS aufgelöst wird, kann nicht von außen gescannt werden. Prüfen Sie, ob die Basis-URL in der Site-Konfiguration der Website ihre öffentliche Adresse ist.</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.pageOutsideSite.title">
+                <source>This page is not part of a TYPO3 Site</source>
+                <target>Diese Seite gehört zu keiner TYPO3-Site</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.pageOutsideSite.body">
+                <source>AQG works per TYPO3 Site: the Site Configuration tells it the site's base URL and languages. Neither the selected page nor any page above it has a Site Configuration.</source>
+                <target>AQG arbeitet pro TYPO3-Site: Die Site-Konfiguration liefert die Basis-URL und die Sprachen der Website. Weder die ausgewählte Seite noch eine Seite darüber hat eine Site-Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.pageOutsideSite.hint">
+                <source>Create a Site Configuration for the root page of this page tree in Site Management › Sites, or select a page inside an existing site.</source>
+                <target>Legen Sie unter Site Management › Sites eine Site-Konfiguration für die Startseite dieses Seitenbaums an oder wählen Sie eine Seite innerhalb einer vorhandenen Site.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.title">
+                <source>Licence domains</source>
+                <target>Lizenz-Domains</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.intro">
+                <source>Domains come from the sites configured in this TYPO3 installation. Only active domains can be scanned with the licence. The AQG customer portal shows and changes the same list.</source>
+                <target>Die Domains stammen aus den in dieser TYPO3-Installation konfigurierten Sites. Nur aktive Domains können mit der Lizenz gescannt werden. Das AQG-Kundenportal zeigt und ändert dieselbe Liste.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.refresh">
+                <source>Refresh</source>
+                <target>Aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.noscript">
+                <source>Managing domains needs JavaScript. You can also manage them in the AQG customer portal.</source>
+                <target>Die Domain-Verwaltung benötigt JavaScript. Sie können die Domains auch im AQG-Kundenportal verwalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.loading">
+                <source>Loading domains…</source>
+                <target>Domains werden geladen …</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.search">
+                <source>Search domains</source>
+                <target>Domains durchsuchen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.filter.label">
+                <source>Filter domains</source>
+                <target>Domains filtern</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.filter.all">
+                <source>All</source>
+                <target>Alle</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.filter.active">
+                <source>Active</source>
+                <target>Aktiv</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.filter.available">
+                <source>Available</source>
+                <target>Verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.filter.notDetected">
+                <source>Not detected</source>
+                <target>Nicht erkannt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.filter.unavailable">
+                <source>Unavailable</source>
+                <target>Nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.bulk.activate">
+                <source>Activate selected</source>
+                <target>Auswahl aktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.bulk.deactivate">
+                <source>Deactivate selected</source>
+                <target>Auswahl deaktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.bulk.activateAll">
+                <source>Activate all detected</source>
+                <target>Alle erkannten aktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.confirm">
+                <source>Confirm</source>
+                <target>Bestätigen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.cancel">
+                <source>Cancel</source>
+                <target>Abbrechen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.caption">
+                <source>Licence domains of this installation</source>
+                <target>Lizenz-Domains dieser Installation</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.selectAll">
+                <source>Select every domain on this page</source>
+                <target>Alle Domains dieser Seite auswählen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.column.domain">
+                <source>Domain</source>
+                <target>Domain</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.column.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.column.sites">
+                <source>TYPO3 sites</source>
+                <target>TYPO3-Sites</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.column.actions">
+                <source>Actions</source>
+                <target>Aktionen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.pager.label">
+                <source>Domain pages</source>
+                <target>Domain-Seiten</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.pager.previous">
+                <source>Previous</source>
+                <target>Zurück</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.pager.next">
+                <source>Next</source>
+                <target>Weiter</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.activeOfMax">
+                <source>%1$s of %2$s domains active</source>
+                <target>%1$s von %2$s Domains aktiv</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.activeProject">
+                <source>%s domains active in this TYPO3 project, no domain limit</source>
+                <target>%s Domains in diesem TYPO3-Projekt aktiv, ohne Domain-Limit</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.activeDomains">
+                <source>Active domains</source>
+                <target>Aktive Domains</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.activeDomainsAcrossProjects">
+                <source>%s across all projects</source>
+                <target>%s in allen Projekten</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.activeUnlimited">
+                <source>%s domains active, no domain limit</source>
+                <target>%s Domains aktiv, ohne Domain-Limit</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.available">
+                <source>%s available</source>
+                <target>%s verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.notDetected">
+                <source>%s no longer detected</source>
+                <target>%s nicht mehr erkannt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.unavailable">
+                <source>%s need another plan</source>
+                <target>%s benötigen einen anderen Plan</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.lockNote">
+                <source>An activated domain keeps its slot for %s days before it can be deactivated.</source>
+                <target>Eine aktivierte Domain belegt ihren Platz %s Tage, bevor sie deaktiviert werden kann.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.trialNote">
+                <source>A trial covers the domain it was first used on. Choose PRO to scan more sites.</source>
+                <target>Eine Testlizenz gilt für die Domain, auf der sie zuerst verwendet wurde. Wählen Sie PRO, um weitere Sites zu scannen.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.state.active">
+                <source>Active</source>
+                <target>Aktiv</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.state.activeNotDetected">
+                <source>Active, not detected</source>
+                <target>Aktiv, nicht erkannt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.state.available">
+                <source>Available</source>
+                <target>Verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.state.unavailable">
+                <source>Unavailable</source>
+                <target>Nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.detail.notDetected">
+                <source>No TYPO3 site uses this domain any more. It keeps its slot until you deactivate it.</source>
+                <target>Keine TYPO3-Site verwendet diese Domain mehr. Sie belegt ihren Platz, bis Sie sie deaktivieren.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.detail.planLimit">
+                <source>Every domain of the plan is in use. Deactivate one, or choose Agency for unlimited domains.</source>
+                <target>Alle Domains des Plans sind belegt. Deaktivieren Sie eine oder wählen Sie Agency für unbegrenzte Domains.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.detail.trial">
+                <source>A trial covers one domain. Choose PRO to scan this site.</source>
+                <target>Eine Testlizenz gilt für eine Domain. Wählen Sie PRO, um diese Site zu scannen.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.detail.locked">
+                <source>Can be deactivated from %s.</source>
+                <target>Kann ab %s deaktiviert werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.detail.lastDomain">
+                <source>The licence keeps at least one active domain.</source>
+                <target>Die Lizenz behält mindestens eine aktive Domain.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.select">
+                <source>Select %s</source>
+                <target>%s auswählen</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.activate">
+                <source>Activate</source>
+                <target>Aktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.deactivate">
+                <source>Deactivate</source>
+                <target>Deaktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.selected">
+                <source>%s selected</source>
+                <target>%s ausgewählt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.noneSelected">
+                <source>No domain selected</source>
+                <target>Keine Domain ausgewählt</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.empty">
+                <source>No domain matches the search or filter.</source>
+                <target>Keine Domain passt zur Suche oder zum Filter.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.emptyAll">
+                <source>None of the sites in this installation has a public domain. Development hosts such as .ddev.site need no activation.</source>
+                <target>Keine Site dieser Installation hat eine öffentliche Domain. Entwicklungs-Hosts wie .ddev.site müssen nicht aktiviert werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.range">
+                <source>Showing %1$s–%2$s of %3$s</source>
+                <target>Angezeigt werden %1$s–%2$s von %3$s</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.moreSites">
+                <source>+%s</source>
+                <target>+%s</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.confirmActivate">
+                <source>Activate %1$s? Each activated domain keeps its slot for %2$s days before it can be deactivated.</source>
+                <target>%1$s aktivieren? Jede aktivierte Domain belegt ihren Platz %2$s Tage, bevor sie deaktiviert werden kann.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.confirmDeactivate">
+                <source>Deactivate %s? Scans of a deactivated domain stop at once.</source>
+                <target>%s deaktivieren? Scans einer deaktivierten Domain enden sofort.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.activated">
+                <source>Activated: %s.</source>
+                <target>Aktiviert: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.deactivated">
+                <source>Deactivated: %s.</source>
+                <target>Deaktiviert: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.unchanged">
+                <source>Unchanged: %s.</source>
+                <target>Unverändert: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.planLimit">
+                <source>Not activated, the domain limit of the plan is reached: %s.</source>
+                <target>Nicht aktiviert, das Domain-Limit des Plans ist erreicht: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.notDetected">
+                <source>Not activated, no site of this installation uses it: %s.</source>
+                <target>Nicht aktiviert, keine Site dieser Installation verwendet sie: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.locked">
+                <source>Not deactivated yet, still locked: %s.</source>
+                <target>Noch nicht deaktiviert, noch gesperrt: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.lastDomain">
+                <source>Not deactivated, the licence keeps one active domain: %s.</source>
+                <target>Nicht deaktiviert, die Lizenz behält eine aktive Domain: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.skipped">
+                <source>Skipped: %s.</source>
+                <target>Übersprungen: %s.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.result.more">
+                <source>%s more</source>
+                <target>%s weitere</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.notConfigured">
+                <source>Save a licence key to manage its domains.</source>
+                <target>Speichern Sie einen Lizenzschlüssel, um seine Domains zu verwalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.projectMismatch">
+                <source>This licence is registered to another TYPO3 installation, so this installation cannot manage its domains.</source>
+                <target>Diese Lizenz ist für eine andere TYPO3-Installation registriert. Diese Installation kann ihre Domains daher nicht verwalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.projectRemoved">
+                <source>This TYPO3 project was removed from the licence. Restore it in the customer portal to manage its domains.</source>
+                <target>Dieses TYPO3-Projekt wurde aus der Lizenz entfernt. Stellen Sie es im Kundenportal wieder her, um seine Domains zu verwalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.licenceInvalid">
+                <source>The licence is not active, so its domains cannot be changed.</source>
+                <target>Die Lizenz ist nicht aktiv, daher können ihre Domains nicht geändert werden.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.trialFixed">
+                <source>A trial covers the one domain it was first used on. Choose PRO or Agency to scan more sites.</source>
+                <target>Eine Testlizenz gilt für die eine Domain, auf der sie zuerst verwendet wurde. Wählen Sie PRO oder Agency, um weitere Sites zu scannen.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.activateAllAgencyOnly">
+                <source>Activating every detected domain at once is available with Agency.</source>
+                <target>Alle erkannten Domains auf einmal zu aktivieren ist mit Agency verfügbar.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.rateLimited">
+                <source>The licence service is limiting requests. Try again in a minute.</source>
+                <target>Der Lizenzdienst begrenzt die Anfragen. Versuchen Sie es in einer Minute erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.serviceOutdated">
+                <source>The licence service does not offer domain management yet. Try again later.</source>
+                <target>Der Lizenzdienst bietet die Domain-Verwaltung noch nicht an. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.unreachable">
+                <source>The licence service could not be reached. Try again later.</source>
+                <target>Der Lizenzdienst war nicht erreichbar. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.invalidRequest">
+                <source>Select at least one domain.</source>
+                <target>Wählen Sie mindestens eine Domain aus.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.error.failed">
+                <source>The domains could not be loaded or changed. Try again later.</source>
+                <target>Die Domains konnten nicht geladen oder geändert werden. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.validation.reason.domain_not_activated">
+                <source>This site's domain is not activated for the licence. Activate it under Licence domains or in the customer portal.</source>
+                <target>Die Domain dieser Site ist für die Lizenz nicht aktiviert. Aktivieren Sie sie unter Lizenz-Domains oder im Kundenportal.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.validation.reason.domain_not_detected">
+                <source>No site of this TYPO3 installation uses this domain, so the licence does not cover it.</source>
+                <target>Keine Site dieser TYPO3-Installation verwendet diese Domain, daher deckt die Lizenz sie nicht ab.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainNotActivated.title">
+                <source>Domain not activated</source>
+                <target>Domain nicht aktiviert</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainNotActivated.text">
+                <source>This TYPO3 installation uses the domain, but it is not activated for the licence. Activate it under Licence domains on this tab or in the customer portal. PRO activates up to 3 domains; Agency has no domain limit.</source>
+                <target>Diese TYPO3-Installation verwendet die Domain, sie ist aber für die Lizenz nicht aktiviert. Aktivieren Sie sie unter Lizenz-Domains in diesem Tab oder im Kundenportal. PRO aktiviert bis zu 3 Domains, Agency hat kein Domain-Limit.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainNotDetected.title">
+                <source>Domain not in this installation</source>
+                <target>Domain nicht in dieser Installation</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.guidance.domainNotDetected.text">
+                <source>No site in this installation's Site Configuration uses the domain, so the licence cannot cover it. Add the domain to a site's base, then validate again.</source>
+                <target>Keine Site in der Site-Konfiguration dieser Installation verwendet die Domain, daher kann die Lizenz sie nicht abdecken. Tragen Sie die Domain als Basis einer Site ein und prüfen Sie dann erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.domainNotActivated.title">
+                <source>Domain not activated</source>
+                <target>Domain nicht aktiviert</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.domainNotActivated.message">
+                <source>This site's domain is not activated for the licence. An administrator can activate it under Licence domains in the AQG settings or in the customer portal.</source>
+                <target>Die Domain dieser Site ist für die Lizenz nicht aktiviert. Eine Administratorin oder ein Administrator kann sie unter Lizenz-Domains in den AQG-Einstellungen oder im Kundenportal aktivieren.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.domainNotDetected.title">
+                <source>Domain not in this installation</source>
+                <target>Domain nicht in dieser Installation</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.domainNotDetected.message">
+                <source>No site of this TYPO3 installation uses this domain, so the licence does not cover it. Check the base URL in the site's Site Configuration.</source>
+                <target>Keine Site dieser TYPO3-Installation verwendet diese Domain, daher deckt die Lizenz sie nicht ab. Prüfen Sie die Basis-URL in der Site-Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.domainLimit.title">
+                <source>Domain limit reached</source>
+                <target>Domain-Limit erreicht</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.domainLimit.message">
+                <source>Every domain of the licence is in use. Deactivate a domain under Licence domains in the AQG settings or in the customer portal, or choose Agency for unlimited domains.</source>
+                <target>Alle Domains der Lizenz sind belegt. Deaktivieren Sie eine Domain unter Lizenz-Domains in den AQG-Einstellungen oder im Kundenportal, oder wählen Sie Agency für unbegrenzte Domains.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.error.pageOutsideSite">
+                <source>The page address is not under this site's base URL, so the Free Remote Preview cannot scan it. Check the base URL and the language bases in the Site Configuration.</source>
+                <target>Die Seitenadresse liegt nicht unter der Basis-URL dieser Site, daher kann die Free Remote Preview sie nicht scannen. Prüfen Sie die Basis-URL und die Sprach-Basen in der Site-Konfiguration.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.redirectBlocked.title">
+                <source>Page redirects to another host</source>
+                <target>Seite leitet auf einen anderen Host um</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.redirectBlocked.message">
+                <source>The page redirects to another host name, and the AQG scanner does not follow redirects to other hosts. Scan the address the page redirects to, or correct the redirect or the site's base URL.</source>
+                <target>Die Seite leitet auf einen anderen Hostnamen um, und der AQG-Scanner folgt keinen Weiterleitungen auf andere Hosts. Scannen Sie die Zieladresse der Weiterleitung oder korrigieren Sie die Weiterleitung oder die Basis-URL der Site.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.scanNotAccessible.title">
+                <source>Scan not available to this licence</source>
+                <target>Scan für diese Lizenz nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.scanNotAccessible.message">
+                <source>This frontend scan was made with another licence key or for another TYPO3 project, so the current licence cannot read its details. Start a new frontend scan.</source>
+                <target>Dieser Frontend-Scan wurde mit einem anderen Lizenzschlüssel oder für ein anderes TYPO3-Projekt erstellt, daher kann die aktuelle Lizenz seine Details nicht lesen. Starten Sie einen neuen Frontend-Scan.</target>
+            </trans-unit>
+            <trans-unit id="updateNotice.title">
+                <source>AQG %s is available</source>
+                <target>AQG %s ist verfügbar</target>
+            </trans-unit>
+            <trans-unit id="updateNotice.installed">
+                <source>You're using %s.</source>
+                <target>Sie verwenden %s.</target>
+            </trans-unit>
+            <trans-unit id="updateNotice.whatsNew">
+                <source>What's new</source>
+                <target>Neuerungen</target>
+            </trans-unit>
+            <trans-unit id="updateNotice.instructions">
+                <source>Update instructions</source>
+                <target>Anleitung zur Aktualisierung</target>
+            </trans-unit>
+            <trans-unit id="updateNotice.dismiss">
+                <source>Hide the notice about AQG %s</source>
+                <target>Hinweis zu AQG %s ausblenden</target>
+            </trans-unit>
+            <trans-unit id="updateNotice.dismissFailed">
+                <source>The notice could not be hidden. Try again.</source>
+                <target>Der Hinweis konnte nicht ausgeblendet werden. Versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="action.opensInNewTab">
+                <source>(opens in a new tab)</source>
+                <target>(öffnet in einem neuen Tab)</target>
+            </trans-unit>
+            <trans-unit id="overview.emptyState.selectPage.stepsTitle">
+                <source>How AQG works</source>
+                <target>So funktioniert AQG</target>
+            </trans-unit>
+            <trans-unit id="overview.firstUse.step.selectPage">
+                <source>Select a page of a TYPO3 Site in the page tree.</source>
+                <target>Wählen Sie im Seitenbaum eine Seite einer TYPO3-Website.</target>
+            </trans-unit>
+            <trans-unit id="overview.firstUse.step.contentScan">
+                <source>Run a content scan. It checks headings, links, images, tables and forms in your TYPO3 content inside this installation and needs no licence key.</source>
+                <target>Starten Sie einen Inhaltsscan. Er prüft Überschriften, Links, Bilder, Tabellen und Formulare in Ihren TYPO3-Inhalten innerhalb dieser Installation und benötigt keinen Lizenzschlüssel.</target>
+            </trans-unit>
+            <trans-unit id="overview.firstUse.step.frontendFree">
+                <source>Then see what visitors' browsers render: the Free Remote Preview scans a page on the AQG service without licence key, account or email. The site must be reachable from the internet.</source>
+                <target>Sehen Sie dann, was die Browser Ihrer Besucher darstellen: Die Free Remote Preview scannt eine Seite über den AQG-Dienst – ohne Lizenzschlüssel, Konto oder E-Mail-Adresse. Die Website muss aus dem Internet erreichbar sein.</target>
+            </trans-unit>
+            <trans-unit id="overview.firstUse.step.frontendLicensed">
+                <source>Check what visitors' browsers render with a frontend scan on the Frontend scan tab.</source>
+                <target>Prüfen Sie mit einem Frontend-Scan im Tab „Frontend-Scan“, was die Browser Ihrer Besucher darstellen.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.title">
+                <source>Get started with AQG</source>
+                <target>Erste Schritte mit AQG</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.contentScan.title">
+                <source>Run a content scan</source>
+                <target>Inhaltsscan starten</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.contentScan.text">
+                <source>It checks headings, links, images, tables and forms in this site's TYPO3 content, inside this installation. No licence key is needed.</source>
+                <target>Er prüft Überschriften, Links, Bilder, Tabellen und Formulare in den TYPO3-Inhalten dieser Website, innerhalb dieser Installation. Ein Lizenzschlüssel ist nicht nötig.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.contentScan.action">
+                <source>Start it with the scan buttons above.</source>
+                <target>Starten Sie ihn mit den Scan-Schaltflächen oben.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.contentScan.noPermission">
+                <source>Your account cannot start scans: ask a colleague with scan permission to run it.</source>
+                <target>Ihr Konto kann keine Scans starten: Bitten Sie jemanden mit Scan-Berechtigung, ihn auszuführen.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.findings.title">
+                <source>Review the findings</source>
+                <target>Ergebnisse prüfen</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.findings.text">
+                <source>Open a page to see each issue, where it is and how to fix it.</source>
+                <target>Öffnen Sie eine Seite, um jedes Problem zu sehen – wo es auftritt und wie Sie es beheben.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.freePreview.title">
+                <source>See what visitors' browsers render</source>
+                <target>Sehen, was Browser darstellen</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.freePreview.text">
+                <source>The Free Remote Preview scans a page in a real browser on the AQG service: up to 5 single-page scans a day, without licence key, account or email. The site must be reachable from the internet.</source>
+                <target>Die Free Remote Preview scannt eine Seite in einem echten Browser über den AQG-Dienst: bis zu 5 Scans einzelner Seiten pro Tag, ohne Lizenzschlüssel, Konto oder E-Mail-Adresse. Die Website muss aus dem Internet erreichbar sein.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.freePreview.local">
+                <source>This site's address, %s, is only reachable in your own network; the Frontend scan tab explains what to do.</source>
+                <target>Die Adresse dieser Website, %s, ist nur in Ihrem eigenen Netzwerk erreichbar; der Tab „Frontend-Scan“ erklärt, was Sie tun können.</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.frontendScan.title">
+                <source>Scan the frontend</source>
+                <target>Frontend scannen</target>
+            </trans-unit>
+            <trans-unit id="overview.gettingStarted.frontendScan.text">
+                <source>Your plan includes browser-based scans of the whole site on the Frontend scan tab.</source>
+                <target>Ihr Plan umfasst browserbasierte Scans der ganzen Website im Tab „Frontend-Scan“.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.requirements">
+                <source>No licence key, account or email needed. The site must be reachable from the internet.</source>
+                <target>Kein Lizenzschlüssel, kein Konto und keine E-Mail-Adresse nötig. Die Website muss aus dem Internet erreichbar sein.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.nextStep.title">
+                <source>See what your visitors experience</source>
+                <target>Sehen Sie, was Ihre Besucher erleben</target>
+            </trans-unit>
+            <trans-unit id="freePreview.nextStep.text">
+                <source>Run a free browser-based accessibility scan of this page. No licence key, account or email needed.</source>
+                <target>Starten Sie einen kostenlosen browserbasierten Barrierefreiheits-Scan dieser Seite. Kein Lizenzschlüssel, kein Konto und keine E-Mail-Adresse nötig.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.nextStep.action">
+                <source>Open Free Remote Preview</source>
+                <target>Free Remote Preview öffnen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.local.title">
+                <source>Free Remote Preview needs a public site address</source>
+                <target>Die Free Remote Preview braucht eine öffentliche Website-Adresse</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.local.text">
+                <source>This site's base URL uses %s, which is only reachable on your computer or in your network.</source>
+                <target>Die Basis-URL dieser Website verwendet %s; diese Adresse ist nur auf Ihrem Computer oder in Ihrem Netzwerk erreichbar.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.blocked.title">
+                <source>The AQG crawler cannot reach this site</source>
+                <target>Der AQG-Crawler kann diese Website nicht erreichen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.blocked.text">
+                <source>This site's address is local, private or internal (for example DDEV, localhost, a VPN or internal DNS), or it cannot be found on the internet.</source>
+                <target>Die Adresse dieser Website ist lokal, privat oder intern (zum Beispiel DDEV, localhost, ein VPN oder internes DNS) oder sie ist im Internet nicht auffindbar.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.why">
+                <source>The AQG crawler runs outside your TYPO3 installation and only scans sites on the public internet. Refusing local and private addresses is a security safeguard, not a licence limit.</source>
+                <target>Der AQG-Crawler läuft außerhalb Ihrer TYPO3-Installation und scannt nur Websites im öffentlichen Internet. Dass er lokale und private Adressen ablehnt, ist eine Sicherheitsmaßnahme, keine Lizenzbeschränkung.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.options">
+                <source>What you can do:</source>
+                <target>Was Sie tun können:</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.option.contentScan">
+                <source>Keep using the content scan: it runs inside this installation and works on any address.</source>
+                <target>Nutzen Sie weiter den Inhaltsscan: Er läuft innerhalb dieser Installation und funktioniert mit jeder Adresse.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.option.publicInstallation">
+                <source>Run the Free Remote Preview in an installation whose site is publicly reachable, such as your staging or production site.</source>
+                <target>Starten Sie die Free Remote Preview in einer Installation, deren Website öffentlich erreichbar ist, etwa auf Ihrer Staging- oder Live-Website.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.option.otherSite">
+                <source>If this installation also serves a site at a public address, select a page of that site in the page tree.</source>
+                <target>Wenn diese Installation auch eine Website unter einer öffentlichen Adresse ausliefert, wählen Sie im Seitenbaum eine Seite dieser Website.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.option.checkBase">
+                <source>Check that the base URL in the Site Configuration is the site's public address.</source>
+                <target>Prüfen Sie, ob die Basis-URL in der Site-Konfiguration die öffentliche Adresse der Website ist.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.unreachable.showContentScan">
+                <source>Show content scan</source>
+                <target>Inhaltsscan anzeigen</target>
+            </trans-unit>
+            <trans-unit id="freePreview.upgrade.title">
+                <source>Check the whole site, not just this page</source>
+                <target>Die ganze Website prüfen, nicht nur diese Seite</target>
+            </trans-unit>
+            <trans-unit id="freePreview.comparePlans">
+                <source>Compare plans</source>
+                <target>Pläne vergleichen</target>
             </trans-unit>
         </body>
     </file>

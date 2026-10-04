@@ -28,7 +28,7 @@ final class FreeRemotePreviewUiTest extends TestCase
         self::assertStringContainsString("{freePreview.state} == 'FREE_AVAILABLE'", $free);
         self::assertStringContainsString('freePreview.submitCapable', $free);
         self::assertStringContainsString('freePreview.hasTodayResult', $free);
-        self::assertStringNotContainsString('!{freePreview.available} &amp;&amp; {remoteScan}', $free);
+        self::assertStringNotContainsString('!{freePreview.available} && {remoteScan}', $free);
         self::assertStringContainsString('a11y-free-preview-retry', $free);
     }
 
@@ -43,7 +43,8 @@ final class FreeRemotePreviewUiTest extends TestCase
         self::assertStringContainsString('aqg-section__meta-row', $free);
         self::assertStringContainsString('aqg-meta-item', $free);
         self::assertStringContainsString('aqg-notice aqg-tone-warning', $free);
-        self::assertStringContainsString('aqg-pro-card', $free);
+        // The upgrade offer follows a Free result instead of preceding the first scan.
+        self::assertStringNotContainsString('aqg-pro-card', $free);
         self::assertStringNotContainsString('aqg-limit-pill', $free);
         self::assertStringNotContainsString('aqg-limits', $free);
         self::assertStringNotContainsString('>FREE</span>', $free);
@@ -84,7 +85,7 @@ final class FreeRemotePreviewUiTest extends TestCase
         self::assertStringContainsString('!{isFreePreview}', $remoteDetail);
         self::assertStringContainsString('Remote/ScanHistoryTable', $remotePanel);
         self::assertStringContainsString('Remote/ScanComparison', $remotePanel);
-        self::assertStringContainsString('remoteRemediationSummary} &amp;&amp; !{freePreview.isFree}', $remotePanel);
+        self::assertStringContainsString('remoteRemediationSummary} && !{freePreview.isFree}', $remotePanel);
     }
 
     #[Test]
@@ -194,17 +195,27 @@ final class FreeRemotePreviewUiTest extends TestCase
     }
 
     #[Test]
-    public function proBadgeUsesTheExistingCenteredLayoutContract(): void
+    public function theTrialOfferFollowsAFreeResultAndKeepsItVisible(): void
     {
-        $overviewScss = file_get_contents(__DIR__ . '/../../../Resources/Private/Scss/views/_overview.scss');
-        $free = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/FreeRemotePreview.html');
+        $panel = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/RemotePanel.html');
+        $upgrade = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/FreePreviewUpgrade.html');
 
-        self::assertIsString($overviewScss);
-        self::assertIsString($free);
-        self::assertStringContainsString('aqg-pro-card__badge', $free);
-        self::assertMatchesRegularExpression(
-            '/\.a11y-overview \.aqg-pro-card__badge \{[^}]*display: inline-flex;[^}]*align-items: center;[^}]*justify-content: center;/s',
-            $overviewScss,
+        self::assertIsString($panel);
+        self::assertIsString($upgrade);
+        self::assertStringContainsString('aqg-pro-card aqg-free-upgrade', $upgrade);
+        self::assertStringContainsString('data-aqg-upgrade-offer="true"', $upgrade);
+        self::assertStringContainsString('{freePreview.trialUrl}', $upgrade);
+        self::assertStringContainsString('freePreview.startTrial', $upgrade);
+
+        // Only with a Free result, only when upgrade offers are on, and after the result's findings and pages.
+        $render = strpos($panel, 'partial="Overview/FreePreviewUpgrade"');
+        self::assertIsInt($render);
+        self::assertStringContainsString(
+            '<f:if condition="{freePreview.isFree} && {remoteScan} && {freePreview.showUpgradeOffer}">',
+            $panel,
         );
+        self::assertGreaterThan(strpos($panel, 'aqg-priority-section'), $render);
+        self::assertGreaterThan(strpos($panel, 'id="a11y-remote-top-pages"'), $render);
+        self::assertSame(1, substr_count($panel, 'Overview/FreePreviewUpgrade'));
     }
 }

@@ -647,3 +647,18 @@ p.aqg-page-module-indicator__meta:empty {
   animation: none;
   transform: none;
 }
+
+/* Reduced motion, following Bootstrap and the TYPO3 backend: the spinner keeps turning, slower; the sliding bar of
+   an indeterminate progress stops and shows as a static, full-width track. */
+@media (prefers-reduced-motion: reduce) {
+  .aqg-page-module-indicator__icon--spin {
+    animation-duration: 2s;
+  }
+
+  .aqg-page-module-indicator__progress.is-indeterminate .aqg-page-module-indicator__progress-bar {
+    width: 100% !important;
+    opacity: .45;
+    transform: none;
+    animation: none;
+  }
+}

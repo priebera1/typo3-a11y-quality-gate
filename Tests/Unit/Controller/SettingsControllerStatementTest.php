@@ -230,6 +230,20 @@ final class SettingsControllerStatementTest extends TestCase
     }
 
     #[Test]
+    public function theStatementPdfDeclaresTheStatementsLanguage(): void
+    {
+        $this->statementService->method('loadLatestSiteScan')->willReturn(['language' => 'de'] + $this->availableStatement());
+        $this->pdfGenerator->expects(self::once())->method('render')
+            ->with(self::anything(), self::anything(), [], self::anything(), 'de')
+            ->willReturn('%PDF-statement');
+
+        $response = $this->subject()->generateAccessibilityStatementPdfAction($this->request(['language' => 'de']));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('%PDF-statement', (string)$response->getBody());
+    }
+
+    #[Test]
     public function aRateLimitedPdfKeepsItsStatus(): void
     {
         $this->statementService->method('loadLatestSiteScan')->willReturn($this->failedStatement('Rate limited.', 'rate_limited', 429, 30));

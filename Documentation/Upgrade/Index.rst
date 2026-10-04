@@ -39,6 +39,12 @@ Updating the extension
 In Classic installations, update the extension in the Extension Manager and run
 the database analyser.
 
+Administrators learn about a new stable release from the update notice in the
+AQG modules, see :ref:`usage-overview-update-notice`. The notice only links to
+the release notes and these instructions; updating stays a deliberate step in
+Composer or the Extension Manager. A development checkout without a release
+version, such as ``dev-main``, shows no notice.
+
 ..  _upgrade-after:
 
 After an update

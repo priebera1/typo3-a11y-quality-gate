@@ -15,6 +15,16 @@
         <f:if condition="{emptyState.hint}">
             <p class="aqg-module-empty__hint">{emptyState.hint}</p>
         </f:if>
+        <f:if condition="{emptyState.steps}">
+            <div class="aqg-module-empty__steps" data-aqg-first-use-steps="true">
+                <h4 class="aqg-module-empty__steps-title">{emptyState.stepsTitle}</h4>
+                <ol class="aqg-module-empty__steps-list">
+                    <f:for each="{emptyState.steps}" as="step">
+                        <li>{step}</li>
+                    </f:for>
+                </ol>
+            </div>
+        </f:if>
         <f:if condition="{emptyState.actionUrl}">
             <p class="aqg-module-empty__actions">
                 <a href="{emptyState.actionUrl}" class="btn btn-default btn-sm">{emptyState.actionLabel}</a>

@@ -103,9 +103,9 @@ describe('local page scan initializer', () => {
             readFile(resolve(root, 'module.pro.js'), 'utf8'),
         ]);
 
-        expect(freeSource).toContain("import { initializeLocalPageScan } from './core/local-page-scan.js';");
+        expect(freeSource).toContain("import { initializeLocalPageScan } from '@priebera/a11y-quality-gate/backend/core/local-page-scan.js';");
         expect(freeSource).toContain('initializeLocalPageScan(module);');
-        expect(proSource).toContain("import { initializeLocalPageScan } from './core/local-page-scan.js';");
+        expect(proSource).toContain("import { initializeLocalPageScan } from '@priebera/a11y-quality-gate/backend/core/local-page-scan.js';");
         expect(proSource).toContain('initializeLocalPageScan(module);');
     });
 });

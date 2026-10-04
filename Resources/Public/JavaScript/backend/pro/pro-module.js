@@ -1,14 +1,19 @@
 import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
 import Modal from '@typo3/backend/modal.js';
 import Severity from '@typo3/backend/severity.js';
-import { A11yFreeBackendModule } from '../free/free-module.js';
-import { FREE_SELECTORS, PRO_SELECTORS, LS_SOURCE_KEY } from '../core/constants.js';
+import { A11yFreeBackendModule } from '@priebera/a11y-quality-gate/backend/free/free-module.js';
+import { FREE_SELECTORS, PRO_SELECTORS, LS_SOURCE_KEY } from '@priebera/a11y-quality-gate/backend/core/constants.js';
 
 const FREE_PREVIEW_SUBMIT_CAPABLE_STATES = new Set(['FREE_AVAILABLE']);
 const FREE_PREVIEW_RETRYABLE_STATES = new Set([
     'API_UNAVAILABLE',
     'TOKEN_ERROR',
     'ENDPOINT_NOT_FOUND',
+]);
+// The crawler refused the site as not reachable from the internet (private network, VPN, internal DNS).
+const FREE_PREVIEW_UNREACHABLE_CODES = new Set([
+    'private_network_blocked',
+    'dns_lookup_failed',
 ]);
 
 export class A11yProBackendModule extends A11yFreeBackendModule {
@@ -42,7 +47,46 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         this.initRemoteScanProgress();
         this.restoreRemoteScanStateFromDom();
         this.bindProEvents();
+        this.initScreenshotFallback();
         this.initFreePreviewCountdown();
+    }
+
+    /**
+     * The AQG service serves a screenshot only to the licence or Agency project that ran the scan. A result stored
+     * before the licence or project changed keeps its screenshot link, which then fails: show why instead of a
+     * broken image. An image can fail before this module runs, so images that already failed are checked as well.
+     */
+    initScreenshotFallback() {
+        const replace = (image) => {
+            const trigger = image.closest(PRO_SELECTORS.screenshotModalTrigger);
+            if (!(trigger instanceof HTMLElement)) {
+                return;
+            }
+
+            const label = String(trigger.dataset.unavailableLabel || '').trim()
+                || this.translate('notification.screenshot.missing', 'Screenshot could not be opened.');
+            const empty = document.createElement('div');
+            empty.className = 'aqg-shot__frame aqg-shot__frame--empty';
+            const text = document.createElement('span');
+            text.className = 'aqg-shot__label';
+            text.textContent = label;
+            empty.append(text);
+
+            trigger.closest('.aqg-shot')?.querySelector('.aqg-shot__sub')?.replaceChildren(document.createTextNode(label));
+            trigger.replaceWith(empty);
+        };
+
+        document.addEventListener('error', (event) => {
+            if (event.target instanceof HTMLImageElement) {
+                replace(event.target);
+            }
+        }, true);
+
+        document.querySelectorAll(`${PRO_SELECTORS.screenshotModalTrigger} img`).forEach((image) => {
+            if (image.complete && image.naturalWidth === 0) {
+                replace(image);
+            }
+        });
     }
 
     /**
@@ -120,6 +164,20 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             if (freePreviewRetry) {
                 event.preventDefault();
                 this.retryFreePreview();
+                return;
+            }
+
+            const openFreePreview = event.target.closest(PRO_SELECTORS.openFreePreview);
+            if (openFreePreview) {
+                event.preventDefault();
+                this.showOverviewSourceAndFocus('remote', '#aqg-free-preview-title');
+                return;
+            }
+
+            const showLocalScan = event.target.closest(PRO_SELECTORS.showLocalScan);
+            if (showLocalScan) {
+                event.preventDefault();
+                this.showOverviewSourceAndFocus('local', '[data-a11y-overview-panel="local"] .aqg-section__title');
                 return;
             }
 
@@ -227,6 +285,25 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 this.applyOverviewSearchForInput(input);
             }
         }
+    }
+
+    /**
+     * A guidance action that opens the other Overview tab moves the focus to that tab's heading, so keyboard and
+     * screen reader users continue where the content now is.
+     */
+    showOverviewSourceAndFocus(source, headingSelector) {
+        this.setOverviewSource(source);
+
+        const heading = document.querySelector(headingSelector);
+        if (!(heading instanceof HTMLElement)) {
+            return;
+        }
+
+        if (!heading.hasAttribute('tabindex')) {
+            heading.setAttribute('tabindex', '-1');
+            heading.addEventListener('blur', () => heading.removeAttribute('tabindex'), { once: true });
+        }
+        heading.focus();
     }
 
     handleHighlightNode(button) {
@@ -393,7 +470,12 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         preview.dataset.aqgFreePreviewState = state;
 
         const messageContainer = preview.querySelector('[data-aqg-free-preview-message="true"]');
-        if (messageContainer) {
+        const unreachableTemplate = preview.querySelector(PRO_SELECTORS.freePreviewUnreachableTemplate);
+        const isUnreachable = FREE_PREVIEW_UNREACHABLE_CODES.has(String(errorPayload?.code || '').trim());
+        if (messageContainer && isUnreachable && unreachableTemplate instanceof HTMLTemplateElement) {
+            // Not only "refused": why the crawler cannot reach the site and what to do instead.
+            messageContainer.replaceChildren(unreachableTemplate.content.cloneNode(true));
+        } else if (messageContainer) {
             messageContainer.replaceChildren();
             const notice = document.createElement('div');
             notice.className = 'aqg-notice aqg-tone-warning mb-3';
@@ -1114,6 +1196,13 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                         );
                     }
 
+                    // The AQG service no longer serves this job to this installation; the server has recorded it as failed.
+                    if (code === 'remote_job_unavailable') {
+                        const unavailable = new Error(message);
+                        unavailable.code = code;
+                        throw unavailable;
+                    }
+
                     throw new Error(message);
                 }
 
@@ -1235,6 +1324,21 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         });
 
         this.monitorRemoteScan(state).catch((error) => {
+            // A job left from earlier that this installation can no longer read was not started here: drop it without
+            // reporting a failed scan, and give the controls back.
+            if (error?.code === 'remote_job_unavailable') {
+                this.resetRemoteScanDomState();
+                this.updateRemoteScanUi({
+                    visible: false,
+                    status: '',
+                    message: '',
+                    pagesScanned: null,
+                    pagesTotal: null,
+                });
+                this.setScanInProgress(false);
+                return;
+            }
+
             const message = error instanceof Error
                 ? error.message
                 : this.translate('notification.proScan.restoreFailed', 'Frontend scan restore failed.');

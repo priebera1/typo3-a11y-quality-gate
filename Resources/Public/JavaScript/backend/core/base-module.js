@@ -1,4 +1,4 @@
-import { FREE_SELECTORS } from './constants.js';
+import { FREE_SELECTORS } from '@priebera/a11y-quality-gate/backend/core/constants.js';
 
 export class A11yBaseModule {
     constructor() {

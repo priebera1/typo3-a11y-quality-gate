@@ -17,6 +17,8 @@ use Priebera\A11yQualityGate\Pro\Http\AqgCrawlerClient;
 
 final class ProCrawlerService
 {
+    private const DOMAIN_REASONS = ['domain_limit_reached', 'domain_not_activated', 'domain_not_detected'];
+
     public function __construct(
         private readonly ProLicenceService $proLicenceService,
         private readonly ProTokenService $proTokenService,
@@ -48,7 +50,7 @@ final class ProCrawlerService
         $licence = $this->proLicenceService->validate($domain, $version);
 
         if (!$this->hasCrawlerCapability($licence)) {
-            throw new TokenRefreshException('Crawler feature is not available for this licence.');
+            throw $this->crawlerUnavailable($licence);
         }
 
         if ($captureScreenshot && !$licence->hasFeature(FeatureFlag::ScreenshotCapture)) {
@@ -95,6 +97,23 @@ final class ProCrawlerService
         return CrawlerSubmitResult::fromResponseDto($responseDto);
     }
 
+
+    /**
+     * A licence refused only for this site's domain says what to fix (activate it, free a slot, or use a domain a
+     * site of this installation reports), so its reason reaches the scan error presenter.
+     */
+    private function crawlerUnavailable(LicenceValidationResult $licence): TokenRefreshException
+    {
+        $reason = (string)$licence->reason;
+
+        return new TokenRefreshException(
+            'Crawler feature is not available for this licence.',
+            0,
+            in_array($reason, self::DOMAIN_REASONS, true)
+                ? new ApiRequestFailedException('AQG licence refused the domain.', 403, null, $reason)
+                : null,
+        );
+    }
 
     private function hasCrawlerCapability(LicenceValidationResult $licence): bool
     {
@@ -539,7 +558,7 @@ final class ProCrawlerService
         $licence = $this->proLicenceService->validate($domain, $version);
 
         if (!$this->hasCrawlerCapability($licence)) {
-            throw new TokenRefreshException('Crawler feature is not available for this licence.');
+            throw $this->crawlerUnavailable($licence);
         }
 
         $token = $this->proTokenService->getValidToken($domain, $version);

@@ -56,6 +56,7 @@ final class EditorFeedbackLabels
         'plainUpdatingHelp' => 'Refreshing live issues for this HTML field.',
         'plainPassedHelp' => 'No issues found in this HTML field.',
         'plainLinesMarked' => 'Lines with issues are marked directly in the HTML editor.',
+        'plainShowIssueList' => 'Show issue list (%d)',
         'htmlSource' => 'HTML source',
         'htmlSourceIssue' => 'HTML source issue',
         'locateInHtml' => 'Locate in HTML',

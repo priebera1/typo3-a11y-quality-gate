@@ -29,6 +29,25 @@ Results are stored separately from licensed scan results. Features that are not
 part of the preview — page screenshots, TYPO3 record mapping, scan history,
 diff tracking and PDF export — are shown as locked.
 
+The crawler runs on the AQG service, outside the TYPO3 installation, and only
+scans sites on the public internet. When the base URL of the selected page's
+Site is a local, development or internal address — ``localhost``,
+``*.ddev.site``, ``.test``, ``.local``, a private IP address and the like — the
+tab explains this instead of offering a scan: refusing such addresses is a
+security safeguard of the crawler, not a licence limit, and the content scan
+keeps working. A site that the crawler refuses during a scan, for example a
+host that only resolves in a VPN or internal DNS, gets the same explanation.
+Run the preview in an installation whose Site is publicly reachable, such as
+staging or production, or select a page of a Site with a public base URL that
+this installation serves. There is no way to scan local or private addresses
+with the AQG crawler.
+
+Below a Free Remote Preview result, the tab names what a 5-day trial adds —
+full-site frontend scans with screenshots, record mapping, scan history and
+comparison — and what PRO and Agency add on top: PDF export, acceptance
+evidence, monitoring and :guilabel:`Verify fix`. The offer follows the result
+and never covers it; :confval:`showProHints` hides it.
+
 ..  _usage-remote-scans-licensed:
 
 Licensed frontend scans
@@ -107,7 +126,8 @@ When two compatible scans are compared, the comparison offers the acceptance
 evidence as PDF and CSV: baseline and current scan dates and coverage, fixed,
 new, worse and still open findings, the pages that could not be compared, and
 the limits of automated testing. It is evidence of automated results, not a
-statement of WCAG conformance.
+statement of WCAG conformance. The PDF is not tagged for screen readers; the CSV
+contains the same evidence, see :ref:`limitations-pdf`.
 
 ..  note::
     The crawler requests your site from the public internet. Installations that

@@ -10,8 +10,8 @@
     </htmlpageheader>
     <htmlpagefooter name="aqgFrontendPageFooter">
         <table class="aqgp-runfoot"><tr>
-            <td width="70%">AQG · Frontend Page Detail Report</td>
-            <td width="30%" class="aqgp-runfoot__page" align="right" style="text-align:right;">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
+            <td width="60%">AQG · Frontend Page Detail Report</td>
+            <td width="40%" class="aqgp-runfoot__page" align="right" style="text-align:right;">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
         </tr></table>
     </htmlpagefooter>
     <sethtmlpagefooter name="aqgFrontendPageFooter" value="on" show-this-page="1" />
@@ -37,6 +37,7 @@
                 <h1 class="aqgp-cover__title">Frontend Page Detail</h1>
                 <p class="aqgp-cover__safe"><strong>Automated accessibility signal.</strong></p>
                 <p class="aqgp-cover__safe">Manual review may still be required.</p>
+                <p class="aqgp-a11y-note">Accessibility note: this PDF is a visual report. It is not tagged for screen readers, so its headings, tables and reading order are not available to assistive technology. The same findings are available as a CSV export from the AQG module in the TYPO3 backend.</p>
 
                 <hr class="aqgp-cover__rule" />
 
@@ -108,6 +109,7 @@
     <sethtmlpageheader name="aqgFrontendPageHeader" value="on" show-this-page="1" />
 
             <div class="aqgp-page">
+                <bookmark content="Executive summary" level="0" />
                 <table class="aqgp-section"><tr>
                     <td>Executive summary</td>
                     <td class="aqgp-section__right"><f:if condition="{hasScore}"><f:then>Automated signal {score.value} / {score.max}</f:then><f:else>Automated signal unavailable</f:else></f:if></td>
@@ -184,6 +186,7 @@
             <pagebreak />
 
             <div class="aqgp-page">
+                <bookmark content="Page screenshot" level="0" />
                 <table class="aqgp-section"><tr>
                     <td>Page screenshot</td>
                     <td class="aqgp-section__right">captured at scan time</td>
@@ -204,6 +207,7 @@
             <pagebreak />
 
             <div class="aqgp-page">
+                <bookmark content="Findings" level="0" />
                 <table class="aqgp-section"><tr>
                     <td>Findings</td>
                     <td class="aqgp-section__right">{issuesShownLabel}</td>
@@ -276,6 +280,7 @@
             <pagebreak />
 
             <div class="aqgp-page">
+                <bookmark content="Report and audit support" level="0" />
                 <table class="aqgp-section"><tr>
                     <td>Report &amp; audit support</td>
                     <td class="aqgp-section__right">appendix</td>

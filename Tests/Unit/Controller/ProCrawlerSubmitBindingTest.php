@@ -12,6 +12,8 @@ use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerStatusResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResult;
+use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanSubmissionTracker;
 use Priebera\A11yQualityGate\Pro\Enum\CrawlerJobStatus;
 use Priebera\A11yQualityGate\Pro\Service\DomainNormalizer;
 use Priebera\A11yQualityGate\Pro\Service\ProCapabilityService;
@@ -42,6 +44,7 @@ use TYPO3\CMS\Core\Http\ResponseFactory;
 use TYPO3\CMS\Core\Http\StreamFactory;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
+use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -67,6 +70,10 @@ final class ProCrawlerSubmitBindingTest extends TestCase
     private FreeRemotePreviewService $freeRemotePreviewService;
     private Site $siteA;
     private Site $siteB;
+    private ?RemoteScanSubmissionTracker $submissionTracker = null;
+    private ?RemoteScanRecoveryService $recoveryService = null;
+    /** @var array<string, mixed> */
+    private array $registryEntries = [];
 
     protected function setUp(): void
     {
@@ -303,6 +310,100 @@ final class ProCrawlerSubmitBindingTest extends TestCase
         $this->controller()->summaryAction($this->pollRequest());
     }
 
+    #[Test]
+    public function aPageScanCountsAsStartingUntilItsScanRecordExists(): void
+    {
+        $this->submissionTracker = $this->tracker();
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->with(10)->willReturn(true);
+        $this->frontendPageUrlService->method('resolveForPage')->with($this->siteA, 10, 0)->willReturn('https://a.example/about');
+        $pendingDuringSubmit = null;
+        $pendingWhenRecorded = null;
+        $this->proCrawlerService->expects(self::once())->method('submit')
+            ->willReturnCallback(function () use (&$pendingDuringSubmit): CrawlerSubmitResult {
+                $pendingDuringSubmit = $this->submissionTracker?->findPending('client-a');
+
+                return new CrawlerSubmitResult('11111111-1111-4111-8111-111111111111', 'queued', 'single_page', null);
+            });
+        $this->remoteScanRepository->expects(self::once())->method('markSubmitted')
+            ->willReturnCallback(function () use (&$pendingWhenRecorded): int {
+                $pendingWhenRecorded = $this->submissionTracker?->findPending('client-a');
+
+                return 1;
+            });
+
+        $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10, 'siteIdentifier' => 'client-a']));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertIsArray($pendingDuringSubmit, 'the Page module must see the scan while the AQG service answers');
+        self::assertSame(['page', 10], [$pendingDuringSubmit['scope'], $pendingDuringSubmit['pageUid']]);
+        self::assertIsArray($pendingWhenRecorded, 'no gap between the submit and its scan record');
+        self::assertNull($this->submissionTracker->findPending('client-a'));
+    }
+
+    #[Test]
+    public function aFailedSubmitLeavesNoScanStarting(): void
+    {
+        $this->submissionTracker = $this->tracker();
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->with(10)->willReturn(true);
+        $this->frontendPageUrlService->method('resolveForPage')->with($this->siteA, 10, 0)->willReturn('https://a.example/about');
+        $this->proCrawlerService->method('submit')->willThrowException(new \RuntimeException('AQG service unavailable'));
+
+        $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10, 'siteIdentifier' => 'client-a']));
+
+        self::assertGreaterThanOrEqual(400, $response->getStatusCode());
+        self::assertNull($this->submissionTracker->findPending('client-a'));
+    }
+
+    #[Test]
+    public function aJobTheServiceNoLongerServesIsAnsweredAsGoneNotRestoredAgain(): void
+    {
+        $this->storedScan(isFreePreview: false);
+        $refused = new ApiRequestFailedException('Forbidden', 403, null, 'forbidden_resource');
+        $this->proCrawlerService->method('getStatus')->willThrowException($refused);
+        $this->recoveryService = $this->createMock(RemoteScanRecoveryService::class);
+        $this->recoveryService->expects(self::once())->method('discardUnavailableJob')
+            ->with(self::callback(static fn (array $scan): bool => ($scan['job_id'] ?? '') === self::JOB), $refused)
+            ->willReturn(true);
+
+        $response = $this->controller()->statusAction($this->pollRequest());
+
+        self::assertSame(410, $response->getStatusCode());
+        self::assertSame(
+            ['success' => false, 'code' => 'remote_job_unavailable', 'status' => 'failed'],
+            array_intersect_key($this->decode($response), ['success' => 1, 'code' => 1, 'status' => 1]),
+        );
+    }
+
+    #[Test]
+    public function aTransientStatusFailureIsNotTreatedAsAGoneJob(): void
+    {
+        $this->storedScan(isFreePreview: false);
+        $this->proCrawlerService->method('getStatus')->willThrowException(new ApiRequestFailedException('Unavailable', 503, null, 'service_unavailable'));
+        $this->recoveryService = $this->createMock(RemoteScanRecoveryService::class);
+        $this->recoveryService->method('discardUnavailableJob')->willReturn(false);
+
+        $response = $this->controller()->statusAction($this->pollRequest());
+
+        self::assertNotSame(410, $response->getStatusCode());
+        self::assertNotSame('remote_job_unavailable', $this->decode($response)['code'] ?? '');
+    }
+
+    private function tracker(): RemoteScanSubmissionTracker
+    {
+        $registry = $this->createMock(Registry::class);
+        $registry->method('get')->willReturnCallback(fn (string $namespace, string $key, mixed $default = null): mixed => $this->registryEntries[$namespace . '/' . $key] ?? $default);
+        $registry->method('set')->willReturnCallback(function (string $namespace, string $key, mixed $value): void {
+            $this->registryEntries[$namespace . '/' . $key] = $value;
+        });
+        $registry->method('remove')->willReturnCallback(function (string $namespace, string $key): void {
+            unset($this->registryEntries[$namespace . '/' . $key]);
+        });
+
+        return new RemoteScanSubmissionTracker($registry);
+    }
+
     private function storedScan(bool $isFreePreview): void
     {
         $this->accessControlService->method('canShowScanNow')->willReturn(true);
@@ -414,7 +515,7 @@ final class ProCrawlerSubmitBindingTest extends TestCase
             $extensionContext,
             $this->createMock(DateTimeService::class),
             $this->createMock(RemoteScanResponseService::class),
-            $this->createMock(RemoteScanRecoveryService::class),
+            $this->recoveryService ?? $this->createMock(RemoteScanRecoveryService::class),
             $this->createMock(SiteLanguageService::class),
             $parameters,
             $this->freeRemotePreviewService,
@@ -428,6 +529,7 @@ final class ProCrawlerSubmitBindingTest extends TestCase
             new ResponseFactory(),
             new StreamFactory(),
             $users,
+            $this->submissionTracker,
         );
     }
 

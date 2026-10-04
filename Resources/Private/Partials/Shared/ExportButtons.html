@@ -36,7 +36,7 @@
 
             <f:if condition="{showPdf} && {pdfUrl}">
                 <li>
-                    <a href="{pdfUrl}" class="dropdown-item aqg-export-menu__item">
+                    <a href="{pdfUrl}" class="dropdown-item aqg-export-menu__item" aria-describedby="{pdfNoteId}">
                         <core:icon identifier="actions-download" size="small" />
                         <span>
                             <f:translate
@@ -45,6 +45,14 @@
                             />
                         </span>
                     </a>
+                </li>
+                <li>
+                    <p class="dropdown-item-text aqg-export-menu__note" id="{pdfNoteId}">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote"
+                                default="The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format."
+                        />
+                    </p>
                 </li>
             </f:if>
         </ul>

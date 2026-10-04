@@ -300,7 +300,9 @@ final class InformationDensityTemplateTest extends TestCase
         self::assertStringContainsString('settings.licence.saveAndValidate', $licence);
         self::assertStringNotContainsString('aqg-card__actions', $licence, 'No second save button in the card header.');
 
-        $revalidate = $this->between($licence, '<f:if condition="{hasLicenceKey}">', '</f:if>');
+        // Revalidate sits in the saved-key block, which is only rendered for a saved key.
+        $revalidate = $this->between($licence, '<f:if condition="{hasLicenceKey}">', 'settings.licence.savedKeyHelp');
+        self::assertStringContainsString('data-aqg-licence-saved="true"', $revalidate);
         self::assertStringContainsString('data-action="a11y-validate-licence"', $revalidate);
         self::assertStringContainsString('settings.licence.revalidate', $revalidate);
         self::assertSame(1, substr_count($licence, 'data-action="a11y-validate-licence"'));
@@ -328,7 +330,7 @@ final class InformationDensityTemplateTest extends TestCase
             }
             self::assertStringNotContainsString('available in PRO', $english, $key);
         }
-        self::assertSame('Start a free trial', $this->english('freePreview.startTrial'));
+        self::assertSame('Start 5-day trial', $this->english('freePreview.startTrial'));
     }
 
     #[Test]

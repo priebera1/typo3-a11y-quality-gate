@@ -70,6 +70,22 @@ final class MonitoringSchedulerFunctionalTest extends AbstractFunctionalTestCase
     }
 
     #[Test]
+    public function theMonitoringCommandRefusesABackendUrlTheSchedulerWouldRefuse(): void
+    {
+        $command = $this->get(CommandRegistry::class)->get('a11y:monitor');
+        $siteIdentifier = array_key_first($this->get(SiteFinder::class)->getAllSites(false));
+        self::assertIsString($siteIdentifier);
+
+        foreach (['javascript:alert(1)', 'https://cms.example.org/typo3?x=1', 'https://user:pass@cms.example.org', 'ftp://cms.example.org'] as $backendUrl) {
+            $tester = new \Symfony\Component\Console\Tester\CommandTester($command);
+            $exitCode = $tester->execute(['--site' => [$siteIdentifier], '--backend-url' => $backendUrl]);
+
+            self::assertSame(\Symfony\Component\Console\Command\Command::INVALID, $exitCode, $backendUrl);
+            self::assertStringContainsString('--backend-url', $tester->getDisplay(), $backendUrl);
+        }
+    }
+
+    #[Test]
     public function theSchedulerOffersTheMonitoringTaskWithSiteAndLanguageFields(): void
     {
         if ((new Typo3Version())->getMajorVersion() < 14) {

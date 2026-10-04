@@ -1,0 +1,33 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:if condition="{updateNotice}">
+    <div
+            class="aqg-update-notice"
+            data-aqg-update-notice="{updateNotice.version}"
+            data-label-notification-title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:notification.title', default: 'Accessibility')}"
+            data-label-dismiss-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.dismissFailed', default: 'The notice could not be hidden. Try again.')}"
+    >
+        <span class="aqg-update-notice__icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" focusable="false">
+                <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3" />
+                <path d="M8 11.2 V5.2 M5.4 7.6 L8 5 L10.6 7.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </span>
+        <p class="aqg-update-notice__text">
+            <strong class="aqg-update-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.title" default="AQG %s is available" arguments="{0: updateNotice.version}" /></strong>
+            <span class="aqg-update-notice__installed"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.installed" default="You're using %s." arguments="{0: updateNotice.installedVersion}" /></span>
+        </p>
+        <span class="aqg-update-notice__links">
+            <a class="aqg-update-notice__link" href="{updateNotice.releaseNotesUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.whatsNew" default="What's new" /><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.opensInNewTab" default="(opens in a new tab)" /></span></a>
+            <a class="aqg-update-notice__link" href="{updateNotice.updateInstructionsUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.instructions" default="Update instructions" /><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.opensInNewTab" default="(opens in a new tab)" /></span></a>
+        </span>
+        <button
+                type="button"
+                class="aqg-update-notice__dismiss"
+                data-action="a11y-dismiss-update-notice"
+                data-version="{updateNotice.version}"
+                aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.dismiss', default: 'Hide the notice about AQG %s', arguments: {0: updateNotice.version})}"
+                title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:updateNotice.dismiss', default: 'Hide the notice about AQG %s', arguments: {0: updateNotice.version})}"
+        ><span aria-hidden="true">×</span></button>
+    </div>
+</f:if>
+</html>

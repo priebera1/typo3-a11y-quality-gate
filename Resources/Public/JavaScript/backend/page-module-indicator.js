@@ -3,6 +3,16 @@ import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
 const SELECTOR_PANEL = '[data-aqg-page-module-indicator="true"]';
 const SELECTOR_SCAN = '[data-aqg-indicator-scan="true"]';
 
+// Following a scan that is already running when the Page module opens (started in the Accessibility module, the
+// toolbar or another tab): the panel asks the server for its current rendering until the scan has ended.
+export const FOLLOW_INTERVAL_MS = 4000;
+export const FOLLOW_SLOW_INTERVAL_MS = 10000;
+export const FOLLOW_SLOW_AFTER_MS = 120000;
+export const FOLLOW_MAX_FAILURES = 5;
+
+/** The one follower of this document; a second start while it runs is ignored. */
+let follower = null;
+
 const STATUS_ICON = `
 <svg class="aqg-page-module-indicator__icon aqg-page-module-indicator__icon--spin" aria-hidden="true" viewBox="0 0 14 14" focusable="false">
   <circle cx="7" cy="7" r="5.4" fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.6"></circle>
@@ -23,6 +33,14 @@ const DARK_SELECTORS = [
     '.t3js-theme-dark',
     '.aqi-theme-dark',
 ];
+
+/** An icon (fixed markup) followed by a text label, never parsed as HTML. */
+function setIconLabel(element, iconMarkup, label) {
+    element.innerHTML = iconMarkup;
+    const text = document.createElement('span');
+    text.textContent = label;
+    element.append(text);
+}
 
 function translate(key, fallback = '') {
     return window.TYPO3?.lang?.[key] || fallback;
@@ -183,7 +201,7 @@ function setPanelStateRunning(panel, scanMode = 'local') {
     const statusPill = panel.querySelector('.aqg-page-module-indicator__status-pill');
     if (statusPill) {
         const label = panel.dataset.runningStatus || translate('pageModuleIndicator.runningStatus', 'Scanning');
-        statusPill.innerHTML = `${STATUS_ICON}<span>${label}</span>`;
+        setIconLabel(statusPill, STATUS_ICON, label);
     }
 
     const rows = Array.from(panel.querySelectorAll('.aqg-page-module-indicator__status-row'));
@@ -192,7 +210,7 @@ function setPanelStateRunning(panel, scanMode = 'local') {
         row.className = 'aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--running';
         const value = row.querySelector('.aqg-page-module-indicator__status-value');
         if (value) {
-            value.innerHTML = `${STATUS_ICON}<span>${panel.dataset.runningStatus || translate('pageModuleIndicator.runningStatus', 'Scanning')}...</span>`;
+            setIconLabel(value, STATUS_ICON, `${panel.dataset.runningStatus || translate('pageModuleIndicator.runningStatus', 'Scanning')}...`);
         }
     });
 
@@ -237,7 +255,7 @@ function setPanelStateCompleted(panel, scanMode = 'local') {
 
     const statusPill = panel.querySelector('.aqg-page-module-indicator__status-pill');
     if (statusPill) {
-        statusPill.innerHTML = `${COMPLETED_ICON}<span>${translate('pageModuleIndicator.completedStatus', 'Completed')}</span>`;
+        setIconLabel(statusPill, COMPLETED_ICON, translate('pageModuleIndicator.completedStatus', 'Completed'));
     }
 
     const rows = Array.from(panel.querySelectorAll('.aqg-page-module-indicator__status-row'));
@@ -246,7 +264,7 @@ function setPanelStateCompleted(panel, scanMode = 'local') {
         row.className = 'aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--ok aqg-page-module-indicator__status-row--completed';
         const value = row.querySelector('.aqg-page-module-indicator__status-value');
         if (value) {
-            value.innerHTML = `${COMPLETED_ICON}<span>${translate('pageModuleIndicator.completedStatus', 'Completed')}</span>`;
+            setIconLabel(value, COMPLETED_ICON, translate('pageModuleIndicator.completedStatus', 'Completed'));
         }
     });
 
@@ -390,10 +408,210 @@ async function runRemotePageScan({ pageUid, siteIdentifier, languageUid }) {
     return fetchRemoteSummary(jobId, responseSiteIdentifier);
 }
 
+function indicatorStateUrl(panel) {
+    const endpoint = window.TYPO3?.settings?.ajaxUrls?.a11y_page_module_indicator || '';
+    const pageUid = Number.parseInt(panel?.dataset?.pageUid || '0', 10);
+    if (!endpoint || !(pageUid > 0)) {
+        return '';
+    }
+
+    const url = new URL(endpoint, window.location.origin);
+    url.searchParams.set('pageUid', String(pageUid));
+    url.searchParams.set('language', String(parseLanguageUid(panel.dataset.languageUid) ?? 0));
+
+    return url.toString();
+}
+
+/**
+ * The control that had focus inside the old panel, found again in its replacement: a scan button or a link
+ * with the same target. Without a match the panel itself takes focus, so keyboard focus never falls to the body.
+ */
+function focusTargetFor(panel) {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !panel.contains(active)) {
+        return null;
+    }
+
+    if (active.matches(SELECTOR_SCAN)) {
+        return (next) => next.querySelector(SELECTOR_SCAN);
+    }
+
+    const href = active.getAttribute('href');
+
+    return (next) => (href === null ? null : Array.from(next.querySelectorAll('a[href]')).find((link) => link.getAttribute('href') === href) || null);
+}
+
+function replacePanel(panel, html) {
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    const next = template.content.querySelector(SELECTOR_PANEL);
+    if (!next) {
+        return panel;
+    }
+
+    const findFocusTarget = focusTargetFor(panel);
+    panel.replaceWith(next);
+    syncPanelTheme(next);
+
+    if (findFocusTarget) {
+        const target = findFocusTarget(next);
+        if (target instanceof HTMLElement) {
+            target.focus({ preventScroll: true });
+        } else {
+            next.setAttribute('tabindex', '-1');
+            next.focus({ preventScroll: true });
+        }
+    }
+
+    return next;
+}
+
+function scheduleFollow(current) {
+    if (current !== follower || current.stopped) {
+        return;
+    }
+
+    const interval = Date.now() - current.startedAt >= FOLLOW_SLOW_AFTER_MS ? FOLLOW_SLOW_INTERVAL_MS : FOLLOW_INTERVAL_MS;
+    current.timer = window.setTimeout(() => {
+        current.timer = null;
+        void followTick(current);
+    }, interval);
+}
+
+async function followTick(current) {
+    if (current !== follower || current.stopped || current.inFlight) {
+        return;
+    }
+
+    // A hidden document waits; becoming visible again asks at once (onFollowVisibilityChange).
+    if (document.hidden) {
+        return;
+    }
+
+    const panel = document.querySelector(SELECTOR_PANEL);
+    if (!panel) {
+        stopFollowingRunningScan();
+        return;
+    }
+
+    current.inFlight = true;
+    current.controller = new AbortController();
+    let data = null;
+    let status = 0;
+    try {
+        const response = await fetch(current.url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            signal: current.controller.signal,
+        });
+        status = response.status;
+        data = response.ok ? await response.json().catch(() => null) : null;
+    } catch {
+        data = null;
+    } finally {
+        current.inFlight = false;
+        current.controller = null;
+    }
+
+    if (current !== follower || current.stopped) {
+        return;
+    }
+
+    // No access to the module or the page, or the page left its site: nothing to follow.
+    if ([401, 403, 404].includes(status)) {
+        stopFollowingRunningScan();
+        return;
+    }
+
+    if (!data || data.success !== true || typeof data.html !== 'string') {
+        current.failures += 1;
+        if (current.failures >= FOLLOW_MAX_FAILURES) {
+            stopFollowingRunningScan();
+            return;
+        }
+        scheduleFollow(current);
+        return;
+    }
+
+    current.failures = 0;
+    if (data.html !== current.lastHtml) {
+        current.lastHtml = data.html;
+        replacePanel(panel, data.html);
+    }
+
+    if (data.running !== true) {
+        stopFollowingRunningScan();
+        return;
+    }
+
+    scheduleFollow(current);
+}
+
+function onFollowVisibilityChange() {
+    const current = follower;
+    if (current && !current.stopped && !document.hidden && current.timer === null && !current.inFlight) {
+        void followTick(current);
+    }
+}
+
+/**
+ * Follows a scan that the server rendered as running until it has ended: progress, the completed result and a
+ * failed or cancelled end appear without reloading the Page module. One follower per document.
+ */
+export function startFollowingRunningScan(panel = document.querySelector(SELECTOR_PANEL)) {
+    if (follower || !(panel instanceof HTMLElement) || panel.dataset.aqgIndicatorRunning !== '1') {
+        return follower;
+    }
+
+    const url = indicatorStateUrl(panel);
+    if (url === '') {
+        return null;
+    }
+
+    follower = {
+        url,
+        startedAt: Date.now(),
+        timer: null,
+        controller: null,
+        inFlight: false,
+        failures: 0,
+        lastHtml: null,
+        stopped: false,
+    };
+    document.addEventListener('visibilitychange', onFollowVisibilityChange);
+    scheduleFollow(follower);
+
+    return follower;
+}
+
+export function stopFollowingRunningScan() {
+    const current = follower;
+    if (!current) {
+        return;
+    }
+
+    current.stopped = true;
+    if (current.timer !== null) {
+        window.clearTimeout(current.timer);
+        current.timer = null;
+    }
+    current.controller?.abort();
+    document.removeEventListener('visibilitychange', onFollowVisibilityChange);
+    follower = null;
+}
+
+export function isFollowingRunningScan() {
+    return follower !== null;
+}
+
 async function scanPage(button) {
     if (button.disabled || button.classList.contains('is-disabled')) {
         return;
     }
+
+    // A scan started here is followed by its own request; an earlier follower must not replace the panel meanwhile.
+    stopFollowingRunningScan();
 
     const panel = button.closest(SELECTOR_PANEL);
     const endpoint = window.TYPO3?.settings?.ajaxUrls?.a11y_scan_page || '';
@@ -487,8 +705,21 @@ document.addEventListener('click', (event) => {
 });
 
 syncAllPanelThemes();
+startFollowingRunningScan();
 
-document.addEventListener('DOMContentLoaded', syncAllPanelThemes);
+document.addEventListener('DOMContentLoaded', () => {
+    syncAllPanelThemes();
+    startFollowingRunningScan();
+});
+
+// Leaving the Page module ends the follower with its document; a page restored from the back/forward cache
+// starts again from what it shows.
+window.addEventListener('pagehide', stopFollowingRunningScan);
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        startFollowingRunningScan();
+    }
+});
 
 try {
     const observer = new MutationObserver(syncAllPanelThemes);

@@ -564,3 +564,22 @@ body[data-typo3-theme="dark"] #priebera-a11yqualitygate-backend-toolbaritems-a11
         min-width: min(22rem, calc(100vw - 1rem));
     }
 }
+
+// Reduced motion, following Bootstrap and the TYPO3 backend: the spinner keeps turning, slower; the sliding
+// progress fill and the pulsing status dot stop.
+@media (prefers-reduced-motion: reduce) {
+    .aqt-toolbar-trigger--running .aqt-toolbar-icon::after,
+    .aqt-toolbar-trigger--loading .aqt-toolbar-icon::after {
+        animation-duration: 2s;
+    }
+
+    .aqt-mini-progress__fill {
+        width: 100%;
+        opacity: .45;
+        animation: none;
+    }
+
+    .aqt-pill__dot--pulse {
+        animation: none;
+    }
+}

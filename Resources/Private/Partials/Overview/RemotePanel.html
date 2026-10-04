@@ -13,8 +13,7 @@
                     siteRootPid: siteRootPid,
                     currentPageUid: currentPageUid,
                     siteIdentifier: siteIdentifier,
-                    remoteScan: remoteScan,
-                    showProHints: freePreview.showUpgradeOffer
+                    remoteScan: remoteScan
                 }"
         />
     </f:if>
@@ -114,7 +113,8 @@
                                         show: exportRemoteCsvUrl,
                                         csvUrl: exportRemoteCsvUrl,
                                         pdfUrl: exportRemotePdfUrl,
-                                        showPdf: proStatus.hasExportPdf
+                                        showPdf: proStatus.hasExportPdf,
+                                        pdfNoteId: 'aqg-export-pdf-note-remote'
                                     }"
                             />
                         </div>
@@ -477,7 +477,7 @@
     <section class="aqg-section" id="a11y-remote-top-pages">
         <div class="aqg-toolbar-row">
             <div class="aqg-toolbar-row__left">
-                <div class="aqg-toolbar-row__title">
+                <div class="aqg-toolbar-row__title" id="a11y-overview-remote-pages-title">
 {remotePagesTitle}
                 </div>
                 <div class="aqg-toolbar-row__sub">
@@ -584,7 +584,7 @@
         <div>
             <f:if condition="{remotePages}">
                 <f:then>
-                    <div class="aqg-table-wrap">
+                    <div class="aqg-table-wrap" data-aqg-scroll-labelledby="a11y-overview-remote-pages-title">
                         <table class="aqg-table">
                             <thead>
                             <tr>
@@ -773,7 +773,7 @@
                 <div class="aqg-report-collapse__body aqg-report-collapse__body--failed">
                     <div class="aqg-toolbar-row aqg-failed-pages-toolbar">
                         <div class="aqg-toolbar-row__left">
-                            <div class="aqg-toolbar-row__title">
+                            <div class="aqg-toolbar-row__title" id="a11y-overview-remote-failed-title">
                                 <f:translate
                                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.failedPages.title"
                                         default="Failed / unreachable pages"
@@ -858,7 +858,7 @@
                     <div>
                         <f:if condition="{remoteFailedPages}">
                             <f:then>
-                                <div class="aqg-table-wrap">
+                                <div class="aqg-table-wrap" data-aqg-scroll-labelledby="a11y-overview-remote-failed-title">
                                     <table class="aqg-table">
                                         <thead>
                                         <tr>
@@ -1010,6 +1010,10 @@
         </section>
     </f:if>
 
+    <f:if condition="{freePreview.isFree} && {remoteScan} && {freePreview.showUpgradeOffer}">
+        <f:render partial="Overview/FreePreviewUpgrade" arguments="{freePreview: freePreview}" />
+    </f:if>
+
     <section class="aqg-report-support" aria-labelledby="aqg-report-support-title">
         <div class="aqg-report-support__head">
             <h2 class="aqg-report-support__title" id="aqg-report-support-title">
@@ -1121,7 +1125,7 @@
                 </div>
 
                 <div class="aqg-additional-signals__grid">
-                    <f:if condition="{remoteRemediationSummary} &amp;&amp; !{freePreview.isFree}">
+                    <f:if condition="{remoteRemediationSummary} && !{freePreview.isFree}">
                         <article class="aqg-signal-chip-card aqg-signal-chip-card--remediation">
                             <div class="aqg-signal-chip-card__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.remediation.kicker" default="Remediation" /></div>
                             <div class="aqg-signal-chip-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.remediation.title" default="Suggested remediation grouping" /></div>
@@ -1439,11 +1443,11 @@
     </section>
 
 
-    <f:if condition="!{freePreview.isFree} &amp;&amp; ({remoteScanCompare.available} || {remoteScanCompare.message})">
+    <f:if condition="!{freePreview.isFree} && ({remoteScanCompare.available} || {remoteScanCompare.message})">
         <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare, viewedJobId: remoteScan.job_id}" />
     </f:if>
 
-    <f:if condition="!{freePreview.isFree} &amp;&amp; {regressionAlert.available}">
+    <f:if condition="!{freePreview.isFree} && {regressionAlert.available}">
         <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert, viewedJobId: remoteScan.job_id}" />
     </f:if>
 

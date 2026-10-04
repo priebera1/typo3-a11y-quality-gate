@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Domain\Repository;
 
 use Doctrine\DBAL\Exception;
 use Priebera\A11yQualityGate\Database\Tables;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 
 final class ScanRepository extends AbstractRepository
@@ -280,6 +281,47 @@ final class ScanRepository extends AbstractRepository
             ->where(
                 $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
                 $qb->expr()->eq('status', $qb->createNamedParameter(self::STATUS_COMPLETED, Connection::PARAM_INT)),
+            );
+
+        $this->addLanguageConstraint($qb, $languageUid);
+
+        $row = $qb
+            ->orderBy('finished_at', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return $row ?: null;
+    }
+
+    /**
+     * The newest completed subtree scan started on this page or one of its ancestors, which checked this page too.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findLastCompletedSubtreeScanCoveringPage(string $siteIdentifier, int $pageUid, int $languageUid = -1): ?array
+    {
+        if ($siteIdentifier === '' || $pageUid <= 0) {
+            return null;
+        }
+
+        $rootlinePageUids = array_values(array_filter(
+            array_map(static fn (array $page): int => (int)($page['uid'] ?? 0), BackendUtility::BEgetRootLine($pageUid)),
+            static fn (int $uid): bool => $uid > 0
+        ));
+        if ($rootlinePageUids === []) {
+            return null;
+        }
+
+        $qb = $this->getQueryBuilder(Tables::SCAN);
+        $qb
+            ->select('*')
+            ->from(Tables::SCAN)
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->in('root_pid', $qb->createNamedParameter($rootlinePageUids, Connection::PARAM_INT_ARRAY)),
+                $qb->expr()->eq('status', $qb->createNamedParameter(self::STATUS_COMPLETED, Connection::PARAM_INT)),
+                $qb->expr()->eq('scope', $qb->createNamedParameter(self::SCOPE_SUBTREE)),
             );
 
         $this->addLanguageConstraint($qb, $languageUid);

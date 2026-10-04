@@ -289,6 +289,14 @@
   margin-bottom: 12px;
 }
 
+/* Without a visible progress block the stack takes no room: as a flex item of the module it otherwise added its
+   margin and a second gap (about 50 px of empty space above the source tabs). The scripts only toggle .d-none on
+   the blocks, so a scan that starts shows the stack again. */
+.a11y-overview .aqg-scan-progress-stack:not(:has(> :not(.d-none, [hidden]))),
+.a11y-page-detail .aqg-scan-progress-stack:not(:has(> :not(.d-none, [hidden]))) {
+  display: none;
+}
+
 .a11y-overview .aqg-progress-block--completed,
 .a11y-page-detail .aqg-progress-block--completed,
 .aqg-progress-block--completed {
@@ -306,4 +314,21 @@
 .a11y-page-detail .aqg-progress-block--completed .aqg-progress-block__fill,
 .aqg-progress-block--completed .aqg-progress-block__fill {
     background: var(--aqi-ok, var(--typo3-state-success-bg));
+}
+
+/* Reduced motion, following Bootstrap and the TYPO3 backend: spinners keep turning, slower; the sliding fill of
+   an indeterminate progress bar stops and shows as a static, full-width track (the status text says what runs). */
+@media (prefers-reduced-motion: reduce) {
+  .aqi-spin,
+  .aqg-test-result__spin {
+    animation-duration: 2s !important;
+  }
+
+  .a11y-overview .aqg-progress-block--indeterminate .aqg-progress-block__fill,
+  .a11y-page-detail .aqg-progress-block--indeterminate .aqg-progress-block__fill {
+    left: 0;
+    width: 100%;
+    opacity: .45;
+    animation: none;
+  }
 }
