@@ -17,6 +17,9 @@ final class ScanRepository extends AbstractRepository
     private const SCOPE_PAGE = 'page';
     private const SCOPE_SUBTREE = 'subtree';
 
+    /** @var array<string, bool>|null */
+    private ?array $scanColumns = null;
+
     public function createScanRun(
         string $siteIdentifier,
         int $rootPid,
@@ -47,10 +50,11 @@ final class ScanRepository extends AbstractRepository
         int $issuesNew,
         int $issuesResolved,
         int $issuesIgnored,
+        array $renderedCoverage = [],
     ): void {
         $now = time();
 
-        $this->getConnection(Tables::SCAN)->update(Tables::SCAN, [
+        $row = [
             'status' => self::STATUS_COMPLETED,
             'finished_at' => $now,
             'tstamp' => $now,
@@ -59,9 +63,46 @@ final class ScanRepository extends AbstractRepository
             'issues_new' => $issuesNew,
             'issues_resolved' => $issuesResolved,
             'issues_ignored' => $issuesIgnored,
-        ], [
+        ];
+        if ($renderedCoverage !== []) {
+            // Audit C13: which pages had their rendered HTML checked. Written only once the columns exist (database
+            // compare after an update), so a scan never fails on a missing column.
+            $row += [
+                'rendered_checked' => (int)($renderedCoverage['checked'] ?? 0),
+                'rendered_skipped' => (int)($renderedCoverage['skipped'] ?? 0),
+                'rendered_skipped_json' => (string)json_encode(
+                    array_values((array)($renderedCoverage['skippedPages'] ?? [])),
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+            ];
+        }
+
+        $this->getConnection(Tables::SCAN)->update(Tables::SCAN, $this->withExistingColumns($row), [
             'uid' => $scanUid,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function withExistingColumns(array $row): array
+    {
+        if ($this->scanColumns === null) {
+            try {
+                $this->scanColumns = [];
+                foreach ($this->getConnection(Tables::SCAN)->createSchemaManager()->listTableColumns(Tables::SCAN) as $column) {
+                    $this->scanColumns[strtolower($column->getName())] = true;
+                }
+            } catch (\Throwable) {
+                $this->scanColumns = [];
+            }
+        }
+        if ($this->scanColumns === []) {
+            return $row;
+        }
+
+        return array_filter($row, fn (string $column): bool => isset($this->scanColumns[strtolower($column)]), ARRAY_FILTER_USE_KEY);
     }
 
     public function failScanRun(int $scanUid): void
@@ -323,6 +364,12 @@ final class ScanRepository extends AbstractRepository
                 $qb->expr()->eq('status', $qb->createNamedParameter(self::STATUS_COMPLETED, Connection::PARAM_INT)),
                 $qb->expr()->eq('scope', $qb->createNamedParameter(self::SCOPE_SUBTREE)),
             );
+
+        // A site scan only checked the pages that existed when it started.
+        $pageCreatedAt = (int)(BackendUtility::getRecord('pages', $pageUid, 'crdate')['crdate'] ?? 0);
+        if ($pageCreatedAt > 0) {
+            $qb->andWhere($qb->expr()->gte('started_at', $qb->createNamedParameter($pageCreatedAt, Connection::PARAM_INT)));
+        }
 
         $this->addLanguageConstraint($qb, $languageUid);
 

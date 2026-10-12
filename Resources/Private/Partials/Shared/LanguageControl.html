@@ -1,0 +1,27 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:if condition="{languageOptionCount} > 1">
+    <f:then>
+        <f:render partial="Shared/LanguageSwitcher" arguments="{_all}" />
+    </f:then>
+    <f:else>
+        <div class="aqg-lang aqg-lang--single">
+            <div class="aqg-lang__readonly" title="{currentLanguageOption.title} {currentLanguageOption.locale}">
+                <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.siteLanguageLabel" default="Site language:" /></span>
+                <f:if condition="{currentLanguageOption.flagIdentifier}">
+                    <span class="aqg-lang__flag" aria-hidden="true">
+                        <core:icon identifier="{currentLanguageOption.flagIdentifier}" size="small" />
+                    </span>
+                </f:if>
+                <span>{currentLanguageOption.title}</span>
+                <f:if condition="{currentLanguageOption.locale}">
+                    <span class="aqg-lang__locale">{currentLanguageOption.locale}</span>
+                </f:if>
+            </div>
+        </div>
+    </f:else>
+</f:if>
+</html>

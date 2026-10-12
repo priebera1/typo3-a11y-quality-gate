@@ -1,9 +1,6 @@
 <div
         class="tab-pane fade{f:if(condition: '{activeTab} == ''remote_access''', then: ' show active')}"
         id="a11y-settings-pane-remote-access"
-        role="tabpanel"
-        aria-labelledby="a11y-settings-tab-remote-access"
-        tabindex="0"
 >
     <f:if condition="{isAdmin}">
         <f:then>
@@ -12,6 +9,7 @@
             <form
                         method="post"
                         action="{remoteAccessSaveUrl}"
+                        data-has-token="{f:if(condition: remoteAccessHasScannerToken, then: '1', else: '0')}"
                         class="aqg-stack aqg-remote-access js-aqg-remote-access-form"
                         id="a11y-settings-remote-access-form"
                         data-regenerate-token-url="{remoteAccessRegenerateTokenUrl}"
@@ -47,20 +45,17 @@
                         </div>
                         <div class="aqg-actionbar__right">
                             <button type="reset" class="aqg-text-action js-aqg-remote-discard"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.discard" default="Discard" /></button>
-                            <button type="submit" class="btn btn-primary btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.save" default="Save remote scan settings" /></button>
+                            <button type="submit" class="btn btn-primary btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.save" default="Save changes" /></button>
                         </div>
                     </div>
 
-                    <div class="aqg-admin-banner">
-                        <span class="aqg-admin-banner__badge"><span class="aqg-admin-banner__badge-dot"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminBadge" default="Admin only" /></span>
-                        <span class="aqg-admin-banner__text">
-                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminBannerTitle" default="Only administrators should change Remote scan access settings." /></strong>
+                    <p class="aqg-admin-note">
+                        <f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" />
+                        <span>
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminNoteTitle" default="Only administrators can change these settings." /></strong>
                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.adminBannerText" default="These options control how the AQG crawler reaches your frontend — including hidden pages, protected staging environments, and the URL crawl rules." />
                         </span>
-                        <f:if condition="{backendUserDisplayName}">
-                            <span class="aqg-admin-banner__user"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.signedInAs" default="signed in as %s" arguments="{0: backendUserDisplayName}" /></span>
-                        </f:if>
-                    </div>
+                    </p>
 
                     <section class="aqg-card aqg-card--secret js-aqg-scanner-token-card">
                         <header class="aqg-card__head aqg-card__head--quiet">
@@ -69,18 +64,21 @@
                                     <span class="aqg-card__title-prefix" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.title" default="Scanner preview token" />
                                 </h3>
-                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.text" default="Generate a private token so the remote crawler can access hidden pages and hidden content during scans. Keep this token secret." /></p>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.text" default="Generate a private token so the AQG crawler can open hidden pages and hidden content during Frontend scans. Keep this token secret." /></p>
                             </div>
                             <span class="aqg-toast js-aqg-token-success" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerated" default="✓ Scanner token regenerated" /></span>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.label" default="Token" /></label>
-                                <div class="js-aqg-token-present" {f:if(condition: remoteAccessHasScannerToken, else: 'hidden="hidden"')}>
-                                    <div class="aqg-token-row__field" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.maskedAria', default: 'Scanner token masked value')}">
-                                        <span class="aqg-token-row__prefix"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.label" default="Token" /></span>
-                                        <span class="aqg-token-row__value js-aqg-token-value">{remoteAccessMaskedScannerToken}</span>
-                                        <button type="button" class="btn btn-default btn-sm aqg-token-row__action js-aqg-copy-token" data-token="" disabled="disabled" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copyAria', default: 'Copy newly generated scanner token')}">
+                                <p class="aqg-field__label" id="aqg-scanner-token-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.label" default="Token" /></p>
+                                <p class="aqg-token-state js-aqg-token-stored" {f:if(condition: remoteAccessHasScannerToken, else: 'hidden="hidden"')}>
+                                    <span class="aqg-status-badge aqg-status-badge--ok"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok', size: 'sm'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.active" default="Active" /></span>
+                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.stored" default="A token is stored for this site and sent with every Frontend scan. Content scans and the Free Remote Preview do not use it. For security it is never shown again." /></span>
+                                </p>
+                                <div class="js-aqg-token-present" hidden="hidden">
+                                    <div class="aqg-inputgroup" role="group" aria-labelledby="aqg-scanner-token-label">
+                                        <span class="aqg-inputgroup__value aqg-token-row__value js-aqg-token-value"></span>
+                                        <button type="button" class="btn btn-default btn-sm aqg-inputgroup__btn js-aqg-copy-token" data-token="" disabled="disabled" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copyAria', default: 'Copy newly generated scanner token')}">
                                             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
                                                 <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
                                                 <path d="M2 8 L2 2 L8 2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -88,21 +86,19 @@
                                             <span class="js-aqg-copy-token-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copy" default="Copy" /></span>
                                         </button>
                                     </div>
+                                    <p class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.shownOnce" default="New token generated and stored. If you need it elsewhere, copy it now: it is only available until you leave this page." /></p>
                                 </div>
-                                <div class="aqg-token-empty js-aqg-token-empty" {f:if(condition: remoteAccessHasScannerToken, then: 'hidden="hidden"')}>
-                                    <span class="aqg-token-empty__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
-                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.empty" default="No token set — click “Generate token” to create one. Without a token, the remote crawler scans only publicly visible pages and mapping to TYPO3 records may be limited." /></span>
-                                </div>
-                                <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.help1" default="Optional. When set, the crawler sends this token with every request so TYPO3 can expose AQG debug markers for record mapping and scanner-only access during the scan." /><br />
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.help2" default="Without a token, the crawler scans only publicly visible pages and mapping to TYPO3 records may be limited." /><br />
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.help3" default="For security, the full token is shown only once immediately after generation." /></div>
+                                <p class="aqg-token-empty js-aqg-token-empty" {f:if(condition: remoteAccessHasScannerToken, then: 'hidden="hidden"')}>
+                                    <span class="aqg-status-badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.notSet" default="Not set" /></span>
+                                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.emptyShort" default="Without a token the crawler scans only public pages, and frontend findings outside standard content frames are not linked to TYPO3 records." /></span>
+                                </p>
                             </div>
 
                             <div class="aqg-remote-inline-actions">
                                 <button type="button" class="btn btn-default btn-sm js-aqg-regenerate-token">
                                     <span class="js-aqg-regenerate-token-label"><f:if condition="{remoteAccessHasScannerToken}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerate" default="Regenerate token" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generate" default="Generate token" /></f:else></f:if></span>
                                 </button>
-                                <span class="aqg-remote-warning">
+                                <span class="aqg-remote-warning js-aqg-token-warning" {f:if(condition: remoteAccessHasScannerToken, else: 'hidden="hidden"')}>
                                     <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.warning" default="Regenerating invalidates the current token immediately. Running scans may fail until the crawler uses the new token." />
                                 </span>

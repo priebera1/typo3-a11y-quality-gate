@@ -6,7 +6,8 @@
 <f:layout name="Module" />
 
 <f:section name="Content">
-    <div class="a11y-page-detail aqg-module aqg-stack container-fluid"
+    <div class="a11y-page-detail aqg-module aqg-stack container-fluid aqg-sv"
+         data-a11y-language-uid="{currentLanguageUid}"
          data-aqg-image-remediation="true"
          data-aqg-ai-link-text-url="{aiSuggestLinkTextUrl}"
          data-aqg-ai-iframe-title-url="{aiSuggestIframeTitleUrl}"
@@ -48,218 +49,80 @@
          data-message-iframe-title-not-configured="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.notConfigured', default: 'AI iframe-title suggestions are not configured for this site.')}"
          data-message-iframe-title-provider-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.providerError', default: 'The AI provider could not return an iframe title. Please try again later.')}"> 
 
-        <f:if condition="{hasLanguageOptions}">
-            <div class="aqg-page-detail__languagebar">
-                <div class="aqg-page-head__language aqg-page-detail__language">
-                    <f:if condition="{languageOptionCount} > 1">
-                        <f:then>
-                            <f:render partial="Shared/LanguageSwitcher" arguments="{_all}" />
-                        </f:then>
+
+        <header class="aqg-pagehead">
+            <div class="aqg-pagehead__main">
+                <h1 class="aqg-pagehead__title">
+                    <f:if condition="{pageTitle}">
+                        <f:then>{pageTitle}</f:then>
                         <f:else>
-                            <div class="aqg-lang aqg-lang--single">
-                        <div class="aqg-lang__readonly" title="{currentLanguageOption.title} {currentLanguageOption.locale}">
-                            <f:if condition="{currentLanguageOption.flagIdentifier}">
-                                <span class="aqg-lang__flag" aria-hidden="true">
-                                    <core:icon identifier="{currentLanguageOption.flagIdentifier}" size="small" />
-                                </span>
-                            </f:if>
-                            <span>{currentLanguageOption.title}</span>
-                            <f:if condition="{currentLanguageOption.locale}">
-                                <span class="aqg-lang__locale">{currentLanguageOption.locale}</span>
-                            </f:if>
-                        </div>
-                            </div>
+                            <f:translate
+                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.pageDetail.title"
+                                    default="Page issues"
+                            />
                         </f:else>
                     </f:if>
-                    <div class="aqg-lang__context">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.active" default="Active" /> · {currentLanguageOption.title}
-                        <f:if condition="{currentLanguageOption.hasResults}">
-                            · {currentLanguageOption.pageLabel}
-                        </f:if>
-                    </div>
-                </div>
-            </div>
-        </f:if>
-
-        <header class="aqg-hero">
-            <div class="aqg-hero__top">
-                <div class="aqg-hero__title-block">
-                    <div class="aqg-hero__eyebrow">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.pageDetail.eyebrow"
-                                default="Local · page issues"
-                        />
-                    </div>
-
-                    <h1 class="aqg-hero__title">
-                        <f:if condition="{pageTitle}">
-                            <f:then>{pageTitle}</f:then>
-                            <f:else>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.pageDetail.title"
-                                        default="Page issues"
-                                />
-                            </f:else>
-                        </f:if>
-                    </h1>
-
-                    <div class="aqg-hero__path" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagePath', default: 'Page path')}">
-                        <f:if condition="{pagePath}">
-                            <f:then>
-                                <span class="aqg-hero__path-seg aqg-hero__path-seg--last text-break">{pagePath}</span>
-                            </f:then>
-                            <f:else>
-                                <span class="aqg-hero__path-seg aqg-hero__path-seg--last">
-                                    <f:translate
-                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pageIdLabel"
-                                            default="Page ID"
-                                    />
-                                    {pageUid}
-                                </span>
-                            </f:else>
-                        </f:if>
-                    </div>
-                </div>
-
-                <div class="aqg-hero__actions">
-                    <f:if condition="{exportCsvUrl}">
-                        <a href="{exportCsvUrl}" class="btn btn-sm btn-default d-inline-flex align-items-center gap-1">
-                            <core:icon identifier="actions-download" size="small" />
-                            <span>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.exportCsv"
-                                        default="Export CSV"
-                                />
-                            </span>
-                        </a>
+                </h1>
+                <ul class="aqg-pagehead__meta">
+                    <li>
+                        <f:render partial="Shared/AqgIcon" arguments="{name: 'page', size: 'sm'}" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.local" default="Content scan" />
+                    </li>
+                    <f:if condition="{pagePath}">
+                        <li class="aqg-pagehead__path"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagePath" default="Page path" />:</span> {pagePath}</li>
                     </f:if>
-
-                    <f:if condition="{proStatus.hasExportPdf} && {exportPdfUrl}">
-                        <a href="{exportPdfUrl}" class="btn btn-sm btn-default d-inline-flex align-items-center gap-1" aria-describedby="aqg-page-pdf-note" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote', default: 'The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format.')}">
-                            <core:icon identifier="actions-download" size="small" />
-                            <span>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.exportPdf"
-                                        default="Export PDF"
-                                />
-                            </span>
-                        </a>
-                        <span id="aqg-page-pdf-note" class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.untaggedNote" default="The PDF is a visual report and is not tagged for screen readers. The CSV export has the same findings in an accessible format." /></span>
-                    </f:if>
-
-                    <f:if condition="{canScanNow}">
-                        <button
-                                type="button"
-                                class="btn btn-sm btn-primary"
-                                data-action="a11y-rescan"
-                                data-page-uid="{pageUid}"
-                                data-language-uid="{currentLanguageUid}"
-                                data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
-                                {f:if(condition: localDetail.isRelevantScanRunning, then: 'disabled="disabled"')}
-                        >
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanThisPage"
-                                    default="Scan this page"
-                            />
-                        </button>
-                    </f:if>
-                </div>
-            </div>
-
-            <div class="aqg-hero__strip">
-                <div class="aqg-hero-stat">
-                    <span class="aqg-hero-stat__label">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pageIdLabel"
-                                default="Page ID"
-                        />
-                    </span>
-                    <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">{pageUid}</span>
-                </div>
-
-                <div class="aqg-hero-stat">
-                    <span class="aqg-hero-stat__label">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label"
-                                default="Last scan"
-                        />
-                    </span>
-                    <span class="aqg-hero-stat__value aqg-hero-stat__value--mono">
+                    <li>UID {pageUid}</li>
+                    <li>
+                        <f:render partial="Shared/AqgIcon" arguments="{name: 'clock', size: 'sm'}" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label" default="Last scan" />
                         <f:if condition="{localDetail.lastScanAt}">
                             <f:then>{localDetail.lastScanAtFormatted}</f:then>
                             <f:else>—</f:else>
                         </f:if>
-                    </span>
-                </div>
+                    </li>
+                    <f:if condition="{localDetail.renderedSkippedNote}">
+                        <li class="aqg-pagehead__coverage" data-aqg-rendered-coverage="true" id="aqg-rendered-coverage">
+                            <f:render partial="Shared/AqgIcon" arguments="{name: 'warn', size: 'sm'}" />
+                            <span>
+                                {localDetail.renderedSkippedNote}
+                                <f:if condition="{localDetail.renderedSkippedHint}"><span class="aqg-pagehead__coverage-hint">{localDetail.renderedSkippedHint}</span></f:if>
+                            </span>
+                        </li>
+                    </f:if>
+                </ul>
+            </div>
 
-                <f:if condition="{statusCounts.all} == 0 && {localDetail.hasScan}">
-                    <f:then>
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.status" default="Status" />
-                            </span>
-                            <span class="aqg-hero-stat__value tone-ok">
-                                <f:render partial="Shared/ToneBadge" arguments="{tone: 'ok', name: 'ok'}" />
-                            </span>
-                        </div>
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.pageDetail.pagesInScope" default="Pages in scope" />
-                            </span>
-                            <span class="aqg-hero-stat__value aqg-hero-stat__value--plain">1</span>
-                        </div>
-                    </f:then>
-                    <f:else>
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
-                                        default="Critical"
-                                />
-                            </span>
-                            <span class="aqg-hero-stat__value {f:if(condition: severityCounts.critical, then: 'tone-critical')}">{severityCounts.critical}</span>
-                        </div>
+            <div class="aqg-pagehead__actions">
+                <f:if condition="{hasLanguageOptions}">
+                    <f:render partial="Shared/LanguageControl" arguments="{_all}" />
+                </f:if>
 
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural"
-                                        default="Warnings"
-                                />
-                            </span>
-                            <span class="aqg-hero-stat__value {f:if(condition: severityCounts.warning, then: 'tone-warning')}">{severityCounts.warning}</span>
-                        </div>
+                <f:render
+                        partial="Shared/ExportButtons"
+                        arguments="{
+                            show: exportCsvUrl,
+                            csvUrl: exportCsvUrl,
+                            pdfUrl: exportPdfUrl,
+                            showPdf: proStatus.hasExportPdf,
+                            pdfNoteId: 'aqg-page-pdf-note'
+                        }"
+                />
 
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
-                                        default="Info"
-                                />
-                            </span>
-                            <span class="aqg-hero-stat__value {f:if(condition: severityCounts.info, then: 'tone-info')}">{severityCounts.info}</span>
-                        </div>
-
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview"
-                                        default="Needs review"
-                                />
-                            </span>
-                            <span class="aqg-hero-stat__value {f:if(condition: severityCounts.needs_review, then: 'tone-needs_review')}">{severityCounts.needs_review}</span>
-                        </div>
-
-                        <div class="aqg-hero-stat">
-                            <span class="aqg-hero-stat__label">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.total"
-                                        default="Total open"
-                                />
-                            </span>
-                            <span class="aqg-hero-stat__value">{severityCounts.total}</span>
-                        </div>
-                    </f:else>
+                <f:if condition="{canScanNow}">
+                    <button
+                            type="button"
+                            class="btn btn-sm btn-primary"
+                            data-action="a11y-rescan"
+                            data-page-uid="{pageUid}"
+                            data-language-uid="{currentLanguageUid}"
+                            data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                            {f:if(condition: localDetail.isRelevantScanRunning, then: 'disabled="disabled"')}
+                    >
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanThisPage"
+                                default="Scan this page"
+                        />
+                    </button>
                 </f:if>
             </div>
         </header>
@@ -268,239 +131,147 @@
                 partial="Shared/LocalScanProgress"
                 arguments="{
                     isRunning: localDetail.isRelevantScanRunning,
-                    scanStatus: scanStatus
+                    scanStatus: scanStatus,
+                    canCancel: canCancelLocalScan,
+                    hasPreviousResult: localDetail.hasScan
                 }"
         />
+        <f:if condition="{localDetail.lastScanAt}">
+            <f:render partial="Shared/LastCompletedScan" arguments="{source: 'local', date: '{localDetail.lastScanAt -> f:format.date(format: \'d.m.Y H:i\')}', visible: localDetail.isRelevantScanRunning}" />
+        </f:if>
 
+        <f:if condition="{statusCounts.all} > 0">
         <section class="aqg-filterbar" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.ariaLabel', default: 'Issue filters')}">
-            <div class="aqg-filterbar__row">
-                <span class="aqg-filterbar__label">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.status"
-                            default="Status"
-                    />
-                </span>
-
-                <div class="aqg-seg" role="group">
-                    <a href="{statusFilterUrls.open}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'open\'', then: 'is-active')}">
-                        <span>
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.open" default="Open" />
-                        </span>
-                        <span class="aqg-seg__count">{statusCounts.open}</span>
-                    </a>
-                    <a href="{statusFilterUrls.ignored}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'ignored\'', then: 'is-active')}">
-                        <span>
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" />
-                        </span>
-                        <span class="aqg-seg__count">{statusCounts.ignored}</span>
-                    </a>
-                    <a href="{statusFilterUrls.resolved}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'resolved\'', then: 'is-active')}">
-                        <span>
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" default="Resolved" />
-                        </span>
-                        <span class="aqg-seg__count">{statusCounts.resolved}</span>
-                    </a>
-                    <a href="{statusFilterUrls.all}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'all\'', then: 'is-active')}">
-                        <span>
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.all" default="All" />
-                        </span>
-                        <span class="aqg-seg__count">{statusCounts.all}</span>
-                    </a>
-                </div>
+            <div class="aqg-seg" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.status', default: 'Status')}">
+                <a href="{statusFilterUrls.open}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'open\'', then: 'is-active')}" {f:if(condition: '{activeStatus} == \'open\'', then: 'aria-current="true"')}>
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.open" default="Open" /></span>
+                    <span class="aqg-seg__count">{statusCounts.open}</span>
+                </a>
+                <a href="{statusFilterUrls.ignored}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'ignored\'', then: 'is-active')}" {f:if(condition: '{activeStatus} == \'ignored\'', then: 'aria-current="true"')}>
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" /></span>
+                    <span class="aqg-seg__count">{statusCounts.ignored}</span>
+                </a>
+                <a href="{statusFilterUrls.resolved}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'resolved\'', then: 'is-active')}" {f:if(condition: '{activeStatus} == \'resolved\'', then: 'aria-current="true"')}>
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" default="Resolved" /></span>
+                    <span class="aqg-seg__count">{statusCounts.resolved}</span>
+                </a>
+                <a href="{statusFilterUrls.all}" class="aqg-seg__btn {f:if(condition: '{activeStatus} == \'all\'', then: 'is-active')}" {f:if(condition: '{activeStatus} == \'all\'', then: 'aria-current="true"')}>
+                    <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.all" default="All" /></span>
+                    <span class="aqg-seg__count">{statusCounts.all}</span>
+                </a>
             </div>
 
             <f:if condition="{severityCounts.total} > 0">
-                <div class="aqg-filterbar__row">
-                    <span class="aqg-filterbar__label">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.severity"
-                                default="Severity"
-                        />
-                    </span>
-
-                    <div class="aqg-chips" role="group">
-                        <a href="{severityFilterUrls.all}" class="aqg-chip {f:if(condition: '{activeSeverity} == \'all\'', then: 'is-active')}">
-                            <span>
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.allSeverities" default="All severities" />
-                            </span>
+                <div class="aqg-chips" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.severity', default: 'Severity')}">
+                    <f:if condition="{activeSeverity} != 'all'">
+                        <a href="{severityFilterUrls.all}" class="aqg-chip">
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.allSeverities" default="All severities" /></span>
                             <span class="aqg-chip__count">{severityCounts.total}</span>
                         </a>
-
-                        <f:if condition="{severityCounts.critical} > 0">
-                            <a href="{severityFilterUrls.critical}" class="aqg-chip tone-critical {f:if(condition: '{activeSeverity} == \'critical\'', then: 'is-active')}">
-                                <span class="aqg-chip__icon" aria-hidden="true">
-                                    <f:render partial="Shared/ToneBadge" arguments="{tone: 'critical', name: 'critical'}" />
-                                </span>
-                                <span>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" />
-                                </span>
-                                <span class="aqg-chip__count">{severityCounts.critical}</span>
-                            </a>
-                        </f:if>
-
-                        <f:if condition="{severityCounts.warning} > 0">
-                            <a href="{severityFilterUrls.warning}" class="aqg-chip tone-warning {f:if(condition: '{activeSeverity} == \'warning\'', then: 'is-active')}">
-                                <span class="aqg-chip__icon" aria-hidden="true">
-                                    <f:render partial="Shared/ToneBadge" arguments="{tone: 'warning', name: 'warning'}" />
-                                </span>
-                                <span>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" default="Warnings" />
-                                </span>
-                                <span class="aqg-chip__count">{severityCounts.warning}</span>
-                            </a>
-                        </f:if>
-
-                        <f:if condition="{severityCounts.info} > 0">
-                            <a href="{severityFilterUrls.info}" class="aqg-chip tone-info {f:if(condition: '{activeSeverity} == \'info\'', then: 'is-active')}">
-                                <span class="aqg-chip__icon" aria-hidden="true">
-                                    <f:render partial="Shared/ToneBadge" arguments="{tone: 'info', name: 'info'}" />
-                                </span>
-                                <span>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" default="Info" />
-                                </span>
-                                <span class="aqg-chip__count">{severityCounts.info}</span>
-                            </a>
-                        </f:if>
-
-                        <f:if condition="{severityCounts.needs_review} > 0">
-                            <a href="{severityFilterUrls.needs_review}" class="aqg-chip tone-needs_review {f:if(condition: '{activeSeverity} == \'needs_review\'', then: 'is-active')}">
-                                <span class="aqg-chip__icon" aria-hidden="true">
-                                    <f:render partial="Shared/ToneBadge" arguments="{tone: 'needs_review', name: 'needs_review'}" />
-                                </span>
-                                <span>
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" default="Needs review" />
-                                </span>
-                                <span class="aqg-chip__count">{severityCounts.needs_review}</span>
-                            </a>
-                        </f:if>
-                    </div>
+                    </f:if>
+                    <f:render section="SeverityChip" arguments="{level: 'critical', icon: 'crit', count: severityCounts.critical, url: severityFilterUrls.critical, active: activeSeverity}" />
+                    <f:render section="SeverityChip" arguments="{level: 'warning', icon: 'warn', count: severityCounts.warning, url: severityFilterUrls.warning, active: activeSeverity}" />
+                    <f:render section="SeverityChip" arguments="{level: 'info', icon: 'info', count: severityCounts.info, url: severityFilterUrls.info, active: activeSeverity}" />
+                    <f:render section="SeverityChip" arguments="{level: 'needs_review', icon: 'rev', count: severityCounts.needs_review, url: severityFilterUrls.needs_review, active: activeSeverity}" />
                 </div>
             </f:if>
 
-            <div class="aqg-filterbar__result">
-                <span>{filterSummary}</span>
-                <a href="{resetFilterUrl}" class="btn btn-default btn-sm">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.clear"
-                            default="Reset filters"
-                    />
+            <p class="aqg-filterbar__result">
+                {filterSummary}
+                <f:if condition="{pagination.totalPages} > 1">
+                    · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.listPage" default="list page %1$d of %2$d" arguments="{0: pagination.currentPage, 1: pagination.totalPages}" />
+                </f:if>
+            </p>
+
+            <f:if condition="{activeStatus} != 'open' || {activeSeverity} != 'all'">
+                <a href="{resetFilterUrl}" class="aqg-filterbar__reset">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.clear" default="Reset filters" />
                 </a>
-            </div>
+            </f:if>
         </section>
+        </f:if>
 
         <f:if condition="{visibleIssuesCount} == 0">
             <f:if condition="{statusCounts.all} == 0">
                 <f:then>
-                    <section class="aqg-section aqg-section--empty">
-                        <f:if condition="{localDetail.hasScan}">
-                            <f:then>
-                                <div class="aqg-empty aqg-empty--ok">
-                                    <div class="aqg-empty__icon" aria-hidden="true">
-                                        <f:render partial="Overview/Icon" arguments="{name: 'ok'}" />
+                    <f:if condition="{localDetail.hasScan}">
+                        <f:then>
+                            <section class="aqg-status aqg-status--good" aria-labelledby="aqg-page-status-title">
+                                <div class="aqg-status__main">
+                                    <div class="aqg-status__head">
+                                        <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok'}" /></span>
+                                        <h2 class="aqg-status__title" id="aqg-page-status-title">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.clean.title" default="This page is clean" />
+                                        </h2>
                                     </div>
-                                    <div class="aqg-empty__title">
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.clean.title"
-                                                default="This page is clean"
-                                        />
-                                    </div>
-                                    <div class="aqg-empty__body">
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.clean.text"
-                                                default="No accessibility issues found in the last scan. Run another scan after publishing changes, or move on to the next page."
-                                        />
-                                    </div>
-                                    <div class="aqg-empty__actions">
-                                        <f:if condition="{canScanNow}">
-                                            <button type="button" class="btn btn-primary btn-sm" data-action="a11y-rescan" data-page-uid="{pageUid}">
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanAgain" default="Scan again" />
-                                            </button>
-                                        </f:if>
-                                        <a href="{backUrl}" class="btn btn-default btn-sm">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" />
-                                        </a>
-                                    </div>
+                                    <p class="aqg-status__text">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.clean.text" default="No accessibility issues found in the last scan. Run another scan after publishing changes, or move on to the next page." />
+                                    </p>
                                 </div>
-                            </f:then>
-                            <f:else>
-                                <div class="aqg-empty">
-                                    <div class="aqg-empty__icon" aria-hidden="true">
-                                        <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
-                                    </div>
-                                <div class="aqg-empty__title">
-                                    <f:translate
-                                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesStored"
-                                            default="This page has not been scanned yet."
-                                    />
-                                </div>
-                                <div class="aqg-empty__body">
+                                <div class="aqg-status__actions">
                                     <f:if condition="{canScanNow}">
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesStored.rescanHint"
-                                                default="Run a scan to check this page for accessibility issues."
-                                        />
+                                        <button type="button" class="btn btn-default btn-sm" data-action="a11y-rescan" data-page-uid="{pageUid}" data-language-uid="{currentLanguageUid}">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanAgain" default="Scan again" />
+                                        </button>
+                                    </f:if>
+                                    <a href="{backUrl}" class="btn btn-default btn-sm">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" />
+                                    </a>
+                                </div>
+                            </section>
+                        </f:then>
+                        <f:else>
+                            <section class="aqg-status aqg-status--no-scan" aria-labelledby="aqg-page-status-title">
+                                <div class="aqg-status__main">
+                                    <div class="aqg-status__head">
+                                        <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'page'}" /></span>
+                                        <h2 class="aqg-status__title" id="aqg-page-status-title">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesStored" default="This page has not been scanned yet." />
+                                        </h2>
+                                    </div>
+                                    <f:if condition="{canScanNow}">
+                                        <p class="aqg-status__text">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesStored.rescanHint" default="Run a scan to check this page for accessibility issues." />
+                                        </p>
                                     </f:if>
                                 </div>
-                                    <div class="aqg-empty__actions">
-                                        <f:if condition="{canScanNow}">
-                                            <button type="button" class="btn btn-primary btn-sm" data-action="a11y-rescan" data-page-uid="{pageUid}">
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanThisPage" default="Scan this page" />
-                                            </button>
-                                        </f:if>
-                                        <f:if condition="{canShowSettings}">
-                                            <a href="{settingsUrl}" class="btn btn-default btn-sm">
-                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title" default="Open settings" />
-                                            </a>
-                                        </f:if>
+                                <f:if condition="{canShowSettings}">
+                                    <div class="aqg-status__actions">
+                                        <a href="{settingsUrl}" class="btn btn-default btn-sm">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.title" default="Open settings" />
+                                        </a>
                                     </div>
-                                </div>
-                            </f:else>
-                        </f:if>
-                    </section>
+                                </f:if>
+                            </section>
+                        </f:else>
+                    </f:if>
                 </f:then>
                 <f:else>
-                    <section class="aqg-section aqg-section--empty">
-                        <div class="aqg-empty">
-                            <div class="aqg-empty__icon" aria-hidden="true">
-                                <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
+                    <section class="aqg-status aqg-status--no-scan" aria-labelledby="aqg-page-status-title">
+                        <div class="aqg-status__main">
+                            <div class="aqg-status__head">
+                                <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Overview/Icon" arguments="{name: 'empty'}" /></span>
+                                <h2 class="aqg-status__title" id="aqg-page-status-title">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesForFilter" default="No issues for this filter" />
+                                </h2>
                             </div>
-                            <div class="aqg-empty__title">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesForFilter"
-                                        default="No issues for this filter"
-                                />
-                            </div>
-                            <div class="aqg-empty__body">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesForFilter.text"
-                                        default="Try a different status or severity, or reset the filter to see everything recorded for this page."
-                                />
-                            </div>
-                            <div class="aqg-empty__actions">
-                                <a href="{resetFilterUrl}" class="btn btn-default btn-sm">
-                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.clear" default="Reset filters" />
+                            <p class="aqg-status__text">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noIssuesForFilter.text" default="Try a different status or severity, or reset the filter to see everything recorded for this page." />
+                            </p>
+                        </div>
+                        <div class="aqg-status__actions">
+                            <a href="{resetFilterUrl}" class="btn btn-default btn-sm">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.clear" default="Reset filters" />
+                            </a>
+                            <f:if condition="{activeStatus} != 'open'">
+                                <a href="{statusFilterUrls.open}" class="btn btn-default btn-sm">
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.switchToOpen" default="Switch to Open" />
                                 </a>
-                                <f:if condition="{activeStatus} != 'open'">
-                                    <a href="{statusFilterUrls.open}" class="btn btn-default btn-sm">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.switchToOpen" default="Switch to Open" />
-                                    </a>
-                                </f:if>
-                            </div>
+                            </f:if>
                         </div>
                     </section>
                 </f:else>
             </f:if>
-        </f:if>
-
-        <f:if condition="{hasRenderedIssues}">
-            <section class="aqg-section aqg-section--compact">
-                <div class="aqg-callout">
-                    <div class="aqg-callout__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rendered.title" default="Rendered page checks" /></div>
-                    <div class="aqg-callout__text">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rendered.text" default="Rendered checks inspect the server-rendered HTML returned by TYPO3. They do not execute JavaScript or load AJAX/lazy-loaded content, but may detect issues from Fluid templates, plugins, TypoScript wrapping or sitepackage components." />
-                    </div>
-                </div>
-            </section>
         </f:if>
 
         <f:if condition="{activeStatus} == 'open' && {visibleIssuesCount} > 0">
@@ -531,23 +302,17 @@
                     <div data-a11y-bulk-selected-inputs="true"></div>
 
                     <div class="aqg-bulkconfirm__head">
-                        <span class="aqg-bulkconfirm__icon" aria-hidden="true">
-                            <svg width="16" height="16" viewBox="0 0 16 16" focusable="false">
-                                <path d="M8 2.2 14 13H2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
-                                <path d="M8 5.7v3.4M8 11.4h.01" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                            </svg>
-                        </span>
                         <div>
                             <h2 class="aqg-bulkconfirm__title" data-a11y-bulk-confirm-title="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.confirmTitle" default="Ignore selected issues" /></h2>
                             <p class="aqg-bulkconfirm__sub" data-a11y-bulk-confirm-sub="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.confirmText" default="These issues will be marked as ignored. They stay visible in the report but no longer block the quality gate." /></p>
                         </div>
-                        <button type="button" class="aqg-bulkconfirm__close" data-action="a11y-bulk-close-confirm" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.close', default: 'Close ignore confirmation')}">×</button>
+                        <button type="button" class="aqg-bulkconfirm__close" data-action="a11y-bulk-close-confirm" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.close', default: 'Close ignore confirmation')}"><f:render partial="Shared/AqgIcon" arguments="{name: 'x'}" /></button>
                     </div>
 
                     <div class="aqg-bulkconfirm__summary" data-a11y-bulk-summary="true"></div>
 
                     <div class="aqg-bulkconfirm__body">
-                        <label class="aqg-bulkconfirm__label" for="aqg-bulk-ignore-reason"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reason" default="Reason for ignoring" /> <span class="aqg-bulkconfirm__req">*</span></label>
+                        <label class="aqg-bulkconfirm__label" for="aqg-bulk-ignore-reason"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reason" default="Reason for ignoring" /><span class="aqg-required-mark" aria-hidden="true">*</span><span class="visually-hidden"> (<f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.required" default="required" />)</span></label>
                         <textarea id="aqg-bulk-ignore-reason" name="reason" class="aqg-bulkconfirm__textarea" maxlength="280" required="required" placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reasonPlaceholder', default: 'e.g. Tables are decorative on this page — captions intentionally omitted per editorial guideline.')}" data-a11y-bulk-reason="true"></textarea>
                         <div class="aqg-bulkconfirm__error" data-a11y-bulk-error="true" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reasonRequired" default="A reason is required for batch ignore." /></div>
                     </div>
@@ -567,471 +332,146 @@
             </div>
         </f:if>
 
-        <f:for each="{grouped}" as="issueGroup" key="groupKey">
-            <f:if condition="{issueGroup}">
-                <section class="aqg-issue-group" data-a11y-issue-group="{groupKey}">
-                    <div class="aqg-issue-group__head aqg-issue-group__head--actions">
-                        <span class="aqg-issue-group__rail tone-{groupKey}" aria-hidden="true"></span>
-                        <div class="aqg-issue-group__title">
-                            <f:if condition="{groupKey} == 'critical'">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" />
-                            </f:if>
-                            <f:if condition="{groupKey} == 'warning'">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" default="Warnings" />
-                            </f:if>
-                            <f:if condition="{groupKey} == 'info'">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" default="Info" />
-                            </f:if>
-                            <f:if condition="{groupKey} == 'needs_review'">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" default="Needs review" />
-                            </f:if>
-                        </div>
-                        <span class="aqg-issue-group__count">
-                            {issueGroup -> f:count()}
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.groupIssuesNeedAttention"
-                                    default="issues to review"
-                            />
-                        </span>
+        <f:if condition="{ruleGroups}">
+        <div class="aqg-rules" id="aqg-local-rules">
+            <f:for each="{ruleGroups}" as="group" key="groupKey" iteration="groupIterator">
+                <section class="aqg-rulegroup" data-a11y-issue-group="{groupKey}" aria-labelledby="aqg-rulegroup-{groupKey}">
+                    <div class="aqg-rulegroup__head">
+                        <h2 class="aqg-rulegroup__title" id="aqg-rulegroup-{groupKey}">
+                            <f:render partial="Shared/SeverityBadge" arguments="{level: groupKey, plural: 1}" />
+                            <span class="aqg-rulegroup__count">
+                                <f:if condition="{group.issueTypesTotal} == 1">
+                                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.issueTypes.singular" default="%d issue type" arguments="{0: group.issueTypesTotal}" /></f:then>
+                                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.issueTypes.plural" default="%d issue types" arguments="{0: group.issueTypesTotal}" /></f:else>
+                                </f:if>
+                                <span class="aqg-rulegroup__sep" aria-hidden="true">·</span>
+                                <f:if condition="{group.issuesTotal} == 1">
+                                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.occurrences.singular" default="%d occurrence" arguments="{0: group.issuesTotal}" /></f:then>
+                                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.occurrences.plural" default="%d occurrences" arguments="{0: group.issuesTotal}" /></f:else>
+                                </f:if>
+                            </span>
+                        </h2>
+                        <f:if condition="{group.continues}">
+                            <span class="aqg-rulegroup__hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.partial" default="%1$d of %2$d on this list page" arguments="{0: group.issuesOnListPage, 1: group.issuesTotal}" /></span>
+                        </f:if>
                         <f:if condition="{activeStatus} == 'open'">
-                            <div class="aqg-issue-group__group-actions">
-                                <button
-                                        type="button"
-                                        class="aqg-issue-group__select-all"
-                                        data-action="a11y-bulk-toggle-group"
-                                        data-group-key="{groupKey}"
-                                        aria-pressed="false"
-                                ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.selectAll" default="Select all in group" /></button>
-                            </div>
+                            <button
+                                    type="button"
+                                    class="aqg-issue-group__select-all"
+                                    data-action="a11y-bulk-toggle-group"
+                                    data-group-key="{groupKey}"
+                                    aria-pressed="false"
+                            ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.group.selectAll" default="Select all in group" /></button>
+                        </f:if>
+                        <f:if condition="{groupIterator.isFirst}">
+                            <button
+                                    type="button"
+                                    class="btn btn-default btn-sm"
+                                    data-aqg-toggle-all="[data-aqg-rule-toggle]"
+                                    data-aqg-toggle-scope="#aqg-local-rules"
+                                    data-label-expand="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.rules.expandAll', default: 'Expand all')}"
+                                    data-label-collapse="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.rules.collapseAll', default: 'Collapse all')}"
+                            ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.rules.collapseAll" default="Collapse all" /></button>
                         </f:if>
                     </div>
 
-                    <f:for each="{issueGroup}" as="issue">
-                        <article class="aqg-issue tone-{groupKey} {f:if(condition: '{issue.statusEnum.value} == 2', then: 'is-ignored')} {f:if(condition: issue.ignoreIsTemporary, then: 'is-temp-ignored')} {f:if(condition: issue.ignoreWasReopened, then: 'is-reopened')} {f:if(condition: '{issue.statusEnum.value} == 1', then: 'is-resolved')}" data-a11y-issue-card="true" data-issue-uid="{issue.uid}" data-rule-id="{issue.rule_id}" data-group-key="{groupKey}" data-rule-page-count="{issue.openRuleCountOnPage}" data-rule-site-count="{issue.openRuleCountOnSite}">
-                            <header class="aqg-issue__head">
-                                <f:if condition="{issue.statusEnum.value} == 0">
-                                    <button
-                                            type="button"
-                                            class="aqg-issue__select"
-                                            data-action="a11y-bulk-toggle-issue"
-                                            data-issue-uid="{issue.uid}"
-                                            data-rule-id="{issue.rule_id}"
-                                            data-group-key="{groupKey}"
-                                            aria-checked="false"
-                                            role="checkbox"
-                                            aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.selectIssue', default: 'Select issue for batch ignore')}"
-                                    >
-                                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
-                                            <path d="M2.2 6.2 4.8 8.8 9.8 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg>
-                                    </button>
-                                </f:if>
-                                <div class="aqg-issue__title-row">
-                                    <f:render partial="Shared/ToneBadge" arguments="{tone: groupKey, name: groupKey}" />
-                                    <h2 class="aqg-issue__title">{issue.displayTitle}</h2>
-                                </div>
-                                <div class="aqg-issue__pills aqg-issue__pills--context">
-                                    <f:if condition="{issue.sourceTypeLabel}">
-                                        <span class="aqg-pill tone-none">
-                                            <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.source" default="Source: %s" arguments="{0: issue.sourceTypeLabel}" />
-                                        </span>
-                                    </f:if>
-
-                                    <f:if condition="{issue.sourceHint}">
-                                        <span class="aqg-pill tone-none">
-                                            <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            {issue.sourceHint}
-                                        </span>
-                                    </f:if>
-
-                                    <f:if condition="{issue.sourceType} == 'rendered' && {issue.source_table} == 'tt_content'">
-                                        <span class="aqg-pill tone-none">
-                                            <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.contentElement" default="Content element #%s" arguments="{0: issue.source_uid}" />
-                                        </span>
-                                    </f:if>
-
-                                    <f:if condition="{issue.statusEnum.value} == 0">
-                                        <span class="aqg-pill">
-                                            <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.open" />
-                                        </span>
-                                    </f:if>
-                                    <f:if condition="{issue.statusEnum.value} == 1">
-                                        <span class="aqg-pill tone-ok">
-                                            <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" />
-                                        </span>
-                                    </f:if>
-                                    <f:if condition="{issue.statusEnum.value} == 2">
-                                        <f:then>
-                                            <f:if condition="{issue.ignoreIsTemporary}">
-                                                <f:then>
-                                                    <f:if condition="{issue.ignoreReopensSoon}">
-                                                        <f:then>
-                                                            <span class="aqg-pill tone-soon">
-                                                                <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopensSoon" default="Reopens soon" />
-                                                                <span class="aqg-pill__sep" aria-hidden="true"></span>
-                                                                <span class="aqg-pill__date">{issue.ignoredUntilLabel}</span>
-                                                            </span>
-                                                        </f:then>
-                                                        <f:else>
-                                                            <span class="aqg-pill tone-temp">
-                                                                <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" />
-                                                                <span class="aqg-pill__sep" aria-hidden="true"></span>
-                                                                <span class="aqg-pill__date">{issue.ignoredUntilLabel}</span>
-                                                            </span>
-                                                        </f:else>
-                                                    </f:if>
-                                                </f:then>
-                                                <f:else>
-                                                    <span class="aqg-pill tone-none">
-                                                        <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.permanentPill" default="Ignored · permanent" />
-                                                    </span>
-                                                </f:else>
-                                            </f:if>
-                                        </f:then>
-                                    </f:if>
-                                    <f:if condition="{issue.ignoreWasReopened}">
-                                        <span class="aqg-pill tone-reopened">
-                                            <span class="aqg-pill__dot" aria-hidden="true"></span>
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopened" default="Reopened" />
-                                            <span class="aqg-pill__sep" aria-hidden="true"></span>
-                                            <span class="aqg-pill__date">{issue.ignoredReopenedAtLabel}</span>
-                                        </span>
-                                    </f:if>
-                                </div>
-                            </header>
-
-                            <f:if condition="{issue.statusEnum.value} != 2">
-                                <f:render partial="Issue/LocalGuidance" arguments="{guidance: issue.guidance}" />
-                                <f:render partial="Issue/AiLinkTextSuggestion" arguments="{issue: issue}" />
-                                <f:render partial="Issue/AiIframeTitleSuggestion" arguments="{issue: issue}" />
-                            </f:if>
-
-                            <f:if condition="{issue.statusEnum.value} == 2 && {issue.ignored_reason}">
-                                <div class="aqg-issue-state-card aqg-issue-state-card--ignored">
-                                    <div class="aqg-issue-state-card__head">
-                                        <span class="aqg-issue-state-card__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" /></span>
-                                        <span class="aqg-issue-state-card__pill">{issue.ignored_reason}</span>
-                                    </div>
-                                    <f:if condition="{issue.ignored_by_name} || {issue.ignored_by_username} || {issue.ignored_at}">
-                                        <div class="aqg-issue-state-card__meta">
-                                            <span class="aqg-issue-state-card__meta-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.ignoredBy" default="Ignored by" /></span>
-                                            <strong class="aqg-issue-state-card__user">
-                                                <f:if condition="{issue.ignored_by_name}">
-                                                    <f:then>{issue.ignored_by_name}</f:then>
-                                                    <f:else>
-                                                        <f:if condition="{issue.ignored_by_username}">
-                                                            <f:then>{issue.ignored_by_username}</f:then>
-                                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.unknownEditor" default="Unknown editor" /></f:else>
-                                                        </f:if>
-                                                    </f:else>
+                    <f:for each="{group.rules}" as="rule">
+                        <article class="aqg-rulecard" id="{rule.anchorId}" data-aqg-rule-card="true" data-rule-id="{rule.ruleId}">
+                            <h3 class="aqg-rulecard__heading">
+                                <button
+                                        type="button"
+                                        class="aqg-rulecard__toggle"
+                                        data-aqg-toggle="true"
+                                        data-aqg-rule-toggle="true"
+                                        aria-expanded="true"
+                                        aria-controls="{rule.anchorId}-body"
+                                >
+                                    <span class="aqg-rulecard__lead">
+                                        <f:render partial="Shared/SeverityBadge" arguments="{level: groupKey}" />
+                                        <span class="aqg-rulecard__title">{rule.title}</span>
+                                    </span>
+                                    <span class="aqg-rulecard__count">
+                                        <f:if condition="{rule.continues}">
+                                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.occurrencesPartial" default="%1$d of %2$d occurrences" arguments="{0: rule.occurrencesOnListPage, 1: rule.occurrencesTotal}" /></f:then>
+                                            <f:else>
+                                                {rule.occurrencesOnListPage}
+                                                <f:if condition="{rule.occurrencesOnListPage} == 1">
+                                                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.occurrence" default="occurrence" /></f:then>
+                                                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityFixes.occurrences" default="occurrences" /></f:else>
                                                 </f:if>
-                                            </strong>
-                                            <f:if condition="{issue.ignored_by}">
-                                                <span class="aqg-issue-state-card__uid">UID {issue.ignored_by}</span>
-                                            </f:if>
-                                            <f:if condition="{issue.ignored_at}">
-                                                <span class="aqg-issue-state-card__date"><f:format.date format="d.m.Y · H:i">@{issue.ignored_at}</f:format.date></span>
-                                            </f:if>
-                                        </div>
-                                    </f:if>
-                                    <f:if condition="{issue.ignoreIsTemporary}">
-                                        <f:then>
-                                            <div class="aqg-ignored-reason__expiry {f:if(condition: issue.ignoreReopensSoon, then: 'tone-soon')}">
-                                                <span class="aqg-ignored-reason__expiry-icon" aria-hidden="true">↻</span>
-                                                <span class="aqg-ignored-reason__expiry-text">
-                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopensOn" default="Reopens automatically on" /> <strong>{issue.ignoredUntilLabel}</strong>.
-                                                </span>
-                                                <span class="aqg-ignored-reason__expiry-date">{issue.ignoredUntilRelative}</span>
-                                            </div>
-                                        </f:then>
-                                        <f:else>
-                                            <div class="aqg-ignored-reason__expiry">
-                                                <span class="aqg-ignored-reason__expiry-icon" aria-hidden="true">○</span>
-                                                <span class="aqg-ignored-reason__expiry-text">
-                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.permanentText" default="Permanent ignore — this issue stays ignored until someone unignores it manually." />
-                                                </span>
-                                            </div>
-                                        </f:else>
-                                    </f:if>
-                                </div>
+                                            </f:else>
+                                        </f:if>
+                                    </span>
+                                    <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                                </button>
+                            </h3>
+                            <f:if condition="{rule.howToFix}">
+                                <p class="aqg-rulecard__fix"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.howToFix" default="How to fix" />:</strong> {rule.howToFix}</p>
                             </f:if>
 
-                            <f:if condition="{issue.ignoreWasReopened}">
-                                <div class="aqg-issue-state-card aqg-issue-state-card--reopened">
-                                    <div class="aqg-ignored-reason__expiry tone-reopened">
-                                        <span class="aqg-ignored-reason__expiry-icon" aria-hidden="true">↻</span>
-                                        <span class="aqg-ignored-reason__expiry-text">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopenedText" default="This issue reopened automatically because its ignore expiry date was reached. The original reason is kept for context." />
-                                        </span>
-                                        <span class="aqg-ignored-reason__expiry-date">{issue.ignoredReopenedAtLabel}</span>
-                                    </div>
-                                </div>
-                            </f:if>
+                            <div class="aqg-rulecard__body" id="{rule.anchorId}-body">
+                                <ul class="aqg-occs">
+                                    <f:for each="{rule.issues}" as="issue">
+                                        <f:render section="Occurrence" arguments="{_all}" />
+                                    </f:for>
+                                </ul>
 
-                            <f:if condition="{issue.statusEnum.value} == 1">
-                                <f:if condition="{issue.resolved_by_name} || {issue.resolved_by_username} || {issue.resolved_at}">
-                                    <div class="aqg-issue-state-card aqg-issue-state-card--resolved">
-                                        <div class="aqg-issue-state-card__head">
-                                            <span class="aqg-issue-state-card__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" default="Resolved" /></span>
-                                            <span class="aqg-issue-state-card__pill"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.pill" default="Fixed or no longer found" /></span>
-                                        </div>
-                                        <div class="aqg-issue-state-card__meta">
-                                            <span class="aqg-issue-state-card__meta-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.by" default="Resolved by" /></span>
-                                            <strong class="aqg-issue-state-card__user">
-                                                <f:if condition="{issue.resolved_by_name}">
-                                                    <f:then>{issue.resolved_by_name}</f:then>
-                                                    <f:else>
-                                                        <f:if condition="{issue.resolved_by_username}">
-                                                            <f:then>{issue.resolved_by_username}</f:then>
-                                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.systemScan" default="System scan" /></f:else>
-                                                        </f:if>
-                                                    </f:else>
-                                                </f:if>
-                                            </strong>
-                                            <f:if condition="{issue.resolved_by}">
-                                                <span class="aqg-issue-state-card__uid">UID {issue.resolved_by}</span>
-                                            </f:if>
-                                            <f:if condition="{issue.resolved_at}">
-                                                <span class="aqg-issue-state-card__date"><f:format.date format="d.m.Y · H:i">@{issue.resolved_at}</f:format.date></span>
-                                            </f:if>
-                                        </div>
-                                    </div>
-                                </f:if>
-                            </f:if>
-
-                            <f:if condition="{issue.imageRemediationAvailable}">
-                                <f:render partial="Issue/ImageRemediationActions" arguments="{issue: issue}" />
-                            </f:if>
-
-                            <div class="aqg-issue__actions">
-                                <f:if condition="{issue.hasEditAccess}">
-                                    <f:then>
-                                        <a href="{issue.editLink}" class="btn btn-primary btn-sm">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.editRecord"
-                                            />
-                                        </a>
-                                    </f:then>
-                                    <f:else>
-                                        <span class="aqg-noaccess">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noEditAccess"
-                                                    default="No edit access"
-                                            />
-                                        </span>
-                                    </f:else>
-                                </f:if>
-
-                                <f:if condition="{issue.statusEnum.value} == 0">
-                                    <button
-                                            type="button"
-                                            class="btn btn-default btn-sm a11y-ignore-trigger"
-                                            data-issue-uid="{issue.uid}"
-                                    >
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.ignore"
-                                        />
-                                    </button>
-
-                                    <f:if condition="{issue.rule_id}">
+                                <div class="aqg-rulecard__foot">
+                                    <f:if condition="{rule.hasOpenIssue} && {activeStatus} == 'open'">
                                         <details class="aqg-menu" data-aqg-menu="true">
                                             <summary class="btn btn-default btn-sm aqg-menu__toggle">
                                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.moreActions" default="More actions" />
                                             </summary>
                                             <div class="aqg-menu__panel">
-                                                <button type="button" class="aqg-rule-action aqg-menu__item" data-action="a11y-bulk-select-rule" data-rule-id="{issue.rule_id}">
+                                                <button type="button" class="aqg-rule-action aqg-menu__item" data-action="a11y-bulk-select-rule" data-rule-id="{rule.ruleId}">
                                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.selectAll" default="Select all with this rule" />
                                                 </button>
-                                                <button type="button" class="aqg-rule-action aqg-rule-action--page aqg-menu__item" data-action="a11y-bulk-open-rule-page" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnPage}">
-                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: issue.openRuleCountOnPage}" />
+                                                <button type="button" class="aqg-rule-action aqg-rule-action--page aqg-menu__item" data-action="a11y-bulk-open-rule-page" data-rule-id="{rule.ruleId}" data-rule-count="{rule.openRuleCountOnPage}">
+                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: rule.openRuleCountOnPage}" />
                                                 </button>
                                                 <f:if condition="{canIgnoreRuleOnSite}">
-                                                    <button type="button" class="aqg-rule-action aqg-rule-action--site aqg-menu__item" data-action="a11y-bulk-open-rule-site" data-rule-id="{issue.rule_id}" data-rule-count="{issue.openRuleCountOnSite}">
-                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnSite" default="Ignore all on site (%d)" arguments="{0: issue.openRuleCountOnSite}" />
+                                                    <button type="button" class="aqg-rule-action aqg-rule-action--site aqg-menu__item" data-action="a11y-bulk-open-rule-site" data-rule-id="{rule.ruleId}" data-rule-count="{rule.openRuleCountOnSite}">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnSite" default="Ignore all on site (%d)" arguments="{0: rule.openRuleCountOnSite}" />
                                                     </button>
                                                 </f:if>
                                             </div>
                                         </details>
                                     </f:if>
-                                </f:if>
-
-                                <f:if condition="{issue.statusEnum.value} == 2">
-                                    <form method="post" action="{unignoreUrl}" class="d-inline">
-                                        <input type="hidden" name="issueUid" value="{issue.uid}" />
-                                        <input type="hidden" name="pageUid" value="{pageUid}" />
-                                        <input type="hidden" name="siteIdentifier" value="{siteIdentifier}" />
-                                        <input type="hidden" name="status" value="{activeStatus}" />
-                                        <input type="hidden" name="severity" value="{activeSeverity}" />
-                                        <input type="hidden" name="page" value="{pagination.currentPage}" />
-                                        <input type="hidden" name="language" value="{currentLanguageUid}" />
-
-                                        <button type="submit" class="btn btn-default btn-sm">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.unignore"
-                                            />
+                                    <f:if condition="{rule.guidance.whyItMatters} || {rule.guidance.hasAffectedUsers}">
+                                        <button type="button" class="aqg-disclosure-btn" data-aqg-toggle="true" aria-expanded="false" aria-controls="{rule.anchorId}-why">
+                                            <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.guidance.whyItMatters" default="Why it matters" />
                                         </button>
-                                    </form>
-                                </f:if>
-                            </div>
-
-                            <f:if condition="{issue.statusEnum.value} == 0">
-                                <div class="aqg-ignore-form mt-2" id="ignore-form-{issue.uid}" hidden="hidden">
-                                    <form method="post" action="{ignoreUrl}">
-                                        <input type="hidden" name="issueUid" value="{issue.uid}" />
-                                        <input type="hidden" name="pageUid" value="{pageUid}" />
-                                        <input type="hidden" name="siteIdentifier" value="{siteIdentifier}" />
-                                        <input type="hidden" name="status" value="{activeStatus}" />
-                                        <input type="hidden" name="severity" value="{activeSeverity}" />
-                                        <input type="hidden" name="page" value="{pagination.currentPage}" />
-                                        <input type="hidden" name="language" value="{currentLanguageUid}" />
-
-                                        <div class="aqg-ignore-form__label">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.ignore"
-                                                    default="Ignore this issue"
-                                            />
-                                        </div>
-                                        <textarea
-                                                name="reason"
-                                                class="aqg-textarea"
-                                                placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:ignore.modal.reason.placeholder')}"
-                                                required="required"
-                                        ></textarea>
-
-                                        <f:render partial="Shared/ExpiryPicker" arguments="{inputId: 'ignore-until-', issueUid: issue.uid}" />
-
-                                        <div class="aqg-ignore-form__actions">
-                                            <button
-                                                    type="button"
-                                                    class="btn btn-default btn-sm a11y-ignore-cancel"
-                                                    data-target="ignore-form-{issue.uid}"
-                                            >
-                                                <f:translate
-                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel"
-                                                />
-                                            </button>
-                                            <button type="submit" class="btn btn-warning btn-sm">
-                                                <f:translate
-                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.confirmIgnore"
-                                                />
-                                            </button>
-                                        </div>
-                                    </form>
+                                    </f:if>
+                                    <button type="button" class="aqg-disclosure-btn" data-aqg-toggle="true" aria-expanded="false" aria-controls="{rule.anchorId}-details">
+                                        <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.reference" default="Standards and rule reference" />
+                                    </button>
                                 </div>
-                            </f:if>
 
-                            <div class="aqg-issue__meta">
-                                <f:if condition="{issue.context_path}">
-                                    <span class="aqg-meta-pair">
-                                        <span class="aqg-meta-pair__label">
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.locationLabel"
-                                                    default="Location"
-                                            />
-                                        </span>
-                                        <span class="aqg-meta-pair__value">{issue.context_path}</span>
-                                    </span>
+                                <f:if condition="{rule.guidance.whyItMatters} || {rule.guidance.hasAffectedUsers}">
+                                    <div class="aqg-details-body" id="{rule.anchorId}-why" hidden="hidden" data-aqg-rule-why="true">
+                                        <f:render partial="Issue/LocalGuidance" arguments="{guidance: rule.guidance, section: 'why'}" />
+                                    </div>
                                 </f:if>
-                                <span class="aqg-meta-pair">
-                                    <span class="aqg-meta-pair__label">
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.fieldLabel"
-                                                default="Field"
-                                        />
-                                    </span>
-                                    <span class="aqg-meta-pair__value">{issue.source_field}</span>
-                                </span>
-                                <span class="aqg-meta-pair">
-                                    <span class="aqg-meta-pair__label">
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel"
-                                                default="Rule"
-                                        />
-                                    </span>
-                                    <span class="aqg-meta-pair__value">{issue.rule_id}</span>
-                                </span>
-                            </div>
 
-                            <details class="aqg-disclosure">
-                                <summary class="aqg-disclosure__summary">
-                                    <span class="aqg-disclosure__chev">›</span>
-                                    <span>
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.technicalDetails"
-                                                default="Technical details"
-                                        />
-                                    </span>
-                                </summary>
-
-                                <div class="aqg-disclosure__body">
-                                    <dl class="aqg-kv">
-                                        <dt>
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.sourceTable"
-                                                    default="Source table"
-                                            />
-                                        </dt>
-                                        <dd>{issue.source_table}</dd>
-                                        <dt>
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.sourceUid"
-                                                    default="Source UID"
-                                            />
-                                        </dt>
-                                        <dd>{issue.source_uid}</dd>
-                                        <dt>
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.fieldLabel"
-                                                    default="Field"
-                                            />
-                                        </dt>
-                                        <dd>{issue.source_field}</dd>
-                                        <dt>
-                                            <f:translate
-                                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel"
-                                                    default="Rule"
-                                            />
-                                        </dt>
-                                        <dd>{issue.rule_id}</dd>
-                                        <f:if condition="{issue.frontend_url}">
-                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.frontendUrl" default="Frontend URL" /></dt>
-                                            <dd>
-                                                <a href="{issue.frontend_url}" target="_blank" rel="noopener noreferrer">
-                                                    {issue.frontend_url}
-                                                </a>
-                                            </dd>
-                                        </f:if>
-                                        <f:if condition="{issue.css_selector}">
-                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.cssSelector" default="CSS selector" /></dt>
-                                            <dd>{issue.css_selector}</dd>
-                                        </f:if>
+                                <div class="aqg-details-body" id="{rule.anchorId}-details" hidden="hidden" data-aqg-rule-reference="true">
+                                    <f:render partial="Issue/LocalGuidance" arguments="{guidance: rule.guidance, section: 'reference'}" />
+                                    <dl class="aqg-kvlist">
+                                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" default="Rule" /></dt>
+                                        <dd><code>{rule.ruleId}</code></dd>
                                     </dl>
-
-                                    <f:if condition="{issue.context_snippet}">
-                                        <div>
-                                            <div class="aqg-snippet__caption">
-                                                <f:translate
-                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.snippetLabel"
-                                                        default="Snippet"
-                                                />
-                                            </div>
-                                            <pre class="aqg-snippet aqg-snippet--wrap"><code>{issue.context_snippet}</code></pre>
-                                        </div>
+                                    <f:if condition="{rule.hasRenderedSource}">
+                                        <p class="aqg-details-body__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rendered.text" default="Rendered checks inspect the server-rendered HTML returned by TYPO3. They do not execute JavaScript or load AJAX/lazy-loaded content, but may detect issues from Fluid templates, plugins, TypoScript wrapping or sitepackage components." /></p>
                                     </f:if>
                                 </div>
-                            </details>
+                            </div>
                         </article>
                     </f:for>
                 </section>
-            </f:if>
-        </f:for>
+            </f:for>
+        </div>
+        </f:if>
 
         <f:if condition="{pagination.totalPages} > 1">
             <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.aria', default: 'Issue pagination')}" class="aqg-detail-pagination">
@@ -1067,5 +507,262 @@
         </f:if>
 
     </div>
+</f:section>
+
+<f:section name="SeverityChip">
+    <f:if condition="{count} > 0">
+        <a href="{url}" class="aqg-chip aqg-chip--{level}{f:if(condition: '{active} == {level}', then: ' is-active')}" {f:if(condition: '{active} == {level}', then: 'aria-current="true"')}>
+            <f:render partial="Shared/AqgIcon" arguments="{name: icon, size: 'sm'}" />
+            <span>
+                <f:switch expression="{level}">
+                    <f:case value="critical"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" /></f:case>
+                    <f:case value="warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" default="Warnings" /></f:case>
+                    <f:case value="info"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" default="Info" /></f:case>
+                    <f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" default="Needs review" /></f:defaultCase>
+                </f:switch>
+            </span>
+            <span class="aqg-chip__count">{count}</span>
+        </a>
+    </f:if>
+</f:section>
+
+<f:section name="Occurrence">
+    <li class="aqg-occ {f:if(condition: '{issue.statusEnum.value} == 2', then: 'is-ignored')} {f:if(condition: '{issue.statusEnum.value} == 1', then: 'is-resolved')}" data-a11y-issue-card="true" data-issue-uid="{issue.uid}" data-rule-id="{issue.rule_id}" data-group-key="{groupKey}" data-rule-page-count="{issue.openRuleCountOnPage}" data-rule-site-count="{issue.openRuleCountOnSite}">
+        <div class="aqg-occ__row">
+            <f:if condition="{issue.statusEnum.value} == 0">
+                <f:then>
+                    <button
+                            type="button"
+                            class="aqg-issue__select"
+                            data-action="a11y-bulk-toggle-issue"
+                            data-issue-uid="{issue.uid}"
+                            data-rule-id="{issue.rule_id}"
+                            data-group-key="{groupKey}"
+                            aria-checked="false"
+                            role="checkbox"
+                            aria-label="{issue.selectLabel}"
+                    >
+                        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                            <path d="M2.2 6.2 4.8 8.8 9.8 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </f:then>
+                <f:else>
+                    <span class="aqg-occ__spacer" aria-hidden="true"></span>
+                </f:else>
+            </f:if>
+
+            <div class="aqg-occ__loc">
+                <span class="aqg-occ__where" data-aqg-occ-where="true">
+                    <f:if condition="{issue.location.isPageLevel}">
+                        <f:then><f:render partial="Shared/AqgIcon" arguments="{name: 'globe', size: 'sm'}" /></f:then>
+                        <f:else><f:render partial="Shared/AqgIcon" arguments="{name: 'page', size: 'sm'}" /></f:else>
+                    </f:if>
+                    <strong class="aqg-occ__title">{issue.location.title}</strong>
+                    <f:if condition="{issue.location.context}">
+                        <span class="aqg-occ__context">{issue.location.context}</span>
+                    </f:if>
+                </span>
+                <f:if condition="{issue.occurrenceWhat}">
+                    <span class="aqg-occ__what">{issue.occurrenceWhat}</span>
+                </f:if>
+                <span class="aqg-occ__meta">
+                    <f:if condition="{issue.snippetPreview}">
+                        <code class="aqg-occ__code" data-aqg-occ-snippet="true">{issue.snippetPreview}</code>
+                    </f:if>
+                    <button type="button" class="aqg-disclosure-btn aqg-occ__techtoggle" data-aqg-toggle="true" aria-expanded="false" aria-controls="aqg-occ-{issue.uid}-tech">
+                        <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.technicalDetails" default="Technical details" />
+                    </button>
+                </span>
+                <f:render section="OccurrenceState" arguments="{issue: issue}" />
+            </div>
+
+            <div class="aqg-occ__actions">
+                <f:if condition="{issue.hasEditAccess}">
+                    <f:then>
+                        <a href="{issue.editLink}" class="btn btn-default btn-sm">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.editRecord" /><span class="visually-hidden">: {issue.location.title}</span>
+                        </a>
+                    </f:then>
+                    <f:else>
+                        <span class="aqg-noaccess">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.noEditAccess" default="No edit access" />
+                        </span>
+                    </f:else>
+                </f:if>
+
+                <f:if condition="{issue.statusEnum.value} == 0">
+                    <details class="aqg-menu aqg-occ__menu" data-aqg-menu="true">
+                        <summary class="btn btn-default btn-sm aqg-iconbtn aqg-menu__toggle" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.moreActions', default: 'More actions for this occurrence')}" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.moreActions', default: 'More actions for this occurrence')}">
+                            <f:render partial="Shared/AqgIcon" arguments="{name: 'dots'}" />
+                        </summary>
+                        <div class="aqg-menu__panel">
+                            <button
+                                    type="button"
+                                    class="aqg-menu__item a11y-ignore-trigger"
+                                    data-issue-uid="{issue.uid}"
+                            >
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.ignore" default="Ignore this occurrence…" />
+                            </button>
+                        </div>
+                    </details>
+                </f:if>
+
+                <f:if condition="{issue.statusEnum.value} == 2">
+                    <form method="post" action="{unignoreUrl}" class="d-inline">
+                        <input type="hidden" name="issueUid" value="{issue.uid}" />
+                        <input type="hidden" name="pageUid" value="{pageUid}" />
+                        <input type="hidden" name="siteIdentifier" value="{siteIdentifier}" />
+                        <input type="hidden" name="status" value="{activeStatus}" />
+                        <input type="hidden" name="severity" value="{activeSeverity}" />
+                        <input type="hidden" name="page" value="{pagination.currentPage}" />
+                        <input type="hidden" name="language" value="{currentLanguageUid}" />
+                        <button type="submit" class="btn btn-default btn-sm">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.unignore" />
+                        </button>
+                    </form>
+                </f:if>
+            </div>
+        </div>
+
+        <div class="aqg-occ__tech">
+            <div class="aqg-details-body aqg-occ__techbody" id="aqg-occ-{issue.uid}-tech" hidden="hidden" data-aqg-occ-technical="true">
+                <dl class="aqg-kvlist">
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.sourceLabel" default="Source" /></dt>
+                    <dd><code>{issue.source_table}</code> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.sourceUid" default="Source UID" /> {issue.source_uid} · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.fieldLabel" default="Field" /> {issue.location.fieldLabel} <code>{issue.source_field}</code> · {issue.sourceTypeLabel}</dd>
+                    <f:if condition="{issue.css_selector}">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.cssSelector" default="CSS selector" /></dt>
+                        <dd><code>{issue.css_selector}</code></dd>
+                    </f:if>
+                    <f:if condition="{issue.technicalPath}">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.elementPath" default="Element path" /></dt>
+                        <dd><code>{issue.technicalPath}</code></dd>
+                    </f:if>
+                    <f:if condition="{issue.frontend_url}">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.frontendUrl" default="Frontend URL" /></dt>
+                        <dd><a href="{issue.frontend_url}" target="_blank" rel="noopener noreferrer">{issue.frontend_url}<span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.opensInNewTab" default="(opens in a new tab)" /></span></a></dd>
+                    </f:if>
+                    <f:if condition="{issue.context_snippet}">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.snippetLabel" default="Snippet" /></dt>
+                        <dd><pre class="aqg-snippet aqg-snippet--wrap"><code>{issue.context_snippet}</code></pre></dd>
+                    </f:if>
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ruleLabel" default="Rule" /></dt>
+                    <dd><code>{issue.rule_id}</code></dd>
+                </dl>
+            </div>
+        </div>
+
+        <f:if condition="{issue.statusEnum.value} == 0">
+            <div class="aqg-ignore-form" id="ignore-form-{issue.uid}" hidden="hidden">
+                <form method="post" action="{ignoreUrl}">
+                    <input type="hidden" name="issueUid" value="{issue.uid}" />
+                    <input type="hidden" name="pageUid" value="{pageUid}" />
+                    <input type="hidden" name="siteIdentifier" value="{siteIdentifier}" />
+                    <input type="hidden" name="status" value="{activeStatus}" />
+                    <input type="hidden" name="severity" value="{activeSeverity}" />
+                    <input type="hidden" name="page" value="{pagination.currentPage}" />
+                    <input type="hidden" name="language" value="{currentLanguageUid}" />
+
+                    <label class="aqg-ignore-form__label" for="ignore-reason-{issue.uid}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.reason" default="Reason for ignoring" />
+                    </label>
+                    <textarea
+                            id="ignore-reason-{issue.uid}"
+                            name="reason"
+                            class="aqg-textarea"
+                            placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:ignore.modal.reason.placeholder')}"
+                            required="required"
+                    ></textarea>
+
+                    <f:render partial="Shared/ExpiryPicker" arguments="{inputId: 'ignore-until-', issueUid: issue.uid}" />
+
+                    <div class="aqg-ignore-form__actions">
+                        <button
+                                type="button"
+                                class="btn btn-default btn-sm a11y-ignore-cancel"
+                                data-target="ignore-form-{issue.uid}"
+                        >
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel" />
+                        </button>
+                        <button type="submit" class="btn btn-warning btn-sm">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.confirmIgnore" />
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </f:if>
+
+        <f:if condition="{issue.statusEnum.value} != 2">
+            <f:render partial="Issue/AiLinkTextSuggestion" arguments="{issue: issue}" />
+            <f:render partial="Issue/AiIframeTitleSuggestion" arguments="{issue: issue}" />
+        </f:if>
+
+        <f:if condition="{issue.imageRemediationAvailable}">
+            <f:render partial="Issue/ImageRemediationActions" arguments="{issue: issue}" />
+        </f:if>
+    </li>
+</f:section>
+
+<f:section name="OccurrenceState">
+    <f:if condition="{issue.statusEnum.value} == 2">
+        <p class="aqg-occ__state">
+            <f:if condition="{issue.ignoreIsTemporary}">
+                <f:then>
+                    <f:if condition="{issue.ignoreReopensSoon}">
+                        <f:then><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopensSoon" default="Reopens soon" /></strong></f:then>
+                        <f:else><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.ignored" default="Ignored" /></strong></f:else>
+                    </f:if>
+                    · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopensOn" default="Reopens automatically on" /> {issue.ignoredUntilLabel} ({issue.ignoredUntilRelative})
+                </f:then>
+                <f:else>
+                    <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.permanentPill" default="Ignored · permanent" /></strong>
+                </f:else>
+            </f:if>
+            <f:if condition="{issue.ignored_by_name} || {issue.ignored_by_username} || {issue.ignored_at}">
+                · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.ignoredBy" default="Ignored by" />
+                <f:if condition="{issue.ignored_by_name}">
+                    <f:then>{issue.ignored_by_name}</f:then>
+                    <f:else>
+                        <f:if condition="{issue.ignored_by_username}">
+                            <f:then>{issue.ignored_by_username}</f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.unknownEditor" default="Unknown editor" /></f:else>
+                        </f:if>
+                    </f:else>
+                </f:if>
+                <f:if condition="{issue.ignored_at}"><f:format.date format="d.m.Y · H:i">@{issue.ignored_at}</f:format.date></f:if>
+            </f:if>
+            <f:if condition="{issue.ignored_reason}">
+                <br /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.reasonLabel" default="Reason:" /> {issue.ignored_reason}
+            </f:if>
+        </p>
+    </f:if>
+
+    <f:if condition="{issue.ignoreWasReopened}">
+        <p class="aqg-occ__state aqg-occ__state--reopened">
+            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopened" default="Reopened" /> {issue.ignoredReopenedAtLabel}</strong>
+            · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ignore.reopenedText" default="This issue reopened automatically because its ignore expiry date was reached. The original reason is kept for context." />
+        </p>
+    </f:if>
+
+    <f:if condition="{issue.statusEnum.value} == 1">
+        <p class="aqg-occ__state aqg-occ__state--resolved">
+            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:issue.status.resolved" default="Resolved" /></strong>
+            · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.pill" default="Fixed or no longer found" />
+            <f:if condition="{issue.resolved_by_name} || {issue.resolved_by_username} || {issue.resolved_at}">
+                · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.by" default="Resolved by" />
+                <f:if condition="{issue.resolved_by_name}">
+                    <f:then>{issue.resolved_by_name}</f:then>
+                    <f:else>
+                        <f:if condition="{issue.resolved_by_username}">
+                            <f:then>{issue.resolved_by_username}</f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.resolved.systemScan" default="System scan" /></f:else>
+                        </f:if>
+                    </f:else>
+                </f:if>
+                <f:if condition="{issue.resolved_at}"><f:format.date format="d.m.Y · H:i">@{issue.resolved_at}</f:format.date></f:if>
+            </f:if>
+        </p>
+    </f:if>
 </f:section>
 </html>

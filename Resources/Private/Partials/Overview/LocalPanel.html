@@ -1,13 +1,75 @@
 <html
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
-        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
-<div class="aqg-panel-stack">
+<div class="aqg-panel-stack aqg-sv-panel">
+    <f:render partial="Overview/ScanScope" arguments="{kind: 'local', canShowSettings: canShowSettings, scanFieldsSettingsUrl: scanFieldsSettingsUrl}" />
+
+    <f:if condition="{fieldsInitializedCount} > 0">
+        <div class="aqg-note aqg-note--info" role="status" data-aqg-first-run="fields-initialized">
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'ok'}" />
+            <div class="aqg-note__text">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.title" default="AQG is ready to scan" /></strong>
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.text" default="AQG found %1$d rich-text and image fields in your TYPO3 content and enabled them for scanning. Next: Scan this page or Scan site." arguments="{0: fieldsInitializedCount}" />
+            </div>
+            <f:if condition="{canShowSettings}">
+                <div class="aqg-note__actions">
+                    <a href="{scanFieldsSettingsUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.reviewFields" default="Review scan fields" /></a>
+                </div>
+            </f:if>
+        </div>
+    </f:if>
+
+    <f:if condition="!{hasEnabledFields}">
+        <div class="aqg-note aqg-note--warning" role="status" data-aqg-first-run="fields-missing">
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" />
+            <div class="aqg-note__text">
+                <f:if condition="{hasFieldConfiguration}">
+                    <f:then>
+                        <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.fieldsDisabled.title" default="No content fields are enabled for scanning" /></strong>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.fieldsDisabled.text" default="Content scans skip all TYPO3 content fields until at least one field is enabled." />
+                    </f:then>
+                    <f:else>
+                        <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.noFieldsFound.title" default="No scannable content fields found" /></strong>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.noFieldsFound.text" default="AQG found no rich-text or image fields in TCA. Refresh the field list after installing the extensions that provide your content." />
+                    </f:else>
+                </f:if>
+            </div>
+            <f:if condition="{canShowSettings}">
+                <div class="aqg-note__actions">
+                    <a href="{scanFieldsSettingsUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.chooseFields" default="Choose scan fields" /></a>
+                </div>
+            </f:if>
+        </div>
+    </f:if>
+
+    <div class="aqg-stack aqg-scan-progress-stack" data-a11y-scan-progress-stack="true">
+        <f:render
+                partial="Shared/LocalScanProgress"
+                arguments="{
+                    isRunning: isRelevantLocalScanRunning,
+                    scanStatus: scanStatus,
+                    canCancel: canCancelLocalScan,
+                    hasPreviousResult: lastScan
+                }"
+        />
+        <f:if condition="{lastScan}">
+            <f:variable name="lastCompletedDate"><f:if condition="{lastScan.finished_at_formatted}"><f:then>{lastScan.finished_at_formatted}</f:then><f:else>{lastScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:else></f:if></f:variable>
+            <f:render partial="Shared/LastCompletedScan" arguments="{source: 'local', date: lastCompletedDate, visible: isRelevantLocalScanRunning}" />
+        </f:if>
+    </div>
+
     <f:render
             partial="Overview/LocalActions"
             arguments="{
                 lastScan: lastScan,
+                localRenderedCoverage: localRenderedCoverage,
+                lastScanScopeLabel: lastScanScopeLabel,
+                hasLocalResults: hasLocalResults,
+                totalCounts: totalCounts,
+                localNewCounts: localNewCounts,
+                totalLocalPages: totalLocalPages,
+                localQuery: localQuery,
                 canScanAll: canScanAll,
                 canScanNow: canScanNow,
                 siteRootPid: siteRootPid,
@@ -18,7 +80,10 @@
                 scanStatus: scanStatus,
                 isRelevantLocalScanRunning: isRelevantLocalScanRunning,
                 currentLanguageUid: currentLanguageUid,
-                gettingStarted: gettingStarted
+                gettingStarted: gettingStarted,
+                exportLocalCsvUrl: exportLocalCsvUrl,
+                exportLocalPdfUrl: exportLocalPdfUrl,
+                showPdfExport: proStatus.hasExportPdf
             }"
     />
 
@@ -26,126 +91,107 @@
         <f:render partial="Overview/FreePreviewNextStep" />
     </f:if>
 
-    <f:render partial="Overview/LocalStats" arguments="{totalCounts: totalCounts, localNewCounts: localNewCounts, localScanDelta: localScanDelta, totalLocalPages: totalLocalPages, lastScan: lastScan}" />
-
-    <section class="aqg-section">
-        <div class="aqg-toolbar-row">
-            <div class="aqg-toolbar-row__left">
-                <div class="aqg-toolbar-row__title" id="a11y-overview-local-pages-title">
+    <f:if condition="{pageStats} || {localQuery}">
+    <section class="aqg-block" aria-labelledby="a11y-overview-local-pages-title">
+        <div class="aqg-block__head">
+            <div class="aqg-block__heading">
+                <h2 class="aqg-block__title" id="a11y-overview-local-pages-title">
                     <f:translate
                             key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.title"
                             default="Pages with open issues"
                     />
-                </div>
-                <div class="aqg-toolbar-row__sub">
-                    <span>
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.sortedHint"
-                                default="Sorted by severity"
-                        />
-                    </span>
-                    <span>·</span>
-                    <span>
-                        {totalLocalPages}
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages"
-                                default="pages"
-                        />
-                    </span>
-                    <f:if condition="{localPagination.totalPages} > 1">
-                        <span>·</span>
-                        <span>
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.page"
-                                    default="Page"
-                            />
-                            {localPagination.currentPage}/{localPagination.totalPages}
-                        </span>
+                </h2>
+                <p class="aqg-block__sub">
+                    {totalLocalPages}
+                    <f:if condition="{totalLocalPages} == 1">
+                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.page" default="page" /></f:then>
+                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages" default="pages" /></f:else>
                     </f:if>
-                </div>
-            </div>
-
-            <div class="a11y-overview-header-tools aqg-toolbar-row__right">
-                <form method="get" role="search" class="mb-0 a11y-overview-search-form">
-                    <f:if condition="{currentPageUid} > 0">
-                        <f:then>
-                            <input type="hidden" name="id" value="{currentPageUid}" />
-                        </f:then>
-                        <f:else>
-                            <input type="hidden" name="id" value="{siteRootPid}" />
-                        </f:else>
-                    </f:if>
-
-                    <f:if condition="{siteIdentifier}">
-                        <input type="hidden" name="site" value="{siteIdentifier}" />
-                    </f:if>
-
-                    <f:if condition="{currentLanguageUid} != 0">
-                        <input type="hidden" name="language" value="{currentLanguageUid}" />
-                    </f:if>
-
-                    <f:if condition="{remotePagination.currentPage} > 1">
-                        <input type="hidden" name="remotePage" value="{remotePagination.currentPage}" />
-                    </f:if>
-
-                    <f:if condition="{remoteFailedPagination.currentPage} > 1">
-                        <input type="hidden" name="remoteFailedPage" value="{remoteFailedPagination.currentPage}" />
-                    </f:if>
-
-                    <f:if condition="{remoteQuery}">
-                        <input type="hidden" name="remoteQuery" value="{remoteQuery}" />
-                    </f:if>
-
-                    <f:if condition="{remoteFailedQuery}">
-                        <input type="hidden" name="remoteFailedQuery" value="{remoteFailedQuery}" />
-                    </f:if>
-
-                    <label class="visually-hidden" for="a11y-overview-search-local">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.label"
-                                default="Search pages"
-                        />
-                    </label>
-
-                    <input
-                            type="search"
-                            id="a11y-overview-search-local"
-                            name="localQuery"
-                            value="{localQuery}"
-                            class="form-control form-control-sm"
-                            placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.placeholder', default: 'Search pages')}"
-                            data-a11y-overview-search="true"
-                            data-a11y-search-mode="server"
-                            autocomplete="off"
+                    ·
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.sortedHint"
+                            default="Sorted by severity"
                     />
-                </form>
-
-                <f:render
-                        partial="Shared/ExportButtons"
-                        arguments="{
-                            show: exportLocalCsvUrl,
-                            csvUrl: exportLocalCsvUrl,
-                            pdfUrl: exportLocalPdfUrl,
-                            showPdf: proStatus.hasExportPdf,
-                            pdfNoteId: 'aqg-export-pdf-note-local'
-                        }"
-                />
+                    <f:if condition="{localPagination.totalPages} > 1">
+                        ·
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.page"
+                                default="Page"
+                        />
+                        {localPagination.currentPage}/{localPagination.totalPages}
+                    </f:if>
+                </p>
             </div>
+
+            <form method="get" role="search" class="mb-0 a11y-overview-search-form aqg-block__search">
+                <f:if condition="{currentPageUid} > 0">
+                    <f:then>
+                        <input type="hidden" name="id" value="{currentPageUid}" />
+                    </f:then>
+                    <f:else>
+                        <input type="hidden" name="id" value="{siteRootPid}" />
+                    </f:else>
+                </f:if>
+
+                <f:if condition="{siteIdentifier}">
+                    <input type="hidden" name="site" value="{siteIdentifier}" />
+                </f:if>
+
+                <f:if condition="{currentLanguageUid} != 0">
+                    <input type="hidden" name="language" value="{currentLanguageUid}" />
+                </f:if>
+
+                <f:if condition="{remotePagination.currentPage} > 1">
+                    <input type="hidden" name="remotePage" value="{remotePagination.currentPage}" />
+                </f:if>
+
+                <f:if condition="{remoteFailedPagination.currentPage} > 1">
+                    <input type="hidden" name="remoteFailedPage" value="{remoteFailedPagination.currentPage}" />
+                </f:if>
+
+                <f:if condition="{remoteQuery}">
+                    <input type="hidden" name="remoteQuery" value="{remoteQuery}" />
+                </f:if>
+
+                <f:if condition="{remoteFailedQuery}">
+                    <input type="hidden" name="remoteFailedQuery" value="{remoteFailedQuery}" />
+                </f:if>
+
+                <label class="visually-hidden" for="a11y-overview-search-local">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.label"
+                            default="Search pages"
+                    />
+                </label>
+
+                <input
+                        type="search"
+                        id="a11y-overview-search-local"
+                        name="localQuery"
+                        value="{localQuery}"
+                        class="form-control form-control-sm"
+                        placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.placeholder', default: 'Search pages')}"
+                        data-a11y-overview-search="true"
+                        data-a11y-search-mode="server"
+                        autocomplete="off"
+                />
+            </form>
         </div>
 
-        <div>
-            <f:render
-                    partial="Overview/LocalTable"
-                    arguments="{
-                        pageStats: pageStats,
-                        totalLocalPages: totalLocalPages,
-                        localPagination: localPagination,
-                        localPaginationItems: localPaginationItems,
-                        localQuery: localQuery,
-                        lastScan: lastScan
-                    }"
-            />
-        </div>
+        <f:render
+                partial="Overview/LocalTable"
+                arguments="{
+                    pageStats: pageStats,
+                    totalLocalPages: totalLocalPages,
+                    localPagination: localPagination,
+                    localPaginationItems: localPaginationItems,
+                    localQuery: localQuery,
+                    lastScan: lastScan,
+                    currentPageUid: currentPageUid,
+                    currentLanguageUid: currentLanguageUid
+                }"
+        />
     </section>
+    </f:if>
 </div>
 </html>

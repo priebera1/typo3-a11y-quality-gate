@@ -13,9 +13,8 @@ use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Exception\ProNotConfiguredException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
-use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
+use Priebera\A11yQualityGate\Service\RemoteScreenshotAccessPolicy;
 use Priebera\A11yQualityGate\Service\BackendUserService;
-use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
@@ -48,7 +47,7 @@ final class RemoteScreenshotControllerTest extends TestCase
 
     private RemoteScreenshotService $screenshotService;
     private RemoteScanRepository $remoteScanRepository;
-    private BackendRecordAccessService $recordAccess;
+    private RemoteScreenshotAccessPolicy $accessPolicy;
 
     /** @var AbstractLogger&object{records: list<array{level: mixed, message: string, context: array<string, mixed>}>} */
     private AbstractLogger $logger;
@@ -61,8 +60,8 @@ final class RemoteScreenshotControllerTest extends TestCase
         $this->remoteScanRepository = $this->createMock(RemoteScanRepository::class);
         $this->remoteScanRepository->method('findPageByUid')->willReturn(['uid' => 7, 'remote_scan' => 3]);
         $this->remoteScanRepository->method('findScanByUid')->willReturn(['uid' => 3, 'page_uid' => 12, 'site_identifier' => 'main']);
-        $this->recordAccess = $this->createMock(BackendRecordAccessService::class);
-        $this->recordAccess->method('canEditRecord')->willReturn(true);
+        $this->accessPolicy = $this->createMock(RemoteScreenshotAccessPolicy::class);
+        $this->accessPolicy->method('canRead')->willReturn(true);
 
         $this->logger = new class () extends AbstractLogger {
             /** @var list<array{level: mixed, message: string, context: array<string, mixed>}> */
@@ -164,11 +163,11 @@ final class RemoteScreenshotControllerTest extends TestCase
     #[Test]
     public function aFailingAccessCheckFailsClosedWithoutDetails(): void
     {
-        $repository = $this->createMock(RemoteScanRepository::class);
-        $repository->method('findPageByUid')->willThrowException(
+        $policy = $this->createMock(RemoteScreenshotAccessPolicy::class);
+        $policy->method('canRead')->willThrowException(
             new \RuntimeException('SQLSTATE[42S02]: Base table or view not found in /var/www/html/public')
         );
-        $this->remoteScanRepository = $repository;
+        $this->accessPolicy = $policy;
         $this->screenshotService->expects(self::never())->method('fetchScreenshotByRemotePageUid');
 
         $response = $this->subject()->showAction($this->request(7));
@@ -180,9 +179,9 @@ final class RemoteScreenshotControllerTest extends TestCase
     #[Test]
     public function deniedAccessStaysForbiddenWithoutFetching(): void
     {
-        $recordAccess = $this->createMock(BackendRecordAccessService::class);
-        $recordAccess->method('canEditRecord')->willReturn(false);
-        $this->recordAccess = $recordAccess;
+        $policy = $this->createMock(RemoteScreenshotAccessPolicy::class);
+        $policy->method('canRead')->willReturn(false);
+        $this->accessPolicy = $policy;
         $this->screenshotService->expects(self::never())->method('fetchScreenshotByRemotePageUid');
 
         $response = $this->subject()->showAction($this->request(7));
@@ -228,9 +227,7 @@ final class RemoteScreenshotControllerTest extends TestCase
 
         return new RemoteScreenshotController(
             $this->screenshotService,
-            $this->remoteScanRepository,
-            $this->recordAccess,
-            $this->createMock(SiteResolutionService::class),
+            $this->accessPolicy,
             new ResponseFactory(),
             new StreamFactory(),
             $backendUserService,

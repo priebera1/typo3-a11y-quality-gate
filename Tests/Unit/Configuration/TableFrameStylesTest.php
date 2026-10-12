@@ -31,16 +31,19 @@ final class TableFrameStylesTest extends TestCase
     }
 
     #[Test]
-    public function theTablesThatFillACardSitInItsBodyAndTheFailedPagesTableInPadding(): void
+    public function theScanViewTablesKeepTheirOwnFrameAndTheFailedPagesTableSitsInPadding(): void
     {
         $local = (string)file_get_contents(self::EXTENSION . 'Resources/Private/Partials/Overview/LocalPanel.html');
         $remote = (string)file_get_contents(self::EXTENSION . 'Resources/Private/Partials/Overview/RemotePanel.html');
+        $css = (string)file_get_contents(self::EXTENSION . 'Resources/Public/Css/backend.css');
 
-        self::assertMatchesRegularExpression('/<section class="aqg-section[^"]*"[\s\S]*partial="Overview\/LocalTable"/', $local);
+        // The section title and search sit above the table; the table wrap draws the one frame.
+        self::assertMatchesRegularExpression('/<section class="aqg-block"[\s\S]*partial="Overview\/LocalTable"/', $local);
         self::assertSame(1, preg_match(
-            '/<section class="aqg-section" id="a11y-remote-top-pages">(?:(?!<\/section>)[\s\S])*<div class="aqg-table-wrap"[^>]*>/',
+            '/<section class="aqg-block" id="a11y-remote-top-pages"[^>]*>(?:(?!<\/section>)[\s\S])*<div class="aqg-table-wrap"[^>]*>/',
             $remote,
-        ), 'Frontend affected pages fill their section card.');
+        ), 'Frontend affected pages render their table inside the section block.');
+        self::assertMatchesRegularExpression('/\.aqg-module\.aqg-sv \.aqg-block>\.aqg-table-wrap[^{]*\{[^}]*border:1px solid/', $css);
         self::assertSame(1, preg_match(
             '/<div class="aqg-report-collapse__body aqg-report-collapse__body--failed">(?:(?!<\/details>)[\s\S])*<div class="aqg-table-wrap"[^>]*>/',
             $remote,

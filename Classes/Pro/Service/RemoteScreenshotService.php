@@ -27,8 +27,13 @@ final class RemoteScreenshotService
      *
      * @throws TokenRefreshException
      */
-    public function fetchScreenshotByRemotePageUid(int $remotePageUid): ?array
+    /**
+     * @param string $variant 'original' asks for the crawler's untouched capture (screenshot evidence); anything else
+     *                        is the default request released extensions make, the annotated image
+     */
+    public function fetchScreenshotByRemotePageUid(int $remotePageUid, string $variant = 'highlighted'): ?array
     {
+        $original = $variant === 'original';
         if ($remotePageUid <= 0) {
             return null;
         }
@@ -68,7 +73,7 @@ final class RemoteScreenshotService
         $token = $this->proTokenService->getValidToken($domain, $version);
 
         $crawlerBaseUrl = rtrim(ProSettings::resolveCrawlerBaseUrl(), '/');
-        $url = $crawlerBaseUrl . '/crawl/page/' . rawurlencode($externalPageId) . '/screenshot';
+        $url = $crawlerBaseUrl . '/crawl/page/' . rawurlencode($externalPageId) . '/screenshot' . ($original ? '?variant=original' : '');
 
         $apiResponse = $this->requestFactory->request($url, 'GET', [
             'headers' => [
@@ -102,7 +107,7 @@ final class RemoteScreenshotService
         return [
             'content' => $content,
             'contentType' => $contentType,
-            'filename' => 'aqg-screenshot-' . $remotePageUid . '.png',
+            'filename' => 'aqg-screenshot-' . $remotePageUid . ($original ? '-original' : '') . '.png',
         ];
     }
 }

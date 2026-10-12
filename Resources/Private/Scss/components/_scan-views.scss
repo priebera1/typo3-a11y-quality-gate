@@ -1,0 +1,2638 @@
+/* ═══════════════════════════════════════════
+   Scan views (1.9.9): Overview tabs and both page views share one skeleton —
+   header, status panel, work list, Reports and evidence.
+
+   - Colours come from the --aqi-* tokens only, so light, dark and the TYPO3 themes follow automatically.
+   - Severity is carried by an icon shape and a word (Shared/SeverityBadge, Shared/AqgIcon), never by colour
+     alone and never by a coloured side stripe.
+   - Module-width tiers use container queries on the module: compact < 720px, standard 720–1099px,
+     wide ≥ 1100px. The backend module is narrower than the window whenever the page tree is open.
+   - Type scale: 20 page title · 15 section · 13.5 card title · 13 body · 12.5 meta · 12 small.
+═══════════════════════════════════════════ */
+
+.aqg-module.aqg-sv {
+    container: aqg-sv / inline-size;
+    --aqg-sv-radius: 8px;
+    --aqg-sv-radius-sm: 5px;
+    --aqg-sv-gap: 14px;
+    --aqg-sv-critical: var(--aqi-err);
+    --aqg-sv-serious: var(--aqi-serious);
+    --aqg-sv-warning: var(--aqi-warn);
+    --aqg-sv-info: var(--aqi-run);
+    --aqg-sv-review: var(--aqi-review);
+    --aqg-sv-minor: var(--aqi-fg-muted);
+    --aqg-sv-ok: var(--aqi-ok);
+    gap: var(--aqg-sv-gap);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.aqg-module.aqg-sv .aqg-panel-stack,
+.aqg-module.aqg-sv .aqg-sv-panel {
+    gap: var(--aqg-sv-gap);
+}
+
+.aqg-module.aqg-sv .aqg-stack {
+    gap: var(--aqg-sv-gap);
+}
+
+/* Technical text (selectors, tables, fields, snippets) is neutral: Bootstrap's pink code colour made it the loudest
+   element of a finding. It must stay quieter than titles, fixes and actions. TYPO3 14 colours every code element with
+   `color: var(--typo3-text-color-code) !important`, so the variables are redefined here, for AQG's code only. */
+.aqg-module.aqg-sv code {
+    --typo3-text-color-code: var(--aqi-fg-muted);
+    --bs-code-color: var(--aqi-fg-muted);
+    padding: 1px 4px;
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: 4px;
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg-muted);
+    font-family: var(--aqi-font-mono, ui-monospace, Menlo, Consolas, monospace);
+    font-size: 12px;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv pre code {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+/* ── Icons ─────────────────────────────── */
+/* Every AQG module view sizes the shared icon sprite, Settings included: an unsized inline SVG fills its container.
+   The scan-view rules below refine it with higher specificity. */
+.aqg-module .aqg-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -3px;
+}
+
+.aqg-module .aqg-icon--sm {
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+}
+
+.aqg-module.aqg-sv .aqg-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -3px;
+}
+
+.aqg-module.aqg-sv .aqg-icon--sm {
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
+}
+
+/* ── View header (Overview) ────────────── */
+.aqg-module.aqg-sv .aqg-viewhead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.aqg-module.aqg-sv .aqg-viewhead__title,
+.aqg-module.aqg-sv .aqg-pagehead__title {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 20px;
+    font-weight: 650;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+/* ── Severity badge ────────────────────── */
+.aqg-module.aqg-sv .aqg-sev {
+    --aqg-sev-tone: var(--aqg-sv-minor);
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
+    padding: 3px 7px 3px 6px;
+    border: 1px solid color-mix(in oklch, var(--aqg-sev-tone) 35%, var(--aqi-surface));
+    border-radius: 4px;
+    background: color-mix(in oklch, var(--aqg-sev-tone) 8%, var(--aqi-surface));
+    color: var(--aqg-sev-tone);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-sev .aqg-icon {
+    width: 13px;
+    height: 13px;
+    vertical-align: 0;
+}
+
+.aqg-module.aqg-sv .aqg-sev--critical { --aqg-sev-tone: var(--aqg-sv-critical); }
+.aqg-module.aqg-sv .aqg-sev--serious { --aqg-sev-tone: var(--aqg-sv-serious); }
+.aqg-module.aqg-sv .aqg-sev--moderate,
+.aqg-module.aqg-sv .aqg-sev--warning { --aqg-sev-tone: var(--aqg-sv-warning); }
+.aqg-module.aqg-sv .aqg-sev--info { --aqg-sev-tone: var(--aqg-sv-info); }
+.aqg-module.aqg-sv .aqg-sev--review { --aqg-sev-tone: var(--aqg-sv-review); }
+.aqg-module.aqg-sv .aqg-sev--minor { --aqg-sev-tone: var(--aqg-sv-minor); }
+
+/* ── Source tabs (a real tablist) ──────── */
+.aqg-module.aqg-sv .aqg-sourcetabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid var(--aqi-border);
+}
+
+.aqg-module.aqg-sv .aqg-sourcetab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -1px;
+    padding: 9px 14px 10px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 4px 4px 0 0;
+    background: transparent;
+    color: var(--aqi-fg-muted);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.aqg-module.aqg-sv .aqg-sourcetab:hover {
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-sourcetab[aria-selected="true"] {
+    border-bottom-color: var(--aqi-fg);
+    color: var(--aqi-fg);
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-sourcetab:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-sourcetab__badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--aqi-warn-bg);
+    color: var(--aqi-warn);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .a11y-overview-panel[role="tabpanel"]:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+    border-radius: 4px;
+}
+
+/* ── Scope line ("Checks … · What is checked") ── */
+.aqg-module.aqg-sv .aqg-scanscope {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-scanscope > .aqg-icon {
+    align-self: center;
+}
+
+.aqg-module.aqg-sv .aqg-scanscope__text {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+
+@container aqg-sv (max-width: 719.98px) {
+    .aqg-module.aqg-sv .aqg-scanscope__text {
+        flex: 1 1 0%;
+    }
+}
+
+.aqg-module.aqg-sv .aqg-scanscope__body {
+    flex: 1 1 100%;
+    max-width: 80ch;
+    padding: 10px 12px;
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: var(--aqg-sv-radius-sm);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-scanscope__body p {
+    margin: 0 0 6px;
+}
+
+.aqg-module.aqg-sv .aqg-scanscope__body p:last-child {
+    margin-bottom: 0;
+}
+
+/* ── Disclosure button ("Details", "What is checked") ── */
+.aqg-module.aqg-sv .aqg-disclosure-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 26px;
+    padding: 3px 6px 3px 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--aqi-run);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.aqg-module.aqg-sv .aqg-disclosure-btn:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-disclosure-btn:focus-visible,
+.aqg-module.aqg-sv .aqg-rulecard__toggle:focus-visible,
+.aqg-module.aqg-sv .aqg-evidence__summary:focus-visible,
+.aqg-module.aqg-sv .aqg-fix__heading:focus-visible,
+.aqg-module.aqg-sv .aqg-status__title:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-disclosure-btn .aqg-icon,
+.aqg-module.aqg-sv .aqg-rulecard__toggle > .aqg-icon,
+.aqg-module.aqg-sv .aqg-evidence__summary > .aqg-icon {
+    transition: transform 150ms ease-out;
+}
+
+.aqg-module.aqg-sv .aqg-disclosure-btn[aria-expanded="true"] .aqg-icon,
+.aqg-module.aqg-sv .aqg-rulecard__toggle[aria-expanded="true"] > .aqg-icon,
+.aqg-module.aqg-sv .aqg-evidence__row[open] > .aqg-evidence__summary > .aqg-icon {
+    transform: rotate(180deg);
+}
+
+/* ── One-line notices ──────────────────── */
+.aqg-module.aqg-sv .aqg-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 6px;
+    background: var(--aqi-surface);
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-note > .aqg-icon {
+    margin-top: 1px;
+}
+
+.aqg-module.aqg-sv .aqg-note--info {
+    border-color: var(--aqi-run-border);
+    background: var(--aqi-run-bg);
+}
+
+.aqg-module.aqg-sv .aqg-note--info > .aqg-icon {
+    color: var(--aqi-run);
+}
+
+.aqg-module.aqg-sv .aqg-note--warning {
+    border-color: var(--aqi-warn-border);
+    background: var(--aqi-warn-bg);
+}
+
+.aqg-module.aqg-sv .aqg-note--warning > .aqg-icon {
+    color: var(--aqi-warn);
+}
+
+.aqg-module.aqg-sv .aqg-note__text {
+    flex: 1 1 260px;
+    min-width: 0;
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-note__text strong {
+    margin-right: 4px;
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-note__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ── Status panel ──────────────────────── */
+.aqg-module.aqg-sv .aqg-status {
+    --aqg-status-tone: var(--aqi-fg-muted);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px 20px;
+    margin: 0;
+    padding: 16px 18px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-status--critical { --aqg-status-tone: var(--aqg-sv-critical); }
+.aqg-module.aqg-sv .aqg-status--attention,
+.aqg-module.aqg-sv .aqg-status--incomplete,
+.aqg-module.aqg-sv .aqg-status--no-coverage { --aqg-status-tone: var(--aqg-sv-warning); }
+.aqg-module.aqg-sv .aqg-status--info { --aqg-status-tone: var(--aqg-sv-info); }
+.aqg-module.aqg-sv .aqg-status--good { --aqg-status-tone: var(--aqg-sv-ok); }
+
+.aqg-module.aqg-sv .aqg-status__main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-status__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+.aqg-module.aqg-sv .aqg-status__glyph {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--aqg-status-tone) 12%, var(--aqi-surface));
+    color: var(--aqg-status-tone);
+}
+
+.aqg-module.aqg-sv .aqg-status__glyph .aqg-icon {
+    width: 17px;
+    height: 17px;
+    vertical-align: 0;
+}
+
+.aqg-module.aqg-sv .aqg-status__title {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 16px;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.aqg-module.aqg-sv .aqg-status__tone {
+    color: var(--aqg-status-tone);
+}
+
+.aqg-module.aqg-sv .aqg-status__sep {
+    margin: 0 2px;
+    color: var(--aqi-fg-subtle);
+    font-weight: 400;
+}
+
+.aqg-module.aqg-sv .aqg-status__score {
+    padding: 2px 8px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 999px;
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-status__text {
+    max-width: 75ch;
+    margin: 0;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-status__counts,
+.aqg-module.aqg-sv .aqg-status__meta {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aqg-module.aqg-sv .aqg-status__counts {
+    gap: 4px 16px;
+    font-size: 13px;
+}
+
+.aqg-module.aqg-sv .aqg-status__count {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.aqg-module.aqg-sv .aqg-status__count strong {
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-status__count--critical .aqg-icon { color: var(--aqg-sv-critical); }
+.aqg-module.aqg-sv .aqg-status__count--warning .aqg-icon { color: var(--aqg-sv-warning); }
+.aqg-module.aqg-sv .aqg-status__count--info .aqg-icon { color: var(--aqg-sv-info); }
+.aqg-module.aqg-sv .aqg-status__count--needs_review .aqg-icon { color: var(--aqg-sv-review); }
+.aqg-module.aqg-sv .aqg-status__count--failed { color: var(--aqg-sv-critical); }
+
+.aqg-module.aqg-sv .aqg-status__count--failed a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-status__count.is-zero {
+    color: var(--aqi-fg-subtle);
+}
+
+.aqg-module.aqg-sv .aqg-status__count.is-zero .aqg-icon {
+    color: currentColor;
+}
+
+.aqg-module.aqg-sv .aqg-status__delta {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta {
+    gap: 2px 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta > li {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 5px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta > li + li::before {
+    content: "·";
+    margin: 0 6px 0 7px;
+    color: var(--aqi-fg-subtle);
+}
+
+/* A reconciliation note (crawler counter vs stored findings) takes its own line. */
+.aqg-module.aqg-sv .aqg-status__meta > li.aqg-status__meta-note {
+    flex-basis: 100%;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta > li.aqg-status__meta-note::before {
+    content: none;
+}
+
+/* Audit C13: rendered checks that did not run, with the pages and reasons one click away. */
+.aqg-module.aqg-sv .aqg-status__meta > li.aqg-status__meta-note--warn {
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-status__meta-note--warn > .aqg-icon {
+    margin-top: 2px;
+    color: var(--aqg-sv-warning, var(--aqi-fg-muted));
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details > summary {
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details > summary:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details__list {
+    margin: 6px 0 0;
+    padding: 0 0 0 18px;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details__page {
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details__more {
+    margin: 4px 0 0;
+    color: var(--aqi-fg-muted);
+}
+
+/* Why hidden pages cannot be rendered-checked here, and which scan can check them. */
+.aqg-module.aqg-sv .aqg-coverage-details__hint {
+    max-width: 72ch;
+    margin: 6px 0 0;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-status__meta--access,
+.aqg-module.aqg-sv .aqg-status__meta--free {
+    flex-direction: column;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta--access > li + li::before,
+.aqg-module.aqg-sv .aqg-status__meta--free > li + li::before {
+    content: none;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta--access > li,
+.aqg-module.aqg-sv .aqg-status__meta--free > li {
+    display: block;
+}
+
+.aqg-module.aqg-sv .aqg-status__access .aqg-icon {
+    margin-right: 4px;
+    color: var(--aqi-fg-muted);
+}
+
+/* Links inside running text are underlined, so they never depend on colour alone. */
+.aqg-module.aqg-sv .aqg-status a:not(.btn):not(.aqg-status__link),
+.aqg-module.aqg-sv .aqg-scanscope__body a,
+.aqg-module.aqg-sv .aqg-details-body a,
+.aqg-module.aqg-sv .aqg-evidence__body a:not(.btn),
+.aqg-module.aqg-sv .aqg-note a:not(.btn),
+.aqg-module.aqg-sv .aqg-pagehead__url a,
+.aqg-module.aqg-sv .aqg-filter-note a {
+    color: var(--aqi-run);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-status a:not(.btn):hover,
+.aqg-module.aqg-sv .aqg-details-body a:hover,
+.aqg-module.aqg-sv .aqg-evidence__body a:not(.btn):hover {
+    text-decoration-thickness: 2px;
+}
+
+.aqg-module.aqg-sv a:not(.btn):focus-visible {
+    outline: none;
+    border-radius: 2px;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-status__plan {
+    padding: 1px 6px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 4px;
+    color: var(--aqi-fg);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-status__note {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-status__caveat {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 2px 0 0;
+    padding-top: 9px;
+    border-top: 1px solid var(--aqi-divider);
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-status__caveat .aqg-icon {
+    margin-top: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-status__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    max-width: 420px;
+}
+
+.aqg-module.aqg-sv .aqg-status__link,
+.aqg-module.aqg-sv .aqg-filterbar__reset {
+    color: var(--aqi-run);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.aqg-module.aqg-sv .aqg-status__link:hover,
+.aqg-module.aqg-sv .aqg-filterbar__reset:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-status__message:empty {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-status .aqg-getting-started {
+    margin: 2px 0 0;
+}
+
+.aqg-module.aqg-sv .aqg-status__facts {
+    margin-top: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block {
+    margin: 0;
+    padding: 12px 16px;
+    border: 1px solid var(--aqi-run-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--completed {
+    border-color: var(--aqi-ok-border);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__title {
+    font-size: 14px;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block .aqg-meta,
+.aqg-module.aqg-sv .aqg-progress-block .aqg-status-badge,
+.aqg-module.aqg-sv .aqg-progress-block__foot,
+.aqg-module.aqg-sv .aqg-progress-block__cancel {
+    font-family: var(--aqi-font);
+    font-size: 12px;
+}
+
+/* ── Sections ("Pages with open issues", "What to fix first", …) ── */
+.aqg-module.aqg-sv .aqg-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-block__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.aqg-module.aqg-sv .aqg-block__heading {
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-block__title {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.aqg-module.aqg-sv .aqg-block__subtitle {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 13.5px;
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-block__sub {
+    margin: 2px 0 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-block__search {
+    flex: 0 1 240px;
+    min-width: 180px;
+}
+
+.aqg-module.aqg-sv .aqg-block__search .form-control {
+    width: 100%;
+}
+
+.aqg-module.aqg-sv .aqg-block__panel,
+.aqg-module.aqg-sv .aqg-block > .aqg-table-wrap,
+.aqg-module.aqg-sv .aqg-evidence {
+    overflow: hidden;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+}
+
+/* MOB-01: a table that cannot shrink further scrolls inside its frame (keyboard-focusable via scrollable-tables.js)
+   instead of clipping its counts and row actions. */
+.aqg-module.aqg-sv .aqg-block > .aqg-table-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.aqg-module.aqg-sv .aqg-block__empty {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-block__empty strong {
+    margin-right: 4px;
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-filter-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--aqi-run-border);
+    border-radius: 6px;
+    background: var(--aqi-run-bg);
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-filter-note__text {
+    flex: 1 1 auto;
+}
+
+/* ── Page tables ───────────────────────── */
+.aqg-module.aqg-sv .aqg-table--pages {
+    font-size: 13px;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages th,
+.aqg-module.aqg-sv .aqg-table--pages td {
+    padding: 8px 12px;
+    font-family: var(--aqi-font);
+    vertical-align: middle;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages thead th {
+    color: var(--aqi-fg-muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell {
+    gap: 1px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__title a {
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__meta {
+    display: block;
+    max-width: 52ch;
+    overflow: hidden;
+    color: var(--aqi-fg-subtle);
+    font-family: inherit;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages tr.is-selected > td {
+    background: var(--aqi-surface-2);
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count--critical { color: var(--aqg-sv-critical); }
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count--warning { color: var(--aqg-sv-warning); }
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count--info { color: var(--aqg-sv-info); }
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count--needs-review { color: var(--aqg-sv-review); }
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count--zero { color: var(--aqi-fg-subtle); font-weight: 400; }
+.aqg-module.aqg-sv .aqg-table--pages .aqg-count--total { color: var(--aqi-fg); }
+
+/* HTTP: routine 2xx is quiet text, anything else is a badge. The column itself always stays. */
+.aqg-module.aqg-sv .aqg-table--pages .aqg-http {
+    display: inline;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aqi-fg-muted);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-http-cell--error .aqg-http {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--aqi-err-border);
+    border-radius: 4px;
+    background: var(--aqi-err-bg);
+    color: var(--aqi-err);
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages td.actions,
+.aqg-module.aqg-sv .aqg-table--pages th.actions {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-iconbtn {
+    width: 29px;
+    padding: 0;
+}
+
+.aqg-module.aqg-sv .aqg-col-narrow {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-sevmini {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-sevmini__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.aqg-module.aqg-sv .aqg-sevmini__item--critical { color: var(--aqg-sv-critical); }
+.aqg-module.aqg-sv .aqg-sevmini__item--warning { color: var(--aqg-sv-warning); }
+.aqg-module.aqg-sv .aqg-sevmini__item--info { color: var(--aqg-sv-info); }
+.aqg-module.aqg-sv .aqg-sevmini__item--review { color: var(--aqg-sv-review); }
+
+.aqg-module.aqg-sv .aqg-table--compact th,
+.aqg-module.aqg-sv .aqg-table--compact td {
+    padding: 6px 10px;
+    font-size: 12.5px;
+}
+
+/* ── What to fix first ─────────────────── */
+.aqg-module.aqg-sv .aqg-fixlist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aqg-module.aqg-sv .aqg-fixlist--more {
+    border-top: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-fix {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 2px 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-fixlist > .aqg-fix:last-child {
+    border-bottom: 0;
+}
+
+.aqg-module.aqg-sv .aqg-fix__rank {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border-soft);
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-fix__main {
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-fix__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+}
+
+.aqg-module.aqg-sv .aqg-fix__heading {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 13.5px;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.aqg-module.aqg-sv .aqg-fix__counts {
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-fix__fix {
+    margin: 2px 0 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-fix__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px 8px;
+}
+
+.aqg-module.aqg-sv .aqg-fix__action {
+    color: var(--aqi-run);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-fix__action:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-fix__details {
+    grid-column: 2 / -1;
+    margin-top: 8px;
+}
+
+.aqg-module.aqg-sv .aqg-fixlist__more {
+    display: flex;
+    justify-content: flex-start;
+    padding: 9px 14px;
+    border-top: 1px solid var(--aqi-divider);
+    background: var(--aqi-surface-2);
+}
+
+/* ── Details body and key/value lists ──── */
+.aqg-module.aqg-sv .aqg-details-body {
+    padding: 10px 12px;
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: 6px;
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-details-body > :first-child {
+    margin-top: 0;
+}
+
+.aqg-module.aqg-sv .aqg-details-body h4,
+.aqg-module.aqg-sv .aqg-evidence__body h4,
+.aqg-module.aqg-sv .aqg-local-guidance h4 {
+    margin: 10px 0 4px;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-details-body p {
+    margin: 0 0 6px;
+}
+
+.aqg-module.aqg-sv .aqg-details-body__note,
+.aqg-module.aqg-sv .aqg-details-body__meta {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-details-body__meta span + span::before {
+    content: " · ";
+}
+
+.aqg-module.aqg-sv .aqg-kvlist {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 3px 14px;
+    margin: 0 0 6px;
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-kvlist dt {
+    color: var(--aqi-fg-muted);
+    font-weight: 400;
+}
+
+.aqg-module.aqg-sv .aqg-kvlist dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--aqi-fg);
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-kvlist--occurrence {
+    padding-top: 6px;
+    border-top: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-local-guidance {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.aqg-module.aqg-sv .aqg-local-guidance > h4:first-child {
+    margin-top: 0;
+}
+
+.aqg-module.aqg-sv .aqg-local-guidance p {
+    margin: 0 0 6px;
+}
+
+/* ── Reports and evidence ──────────────── */
+.aqg-module.aqg-sv .aqg-evidence__row {
+    border-bottom: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-evidence__row:last-child {
+    border-bottom: 0;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1px 12px;
+    padding: 10px 14px;
+    color: var(--aqi-fg);
+    cursor: pointer;
+    list-style: none;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__summary::-webkit-details-marker {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__summary::marker {
+    content: "";
+}
+
+.aqg-module.aqg-sv .aqg-evidence__summary:hover {
+    background: var(--aqi-surface-2);
+}
+
+.aqg-module.aqg-sv .aqg-evidence__summary:focus-visible {
+    box-shadow: var(--aqi-focus-ring-inset);
+}
+
+.aqg-module.aqg-sv .aqg-evidence__title {
+    grid-column: 1;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__line {
+    grid-column: 1;
+    min-width: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__line:empty {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__summary > .aqg-icon {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-evidence__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 14px 14px;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__body > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__intro {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-evidence__body h3 {
+    margin: 0 0 4px;
+    color: var(--aqi-fg);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-signals__group p {
+    margin: 0 0 4px;
+}
+
+.aqg-module.aqg-sv .aqg-signals__list,
+.aqg-module.aqg-sv .aqg-checklist {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.aqg-module.aqg-sv .aqg-signals__list li,
+.aqg-module.aqg-sv .aqg-checklist__item {
+    margin: 0 0 4px;
+}
+
+.aqg-module.aqg-sv .aqg-checklist__item strong {
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-checklist__meta {
+    margin-left: 6px;
+    color: var(--aqi-fg-subtle);
+}
+
+.aqg-module.aqg-sv .aqg-checklist__item p {
+    margin: 2px 0 0;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__body .aqg-regression-signal,
+.aqg-module.aqg-sv .aqg-evidence__body .aqg-history-compare,
+.aqg-module.aqg-sv .aqg-evidence__body .aqg-remediation-plan {
+    margin: 0;
+    border-left-width: 1px;
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-evidence__body .aqg-review-card {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-table-wrap--plain {
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: 6px;
+}
+
+/* Failed pages: one warning line that opens the table. */
+.aqg-module.aqg-sv .aqg-failed-pages-section {
+    padding: 0;
+    border: 1px solid var(--aqi-warn-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-failed-pages-section .aqg-report-collapse {
+    margin: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-failed-pages-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 0;
+    background: var(--aqi-warn-bg);
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-failed-pages-summary > .aqg-icon {
+    color: var(--aqi-warn);
+}
+
+.aqg-module.aqg-sv .aqg-failed-pages-summary .aqg-report-collapse__toggle {
+    margin-left: auto;
+}
+
+.aqg-module.aqg-sv .aqg-report-collapse__body--failed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px 12px;
+}
+
+/* ── Page view header ──────────────────── */
+.aqg-module.aqg-sv .aqg-pagehead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px 20px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead--frontend {
+    padding: 16px 18px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__meta,
+.aqg-module.aqg-sv .aqg-pagehead__counts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__meta {
+    gap: 2px 14px;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__meta > li {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__url {
+    max-width: 100%;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__url a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--aqi-run);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__path {
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__counts {
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__total {
+    flex-basis: 100%;
+    color: var(--aqi-fg);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead--frontend .aqg-pagehead__actions {
+    justify-content: flex-start;
+    margin-top: 6px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__hint {
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot.aqg-shot {
+    width: 168px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame {
+    display: block;
+    width: 100%;
+    height: 112px;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--aqi-border);
+    border-radius: 6px;
+    background: var(--aqi-surface-2);
+    cursor: zoom-in;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame--empty {
+    display: grid;
+    place-items: center;
+    height: auto;
+    min-height: 72px;
+    padding: 8px;
+    cursor: default;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__label {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__sub {
+    margin: 4px 0 0;
+    color: var(--aqi-fg-muted);
+    font-family: var(--aqi-font);
+    font-size: 12px;
+}
+
+/* ── Filter bar (Content page view) ────── */
+.aqg-module.aqg-sv .aqg-filterbar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px 14px;
+    padding: 9px 12px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+}
+
+.aqg-module.aqg-sv .aqg-filterbar .aqg-seg,
+.aqg-module.aqg-sv .aqg-filterbar .aqg-chips {
+    margin: 0;
+}
+
+.aqg-module.aqg-sv .aqg-filterbar__result {
+    display: block;
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+    color: var(--aqi-fg-muted);
+    font-family: var(--aqi-font);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 26px;
+    padding: 2px 9px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 999px;
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+    text-decoration: none;
+}
+
+.aqg-module.aqg-sv .aqg-chip:hover {
+    border-color: var(--aqi-fg-subtle);
+}
+
+.aqg-module.aqg-sv .aqg-chip.is-active {
+    border-color: var(--aqi-fg);
+    background: var(--aqi-fg);
+    color: var(--aqi-surface);
+}
+
+.aqg-module.aqg-sv .aqg-chip:focus-visible,
+.aqg-module.aqg-sv .aqg-seg__btn:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-chip__count {
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-chip--critical .aqg-icon { color: var(--aqg-sv-critical); }
+.aqg-module.aqg-sv .aqg-chip--serious .aqg-icon { color: var(--aqg-sv-serious); }
+.aqg-module.aqg-sv .aqg-chip--warning .aqg-icon,
+.aqg-module.aqg-sv .aqg-chip--moderate .aqg-icon { color: var(--aqg-sv-warning); }
+.aqg-module.aqg-sv .aqg-chip--info .aqg-icon { color: var(--aqg-sv-info); }
+.aqg-module.aqg-sv .aqg-chip--needs_review .aqg-icon { color: var(--aqg-sv-review); }
+.aqg-module.aqg-sv .aqg-chip.is-active .aqg-icon { color: currentColor; }
+
+.aqg-module.aqg-sv .aqg-seg__btn {
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-seg__count,
+.aqg-module.aqg-sv .aqg-chip__count {
+    font-family: var(--aqi-font);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Rule groups and rule cards (both page views) ── */
+.aqg-module.aqg-sv .aqg-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-rulegroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    scroll-margin-top: 12px;
+}
+
+.aqg-module.aqg-sv .aqg-rulegroup__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+
+.aqg-module.aqg-sv .aqg-rulegroup__title {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto 0 0;
+    color: var(--aqi-fg);
+    font-size: 14px;
+    font-weight: 650;
+}
+
+// "3 issue types · 5 occurrences": the count is quieter than the severity it belongs to.
+.aqg-module.aqg-sv .aqg-rulegroup__count {
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-rulegroup__sep {
+    margin: 0 3px;
+}
+
+.aqg-module.aqg-sv .aqg-rulegroup__hint {
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard {
+    min-width: 0;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+    scroll-margin-top: 12px;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard--requested {
+    border-color: var(--aqi-run-border);
+    box-shadow: 0 0 0 1px var(--aqi-run-border);
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__heading {
+    margin: 0;
+    font-size: inherit;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__toggle {
+    display: grid;
+    // [number] [severity] title (lead) · count · chevron: the lead keeps number, severity and title together.
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 4px 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: var(--aqg-sv-radius);
+    background: transparent;
+    color: var(--aqi-fg);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__toggle:hover {
+    background: var(--aqi-surface-2);
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__toggle:focus-visible {
+    box-shadow: var(--aqi-focus-ring-inset);
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__lead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__lead > .aqg-rulecard__number,
+.aqg-module.aqg-sv .aqg-rulecard__lead > .aqg-sev {
+    flex: none;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13.5px;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__start {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border: 1px solid var(--aqi-run-border);
+    border-radius: 999px;
+    background: var(--aqi-run-bg);
+    color: var(--aqi-run);
+    font-size: 12px;
+    font-weight: 650;
+    vertical-align: 1px;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__count {
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__fix {
+    margin: -4px 0 0;
+    padding: 0 14px 10px;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__fix strong {
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__body[hidden] {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__body > * {
+    max-width: 100%;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__body > .aqg-occs,
+.aqg-module.aqg-sv .aqg-rulecard__body > .aqg-details-body,
+.aqg-module.aqg-sv .aqg-rulecard__body > .aqg-verify-fix__result {
+    align-self: stretch;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.aqg-module.aqg-sv .aqg-steps {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-steps li {
+    margin: 2px 0;
+}
+
+.aqg-module.aqg-sv .aqg-start-here .aqg-steps {
+    margin-top: 4px;
+}
+
+.aqg-module.aqg-sv .aqg-rule__actions--body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.aqg-module.aqg-sv .aqg-verify-fix__result:empty {
+    display: none;
+}
+
+/* ── Occurrence rows ───────────────────── */
+.aqg-module.aqg-sv .aqg-occs {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--aqi-divider);
+    border-radius: 6px;
+}
+
+.aqg-module.aqg-sv .aqg-occ {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-occ:last-child {
+    border-bottom: 0;
+}
+
+.aqg-module.aqg-sv .aqg-occ.is-selected {
+    background: var(--aqi-run-bg);
+}
+
+.aqg-module.aqg-sv .aqg-occ__row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__spacer {
+    width: 18px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__num {
+    display: grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border-soft);
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-module.aqg-sv .aqg-occ__loc {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__line {
+    color: var(--aqi-fg);
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-occ__snippet {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-occ__sub {
+    color: var(--aqi-fg-subtle);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-occ__sub code {
+    font-size: 11.5px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__marker {
+    color: var(--aqi-fg-muted);
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-occ__state {
+    margin: 2px 0 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__state strong {
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-occ__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__details {
+    margin-left: 32px;
+}
+
+.aqg-module.aqg-sv .aqg-occ > .aqg-ignore-form,
+.aqg-module.aqg-sv .aqg-occ > .aqg-image-remediation,
+.aqg-module.aqg-sv .aqg-occ > .aqg-ai-link-text,
+.aqg-module.aqg-sv .aqg-occ > .aqg-ai-iframe-title {
+    margin: 0 0 0 28px;
+}
+
+.aqg-module.aqg-sv .aqg-occ .aqg-node-remediation {
+    margin: 6px 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+/* ── Width tiers ───────────────────────── */
+@container aqg-sv (min-width: 1100px) {
+    .aqg-module.aqg-sv .aqg-pagehead__shot.aqg-shot {
+        width: 220px;
+    }
+
+    .aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame {
+        height: 144px;
+    }
+}
+
+@container aqg-sv (max-width: 719.98px) {
+    .aqg-module.aqg-sv .aqg-status,
+    .aqg-module.aqg-sv .aqg-pagehead {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 14px;
+    }
+
+    .aqg-module.aqg-sv .aqg-pagehead:not(.aqg-pagehead--frontend) {
+        padding: 0;
+    }
+
+    .aqg-module.aqg-sv .aqg-status__actions,
+    .aqg-module.aqg-sv .aqg-pagehead__actions {
+        justify-content: flex-start;
+        max-width: none;
+    }
+
+    .aqg-module.aqg-sv .aqg-pagehead__shot.aqg-shot {
+        width: 100%;
+    }
+
+    .aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame {
+        height: 96px;
+    }
+
+    .aqg-module.aqg-sv .aqg-block__search {
+        flex-basis: 100%;
+    }
+
+    .aqg-module.aqg-sv .aqg-col-wide {
+        display: none;
+    }
+
+    .aqg-module.aqg-sv .aqg-col-narrow {
+        display: table-cell;
+    }
+
+    .aqg-module.aqg-sv .aqg-table--pages th,
+    .aqg-module.aqg-sv .aqg-table--pages td {
+        padding-inline: 10px;
+    }
+
+    /* MOB-01: the one-line meta (UID, folder, selected) kept the page column at least 30ch wide, so at 320 px the
+       table was 359 px in a 225 px frame and the counts were cut off. In a narrow module it wraps instead. */
+    .aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__meta {
+        max-width: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__title a {
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-module.aqg-sv .aqg-fix {
+        grid-template-columns: 22px minmax(0, 1fr);
+    }
+
+    .aqg-module.aqg-sv .aqg-fix__actions {
+        grid-column: 2;
+        justify-content: flex-start;
+    }
+
+    .aqg-module.aqg-sv .aqg-rulecard__toggle {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    // Narrow: the count moves under the title, the chevron stays on the first line.
+    .aqg-module.aqg-sv .aqg-rulecard__toggle .aqg-rulecard__count {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .aqg-module.aqg-sv .aqg-rulecard__toggle > .aqg-icon {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .aqg-module.aqg-sv .aqg-occ__row {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .aqg-module.aqg-sv .aqg-occ__actions {
+        grid-column: 2;
+        justify-content: flex-start;
+    }
+
+    .aqg-module.aqg-sv .aqg-occ__details,
+    .aqg-module.aqg-sv .aqg-occ > .aqg-ignore-form,
+    .aqg-module.aqg-sv .aqg-occ > .aqg-image-remediation,
+    .aqg-module.aqg-sv .aqg-occ > .aqg-ai-link-text,
+    .aqg-module.aqg-sv .aqg-occ > .aqg-ai-iframe-title {
+        margin-left: 0;
+    }
+
+    .aqg-module.aqg-sv .aqg-filterbar__result {
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+
+    .aqg-module.aqg-sv .aqg-kvlist {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
+
+    .aqg-module.aqg-sv .aqg-kvlist dd {
+        margin-bottom: 4px;
+    }
+}
+
+/* Export menu: the same dropdown on both Overview tabs and both page views. */
+.aqg-module.aqg-sv .aqg-export-menu {
+    position: relative;
+}
+
+.aqg-module.aqg-sv .aqg-export-menu__menu {
+    min-width: 160px;
+    padding: 4px;
+    border-color: var(--aqi-border);
+    background: var(--aqi-surface);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .12);
+}
+
+.aqg-module.aqg-sv .aqg-export-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-export-menu__item:hover,
+.aqg-module.aqg-sv .aqg-export-menu__item:focus {
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-export-menu__note {
+    max-width: 248px;
+    margin: 4px 0 0;
+    padding: 6px 8px 4px;
+    border-top: 1px solid var(--aqi-border-soft);
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+}
+
+/* Buttons are never stretched in these views: the older full-width rules targeted screen widths. */
+.aqg-module.aqg-sv .aqg-status__actions .aqg-export-menu,
+.aqg-module.aqg-sv .aqg-pagehead__actions .aqg-export-menu {
+    flex: none;
+    width: auto;
+}
+
+@media (max-width: 575.98px) {
+    .aqg-module.aqg-sv .aqg-status__actions .btn,
+    .aqg-module.aqg-sv .aqg-pagehead__actions .btn,
+    .aqg-module.aqg-sv .aqg-occ__actions .btn,
+    .aqg-module.aqg-sv .aqg-note__actions .btn,
+    .aqg-module.aqg-sv .aqg-export-menu > .btn {
+        width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aqg-module.aqg-sv .aqg-disclosure-btn .aqg-icon,
+    .aqg-module.aqg-sv .aqg-rulecard__toggle > .aqg-icon,
+    .aqg-module.aqg-sv .aqg-evidence__summary > .aqg-icon {
+        transition: none;
+    }
+}
+
+
+/* ═══════════════════════════════════════════
+   1.9.9 polish: one status language for running / failed / completed, table rows that open their page,
+   and occurrences that lead with the content element instead of its selector.
+═══════════════════════════════════════════ */
+
+/* ── Meta lines: a separator never starts a wrapped line ──
+   Every item draws its "·" in its own left padding; the list is shifted left by that padding and the shifted strip is
+   clipped, so the separator of whichever item starts a line falls outside the visible area. */
+.aqg-module.aqg-sv .aqg-status__meta:not(.aqg-status__meta--access):not(.aqg-status__meta--free) {
+    margin-left: -13px;
+    clip-path: inset(-6px -6px -6px 10px);
+}
+
+.aqg-module.aqg-sv .aqg-status__meta:not(.aqg-status__meta--access):not(.aqg-status__meta--free) > li {
+    position: relative;
+    padding-left: 13px;
+}
+
+.aqg-module.aqg-sv .aqg-status__meta:not(.aqg-status__meta--access):not(.aqg-status__meta--free) > li::before {
+    content: "·";
+    position: absolute;
+    top: 0;
+    left: 3px;
+    margin: 0;
+    color: var(--aqi-fg-subtle);
+}
+
+/* ── Scan status blocks: the approved "Running" status header ──
+   Glyph, a state word (Running / Completed / Failed), the title, one line and at most one quiet action. No progress bar
+   and no status badge: the state word carries the state, the line carries the progress. */
+.aqg-module.aqg-sv .aqg-progress-block {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 2px 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqg-sv-radius);
+    background: var(--aqi-surface);
+    box-shadow: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block.d-none {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__state {
+    color: var(--aqi-fg-muted);
+    font-size: 11.5px;
+    font-weight: 650;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__title {
+    display: block;
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 14.5px;
+    font-weight: 650;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__foot {
+    display: block;
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__foot .aqg-progress-block__hint::before {
+    content: " · ";
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 6px;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__cancel {
+    min-height: 24px;
+    padding: 2px 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--aqi-run);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__cancel:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__cancel:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__cancel:disabled {
+    color: var(--aqi-fg-muted);
+    cursor: progress;
+}
+
+/* The scripts rewrite the badge's classes, so it is hidden by its data attribute. */
+.aqg-module.aqg-sv .aqg-progress-block [data-a11y-local-scan-status],
+.aqg-module.aqg-sv .aqg-progress-block [data-a11y-remote-scan-status],
+.aqg-module.aqg-sv .aqg-progress-block .aqg-progress-block__bar {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__glyph {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg-muted);
+}
+
+/* AQG draws its own spinner: TYPO3 14 no longer styles Bootstrap's .spinner-border, which then rendered empty. */
+.aqg-module.aqg-sv .aqg-progress-block__glyph .spinner-border,
+.aqg-module.aqg-sv .aqg-iconbtn__spinner {
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 2px solid color-mix(in oklch, currentColor 22%, transparent);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--aqi-run);
+    animation: aqg-row-spin .8s linear infinite;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__glyph .spinner-border {
+    display: inline-block;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__glyph .spinner-border.d-none {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__icon {
+    display: none;
+    line-height: 0;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__icon .aqg-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: 0;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--completed {
+    border-color: var(--aqi-ok-border);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--completed .aqg-progress-block__glyph {
+    background: color-mix(in oklch, var(--aqi-ok) 12%, var(--aqi-surface));
+    color: var(--aqi-ok);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--completed .aqg-progress-block__icon--completed,
+.aqg-module.aqg-sv .aqg-progress-block--failed .aqg-progress-block__icon--failed {
+    display: inline-block;
+}
+
+/* Failed: a filled critical glyph, "Failed" as the state word and the reason in body text. */
+.aqg-module.aqg-sv .aqg-progress-block--failed {
+    border-color: var(--aqi-err-border);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--failed .aqg-progress-block__glyph {
+    background: var(--aqi-err);
+    color: var(--aqi-surface);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--failed .aqg-progress-block__state {
+    color: var(--aqi-err);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--failed .aqg-progress-block__foot {
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-progress-block--failed .aqg-progress-block__hint,
+.aqg-module.aqg-sv .aqg-progress-block--failed .aqg-progress-block__actions,
+.aqg-module.aqg-sv .aqg-progress-block--completed .aqg-progress-block__actions {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__more {
+    margin-top: 4px;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__more[hidden] {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-progress-block__detail {
+    max-width: 75ch;
+    margin: 4px 0 0;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+/* A status card can wait behind a running scan ("no scan yet" while the first scan runs). */
+.aqg-module.aqg-sv .aqg-status[hidden] {
+    display: none;
+}
+
+/* Zero coverage and a failed page are failures, not attention-level results: the failed glyph and border. */
+.aqg-module.aqg-sv .aqg-status--no-coverage,
+.aqg-module.aqg-sv .aqg-status--failed {
+    --aqg-status-tone: var(--aqg-sv-critical);
+    border-color: var(--aqi-err-border);
+}
+
+.aqg-module.aqg-sv .aqg-status--no-coverage .aqg-status__glyph,
+.aqg-module.aqg-sv .aqg-status--failed .aqg-status__glyph {
+    background: var(--aqg-status-tone);
+    color: var(--aqi-surface);
+}
+
+/* "Last completed scan · date": a divider between a running or failed scan and the older result below it. */
+.aqg-module.aqg-sv .aqg-last-completed {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-last-completed::before,
+.aqg-module.aqg-sv .aqg-last-completed::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--aqi-border);
+}
+
+.aqg-module.aqg-sv .aqg-last-completed__text {
+    flex: none;
+    max-width: 80%;
+    text-align: center;
+}
+
+.aqg-module.aqg-sv .aqg-last-completed[hidden] {
+    display: none;
+}
+
+/* ── Page table rows open their page ──
+   The page title stays the one link of the row; its ::after covers the row, the Actions cell sits above it. */
+.aqg-module.aqg-sv .aqg-table--linkrows tbody tr {
+    position: relative;
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--aqi-fg);
+    text-decoration: none;
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink .aqg-icon {
+    color: var(--aqi-fg-muted);
+    opacity: 0;
+    transform: translateX(-2px);
+    transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows tbody tr:hover .aqg-rowlink,
+.aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink:focus-visible {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows tbody tr:hover .aqg-rowlink .aqg-icon,
+.aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink:focus-visible .aqg-icon {
+    opacity: 1;
+    transform: none;
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink:focus-visible {
+    box-shadow: none;
+}
+
+/* The row's focus ring is drawn on its cells: the Actions cell sits above the link overlay. */
+.aqg-module.aqg-sv .aqg-table--linkrows tr:has(.aqg-rowlink:focus-visible) > td {
+    box-shadow: inset 0 2px 0 var(--aqi-focus), inset 0 -2px 0 var(--aqi-focus);
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows tr:has(.aqg-rowlink:focus-visible) > td:first-child {
+    box-shadow: inset 2px 0 0 var(--aqi-focus), inset 0 2px 0 var(--aqi-focus), inset 0 -2px 0 var(--aqi-focus);
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows tr:has(.aqg-rowlink:focus-visible) > td:last-child {
+    box-shadow: inset -2px 0 0 var(--aqi-focus), inset 0 2px 0 var(--aqi-focus), inset 0 -2px 0 var(--aqi-focus);
+}
+
+.aqg-module.aqg-sv .aqg-table--linkrows td.actions {
+    position: relative;
+    z-index: 1;
+}
+
+/* Row scan: the button keeps its size and shows a spinner; the meta line under the title says what runs. */
+.aqg-module.aqg-sv .aqg-iconbtn {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+}
+
+.aqg-module.aqg-sv .aqg-iconbtn__spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+}
+
+.aqg-module.aqg-sv .aqg-iconbtn.is-busy > .aqg-icon {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-iconbtn.is-busy > .aqg-iconbtn__spinner {
+    display: inline-block;
+}
+
+.aqg-module.aqg-sv .aqg-iconbtn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.aqg-module.aqg-sv .aqg-iconbtn.is-busy[aria-disabled="true"] {
+    cursor: progress;
+    opacity: 1;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__state::before {
+    content: "";
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border: 2px solid color-mix(in oklch, var(--aqi-run) 25%, transparent);
+    border-top-color: var(--aqi-run);
+    border-radius: 50%;
+    animation: aqg-row-spin .8s linear infinite;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__state[hidden],
+.aqg-module.aqg-sv .aqg-table--pages tr.is-running .aqg-page-cell__base {
+    display: none;
+}
+
+/* The row's counts are the previous result while it is scanned: dimmed, not removed, so nothing moves. */
+.aqg-module.aqg-sv .aqg-table--pages tr.is-running .aqg-count,
+.aqg-module.aqg-sv .aqg-table--pages tr.is-running .aqg-sevmini__item {
+    color: var(--aqi-fg-subtle);
+    font-weight: 500;
+}
+
+.aqg-module.aqg-sv .aqg-table--pages tr.is-running .aqg-sevmini__item .aqg-icon {
+    color: currentColor;
+}
+
+@keyframes aqg-row-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Occurrences: where (content element) → what (markup) → action; technical data on request ── */
+.aqg-module.aqg-sv .aqg-occ__row {
+    align-items: start;
+}
+
+.aqg-module.aqg-sv .aqg-occ__where {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1px 7px;
+    min-width: 0;
+    color: var(--aqi-fg);
+    font-size: 13px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__where > .aqg-icon {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-occ__title {
+    min-width: 0;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-occ__context {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__what {
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 10px;
+    min-width: 0;
+}
+
+.aqg-module.aqg-sv .aqg-occ__code {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aqg-module.aqg-sv .aqg-occ__techtoggle {
+    min-height: 24px;
+    padding-block: 2px;
+    font-size: 12px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__tech {
+    margin-left: 30px;
+}
+
+.aqg-module.aqg-sv .aqg-node .aqg-occ__tech {
+    margin-left: 32px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__tech:not(:has(> :not([hidden]))) {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-occ__source {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1px 6px;
+    min-width: 0;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+}
+
+.aqg-module.aqg-sv .aqg-occ__source > .aqg-icon {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-module.aqg-sv .aqg-occ__source--unlinked {
+    color: var(--aqi-fg-muted);
+}
+
+/* Per-occurrence "More actions" (Ignore): an icon toggle that opens towards the inside of the card. */
+.aqg-module.aqg-sv .aqg-occ__menu > .aqg-menu__toggle::after {
+    content: none;
+}
+
+.aqg-module.aqg-sv .aqg-occ__menu .aqg-menu__panel {
+    right: 0;
+    left: auto;
+    min-width: 200px;
+}
+
+/* "Why it failed": axe's checks as a list, not one paragraph. */
+.aqg-module.aqg-sv .aqg-failure__heading {
+    margin: 0 0 2px;
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-failure__list {
+    margin: 0 0 8px;
+    padding-left: 18px;
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-failure__list li {
+    margin: 1px 0;
+}
+
+.aqg-module.aqg-sv .aqg-rulecard__foot .aqg-disclosure-btn + .aqg-disclosure-btn {
+    margin-left: 4px;
+}
+
+@container aqg-sv (max-width: 719.98px) {
+    .aqg-module.aqg-sv .aqg-occ__tech,
+    .aqg-module.aqg-sv .aqg-node .aqg-occ__tech {
+        margin-left: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aqg-module.aqg-sv .aqg-table--linkrows .aqg-rowlink .aqg-icon {
+        transition: none;
+    }
+
+    .aqg-module.aqg-sv .aqg-table--pages .aqg-page-cell__state::before {
+        animation: none;
+        border-color: var(--aqi-run);
+        border-top-color: var(--aqi-run);
+    }
+
+    /* A still ring with a gap keeps saying "busy" without motion. */
+    .aqg-module.aqg-sv .aqg-iconbtn__spinner,
+    .aqg-module.aqg-sv .aqg-progress-block__glyph .spinner-border {
+        animation: none;
+    }
+}
+
+/* Audit C13: the page's rendered HTML was not checked in its last scan. */
+.aqg-module.aqg-sv .aqg-pagehead__coverage {
+    flex-basis: 100%;
+    align-items: flex-start !important;
+    color: var(--aqi-fg);
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__coverage > .aqg-icon {
+    flex: none;
+    margin-top: 2px;
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__coverage > .aqg-icon {
+    color: var(--aqg-sv-warning);
+}
+
+.aqg-module.aqg-sv .aqg-pagehead__coverage-hint {
+    display: block;
+    max-width: 72ch;
+    color: var(--aqi-fg-muted);
+}
+
+/* Audit C15: the issue-type number of a Frontend rule, the same number the screenshot outlines and the PDF use. */
+.aqg-module.aqg-sv .aqg-rulecard__number {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 10px;
+    background: var(--aqi-surface-2);
+    color: var(--aqi-fg);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Highlighted / Original switch of the page screenshot. */
+.aqg-module.aqg-sv .aqg-shot__variants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.aqg-module.aqg-sv .aqg-shot__variants .btn[aria-pressed="true"] {
+    border-color: var(--aqi-fg);
+    background: var(--aqi-fg);
+    color: var(--aqi-surface);
+}

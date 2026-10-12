@@ -56,6 +56,7 @@ final class CrawlerSummaryResult
         public readonly array $reportingGroups,
         public readonly ?string $startedAt,
         public readonly ?string $finishedAt,
+        public readonly int $pagesTotal = 0,
     ) {
     }
 
@@ -72,6 +73,7 @@ final class CrawlerSummaryResult
             features: $dto->features,
             pagesScanned: $dto->pagesScanned,
             pagesFailed: $dto->pagesFailed,
+            pagesTotal: $dto->pagesTotal,
             issuesTotal: $dto->issuesTotal,
             issuesNew: $dto->issuesNew,
             issuesResolved: $dto->issuesResolved,

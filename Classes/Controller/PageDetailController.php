@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiConfigurationRepositoryInterface;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
+use Priebera\A11yQualityGate\Scan\RenderedCoverage;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
@@ -21,8 +22,10 @@ use Priebera\A11yQualityGate\Remediation\ImageAltTextValidator;
 use Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver;
 use Priebera\A11yQualityGate\Remediation\ImageFindingVersionTokenService;
 use Priebera\A11yQualityGate\Remediation\ImageRemediationPreviewService;
+use Priebera\A11yQualityGate\Service\IssueLocationService;
 use Priebera\A11yQualityGate\Service\LocalIssueGuidanceService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\ScanPermissionService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -30,6 +33,8 @@ use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Utility\FilterValueUtility;
 use Priebera\A11yQualityGate\Utility\IssueFilterUtility;
+use Priebera\A11yQualityGate\Utility\IssueRuleGroupingUtility;
+use Priebera\A11yQualityGate\Utility\OccurrencePresentationUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -77,6 +82,8 @@ final class PageDetailController extends AbstractBackendModuleController
         private readonly LocalIssueGuidanceService $localIssueGuidanceService,
         private readonly AiConfigurationRepositoryInterface $aiConfigurationRepository,
         private readonly ScopeAccessService $scopeAccessService,
+        private readonly ?ScanPermissionService $scanPermissionService = null,
+        private readonly ?IssueLocationService $issueLocationService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -140,7 +147,10 @@ final class PageDetailController extends AbstractBackendModuleController
         $isFolder = $pageDoktype === 254;
 
         $backendUser = $this->backendContextService->getBackendUser();
-        $canScanNow = $this->accessControlService->canShowScanNow($backendUser);
+        // The same rule as the scan endpoint: the TSconfig flag and edit access to this page.
+        $canScanNow = $this->scanPermissionService !== null
+            ? $this->scanPermissionService->canScanPage($pageUid)
+            : $this->accessControlService->canShowScanNow($backendUser);
         $canShowSettings = $this->accessControlService->canShowSettings($backendUser);
 
         if ($siteIdentifier !== '') {
@@ -210,8 +220,17 @@ final class PageDetailController extends AbstractBackendModuleController
             $row['displayTitle'] = $backendLanguageCode !== 'en' && $localizedTitle !== ''
                 ? $localizedTitle
                 : (string)($row['message'] ?? '');
+            // Audit D3: the card is titled with the plain rule title in every language; an occurrence keeps its stored
+            // message as its "what" only when that adds information.
+            $row['ruleTitle'] = $localizedTitle !== '' ? $localizedTitle : (string)($row['message'] ?? '');
+            $row['occurrenceWhat'] = OccurrencePresentationUtility::occurrenceWhat(
+                (string)($row['message'] ?? ''),
+                $row['ruleTitle'],
+                $backendLanguageCode
+            );
             $row['aiLinkTextSuggestionAvailable'] = false;
             $row['aiIframeTitleSuggestionAvailable'] = false;
+            $row = $this->addOccurrencePresentation($row, $sourceTable, $sourceUid, $sourceType);
 
             if (
                 $sourceTable !== ''
@@ -319,17 +338,16 @@ final class PageDetailController extends AbstractBackendModuleController
         $visibleIssues = IssueFilterUtility::filterBySeverity($issuesForStatus, $activeSeverity);
         $hasRenderedIssues = count(array_filter($issuesForStatus, static fn(array $issue): bool => (string)($issue['sourceType'] ?? '') === 'rendered')) > 0;
 
+        // List pages hold whole rule groups (audit T3): a rule is never cut across two list pages.
+        $listPages = IssueRuleGroupingUtility::paginateByRule($visibleIssues, self::PER_PAGE);
         $pagination = $this->buildPagination(
             totalItems: count($visibleIssues),
             currentPage: $currentPage,
             perPage: self::PER_PAGE,
+            totalPages: count($listPages),
         );
 
-        $paginatedIssues = array_slice(
-            $visibleIssues,
-            $pagination['offset'],
-            self::PER_PAGE
-        );
+        $paginatedIssues = $listPages[$pagination['currentPage'] - 1] ?? [];
 
         $grouped = [
             'critical' => array_values(array_filter(
@@ -349,6 +367,9 @@ final class PageDetailController extends AbstractBackendModuleController
                 static fn(array $issue): bool => (int)$issue['severity'] === Severity::NeedsReview->value
             )),
         ];
+
+        // One card per rule within each severity, for the issues of this list page only.
+        $ruleGroups = IssueRuleGroupingUtility::group($paginatedIssues, $visibleIssues);
 
         $backUrl = $this->buildOverviewUrl($pageUid, $siteIdentifier, $request);
 
@@ -444,9 +465,31 @@ final class PageDetailController extends AbstractBackendModuleController
             ? $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid)
             : null;
         $lastScan = $lastPageScan;
+        // Audit C13: when the newest scan that covered this page could not check its rendered HTML, say so and why.
+        $coveringScan = RenderedCoverage::newerScan(
+            $lastPageScan,
+            $siteIdentifier !== '' && $pageUid > 0
+                ? $this->scanRepository->findLastCompletedSubtreeScanCoveringPage($siteIdentifier, $pageUid)
+                : null
+        );
+        $renderedSkip = is_array($coveringScan) ? RenderedCoverage::skippedEntryFor($coveringScan, $pageUid) : null;
         $localDetail = [
             'lastScanAt' => is_array($lastScan) ? (int)($lastScan['finished_at'] ?? 0) : 0,
             'lastScanAtFormatted' => is_array($lastScan) ? BackendTimeUtility::formatDateTime((int)($lastScan['finished_at'] ?? 0), 'd.m.Y · H:i') : '—',
+            'renderedSkippedNote' => $renderedSkip === null ? '' : sprintf(
+                $this->translateWithFallback('pageDetail.renderedSkipped', 'Rendered HTML not checked in the last scan: %s'),
+                RenderedCoverage::describe(
+                    $renderedSkip,
+                    fn (string $key, string $fallback): string => $this->translateWithFallback($key, $fallback)
+                )
+            ),
+            // A page visitors do not get cannot be opened by the rendered check; say which scan can check it.
+            'renderedSkippedHint' => $renderedSkip !== null && $renderedSkip['reason'] !== ''
+                ? $this->translateWithFallback(
+                    'pageDetail.renderedSkipped.notPublicHint',
+                    'The rendered check requests the page as a visitor, without the Scanner Token. Its content checks ran; a Frontend scan with a Scanner Token can check hidden pages.'
+                )
+                : '',
             'hasScan' => is_array($lastScan),
             'isRelevantScanRunning' => $this->isRelevantScanRunning($scanStatus, $siteRootPid, $pageUid),
         ];
@@ -459,6 +502,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'activeStatus' => $activeStatus,
             'activeSeverity' => $activeSeverity,
             'grouped' => $grouped,
+            'ruleGroups' => $ruleGroups,
             'severityCounts' => $severityCounts,
             'statusCounts' => $statusCounts,
             'visibleIssuesCount' => count($visibleIssues),
@@ -479,6 +523,9 @@ final class PageDetailController extends AbstractBackendModuleController
             'pagination' => $pagination,
             'paginationItems' => $paginationItems,
             'canScanNow' => $canScanNow,
+            'canCancelLocalScan' => (bool)($scanStatus['running'] ?? false) && $this->scanPermissionService instanceof ScanPermissionService
+                ? $this->scanPermissionService->canCancelLocalScan($scanStatus)
+                : $canScanNow,
             'canShowSettings' => $canShowSettings,
             'scanStatus' => $scanStatus,
             'localDetail' => $localDetail,
@@ -501,6 +548,47 @@ final class PageDetailController extends AbstractBackendModuleController
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');
+    }
+
+    /**
+     * What an editor reads first in an occurrence row: the content element (title, type, column), the offending markup
+     * in one line, and a checkbox name that says which finding it selects. Table, uid, field, selector and full snippet
+     * stay in the occurrence's technical details.
+     *
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function addOccurrencePresentation(array $row, string $sourceTable, int $sourceUid, string $sourceType): array
+    {
+        $sourceField = (string)($row['source_field'] ?? '');
+        $location = $this->issueLocationService?->describe($sourceTable, $sourceUid, $sourceField) ?? [
+            'title' => $sourceTable === 'tt_content'
+                ? sprintf($this->translateWithFallback('pageDetail.contentElement', 'Content element #%s'), (string)$sourceUid)
+                : trim($sourceTable . ' #' . $sourceUid),
+            'context' => '',
+            'fieldLabel' => $sourceField,
+            'isContentElement' => $sourceTable === 'tt_content',
+            'isPageLevel' => $sourceTable === 'pages',
+        ];
+        $row['location'] = $location;
+
+        // Structured findings store a description ("sys_file_reference uid:…, file: …"), not markup: it stays technical.
+        $snippet = (string)($row['context_snippet'] ?? '');
+        $row['snippetPreview'] = $sourceType !== 'structured'
+            ? OccurrencePresentationUtility::snippetPreview($snippet)
+            : '';
+
+        $cssSelector = trim((string)($row['css_selector'] ?? ''));
+        $contextPath = trim((string)($row['context_path'] ?? ''));
+        $row['technicalPath'] = $contextPath !== '' && $contextPath !== $cssSelector ? $contextPath : '';
+
+        $row['selectLabel'] = sprintf(
+            $this->translateWithFallback('pageDetail.bulk.selectOccurrenceIn', 'Select “%1$s” in %2$s'),
+            (string)($row['displayTitle'] ?? $row['message'] ?? ''),
+            (string)$location['title']
+        );
+
+        return $row;
     }
 
     private function isRelevantScanRunning(array $scanStatus, int $siteRootPid, int $pageUid): bool
@@ -950,9 +1038,9 @@ final class PageDetailController extends AbstractBackendModuleController
      *   hasNext:bool
      * }
      */
-    private function buildPagination(int $totalItems, int $currentPage, int $perPage): array
+    private function buildPagination(int $totalItems, int $currentPage, int $perPage, ?int $totalPages = null): array
     {
-        $totalPages = max(1, (int)ceil($totalItems / $perPage));
+        $totalPages = max(1, $totalPages ?? (int)ceil($totalItems / $perPage));
         $currentPage = min(max(1, $currentPage), $totalPages);
 
         return [

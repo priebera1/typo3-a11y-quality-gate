@@ -35,4 +35,23 @@ final class ScanUrlUtility
 
         return ($scheme !== '' ? $scheme . '://' : '') . $host . $port . $path . $query;
     }
+
+    /**
+     * The path (and query) of a scanned URL for a one-line label in a page list: the site's own host repeats on every
+     * row and only pushes the part that tells pages apart out of view. The full URL stays the link target.
+     *
+     * Returns an empty string when the URL has no host, so the caller can fall back to the URL as stored.
+     */
+    public static function displayPath(string $url): string
+    {
+        $parts = parse_url(trim($url));
+        if (!is_array($parts) || (string)($parts['host'] ?? '') === '') {
+            return '';
+        }
+
+        $path = (string)($parts['path'] ?? '');
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . (string)$parts['query'] : '';
+
+        return ($path === '' ? '/' : $path) . $query;
+    }
 }

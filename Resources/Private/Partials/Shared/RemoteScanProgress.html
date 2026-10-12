@@ -14,54 +14,56 @@
         data-a11y-remote-pages-total="{activeRemoteScan.pages_total}"
         data-a11y-remote-language-uid="{activeRemoteScan.language_uid}"
 >
-    <div class="aqg-progress-block__head">
-        <div class="aqg-progress-block__title">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <f:if condition="{activeRemoteScan.is_free_preview}">
-                <f:then>
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running"
-                            default="Running free preview…"
-                    />
-                </f:then>
-                <f:else>
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scan"
-                            default="Frontend scan"
-                    />
-                </f:else>
-            </f:if>
-        </div>
+    <span class="aqg-progress-block__glyph" aria-hidden="true">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span class="aqg-progress-block__icon aqg-progress-block__icon--failed"><f:render partial="Shared/AqgIcon" arguments="{name: 'x'}" /></span>
+        <span class="aqg-progress-block__icon aqg-progress-block__icon--completed"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok'}" /></span>
+    </span>
 
-        <div class="aqg-progress-block__head-actions">
-            <span class="aqg-status-badge aqg-status-badge--running" data-a11y-remote-scan-status="true"></span>
-            <f:if condition="!{activeRemoteScan.is_free_preview}">
+    <div class="aqg-progress-block__main">
+        <span class="aqg-progress-block__state" data-a11y-remote-scan-state="true">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scan.stateRunning" default="Running" />
+        </span>
+        <div class="aqg-progress-block__title">
+            <span data-a11y-remote-scan-title="true">
+                <f:if condition="{activeRemoteScan.is_free_preview}">
+                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running" default="Running free preview…" /></f:then>
+                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scan.remoteRunningTitle" default="Frontend scan is running" /></f:else>
+                </f:if>
+            </span>
+        </div>
+        <p class="aqg-progress-block__foot">
+            <span data-a11y-remote-scan-message="true"></span>
+            <span class="aqg-progress-block__hint" data-a11y-remote-scan-background-hint="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.progress.backgroundHint" default="You can leave this page; the scan keeps running." />
+            </span>
+        </p>
+        <div class="aqg-progress-block__more" data-a11y-remote-scan-more="true" hidden="hidden">
+            <button type="button" class="aqg-disclosure-btn" data-aqg-toggle="true" aria-expanded="false" aria-controls="aqg-remote-scan-more-text">
+                <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scan.unreachableHow" default="How to make the site reachable" />
+            </button>
+            <p class="aqg-progress-block__detail" id="aqg-remote-scan-more-text" data-a11y-remote-scan-more-text="true" hidden="hidden"></p>
+        </div>
+        <f:if condition="{canCancel} && !{activeRemoteScan.is_free_preview}">
+            <div class="aqg-progress-block__actions">
                 <button
                         type="button"
-                        class="btn btn-sm aqg-btn-danger-outline aqg-progress-block__cancel"
+                        class="aqg-progress-block__cancel"
                         data-action="a11y-pro-cancel-scan"
                         data-job-id="{activeRemoteScan.job_id}"
                         data-site-identifier="{activeRemoteScan.site_identifier}"
                         data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancelling', default: 'Cancelling…')}"
                 >
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancel" default="Cancel" />
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.cancelScan" default="Cancel scan" />
                 </button>
-            </f:if>
-        </div>
+            </div>
+        </f:if>
     </div>
 
-    <div class="aqg-progress-block__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+    <span class="aqg-status-badge aqg-status-badge--running aqg-progress-block__badge" data-a11y-remote-scan-status="true"></span>
+    <div class="aqg-progress-block__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-hidden="true">
         <div class="aqg-progress-block__fill"></div>
-    </div>
-
-    <div class="aqg-progress-block__foot">
-        <span data-a11y-remote-scan-message="true"></span>
-        <span class="aqg-meta" data-a11y-remote-scan-background-hint="true">
-            <f:translate
-                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.progress.backgroundHint"
-                    default="You can leave this page; the scan keeps running."
-            />
-        </span>
     </div>
 </div>
 </html>

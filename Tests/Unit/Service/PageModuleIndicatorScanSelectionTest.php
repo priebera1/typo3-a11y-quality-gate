@@ -110,7 +110,11 @@ final class PageModuleIndicatorScanSelectionTest extends TestCase
         self::assertSame('is-indeterminate', $starting['progress']['modeClass']);
 
         $progress = $this->build(activeScan: $this->activeScan(['scan_scope' => 'site', 'page_uid' => 0, 'pages_scanned' => 9, 'pages_total' => 18]))['progress'];
-        self::assertSame(['percent' => 50, 'modeClass' => 'is-determinate'], $progress);
+        self::assertSame(50, $progress['percent']);
+        self::assertSame('is-determinate', $progress['modeClass']);
+        // Audit C14: the progress bar has a text value from the server, before any JavaScript runs.
+        self::assertTrue($progress['determinate']);
+        self::assertNotSame('', $progress['valueText']);
     }
 
     #[Test]

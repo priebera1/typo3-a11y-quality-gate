@@ -10,7 +10,9 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Pro\ViewModel\RecordMappingNotice;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
@@ -20,11 +22,15 @@ use Priebera\A11yQualityGate\Service\FixVerificationService;
 use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
 use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\ScanPermissionService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
+use Priebera\A11yQualityGate\Utility\RemoteRuleImpactGroupingUtility;
+use Priebera\A11yQualityGate\Utility\OccurrencePresentationUtility;
+use Priebera\A11yQualityGate\Service\IssueLocationService;
 use Priebera\A11yQualityGate\Utility\RuleAnchorUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -66,6 +72,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         private readonly RemoteScanPairingService $remoteScanPairingService,
         private readonly FixVerificationRepository $fixVerificationRepository,
         private readonly FixVerificationService $fixVerificationService,
+        private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
+        private readonly ?ScanPermissionService $scanPermissionService = null,
+        private readonly ?IssueLocationService $issueLocationService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -233,12 +242,21 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                     ? []
                     : $this->decodeNodeRemediation((string)($node['node_remediation_json'] ?? ''));
                 $node['hasNodeRemediation'] = $node['nodeRemediation'] !== [];
+                $node['showNodeRemediation'] = $node['hasNodeRemediation'];
+                $node['failureGroups'] = OccurrencePresentationUtility::failureSummaryGroups((string)($node['failure_summary'] ?? ''));
+                $node['highlightSelector'] = OccurrencePresentationUtility::highlightSelector((string)($node['target_json'] ?? ''));
+                $node['recordLocation'] = ['title' => '', 'context' => '', 'exists' => true];
+                $node['recordAccess'] = '';
+                $node['isPageLevel'] = RecordMappingNotice::isPageLevelNode($node);
 
                 if ($mappedTable !== '' && $mappedUid > 0) {
                     $node['hasRecordMapping'] = true;
-                    $node['hasEditAccess'] = $this->backendRecordAccessService->canEditRecord(
-                        $mappedTable,
-                        $mappedUid
+                    $node['recordLocation'] = $this->describeMappedRecord($mappedTable, $mappedUid);
+                    $node['hasEditAccess'] = $node['recordLocation']['exists']
+                        && $this->backendRecordAccessService->canEditRecord($mappedTable, $mappedUid);
+                    $node['recordAccess'] = OccurrencePresentationUtility::recordAccessState(
+                        $node['recordLocation']['exists'],
+                        $node['hasEditAccess']
                     );
 
                     if ($node['hasEditAccess']) {
@@ -258,6 +276,18 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                     'nodes' => $nodes,
                 ];
         }, $issues);
+
+        // Without an effective Scanner Token TYPO3 renders no record markers for the crawler: say so instead of
+        // leaving every unmapped finding with "could not locate source content".
+        $recordMappingNotice = RecordMappingNotice::build(
+            $issuesWithNodes,
+            !$this->remoteScanAccessSettingsService instanceof RemoteScanAccessSettingsService
+                || $this->remoteScanAccessSettingsService->hasScannerTokenForSite($resolvedSiteIdentifier),
+            $isFreePreview || $scanIsFreePreview,
+            $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser())
+                ? $this->buildRouteUrl('web_a11y.settings', ['tab' => 'remote_access', 'rulesetSite' => $resolvedSiteIdentifier])
+                : '',
+        );
 
         $siteRootPid = $resolvedSite !== null ? (int)$resolvedSite->getRootPageId() : 0;
         $resolvedTypo3PageUid = $this->remotePageScanTargetResolver->resolveMappedPageUid($remoteScan, $issuesWithNodes, $resolvedSite);
@@ -353,6 +383,12 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
             is_array($remoteScan) ? (int)($remoteScan['finished_at'] ?? 0) : 0
         );
+
+        // The reload after a scan started from this view (`_aqgReload`, base-module.js) opens that scan's result, not the
+        // earlier one this URL is bound to with an "earlier scan" note.
+        if ($newerScan !== [] && array_key_exists('_aqgReload', $request->getQueryParams())) {
+            return new RedirectResponse((string)$newerScan['url']);
+        }
         $remoteScanCompare = $isFreePreview
             ? ['available' => false, 'message' => '']
             : $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $resolvedSiteIdentifier, $remotePageHistory);
@@ -376,11 +412,22 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'errorMessage' => null,
             'remotePage' => $remotePage + [
                     'screenshot_proxy_url' => $remoteScreenshotProxyUrl,
+                    'screenshot_original_url' => $remoteScreenshotProxyUrl !== '' ? $remoteScreenshotProxyUrl . '&variant=original' : '',
                 ],
+            // Audit C15: numbered outlines and an untouched Original exist for captures with screenshot evidence.
+            'screenshotEvidence' => is_array($decodedEvidence = json_decode((string)($remotePage['screenshot_evidence_json'] ?? ''), true)) ? $decodedEvidence : [],
             'remoteScan' => $remoteScan,
             'remoteDetail' => $remoteDetail,
             'activeRemoteScan' => $activeRemoteScan,
+            'canCancelRemoteScan' => is_array($activeRemoteScan) && $this->scanPermissionService instanceof ScanPermissionService
+                ? $this->scanPermissionService->canCancelRemoteScan($activeRemoteScan)
+                : $canScanRemotePage,
             'issues' => $groupedIssues,
+            'recordMappingNotice' => $recordMappingNotice,
+            'impactGroups' => RemoteRuleImpactGroupingUtility::group(
+                $groupedIssues,
+                (string)($pageRecommendation['primaryRuleId'] ?? $pageRecommendation['primaryRule'] ?? '')
+            ),
             'issueDetailsUnavailable' => $issueDetailsUnavailable,
             'pageSummaryIssuesCount' => $pageSummaryIssuesCount,
             'pageFindingsCount' => $pageFindingsCount,
@@ -493,6 +540,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'single_page',
             $pageUrl,
             $languageUid >= 0 ? $languageUid : null,
+            // Every scan stores its pages as new rows, so the page record identifies the scan for the cache.
+            $remotePageUid > 0 ? 'remote-page-' . $remotePageUid : '',
         );
         $previousJobId = trim((string)($alert['previousJobId'] ?? ''));
         $currentJobId = trim((string)($alert['currentJobId'] ?? ''));
@@ -981,6 +1030,17 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             // A link from a rule ("View affected pages") opens that rule on the page.
             $group['isRequestedRule'] = $requestedRuleId !== '' && strcasecmp((string)$group['rule_id'], $requestedRuleId) === 0;
             $group['isDefaultOpen'] = $group['isRequestedRule'];
+            // Remediation that is the same for every node is the rule's guidance: show its steps once on the rule,
+            // and keep a node's own block only when it differs from the others.
+            $sharedRemediation = OccurrencePresentationUtility::sharedRemediation($group['nodes']);
+            $group['sharedRemediation'] = $sharedRemediation;
+            $group['showSharedRemediationSteps'] = $sharedRemediation !== []
+                && (bool)($sharedRemediation['hasSteps'] ?? false)
+                && !$this->isGenericRemediation($sharedRemediation);
+            foreach ($group['nodes'] as $nodeIndex => $groupNode) {
+                $group['nodes'][$nodeIndex]['showNodeRemediation'] = $sharedRemediation === []
+                    && (bool)($groupNode['hasNodeRemediation'] ?? false);
+            }
             if ($group['isPrimaryRecommendation']) {
                 $hasPrimaryMatch = true;
             }
@@ -1006,6 +1066,44 @@ final class RemotePageDetailController extends AbstractBackendModuleController
     }
 
     /** @return array{label:string,url:string,type:string}|null */
+    /**
+     * Fallback guidance ("Review the affected element in context") names no owner and no fix type; repeating its
+     * steps on the rule adds nothing to the rule documentation link.
+     *
+     * @param array<string, mixed> $remediation
+     */
+    private function isGenericRemediation(array $remediation): bool
+    {
+        return in_array((string)($remediation['recommendedOwner'] ?? ''), ['', 'unknown'], true)
+            && in_array((string)($remediation['fixType'] ?? ''), ['', 'unknown'], true);
+    }
+
+    /**
+     * The record a frontend finding is linked to, by its title and type, for the occurrence row. A record that is not
+     * readable here still shows its table and uid; `exists` is false when no such record is in this installation.
+     *
+     * @return array{title: string, context: string, exists: bool}
+     */
+    private function describeMappedRecord(string $table, int $uid): array
+    {
+        $location = $this->issueLocationService?->describe($table, $uid, '');
+        if ($location === null) {
+            return [
+                'title' => $table === 'tt_content'
+                    ? sprintf($this->translateWithFallback('pageDetail.contentElement', 'Content element #%s'), (string)$uid)
+                    : $table . ' #' . $uid,
+                'context' => '',
+                'exists' => true,
+            ];
+        }
+
+        return [
+            'title' => (string)$location['title'],
+            'context' => (string)$location['context'],
+            'exists' => (bool)($location['exists'] ?? true),
+        ];
+    }
+
     private function createHelpDocumentationLink(string $helpUrl): ?array
     {
         if ($helpUrl === '') {

@@ -256,7 +256,9 @@ final class RemoteReportingSummaryService
             return [];
         }
 
-        $hasValue = array_key_exists('value', $score) || array_key_exists('score', $score);
+        // The crawler sends `available: false` (and no value) for a run that loaded no page.
+        $hasValue = (array_key_exists('value', $score) || array_key_exists('score', $score))
+            && (!array_key_exists('available', $score) || (bool)$score['available']);
         $value = max(0, min(100, (int)($score['value'] ?? $score['score'] ?? 0)));
         $max = max(1, (int)($score['max'] ?? 100));
         $rawTone = $this->normalizeMachineValue($score['tone'] ?? $score['status'] ?? null);

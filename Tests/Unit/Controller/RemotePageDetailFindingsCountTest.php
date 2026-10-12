@@ -126,8 +126,8 @@ final class RemotePageDetailFindingsCountTest extends TestCase
 
     private function heroStripMarkup(string $template): string
     {
-        $start = strpos($template, '<div class="aqg-hero__strip">');
-        self::assertIsInt($start, 'Remote Page Detail hero strip not found.');
+        $start = strpos($template, '<header class="aqg-pagehead aqg-pagehead--frontend">');
+        self::assertIsInt($start, 'Remote Page Detail header not found.');
 
         $end = strpos($template, '</header>', $start);
         self::assertIsInt($end, 'Remote Page Detail header end not found.');

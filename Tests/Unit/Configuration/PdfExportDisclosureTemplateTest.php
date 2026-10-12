@@ -22,8 +22,6 @@ final class PdfExportDisclosureTemplateTest extends TestCase
      */
     public static function pdfControlProvider(): iterable
     {
-        yield 'local page detail' => ['Templates/PageDetail/Show.html', 'href="{exportPdfUrl}"', 'export.pdf.untaggedNote'];
-        yield 'remote page detail' => ['Templates/RemotePageDetail/Show.html', 'href="{exportPdfUrl}"', 'export.pdf.untaggedNote'];
         yield 'acceptance evidence' => ['Partials/Remote/ScanComparison.html', 'href="{comparison.acceptanceEvidence.pdfUrl}"', 'remote.acceptance.pdfUntaggedNote'];
         yield 'statement assistant' => ['Partials/Settings/TabStatement.html', 'js-aqg-statement-pdf', 'settings.statement.pdfUntaggedNote'];
     }
@@ -57,8 +55,9 @@ final class PdfExportDisclosureTemplateTest extends TestCase
         self::assertMatchesRegularExpression('/id="\{pdfNoteId\}">\s*<f:translate\s+key="[^"]*export\.pdf\.untaggedNote"/', $partial);
 
         $ids = [];
-        foreach (['LocalPanel', 'RemoteActions', 'RemotePanel'] as $caller) {
-            $html = (string)file_get_contents(self::PRIVATE . 'Partials/Overview/' . $caller . '.html');
+        // Both Overview tabs and both page views export through the same menu.
+        foreach (['Partials/Overview/LocalActions', 'Partials/Overview/RemoteActions', 'Partials/Overview/RemoteStatus', 'Templates/PageDetail/Show', 'Templates/RemotePageDetail/Show'] as $caller) {
+            $html = (string)file_get_contents(self::PRIVATE . $caller . '.html');
             self::assertMatchesRegularExpression("/partial=\"Shared\\/ExportButtons\"[^\\/]*pdfNoteId: '([a-z0-9-]+)'/s", $html, $caller);
             preg_match("/partial=\"Shared\\/ExportButtons\"[^\\/]*pdfNoteId: '([a-z0-9-]+)'/s", $html, $match);
             $ids[] = $match[1];

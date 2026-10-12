@@ -11,82 +11,53 @@ use ReflectionClass;
 use ReflectionMethod;
 
 /**
- * WCAG 4.1.2: exactly one tab in the settings tablist must report aria-selected="true".
+ * The settings sections are separate pages, so their navigation is a list of links where the current one carries
+ * aria-current="page" (audit A2/S2): an ARIA tablist promised tab panels and arrow-key behaviour that page links do not
+ * have, and TYPO3 14's core tab manager rewrote aria-selected of every [role="tab"].
  *
- * Regression guard: the attribute was produced by an inline
- * `f:if(..., then: 'true', else: 'false')`, which TYPO3 14's Fluid resolved to "false" even on the
- * active tab. Reproduced on typo3test14: the active tab carried `is-active` and
- * `aria-current="page"` while every tab reported aria-selected="false".
+ * The state is precomputed: an inline Fluid ternary in an ARIA attribute resolved wrongly on TYPO3 14.
  */
 final class SettingsTabSelectionTest extends TestCase
 {
     private const TABS = ['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement'];
 
     #[Test]
-    public function exactlyOneTabIsSelectedForEveryActiveTab(): void
+    public function exactlyOneSectionIsCurrentForEveryActiveTab(): void
     {
         foreach (self::TABS as $activeTab) {
-            $states = $this->selectedStates($activeTab);
+            $states = $this->currentStates($activeTab);
 
-            self::assertSame('true', $states[$activeTab] ?? null, $activeTab . ' must be selected.');
-            self::assertCount(
-                1,
-                array_filter($states, static fn (string $value): bool => $value === 'true'),
-                'Exactly one tab may report aria-selected="true" for active tab ' . $activeTab . '.'
-            );
+            self::assertSame('page', $states[$activeTab] ?? null, $activeTab . ' must be current.');
+            self::assertCount(1, array_filter($states, static fn (string $value): bool => $value === 'page'));
         }
     }
 
     #[Test]
-    public function everyTabHasAnExplicitStringState(): void
+    public function unknownActiveTabLeavesNoSectionCurrent(): void
     {
-        $states = $this->selectedStates('gate');
-
-        self::assertSame(self::TABS, array_keys($states));
-        foreach ($states as $tab => $value) {
-            self::assertContains($value, ['true', 'false'], $tab . ' must be a literal true/false string.');
-        }
+        self::assertSame([], array_filter($this->currentStates('does-not-exist'), static fn (string $value): bool => $value === 'page'));
     }
 
     #[Test]
-    public function unknownActiveTabLeavesNoTabSelected(): void
+    public function theTemplateIsNavigationWithPrecomputedCurrentState(): void
     {
-        $states = $this->selectedStates('does-not-exist');
+        $template = (string)file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Settings/Tabs.html');
 
-        self::assertSame([], array_filter($states, static fn (string $value): bool => $value === 'true'));
-    }
-
-    #[Test]
-    public function templateUsesThePrecomputedStateNotAnInlineTernary(): void
-    {
-        $template = (string)file_get_contents(
-            __DIR__ . '/../../../Resources/Private/Partials/Settings/Tabs.html'
-        );
-
-        self::assertSame(
-            count(self::TABS),
-            substr_count($template, 'aria-selected="{settingsTabSelected.'),
-            'Every settings tab must render the precomputed aria-selected value.'
-        );
-        self::assertStringNotContainsString(
-            "aria-selected=\"{f:if(",
-            $template,
-            'The inline ternary resolves to "false" on TYPO3 14 and must not come back.'
-        );
+        self::assertSame(count(self::TABS), substr_count($template, 'aria-current="{settingsTabCurrent.'));
+        self::assertStringNotContainsString('role="tab', $template);
+        self::assertStringNotContainsString('aria-selected', $template);
+        self::assertStringContainsString('<nav class="aqg-tabs"', $template);
     }
 
     /**
      * @return array<string, string>
      */
-    private function selectedStates(string $activeTab): array
+    private function currentStates(string $activeTab): array
     {
         $subject = (new ReflectionClass(SettingsController::class))->newInstanceWithoutConstructor();
-        self::assertInstanceOf(SettingsController::class, $subject);
-
-        $method = new ReflectionMethod(SettingsController::class, 'buildSettingsTabSelectedStates');
 
         /** @var array<string, string> $states */
-        $states = $method->invoke($subject, $activeTab);
+        $states = (new ReflectionMethod(SettingsController::class, 'buildSettingsTabCurrentStates'))->invoke($subject, $activeTab);
 
         return $states;
     }

@@ -32,7 +32,7 @@ final class PdfReadabilityTest extends TestCase
      */
     public static function styleSourceProvider(): iterable
     {
-        foreach (['base.css', 'local.css', 'statement.css'] as $file) {
+        foreach (['report.css', 'statement.css'] as $file) {
             yield $file => [self::PDF_CSS . $file];
         }
         foreach (glob(self::PDF_TEMPLATES . '*Pdf.html') ?: [] as $template) {
@@ -76,13 +76,19 @@ final class PdfReadabilityTest extends TestCase
     #[Test]
     public function tablesWithUrlsWrapLongWordsInsteadOfShrinking(): void
     {
-        $base = (string)file_get_contents(self::PDF_CSS . 'base.css');
-        $local = (string)file_get_contents(self::PDF_CSS . 'local.css');
-        $acceptance = (string)file_get_contents(self::PDF_TEMPLATES . 'AcceptanceEvidencePdf.html');
+        // One print system for every report (1.9.9): its tables and running header/footer wrap long words.
+        $report = (string)file_get_contents(self::PDF_CSS . 'report.css');
 
-        self::assertMatchesRegularExpression('/\.aqgp-runhead,\s*\.aqgp-runfoot \{[^}]*overflow: wrap;/', $base, 'Running header and footer');
-        self::assertMatchesRegularExpression('/\.aqgp-meta \{[^}]*overflow: wrap;/', $local, 'Local report metadata (site, path)');
-        self::assertMatchesRegularExpression('/\.aqge-table \{[^}]*overflow: wrap;/', $acceptance, 'Acceptance evidence start URLs and job IDs');
+        self::assertMatchesRegularExpression('/\.aqr-runhead,\s*\.aqr-runfoot \{[^}]*overflow: wrap;/', $report, 'Running header and footer');
+        self::assertMatchesRegularExpression('/\.aqr-table \{[^}]*overflow: wrap;/', $report, 'Report tables (URLs, job IDs, snippets)');
+        // Sections flow (audit F1): only the Content site report starts its reference tables on a new page.
+        foreach (self::REPORTS as $report) {
+            self::assertSame(
+                $report === 'LocalOverviewPdf.html' ? 1 : 0,
+                substr_count((string)file_get_contents(self::PDF_TEMPLATES . $report), '<pagebreak'),
+                $report . ': forced page breaks'
+            );
+        }
     }
 
     #[Test]
@@ -106,5 +112,30 @@ final class PdfReadabilityTest extends TestCase
         self::assertStringContainsString('not tagged for screen readers', $template);
         self::assertStringContainsString('CSV export', $template, 'The note must name the accessible alternative.');
         self::assertMatchesRegularExpression('/<bookmark content="[^"]+" level="0" \/>/', $template, 'Sections need bookmarks for the PDF outline.');
+    }
+
+    /**
+     * Regression: occurrence 1.1 sat in a table nested inside the rule's second column, 1.2+ in a separate table with
+     * a margin, so mPDF laid the columns out twice and the rows did not line up. Every occurrence row now renders the
+     * same fixed-width cells as a direct row of a rule-level table.
+     */
+    #[Test]
+    #[DataProvider('occurrenceGridProvider')]
+    public function occurrenceRowsOfARuleShareOneColumnGrid(string $report, string $section): void
+    {
+        $template = (string)file_get_contents(self::PDF_TEMPLATES . $report);
+
+        self::assertDoesNotMatchRegularExpression('/<td>\s*<table class="aqr-table aqr-occ/', $template, 'No occurrence table nested in a rule cell.');
+        self::assertStringNotContainsString('aqr-occ--more', $template, 'No indented continuation table.');
+        preg_match('/<f:section name="' . $section . '">(.*?)<\/f:section>/s', $template, $row);
+        self::assertNotEmpty($row, 'The occurrence row section exists.');
+        self::assertStringContainsString('<td class="aqr-grid__no" style="width:8mm"></td>', $row[1], 'Every row starts with the rule-number spacer.');
+        self::assertMatchesRegularExpression('/<td class="aqr-grid__idx" style="width:11mm">/', $row[1]);
+    }
+
+    public static function occurrenceGridProvider(): iterable
+    {
+        yield 'Content page report' => ['LocalPagePdf.html', 'Occurrence'];
+        yield 'Frontend page report' => ['RemotePagePdf.html', 'Node'];
     }
 }

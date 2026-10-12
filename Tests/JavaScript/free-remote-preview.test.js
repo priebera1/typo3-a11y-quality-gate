@@ -215,6 +215,8 @@ describe('Free Remote Preview browser boundary', () => {
             resetRemoteScanDomState: vi.fn(),
             updateRemoteScanUi: vi.fn(),
             showNotification: vi.fn(),
+            notifyRemoteScanFailure: vi.fn(),
+            applyRemoteFailureDetail: vi.fn(),
             translate: (_key, fallback) => fallback,
             remoteSubmitInProgress: false,
         };

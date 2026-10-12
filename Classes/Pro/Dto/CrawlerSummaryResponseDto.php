@@ -59,6 +59,8 @@ final class CrawlerSummaryResponseDto
         public readonly ?string $finishedAt,
         public readonly ?string $errorCode,
         public readonly ?string $errorMessage,
+        // The pages the run was expected to check (summary contract 1.4+); 0 from an older AQG service.
+        public readonly int $pagesTotal = 0,
     ) {
     }
 
@@ -163,6 +165,7 @@ final class CrawlerSummaryResponseDto
             contractVersion: trim((string)($payload['contractVersion'] ?? $payload['contract_version'] ?? '')),
             features: is_array($payload['features'] ?? null) ? $payload['features'] : [],
             pagesScanned: (int)($payload['pagesScanned'] ?? $payload['pages_scanned'] ?? 0),
+            pagesTotal: (int)($payload['pagesTotal'] ?? $payload['coverage']['pagesExpected'] ?? 0),
             pagesFailed: (int)($payload['pagesFailed'] ?? $payload['pages_failed'] ?? 0),
             issuesTotal: (int)($payload['issuesTotal'] ?? $payload['issues_total'] ?? ($contrast['issuesTotal'] ?? $contrast['issues_total'] ?? 0)),
             issuesNew: (int)($payload['issuesNew'] ?? $payload['issues_new'] ?? 0),

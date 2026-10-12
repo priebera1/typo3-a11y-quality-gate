@@ -43,6 +43,13 @@ final class ScanOrchestrator
         'rendered.table_missing_header',
     ];
 
+    /**
+     * Rich-text findings of the page being scanned, for the rendered check's duplicate test (audit C6).
+     *
+     * @var list<array{ruleId: string, table: string, uid: int, snippet: string, path: string}>
+     */
+    private array $richTextFindingsForPage = [];
+
     public function __construct(
         private readonly PageCollector $pageCollector,
         private readonly ContentCollector $contentCollector,
@@ -175,6 +182,7 @@ final class ScanOrchestrator
                 issuesNew: $result->issuesNew,
                 issuesResolved: $result->issuesResolved,
                 issuesIgnored: $result->issuesIgnored,
+                renderedCoverage: $result->renderedCoverage(),
             );
         } catch (ScanCancelledException $e) {
             $this->scanRepository->cancelScanRun(
@@ -238,6 +246,7 @@ final class ScanOrchestrator
 
         $seenFingerprintsForPage = [];
         $evaluatedRuleIdsForPage = [];
+        $this->richTextFindingsForPage = [];
         $pendingHeaderLevelIsH1Violations = [];
         $renderedCheckCompleted = false;
         $suppressStructuredHeaderLevelIsH1 = false;
@@ -495,6 +504,11 @@ final class ScanOrchestrator
                         $renderedSettings['allowPrivateHosts']
                     );
                     $renderedCheckCompleted = $renderedResult->completed;
+                    // A hidden, scheduled or group-restricted page is not shown to the visitor the check requests it as.
+                    $visitorRestriction = $renderedCheckCompleted
+                        ? ''
+                        : $this->renderedPageTypeGuard->visitorRestriction($pageUid, $renderedLanguageUid);
+                    $result->recordRenderedCheck($pageUid, $renderedCheckCompleted, $renderedResult->statusCode, $renderedResult->warning, $visitorRestriction);
                     if ($renderedCheckCompleted) {
                         array_push($evaluatedRuleIdsForPage, ...self::RENDERED_RULE_IDS);
                     }
@@ -517,6 +531,8 @@ final class ScanOrchestrator
                                 'pageUid' => $pageUid,
                                 'languageUid' => $renderedLanguageUid,
                                 'source' => 'rendered_check',
+                                'statusCode' => $renderedResult->statusCode,
+                                'reason' => $visitorRestriction,
                             ]
                         );
                     }
@@ -531,8 +547,23 @@ final class ScanOrchestrator
                         $result->issuesResolved += $resolvedTechnicalErrorIssues;
                     }
 
+                    // Audit C6: an element both scopes report is one finding, kept under its rich-text rule.
+                    [$renderedViolations, $renderedDuplicates] = RenderedRichTextDuplicates::split(
+                        $renderedResult->violations,
+                        $this->richTextFindingsForPage
+                    );
+                    if ($renderedDuplicates !== []) {
+                        $this->issuePersistenceCoordinator->retireRenderedDuplicates($renderedDuplicates, $renderedContext);
+                        $this->logger->debug('Rendered findings already reported by a rich-text rule were not stored twice.', [
+                            'siteIdentifier' => $siteIdentifier,
+                            'pageUid' => $pageUid,
+                            'scanUid' => $scanUid,
+                            'duplicates' => count($renderedDuplicates),
+                        ]);
+                    }
+
                     $this->issuePersistenceCoordinator->persistViolations(
-                        violations: $renderedResult->violations,
+                        violations: $renderedViolations,
                         context: $renderedContext,
                         scanUid: $scanUid,
                         result: $result,
@@ -620,6 +651,11 @@ final class ScanOrchestrator
         array &$evaluatedRuleIdsForPage,
     ): void {
         $violations = $this->runRulesFor($ctx, $evaluatedRuleIdsForPage);
+        foreach ($violations as $violation) {
+            if (str_starts_with($violation->ruleId, 'rte.')) {
+                $this->richTextFindingsForPage[] = RenderedRichTextDuplicates::richTextFinding($violation, $ctx->sourceTable, $ctx->sourceUid);
+            }
+        }
 
         $this->issuePersistenceCoordinator->persistViolations(
             violations: $violations,

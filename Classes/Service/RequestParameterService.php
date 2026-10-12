@@ -152,6 +152,9 @@ final class RequestParameterService
             'remoteFailedQuery',
             'remoteRule',
             'remotePageUid',
+            // An explicitly selected stored frontend scan (history, notification action) survives pagination,
+            // filters and the language redirect; the Overview re-validates it on every request.
+            'remoteScanUid',
             'tab',
             'rulesetSite',
         ];

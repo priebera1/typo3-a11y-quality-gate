@@ -12,6 +12,7 @@ final class RenderedFrontendUrlSanitizer
     private const INTERNAL_PARAMETERS = [
         'aqgDebug',
         'aqgh',
+        'aqgs',
         'tx_aqg_rendered_check',
         'no_cache',
         '_aqg_page',

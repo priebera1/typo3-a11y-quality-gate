@@ -1,9 +1,6 @@
 <div
         class="tab-pane fade{f:if(condition: '{activeTab} == ''gate''', then: ' show active')}"
         id="a11y-settings-pane-gate"
-        role="tabpanel"
-        aria-labelledby="a11y-settings-tab-gate"
-        tabindex="0"
 >
     <f:if condition="{proStatus.valid}">
         <f:then>
@@ -39,14 +36,28 @@
                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.meta.appliesTo" default="Applies to publish and unhide" /> · <f:if condition="{qualityGateRuleset.is_global} == 0"><f:then><f:if condition="{siteOverrideCount} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.meta.perSite.singular" default="Per-site · %d override" arguments="{0: siteOverrideCount}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.meta.perSite.plural" default="Per-site · %d overrides" arguments="{0: siteOverrideCount}" /></f:else></f:if></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.scope.global" default="Global configuration" /></f:else></f:if>
                         </span>
                     </div>
-                    <div class="aqg-actionbar__right">
-                        <button type="button" class="aqg-link-button aqg-link-button--muted js-aqg-reset-defaults"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.resetDefaults" default="Reset to defaults" /></button>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
-                        </button>
-                    </div>
+                    <f:if condition="{isAdmin}">
+                        <div class="aqg-actionbar__right">
+                            <button type="button" class="aqg-link-button aqg-link-button--muted js-aqg-reset-defaults"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.resetDefaults" default="Reset to defaults" /></button>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
+                            </button>
+                        </div>
+                    </f:if>
                 </div>
 
+                <f:if condition="{isAdmin}">
+                    <f:else>
+                        <div class="aqg-notice aqg-tone-info" role="status">
+                            <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                            <span class="aqg-notice__body">
+                                <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.readOnly" default="Only TYPO3 administrators can change Quality Gate settings. This configuration is read-only." /></span>
+                            </span>
+                        </div>
+                    </f:else>
+                </f:if>
+
+                <fieldset class="aqg-gate-settings-fieldset" style="border:0; margin:0; padding:0; min-width:0; width:100%" {f:if(condition: isAdmin, else: 'disabled="disabled"')}>
                 <section class="aqg-card">
                     <header class="aqg-card__head aqg-card__head--quiet">
                         <div>
@@ -175,7 +186,9 @@
                                 <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.text" default="Each site listed below uses its own publish rules. Sites that are not listed inherit the global configuration." /></p>
                             </div>
                             <div class="aqg-card__actions">
-                                <button type="button" class="btn btn-default btn-sm js-aqg-addsite-toggle">+ <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.add" default="Add site override" /></button>
+                                <f:if condition="{isAdmin}">
+                                    <button type="button" class="btn btn-default btn-sm js-aqg-addsite-toggle">+ <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.add" default="Add site override" /></button>
+                                </f:if>
                             </div>
                         </header>
                         <div class="aqg-card__body">
@@ -196,7 +209,9 @@
                                 <h4 class="aqg-site-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.emptyTitle" default="No site-specific rules yet" /></h4>
                                 <p class="aqg-site-empty__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.emptyText" default="All sites currently inherit the global Quality Gate configuration. Add a site override if a particular site needs different publish rules." /></p>
                                 <div class="aqg-site-empty__actions">
-                                    <button type="button" class="btn btn-primary btn-sm js-aqg-addsite-toggle"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.add" default="Add site override" /></button>
+                                    <f:if condition="{isAdmin}">
+                                        <button type="button" class="btn btn-primary btn-sm js-aqg-addsite-toggle"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.sites.add" default="Add site override" /></button>
+                                    </f:if>
                                 </div>
                             </div>
 
@@ -226,6 +241,7 @@
                         </ol>
                     </span>
                 </div>
+                </fieldset>
             </form>
         </f:then>
 

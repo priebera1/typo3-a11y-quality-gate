@@ -30,7 +30,8 @@ export const initializeLocalPageScan = (module, root = document) => {
 
         event.preventDefault();
 
-        if (button.disabled || state.activeButtons.has(button)) {
+        // aria-disabled: a row's icon button stays focusable while another content scan runs.
+        if (button.disabled || button.getAttribute('aria-disabled') === 'true' || state.activeButtons.has(button)) {
             return;
         }
 

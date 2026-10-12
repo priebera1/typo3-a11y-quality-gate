@@ -16,10 +16,9 @@ use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Core\View\ViewFactoryInterface;
 
 /**
- * TYPO3 14's core tab manager (@typo3/backend/tab.js) rewrites `aria-selected` and `tabindex` of every
- * `[role="tab"]` inside a `[role="tablist"]` from the `active` class when the backend document loads.
- * The selection state therefore has to be carried by `active` as well; otherwise TYPO3 14 announces
- * the current settings tab as unselected and removes every tab from the keyboard tab order.
+ * The settings sections are a navigation list (audit A2/S2): exactly the current section carries aria-current="page"
+ * and the "active" class used for styling. No element claims the tab role, so TYPO3 14's core tab manager, which
+ * rewrites aria-selected of every [role="tab"], leaves the navigation alone.
  */
 final class SettingsTabsRenderingTest extends AbstractFunctionalTestCase
 {
@@ -43,27 +42,24 @@ final class SettingsTabsRenderingTest extends AbstractFunctionalTestCase
 
     #[Test]
     #[DataProvider('activeTabs')]
-    public function onlyTheActiveTabCarriesTheClassTypo3DerivesSelectionFrom(string $activeTab): void
+    public function onlyTheCurrentSectionIsMarkedCurrent(string $activeTab): void
     {
-        $tabs = $this->renderTabs($activeTab);
+        [$links, $roles] = $this->renderTabs($activeTab);
 
-        self::assertCount(count(self::TABS), $tabs);
+        self::assertCount(count(self::TABS), $links);
+        self::assertSame(0, $roles, 'Page links must not claim the tab role.');
         self::assertSame(
             ['#' . $activeTab],
-            array_keys(array_filter($tabs, static fn (array $tab): bool => $tab['active'])),
-            'Exactly the active tab must carry the "active" class.'
+            array_keys(array_filter($links, static fn (array $link): bool => $link['current'] === 'page')),
+            'Exactly the current section carries aria-current="page".'
         );
-        foreach ($tabs as $href => $tab) {
-            self::assertSame(
-                $tab['active'] ? 'true' : 'false',
-                $tab['ariaSelected'],
-                $href . ': aria-selected must agree with the "active" class TYPO3 14 derives it from.'
-            );
+        foreach ($links as $href => $link) {
+            self::assertSame($link['current'] === 'page', $link['active'], $href . ': the "active" class follows aria-current.');
         }
     }
 
     /**
-     * @return array<string, array{active: bool, ariaSelected: string}>
+     * @return array{0: array<string, array{active: bool, current: string}>, 1: int}
      */
     private function renderTabs(string $activeTab): array
     {
@@ -79,7 +75,7 @@ final class SettingsTabsRenderingTest extends AbstractFunctionalTestCase
                 self::TABS,
                 array_map(static fn (string $tab): string => '#' . $tab, self::TABS)
             ),
-            'settingsTabSelected' => $this->selectedStates($activeTab),
+            'settingsTabCurrent' => $this->currentStates($activeTab),
             'isAdmin' => true,
             'proStatus' => ['valid' => false],
             'statementGeneratorAvailable' => true,
@@ -91,29 +87,30 @@ final class SettingsTabsRenderingTest extends AbstractFunctionalTestCase
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
-        $tabs = [];
-        foreach ((new \DOMXPath($document))->query('//*[@role="tablist"]//*[@role="tab"]') ?: [] as $tab) {
-            if (!$tab instanceof \DOMElement) {
+        $xpath = new \DOMXPath($document);
+        $links = [];
+        foreach ($xpath->query('//nav[@data-aqg-settings-nav="true"]//a') ?: [] as $link) {
+            if (!$link instanceof \DOMElement) {
                 continue;
             }
-            $classes = preg_split('/\s+/', trim($tab->getAttribute('class'))) ?: [];
-            $tabs[$tab->getAttribute('href')] = [
+            $classes = preg_split('/\s+/', trim($link->getAttribute('class'))) ?: [];
+            $links[$link->getAttribute('href')] = [
                 'active' => in_array('active', $classes, true),
-                'ariaSelected' => $tab->getAttribute('aria-selected'),
+                'current' => $link->getAttribute('aria-current'),
             ];
         }
 
-        return $tabs;
+        return [$links, $xpath->query('//*[@role="tab" or @role="tablist"]')?->length ?? 0];
     }
 
     /**
      * @return array<string, string>
      */
-    private function selectedStates(string $activeTab): array
+    private function currentStates(string $activeTab): array
     {
         $controller = (new ReflectionClass(SettingsController::class))->newInstanceWithoutConstructor();
 
-        return (new ReflectionMethod(SettingsController::class, 'buildSettingsTabSelectedStates'))
+        return (new ReflectionMethod(SettingsController::class, 'buildSettingsTabCurrentStates'))
             ->invoke($controller, $activeTab);
     }
 }

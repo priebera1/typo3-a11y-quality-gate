@@ -244,9 +244,10 @@
     }
 
     /* ---------- Input-group (licence key + validate) ---------- */
+    /* One input + action pattern (licence key + Revalidate, Scanner Token + Copy): the value takes the space, the
+       action only its label and a 30 px target, at every module width. */
     .aqg-inputgroup {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
+      display: flex;
       align-items: stretch;
       border: 1px solid var(--aqi-border);
       border-radius: var(--aqi-radius-sm);
@@ -281,23 +282,23 @@
     .aqg-inputgroup .aqg-input:focus {
       box-shadow: none;
     }
+    .aqg-inputgroup__value {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
     .aqg-inputgroup__btn {
-      min-height: 100%;
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      margin: 0;
       border: 0;
       border-left: 1px solid var(--aqi-border-soft);
       border-radius: 0;
-      padding: 0 16px;
+      padding: 0 12px;
       font-weight: 600;
       white-space: nowrap;
-    }
-    .aqg-inputgroup__btn:hover { background: color-mix(in oklch, var(--aqi-fg) 88%, white); }
-    .aqg-theme-dark .aqg-inputgroup__btn:hover { background: color-mix(in oklch, var(--aqi-fg) 90%, black); }
-    .aqg-inputgroup__btn:disabled,
-    .aqg-inputgroup__btn.is-disabled {
-      background: var(--aqi-fg);
-      color: var(--aqi-surface);
-      opacity: .72;
-      cursor: not-allowed;
     }
     .aqg-inputgroup__btn:focus-visible {
       outline: none;
@@ -548,7 +549,7 @@
       gap: 6px;
       margin-top: 8px;
       padding-top: 8px;
-      border-top: 1px dashed var(--aqi-divider);
+      border-top: 1px solid var(--aqi-border-soft);
       font-family: var(--aqi-font-mono);
       font-size: 11px;
       color: var(--aqi-fg-subtle);
@@ -936,7 +937,6 @@
       padding: 16px 18px;
       background: color-mix(in oklch, var(--aqi-run-bg) 35%, var(--aqi-surface));
       border: 1px solid color-mix(in oklch, var(--aqi-run-border) 60%, var(--aqi-border));
-      border-left: 3px solid var(--aqi-run);
       border-radius: var(--aqi-radius);
     }
     .aqg-guidance__icon {
@@ -1049,9 +1049,8 @@
       color: var(--aqi-fg);
     }
     .aqg-actionbar__meta {
-      font-family: var(--aqi-font-mono);
-      font-size: 11px;
-      color: var(--aqi-fg-subtle);
+      font-size: 12px;
+      color: var(--aqi-fg-muted);
     }
     .aqg-actionbar__right {
       display: flex;
@@ -1257,9 +1256,8 @@
     }
 
     .aqg-page-head__meta {
-        color: var(--aqi-fg-subtle);
-        font-family: var(--aqi-font-mono);
-        font-size: 11px;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
         white-space: nowrap;
     }
 
@@ -1457,7 +1455,6 @@
         padding: 12px 14px;
         background: var(--aqi-surface);
         border: 1px solid var(--aqi-border);
-        border-left-width: 3px;
         border-radius: var(--aqi-radius);
     }
 
@@ -1481,7 +1478,7 @@
     }
 
     .aqg-tone-warning {
-        border-left-color: var(--aqi-warn);
+        border-color: var(--aqi-warn-border);
         background: color-mix(in oklch, var(--aqi-warn-bg) 60%, var(--aqi-surface));
     }
 
@@ -1534,21 +1531,9 @@
             justify-content: flex-start;
         }
 
-        .aqg-card__actions .btn,
-        .aqg-actionbar__right .btn,
-        .aqg-inputgroup__btn {
+        // The save bar keeps its buttons at their own width: a stretched primary button became a full-width black block.
+        .aqg-card__actions .btn {
             width: 100%;
-        }
-
-        .aqg-inputgroup {
-            grid-template-columns: 1fr;
-        }
-
-        .aqg-inputgroup__btn {
-            min-height: 36px;
-            border-left: 0;
-            border-top: 1px solid var(--aqi-border-soft);
-            border-radius: 0;
         }
 
         .aqg-radio-cards,
@@ -1976,9 +1961,8 @@
         align-items: center;
         gap: 8px;
         margin-left: auto;
-        color: var(--aqi-fg-subtle);
-        font-family: var(--aqi-font-mono);
-        font-size: 11px;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
         white-space: nowrap;
     }
 
@@ -2624,7 +2608,7 @@
         gap: 6px;
         margin-top: 6px;
         padding-top: 10px;
-        border-top: 1px dashed var(--aqi-divider);
+        border-top: 1px solid var(--aqi-border-soft);
         color: var(--aqi-fg-subtle);
         font-family: var(--aqi-font-mono);
         font-size: 11px;
@@ -2938,7 +2922,7 @@
         justify-items: center;
         gap: 8px;
         padding: 28px 18px;
-        border: 1px dashed var(--aqi-border);
+        border: 1px solid var(--aqi-border);
         border-radius: var(--aqi-radius);
         background: var(--aqi-surface-2);
         text-align: center;
@@ -3176,7 +3160,6 @@
         padding: 12px 16px;
         background: var(--aqi-warn-bg);
         border: 1px solid var(--aqi-warn-border);
-        border-left: 3px solid var(--aqi-warn);
         border-radius: var(--aqi-radius);
     }
 
@@ -3227,7 +3210,7 @@
         padding: 28px 18px;
         text-align: center;
         background: var(--aqi-surface);
-        border: 1px dashed var(--aqi-border);
+        border: 1px solid var(--aqi-border);
         border-radius: var(--aqi-radius);
     }
 
@@ -3651,7 +3634,7 @@
 /* Remote scan access · advanced cookie selector settings */
 .a11y-settings.aqg-module {
     .aqg-remote-access .aqg-card--advanced {
-        border-style: dashed;
+        border-style: solid;
         background: color-mix(in oklch, var(--aqi-surface) 88%, var(--aqi-surface-2));
     }
 
@@ -3713,7 +3696,6 @@
         align-items: center;
         padding: 12px 14px;
         border: 1px solid var(--aqi-border);
-        border-left: 3px solid var(--aqi-fg);
         border-radius: var(--aqi-radius);
         background: var(--aqi-surface);
         color: var(--aqi-fg-muted);
@@ -3786,17 +3768,6 @@
         gap: 14px;
     }
 
-    .aqg-token-row__field {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: stretch;
-        width: 100%;
-        min-height: 38px;
-        overflow: hidden;
-        border: 1px solid var(--aqi-border);
-        border-radius: var(--aqi-radius-sm);
-        background: var(--aqi-surface);
-    }
 
     .aqg-token-row__prefix {
         display: inline-flex;
@@ -3827,25 +3798,14 @@
         text-overflow: ellipsis;
     }
 
-    .aqg-token-row__action {
-        min-height: 0;
-        height: auto;
-        border-width: 0 0 0 1px;
-        border-color: var(--aqi-border-soft);
-        border-radius: 0;
-        background: var(--aqi-surface);
-    }
 
-    .aqg-token-row__action svg {
-        flex: 0 0 auto;
-    }
 
     .aqg-token-empty {
         display: flex;
         align-items: flex-start;
         gap: 10px;
         padding: 12px;
-        border: 1px dashed var(--aqi-border);
+        border: 1px solid var(--aqi-border);
         border-radius: var(--aqi-radius);
         background: var(--aqi-surface-2);
         color: var(--aqi-fg-muted);
@@ -4024,8 +3984,7 @@
 
     @media (max-width: 767.98px) {
         .aqg-remote-access .aqg-admin-banner,
-        .aqg-remote-grid-2,
-        .aqg-token-row__field {
+        .aqg-remote-grid-2 {
             grid-template-columns: 1fr;
         }
 
@@ -4040,15 +3999,9 @@
             border-bottom: 1px solid var(--aqi-border-soft);
         }
 
-        .aqg-token-row__action {
-            border-left: 0;
-            border-top: 1px solid var(--aqi-border-soft);
-        }
-
         .aqg-remote-access .aqg-actionbar__right,
         .aqg-remote-inline-actions,
-        .aqg-remote-inline-actions .btn,
-        .aqg-token-row__action {
+        .aqg-remote-inline-actions .btn {
             width: 100%;
         }
 
@@ -4187,7 +4140,7 @@
     }
 
     .aqg-statement-optional {
-        border: 1px dashed var(--aqi-border);
+        border: 1px solid var(--aqi-border);
         border-radius: 10px;
     }
 
@@ -4219,7 +4172,7 @@
     }
 
     .aqg-statement-optional[open] > .aqg-statement-optional__summary {
-        border-bottom: 1px dashed var(--aqi-border);
+        border-bottom: 1px solid var(--aqi-border);
         border-radius: 10px 10px 0 0;
     }
 
@@ -4300,7 +4253,6 @@
     }
     .aqg-warning-banner {
         border: 1px solid var(--aqi-warn-border, #facc15);
-        border-left: 4px solid var(--aqi-warn, #f59e0b);
         background: var(--aqi-warn-bg, #fffbeb);
         color: var(--aqi-fg, #111827);
         padding: 12px 14px;
@@ -4671,7 +4623,7 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 /* Statement Assistant final W3C-style sections */
 .aqg-statement-standard-editor,
 .aqg-statement-known-limitations-editor {
-    border-style: dashed;
+    border-style: solid;
 }
 
 /* AQG 1.7 — AI settings uses the same card/form primitives as the other tabs. */
@@ -4900,7 +4852,6 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
   padding: 13px 15px;
   border-radius: 8px;
   border: 1px solid var(--aqi-warn-border);
-  border-left: 3px solid var(--aqi-warn);
   background: color-mix(in oklch, var(--aqi-warn-bg) 45%, var(--aqi-surface));
   max-width: 760px;
 }
@@ -5685,4 +5636,455 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
   .a11y-settings.aqg-module .aqg-licence-domains__search {
     max-width: none;
   }
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 1.9.9 convergence with the scan views (audit S1, D1, D4). Labels and values are sentence case in the text face; tags
+// are tone-filled sentence-case chips; monospace stays for code, keys, tokens, field and rule IDs. The legacy rules above
+// keep their layout and lose the costume here, in one place, instead of one by one.
+// ---------------------------------------------------------------------------------------------------------------------
+.a11y-settings.aqg-module {
+    .aqg-card__foot-text,
+    .aqg-radio-card__impact,
+    .aqg-licence-status__plan-line,
+    .aqg-licence-status__plan-tag,
+    .aqg-licence-status__kv dt,
+    .aqg-licence-status__kv dd,
+    .aqg-licence-status__features-title,
+    .aqg-tab__badge,
+    .aqg-fgroup__table,
+    .aqg-fgroup__count,
+    .aqg-field-row__type,
+    .aqg-defaults__head,
+    .aqg-defaults__toggle,
+    .aqg-default-chip,
+    .aqg-actionbar__meta,
+    .aqg-aside__title,
+    .aqg-compare__plan,
+    .aqg-page-head__meta,
+    .aqg-scope__meta,
+    .aqg-scope__foot,
+    .aqg-rules-toolbar__counts,
+    .aqg-rgroup__count,
+    .aqg-tag-cat,
+    .aqg-remote-access .aqg-admin-banner__badge,
+    .aqg-remote-access .aqg-admin-banner__user,
+    .aqg-token-row__prefix,
+    .aqg-suggest__label,
+    .aqg-statement .aqg-fieldset legend,
+    .aqg-status-badge,
+    .aqg-statement-summary dt,
+    .aqg-ai-headtag,
+    .aqg-ai-summary dt,
+    .aqg-ai-summary dd,
+    .aqg-licence-domains__name {
+        font-family: var(--aqi-font);
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    // Key–value labels: muted sentence case, not small capitals.
+    .aqg-licence-status__kv dt,
+    .aqg-statement-summary dt,
+    .aqg-ai-summary dt {
+        color: var(--aqi-fg-muted);
+        font-size: 12.5px;
+        font-weight: 400;
+    }
+
+    .aqg-licence-status__kv dd,
+    .aqg-ai-summary dd {
+        font-size: 13px;
+        word-break: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-licence-status__features-title,
+    .aqg-aside__title,
+    .aqg-defaults__head,
+    .aqg-statement .aqg-fieldset legend {
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-page-head__meta,
+    .aqg-actionbar__meta,
+    .aqg-scope__meta,
+    .aqg-scope__foot,
+    .aqg-card__foot-text {
+        color: var(--aqi-fg-muted);
+        font-size: 12.5px;
+    }
+
+    // Tags and statuses: one chip shape, sentence case, tone fill (the scan views' severity tag).
+    .aqg-licence-status__plan-tag,
+    .aqg-tab__badge,
+    .aqg-status-badge,
+    .aqg-ai-headtag,
+    .aqg-tag-cat,
+    .aqg-default-chip,
+    .aqg-remote-access .aqg-admin-banner__badge,
+    .aqg-field-row__type {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border: 0;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .aqg-licence-status.tone-agency .aqg-licence-status__plan-tag,
+    .aqg-licence-status.tone-pro .aqg-licence-status__plan-tag {
+        color: var(--aqi-ok);
+        background: var(--aqi-ok-bg);
+    }
+
+    .aqg-licence-status.tone-trial .aqg-licence-status__plan-tag {
+        color: var(--aqi-warn);
+        background: var(--aqi-warn-bg);
+    }
+}
+
+// Settings navigation is a list of page links (audit A2/S2); list and items keep the tabs' balanced inline flow.
+.a11y-settings.aqg-module {
+    .aqg-tabs__list {
+        display: inline;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .aqg-tabs__item {
+        display: inline;
+    }
+
+    .aqg-tab__lock {
+        display: inline-flex;
+        align-items: center;
+        color: var(--aqi-fg-muted);
+    }
+}
+
+// Remote scan access: one-line administrator note and explicit Scanner Token states (audit S5, S10).
+.a11y-settings.aqg-module {
+    .aqg-admin-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .aqg-admin-note strong {
+        color: var(--aqi-fg);
+        font-weight: 600;
+    }
+
+    .aqg-admin-note .aqg-icon {
+        flex: none;
+        margin-top: 2px;
+    }
+
+    .aqg-token-state,
+    .aqg-token-empty {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 10px;
+        margin: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .aqg-status-badge {
+        background: var(--aqi-surface-2);
+        color: var(--aqi-fg-muted);
+    }
+
+    .aqg-status-badge--ok {
+        background: var(--aqi-ok-bg);
+        color: var(--aqi-ok);
+    }
+
+    .aqg-status-badge .aqg-icon {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+// Licence: replacing or removing a saved key is a secondary task behind a disclosure (audit S4).
+.a11y-settings.aqg-module {
+    .aqg-licence-replace {
+        margin-top: 4px;
+    }
+
+    .aqg-licence-replace__summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 28px;
+        color: var(--aqi-link, var(--aqi-run));
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .aqg-licence-replace__summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .aqg-licence-replace__summary .aqg-icon {
+        transition: transform 120ms ease;
+    }
+
+    .aqg-licence-replace[open] > .aqg-licence-replace__summary .aqg-icon {
+        transform: rotate(90deg);
+    }
+
+    .aqg-licence-replace__summary:focus-visible {
+        outline: none;
+        border-radius: var(--aqi-radius-sm);
+        box-shadow: var(--aqi-focus-ring);
+    }
+
+    .aqg-licence-replace__body {
+        display: grid;
+        gap: 8px;
+        padding-top: 8px;
+    }
+
+    // The domains table fits a narrow module (page tree open) instead of hiding its action column.
+    .aqg-licence-domains__table-wrap {
+        container-type: inline-size;
+    }
+
+    .aqg-licence-domains__name {
+        overflow-wrap: anywhere;
+    }
+}
+
+@container (max-width: 600px) {
+    .a11y-settings.aqg-module .aqg-licence-domains__table th,
+    .a11y-settings.aqg-module .aqg-licence-domains__table td {
+        padding: 6px;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table .aqg-licence-domains__sites {
+        overflow-wrap: anywhere;
+    }
+}
+
+// A narrow module (1024 px with the page tree open) stacks each domain into two lines instead of a table that scrolls
+// sideways: checkbox, domain and action first, then the status and the labelled TYPO3 sites. The table keeps its
+// semantics through explicit ARIA roles; the hidden column names stay available to screen readers.
+@container (max-width: 520px) {
+    .a11y-settings.aqg-module .aqg-licence-domains__table,
+    .a11y-settings.aqg-module .aqg-licence-domains__table thead,
+    .a11y-settings.aqg-module .aqg-licence-domains__table tbody {
+        display: block;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table tr {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr) auto;
+        column-gap: 10px;
+        row-gap: 4px;
+        align-items: start;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--aqi-divider);
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table thead tr {
+        align-items: center;
+        background: var(--aqi-surface-2);
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table th,
+    .a11y-settings.aqg-module .aqg-licence-domains__table td {
+        padding: 0;
+        border-bottom: 0;
+        background: none;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table .aqg-licence-domains__colhead:nth-child(n + 3) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__select {
+        grid-column: 1;
+        grid-row: 1 / span 3;
+        width: auto;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__domain {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__action {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__status-cell {
+        grid-column: 2 / span 2;
+        grid-row: 2;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__table .aqg-licence-domains__sites {
+        grid-column: 2 / span 2;
+        grid-row: 3;
+        color: var(--aqi-fg-muted);
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains__sites[data-label]::before {
+        content: attr(data-label) ": ";
+        color: var(--aqi-fg-muted);
+        font-weight: 600;
+    }
+
+    // Compact list (no select column): domain and action share the first line, details follow below.
+    .a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__table tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__domain {
+        grid-column: 1;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__action {
+        grid-column: 2;
+    }
+
+    .a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__status-cell,
+    .a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__table .aqg-licence-domains__sites {
+        grid-column: 1 / span 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .a11y-settings.aqg-module .aqg-licence-replace__summary .aqg-icon {
+        transition: none;
+    }
+}
+
+// Technical text in Settings is neutral, as in the scan views: TYPO3 14 paints every code element with
+// `--typo3-text-color-code` (pink) and !important, so the variables are redefined for AQG's code only (audit S7).
+.a11y-settings.aqg-module code {
+    --typo3-text-color-code: var(--aqi-fg-muted);
+    --bs-code-color: var(--aqi-fg-muted);
+    color: var(--aqi-fg-muted);
+}
+
+// AI suggestions: the data-use explanation is available in full, one click away, instead of a tinted block before the
+// first field (audit S6).
+.a11y-settings.aqg-module .aqg-ai-privacy {
+    display: block;
+    padding: 0;
+    background: none;
+    border: 0;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    color: var(--aqi-run);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__summary::-webkit-details-marker {
+    display: none;
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy[open] > .aqg-ai-privacy__summary .aqg-icon {
+    transform: rotate(90deg);
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy__summary:focus-visible {
+    outline: none;
+    border-radius: var(--aqi-radius-sm);
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.a11y-settings.aqg-module .aqg-ai-privacy[open] .aqg-ai-privacy__content {
+    display: grid;
+    gap: 6px;
+    padding: 8px 0 4px 20px;
+}
+
+// Switches share one size, 36 × 20, and the counter reads as text, not as an input (audit S8, A3).
+.a11y-settings.aqg-module {
+    .aqg-rule-switch__track,
+    .aqg-switch__track {
+        width: 36px;
+        height: 20px;
+    }
+
+    .aqg-rule-switch__thumb,
+    .aqg-switch__thumb {
+        width: 16px;
+        height: 16px;
+    }
+
+    .aqg-switch__thumb {
+        top: 1px;
+        left: 1px;
+    }
+
+    .aqg-rule-switch input:checked + .aqg-rule-switch__track .aqg-rule-switch__thumb,
+    .aqg-switch__input:checked + .aqg-switch .aqg-switch__thumb {
+        transform: translateX(16px);
+    }
+
+    .aqg-rules-toolbar__counts {
+        font-size: 12.5px;
+        font-weight: 400;
+        color: var(--aqi-fg-muted);
+    }
+
+    .aqg-rules-toolbar__chip-num {
+        border: 0;
+        background: none;
+        padding: 0 2px;
+    }
+
+    .aqg-rgroup__chev .aqg-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// Audit S4/T5: a short licence domain list (8 or fewer) has no filter chips, search or bulk selection; each row keeps
+// its own Activate / Deactivate button.
+.a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__toolbar,
+.a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__bulk,
+.a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__select {
+    display: none;
 }

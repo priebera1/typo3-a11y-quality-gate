@@ -19,6 +19,18 @@ final class IssuePersistenceCoordinator
      * @param iterable<RuleViolation> $violations
      * @param array<int, string> $seenFingerprintsForPage
      */
+    /**
+     * @param list<RuleViolation> $duplicates rendered findings of elements a rich-text rule already reported
+     */
+    public function retireRenderedDuplicates(array $duplicates, CheckContext $context): int
+    {
+        return $this->issueRepository->retireOpenDuplicates(
+            $context->siteIdentifier,
+            $context->pageUid,
+            array_map(static fn (RuleViolation $violation): string => $violation->fingerprint($context), $duplicates),
+        );
+    }
+
     public function persistViolations(
         iterable $violations,
         CheckContext $context,

@@ -11,204 +11,38 @@ let A11yToolbarSelector;
 })(A11yToolbarSelector || (A11yToolbarSelector = {}));
 
 
-const DARK_THEME_SELECTORS = [
-    '[data-bs-theme="dark"]',
-    '[data-color-scheme="dark"]',
-    '[data-theme="dark"]',
-    '[data-typo3-theme="dark"]',
-    '[data-theme-mode="dark"]',
-    '[data-user-theme="dark"]',
-    '[data-appearance="dark"]',
-    '.typo3-backend-dark',
-    '.typo3-theme-dark',
-    '.theme-dark',
-    '.t3js-theme-dark',
-    '.aqi-theme-dark',
-];
-
-const LIGHT_THEME_SELECTORS = [
-    '[data-bs-theme="light"]',
-    '[data-color-scheme="light"]',
-    '[data-theme="light"]',
-    '[data-typo3-theme="light"]',
-    '[data-theme-mode="light"]',
-    '[data-user-theme="light"]',
-    '[data-appearance="light"]',
-    '.typo3-backend-light',
-    '.typo3-theme-light',
-    '.theme-light',
-    '.t3js-theme-light',
-];
-
 const THEME_DATASET_KEYS = [
-    'bsTheme',
     'colorScheme',
+    'bsTheme',
     'theme',
     'typo3Theme',
-    'themeMode',
-    'userTheme',
-    'appearance',
 ];
 
-const THEME_COLOR_VARIABLES = [
-    '--typo3-component-bg',
-    '--typo3-surface-container-lowest',
-    '--typo3-surface-container-base',
-    '--typo3-scaffold-content-bg',
-    '--bs-body-bg',
-    '--bs-dropdown-bg',
-];
-
-function parseRgbColor(value) {
-    const match = String(value || '').match(/rgba?\(([^)]+)\)/i);
-    if (!match) {
-        return null;
-    }
-
-    const parts = match[1].split(',').map((part) => part.trim());
-    if (parts.length < 3) {
-        return null;
-    }
-
-    const toChannel = (part) => {
-        if (part.endsWith('%')) {
-            return Math.round(Number.parseFloat(part) * 2.55);
-        }
-        return Number.parseFloat(part);
-    };
-
-    const rgb = parts.slice(0, 3).map(toChannel);
-    if (rgb.some((channel) => !Number.isFinite(channel))) {
-        return null;
-    }
-
-    const alpha = parts[3] === undefined ? 1 : Number.parseFloat(parts[3]);
-    return { r: rgb[0], g: rgb[1], b: rgb[2], a: Number.isFinite(alpha) ? alpha : 1 };
-}
-
-function resolveCssColor(doc, value) {
-    const raw = String(value || '').trim();
-    if (raw === '' || raw === 'transparent') {
-        return null;
-    }
-
-    const probe = doc.createElement('span');
-    probe.style.position = 'absolute';
-    probe.style.visibility = 'hidden';
-    probe.style.pointerEvents = 'none';
-    probe.style.color = raw;
-    (doc.body || doc.documentElement).appendChild(probe);
-
-    const resolved = doc.defaultView?.getComputedStyle(probe).color || '';
-    probe.remove();
-
-    return parseRgbColor(resolved);
-}
-
-function luminance(color) {
-    const transform = (channel) => {
-        const value = channel / 255;
-        return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-    };
-
-    return 0.2126 * transform(color.r) + 0.7152 * transform(color.g) + 0.0722 * transform(color.b);
-}
-
-function colorLooksDark(color) {
-    return color.a > 0.2 && luminance(color) < 0.28;
-}
-
-function computedStylesUseDarkTheme(doc) {
-    const view = doc.defaultView || window;
-    const rootStyle = view.getComputedStyle(doc.documentElement);
-    const bodyStyle = doc.body ? view.getComputedStyle(doc.body) : null;
-
-    const colorScheme = [rootStyle.colorScheme, bodyStyle?.colorScheme]
-        .filter(Boolean)
-        .map((value) => String(value).trim().toLowerCase());
-
-    if (colorScheme.some((value) => value === 'dark')) {
-        return true;
-    }
-
-    const colorCandidates = [];
-    THEME_COLOR_VARIABLES.forEach((name) => {
-        colorCandidates.push(rootStyle.getPropertyValue(name));
-        if (bodyStyle) {
-            colorCandidates.push(bodyStyle.getPropertyValue(name));
-        }
-    });
-
-    const surfaceSelectors = [
-        '.module',
-        '.module-body',
-        '.module-docheader',
-        '.t3js-module-body',
-        '.typo3-module',
-        'main',
-    ];
-
-    surfaceSelectors.forEach((selector) => {
-        const element = doc.querySelector(selector);
-        if (!element) {
-            return;
-        }
-
-        const style = view.getComputedStyle(element);
-        colorCandidates.push(style.backgroundColor);
-    });
-
-    return colorCandidates.some((candidate) => {
-        const color = resolveCssColor(doc, candidate);
-        return color !== null && colorLooksDark(color);
-    });
-}
-
-function documentUsesDarkTheme(doc) {
+/**
+ * The backend colour scheme as TYPO3 13/14 express it: an explicit choice is a `data-color-scheme` attribute on the
+ * root element; the default "auto" scheme renders no attribute (or "auto") and follows the OS preference. Only the
+ * document's own root and body are read: a light or dark component somewhere inside the page says nothing about
+ * the backend scheme (TYPO3 14 kept the toolbar in its light theme that way).
+ */
+export function documentUsesDarkTheme(doc, prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches === true) {
     if (!doc?.documentElement) {
         return false;
     }
 
-    const datasetValues = THEME_DATASET_KEYS.map((key) => String(doc.documentElement.dataset[key] || '').trim().toLowerCase());
-
-    if (datasetValues.includes('dark')) {
-        return true;
-    }
-
-    if (datasetValues.includes('light')) {
-        return false;
-    }
-
-    if (datasetValues.includes('auto')) {
-        return window.matchMedia?.('(prefers-color-scheme: dark)').matches === true;
-    }
-
-    const candidates = [doc.documentElement, doc.body].filter(Boolean);
-    const hasDarkSelector = candidates.some((element) => DARK_THEME_SELECTORS.some((selector) => {
-        try {
-            return element.matches(selector) || Boolean(element.querySelector(selector));
-        } catch {
+    for (const element of [doc.documentElement, doc.body]) {
+        if (!element) {
+            continue;
+        }
+        const values = THEME_DATASET_KEYS.map((key) => String(element.dataset[key] || '').trim().toLowerCase());
+        if (values.includes('dark')) {
+            return true;
+        }
+        if (values.includes('light')) {
             return false;
         }
-    }));
-
-    if (hasDarkSelector) {
-        return true;
     }
 
-    const hasLightSelector = candidates.some((element) => LIGHT_THEME_SELECTORS.some((selector) => {
-        try {
-            return element.matches(selector) || Boolean(element.querySelector(selector));
-        } catch {
-            return false;
-        }
-    }));
-
-    if (hasLightSelector) {
-        return false;
-    }
-
-    return computedStylesUseDarkTheme(doc);
+    return prefersDark();
 }
 
 class A11yScanToolbarMenu {
@@ -269,7 +103,8 @@ class A11yScanToolbarMenu {
     }
 
     syncTheme() {
-        const isDark = this.getThemeDocuments().some((doc) => documentUsesDarkTheme(doc));
+        // The toolbar lives in the top frame, which carries the backend colour scheme.
+        const isDark = documentUsesDarkTheme(document);
         const themeName = isDark ? 'dark' : 'light';
         const root = document.querySelector(A11yToolbarSelector.element);
         root?.classList.toggle('aqt-toolbar--theme-dark', isDark);
@@ -435,4 +270,4 @@ class A11yScanToolbarMenu {
     }
 }
 
-export default new A11yScanToolbarMenu();
+export default typeof window !== 'undefined' && window.TYPO3 ? new A11yScanToolbarMenu() : null;

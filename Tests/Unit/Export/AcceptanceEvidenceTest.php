@@ -92,6 +92,31 @@ final class AcceptanceEvidenceTest extends TestCase
         self::assertStringContainsString('PRO or Agency', (string)$response->getBody());
     }
 
+    /**
+     * The PDF follows the shared print system (audit F6/F8): impact as icon + word, plain rule titles, URLs as paths of
+     * the site in the header, and the same date format as the other reports. The CSV keeps the raw values.
+     */
+    #[Test]
+    public function thePdfShowsPathsPlainTitlesAndImpactWords(): void
+    {
+        $rows = AcceptanceEvidenceBuilder::pdfRows(
+            [
+                ['url' => 'https://example.org/aqg-01/broken', 'ruleId' => 'image-alt', 'impact' => 'critical', 'before' => 2, 'after' => 0],
+                ['url' => 'https://other.example/x', 'ruleId' => 'region', 'impact' => '', 'before' => 1, 'after' => 1],
+            ],
+            'https://example.org',
+            static fn (string $ruleId): string => $ruleId === 'image-alt' ? 'Images without alternative text' : '',
+        );
+
+        self::assertSame(['/aqg-01/broken', 'https://other.example/x'], array_column($rows, 'path'));
+        self::assertSame(['Images without alternative text', 'region'], array_column($rows, 'title'));
+        self::assertSame(['critical', 'none'], array_column($rows, 'impactTone'));
+        self::assertSame(['Critical', 'Not rated'], array_column($rows, 'impactWord'));
+
+        $evidence = $this->builder()->build(new Site('main', 1, ['base' => 'https://example.org/']), self::FROM, self::TO);
+        self::assertMatchesRegularExpression('/^\d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} \S+$/', $evidence['baseline']['finishedAt']);
+    }
+
     #[Test]
     public function aProSiteGetsThePdf(): void
     {

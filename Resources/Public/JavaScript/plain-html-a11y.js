@@ -70,7 +70,9 @@ class PlainHtmlA11yValidator {
         this.editorHost = this.findEditorHost();
         this.validationTimer = null;
         this.editorMarkTimer = null;
-        this.hidePanelTimer = null;
+        this.editorPanelAnchor = null;
+        this.editorPanelAnchorKey = '';
+        this.boundOutsidePointer = null;
         this.abortController = null;
         this.sequence = 0;
         this.currentIssues = [];
@@ -143,15 +145,36 @@ class PlainHtmlA11yValidator {
         }
     }
 
+    /**
+     * The details of a marked line open only when its badge is pressed (never on a click into the line, hover or
+     * typing), close with Escape, the close button or a click elsewhere, and give focus back to the code editor.
+     */
     createEditorPanel() {
         this.editorPanel = document.createElement('div');
         this.editorPanel.className = 'aqg-code-html-panel';
         this.editorPanel.hidden = true;
+        this.editorPanel.setAttribute('role', 'dialog');
+        this.editorPanel.setAttribute('aria-modal', 'false');
         document.body.appendChild(this.editorPanel);
 
-        this.editorPanel.addEventListener('mouseenter', () => window.clearTimeout(this.hidePanelTimer));
-        this.editorPanel.addEventListener('mouseleave', () => this.scheduleHideEditorPanel());
         this.editorPanel.addEventListener('click', (event) => this.handleEditorPanelClick(event));
+        this.editorPanel.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                this.hideEditorPanel({ returnFocus: true });
+            }
+        });
+        this.boundOutsidePointer = (event) => {
+            if (this.editorPanel.hidden || !(event.target instanceof Node)) {
+                return;
+            }
+            if (this.editorPanel.contains(event.target) || event.target.closest?.('.aqg-cm-side-badge')) {
+                return;
+            }
+            this.hideEditorPanel();
+        };
+        document.addEventListener('mousedown', this.boundOutsidePointer, true);
     }
 
     bindEvents() {
@@ -232,10 +255,17 @@ class PlainHtmlA11yValidator {
         content?.addEventListener('input', onEditorChange, true);
         content?.addEventListener('keyup', onEditorChange);
         content?.addEventListener('paste', () => window.setTimeout(onEditorChange, 80));
-        root.addEventListener('click', (event) => this.handleEditorLineEvent(event, true));
-        root.addEventListener('mouseover', (event) => this.handleEditorLineEvent(event, false));
-        root.addEventListener('mouseleave', () => this.scheduleHideEditorPanel());
-        root.querySelector('.cm-scroller')?.addEventListener('scroll', () => this.scheduleEditorDecorationRefresh());
+        // Only the badge opens details: a click into a marked line places the cursor like anywhere else.
+        root.addEventListener('mousedown', (event) => {
+            if (event.target instanceof Element && event.target.closest('.aqg-cm-side-badge')) {
+                event.preventDefault();
+            }
+        });
+        root.addEventListener('click', (event) => this.handleEditorLineEvent(event));
+        root.querySelector('.cm-scroller')?.addEventListener('scroll', () => {
+            this.hideEditorPanel();
+            this.scheduleEditorDecorationRefresh();
+        });
 
         if (this.displayedIssues.length > 0) {
             this.applyEditorDecorations(this.displayedIssues);
@@ -599,9 +629,15 @@ class PlainHtmlA11yValidator {
     }
 
     handleEditorPanelClick(event) {
+        if (event.target.closest('.js-aqg-code-panel-close')) {
+            this.hideEditorPanel({ returnFocus: true });
+            return;
+        }
+
         const locateButton = event.target.closest('.js-aqg-code-panel-locate');
         if (locateButton) {
             const issue = this.displayedIssues[parseInt(locateButton.dataset.index || '-1', 10)];
+            this.hideEditorPanel();
             this.locateIssue(issue);
             return;
         }
@@ -613,20 +649,13 @@ class PlainHtmlA11yValidator {
         }
     }
 
-    handleEditorLineEvent(event, pin = false) {
-        const badge = event.target.closest('.aqg-cm-side-badge[data-aqg-issue-indexes]');
-        const line = badge ? null : event.target.closest('.cm-line[data-aqg-issue-indexes]');
-        const anchor = badge || line;
-        const rawIndexes = anchor?.dataset.aqgIssueIndexes || '';
-
-        if (!anchor) {
-            if (!pin) {
-                this.scheduleHideEditorPanel();
-            }
+    handleEditorLineEvent(event) {
+        const badge = event.target instanceof Element ? event.target.closest('.aqg-cm-side-badge[data-aqg-issue-indexes]') : null;
+        if (!badge) {
             return;
         }
 
-        const indexes = String(rawIndexes)
+        const indexes = String(badge.dataset.aqgIssueIndexes || '')
             .split(',')
             .map((value) => parseInt(value, 10))
             .filter((value) => Number.isInteger(value) && value >= 0);
@@ -635,11 +664,15 @@ class PlainHtmlA11yValidator {
             return;
         }
 
-        window.clearTimeout(this.hidePanelTimer);
-        this.showEditorPanel(indexes, anchor, pin);
+        if (!this.editorPanel.hidden && this.editorPanelAnchorKey === badge.dataset.aqgIssueIndexes) {
+            this.hideEditorPanel({ returnFocus: true });
+            return;
+        }
+
+        this.showEditorPanel(indexes, badge);
     }
 
-    showEditorPanel(indexes, line, pin = false) {
+    showEditorPanel(indexes, line) {
         const issues = indexes.map((index) => ({ issue: this.displayedIssues[index], index })).filter((entry) => entry.issue);
         if (!issues.length || !this.editorPanel) {
             return;
@@ -662,33 +695,35 @@ class PlainHtmlA11yValidator {
                 </div>`
             : this.renderPanelIssue(primary, indexes[0]);
 
-        this.editorPanel.className = `aqg-code-html-panel aqg-code-html-panel--${severity}${pin ? ' is-pinned' : ''}`;
+        const titleId = 'aqg-code-html-panel-title';
+        this.editorPanel.className = `aqg-code-html-panel aqg-code-html-panel--${severity} is-pinned`;
+        this.editorPanel.setAttribute('aria-labelledby', titleId);
         this.editorPanel.innerHTML = `
             <div class="aqg-code-html-panel__header">
                 <span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}">
                     <span class="ck-a11y-panel__severity-dot" aria-hidden="true"></span>${severityLabel(severity)}
                 </span>
-                <span class="aqg-code-html-panel__kicker">${editorLabelHtml('htmlSourceIssue', 'HTML source issue')}</span>
+                <span class="aqg-code-html-panel__kicker" id="${titleId}" tabindex="-1">${editorLabelHtml('htmlSourceIssue', 'HTML source issue')}</span>
+                <button type="button" class="aqg-code-html-panel__close js-aqg-code-panel-close" aria-label="${editorLabelHtml('close', 'Close')}"><span aria-hidden="true">×</span></button>
             </div>
             ${body}
         `;
 
+        // Below the badge, right-aligned to it, within the window: a restrained panel, never wider than 380 px.
         const rect = line.getBoundingClientRect();
-        const width = Math.min(460, Math.max(320, window.innerWidth - 32));
-        let left = rect.right + 12;
-        if (left + width > window.innerWidth - 12) {
-            left = Math.max(12, window.innerWidth - width - 12);
-        }
-        let top = Math.max(12, rect.top - 8);
-        const maxTop = window.innerHeight - 180;
-        if (top > maxTop) {
-            top = Math.max(12, maxTop);
-        }
+        const width = Math.min(380, window.innerWidth - 24);
+        const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
+        const top = Math.min(rect.bottom + 6, Math.max(12, window.innerHeight - 220));
 
         this.editorPanel.style.width = `${width}px`;
         this.editorPanel.style.left = `${left}px`;
         this.editorPanel.style.top = `${top}px`;
+        this.editorPanel.style.maxHeight = `${Math.max(180, window.innerHeight - top - 12)}px`;
         this.editorPanel.hidden = false;
+        this.editorPanelAnchorKey = line.dataset.aqgIssueIndexes || '';
+        this.editorPanelAnchor = line;
+        line.setAttribute('aria-expanded', 'true');
+        this.editorPanel.querySelector(`#${titleId}`)?.focus({ preventScroll: true });
     }
 
     renderPanelIssue(issue, index) {
@@ -721,14 +756,19 @@ class PlainHtmlA11yValidator {
         `;
     }
 
-    scheduleHideEditorPanel() {
-        window.clearTimeout(this.hidePanelTimer);
-        this.hidePanelTimer = window.setTimeout(() => this.hideEditorPanel(), 180);
-    }
+    hideEditorPanel({ returnFocus = false } = {}) {
+        if (!this.editorPanel || this.editorPanel.hidden) {
+            return;
+        }
 
-    hideEditorPanel() {
-        if (this.editorPanel) {
-            this.editorPanel.hidden = true;
+        const focusWasInside = this.editorPanel.contains(document.activeElement);
+        this.editorPanel.hidden = true;
+        this.editorPanelAnchor?.setAttribute('aria-expanded', 'false');
+        this.editorPanelAnchor = null;
+        this.editorPanelAnchorKey = '';
+        if (returnFocus && focusWasInside) {
+            // The badge is not in the tab order; the code editor takes focus back with its cursor where it was.
+            this.getCodeMirrorContent()?.focus();
         }
     }
 
@@ -881,10 +921,15 @@ class PlainHtmlA11yValidator {
                 const lineRect = lineElement.getBoundingClientRect();
                 const badge = document.createElement('button');
                 badge.type = 'button';
+                badge.tabIndex = -1;
                 badge.className = `aqg-cm-side-badge aqg-cm-side-badge--${strongestSeverity}`;
                 badge.dataset.aqgIssueIndexes = indexes.join(',');
                 badge.textContent = indexes.length === 1 ? 'AQG' : `AQG ${indexes.length}`;
-                badge.setAttribute('aria-label', indexes.length === 1 ? 'Show AQG issue' : `Show ${indexes.length} AQG issues`);
+                badge.setAttribute('aria-haspopup', 'dialog');
+                badge.setAttribute('aria-expanded', this.editorPanelAnchorKey === badge.dataset.aqgIssueIndexes && !this.editorPanel?.hidden ? 'true' : 'false');
+                badge.setAttribute('aria-label', indexes.length === 1
+                    ? editorLabel('plainBadgeOne', 'Show the accessibility issue on this line')
+                    : editorLabel('plainBadgeMany', 'Show the %d accessibility issues on this line').replace('%d', String(indexes.length)));
                 badge.style.top = `${Math.max(0, lineRect.top - rootRect.top + 2)}px`;
                 overlay.appendChild(badge);
             }
@@ -904,7 +949,6 @@ class PlainHtmlA11yValidator {
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.className = 'aqg-cm-overlay';
-            overlay.setAttribute('aria-hidden', 'true');
             root.appendChild(overlay);
         }
 
@@ -1402,7 +1446,6 @@ class PlainHtmlA11yValidator {
         this.destroyed = true;
         window.clearTimeout(this.validationTimer);
         window.clearTimeout(this.editorMarkTimer);
-        window.clearTimeout(this.hidePanelTimer);
         if (this.decorationFrame) {
             window.cancelAnimationFrame(this.decorationFrame);
         }
@@ -1412,6 +1455,7 @@ class PlainHtmlA11yValidator {
         document.removeEventListener('input', this.boundDocumentInput, true);
         document.removeEventListener('keyup', this.boundDocumentKeyup, true);
         this.clearDomEditorDecorations();
+        document.removeEventListener('mousedown', this.boundOutsidePointer, true);
         this.editorPanel?.remove();
         delete this.container.__aqgPlainHtmlValidator;
     }

@@ -62,7 +62,7 @@ final class RenderedPageScanner
                 'statusCode' => $response->statusCode,
                 'error' => $response->error,
             ]);
-            return new RenderedPageScanResult(false, warning: $response->error);
+            return new RenderedPageScanResult(false, warning: $response->error, statusCode: $response->statusCode);
         }
 
         $errorPageDetection = $this->errorPageDetector->detect($response->html);

@@ -7,12 +7,17 @@ export const PAGE_SIZE = 10;
 const FILTERS = ['all', 'active', 'available', 'not_detected', 'unavailable'];
 const RESULT_LIST_LIMIT = 5;
 
+const COMPACT_LIST_LIMIT = 8;
+
 const DEFAULT_LABELS = {
     loading: 'Loading domains…',
     unreachable: 'The domains could not be loaded or changed. Try again later.',
     summaryActiveOfMax: '%1$s of %2$s domains active',
     summaryActiveUnlimited: '%s domains active, no domain limit',
+    summaryActiveUnlimitedOne: '1 domain active, no domain limit',
     summaryActiveProject: '%s domains active in this TYPO3 project, no domain limit',
+    summaryActiveProjectOne: '1 domain active in this TYPO3 project, no domain limit',
+    summaryActiveOfOne: '%s of 1 domain active',
     summaryAvailable: '%s available',
     summaryNotDetected: '%s no longer detected',
     summaryUnavailable: '%s need another plan',
@@ -28,6 +33,7 @@ const DEFAULT_LABELS = {
     detailLocked: 'Can be deactivated from %s.',
     detailLastDomain: 'The licence keeps at least one active domain.',
     select: 'Select %s',
+    sitesColumn: 'TYPO3 sites',
     activate: 'Activate',
     deactivate: 'Deactivate',
     selected: '%s selected',
@@ -466,6 +472,8 @@ export class AqgLicenceDomains {
         if (!this.overview) {
             return;
         }
+        // Filters, search and bulk selection help with long lists only: up to 8 domains they stay out of the way.
+        this.root.classList.toggle('is-compact', this.domains().length <= COMPACT_LIST_LIMIT);
         this.renderSummary();
         this.renderFilters();
         this.renderRows();
@@ -481,10 +489,12 @@ export class AqgLicenceDomains {
             // lists this project's domains. An Agency licence spans several projects: this section counts this
             // project's domains, and the licence-wide number stands next to the TYPO3 projects in the licence status.
             const parts = [overview.maxDomains !== null
-                ? this.label('summaryActiveOfMax', overview.activeDomains, overview.maxDomains)
+                ? (Number(overview.maxDomains) === 1
+                    ? this.label('summaryActiveOfOne', overview.activeDomains)
+                    : this.label('summaryActiveOfMax', overview.activeDomains, overview.maxDomains))
                 : (overview.multiProject
-                    ? this.label('summaryActiveProject', counts.active)
-                    : this.label('summaryActiveUnlimited', overview.activeDomains))];
+                    ? (Number(counts.active) === 1 ? this.label('summaryActiveProjectOne') : this.label('summaryActiveProject', counts.active))
+                    : (Number(overview.activeDomains) === 1 ? this.label('summaryActiveUnlimitedOne') : this.label('summaryActiveUnlimited', overview.activeDomains)))];
             if (counts.available > 0) {
                 parts.push(this.label('summaryAvailable', counts.available));
             }
@@ -562,12 +572,15 @@ export class AqgLicenceDomains {
     }
 
     buildRow(item, index) {
+        // Explicit roles: a narrow module lays the rows out as a grid, which would otherwise drop the table semantics.
         const row = document.createElement('tr');
+        row.setAttribute('role', 'row');
         row.dataset.aqgDomainsRow = item.domain;
         row.dataset.state = item.state;
 
         const selectCell = document.createElement('td');
         selectCell.className = 'aqg-licence-domains__select';
+        selectCell.setAttribute('role', 'cell');
         if (this.isSelectable(item)) {
             const id = `aqg-licence-domain-select-${index}`;
             const checkbox = document.createElement('input');
@@ -589,6 +602,7 @@ export class AqgLicenceDomains {
 
         const domainCell = document.createElement('th');
         domainCell.scope = 'row';
+        domainCell.setAttribute('role', 'rowheader');
         domainCell.className = 'aqg-licence-domains__domain';
         const name = document.createElement('span');
         name.className = 'aqg-licence-domains__name';
@@ -603,6 +617,8 @@ export class AqgLicenceDomains {
         }
 
         const stateCell = document.createElement('td');
+        stateCell.className = 'aqg-licence-domains__status-cell';
+        stateCell.setAttribute('role', 'cell');
         const badge = document.createElement('span');
         badge.className = `aqg-licence-domains__state tone-${STATE_TONES[item.state] || 'none'}`;
         badge.textContent = this.stateLabel(item.state);
@@ -610,6 +626,9 @@ export class AqgLicenceDomains {
 
         const sitesCell = document.createElement('td');
         sitesCell.className = 'aqg-licence-domains__sites';
+        sitesCell.setAttribute('role', 'cell');
+        // Shown before the sites when the stacked layout hides the column headers.
+        sitesCell.dataset.label = this.label('sitesColumn');
         const shownSites = item.sites.slice(0, 3);
         sitesCell.textContent = shownSites.length === 0 ? '—' : shownSites.join(', ');
         if (item.sites.length > shownSites.length) {
@@ -622,6 +641,7 @@ export class AqgLicenceDomains {
 
         const actionCell = document.createElement('td');
         actionCell.className = 'aqg-licence-domains__action';
+        actionCell.setAttribute('role', 'cell');
         const action = item.canActivate ? 'activate' : (item.canDeactivate ? 'deactivate' : '');
         if (action !== '') {
             const button = document.createElement('button');

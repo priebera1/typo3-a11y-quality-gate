@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Export\AcceptanceEvidenceBuilder;
+use Priebera\A11yQualityGate\Export\ExportFilename;
 use Priebera\A11yQualityGate\Export\IssueExporter;
 use Priebera\A11yQualityGate\Export\PdfReportBuilder;
 use Priebera\A11yQualityGate\Database\Tables;
@@ -12,6 +13,7 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Export\RemoteExportBuilder;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
+use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
@@ -42,6 +44,7 @@ final class ExportController
         private readonly AcceptanceEvidenceBuilder $acceptanceEvidenceBuilder,
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly StreamFactoryInterface $streamFactory,
+        private readonly ?FrontendPageUrlService $frontendPageUrlService = null,
     ) {
     }
 
@@ -63,7 +66,7 @@ final class ExportController
             ) {
                 return $this->downloadResponse(
                     content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
-                    filename: 'aqg-export-access-denied.txt',
+                    filename: 'aqg-content-export-access-denied.txt',
                     contentType: 'text/plain; charset=UTF-8',
                     statusCode: 403,
                 );
@@ -81,7 +84,7 @@ final class ExportController
         if (!$this->canAccessLocalExport($request, $context['siteIdentifier'], $context['pageUid'])) {
             return $this->downloadResponse(
                 content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
-                filename: 'aqg-export-access-denied.txt',
+                filename: 'aqg-content-export-access-denied.txt',
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,
             );
@@ -96,7 +99,7 @@ final class ExportController
 
         return $this->downloadResponse(
             content: "\xEF\xBB\xBF" . $csv,
-            filename: $this->buildFilename($context['siteIdentifier'], $context['pageUid'], 'csv'),
+            filename: $this->buildFilename('content', $context['siteIdentifier'], $context['pageUid'], 'csv'),
             contentType: 'text/csv; charset=UTF-8',
         );
     }
@@ -187,7 +190,7 @@ final class ExportController
 
         return $this->downloadResponse(
             content: $pdf,
-            filename: $this->buildFilename($context['siteIdentifier'], $context['pageUid'], 'pdf'),
+            filename: $this->buildFilename('content', $context['siteIdentifier'], $context['pageUid'], 'pdf'),
             contentType: 'application/pdf',
         );
     }
@@ -259,12 +262,9 @@ final class ExportController
 
         return $this->downloadResponse(
             content: "\xEF\xBB\xBF" . $csv,
-            filename: $this->buildFilename(
-                $siteIdentifier !== '' ? $siteIdentifier : 'remote',
-                $remotePageUid > 0 ? $remotePageUid : null,
-                'csv',
-                'remote'
-            ),
+            filename: $remotePageUid > 0
+                ? ExportFilename::build('frontend', 'detail', $this->frontendDetailSubject($remotePageUid, $siteIdentifier), time(), 'csv')
+                : ExportFilename::build('frontend', 'overview', $siteIdentifier, time(), 'csv'),
             contentType: 'text/csv; charset=UTF-8',
         );
     }
@@ -283,12 +283,9 @@ final class ExportController
 
         return $this->downloadResponse(
             content: $pdf,
-            filename: $this->buildFilename(
-                $siteIdentifier !== '' ? $siteIdentifier : 'remote',
-                $remotePageUid > 0 ? $remotePageUid : null,
-                'pdf',
-                'remote'
-            ),
+            filename: $remotePageUid > 0
+                ? ExportFilename::build('frontend', 'detail', $this->frontendDetailSubject($remotePageUid, $siteIdentifier), time(), 'pdf')
+                : ExportFilename::build('frontend', 'overview', $siteIdentifier, time(), 'pdf'),
             contentType: 'application/pdf',
         );
     }
@@ -331,7 +328,7 @@ final class ExportController
         }
 
         $evidence = $this->acceptanceEvidenceBuilder->build($site, $pair['from'], $pair['to']);
-        $filename = sprintf('aqg-acceptance-%s-%s.%s', preg_replace('/[^a-z0-9_-]+/i', '-', $siteIdentifier), date('Y-m-d'), $format);
+        $filename = ExportFilename::build('frontend', 'acceptance', $siteIdentifier, time(), $format);
 
         return $format === 'csv'
             ? $this->downloadResponse($this->acceptanceEvidenceBuilder->renderCsv($evidence), $filename, 'text/csv; charset=UTF-8')
@@ -492,24 +489,30 @@ final class ExportController
         return null;
     }
 
-    private function buildFilename(
-        string $siteIdentifier,
-        ?int $pageUid,
-        string $extension,
-        string $prefix = 'a11y',
-    ): string {
-        $parts = [$prefix, $siteIdentifier !== '' ? $siteIdentifier : 'export'];
+    private function buildFilename(string $source, string $siteIdentifier, ?int $pageUid, string $extension): string
+    {
+        return $pageUid !== null && $pageUid > 0
+            ? ExportFilename::build($source, 'detail', (string)$pageUid, time(), $extension)
+            : ExportFilename::build($source, 'overview', $siteIdentifier, time(), $extension);
+    }
 
-        if ($pageUid !== null) {
-            $parts[] = 'page' . $pageUid;
+    /**
+     * A Frontend detail export is named after the TYPO3 page, not the internal ID of the stored frontend page record:
+     * the page of a page scan, else the page the URL resolves to. An unmapped URL keeps a recognisable `r{uid}`.
+     */
+    private function frontendDetailSubject(int $remotePageUid, string $siteIdentifier): string
+    {
+        $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid) ?? [];
+        $scan = $this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0)) ?? [];
+        $pageUid = (string)($scan['scan_scope'] ?? '') === 'page' ? (int)($scan['page_uid'] ?? 0) : 0;
+        if ($pageUid <= 0 && isset($this->frontendPageUrlService)) {
+            $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier !== '' ? $siteIdentifier : (string)($scan['site_identifier'] ?? ''));
+            if ($site instanceof Site) {
+                $pageUid = $this->frontendPageUrlService->resolvePageUidForUrl($site, (string)($remotePage['url'] ?? ''), (int)($scan['language_uid'] ?? -1));
+            }
         }
 
-        $parts[] = date('Y-m-d');
-
-        $filename = implode('-', $parts) . '.' . $extension;
-        $filename = preg_replace('/[^a-zA-Z0-9._-]+/', '-', $filename) ?: 'aqg-export.' . $extension;
-
-        return trim($filename, '-');
+        return $pageUid > 0 ? (string)$pageUid : 'r' . $remotePageUid;
     }
 
     private function downloadResponse(

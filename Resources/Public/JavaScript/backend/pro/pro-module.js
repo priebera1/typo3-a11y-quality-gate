@@ -3,6 +3,12 @@ import Modal from '@typo3/backend/modal.js';
 import Severity from '@typo3/backend/severity.js';
 import { A11yFreeBackendModule } from '@priebera/a11y-quality-gate/backend/free/free-module.js';
 import { FREE_SELECTORS, PRO_SELECTORS, LS_SOURCE_KEY } from '@priebera/a11y-quality-gate/backend/core/constants.js';
+import { switchScreenshotVariant } from '@priebera/a11y-quality-gate/backend/pro/screenshot-variant.js';
+import {
+    frontendScanNotification,
+    scanCancelledNotification,
+    scanFailedNotification,
+} from '@priebera/a11y-quality-gate/backend/core/scan-notification.js';
 
 const FREE_PREVIEW_SUBMIT_CAPABLE_STATES = new Set(['FREE_AVAILABLE']);
 const FREE_PREVIEW_RETRYABLE_STATES = new Set([
@@ -177,7 +183,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             const showLocalScan = event.target.closest(PRO_SELECTORS.showLocalScan);
             if (showLocalScan) {
                 event.preventDefault();
-                this.showOverviewSourceAndFocus('local', '[data-a11y-overview-panel="local"] .aqg-section__title');
+                this.showOverviewSourceAndFocus('local', '#aqg-local-status-title');
                 return;
             }
 
@@ -193,6 +199,13 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             if (highlightButton) {
                 event.preventDefault();
                 this.handleHighlightNode(highlightButton);
+                return;
+            }
+
+            const variantButton = event.target.closest('[data-action="a11y-screenshot-variant"]');
+            if (variantButton instanceof HTMLElement) {
+                event.preventDefault();
+                switchScreenshotVariant(variantButton);
                 return;
             }
 
@@ -236,6 +249,30 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             return;
         }
 
+        const tablist = triggers[0].closest('[role="tablist"]');
+        tablist?.addEventListener('keydown', (event) => {
+            const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+            const index = tabs.indexOf(event.target instanceof Element ? event.target.closest('[role="tab"]') : null);
+            if (index < 0) {
+                return;
+            }
+
+            const targets = {
+                ArrowRight: (index + 1) % tabs.length,
+                ArrowLeft: (index - 1 + tabs.length) % tabs.length,
+                Home: 0,
+                End: tabs.length - 1,
+            };
+            if (!(event.key in targets)) {
+                return;
+            }
+
+            event.preventDefault();
+            const next = tabs[targets[event.key]];
+            this.setOverviewSource(String(next.dataset.a11yOverviewSourceTrigger || 'local'));
+            next.focus();
+        });
+
         const requestedSource = new URLSearchParams(window.location.search).get('aqgSource');
         let stored = requestedSource || 'local';
         if (!requestedSource) {
@@ -261,7 +298,12 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             const triggerSource = String(trigger.dataset.a11yOverviewSourceTrigger || '');
             const isActive = triggerSource === source;
             trigger.classList.toggle('active', isActive);
-            trigger.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            if (trigger.getAttribute('role') === 'tab') {
+                trigger.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                trigger.tabIndex = isActive ? 0 : -1;
+            } else {
+                trigger.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            }
         });
 
         document.querySelectorAll(PRO_SELECTORS.overviewSourcePanel).forEach((panel) => {
@@ -308,9 +350,10 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
     handleHighlightNode(button) {
         const uid = String(button.dataset.uid || '').trim();
+        const selector = String(button.dataset.selector || '').trim();
         const url = String(button.dataset.url || '').trim();
 
-        if (!uid || !url) {
+        if ((!uid && !selector) || !url) {
             this.showNotification(
                 this.translate('notification.highlight.missing', 'Highlight failed: missing uid or page URL.'),
                 'warning'
@@ -320,7 +363,12 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         const targetUrl = new URL(url, window.location.origin);
         targetUrl.searchParams.set('aqgDebug', '1');
-        targetUrl.searchParams.set('aqgh', uid);
+        if (uid) {
+            targetUrl.searchParams.set('aqgh', uid);
+        } else {
+            // An occurrence without a record marker is found by the crawler's own selector.
+            targetUrl.searchParams.set('aqgs', selector);
+        }
 
         window.open(targetUrl.toString(), '_blank', 'noopener');
     }
@@ -350,7 +398,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         wrapper.appendChild(image);
 
-        Modal.advanced({
+        const modal = Modal.advanced({
             title: imageTitle,
             content: wrapper,
             severity: Severity.info,
@@ -366,6 +414,14 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                     },
                 },
             ],
+        });
+
+        // TYPO3 leaves focus on the document body when the modal closes; keyboard users continue from the
+        // screenshot they opened instead of the top of the page.
+        modal?.addEventListener?.('typo3-modal-hidden', () => {
+            if (trigger.isConnected) {
+                trigger.focus();
+            }
         });
     }
 
@@ -446,7 +502,8 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 pagesScanned: null,
                 pagesTotal: null,
             });
-            this.showNotification(notificationMessage, 'error');
+            this.applyRemoteFailureDetail(errorPayload, message);
+            this.notifyRemoteScanFailure(notificationMessage, message);
             this.remoteSubmitInProgress = false;
             this.setScanInProgress(false);
             this.setLoadingState(button, false);
@@ -478,16 +535,13 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         } else if (messageContainer) {
             messageContainer.replaceChildren();
             const notice = document.createElement('div');
-            notice.className = 'aqg-notice aqg-tone-warning mb-3';
+            notice.className = 'aqg-note aqg-note--warning';
             notice.setAttribute('role', 'status');
 
-            const body = document.createElement('div');
-            body.className = 'aqg-notice__body';
             const text = document.createElement('div');
-            text.className = 'aqg-notice__text';
+            text.className = 'aqg-note__text';
             text.textContent = message;
-            body.appendChild(text);
-            notice.appendChild(body);
+            notice.appendChild(text);
             messageContainer.appendChild(notice);
         }
 
@@ -574,7 +628,8 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 pagesTotal: null,
             });
 
-            this.showNotification(notificationMessage, 'error');
+            this.applyRemoteFailureDetail(errorPayload, message);
+            this.notifyRemoteScanFailure(notificationMessage, message);
             this.remoteSubmitInProgress = false;
             this.setLoadingState(button, false);
             this.setScanInProgress(false);
@@ -634,12 +689,11 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 pagesTotal: state?.pagesTotal ?? null,
             });
 
-            this.showNotification(
-                status === 'cancelled'
-                    ? this.translate('notification.proScan.cancelled', 'Frontend scan was cancelled.')
-                    : this.translate('notification.proScan.cancelFinished', 'Frontend scan was already finished.'),
-                'info'
-            );
+            if (status === 'cancelled') {
+                this.showScanResult(scanCancelledNotification('frontend', this.scanLabel()));
+            } else {
+                this.showNotification(this.translate('notification.proScan.cancelFinished', 'Frontend scan was already finished.'), 'info');
+            }
 
             this.resetRemoteScanDomState();
             this.setScanInProgress(false);
@@ -743,11 +797,11 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             pagesTotal: fallbackScope === 'page' ? 1 : null,
         });
 
-        this.showNotification(
+        // The running status shows the start; only the end of the scan gets a notification.
+        this.announce(
             fallbackScope === 'page'
                 ? this.translate('notification.proScan.pageStarted', 'Frontend page scan started.')
-                : this.translate('notification.proScan.started', 'Frontend scan started.'),
-            'info'
+                : this.translate('notification.proScan.started', 'Frontend scan started.')
         );
 
         await this.monitorRemoteScan({
@@ -1038,6 +1092,19 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         const summaryData = await this.fetchRemoteSummary(scanState.jobId, scanState.siteIdentifier);
 
+        // One notification per scan: how many pages were checked, and how many could not be loaded.
+        this.showScanResult(
+            frontendScanNotification(
+                { ...summaryData, pagesScanned: summaryData.pagesScanned ?? statusData.pagesScanned },
+                { scope: scanState.scope === 'page' ? 'page' : 'site' },
+                this.scanLabel()
+            ),
+            {
+                detailsTarget: 'a11y-remote-failed-pages',
+                detailsLabel: this.translate('notification.scanResult.action.failedPages', 'View failed pages'),
+            }
+        );
+
         if (summaryData.alreadyPersisted === true) {
             this.updateRemoteScanUi({
                 visible: true,
@@ -1058,7 +1125,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
             this.resetRemoteScanDomState();
             this.setScanInProgress(false);
-            this.reloadCurrentModule(2600);
+            this.reloadCurrentModule(2600, { showLatestScan: true });
             return;
         }
 
@@ -1073,15 +1140,6 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             pagesTotal: statusData.pagesTotal ?? null,
         });
 
-        this.showNotification(
-            this.format(
-                this.translate('notification.proScan.completed', 'Frontend scan complete — %d new, %d resolved.'),
-                Number(summaryData.issuesNew || 0),
-                Number(summaryData.issuesResolved || 0)
-            ),
-            'success'
-        );
-
         try {
             localStorage.setItem(LS_SOURCE_KEY, 'remote');
         } catch {
@@ -1090,7 +1148,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         this.resetRemoteScanDomState();
         this.setScanInProgress(false);
-        this.reloadCurrentModule(2600);
+        this.reloadCurrentModule(2600, { showLatestScan: true });
     }
 
     async pollRemoteCrawlerJob(jobId, siteIdentifier) {
@@ -1351,7 +1409,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                 pagesScanned: null,
                 pagesTotal: null,
             });
-            this.showNotification(message, 'error');
+            this.notifyRemoteScanFailure(message, message);
             this.setScanInProgress(false);
         });
     }
@@ -1384,6 +1442,23 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
     }
 
 
+    updateRemoteScanTitle(box, status) {
+        const titleEl = box.querySelector(PRO_SELECTORS.remoteScanProgressTitle);
+        if (!(titleEl instanceof HTMLElement)) {
+            return;
+        }
+        if (titleEl.dataset.runningTitle === undefined) {
+            titleEl.dataset.runningTitle = titleEl.textContent.trim();
+        }
+
+        const titles = {
+            failed: this.translate('overview.scan.remoteFailedTitle', 'Frontend scan failed'),
+            completed: this.translate('overview.scan.remoteCompletedTitle', 'Frontend scan completed'),
+            cancelled: this.translate('overview.scan.remoteCancelledTitle', 'Frontend scan cancelled'),
+        };
+        titleEl.textContent = titles[status] || titleEl.dataset.runningTitle;
+    }
+
     restoreButtonText(button) {
         if (!(button instanceof HTMLButtonElement)) {
             return;
@@ -1412,9 +1487,28 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         const isCompleted = normalizedStatus === 'completed';
         const isIndeterminate = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
 
+        const isFailed = visible && normalizedStatus === 'failed';
+
         box.classList.toggle('d-none', !visible);
         box.classList.toggle('aqg-progress-block--indeterminate', isIndeterminate);
         box.classList.toggle('aqg-progress-block--completed', isCompleted);
+        box.classList.toggle('aqg-progress-block--failed', isFailed);
+        this.updateRemoteScanTitle(box, normalizedStatus);
+        box.querySelectorAll('[data-a11y-remote-scan-state="true"]').forEach((stateEl) => {
+            stateEl.textContent = this.describeScanState(normalizedStatus);
+        });
+        if (!isFailed) {
+            box.querySelectorAll('[data-a11y-remote-scan-more="true"]').forEach((more) => {
+                more.hidden = true;
+            });
+        }
+        // While a scan runs and after it failed, the earlier result stays on screen: say which scan it is. Without an
+        // earlier result, the "no scan yet" card would contradict the running scan, so it waits until the scan ends.
+        const isRunning = visible && ['waiting', 'queued', 'running', 'active', 'cancelling'].includes(normalizedStatus);
+        this.setLastCompletedLabel('remote', isRunning || isFailed);
+        document.querySelectorAll('[data-aqg-status="remote"][data-aqg-status-empty="true"]').forEach((card) => {
+            card.hidden = isRunning;
+        });
 
         if (spinnerEl) {
             const showSpinner = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
@@ -1459,6 +1553,13 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         if (backgroundHintEl) {
             const shouldShowBackgroundHint = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
             backgroundHintEl.classList.toggle('d-none', !shouldShowBackgroundHint);
+            // With an earlier result below, the line says that it stays; otherwise that the scan continues in the background.
+            if (backgroundHintEl.dataset.backgroundHint === undefined) {
+                backgroundHintEl.dataset.backgroundHint = backgroundHintEl.textContent.trim();
+            }
+            backgroundHintEl.textContent = document.querySelector('[data-aqg-last-completed="remote"]')
+                ? this.translate('overview.scan.previousStaysVisible', 'Previous result stays visible until it finishes.')
+                : backgroundHintEl.dataset.backgroundHint;
         }
 
         if (cancelButton) {
@@ -1468,13 +1569,62 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         }
     }
 
+    /**
+     * A site the AQG service cannot reach: one sentence in the status block, the full explanation (why and what to do)
+     * behind "How to make the site reachable". Other failures show their reason as it is.
+     */
+    applyRemoteFailureDetail(errorPayload, message) {
+        const box = document.querySelector(PRO_SELECTORS.remoteScanProgressBox);
+        const more = box?.querySelector('[data-a11y-remote-scan-more="true"]');
+        const detail = box?.querySelector('[data-a11y-remote-scan-more-text="true"]');
+        if (!box || !more || !detail) {
+            return;
+        }
+
+        const unreachable = FREE_PREVIEW_UNREACHABLE_CODES.has(String(errorPayload?.code || '').trim());
+        more.hidden = !unreachable;
+        if (!unreachable) {
+            detail.textContent = '';
+            return;
+        }
+
+        detail.textContent = message;
+        const titleEl = box.querySelector(PRO_SELECTORS.remoteScanProgressTitle);
+        if (titleEl) {
+            titleEl.textContent = this.translate('overview.scan.unreachableTitle', 'Frontend scan failed: site not reachable');
+        }
+        const messageEl = box.querySelector(PRO_SELECTORS.remoteScanProgressMessage);
+        if (messageEl) {
+            messageEl.textContent = this.translate(
+                'overview.scan.unreachableShort',
+                'The AQG service cannot reach this site: its address is local or private. Nothing was scanned.'
+            );
+        }
+    }
+
+    /**
+     * The failed status block already shows the reason: the toast only says that the scan failed. Without a visible
+     * status block (a view without one) the toast keeps the full text.
+     */
+    notifyRemoteScanFailure(notificationMessage, message) {
+        const box = document.querySelector(PRO_SELECTORS.remoteScanProgressBox);
+        const hasVisibleStatus = box instanceof HTMLElement && !box.classList.contains('d-none');
+
+        this.showScanResult(scanFailedNotification(
+            'frontend',
+            hasVisibleStatus
+                ? this.translate('notification.scanResult.failedReason', 'The reason is shown in the scan status.')
+                : notificationMessage,
+            this.scanLabel()
+        ), { announce: false });
+        this.announce(`${this.translate('overview.scan.remoteFailedTitle', 'Frontend scan failed')}: ${message}`);
+    }
+
+    /** The progress line of the running status header; its title already says that a frontend scan runs. */
     buildRemoteProgressMessage(pagesScanned = null, pagesTotal = null) {
         if (pagesScanned !== null && pagesTotal !== null && pagesTotal > 0) {
             return this.format(
-                this.translate(
-                    'notification.proScan.progress.withTotal',
-                    'Frontend scan is running in background. %d/%d pages processed so far.'
-                ),
+                this.translate('overview.scan.remoteProgress.withTotal', '%d of %d pages checked'),
                 pagesScanned,
                 pagesTotal
             );
@@ -1482,18 +1632,12 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
 
         if (pagesScanned !== null && pagesScanned > 0) {
             return this.format(
-                this.translate(
-                    'notification.proScan.progress.withCount',
-                    'Frontend scan is running in background. %d pages processed so far.'
-                ),
+                this.translate('overview.scan.remoteProgress.withCount', '%d pages checked'),
                 pagesScanned
             );
         }
 
-        return this.translate(
-            'notification.proScan.progress.starting',
-            'Frontend scan is running in background. Progress will appear shortly.'
-        );
+        return this.translate('overview.scan.remoteProgress.starting', 'Waiting for the AQG service');
     }
 
     getCurrentRemoteContext() {

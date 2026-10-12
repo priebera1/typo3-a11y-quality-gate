@@ -1255,8 +1255,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Entwurf einer Barrierefreiheitserklärung</target>
             </trans-unit>
             <trans-unit id="rule.rendered.duplicate_id.title">
-                <source>Rendered HTML contains duplicate IDs</source>
-                <target>Das gerenderte HTML enthält doppelte IDs</target>
+                <source>Duplicate element IDs</source>
+                <target>Doppelte Element-IDs</target>
             </trans-unit>
             <trans-unit id="rule.rendered.duplicate_id.guidance">
                 <source>Make every id attribute unique on the page and update all labels, links and ARIA references that point to the changed ID.</source>
@@ -1895,8 +1895,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Modell</target>
             </trans-unit>
             <trans-unit id="settings.ai.save">
-                <source>Save encrypted key</source>
-                <target>Verschlüsselten Schlüssel speichern</target>
+                <source>Save and test key</source>
+                <target>Schlüssel speichern und testen</target>
             </trans-unit>
             <trans-unit id="settings.ai.testConnection">
                 <source>Test connection</source>
@@ -3268,8 +3268,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Screenshot-Vorschau</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.screenshotUnavailable">
-                <source>Screenshot not available. Screenshots can only be loaded by the licence or Agency project that ran the scan.</source>
-                <target>Screenshot nicht verfügbar. Screenshots kann nur die Lizenz bzw. das Agency-Projekt laden, das den Scan ausgeführt hat.</target>
+                <source>Screenshot not available. The capture from this scan is no longer stored, or the scan was run by another licence or Agency project.</source>
+                <target>Screenshot nicht verfügbar. Die Aufnahme dieses Scans ist nicht mehr gespeichert, oder der Scan wurde von einer anderen Lizenz bzw. einem anderen Agency-Projekt ausgeführt.</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.screenshotSub">
                 <source>Captured at scan time · click to enlarge</source>
@@ -3314,6 +3314,18 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="module.remotePageDetail.noMappedRecord">
                 <source>No mapped TYPO3 record found.</source>
                 <target>Kein zugeordneter TYPO3-Datensatz gefunden.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.noTokenTitle">
+                <source>Findings are not linked to TYPO3 records</source>
+                <target>Befunde sind keinen TYPO3-Datensätzen zugeordnet</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.noTokenText">
+                <source>This site has no Scanner Token, so TYPO3 did not mark its content records for the crawler and %d findings could not be linked to a record. Generate a token for this site in Remote scan access, then scan again.</source>
+                <target>Diese Website hat kein Scanner-Token. TYPO3 hat ihre Inhaltsdatensätze daher nicht für den Crawler markiert, und %d Befunde konnten keinem Datensatz zugeordnet werden. Erzeugen Sie im Remote-Scan-Zugriff ein Token für diese Website und scannen Sie erneut.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.noMappedRecordNoToken">
+                <source>No mapped TYPO3 record · this site has no Scanner Token</source>
+                <target>Kein zugeordneter TYPO3-Datensatz · diese Website hat kein Scanner-Token</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.showOnPage">
                 <source>Show on page</source>
@@ -3400,8 +3412,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Vollständiger Scan abgeschlossen – %d neu, %d behoben.</target>
             </trans-unit>
             <trans-unit id="notification.scanPageWithFrontend.completed">
-                <source>Page scan complete - local %d new, %d resolved; frontend %d new, %d resolved.</source>
-                <target>Seitenscan abgeschlossen – lokal %d neu, %d behoben; Frontend %d neu, %d behoben.</target>
+                <source>Page scan complete. Content scan: %d new, %d resolved. Frontend scan: %d new, %d resolved.</source>
+                <target>Seitenscan abgeschlossen. Inhaltsscan: %d neu, %d behoben. Frontend-Scan: %d neu, %d behoben.</target>
             </trans-unit>
             <trans-unit id="notification.scan.cancelMissing">
                 <source>Content scan could not be cancelled because the cancel endpoint is missing.</source>
@@ -3422,6 +3434,22 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="overview.lastScan.label">
                 <source>Last scan</source>
                 <target>Letzter Scan</target>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.scope">
+                <source>Scope</source>
+                <target>Umfang</target>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.scopeSite">
+                <source>Site scan</source>
+                <target>Website-Scan</target>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.scopePage">
+                <source>Page scan: %s</source>
+                <target>Seiten-Scan: %s</target>
+            </trans-unit>
+            <trans-unit id="overview.lastScan.resultsWithoutScan">
+                <source>Open issues from earlier content scans are listed below.</source>
+                <target>Offene Probleme aus früheren Inhalts-Scans sind unten aufgeführt.</target>
             </trans-unit>
             <trans-unit id="overview.lastScan.newIssues">
                 <source>new issues</source>
@@ -3600,12 +3628,12 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Gesamt</target>
             </trans-unit>
             <trans-unit id="overview.remoteScannerTokenNotice.title">
-                <source>Hidden pages will not be scanned</source>
-                <target>Versteckte Seiten werden nicht gescannt</target>
+                <source>No Scanner Token for this site</source>
+                <target>Kein Scanner-Token für diese Website</target>
             </trans-unit>
             <trans-unit id="overview.remoteScannerTokenNotice.text">
-                <source>No Scanner Token is configured for this site. Remote scans can only access publicly visible pages.</source>
-                <target>Für diese Website ist kein Scanner-Token konfiguriert. Remote-Scans erreichen nur öffentlich sichtbare Seiten.</target>
+                <source>No Scanner Token is configured for this site. Remote scans can only access publicly visible pages, and TYPO3 does not mark content records for them, so findings outside standard content frames are not linked to their record.</source>
+                <target>Für diese Website ist kein Scanner-Token konfiguriert. Remote-Scans erreichen nur öffentlich sichtbare Seiten, und TYPO3 markiert für sie keine Inhaltsdatensätze, sodass Befunde außerhalb der üblichen Inhaltsrahmen keinem Datensatz zugeordnet werden.</target>
             </trans-unit>
             <trans-unit id="overview.remoteScannerTokenNotice.cta">
                 <source>Open Remote Scan Access settings</source>
@@ -3931,6 +3959,18 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Good automated signal</source>
                 <target>Gutes automatisiertes Signal</target>
             </trans-unit>
+            <trans-unit id="overview.remote.signal.incomplete">
+                <source>Scan incomplete</source>
+                <target>Scan unvollständig</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.noCoverage">
+                <source>No page could be scanned</source>
+                <target>Keine Seite konnte gescannt werden</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.coverage">
+                <source>Checked %1$d of %2$d pages. Pages that could not be loaded are listed under Failed / unreachable pages.</source>
+                <target>%1$d von %2$d Seiten geprüft. Seiten, die nicht geladen werden konnten, stehen unter „Fehlgeschlagene / nicht erreichbare Seiten“.</target>
+            </trans-unit>
             <trans-unit id="overview.remote.signal.noScanTitle">
                 <source>No frontend scan has been run yet</source>
                 <target>Es wurde noch kein Frontend-Scan ausgeführt</target>
@@ -4224,7 +4264,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Lizenz</target>
             </trans-unit>
             <trans-unit id="settings.tab.scanFields">
-                <source>Scan Fields</source>
+                <source>Scan fields</source>
                 <target>Scan-Felder</target>
             </trans-unit>
             <trans-unit id="settings.tab.qualityGate">
@@ -4792,8 +4832,28 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Max. 10 Seiten pro Frontend-Scan</target>
             </trans-unit>
             <trans-unit id="settings.licence.limit.maxScans">
-                <source>Max 5 scans per day</source>
-                <target>Max. 5 Scans pro Tag</target>
+                <source>Max 5 scans in the last 24 hours</source>
+                <target>Max. 5 Scans in den letzten 24 Stunden</target>
+            </trans-unit>
+            <trans-unit id="overview.trialUsage.maxPages">
+                <source>Max %d pages per frontend scan</source>
+                <target>Max. %d Seiten pro Frontend-Scan</target>
+            </trans-unit>
+            <trans-unit id="overview.trialUsage.used">
+                <source>%1$d of %2$d scans used in the last 24 hours</source>
+                <target>%1$d von %2$d Scans in den letzten 24 Stunden verwendet</target>
+            </trans-unit>
+            <trans-unit id="overview.trialUsage.remaining">
+                <source>Scans left: %d</source>
+                <target>Verbleibende Scans: %d</target>
+            </trans-unit>
+            <trans-unit id="overview.trialUsage.nextScan">
+                <source>No scans left until %s</source>
+                <target>Keine Scans mehr bis %s</target>
+            </trans-unit>
+            <trans-unit id="overview.trialUsage.notEnforced">
+                <source>No 24-hour scan limit applies to this installation</source>
+                <target>Für diese Installation gilt kein 24-Stunden-Scan-Limit</target>
             </trans-unit>
             <trans-unit id="settings.licence.trial.devExempt">
                 <source>Dev environments are exempt.</source>
@@ -4832,8 +4892,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Prüft TYPO3-Inhaltsdatensätze.</target>
             </trans-unit>
             <trans-unit id="toolbar.openModule">
-                <source>Open accessibility module</source>
-                <target>Barrierefreiheitsmodul öffnen</target>
+                <source>Open Accessibility module</source>
+                <target>Modul Barrierefreiheit öffnen</target>
             </trans-unit>
             <trans-unit id="toolbar.pages">
                 <source>Pages</source>
@@ -4900,8 +4960,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Läuft</target>
             </trans-unit>
             <trans-unit id="toolbar.title">
-                <source>Accessibility scan</source>
-                <target>Barrierefreiheitsscan</target>
+                <source>Accessibility</source>
+                <target>Barrierefreiheit</target>
             </trans-unit>
             <trans-unit id="toolbar.trigger">
                 <source>Trigger</source>
@@ -4912,8 +4972,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Ausgelöst von</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.title">
-                <source>Accessibility Quality</source>
-                <target>Barrierefreiheitsqualität</target>
+                <source>Accessibility</source>
+                <target>Barrierefreiheit</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.status.ok">
                 <source>OK</source>
@@ -4946,6 +5006,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="pageModuleIndicator.headline.ok">
                 <source>No issues found</source>
                 <target>Keine Probleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.headline.remoteNotLoaded">
+                <source>Page could not be loaded</source>
+                <target>Seite konnte nicht geladen werden</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.body.running">
                 <source>Checking this page for accessibility issues…</source>
@@ -5008,8 +5072,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Gerade gestartet</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.meta.running">
-                <source>Started just now</source>
-                <target>Gerade gestartet</target>
+                <source>Scan in progress</source>
+                <target>Scan läuft</target>
             </trans-unit>
             <trans-unit id="pageModuleIndicator.meta.none">
                 <source>No scan on record</source>
@@ -5232,8 +5296,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Autocomplete hilft Menschen mit kognitiven oder motorischen Einschränkungen und allen, die das automatische Ausfüllen des Browsers nutzen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.img_missing_alt.title">
-                <source>Rendered image is missing an alt attribute</source>
-                <target>Einem gerenderten Bild fehlt das alt-Attribut</target>
+                <source>Image is missing an alt attribute</source>
+                <target>Bild ohne alt-Attribut</target>
             </trans-unit>
             <trans-unit id="rule.rendered.img_missing_alt.howToFix">
                 <source>Add descriptive alt text for meaningful images. For decorative images, use an empty alt attribute: alt="".</source>
@@ -5244,8 +5308,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Assistive Technologien verarbeiten das gerenderte HTML. Bedeutungstragende Bilder benötigen Textalternativen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.empty_link.title">
-                <source>Rendered link has no accessible name</source>
-                <target>Gerenderter Link hat keinen zugänglichen Namen</target>
+                <source>Link has no accessible name</source>
+                <target>Link hat keinen zugänglichen Namen</target>
             </trans-unit>
             <trans-unit id="rule.rendered.empty_link.howToFix">
                 <source>Add visible link text or an accessible label that describes the destination.</source>
@@ -5256,8 +5320,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Links ohne zugänglichen Namen sind für Screenreader-Nutzende nicht verständlich.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.empty_button.title">
-                <source>Rendered button has no accessible name</source>
-                <target>Gerenderte Schaltfläche hat keinen zugänglichen Namen</target>
+                <source>Button has no accessible name</source>
+                <target>Schaltfläche hat keinen zugänglichen Namen</target>
             </trans-unit>
             <trans-unit id="rule.rendered.empty_button.howToFix">
                 <source>Add visible button text or an accessible label such as aria-label.</source>
@@ -5268,8 +5332,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Schaltflächen benötigen einen zugänglichen Namen, damit Nutzende die Aktion verstehen, bevor sie sie auslösen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.iframe_missing_title.title">
-                <source>Rendered iframe is missing a title</source>
-                <target>Einem gerenderten Iframe fehlt ein Titel</target>
+                <source>Iframe is missing a title</source>
+                <target>Iframe ohne Titel</target>
             </trans-unit>
             <trans-unit id="rule.rendered.iframe_missing_title.howToFix">
                 <source>Add a short title attribute that describes the iframe content.</source>
@@ -5280,8 +5344,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Iframe-Titel helfen Nutzenden assistiver Technologien, eingebettete Inhalte zu verstehen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.form_control_missing_label.title">
-                <source>Rendered form control has no accessible label</source>
-                <target>Gerendertes Formularelement hat keine zugängliche Beschriftung</target>
+                <source>Form control has no accessible label</source>
+                <target>Formularelement hat keine zugängliche Beschriftung</target>
             </trans-unit>
             <trans-unit id="rule.rendered.form_control_missing_label.howToFix">
                 <source>Add a visible label, aria-label, or valid aria-labelledby reference.</source>
@@ -5292,8 +5356,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Nutzende benötigen Beschriftungen, um den Zweck von Formularfeldern zu verstehen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.empty_heading.title">
-                <source>Rendered heading is empty</source>
-                <target>Gerenderte Überschrift ist leer</target>
+                <source>Heading is empty</source>
+                <target>Überschrift ist leer</target>
             </trans-unit>
             <trans-unit id="rule.rendered.empty_heading.howToFix">
                 <source>Remove the empty heading or add meaningful heading text.</source>
@@ -5312,8 +5376,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Doppelte IDs können Beschriftungen, Beschreibungen, Skripte und Verweise assistiver Technologien beeinträchtigen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.table_missing_header.title">
-                <source>Rendered table has no header cells</source>
-                <target>Gerenderte Tabelle hat keine Kopfzellen</target>
+                <source>Table has no header cells</source>
+                <target>Tabelle hat keine Kopfzellen</target>
             </trans-unit>
             <trans-unit id="rule.rendered.table_missing_header.howToFix">
                 <source>Add th cells for data tables, or mark layout tables as presentation.</source>
@@ -5324,8 +5388,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Tabellenköpfe helfen Nutzenden, die Beziehungen zwischen Zellen zu verstehen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.table_empty_header.title">
-                <source>Rendered table header cell is empty</source>
-                <target>Kopfzelle einer gerenderten Tabelle ist leer</target>
+                <source>Table header cell is empty</source>
+                <target>Tabellenkopfzelle ist leer</target>
             </trans-unit>
             <trans-unit id="rule.rendered.table_empty_header.howToFix">
                 <source>Add meaningful text to the table header cell or remove the empty header.</source>
@@ -5336,8 +5400,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Leere th-Zellen bieten assistiven Technologien keine nützliche Struktur.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.svg_missing_accessible_name.title">
-                <source>Rendered SVG has no accessible name</source>
-                <target>Gerendertes SVG hat keinen zugänglichen Namen</target>
+                <source>SVG has no accessible name</source>
+                <target>SVG hat keinen zugänglichen Namen</target>
             </trans-unit>
             <trans-unit id="rule.rendered.svg_missing_accessible_name.howToFix">
                 <source>Add aria-hidden="true" for decorative SVGs, or add a title, aria-label, or valid aria-labelledby for meaningful SVG graphics.</source>
@@ -5348,8 +5412,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Bedeutungstragende SVG-Grafiken benötigen einen zugänglichen Namen, damit ihr Zweck verstanden werden kann.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.html_lang_missing.title">
-                <source>Rendered HTML is missing a lang attribute</source>
-                <target>Dem gerenderten HTML fehlt das lang-Attribut</target>
+                <source>Page language (lang attribute) is missing</source>
+                <target>Seitensprache (lang-Attribut) fehlt</target>
             </trans-unit>
             <trans-unit id="rule.rendered.html_lang_missing.howToFix">
                 <source>Set the lang attribute on the html element according to the page language.</source>
@@ -5360,8 +5424,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Das lang-Attribut hilft Screenreadern, die richtigen Ausspracheregeln zu wählen.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.page_title_missing.title">
-                <source>Rendered page has no title</source>
-                <target>Gerenderte Seite hat keinen Titel</target>
+                <source>Page has no title</source>
+                <target>Seite hat keinen Titel</target>
             </trans-unit>
             <trans-unit id="rule.rendered.page_title_missing.howToFix">
                 <source>Add a meaningful title element for the page.</source>
@@ -5372,8 +5436,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Seitentitel helfen Nutzenden zu erkennen, wo sie sich befinden, und Browser-Tabs zu unterscheiden.</target>
             </trans-unit>
             <trans-unit id="rule.rendered.main_landmark_missing.title">
-                <source>Rendered page may be missing a main landmark</source>
-                <target>Der gerenderten Seite fehlt möglicherweise ein Hauptbereich (main)</target>
+                <source>Page may be missing a main landmark</source>
+                <target>Der Seite fehlt möglicherweise ein Hauptbereich (main)</target>
             </trans-unit>
             <trans-unit id="rule.rendered.main_landmark_missing.howToFix">
                 <source>This is a review item, not an automatic failure. Verify manually whether the page has a clear main landmark using main or role="main".</source>
@@ -6580,8 +6644,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>✓ Einstellungen gespeichert</target>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.save">
-                <source>Save remote scan settings</source>
-                <target>Remote-Scan-Einstellungen speichern</target>
+                <source>Save changes</source>
+                <target>Änderungen speichern</target>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.adminBadge">
                 <source>Admin only</source>
@@ -6604,8 +6668,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Vorschau-Token für den Scanner</target>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.token.text">
-                <source>Generate a private token so the remote crawler can access hidden pages and hidden content during scans. Keep this token secret.</source>
-                <target>Erzeugen Sie ein privates Token, damit der Remote-Crawler bei Scans auf verborgene Seiten und Inhalte zugreifen kann. Halten Sie dieses Token geheim.</target>
+                <source>Generate a private token so the AQG crawler can open hidden pages and hidden content during Frontend scans. Keep this token secret.</source>
+                <target>Erzeugen Sie ein privates Token, damit der AQG-Crawler bei Frontend-Scans verborgene Seiten und Inhalte öffnen kann. Halten Sie dieses Token geheim.</target>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.token.regenerated">
                 <source>✓ Scanner token regenerated</source>
@@ -6908,8 +6972,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Prüfung der gerenderten Seite</target>
             </trans-unit>
             <trans-unit id="settings.rules.rendered.text">
-                <source>Controls the FREE, manual HTML-only rendered check used by Scan this page and manual Scan site actions.</source>
-                <target>Steuert die kostenlose, manuell gestartete reine HTML-Prüfung der gerenderten Seite, die „Diese Seite scannen“ und das manuelle „Website scannen“ verwenden.</target>
+                <source>The rendered check of Content scans (Scan this page, Scan site): TYPO3 requests each page like an anonymous visitor and checks the returned HTML. It does not send the Scanner Token, so hidden and access-restricted pages are not checked here; a Frontend scan can check them.</source>
+                <target>Die Prüfung des gerenderten HTML bei Inhaltsscans („Diese Seite scannen“, „Website scannen“): TYPO3 ruft jede Seite wie ein anonymer Besucher ab und prüft das zurückgegebene HTML. Das Scanner-Token wird dabei nicht gesendet, daher werden verborgene und zugriffsbeschränkte Seiten hier nicht geprüft; ein Frontend-Scan kann sie prüfen.</target>
             </trans-unit>
             <trans-unit id="settings.rules.rendered.enable">
                 <source>Enable rendered page checks</source>
@@ -7210,6 +7274,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="settings.adminOnly.httpAuth">
                 <source>Only administrators can test HTTP Basic Auth.</source>
                 <target>Nur Administratoren können die HTTP-Basic-Authentifizierung testen.</target>
+            </trans-unit>
+            <trans-unit id="settings.adminOnly.save">
+                <source>Only administrators can change this configuration. Your changes were not saved.</source>
+                <target>Nur Administratoren können diese Konfiguration ändern. Ihre Änderungen wurden nicht gespeichert.</target>
             </trans-unit>
             <trans-unit id="settings.remoteAccess.lockedMessage">
                 <source>Remote scan access settings need a valid Trial, PRO or Agency licence. Add a licence key or start a trial to configure them.</source>
@@ -7916,8 +7984,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>%d Probleme gefunden</target>
             </trans-unit>
             <trans-unit id="rte.selectHighlight">
-                <source>Select a highlight to see how to fix it.</source>
-                <target>Wählen Sie eine Hervorhebung, um zu sehen, wie Sie das Problem beheben.</target>
+                <source>Open a marker at the right edge of the text to see how to fix it.</source>
+                <target>Öffnen Sie eine Markierung am rechten Textrand, um zu sehen, wie Sie das Problem beheben.</target>
             </trans-unit>
             <trans-unit id="rte.howToFix">
                 <source>How to fix</source>
@@ -8220,12 +8288,12 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Alle in der Gruppe auswählen</target>
             </trans-unit>
             <trans-unit id="pageDetail.bulk.ignoreRuleOnPage">
-                <source>Ignore all %s issues on this page</source>
-                <target>Alle %s-Probleme auf dieser Seite ignorieren</target>
+                <source>Ignore all issues of “%s” on this page</source>
+                <target>Alle Probleme von „%s“ auf dieser Seite ignorieren</target>
             </trans-unit>
             <trans-unit id="pageDetail.bulk.ignoreRuleOnSite">
-                <source>Ignore all %s issues on this site</source>
-                <target>Alle %s-Probleme auf dieser Website ignorieren</target>
+                <source>Ignore all issues of “%s” on this site</source>
+                <target>Alle Probleme von „%s“ auf dieser Website ignorieren</target>
             </trans-unit>
             <trans-unit id="pageDetail.bulk.ignoreRuleText">
                 <source>This will mark %d open issues with this rule as ignored. They stay visible in the report but no longer block the quality gate.</source>
@@ -9790,6 +9858,1058 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="freePreview.comparePlans">
                 <source>Compare plans</source>
                 <target>Pläne vergleichen</target>
+            </trans-unit>
+            <trans-unit id="module.details">
+                <source>Details</source>
+                <target>Details</target>
+            </trans-unit>
+            <trans-unit id="module.evidence.title">
+                <source>Reports and evidence</source>
+                <target>Berichte und Nachweise</target>
+            </trans-unit>
+            <trans-unit id="module.evidence.planSummary">
+                <source>Tasks grouped by owner and fix type</source>
+                <target>Aufgaben nach Zuständigkeit und Art der Behebung</target>
+            </trans-unit>
+            <trans-unit id="module.evidence.historySummary">
+                <source>Previous scans of this URL</source>
+                <target>Frühere Scans dieser URL</target>
+            </trans-unit>
+            <trans-unit id="module.evidence.technicalSummary">
+                <source>HTTP status, job ID, start URL, duration, user agent</source>
+                <target>HTTP-Status, Job-ID, Start-URL, Dauer, User-Agent</target>
+            </trans-unit>
+            <trans-unit id="module.rules.expandAll">
+                <source>Expand all</source>
+                <target>Alle aufklappen</target>
+            </trans-unit>
+            <trans-unit id="module.rules.collapseAll">
+                <source>Collapse all</source>
+                <target>Alle zuklappen</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.countsAria">
+                <source>Issue types by impact</source>
+                <target>Problemtypen nach Auswirkung</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.impact.unknown">
+                <source>Unrated</source>
+                <target>Nicht eingestuft</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.occurrenceNumber">
+                <source>Occurrence %d</source>
+                <target>Vorkommen %d</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotOpen">
+                <source>Enlarge page screenshot</source>
+                <target>Screenshot der Seite vergrößern</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.whyItFailed">
+                <source>Why it failed</source>
+                <target>Warum die Prüfung fehlschlug</target>
+            </trans-unit>
+            <trans-unit id="overview.source.tablist">
+                <source>Scan type</source>
+                <target>Scan-Art</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.more">
+                <source>What is checked</source>
+                <target>Was geprüft wird</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.local.text">
+                <source>Checks the content fields editors fill in (rich text and images), inside this TYPO3 installation.</source>
+                <target>Prüft die Inhaltsfelder, die Redakteure ausfüllen (Rich Text und Bilder), innerhalb dieser TYPO3-Installation.</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.local.details">
+                <source>Scans the content fields enabled under Settings › Scan Fields and, when enabled, the server-rendered HTML of each page. No licence key is needed. Output that only exists in the browser (JavaScript, lazy loading) is covered by the Frontend scan.</source>
+                <target>Scannt die unter Einstellungen › Scan-Felder aktivierten Inhaltsfelder und, sofern aktiviert, das serverseitig gerenderte HTML jeder Seite. Ein Lizenzschlüssel ist nicht nötig. Ausgaben, die erst im Browser entstehen (JavaScript, Lazy Loading), deckt der Frontend-Scan ab.</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.local.legend">
+                <source>Severities (Critical, Warning, Info, Needs review) rate content issues. They are not the same scale as the frontend scan impact levels.</source>
+                <target>Die Schweregrade (Kritisch, Warnung, Info, Zu prüfen) bewerten Inhaltsprobleme. Sie sind nicht dieselbe Skala wie die Auswirkungsstufen des Frontend-Scans.</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.remote.text">
+                <source>Checks published pages in a real browser on the AQG service.</source>
+                <target>Prüft veröffentlichte Seiten in einem echten Browser auf dem AQG-Dienst.</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.remote.details">
+                <source>The crawler loads each public page, runs automated rules plus keyboard and structure checks, and stores the results here. Hidden pages are only reached with a Scanner Token.</source>
+                <target>Der Crawler lädt jede öffentliche Seite, führt automatisierte Regeln sowie Tastatur- und Strukturprüfungen aus und speichert die Ergebnisse hier. Versteckte Seiten erreicht er nur mit einem Scanner-Token.</target>
+            </trans-unit>
+            <trans-unit id="overview.scope.remote.legend">
+                <source>Impact levels (Critical, Serious, Moderate, Minor) come from the browser rules. They are not the same scale as the content scan severities.</source>
+                <target>Die Auswirkungsstufen (Kritisch, Schwerwiegend, Mittel, Gering) stammen aus den Browser-Regeln. Sie sind nicht dieselbe Skala wie die Schweregrade des Inhaltsscans.</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.issues.singular">
+                <source>%d open issue</source>
+                <target>%d offenes Problem</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.issues.plural">
+                <source>%d open issues</source>
+                <target>%d offene Probleme</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.onPages.singular">
+                <source>on %d page</source>
+                <target>auf %d Seite</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.onPages.plural">
+                <source>on %d pages</source>
+                <target>auf %d Seiten</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.noScan">
+                <source>No content scan yet</source>
+                <target>Noch kein Inhaltsscan</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.bySeverity">
+                <source>Open issues by severity</source>
+                <target>Offene Probleme nach Schweregrad</target>
+            </trans-unit>
+            <trans-unit id="overview.local.status.newDelta">
+                <source>+%d new</source>
+                <target>+%d neu</target>
+            </trans-unit>
+            <trans-unit id="overview.local.meta.pagesScanned">
+                <source>pages scanned</source>
+                <target>Seiten gescannt</target>
+            </trans-unit>
+            <trans-unit id="overview.local.meta.resolved">
+                <source>%d resolved by this scan</source>
+                <target>%d durch diesen Scan behoben</target>
+            </trans-unit>
+            <trans-unit id="overview.local.meta.fromPageScans">
+                <source>From earlier page scans</source>
+                <target>Aus früheren Seiten-Scans</target>
+            </trans-unit>
+            <trans-unit id="overview.local.meta.noSiteScan">
+                <source>No site scan yet</source>
+                <target>Noch kein Website-Scan</target>
+            </trans-unit>
+            <trans-unit id="overview.local.viewPageIssues">
+                <source>View this page's issues</source>
+                <target>Probleme dieser Seite anzeigen</target>
+            </trans-unit>
+            <trans-unit id="overview.table.openIssues">
+                <source>Open issues</source>
+                <target>Offene Probleme</target>
+            </trans-unit>
+            <trans-unit id="overview.table.scanPage">
+                <source>Scan %s</source>
+                <target>%s scannen</target>
+            </trans-unit>
+            <trans-unit id="overview.table.selectedPage">
+                <source>selected in the page tree</source>
+                <target>im Seitenbaum ausgewählt</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.open">
+                <source>Open</source>
+                <target>Öffnen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.showMore">
+                <source>Show %d more</source>
+                <target>%d weitere anzeigen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.showFewer">
+                <source>Show fewer</source>
+                <target>Weniger anzeigen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.caveat">
+                <source>Automated checks cover part of WCAG. Manual review is still required.</source>
+                <target>Automatisierte Prüfungen decken nur einen Teil der WCAG ab. Eine manuelle Prüfung bleibt erforderlich.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.checklistLink">
+                <source>Manual review checklist (%d tasks)</source>
+                <target>Checkliste für die manuelle Prüfung (%d Aufgaben)</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.failedPages">
+                <source>failed pages</source>
+                <target>fehlgeschlagene Seiten</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.pagesLoaded">
+                <source>%d pages loaded</source>
+                <target>%d Seiten geladen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.publicOnly">
+                <source>Public pages only: no Scanner Token is configured, so hidden pages are not scanned and findings outside standard content frames are not linked to their TYPO3 record.</source>
+                <target>Nur öffentliche Seiten: Es ist kein Scanner-Token konfiguriert. Versteckte Seiten werden daher nicht gescannt, und Befunde außerhalb der üblichen Inhaltsrahmen werden keinem TYPO3-Datensatz zugeordnet.</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.listPage">
+                <source>list page %1$d of %2$d</source>
+                <target>Listenseite %1$d von %2$d</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.issues.singular">
+                <source>%d issue</source>
+                <target>%d Problem</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.issues.plural">
+                <source>%d issues</source>
+                <target>%d Probleme</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.partial">
+                <source>%1$d of %2$d on this list page</source>
+                <target>%1$d von %2$d auf dieser Listenseite</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.rule.occurrencesPartial">
+                <source>%1$d of %2$d occurrences</source>
+                <target>%1$d von %2$d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.occurrence.inField">
+                <source>in %s</source>
+                <target>in %s</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.selectOccurrence">
+                <source>Select for batch ignore: %s</source>
+                <target>Zum gemeinsamen Ignorieren auswählen: %s</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.affectedPage">
+                <source>affected page</source>
+                <target>betroffene Seite</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.pageLoaded">
+                <source>%d page loaded</source>
+                <target>%d Seite geladen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.rule.reference">
+                <source>Standards and rule reference</source>
+                <target>Standards und Regelreferenz</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.occurrence.moreActions">
+                <source>More actions for this occurrence</source>
+                <target>Weitere Aktionen für dieses Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.occurrence.ignore">
+                <source>Ignore this occurrence…</source>
+                <target>Dieses Vorkommen ignorieren…</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.sourceLabel">
+                <source>Source</source>
+                <target>Quelle</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.elementPath">
+                <source>Element path</source>
+                <target>Elementpfad</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.selectOccurrenceIn">
+                <source>Select “%1$s” in %2$s</source>
+                <target>„%1$s“ in %2$s auswählen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.location.outsideContent">
+                <source>Outside content elements</source>
+                <target>Außerhalb von Inhaltselementen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.location.noHeader">
+                <source>no header</source>
+                <target>ohne Überschrift</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.location.renderedHtml">
+                <source>Rendered page HTML</source>
+                <target>Gerendertes Seiten-HTML</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.lastCompleted">
+                <source>Last completed scan · %s</source>
+                <target>Letzter abgeschlossener Scan · %s</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.failedShort">
+                <source>failed</source>
+                <target>fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteFailedTitle">
+                <source>Frontend scan failed</source>
+                <target>Frontend-Scan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteCompletedTitle">
+                <source>Frontend scan completed</source>
+                <target>Frontend-Scan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteCancelledTitle">
+                <source>Frontend scan cancelled</source>
+                <target>Frontend-Scan abgebrochen</target>
+            </trans-unit>
+            <trans-unit id="overview.local.meta.pageScannedCount.singular">
+                <source>%d page scanned</source>
+                <target>%d Seite gescannt</target>
+            </trans-unit>
+            <trans-unit id="overview.local.meta.pageScannedCount.plural">
+                <source>%d pages scanned</source>
+                <target>%d Seiten gescannt</target>
+            </trans-unit>
+            <trans-unit id="overview.localTable.page">
+                <source>page</source>
+                <target>Seite</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.failedPage">
+                <source>failed page</source>
+                <target>fehlgeschlagene Seite</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.rowScanningLabel">
+                <source>Scanning %s</source>
+                <target>%s wird gescannt</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.rowRunning">
+                <source>Scanning · started %s</source>
+                <target>Scan läuft · gestartet %s</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.busyReason">
+                <source>A content scan is already running</source>
+                <target>Es läuft bereits ein Inhaltsscan</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.pageStarted">
+                <source>Content scan started: %s.</source>
+                <target>Inhaltsscan gestartet: %s.</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.started">
+                <source>Content scan started.</source>
+                <target>Inhaltsscan gestartet.</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.siteStarted">
+                <source>Content scan of the site started.</source>
+                <target>Inhaltsscan der Website gestartet.</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.failedTitle">
+                <source>Content scan failed</source>
+                <target>Inhaltsscan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="notification.scan.connectionLost">
+                <source>The request did not reach TYPO3. Check the connection and try again.</source>
+                <target>Die Anfrage hat TYPO3 nicht erreicht. Prüfen Sie die Verbindung und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.linkedRecord">
+                <source>In</source>
+                <target>In</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.notLinked">
+                <source>Not linked to a TYPO3 record</source>
+                <target>Mit keinem TYPO3-Datensatz verknüpft</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.notLinkedNoToken">
+                <source>Not linked to a TYPO3 record · this site has no Scanner Token</source>
+                <target>Mit keinem TYPO3-Datensatz verknüpft · diese Website hat kein Scanner-Token</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.notLinked.detail">
+                <source>Not linked. AQG could not connect this element to a TYPO3 record; Show on page locates it on the frontend page.</source>
+                <target>Nicht verknüpft. AQG konnte dieses Element keinem TYPO3-Datensatz zuordnen; „Auf der Seite zeigen“ findet es auf der Frontend-Seite.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordLabel">
+                <source>TYPO3 record</source>
+                <target>TYPO3-Datensatz</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.nodeRemediation.specificTitle">
+                <source>Guidance for this element</source>
+                <target>Hinweise für dieses Element</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.noneLinked">
+                <source>No occurrence on this page is linked to a TYPO3 record.</source>
+                <target>Kein Vorkommen auf dieser Seite ist mit einem TYPO3-Datensatz verknüpft.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.someNotLinked">
+                <source>%1$d of %2$d occurrences are not linked to a TYPO3 record.</source>
+                <target>%1$d von %2$d Vorkommen sind mit keinem TYPO3-Datensatz verknüpft.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.noTokenReason">
+                <source>This site has no Scanner Token, so TYPO3 did not mark its content records for the crawler. Generate a token for this site in Remote scan access, then scan again.</source>
+                <target>Diese Website hat kein Scanner-Token. TYPO3 hat ihre Inhaltsdatensätze daher nicht für den Crawler markiert. Erzeugen Sie im Remote-Scan-Zugriff ein Token für diese Website und scannen Sie erneut.</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.stateRunning">
+                <source>Running</source>
+                <target>Läuft</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.stateCompleted">
+                <source>Completed</source>
+                <target>Abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.stateFailed">
+                <source>Failed</source>
+                <target>Fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.stateCancelled">
+                <source>Cancelled</source>
+                <target>Abgebrochen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.previousStaysVisible">
+                <source>Previous result stays visible until it finishes.</source>
+                <target>Das vorherige Ergebnis bleibt sichtbar, bis der Scan fertig ist.</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteRunningTitle">
+                <source>Frontend scan is running</source>
+                <target>Frontend-Scan läuft</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.runningShort">
+                <source>This usually takes a moment.</source>
+                <target>Das dauert in der Regel nur einen Moment.</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.rowPreviousCounts">
+                <source>The counts show the previous result.</source>
+                <target>Die Zahlen zeigen das vorherige Ergebnis.</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.pageRunningTitle">
+                <source>Scanning %s…</source>
+                <target>%s wird gescannt…</target>
+            </trans-unit>
+            <trans-unit id="overview.localScan.siteRunningTitle">
+                <source>Scanning the site…</source>
+                <target>Die Website wird gescannt…</target>
+            </trans-unit>
+            <trans-unit id="action.cancelScan">
+                <source>Cancel scan</source>
+                <target>Scan abbrechen</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteProgress.withTotal">
+                <source>%d of %d pages checked</source>
+                <target>%d von %d Seiten geprüft</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteProgress.withCount">
+                <source>%d pages checked</source>
+                <target>%d Seiten geprüft</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.remoteProgress.starting">
+                <source>Waiting for the AQG service</source>
+                <target>Warten auf den AQG-Dienst</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.unreachableTitle">
+                <source>Frontend scan failed: site not reachable</source>
+                <target>Frontend-Scan fehlgeschlagen: Website nicht erreichbar</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.unreachableShort">
+                <source>The AQG service cannot reach this site: its address is local or private. Nothing was scanned.</source>
+                <target>Der AQG-Dienst kann diese Website nicht erreichen: Ihre Adresse ist lokal oder privat. Es wurde nichts gescannt.</target>
+            </trans-unit>
+            <trans-unit id="overview.scan.unreachableHow">
+                <source>How to make the site reachable</source>
+                <target>So wird die Website erreichbar</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.signal.coverage.single">
+                <source>Checked %1$d of 1 page. A page that could not be loaded is listed under Failed / unreachable pages.</source>
+                <target>%1$d von 1 Seite geprüft. Eine Seite, die nicht geladen werden konnte, steht unter „Fehlgeschlagene / nicht erreichbare Seiten“.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyIncompleteTitle">
+                <source>No priority fixes on the checked pages</source>
+                <target>Keine priorisierten Korrekturen auf den geprüften Seiten</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyIncompleteBody">
+                <source>Some pages could not be checked, so this is not an all-clear. They are listed under Failed / unreachable pages.</source>
+                <target>Einige Seiten konnten nicht geprüft werden, daher ist das keine Entwarnung. Sie stehen unter „Fehlgeschlagene / nicht erreichbare Seiten“.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyNoCoverageTitle">
+                <source>No priority list</source>
+                <target>Keine Prioritätenliste</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.priorityFixes.emptyNoCoverageBody">
+                <source>This scan could not check any page. Fix the failed pages below, then scan again.</source>
+                <target>Dieser Scan konnte keine Seite prüfen. Beheben Sie die fehlgeschlagenen Seiten unten und scannen Sie dann erneut.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.noCoverageTitle">
+                <source>No page was checked in this scan</source>
+                <target>In diesem Scan wurde keine Seite geprüft</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.noCoverageBody">
+                <source>Pages that could not be loaded are listed under Failed / unreachable pages.</source>
+                <target>Seiten, die nicht geladen werden konnten, stehen unter „Fehlgeschlagene / nicht erreichbare Seiten“.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.notStoredTitle">
+                <source>No page results stored for this scan</source>
+                <target>Für diesen Scan sind keine Seitenergebnisse gespeichert</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.pages.notStoredBody">
+                <source>Scan again to list the checked pages.</source>
+                <target>Scannen Sie erneut, um die geprüften Seiten aufzulisten.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.content.title">
+                <source>Content scan</source>
+                <target>Inhalts-Scan</target>
+            </trans-unit>
+            <trans-unit id="toolbar.frontend.title">
+                <source>Frontend scan</source>
+                <target>Frontend-Scan</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.scanning">
+                <source>Scanning</source>
+                <target>Scan läuft</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.queued">
+                <source>Queued</source>
+                <target>In Warteschlange</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.failed">
+                <source>Failed</source>
+                <target>Fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.notScanned">
+                <source>Not scanned yet</source>
+                <target>Noch nicht gescannt</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.finished">
+                <source>Scan finished</source>
+                <target>Scan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.open">
+                <source>%d open</source>
+                <target>%d offen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.noOpen">
+                <source>No open issues</source>
+                <target>Keine offenen Probleme</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.occurrence">
+                <source>1 occurrence</source>
+                <target>1 Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.occurrences">
+                <source>%d occurrences</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.noIssues">
+                <source>No issues found</source>
+                <target>Keine Probleme gefunden</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.noPageChecked">
+                <source>No page checked</source>
+                <target>Keine Seite geprüft</target>
+            </trans-unit>
+            <trans-unit id="toolbar.tag.incomplete">
+                <source>Incomplete</source>
+                <target>Unvollständig</target>
+            </trans-unit>
+            <trans-unit id="toolbar.delta.lastScan">
+                <source>%1$d new and %2$d resolved in the last scan</source>
+                <target>%1$d neu und %2$d behoben im letzten Scan</target>
+            </trans-unit>
+            <trans-unit id="toolbar.delta.contentFailed">
+                <source>The last content scan did not finish.</source>
+                <target>Der letzte Inhalts-Scan wurde nicht abgeschlossen.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.delta.frontendFailed">
+                <source>The last frontend scan did not finish.</source>
+                <target>Der letzte Frontend-Scan wurde nicht abgeschlossen.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.delta.noCoverage">
+                <source>The last frontend scan could not load any page.</source>
+                <target>Der letzte Frontend-Scan konnte keine Seite laden.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.delta.incomplete">
+                <source>Some pages could not be checked.</source>
+                <target>Einige Seiten konnten nicht geprüft werden.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.delta.notScanned">
+                <source>Run a scan in the Accessibility module.</source>
+                <target>Starten Sie einen Scan im Modul Barrierefreiheit.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.meta.started">
+                <source>Started %s</source>
+                <target>Gestartet %s</target>
+            </trans-unit>
+            <trans-unit id="toolbar.meta.page">
+                <source>1 page</source>
+                <target>1 Seite</target>
+            </trans-unit>
+            <trans-unit id="toolbar.meta.pages">
+                <source>%d pages</source>
+                <target>%d Seiten</target>
+            </trans-unit>
+            <trans-unit id="toolbar.meta.pagesOf">
+                <source>%1$d of %2$d pages</source>
+                <target>%1$d von %2$d Seiten</target>
+            </trans-unit>
+            <trans-unit id="toolbar.meta.pagesOfOne">
+                <source>%d of 1 page</source>
+                <target>%d von 1 Seite</target>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.open.singular">
+                <source>Accessibility: %d open content issue</source>
+                <target>Barrierefreiheit: %d offenes Inhaltsproblem</target>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.open.plural">
+                <source>Accessibility: %d open content issues</source>
+                <target>Barrierefreiheit: %d offene Inhaltsprobleme</target>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.frontendOpen">
+                <source>Accessibility: frontend issues to review</source>
+                <target>Barrierefreiheit: Frontend-Probleme zu prüfen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.aria.noOpen">
+                <source>Accessibility: no open issues</source>
+                <target>Barrierefreiheit: keine offenen Probleme</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.warning.singular">
+                <source>%d warning</source>
+                <target>%d Warnung</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.warning.plural">
+                <source>%d warnings</source>
+                <target>%d Warnungen</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.metric.info">
+                <source>%d info</source>
+                <target>%d Info</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.meta.startedAt">
+                <source>Started %s</source>
+                <target>Gestartet %s</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.body.runningSite">
+                <source>A content scan of the whole site is running. This page is included.</source>
+                <target>Ein Inhalts-Scan der gesamten Website läuft. Diese Seite ist enthalten.</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.progress.pages">
+                <source>%1$d of %2$d pages</source>
+                <target>%1$d von %2$d Seiten</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordNotFound">
+                <source>Record not found in this installation</source>
+                <target>Datensatz in dieser Installation nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.notLinkedPageLevel">
+                <source>Page template · not a content record</source>
+                <target>Seitenvorlage · kein Inhaltselement</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.noTokenPartialReason">
+                <source>This site has no Scanner Token, so TYPO3 marks no content records for the crawler: only occurrences inside standard content frames are linked (%d here). Generate a token for this site in Remote scan access, then scan again.</source>
+                <target>Diese Website hat kein Scanner-Token, daher markiert TYPO3 keine Inhaltsdatensätze für den Crawler: Nur Vorkommen in Standard-Inhaltsrahmen sind verknüpft (hier %d). Erzeugen Sie unter „Remote-Scan-Zugriff“ ein Token für diese Website und scannen Sie erneut.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.recordMapping.pageLevel">
+                <source>%d more belong to the page template and are never linked to a record.</source>
+                <target>Weitere %d gehören zur Seitenvorlage und werden nie mit einem Datensatz verknüpft.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.activeProjectOne">
+                <source>1 domain active in this TYPO3 project, no domain limit</source>
+                <target>1 Domain in diesem TYPO3-Projekt aktiv, ohne Domain-Limit</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.activeUnlimitedOne">
+                <source>1 domain active, no domain limit</source>
+                <target>1 Domain aktiv, ohne Domain-Limit</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.domains.summary.activeOfOne">
+                <source>%s of 1 domain active</source>
+                <target>%s von 1 Domain aktiv</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.issueTypes.singular">
+                <source>%d issue type</source>
+                <target>%d Problemtyp</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.issueTypes.plural">
+                <source>%d issue types</source>
+                <target>%d Problemtypen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.occurrences.singular">
+                <source>%d occurrence</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.group.occurrences.plural">
+                <source>%d occurrences</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.table.occurrences">
+                <source>Occurrences</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.summaryTitle">
+                <source>Selected issues by rule</source>
+                <target>Ausgewählte Probleme nach Regel</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.summaryCount.singular">
+                <source>%d issue</source>
+                <target>%d Problem</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.summaryCount.plural">
+                <source>%d issues</source>
+                <target>%d Probleme</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.selectedOne">
+                <source>issue selected</source>
+                <target>Problem ausgewählt</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.selectedMany">
+                <source>issues selected</source>
+                <target>Probleme ausgewählt</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.bulk.required">
+                <source>required</source>
+                <target>Pflichtfeld</target>
+            </trans-unit>
+            <trans-unit id="settings.tabs.adminOnly">
+                <source>administrators only</source>
+                <target>nur für Administratoren</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.adminNoteTitle">
+                <source>Only administrators can change these settings.</source>
+                <target>Nur Administratoren können diese Einstellungen ändern.</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.active">
+                <source>Active</source>
+                <target>Aktiv</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.stored">
+                <source>A token is stored for this site and sent with every Frontend scan. Content scans and the Free Remote Preview do not use it. For security it is never shown again.</source>
+                <target>Für diese Website ist ein Token gespeichert und wird bei jedem Frontend-Scan mitgesendet. Inhaltsscans und die Free Remote Preview verwenden es nicht. Aus Sicherheitsgründen wird es nie wieder angezeigt.</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.shownOnce">
+                <source>New token generated and stored. If you need it elsewhere, copy it now: it is only available until you leave this page.</source>
+                <target>Neues Token erzeugt und gespeichert. Wenn Sie es anderswo brauchen, kopieren Sie es jetzt: Es ist nur verfügbar, bis Sie diese Seite verlassen.</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.notSet">
+                <source>Not set</source>
+                <target>Nicht gesetzt</target>
+            </trans-unit>
+            <trans-unit id="settings.remoteAccess.token.emptyShort">
+                <source>Without a token the crawler scans only public pages, and frontend findings outside standard content frames are not linked to TYPO3 records.</source>
+                <target>Ohne Token scannt der Crawler nur öffentliche Seiten, und Frontend-Befunde außerhalb von Standard-Inhaltsrahmen werden nicht mit TYPO3-Datensätzen verknüpft.</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.replaceOrRemove">
+                <source>Replace or remove key</source>
+                <target>Schlüssel ersetzen oder entfernen</target>
+            </trans-unit>
+            <trans-unit id="settings.fields.type.rte">
+                <source>Rich text</source>
+                <target>Richtext</target>
+            </trans-unit>
+            <trans-unit id="settings.fields.type.file">
+                <source>File</source>
+                <target>Datei</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.privacySummary">
+                <source>How your key and content are used</source>
+                <target>Wie Ihr Schlüssel und Ihre Inhalte verwendet werden</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.metric.occurrence">
+                <source>occurrence</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.notStored.singular">
+                <source>The crawler counted %d more occurrence: an element with the same signature was already recorded.</source>
+                <target>Der Crawler hat %d weiteres Vorkommen gezählt: Ein Element mit derselben Signatur war bereits erfasst.</target>
+            </trans-unit>
+            <trans-unit id="overview.remote.status.notStored.plural">
+                <source>The crawler counted %d more occurrences: elements with the same signature were already recorded.</source>
+                <target>Der Crawler hat %d weitere Vorkommen gezählt: Elemente mit derselben Signatur waren bereits erfasst.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.savedConnected">
+                <source>Key saved and connection verified with %s.</source>
+                <target>Schlüssel gespeichert und Verbindung mit %s geprüft.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.savedChooseModel">
+                <source>Key saved. Choose one of the available models to finish the setup.</source>
+                <target>Schlüssel gespeichert. Wählen Sie eines der verfügbaren Modelle, um die Einrichtung abzuschließen.</target>
+            </trans-unit>
+            <trans-unit id="settings.ai.savedNotConnected">
+                <source>Key saved, but the connection test failed: %s</source>
+                <target>Schlüssel gespeichert, aber der Verbindungstest ist fehlgeschlagen: %s</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.only">
+                <source>Rendered HTML not checked</source>
+                <target>Gerendertes HTML nicht geprüft</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.ofTotal">
+                <source>Rendered HTML not checked on %1$d of %2$d pages</source>
+                <target>Gerendertes HTML auf %1$d von %2$d Seiten nicht geprüft</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.details">
+                <source>Pages and reasons</source>
+                <target>Seiten und Gründe</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.httpStatus">
+                <source>HTTP %d</source>
+                <target>HTTP %d</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.more">
+                <source>%d more pages are not listed.</source>
+                <target>%d weitere Seiten sind nicht aufgeführt.</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.renderedSkipped">
+                <source>Rendered HTML not checked in the last scan: %s</source>
+                <target>Gerendertes HTML im letzten Scan nicht geprüft: %s</target>
+            </trans-unit>
+            <trans-unit id="settings.licence.noEndDate">
+                <source>No end date</source>
+                <target>Kein Enddatum</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotSubNumbered">
+                <source>Numbers on the outlines are the issue-type numbers below · click to enlarge</source>
+                <target>Die Zahlen an den Umrissen sind die Nummern der Problemtypen unten · zum Vergrößern klicken</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotView">
+                <source>Screenshot view</source>
+                <target>Screenshot-Ansicht</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotHighlighted">
+                <source>Highlighted</source>
+                <target>Markiert</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotOriginal">
+                <source>Original</source>
+                <target>Original</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.issueTypeNumber">
+                <source>Issue type</source>
+                <target>Problemtyp</target>
+            </trans-unit>
+            <trans-unit id="renderedCoverage.reason.hidden">
+                <source>Hidden page</source>
+                <target>Verborgene Seite</target>
+            </trans-unit>
+            <trans-unit id="renderedCoverage.reason.scheduled">
+                <source>Outside its start or stop time</source>
+                <target>Außerhalb des Start- oder Stoppdatums</target>
+            </trans-unit>
+            <trans-unit id="renderedCoverage.reason.restricted">
+                <source>Limited to frontend user groups</source>
+                <target>Auf Frontend-Benutzergruppen beschränkt</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.notPublicHint">
+                <source>Visitors do not get hidden or restricted pages, and the rendered check requests each page as a visitor, without the Scanner Token. The content checks of these pages ran.</source>
+                <target>Besucher erhalten verborgene oder eingeschränkte Seiten nicht, und die Prüfung des gerenderten HTML ruft jede Seite wie ein Besucher ab, ohne Scanner-Token. Die Inhaltsprüfungen dieser Seiten wurden ausgeführt.</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.notPublicHint.free">
+                <source>The Free Remote Preview checks public pages only.</source>
+                <target>Die Free Remote Preview prüft nur öffentliche Seiten.</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.notPublicHint.token">
+                <source>A Frontend scan can check them: it sends this site's Scanner Token.</source>
+                <target>Ein Frontend-Scan kann sie prüfen: Er sendet das Scanner-Token dieser Website.</target>
+            </trans-unit>
+            <trans-unit id="overview.local.renderedSkipped.notPublicHint.noToken">
+                <source>A Frontend scan can check them once this site has a Scanner Token (Settings, Remote scan access).</source>
+                <target>Ein Frontend-Scan kann sie prüfen, sobald diese Website ein Scanner-Token hat (Einstellungen, Remote-Scan-Zugriff).</target>
+            </trans-unit>
+            <trans-unit id="pageDetail.renderedSkipped.notPublicHint">
+                <source>The rendered check requests the page as a visitor, without the Scanner Token. Its content checks ran; a Frontend scan with a Scanner Token can check hidden pages.</source>
+                <target>Die Prüfung des gerenderten HTML ruft die Seite wie ein Besucher ab, ohne Scanner-Token. Ihre Inhaltsprüfungen wurden ausgeführt; ein Frontend-Scan mit Scanner-Token kann verborgene Seiten prüfen.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.rendered.failed.singular">
+                <source>Rendered HTML could not be checked on %d page.</source>
+                <target>Das gerenderte HTML konnte auf %d Seite nicht geprüft werden.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.rendered.failed.plural">
+                <source>Rendered HTML could not be checked on %d pages.</source>
+                <target>Das gerenderte HTML konnte auf %d Seiten nicht geprüft werden.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.rendered.notPublic.singular">
+                <source>Rendered HTML was not checked on %d page that visitors cannot open (hidden or restricted).</source>
+                <target>Das gerenderte HTML wurde auf %d Seite nicht geprüft, die Besucher nicht öffnen können (verborgen oder eingeschränkt).</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.rendered.notPublic.plural">
+                <source>Rendered HTML was not checked on %d pages that visitors cannot open (hidden or restricted).</source>
+                <target>Das gerenderte HTML wurde auf %d Seiten nicht geprüft, die Besucher nicht öffnen können (verborgen oder eingeschränkt).</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.completed">
+                <source>Content scan completed</source>
+                <target>Inhaltsscan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.warnings">
+                <source>Content scan completed with warnings</source>
+                <target>Inhaltsscan mit Warnungen abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.failed">
+                <source>Content scan failed</source>
+                <target>Inhaltsscan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.cancelled">
+                <source>Content scan cancelled</source>
+                <target>Inhaltsscan abgebrochen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.cancelledText">
+                <source>Findings of the pages checked before cancelling are kept; nothing was resolved for the others.</source>
+                <target>Befunde der vor dem Abbruch geprüften Seiten bleiben erhalten; für die übrigen Seiten wurde nichts als behoben markiert.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.completed">
+                <source>Frontend scan completed</source>
+                <target>Frontend-Scan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.warnings">
+                <source>Frontend scan completed with warnings</source>
+                <target>Frontend-Scan mit Warnungen abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noPage">
+                <source>Frontend scan checked no page</source>
+                <target>Frontend-Scan hat keine Seite geprüft</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noPage.single">
+                <source>The page could not be loaded. The Overview shows the reason.</source>
+                <target>Die Seite konnte nicht geladen werden. Die Übersicht zeigt den Grund.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noPage.text">
+                <source>None of the %d pages could be loaded. The Overview lists the reasons.</source>
+                <target>Keine der %d Seiten konnte geladen werden. Die Übersicht nennt die Gründe.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.failedPages.singular">
+                <source>%d page could not be loaded.</source>
+                <target>%d Seite konnte nicht geladen werden.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.failedPages.plural">
+                <source>%d pages could not be loaded.</source>
+                <target>%d Seiten konnten nicht geladen werden.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.failed">
+                <source>Frontend scan failed</source>
+                <target>Frontend-Scan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.cancelled">
+                <source>Frontend scan cancelled</source>
+                <target>Frontend-Scan abgebrochen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.cancelledText">
+                <source>The results of the last completed scan stay as they were.</source>
+                <target>Die Ergebnisse des letzten abgeschlossenen Scans bleiben unverändert.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.page.completed">
+                <source>Page scan completed</source>
+                <target>Seitenscan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.page.warnings">
+                <source>Page scan completed with warnings</source>
+                <target>Seitenscan mit Warnungen abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.page.content">
+                <source>Content scan</source>
+                <target>Inhaltsscan</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.page.frontend">
+                <source>Frontend scan</source>
+                <target>Frontend-Scan</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.failedReason">
+                <source>The reason is shown in the scan status.</source>
+                <target>Der Grund wird im Scanstatus angezeigt.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.action.details">
+                <source>View affected pages</source>
+                <target>Betroffene Seiten anzeigen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.action.pageDetails">
+                <source>Show details</source>
+                <target>Details anzeigen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.action.failedPages">
+                <source>View failed pages</source>
+                <target>Fehlgeschlagene Seiten anzeigen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.action.pageReport">
+                <source>Open page report</source>
+                <target>Seitenbericht öffnen</target>
+            </trans-unit>
+            <trans-unit id="rte.showIssues">
+                <source>Show issues</source>
+                <target>Probleme anzeigen</target>
+            </trans-unit>
+            <trans-unit id="rte.selectInText">
+                <source>Select in text</source>
+                <target>Im Text auswählen</target>
+            </trans-unit>
+            <trans-unit id="rte.close">
+                <source>Close</source>
+                <target>Schließen</target>
+            </trans-unit>
+            <trans-unit id="rte.chipOne">
+                <source>Accessibility: %s. Show how to fix it</source>
+                <target>Barrierefreiheit: %s. Anzeigen, wie es behoben wird</target>
+            </trans-unit>
+            <trans-unit id="rte.chipMany">
+                <source>Accessibility: %d issues here. Show how to fix them</source>
+                <target>Barrierefreiheit: %d Probleme hier. Anzeigen, wie sie behoben werden</target>
+            </trans-unit>
+            <trans-unit id="rte.plainBadgeOne">
+                <source>Show the accessibility issue on this line</source>
+                <target>Das Barrierefreiheitsproblem in dieser Zeile anzeigen</target>
+            </trans-unit>
+            <trans-unit id="rte.plainBadgeMany">
+                <source>Show the %d accessibility issues on this line</source>
+                <target>Die %d Barrierefreiheitsprobleme in dieser Zeile anzeigen</target>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.dnsUnresolved">
+                <source>Rendered page check was skipped because the site host could not be resolved. Check the site base URL and the DNS of this server.</source>
+                <target>Die Prüfung des gerenderten HTML wurde übersprungen, weil der Host der Website nicht aufgelöst werden konnte. Prüfen Sie die Basis-URL der Website und das DNS dieses Servers.</target>
+            </trans-unit>
+            <trans-unit id="renderedCheck.error.pinUnavailable">
+                <source>Rendered page check was skipped because the PHP cURL extension is not available, which the check needs to connect only to verified public addresses.</source>
+                <target>Die Prüfung des gerenderten HTML wurde übersprungen, weil die PHP-Erweiterung cURL fehlt, die die Prüfung benötigt, um sich nur mit geprüften öffentlichen Adressen zu verbinden.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.pagesChecked.singular">
+                <source>Content checks ran on %d page.</source>
+                <target>Inhaltsprüfungen auf %d Seite ausgeführt.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.pagesChecked.plural">
+                <source>Content checks ran on %d pages.</source>
+                <target>Inhaltsprüfungen auf %d Seiten ausgeführt.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.changeOnly">
+                <source>Since the previous scan: %d new, %d resolved. The report lists every open issue.</source>
+                <target>Seit dem vorherigen Scan: %d neu, %d behoben. Der Bericht listet alle offenen Probleme.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.noneOpen">
+                <source>No open issues.</source>
+                <target>Keine offenen Probleme.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.noneOpenResolved.singular">
+                <source>No open issues: %d issue was resolved.</source>
+                <target>Keine offenen Probleme: %d Problem wurde behoben.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.noneOpenResolved.plural">
+                <source>No open issues: %d issues were resolved.</source>
+                <target>Keine offenen Probleme: %d Probleme wurden behoben.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.open.singular">
+                <source>%d open issue (%d new, %d already known); %d resolved.</source>
+                <target>%d offenes Problem (%d neu, %d bereits bekannt); %d behoben.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.content.open.plural">
+                <source>%d open issues (%d new, %d already known); %d resolved.</source>
+                <target>%d offene Probleme (%d neu, %d bereits bekannt); %d behoben.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noneFound">
+                <source>No issues found on the checked pages; %d resolved.</source>
+                <target>Auf den geprüften Seiten keine Probleme gefunden; %d behoben.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.occurrences.singular">
+                <source>%d occurrence</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.occurrences.plural">
+                <source>%d occurrences</source>
+                <target>%d Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.issueTypes.singular">
+                <source>of %d issue type</source>
+                <target>aus %d Problemart</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.issueTypes.plural">
+                <source>of %d issue types</source>
+                <target>aus %d Problemarten</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.delta">
+                <source>(%d new); %d resolved.</source>
+                <target>(%d neu); %d behoben.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.partial">
+                <source>Checked %d of %d pages.</source>
+                <target>%d von %d Seiten geprüft.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.notChecked.singular">
+                <source>%d page was not checked.</source>
+                <target>%d Seite wurde nicht geprüft.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.notChecked.plural">
+                <source>%d pages were not checked.</source>
+                <target>%d Seiten wurden nicht geprüft.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.pagesChecked.singular">
+                <source>%d page checked.</source>
+                <target>%d Seite geprüft.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.pagesChecked.plural">
+                <source>%d pages checked.</source>
+                <target>%d Seiten geprüft.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.action.report">
+                <source>Open report</source>
+                <target>Bericht öffnen</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noneFoundFirst">
+                <source>No issues found on the checked pages.</source>
+                <target>Auf den geprüften Seiten wurden keine Probleme gefunden.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noBaseline">
+                <source>(no earlier comparable scan).</source>
+                <target>(kein früherer vergleichbarer Scan).</target>
+            </trans-unit>
+            <trans-unit id="settings.qualityGate.readOnly">
+                <source>Only TYPO3 administrators can change Quality Gate settings. This configuration is read-only.</source>
+                <target>Nur TYPO3-Administratoren können die Quality-Gate-Einstellungen ändern. Diese Konfiguration ist schreibgeschützt.</target>
             </trans-unit>
         </body>
     </file>

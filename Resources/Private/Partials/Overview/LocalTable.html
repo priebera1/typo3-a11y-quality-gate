@@ -1,247 +1,197 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
-<div>
-    <f:if condition="{pageStats}">
-        <f:then>
-            <div class="aqg-table-wrap" data-aqg-scroll-labelledby="a11y-overview-local-pages-title">
-                <table class="aqg-table">
-                    <thead>
-                    <tr>
-                        <th scope="col">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.page"
-                                    default="Page"
-                            />
-                        </th>
-                        <th scope="col" class="num">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
-                                    default="Critical"
-                            />
-                        </th>
-                        <th scope="col" class="num">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning"
-                                    default="Warning"
-                            />
-                        </th>
-                        <th scope="col" class="num">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
-                                    default="Info"
-                            />
-                        </th>
-                        <th scope="col" class="num">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview"
-                                    default="Needs review"
-                            />
-                        </th>
-                        <th scope="col" class="num">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.total"
-                                    default="Total"
-                            />
-                        </th>
-                        <th scope="col" class="actions">
+<f:if condition="{pageStats}">
+    <f:then>
+        <div class="aqg-table-wrap" data-aqg-scroll-labelledby="a11y-overview-local-pages-title">
+            <table class="aqg-table aqg-table--pages aqg-table--linkrows">
+                <thead>
+                <tr>
+                    <th scope="col">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.page"
+                                default="Page"
+                        />
+                    </th>
+                    <th scope="col" class="num aqg-col-wide">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical"
+                                default="Critical"
+                        />
+                    </th>
+                    <th scope="col" class="num aqg-col-wide">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural"
+                                default="Warnings"
+                        />
+                    </th>
+                    <th scope="col" class="num aqg-col-wide">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info"
+                                default="Info"
+                        />
+                    </th>
+                    <th scope="col" class="num aqg-col-wide">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview"
+                                default="Needs review"
+                        />
+                    </th>
+                    <th scope="col" class="num aqg-col-wide">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.total"
+                                default="Total"
+                        />
+                    </th>
+                    <th scope="col" class="aqg-col-narrow">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.openIssues"
+                                default="Open issues"
+                        />
+                    </th>
+                    <th scope="col" class="actions">
+                        <span class="visually-hidden">
                             <f:translate
                                     key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions"
                                     default="Actions"
                             />
-                        </th>
-                    </tr>
-                    </thead>
+                        </span>
+                    </th>
+                </tr>
+                </thead>
 
-                    <tbody>
-                    <f:for each="{pageStats}" as="stat">
-                        <tr
-                                data-a11y-page-row="true"
-                                data-a11y-page-title="{stat.pageTitle}"
-                                data-a11y-page-uid="{stat.pageUid}"
-                        >
-                            <td>
-                                <div class="aqg-page-cell">
-                                    <div class="aqg-page-cell__title">
-                                        <a href="{stat.detailUrl}" title="{stat.pageTitle}">
-                                            {stat.pageTitle}
-                                        </a>
-
+                <tbody>
+                <f:for each="{pageStats}" as="stat">
+                    <tr
+                            data-a11y-page-row="true"
+                            data-a11y-page-title="{stat.pageTitle}"
+                            data-a11y-page-uid="{stat.pageUid}"
+                            class="{f:if(condition: '{stat.pageUid} == {currentPageUid}', then: 'is-selected')}"
+                    >
+                        <td>
+                            <div class="aqg-page-cell">
+                                <div class="aqg-page-cell__title">
+                                    <a href="{stat.detailUrl}" class="aqg-rowlink" title="{stat.pageTitle}">{stat.pageTitle}<f:render partial="Shared/AqgIcon" arguments="{name: 'chevr', size: 'sm'}" /></a>
+                                </div>
+                                <span class="aqg-page-cell__meta">
+                                    <span class="aqg-page-cell__base">
+                                        UID {stat.pageUid}
                                         <f:if condition="{stat.isFolder}">
-                                           <span class="aqg-mini-tag">
-                                                <f:translate
-                                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageType.folder"
-                                                />
-                                            </span>
+                                            · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageType.folder" />
                                         </f:if>
-                                    </div>
+                                        <f:if condition="{stat.pageUid} == {currentPageUid}">
+                                            · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.selectedPage" default="selected in the page tree" />
+                                        </f:if>
+                                    </span>
+                                    <span class="aqg-page-cell__state" data-a11y-row-state="true" hidden="hidden"></span>
+                                </span>
+                            </div>
+                        </td>
 
-                                    <span class="aqg-page-cell__meta">UID {stat.pageUid}</span>
-                                </div>
-                            </td>
+                        <td class="num aqg-col-wide"><f:render section="Count" arguments="{count: stat.critical, level: 'critical'}" /></td>
+                        <td class="num aqg-col-wide"><f:render section="Count" arguments="{count: stat.warning, level: 'warning'}" /></td>
+                        <td class="num aqg-col-wide"><f:render section="Count" arguments="{count: stat.info, level: 'info'}" /></td>
+                        <td class="num aqg-col-wide"><f:render section="Count" arguments="{count: stat.needs_review, level: 'needs-review'}" /></td>
+                        <td class="num aqg-col-wide"><span class="aqg-count aqg-count--total">{stat.total}</span></td>
 
-                            <td class="num">
-                                <f:if condition="{stat.critical} > 0">
-                                    <f:then><span class="aqg-count aqg-count--critical">{stat.critical}</span></f:then>
-                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
-                                </f:if>
-                            </td>
+                        <td class="aqg-col-narrow">
+                            <span class="aqg-sevmini">
+                                <f:if condition="{stat.critical} > 0"><span class="aqg-sevmini__item aqg-sevmini__item--critical"><f:render partial="Shared/AqgIcon" arguments="{name: 'crit', size: 'sm'}" />{stat.critical} <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" /></span></span></f:if>
+                                <f:if condition="{stat.warning} > 0"><span class="aqg-sevmini__item aqg-sevmini__item--warning"><f:render partial="Shared/AqgIcon" arguments="{name: 'warn', size: 'sm'}" />{stat.warning} <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" default="Warnings" /></span></span></f:if>
+                                <f:if condition="{stat.info} > 0"><span class="aqg-sevmini__item aqg-sevmini__item--info"><f:render partial="Shared/AqgIcon" arguments="{name: 'info', size: 'sm'}" />{stat.info} <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" default="Info" /></span></span></f:if>
+                                <f:if condition="{stat.needs_review} > 0"><span class="aqg-sevmini__item aqg-sevmini__item--review"><f:render partial="Shared/AqgIcon" arguments="{name: 'rev', size: 'sm'}" />{stat.needs_review} <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" default="Needs review" /></span></span></f:if>
+                            </span>
+                        </td>
 
-                            <td class="num">
-                                <f:if condition="{stat.warning} > 0">
-                                    <f:then><span class="aqg-count aqg-count--warning">{stat.warning}</span></f:then>
-                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
-                                </f:if>
-                            </td>
+                        <td class="actions">
+                            <f:if condition="{stat.canScan}">
+                                <button
+                                        type="button"
+                                        class="btn btn-default btn-sm aqg-iconbtn"
+                                        data-action="a11y-rescan"
+                                        data-aqg-loading="spinner"
+                                        data-page-uid="{stat.pageUid}"
+                                        data-page-title="{stat.pageTitle}"
+                                        data-language-uid="{currentLanguageUid}"
+                                        aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.scanPage', default: 'Scan %s', arguments: {0: stat.pageTitle})}"
+                                        title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.scanPage', default: 'Scan %s', arguments: {0: stat.pageTitle})}"
+                                >
+                                    <f:render partial="Shared/AqgIcon" arguments="{name: 'scan'}" />
+                                    <span class="aqg-iconbtn__spinner spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                </button>
+                            </f:if>
+                        </td>
+                    </tr>
+                </f:for>
+                </tbody>
+            </table>
+        </div>
 
-                            <td class="num">
-                                <f:if condition="{stat.info} > 0">
-                                    <f:then><span class="aqg-count aqg-count--info">{stat.info}</span></f:then>
-                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
-                                </f:if>
-                            </td>
+        <f:if condition="{localPagination.totalPages} > 1">
+            <div class="aqg-pagination">
+                <div class="aqg-pagination__info">
+                    {totalLocalPages}
+                    <f:if condition="{totalLocalPages} == 1">
+                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.page" default="page" /></f:then>
+                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages" default="pages" /></f:else>
+                    </f:if>
+                </div>
 
-                            <td class="num">
-                                <f:if condition="{stat.needs_review} > 0">
-                                    <f:then><span class="aqg-count aqg-count--needs-review">{stat.needs_review}</span></f:then>
-                                    <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
-                                </f:if>
-                            </td>
+                <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.paginationAria', default: 'Content scan pages pagination')}">
+                    <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
+                        <li class="page-item {f:if(condition: localPagination.hasPrevious, then: '', else: 'disabled')}">
+                            <a class="page-link" href="{f:if(condition: localPagination.hasPrevious, then: localPagination.previousUrl, else: '#')}">‹</a>
+                        </li>
 
-                            <td class="num">
-                                <span class="aqg-count aqg-count--total">{stat.total}</span>
-                            </td>
+                        <f:for each="{localPaginationItems}" as="item">
+                            <f:if condition="{item.type} == 'ellipsis'">
+                                <f:then>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">{item.label}</span>
+                                    </li>
+                                </f:then>
+                                <f:else>
+                                    <li class="page-item {f:if(condition: item.active, then: 'active', else: '')}">
+                                        <a class="page-link" href="{item.url}">{item.label}</a>
+                                    </li>
+                                </f:else>
+                            </f:if>
+                        </f:for>
 
-                            <td class="actions">
-                                <div class="aqg-row-actions">
-                                    <a href="{stat.detailUrl}" class="aqg-action-link">
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.viewIssues"
-                                                default="View issues"
-                                        />
-                                    </a>
-
-                                    <button
-                                            type="button"
-                                            class="btn btn-default btn-sm"
-                                            data-action="a11y-rescan"
-                                            data-page-uid="{stat.pageUid}"
-                                            data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
-                                    >
-                                        <f:translate
-                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanThisPage"
-                                                default="Scan this page"
-                                        />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </f:for>
-                    </tbody>
-                </table>
+                        <li class="page-item {f:if(condition: localPagination.hasNext, then: '', else: 'disabled')}">
+                            <a class="page-link" href="{f:if(condition: localPagination.hasNext, then: localPagination.nextUrl, else: '#')}">›</a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
+        </f:if>
+    </f:then>
 
-            <f:if condition="{localPagination.totalPages} > 1">
-                <div class="aqg-pagination">
-                    <div class="aqg-pagination__info">
-                        {totalLocalPages}
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages"
-                                default="pages"
-                        />
-                    </div>
-
-                    <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.paginationAria', default: 'Content scan pages pagination')}">
-                        <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
-                            <li class="page-item {f:if(condition: localPagination.hasPrevious, then: '', else: 'disabled')}">
-                                <a class="page-link" href="{f:if(condition: localPagination.hasPrevious, then: localPagination.previousUrl, else: '#')}">‹</a>
-                            </li>
-
-                            <f:for each="{localPaginationItems}" as="item">
-                                <f:if condition="{item.type} == 'ellipsis'">
-                                    <f:then>
-                                        <li class="page-item disabled">
-                                            <span class="page-link">{item.label}</span>
-                                        </li>
-                                    </f:then>
-                                    <f:else>
-                                        <li class="page-item {f:if(condition: item.active, then: 'active', else: '')}">
-                                            <a class="page-link" href="{item.url}">{item.label}</a>
-                                        </li>
-                                    </f:else>
-                                </f:if>
-                            </f:for>
-
-                            <li class="page-item {f:if(condition: localPagination.hasNext, then: '', else: 'disabled')}">
-                                <a class="page-link" href="{f:if(condition: localPagination.hasNext, then: localPagination.nextUrl, else: '#')}">›</a>
-                            </li>
-                        </ul>
-                    </nav>
+    <f:else>
+        <div class="aqg-empty aqg-empty--compact" role="status">
+            <div class="aqg-empty__icon" aria-hidden="true">
+                <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
+            </div>
+            <div>
+                <div class="aqg-empty__title">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults"
+                            default="No matching pages found."
+                    />
                 </div>
-            </f:if>
-        </f:then>
+                <div class="aqg-empty__body">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults.text"
+                            default="Try a shorter query, or clear the filter."
+                    />
+                </div>
+            </div>
+        </div>
+    </f:else>
+</f:if>
 
-        <f:else>
-            <f:if condition="{localQuery}">
-                <div class="aqg-empty">
-                    <div class="aqg-empty__icon" aria-hidden="true">
-                        <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
-                    </div>
-                    <div class="aqg-empty__title">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults"
-                                default="No matching pages found."
-                        />
-                    </div>
-                    <div class="aqg-empty__body">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.search.noResults.text"
-                                default="Try a shorter query, or clear the filter."
-                        />
-                    </div>
-                </div>
-            </f:if>
-            <f:if condition="!{localQuery}">
-                <div class="aqg-empty {f:if(condition: lastScan, then: 'aqg-empty--ok', else: '')}" role="status">
-                    <div class="aqg-empty__icon" aria-hidden="true">
-                        <f:if condition="{lastScan}">
-                            <f:then><f:render partial="Overview/Icon" arguments="{name: 'ok'}" /></f:then>
-                            <f:else><f:render partial="Overview/Icon" arguments="{name: 'empty'}" /></f:else>
-                        </f:if>
-                    </div>
-                    <div class="aqg-empty__title">
-                        <f:if condition="{lastScan}">
-                            <f:then>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues"
-                                        default="No open accessibility issues found."
-                                />
-                            </f:then>
-                            <f:else>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title"
-                                        default="No scan on record"
-                                />
-                            </f:else>
-                        </f:if>
-                    </div>
-                    <div class="aqg-empty__body">
-                        <f:if condition="{lastScan}">
-                            <f:then>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues.text"
-                                        default="All scanned pages currently pass the configured accessibility checks."
-                                />
-                            </f:then>
-                            <f:else>
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.text"
-                                        default="Run a content scan to check this page tree for accessibility issues."
-                                />
-                            </f:else>
-                        </f:if>
-                    </div>
-                </div>
-            </f:if>
-        </f:else>
+<f:section name="Count">
+    <f:if condition="{count} > 0">
+        <f:then><span class="aqg-count aqg-count--{level}">{count}</span></f:then>
+        <f:else><span class="aqg-count aqg-count--zero">—</span></f:else>
     </f:if>
-</div>
+</f:section>
 </html>

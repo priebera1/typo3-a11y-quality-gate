@@ -4,7 +4,7 @@
             <div class="aqg-regression-signal__kicker"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.kicker" default="Changes since the previous scan" /></div>
             <f:if condition="{alert.available}">
                 <f:then>
-                    <h2 class="aqg-regression-signal__title">{alert.title}</h2>
+                    <h3 class="aqg-regression-signal__title">{alert.title}</h3>
                     <f:if condition="{alert.summary}">
                         <p>{alert.summary}</p>
                     </f:if>
@@ -37,7 +37,7 @@
                     </f:if>
                 </f:then>
                 <f:else>
-                    <h2 class="aqg-regression-signal__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.unavailable" default="Regression signal unavailable" /></h2>
+                    <h3 class="aqg-regression-signal__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.unavailable" default="Regression signal unavailable" /></h3>
                     <p>{alert.message}</p>
                 </f:else>
             </f:if>

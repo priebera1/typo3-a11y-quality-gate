@@ -1,0 +1,12 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:switch expression="{level}">
+    <f:case value="critical"><span class="aqg-sev aqg-sev--critical"><f:render partial="Shared/AqgIcon" arguments="{name: 'crit'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" /></span></f:case>
+    <f:case value="serious"><span class="aqg-sev aqg-sev--serious"><f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.serious" default="Serious" /></span></f:case>
+    <f:case value="moderate"><span class="aqg-sev aqg-sev--moderate"><f:render partial="Shared/AqgIcon" arguments="{name: 'mod'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.moderate" default="Moderate" /></span></f:case>
+    <f:case value="minor"><span class="aqg-sev aqg-sev--minor"><f:render partial="Shared/AqgIcon" arguments="{name: 'minor'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.impact.minor" default="Minor" /></span></f:case>
+    <f:case value="warning"><span class="aqg-sev aqg-sev--warning"><f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" /><f:if condition="{plural}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" default="Warnings" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning" default="Warning" /></f:else></f:if></span></f:case>
+    <f:case value="info"><span class="aqg-sev aqg-sev--info"><f:render partial="Shared/AqgIcon" arguments="{name: 'info'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" default="Info" /></span></f:case>
+    <f:case value="needs_review"><span class="aqg-sev aqg-sev--review"><f:render partial="Shared/AqgIcon" arguments="{name: 'rev'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" default="Needs review" /></span></f:case>
+    <f:defaultCase><span class="aqg-sev aqg-sev--minor"><f:render partial="Shared/AqgIcon" arguments="{name: 'minor'}" />{level}</span></f:defaultCase>
+</f:switch>
+</html>

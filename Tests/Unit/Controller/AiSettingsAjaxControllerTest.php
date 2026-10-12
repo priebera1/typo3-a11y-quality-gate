@@ -52,6 +52,62 @@ final class AiSettingsAjaxControllerTest extends TestCase
         self::assertSame('configuration_saved', $this->responseCode($response));
     }
 
+    /**
+     * Regression: after Save the success message appeared, but the model and connection status did not change. A save
+     * that ends with a selected model now verifies the connection in the same request and answers with the result.
+     */
+    #[Test]
+    public function savingAKeyWithASelectedModelVerifiesTheConnection(): void
+    {
+        $configuration = $this->configuration();
+        $resolver = $this->createMock(AiConfigurationResolverInterface::class);
+        $resolver->method('resolve')->with('main')->willReturn($configuration);
+        $resolver->method('status')->with('main')->willReturn($this->uiStatus('connected'));
+        $discovery = $this->createMock(AiModelDiscoveryServiceInterface::class);
+        $discovery->method('discover')->with('main')->willReturn([
+            'supported' => [['id' => 'gpt-4.1-mini', 'label' => 'GPT-4.1 mini']],
+            'unsupported' => [],
+            'selectedModelId' => 'gpt-4.1-mini',
+            'discoveredAt' => time(),
+        ]);
+        $repository = $this->createMock(AiConfigurationRepositoryInterface::class);
+        $repository->expects(self::once())->method('markTested')->with('main', true, 'fingerprint', 'gpt-4.1-mini', self::anything(), self::anything(), '');
+        $provider = $this->createMock(AiProviderInterface::class);
+        $provider->method('supports')->with('openai')->willReturn(true);
+        $provider->expects(self::once())->method('testConnection')->with($configuration);
+
+        $response = $this->controller(resolver: $resolver, repository: $repository, discovery: $discovery, providers: [$provider])
+            ->saveAction((new ServerRequest('https://example.test/', 'POST'))->withParsedBody(['siteIdentifier' => 'main', 'apiKey' => 'sk-proj-new']));
+        $body = $this->responseBody($response);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('configuration_saved', $body['code']);
+        self::assertSame('connection_successful', $body['connectionCode']);
+        self::assertSame('connected', $body['uiState']['status']);
+        self::assertStringNotContainsString('sk-proj-new', (string)$response->getBody());
+    }
+
+    #[Test]
+    public function savingAKeyWithSeveralModelsAsksForAModelInsteadOfReportingSuccessOnly(): void
+    {
+        $discovery = $this->createMock(AiModelDiscoveryServiceInterface::class);
+        $discovery->method('discover')->with('main')->willReturn([
+            'supported' => [['id' => 'gpt-5.4-mini', 'label' => 'GPT-5.4 mini'], ['id' => 'gpt-5.4-nano', 'label' => 'GPT-5.4 nano']],
+            'unsupported' => [],
+            'selectedModelId' => '',
+            'discoveredAt' => time(),
+        ]);
+        $provider = $this->createMock(AiProviderInterface::class);
+        $provider->expects(self::never())->method('testConnection');
+
+        $body = $this->responseBody($this->controller(discovery: $discovery, providers: [$provider])
+            ->saveAction((new ServerRequest('https://example.test/', 'POST'))->withParsedBody(['siteIdentifier' => 'main', 'apiKey' => 'sk-proj-new'])));
+
+        self::assertTrue($body['success']);
+        self::assertSame('configuration_saved', $body['code']);
+        self::assertSame('model_not_selected', $body['connectionCode']);
+    }
+
     #[Test]
     public function discoveryPermissionFailureKeepsSavedKeyAndReturnsSafeWarning(): void
     {

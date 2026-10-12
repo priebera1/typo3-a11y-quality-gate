@@ -132,10 +132,19 @@ final class BackendLanguageService
             return $label;
         }
 
-        if (!str_starts_with($label, 'LLL:')) {
+        if (!self::isLabelReference($label)) {
             return $label;
         }
 
         return (string)$languageService->sL($label);
+    }
+
+    /**
+     * `LLL:EXT:…` references and TYPO3 14 translation-domain references (`frontend.db.tt_content:bodytext`); plain text
+     * with a colon ("Note: …") contains spaces and is not a reference.
+     */
+    public static function isLabelReference(string $label): bool
+    {
+        return str_starts_with($label, 'LLL:') || preg_match('/^[a-z0-9_.-]+:[a-z0-9_.-]+$/i', $label) === 1;
     }
 }

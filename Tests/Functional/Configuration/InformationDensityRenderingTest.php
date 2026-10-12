@@ -211,19 +211,23 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
         self::assertInstanceOf(\DOMElement::class, $link);
         self::assertSame('/typo3/module/web/a11y?remoteRule=color-contrast#a11y-remote-top-pages', $link->getAttribute('href'));
 
-        $card = $xpath->query('//article[contains(@class, "aqg-pfix-item")]')->item(0);
+        $card = $xpath->query('//li[contains(@class, "aqg-fix")]')->item(0);
         self::assertInstanceOf(\DOMElement::class, $card);
         self::assertStringContainsString('9 occurrences', preg_replace('/\s+/', ' ', $card->textContent) ?? '');
-        $details = $xpath->query('.//details[contains(@class, "aqg-pfix-item__details")]', $card)->item(0);
+        self::assertSame('Text needs more contrast', $this->text($xpath, '//li[contains(@class, "aqg-fix")]//h3'));
+        $details = $xpath->query('.//*[@data-aqg-priority-fix-details="true"]', $card)->item(0);
         self::assertInstanceOf(\DOMElement::class, $details);
-        self::assertFalse($details->hasAttribute('open'));
+        self::assertTrue($details->hasAttribute('hidden'));
+        $toggle = $xpath->query('.//button[@aria-controls="' . $details->getAttribute('id') . '"]', $card)->item(0);
+        self::assertInstanceOf(\DOMElement::class, $toggle);
+        self::assertSame('false', $toggle->getAttribute('aria-expanded'));
         self::assertStringContainsString('Designer', $details->textContent);
         self::assertStringNotContainsString('Designer', str_replace($details->textContent, '', $card->textContent));
 
         self::assertStringContainsString('Showing pages with: Text needs more contrast', $this->text($xpath, '//*[contains(@class, "aqg-filter-note__text")]'));
         self::assertSame(1, $xpath->query('//input[@type="hidden"][@name="remoteRule"][@value="color-contrast"]')->length);
-        self::assertSame(['Page', 'Issue types', 'HTTP', 'Actions'], $this->texts($xpath, '//section[@id="a11y-remote-top-pages"]//table/thead/tr/th'));
-        self::assertSame(['200'], $this->texts($xpath, '//section[@id="a11y-remote-top-pages"]//table/tbody/tr/td[3]'), 'A rule-filtered list keeps the HTTP status.');
+        self::assertSame(['Page', 'Issue types', 'Occurrences', 'HTTP', 'Actions'], $this->texts($xpath, '//section[@id="a11y-remote-top-pages"]//table/thead/tr/th'));
+        self::assertSame(['200'], $this->texts($xpath, '//section[@id="a11y-remote-top-pages"]//table/tbody/tr/td[4]'), 'A rule-filtered list keeps the HTTP status.');
     }
 
     #[Test]
@@ -232,9 +236,9 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
         $xpath = $this->render('Overview/RemotePanel', [
             'remoteScan' => ['uid' => 5, 'job_id' => 'job-5', 'issues_total' => 4, 'finished_at' => 1789200000],
             'remotePages' => [
-                ['uid' => 7, 'title' => 'About', 'url' => 'https://example.test/about', 'issues_count' => 3, 'http_status' => 200, 'detailUrl' => '/detail/7'],
-                ['uid' => 8, 'title' => 'Moved', 'url' => 'https://example.test/moved', 'issues_count' => 1, 'http_status' => 301, 'detailUrl' => '/detail/8'],
-                ['uid' => 9, 'title' => 'Imported', 'url' => 'https://example.test/imported', 'issues_count' => 0, 'http_status' => 0, 'detailUrl' => '/detail/9'],
+                ['uid' => 7, 'title' => 'About', 'url' => 'https://example.test/about', 'issues_count' => 3, 'occurrences' => 11, 'http_status' => 200, 'detailUrl' => '/detail/7', 'typo3_page_uid' => 42, 'canScan' => true],
+                ['uid' => 8, 'title' => 'Moved', 'url' => 'https://example.test/moved', 'issues_count' => 1, 'occurrences' => 1, 'http_status' => 301, 'detailUrl' => '/detail/8', 'typo3_page_uid' => 43, 'canScan' => false],
+                ['uid' => 9, 'title' => 'Imported', 'url' => 'https://example.test/imported', 'issues_count' => 0, 'occurrences' => 0, 'http_status' => 0, 'detailUrl' => '/detail/9'],
             ],
             'totalRemotePages' => 3,
             'remotePagination' => ['totalPages' => 1],
@@ -247,20 +251,36 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
         ]);
 
         $affected = '//section[@id="a11y-remote-top-pages"]//table';
-        self::assertSame(['Page', 'Issue types', 'HTTP', 'Actions'], $this->texts($xpath, $affected . '/thead/tr/th'));
+        self::assertSame(['Page', 'Issue types', 'Occurrences', 'HTTP', 'Actions'], $this->texts($xpath, $affected . '/thead/tr/th'));
         self::assertSame(['3', '1', '0'], $this->texts($xpath, $affected . '/tbody/tr/td[2]'));
+        self::assertSame(['11', '1', '0'], $this->texts($xpath, $affected . '/tbody/tr/td[3]'));
         // A page without a reported status (stored as 0) shows a dash, never an invented code.
-        self::assertSame(['200', '301', '—'], $this->texts($xpath, $affected . '/tbody/tr/td[3]/span[@class="aqg-http"]'));
-        self::assertSame(['View findings', 'View findings', 'View findings'], $this->texts($xpath, $affected . '/tbody/tr/td[4]'));
+        self::assertSame(['200', '301', '—'], $this->texts($xpath, $affected . '/tbody/tr/td[4]/span[@class="aqg-http"]'));
+        // Audit T1: like the Content table, the page title is the row link; there is no separate "Open" link.
+        self::assertSame(['About', 'Moved', 'Imported'], $this->texts($xpath, $affected . '/tbody/tr/td[1]//a[contains(@class, "aqg-rowlink")]'));
+        self::assertSame(1, $xpath->query('//table[contains(@class, "aqg-table--linkrows")]//a[@href="/detail/7"]')->length);
+        self::assertSame(0, $xpath->query($affected . '//a[contains(@class, "aqg-action-link")]')->length);
+        // A separate, named scan action where the page scan endpoint would accept it.
+        $scan = $xpath->query($affected . '/tbody/tr/td[5]//button[@data-action="a11y-pro-scan-page"]');
+        self::assertSame(1, $scan->length);
+        self::assertSame('42', $scan->item(0)?->getAttribute('data-page-uid'));
+        self::assertSame('7', $scan->item(0)?->getAttribute('data-remote-page-uid'));
+        self::assertSame('Scan About', $scan->item(0)?->getAttribute('aria-label'));
+        // Routine 2xx stays quiet text; anything else is marked as an error; no status is neither.
+        self::assertSame(
+            ['num aqg-http-cell aqg-http-cell--ok', 'num aqg-http-cell aqg-http-cell--error', 'num aqg-http-cell aqg-http-cell--none'],
+            array_map(static fn (\DOMElement $cell): string => $cell->getAttribute('class'), iterator_to_array($xpath->query($affected . '/tbody/tr/td[4]')))
+        );
         self::assertSame(0, $xpath->query($affected . '/tbody/tr/td[1][contains(., "HTTP")]')->length, 'The status is shown once, in its column.');
 
         $failed = '//section[@id="a11y-remote-failed-pages"]//table';
-        self::assertSame(['Page', 'HTTP', 'Failure reason', 'Actions'], $this->texts($xpath, $failed . '/thead/tr/th'));
+        self::assertSame(['Page', 'HTTP', 'Failure reason'], $this->texts($xpath, $failed . '/thead/tr/th'));
         self::assertSame(['404'], $this->texts($xpath, $failed . '/tbody/tr/td[2]/span[@class="aqg-http"]'));
+        self::assertSame(['Gone'], $this->texts($xpath, $failed . '/tbody/tr/td[1]//a[contains(@class, "aqg-rowlink")]'));
 
-        foreach ([$affected, $failed] as $table) {
+        foreach ([$affected => 5, $failed => 3] as $table => $columns) {
             foreach ($xpath->query($table . '/tbody/tr') as $row) {
-                self::assertSame(4, $xpath->query('./td', $row)->length, 'Every column header has a cell in ' . $table);
+                self::assertSame($columns, $xpath->query('./td', $row)->length, 'Every column header has a cell in ' . $table);
             }
         }
     }

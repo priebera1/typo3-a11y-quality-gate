@@ -280,7 +280,7 @@ describe('Licence domain manager', () => {
 
         const activateAll = document.querySelector('[data-aqg-domains-bulk="activate-all"]');
         expect(activateAll.hidden).toBe(false);
-        expect(document.querySelector('[data-aqg-domains-summary]').textContent).toContain('1 domains active in this TYPO3 project, no domain limit');
+        expect(document.querySelector('[data-aqg-domains-summary]').textContent).toContain('1 domain active in this TYPO3 project, no domain limit');
         expect(rowNames()).toHaveLength(10);
         expect(document.querySelector('[data-aqg-domains-pager]').hidden).toBe(false);
         expect(document.querySelector('[data-aqg-domains-range]').textContent).toBe('Showing 1–10 of 45');
@@ -428,5 +428,27 @@ describe('Licence domain manager', () => {
         const boxes = [...document.querySelectorAll('[data-aqg-domains-rows] input[type="checkbox"]')];
         expect(boxes).toHaveLength(2);
         boxes.forEach((box) => expect(box.parentElement.classList.contains('form-check')).toBe(true));
+    });
+
+    // Audit S4/T5: filter chips, search and bulk controls for a single domain were noise. They appear above 8 domains.
+    it('keeps a short domain list compact and shows the list tools only above 8 domains', async () => {
+        const {root} = await mount(overview([domain('a.example', 'active'), domain('b.example', 'available')]));
+        expect(root.classList.contains('is-compact')).toBe(true);
+
+        document.body.innerHTML = '';
+        const many = Array.from({length: 9}, (_, index) => domain(`d${index}.example`, 'available'));
+        const {root: large} = await mount(overview(many));
+        expect(large.classList.contains('is-compact')).toBe(false);
+    });
+
+    it('keeps table semantics and labels the sites when a narrow module stacks the rows', async () => {
+        await mount(overview([domain('a.example', 'active', {sites: ['main', 'test14']})]));
+
+        const row = document.querySelector('[data-aqg-domains-row="a.example"]');
+        expect(row.getAttribute('role')).toBe('row');
+        expect([...row.children].map((cell) => cell.getAttribute('role'))).toEqual(['cell', 'rowheader', 'cell', 'cell', 'cell']);
+        const sites = row.querySelector('.aqg-licence-domains__sites');
+        expect(sites.textContent).toBe('main, test14');
+        expect(sites.dataset.label).toBe('TYPO3 sites');
     });
 });

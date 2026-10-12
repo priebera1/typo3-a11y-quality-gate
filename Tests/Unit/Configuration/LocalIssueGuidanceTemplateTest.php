@@ -16,6 +16,8 @@ final class LocalIssueGuidanceTemplateTest extends TestCase
 
         self::assertIsString($template);
         self::assertStringContainsString('partial="Issue/LocalGuidance"', $template);
+        self::assertStringContainsString('<p class="aqg-rulecard__fix">', $template);
+        self::assertStringContainsString('{rule.howToFix}', $template);
         self::assertStringNotContainsString('<div class="aqg-callout__text">{issue.hint}</div>', $template);
     }
 
@@ -27,9 +29,12 @@ final class LocalIssueGuidanceTemplateTest extends TestCase
         self::assertIsString($partial);
         self::assertStringContainsString('data-aqg-local-guidance="true"', $partial);
         self::assertStringContainsString('condition="{guidance.hasBadges}"', $partial);
-        self::assertStringContainsString('condition="{guidance.whyItMatters}"', $partial);
-        self::assertStringContainsString('condition="{guidance.howToFix}"', $partial);
-        self::assertStringContainsString('condition="{guidance.hasAffectedUsers}"', $partial);
+        // The rule card splits the partial: "Why it matters" (why, affected users) and "Standards and rule reference".
+        self::assertStringContainsString('condition="{guidance.whyItMatters} && {section} != \'reference\'"', $partial);
+        // How to fix is the rule card's visible fix line; the Details only repeat it when asked to.
+        self::assertStringContainsString('condition="{showHowToFix} && {guidance.howToFix}"', $partial);
+        self::assertStringContainsString('condition="{guidance.hasAffectedUsers} && {section} != \'reference\'"', $partial);
+        self::assertStringContainsString('&& {section} != \'why\'"', $partial);
         self::assertStringContainsString('condition="{guidance.hasStandardsAndImpact}"', $partial);
     }
 

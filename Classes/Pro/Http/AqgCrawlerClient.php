@@ -479,7 +479,7 @@ final class AqgCrawlerClient
             'licenseKeyPresent' => false,
             'scannerTokenPresent' => isset($payload['scannerToken']) && trim((string)$payload['scannerToken']) !== '',
             'body' => $this->sanitizeBodyForLog($body),
-        ], $statusCode >= 400 ? 'warning' : 'debug');
+        ], $statusCode >= 400 && !$this->isExpectedNotFound($path, $statusCode) ? 'warning' : 'debug');
 
         if ($body === '') {
             throw new ApiRequestFailedException(
@@ -549,7 +549,7 @@ final class AqgCrawlerClient
                 'method' => $method,
                 'status' => $statusCode,
                 'errorCode' => $errorCode !== '' ? $errorCode : 'http_error',
-            ], 'warning');
+            ], $this->isExpectedNotFound($path, $statusCode) ? 'debug' : 'warning');
 
             throw new ApiRequestFailedException(
                 $message,
@@ -613,6 +613,15 @@ final class AqgCrawlerClient
             'licenseKeyPresent' => false,
             'scannerTokenPresent' => isset($payload['scannerToken']) && trim((string)$payload['scannerToken']) !== '',
         ];
+    }
+
+    /**
+     * The regression alert answers 404 when a site has no comparable scans yet: that is "no data", asked on every
+     * Overview render, not a failure worth a warning in the log.
+     */
+    private function isExpectedNotFound(string $path, int $statusCode): bool
+    {
+        return $statusCode === 404 && str_starts_with($path, '/crawl/regression-alert');
     }
 
     /**

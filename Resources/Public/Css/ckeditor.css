@@ -3262,7 +3262,9 @@ body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-
 .ck-a11y-panel,
 .ck-a11y-editor,
 .aqg-plain-html-a11y,
-.aqg-code-html-panel {
+.aqg-code-html-panel,
+.ck-a11y-popover,
+.ck-a11y-gutter {
   --cka-fg-subtle: #5b6472 !important;
   --cka-crit: #b42318 !important;
   --cka-warn: #8a5300 !important;
@@ -3270,7 +3272,7 @@ body[data-bs-theme="dark"] .aqg-plain-html-a11y__issue > summary.aqg-plain-html-
   --cka-focus-ring: #2563eb;
 }
 
-html[data-color-scheme="dark"] :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-editor, .aqg-plain-html-a11y, .aqg-code-html-panel) {
+html[data-color-scheme="dark"] :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-editor, .aqg-plain-html-a11y, .aqg-code-html-panel, .ck-a11y-popover, .ck-a11y-gutter) {
   --cka-fg-subtle: #a0a8b5 !important;
   --cka-crit: #ff9b91 !important;
   --cka-warn: #f2c46b !important;
@@ -3285,7 +3287,7 @@ html[data-color-scheme="dark"] :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-ed
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not([data-color-scheme="light"]) :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-editor, .aqg-plain-html-a11y, .aqg-code-html-panel) {
+  html:not([data-color-scheme="light"]) :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-editor, .aqg-plain-html-a11y, .aqg-code-html-panel, .ck-a11y-popover, .ck-a11y-gutter) {
     --cka-fg-subtle: #a0a8b5 !important;
     --cka-crit: #ff9b91 !important;
     --cka-warn: #f2c46b !important;
@@ -3302,7 +3304,7 @@ html[data-color-scheme="dark"] :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-ed
 
 /* Keyboard focus (WCAG 2.4.7): the panel buttons only changed their background (about 1.07:1). A solid ring
    in the backend's focus colour, never on mouse clicks. */
-:is(.ck-a11y-panel, .ck-a11y-summary, .aqg-plain-html-a11y, .aqg-code-html-panel) :is(button, a[href], summary, [tabindex]):focus-visible {
+:is(.ck-a11y-panel, .ck-a11y-summary, .aqg-plain-html-a11y, .aqg-code-html-panel, .ck-a11y-popover, .ck-a11y-gutter) :is(button, a[href], summary, [tabindex]):focus-visible {
   outline: 2px solid var(--cka-focus-ring) !important;
   outline-offset: 2px !important;
 }
@@ -3318,4 +3320,327 @@ html[data-color-scheme="dark"] :is(.ck-a11y-summary, .ck-a11y-panel, .ck-a11y-ed
   typo3-t3editor-codemirror .cm-line.aqg-cm-line-reveal {
     animation: none !important;
   }
+}
+
+/* ------------------------------------------------------------------------------------------------------------
+   Indicator gutter and details panel (1.9.9).
+
+   The editor's feedback must never interrupt writing: nothing opens on caret movement, text selection, clicks into
+   the text or typing. Each block with issues gets a small marker at the right edge of the editing area (severity
+   shape and colour, count when there are several); the editing area keeps a right padding while markers are shown,
+   so they never cover text. Details open only when a marker or "Show issues" is pressed, in a non-modal panel inside
+   the editor frame that scrolls within the window height and fills the width of a narrow editor.
+   ------------------------------------------------------------------------------------------------------------ */
+.ck-editor__main.ck-a11y-gutter-host {
+  position: relative;
+}
+
+.ck-editor.ck-a11y-has-gutter .ck-editor__main > .ck-editor__editable {
+  padding-right: calc(var(--ck-spacing-large, 12px) + 30px) !important;
+}
+
+.ck-a11y-gutter {
+  position: absolute;
+  top: 0;
+  right: 3px;
+  z-index: 2;
+  width: 32px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ck-a11y-gutter[hidden] {
+  display: none;
+}
+
+.ck-a11y-chip {
+  position: absolute;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border: 1px solid var(--cka-border);
+  border-radius: 999px;
+  background: var(--cka-surface);
+  color: var(--cka-fg);
+  font: 600 11px/1 var(--cka-font);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ck-a11y-chip__icon {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Severity by shape and colour, readable in grayscale: octagon, triangle, circle, ring. */
+.ck-a11y-chip--critical {
+  border-color: var(--cka-crit-border);
+  background: var(--cka-crit-bg);
+  color: var(--cka-crit);
+}
+
+.ck-a11y-chip--critical .ck-a11y-chip__icon {
+  width: 9px;
+  height: 9px;
+  border-radius: 0;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+}
+
+.ck-a11y-chip--warning {
+  border-color: var(--cka-warn-border);
+  background: var(--cka-warn-bg);
+  color: var(--cka-warn);
+}
+
+.ck-a11y-chip--warning .ck-a11y-chip__icon {
+  width: 10px;
+  height: 9px;
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.ck-a11y-chip--info {
+  border-color: var(--cka-info-border);
+  background: var(--cka-info-bg);
+  color: var(--cka-info);
+}
+
+.ck-a11y-chip--needs_review {
+  color: var(--cka-fg-subtle);
+}
+
+.ck-a11y-chip--needs_review .ck-a11y-chip__icon {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+.ck-a11y-chip:hover {
+  border-color: currentColor;
+}
+
+/* The caret is in this block: a quiet ring, no panel. */
+.ck-a11y-chip.is-current,
+.ck-a11y-chip[aria-expanded="true"] {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.ck-a11y-chip:focus-visible {
+  outline: 2px solid var(--cka-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+.ck-a11y-popover {
+  position: absolute;
+  right: 38px;
+  z-index: 5;
+  width: min(380px, calc(100% - 52px));
+  box-sizing: border-box;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--cka-border);
+  border-radius: var(--cka-radius, 6px);
+  background: var(--cka-surface);
+  color: var(--cka-fg);
+  box-shadow: var(--cka-shadow-panel);
+  font-family: var(--cka-font);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ck-a11y-popover--narrow {
+  right: 6px;
+  left: 6px;
+  width: auto;
+}
+
+.ck-a11y-popover__head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid var(--cka-divider);
+  background: var(--cka-surface);
+}
+
+.ck-a11y-popover__title {
+  margin: 0;
+  color: var(--cka-fg);
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.ck-a11y-popover__close {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cka-fg-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ck-a11y-popover__close:hover {
+  background: var(--cka-surface-2);
+  color: var(--cka-fg);
+}
+
+.ck-a11y-popover__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ck-a11y-popover__issue {
+  padding: 10px 12px;
+  border-top: 1px solid var(--cka-divider);
+}
+
+.ck-a11y-popover__issue:first-child {
+  border-top: 0;
+}
+
+.ck-a11y-popover__message {
+  margin: 6px 0 4px;
+  color: var(--cka-fg);
+  font-weight: 600;
+}
+
+.ck-a11y-popover__fix {
+  margin: 0 0 6px;
+  color: var(--cka-fg-muted);
+  font-size: 12.5px;
+}
+
+.ck-a11y-popover__fix strong {
+  color: var(--cka-fg);
+  font-weight: 600;
+}
+
+.ck-a11y-popover__details > summary {
+  color: var(--cka-fg-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ck-a11y-popover__details .ck-a11y-panel__details {
+  margin-top: 6px;
+  border: 1px solid var(--cka-divider);
+  border-radius: 4px;
+}
+
+.ck-a11y-popover__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ck-a11y-popover__actions:empty {
+  display: none;
+}
+
+.ck-a11y-popover :is(button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--cka-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Marks are text: the caret goes into them like into any other word. */
+.ck-content .ck-a11y-mark,
+.ck-content .a11y-highlight {
+  cursor: text !important;
+}
+
+html[data-color-scheme="dark"] :is(.ck-a11y-popover, .ck-a11y-gutter) {
+  --cka-fg: #e6e9ee;
+  --cka-fg-muted: #b4bcc7;
+  --cka-surface: #1c2128;
+  --cka-surface-2: #232931;
+  --cka-surface-3: #1f252c;
+  --cka-border: #2d343d;
+  --cka-divider: #2a313a;
+  --cka-shadow-panel: 0 8px 28px -4px rgba(0,0,0,.55), 0 2px 8px -2px rgba(0,0,0,.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-color-scheme="light"]) :is(.ck-a11y-popover, .ck-a11y-gutter) {
+    --cka-fg: #e6e9ee;
+    --cka-fg-muted: #b4bcc7;
+    --cka-surface: #1c2128;
+    --cka-surface-2: #232931;
+    --cka-surface-3: #1f252c;
+    --cka-border: #2d343d;
+    --cka-divider: #2a313a;
+    --cka-shadow-panel: 0 8px 28px -4px rgba(0,0,0,.55), 0 2px 8px -2px rgba(0,0,0,.35);
+  }
+}
+
+
+/* Plain HTML editor: the line panel scrolls inside the window height and has its own close button. */
+.aqg-code-html-panel {
+  overflow: auto !important;
+  overscroll-behavior: contain;
+}
+
+.aqg-code-html-panel__header {
+  align-items: center;
+}
+
+.aqg-code-html-panel__kicker:focus {
+  outline: none;
+}
+
+.aqg-code-html-panel__close {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aqg-code-html-panel__close:hover {
+  background: rgba(124, 130, 141, 0.14);
+}
+
+.aqg-cm-side-badge:focus-visible {
+  outline: 2px solid var(--cka-focus-ring, #2563eb) !important;
+  outline-offset: 2px !important;
+}
+
+/* The labels above highlighted elements ("CRITICAL · RTE.EMPTY_HEADING") covered the line above the element while
+   editing. The marker at the right edge names the issue now; the element keeps only its outline. */
+.ck-editor .ck-content :is(.ck-a11y-element, .a11y-element-highlight)::before,
+.ck-editor .ck-content :is(.ck-a11y-element, .a11y-element-highlight)[data-a11y-label]::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* The panel title only receives focus so screen readers start reading there; it is not a control. */
+.ck-a11y-popover .ck-a11y-popover__title:focus-visible,
+.aqg-code-html-panel .aqg-code-html-panel__kicker:focus-visible {
+  outline: none !important;
 }

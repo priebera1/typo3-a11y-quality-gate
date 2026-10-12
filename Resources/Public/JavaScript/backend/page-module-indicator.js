@@ -1,4 +1,10 @@
 import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
+import { notificationSeverity } from '@priebera/a11y-quality-gate/backend/core/notification-severity.js';
+import {
+    pageScanNotification,
+    scanFailedNotification,
+    showScanNotification,
+} from '@priebera/a11y-quality-gate/backend/core/scan-notification.js';
 
 const SELECTOR_PANEL = '[data-aqg-page-module-indicator="true"]';
 const SELECTOR_SCAN = '[data-aqg-indicator-scan="true"]';
@@ -114,23 +120,60 @@ function reloadCurrentFrame(delay = 0) {
     run();
 }
 
-function showNotification(message, type = 'info') {
+/**
+ * Screen readers hear the scan result from a polite live region outside the panel (the panel is re-rendered after the
+ * scan). TYPO3's toast is not reliably announced.
+ */
+function announcePanel(panel, message) {
+    const doc = panel?.ownerDocument || document;
+    let region = doc.querySelector('[data-aqg-indicator-announcer="true"]');
+    if (!region) {
+        region = doc.createElement('div');
+        region.dataset.aqgIndicatorAnnouncer = 'true';
+        region.className = 'visually-hidden';
+        region.setAttribute('role', 'status');
+        region.setAttribute('aria-live', 'polite');
+        doc.body.append(region);
+    }
+    region.textContent = '';
+    window.setTimeout(() => {
+        region.textContent = message;
+    }, 50);
+}
+
+/** The translate callback of the scan notification builders: a label key, its English fallback and %d values. */
+function scanLabel(key, fallback, ...values) {
+    return format(translate(key, fallback), ...values);
+}
+
+/**
+ * The page's AQG report, where the rendered coverage of its last content scan is listed. Read before the panel shows
+ * the running state.
+ */
+function reportUrlFor(panel) {
+    const reportUrl = String(panel?.dataset?.aqgReportUrl || '').trim();
+    if (reportUrl === '') {
+        return '';
+    }
+    try {
+        const url = new URL(reportUrl, window.location.origin);
+        url.hash = 'aqg-rendered-coverage';
+        return url.toString();
+    } catch {
+        return '';
+    }
+}
+
+export function showNotification(message, type = 'info') {
     const notificationApi = window.top?.TYPO3?.Notification;
     if (!notificationApi) {
         return;
     }
 
-    const severityMap = {
-        info: 0,
-        success: 1,
-        warning: -1,
-        error: -2,
-    };
-
     notificationApi.showMessage(
         translate('notification.title', 'Accessibility'),
         message,
-        severityMap[type] ?? 0,
+        notificationSeverity(type),
         5
     );
 }
@@ -176,6 +219,13 @@ function syncAllPanelThemes() {
     });
 }
 
+/** "Started %s" with the 24-hour clock time of now: a static "Started just now" stayed for the whole scan. */
+export function formatStartedMeta(template, now = new Date()) {
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    return String(template).includes('%s') ? String(template).replace('%s', time) : String(template);
+}
+
 function setPanelStateRunning(panel, scanMode = 'local') {
     ['ok', 'warning', 'error', 'none', 'completed'].forEach((state) => {
         panel.classList.remove(`aqg-page-module-indicator--${state}`);
@@ -195,7 +245,7 @@ function setPanelStateRunning(panel, scanMode = 'local') {
 
     const meta = panel.querySelector('.aqg-page-module-indicator__meta');
     if (meta) {
-        meta.textContent = panel.dataset.runningMeta || translate('pageModuleIndicator.runningMeta', 'Started just now');
+        meta.textContent = formatStartedMeta(panel.dataset.runningMeta || translate('pageModuleIndicator.meta.startedAt', 'Started %s'));
     }
 
     const statusPill = panel.querySelector('.aqg-page-module-indicator__status-pill');
@@ -637,6 +687,7 @@ async function scanPage(button) {
     const originalClassName = panel.className;
     const originalHtml = panel.innerHTML;
     const originalAriaBusy = panel.getAttribute('aria-busy');
+    const reportUrl = reportUrlFor(panel);
 
     setPanelStateRunning(panel, scanMode);
     setScanButtonsLoading(panel, true);
@@ -646,42 +697,44 @@ async function scanPage(button) {
         const response = await new AjaxRequest(endpoint).post({ pageUid, languageUid });
         const data = await response.resolve();
         let remoteSummary = null;
+        let remoteError = '';
 
         if (scanMode === 'combined') {
-            remoteSummary = await runRemotePageScan({ pageUid, siteIdentifier, languageUid });
+            // The content scan has finished and stored its results: a failing frontend scan must not hide them.
+            try {
+                remoteSummary = await runRemotePageScan({ pageUid, siteIdentifier, languageUid });
+            } catch (error) {
+                remoteError = await extractAjaxErrorMessage(error, translate('js.error.unknown', 'Unknown error'));
+            }
         }
 
-        if (remoteSummary) {
-            showNotification(
-                format(
-                    translate('notification.scanPageWithFrontend.completed', 'Page scan complete - local %d new, %d resolved; frontend %d new, %d resolved.'),
-                    Number(data.issuesNew || 0),
-                    Number(data.issuesResolved || 0),
-                    Number(remoteSummary.issuesNew || 0),
-                    Number(remoteSummary.issuesResolved || 0)
-                ),
-                'success'
-            );
-        } else {
-            showNotification(
-                format(
-                    translate('notification.scan.completed', 'Scan complete - %d new, %d resolved.'),
-                    Number(data.issuesNew || 0),
-                    Number(data.issuesResolved || 0)
-                ),
-                'success'
-            );
+        // One notification per scan: what ran, what could not be checked, and the way to the page report.
+        let notification = pageScanNotification(data, remoteSummary, scanLabel);
+        if (remoteError !== '') {
+            notification = {
+                title: translate('notification.scanResult.page.warnings', 'Page scan completed with warnings'),
+                message: [
+                    `${translate('notification.scanResult.page.content', 'Content scan')}: ${notification.message}`,
+                    `${translate('notification.scanResult.frontend.failed', 'Frontend scan failed')}: ${remoteError}`,
+                ].join(' '),
+                severity: 'warning',
+                details: notification.details,
+            };
         }
+        showScanNotification(notification, {
+            detailsUrl: reportUrl,
+            detailsLabel: translate('notification.scanResult.action.pageReport', 'Open page report'),
+            reportLabel: translate('notification.scanResult.action.pageReport', 'Open page report'),
+        });
+        announcePanel(panel, [notification.title, notification.message].join('. '));
 
         completed = true;
         setPanelStateCompleted(panel, scanMode);
         reloadCurrentFrame(2400);
     } catch (error) {
         const message = await extractAjaxErrorMessage(error, translate('js.error.unknown', 'Unknown error'));
-        showNotification(
-            format(translate('notification.scan.failed', 'Scan failed: %s'), message),
-            'error'
-        );
+        showScanNotification(scanFailedNotification('content', message, scanLabel));
+        announcePanel(panel, `${translate('notification.scanResult.content.failed', 'Content scan failed')}: ${message}`);
         panel.className = originalClassName;
         panel.innerHTML = originalHtml;
         if (originalAriaBusy === null) {

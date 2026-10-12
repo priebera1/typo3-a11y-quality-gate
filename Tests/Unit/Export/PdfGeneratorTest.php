@@ -122,4 +122,31 @@ final class PdfGeneratorTest extends TestCase
 
         return $content;
     }
+
+    /**
+     * Regression (audit C4): core-font mode printed every character outside Windows-1252 as "?" — a Cyrillic snippet,
+     * and Slovak, Czech, Polish or Hungarian letters. The reports embed a Unicode font now.
+     */
+    #[Test]
+    public function textOutsideWindows1252UsesAnEmbeddedUnicodeFont(): void
+    {
+        $pdf = (new PdfGenerator())->render('<p>Predvolený text č ľ ť ň ł ő Данный</p>', 'Unicode', [], self::CSS);
+
+        self::assertStringContainsString('/FontFile2', $pdf, 'The text font must be embedded.');
+        self::assertStringContainsString('/ToUnicode', $pdf, 'Text must stay extractable and searchable.');
+        self::assertStringNotContainsString('/BaseFont /Helvetica', $pdf);
+        self::assertStringNotContainsString('/WinAnsiEncoding', $pdf);
+    }
+
+    /**
+     * Frontend snippets quote the scanned page verbatim, including `lang="zh"` content. DejaVu has no CJK glyphs, so
+     * those characters must come from mPDF's bundled substitution font instead of printing as empty boxes.
+     */
+    #[Test]
+    public function charactersMissingFromTheReportFontUseTheBundledSubstitutionFont(): void
+    {
+        $pdf = (new PdfGenerator())->render('<p>Snippet <code>&lt;p lang="zh"&gt;中文内容&lt;/p&gt;</code></p>', 'CJK', [], self::CSS);
+
+        self::assertMatchesRegularExpression('#/BaseFont /MPDF[A-Z]+\+Sun-ExtA#', $pdf);
+    }
 }

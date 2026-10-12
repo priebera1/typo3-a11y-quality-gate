@@ -985,14 +985,13 @@ details[open] .a11y-details-summary__toggle {
     padding: 16px 18px;
     background: var(--aqi-surface);
     border: 1px solid var(--aqi-border);
-    border-left: 3px solid var(--aqi-warn);
     border-radius: var(--aqi-radius);
     box-shadow: 0 6px 22px -10px rgba(20, 24, 30, .18);
 }
 
 .a11y-page-detail .aqg-bulkconfirm__head {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 1fr auto;
     align-items: start;
     gap: 14px;
 }
@@ -1025,12 +1024,27 @@ details[open] .a11y-details-summary__toggle {
 
 .a11y-page-detail .aqg-bulkconfirm__close {
     appearance: none;
-    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     background: transparent;
     border: 0;
-    border-radius: 3px;
-    color: var(--aqi-fg-subtle);
+    border-radius: var(--aqi-radius-sm);
+    color: var(--aqi-fg-muted);
     cursor: pointer;
+}
+
+.a11y-page-detail .aqg-bulkconfirm__close .aqg-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.a11y-page-detail .aqg-bulkconfirm__close:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
 }
 
 .a11y-page-detail .aqg-bulkconfirm__close:hover {
@@ -1042,19 +1056,19 @@ details[open] .a11y-details-summary__toggle {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 10px 12px;
-    background: var(--aqi-surface-2);
-    border: 1px solid var(--aqi-border-soft);
-    border-radius: var(--aqi-radius-sm);
+    padding-top: 12px;
+    border-top: 1px solid var(--aqi-border-soft);
+}
+
+.a11y-page-detail .aqg-bulkconfirm__summary:empty {
+    display: none;
 }
 
 .a11y-page-detail .aqg-bulkconfirm__summary-title {
-    color: var(--aqi-fg-subtle);
-    font-family: var(--aqi-font-mono);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .a11y-page-detail .aqg-bulkconfirm__summary-list {
@@ -1068,26 +1082,28 @@ details[open] .a11y-details-summary__toggle {
 
 .a11y-page-detail .aqg-bulkconfirm__summary-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 10px;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: baseline;
     color: var(--aqi-fg);
-    font-size: 12.5px;
+    font-size: 13px;
 }
 
 .a11y-page-detail .aqg-bulkconfirm__summary-rule {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--aqi-warn);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.a11y-page-detail .aqg-bulkconfirm__summary-rule code {
+    margin-left: 4px;
+    font-size: 11.5px;
 }
 
 .a11y-page-detail .aqg-bulkconfirm__summary-count {
     color: var(--aqi-fg-muted);
-    font-family: var(--aqi-font-mono);
-    font-size: 11px;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
+    white-space: nowrap;
 }
 
 .a11y-page-detail .aqg-bulkconfirm__body {
@@ -1102,7 +1118,6 @@ details[open] .a11y-details-summary__toggle {
     font-weight: 600;
 }
 
-.a11y-page-detail .aqg-bulkconfirm__req,
 .a11y-page-detail .aqg-bulkconfirm__error {
     color: var(--aqi-err);
 }
@@ -1200,12 +1215,9 @@ details[open] .a11y-details-summary__toggle {
   letter-spacing: 0.005em;
 }
 .aqg-expiry__sub {
-  font-family: var(--aqi-font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--aqi-fg-subtle);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--aqi-fg-muted);
   margin-left: 6px;
 }
 
@@ -1445,11 +1457,8 @@ details[open] .a11y-details-summary__toggle {
   grid-template-columns: minmax(120px, auto) 1fr;
   gap: 6px 14px;
   align-items: start;
-  padding: 12px 14px;
-  margin-top: 4px;
-  background: var(--aqi-surface-2);
-  border: 1px solid var(--aqi-border-soft);
-  border-radius: var(--aqi-radius-sm);
+  padding-top: 12px;
+  border-top: 1px solid var(--aqi-border-soft);
 }
 .aqg-bulkconfirm__row-expiry .aqg-expiry__label {
   align-self: center;

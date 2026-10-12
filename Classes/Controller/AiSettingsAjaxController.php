@@ -52,8 +52,20 @@ final class AiSettingsAjaxController
 
             try {
                 $discovery = $this->modelDiscoveryService->discover($siteIdentifier);
+                // A saved key ends in a visible state: connected or the reason it is not, or "choose a model" when
+                // several compatible models need the administrator's choice.
+                try {
+                    $connectionCode = $discovery['selectedModelId'] !== ''
+                        ? $this->verifyConnection($siteIdentifier)[0]
+                        : 'model_not_selected';
+                } catch (\Throwable) {
+                    // Verification never turns a saved key into a failed save.
+                    $connectionCode = 'connection_test_failed';
+                }
+
                 return $this->success('configuration_saved', $siteIdentifier, [
                     'selectedModelId' => $discovery['selectedModelId'],
+                    'connectionCode' => $connectionCode,
                 ]);
             } catch (AiModelDiscoveryException $exception) {
                 return $this->success('configuration_saved', $siteIdentifier, [
@@ -144,6 +156,20 @@ final class AiSettingsAjaxController
             return $this->error('site_not_found', 422, $siteIdentifier);
         }
 
+        [$code, $httpStatus] = $this->verifyConnection($siteIdentifier);
+
+        return $httpStatus === 200
+            ? $this->success($code, $siteIdentifier)
+            : $this->error($code, $httpStatus, $siteIdentifier);
+    }
+
+    /**
+     * Runs the connection contract test for the site's saved key and selected model and records the result.
+     *
+     * @return array{0: string, 1: int} safe result code and HTTP status
+     */
+    private function verifyConnection(string $siteIdentifier): array
+    {
         $configuration = null;
         try {
             $this->modelDiscoveryService->ensureFresh($siteIdentifier);
@@ -156,21 +182,21 @@ final class AiSettingsAjaxController
                 $provider->testConnection($configuration);
                 $this->markTested($siteIdentifier, true, $configuration);
 
-                return $this->success('connection_successful', $siteIdentifier);
+                return ['connection_successful', 200];
             }
 
             $this->markTested($siteIdentifier, false, $configuration, 'provider_unavailable');
-            return $this->error('provider_unavailable', 502, $siteIdentifier);
+            return ['provider_unavailable', 502];
         } catch (AiModelDiscoveryException $exception) {
-            return $this->mapDiscoveryFailure($exception, $siteIdentifier);
+            return $this->discoveryFailure($exception);
         } catch (AiConfigurationException $exception) {
             return match ($exception->getCode()) {
-                1771002003 => $this->error('model_not_selected', 422, $siteIdentifier),
-                1771002004 => $this->error('model_unavailable', 422, $siteIdentifier),
-                default => $this->error('invalid_configuration', 422, $siteIdentifier),
+                1771002003 => ['model_not_selected', 422],
+                1771002004 => ['model_unavailable', 422],
+                default => ['invalid_configuration', 422],
             };
         } catch (\InvalidArgumentException) {
-            return $this->error('invalid_configuration', 422, $siteIdentifier);
+            return ['invalid_configuration', 422];
         } catch (AiProviderException $exception) {
             if ($configuration instanceof AiProviderConfiguration) {
                 $this->markTested(
@@ -180,12 +206,12 @@ final class AiSettingsAjaxController
                     $this->safeProviderErrorCode($exception),
                 );
             }
-            return $this->mapProviderFailure($exception, $siteIdentifier);
+            return $this->providerFailure($exception);
         } catch (\Throwable) {
             if ($configuration instanceof AiProviderConfiguration) {
                 $this->markTested($siteIdentifier, false, $configuration, 'connection_test_failed');
             }
-            return $this->error('connection_test_failed', 502, $siteIdentifier);
+            return ['connection_test_failed', 502];
         }
     }
 
@@ -206,17 +232,18 @@ final class AiSettingsAjaxController
         );
     }
 
-    private function mapProviderFailure(AiProviderException $exception, string $siteIdentifier): JsonResponse
+    /** @return array{0: string, 1: int} */
+    private function providerFailure(AiProviderException $exception): array
     {
         return match ($exception->getCode()) {
-            1771002310 => $this->error('api_key_rejected', 401, $siteIdentifier),
-            1771002320 => $this->error('insufficient_quota', 429, $siteIdentifier),
-            1771002311 => $this->error('connection_rate_limited', 429, $siteIdentifier),
-            1771002317 => $this->error('model_unavailable', 422, $siteIdentifier),
-            1771002321 => $this->error('model_not_permitted', 403, $siteIdentifier),
-            1771002322 => $this->error('invalid_provider_request', 422, $siteIdentifier),
-            1771002302 => $this->error('transport_failure', 502, $siteIdentifier),
-            1771002312 => $this->error('openai_service_failure', 502, $siteIdentifier),
+            1771002310 => ['api_key_rejected', 401],
+            1771002320 => ['insufficient_quota', 429],
+            1771002311 => ['connection_rate_limited', 429],
+            1771002317 => ['model_unavailable', 422],
+            1771002321 => ['model_not_permitted', 403],
+            1771002322 => ['invalid_provider_request', 422],
+            1771002302 => ['transport_failure', 502],
+            1771002312 => ['openai_service_failure', 502],
             1771002301,
             1771002304,
             1771002305,
@@ -224,8 +251,8 @@ final class AiSettingsAjaxController
             1771002314,
             1771002315,
             1771002316,
-            1771002318 => $this->error('structured_output_test_failed', 502, $siteIdentifier),
-            default => $this->error('connection_test_failed', 502, $siteIdentifier),
+            1771002318 => ['structured_output_test_failed', 502],
+            default => ['connection_test_failed', 502],
         };
     }
 
@@ -254,16 +281,24 @@ final class AiSettingsAjaxController
 
     private function mapDiscoveryFailure(AiModelDiscoveryException $exception, string $siteIdentifier): JsonResponse
     {
+        [$code, $httpStatus] = $this->discoveryFailure($exception);
+
+        return $this->error($code, $httpStatus, $siteIdentifier);
+    }
+
+    /** @return array{0: string, 1: int} */
+    private function discoveryFailure(AiModelDiscoveryException $exception): array
+    {
         return match ($exception->safeCode) {
-            'api_key_rejected' => $this->error('api_key_rejected', 401, $siteIdentifier),
-            'models_permission_denied' => $this->error('models_permission_denied', 403, $siteIdentifier),
-            'insufficient_quota' => $this->error('insufficient_quota', 429, $siteIdentifier),
-            'models_rate_limited' => $this->error('models_rate_limited', 429, $siteIdentifier),
-            'no_supported_models' => $this->error('no_supported_models', 422, $siteIdentifier),
-            'models_invalid_response' => $this->error('models_invalid_response', 502, $siteIdentifier),
-            'openai_service_failure' => $this->error('openai_service_failure', 502, $siteIdentifier),
-            'models_transport_failure' => $this->error('transport_failure', 502, $siteIdentifier),
-            default => $this->error('models_request_failed', 502, $siteIdentifier),
+            'api_key_rejected' => ['api_key_rejected', 401],
+            'models_permission_denied' => ['models_permission_denied', 403],
+            'insufficient_quota' => ['insufficient_quota', 429],
+            'models_rate_limited' => ['models_rate_limited', 429],
+            'no_supported_models' => ['no_supported_models', 422],
+            'models_invalid_response' => ['models_invalid_response', 502],
+            'openai_service_failure' => ['openai_service_failure', 502],
+            'models_transport_failure' => ['transport_failure', 502],
+            default => ['models_request_failed', 502],
         };
     }
 

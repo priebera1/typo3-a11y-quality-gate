@@ -38,11 +38,12 @@ final class FreeRemotePreviewUiTest extends TestCase
         $free = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/FreeRemotePreview.html');
 
         self::assertIsString($free);
-        self::assertStringContainsString('aqg-section aqg-section--scan', $free);
-        self::assertStringContainsString('aqg-section__actions', $free);
-        self::assertStringContainsString('aqg-section__meta-row', $free);
-        self::assertStringContainsString('aqg-meta-item', $free);
-        self::assertStringContainsString('aqg-notice aqg-tone-warning', $free);
+        // The Free Remote Preview is the Free variant of the shared status panel.
+        self::assertStringContainsString('class="aqg-status aqg-status--', $free);
+        self::assertStringContainsString('aqg-status__actions', $free);
+        self::assertStringContainsString('aqg-status__meta aqg-status__meta--free', $free);
+        self::assertStringContainsString('partial="Overview/RemoteStatusHead"', $free);
+        self::assertStringContainsString('aqg-note aqg-note--warning', $free);
         // The upgrade offer follows a Free result instead of preceding the first scan.
         self::assertStringNotContainsString('aqg-pro-card', $free);
         self::assertStringNotContainsString('aqg-limit-pill', $free);
@@ -76,7 +77,8 @@ final class FreeRemotePreviewUiTest extends TestCase
     #[Test]
     public function freeResultsDoNotRenderPaidActions(): void
     {
-        $remotePanel = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/RemotePanel.html');
+        $remotePanel = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/RemotePanel.html')
+            . file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/RemoteEvidence.html');
         $remoteDetail = file_get_contents(__DIR__ . '/../../../Resources/Private/Templates/RemotePageDetail/Show.html');
 
         self::assertIsString($remotePanel);
@@ -120,7 +122,7 @@ final class FreeRemotePreviewUiTest extends TestCase
         $normalizedController = preg_replace('/\s+/', ' ', $controller);
         self::assertIsString($normalizedController);
 
-        self::assertStringContainsString('$selectedRemoteScanUid, $isFreePreview)', $normalizedController);
+        self::assertStringContainsString('$selectedRemoteScanUid, $isFreePreview, $currentPageIsSiteRoot)', $normalizedController);
         self::assertStringContainsString('$currentPageUrl, $isFreePreview', $normalizedController);
         self::assertStringContainsString('findLastCompletedPageScanBySite($siteIdentifier, $currentLanguageUid, $isFreePreview)', $normalizedController);
         self::assertStringContainsString('findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, $isFreePreview)', $normalizedController);
@@ -146,8 +148,8 @@ final class FreeRemotePreviewUiTest extends TestCase
         self::assertStringContainsString('trans-unit id="freePreview.recordMappingLocked"', $english);
         self::assertStringContainsString('trans-unit id="freePreview.recordMappingLocked"', $german);
 
-        // The plain "no mapped record" error copy must still exist for the non-free-preview branch.
-        self::assertStringContainsString('module.remotePageDetail.noMappedRecord', $remoteDetail);
+        // Paid scans still say plainly when an occurrence is not linked to a record.
+        self::assertStringContainsString('module.remotePageDetail.notLinked', $remoteDetail);
     }
 
     #[Test]
@@ -216,6 +218,7 @@ final class FreeRemotePreviewUiTest extends TestCase
         );
         self::assertGreaterThan(strpos($panel, 'aqg-priority-section'), $render);
         self::assertGreaterThan(strpos($panel, 'id="a11y-remote-top-pages"'), $render);
+        self::assertLessThan(strpos($panel, 'partial="Overview/RemoteEvidence"'), $render, 'The offer comes before the collapsed reports.');
         self::assertSame(1, substr_count($panel, 'Overview/FreePreviewUpgrade'));
     }
 }

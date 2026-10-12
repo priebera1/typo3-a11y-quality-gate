@@ -39,7 +39,32 @@ final class RemoteScreenshotTypeTest extends TestCase
         }
     }
 
-    private function service(string $contentType): RemoteScreenshotService
+    /**
+     * Audit C15: the crawler keeps an untouched Original next to the annotated (Highlighted) capture. The default request
+     * stays the one released extensions make; only an explicit, known variant is forwarded.
+     */
+    #[Test]
+    public function theOriginalVariantIsRequestedOnlyWhenAskedFor(): void
+    {
+        $urls = [];
+        $service = $this->service('image/png', $urls);
+
+        $service->fetchScreenshotByRemotePageUid(7);
+        $original = $service->fetchScreenshotByRemotePageUid(7, 'original');
+        $service->fetchScreenshotByRemotePageUid(7, 'javascript:alert(1)');
+
+        self::assertSame([
+            'https://api.priebera.sk/crawl/page/page-1/screenshot',
+            'https://api.priebera.sk/crawl/page/page-1/screenshot?variant=original',
+            'https://api.priebera.sk/crawl/page/page-1/screenshot',
+        ], array_map(static fn (string $url): string => (string)preg_replace('#^https?://[^/]+#', 'https://api.priebera.sk', $url), $urls));
+        self::assertSame('aqg-screenshot-7-original.png', $original['filename']);
+    }
+
+    /**
+     * @param list<string> $urls
+     */
+    private function service(string $contentType, array &$urls = []): RemoteScreenshotService
     {
         $scans = $this->createMock(RemoteScanRepository::class);
         $scans->method('findPageByUid')->willReturn(['uid' => 7, 'external_page_id' => 'page-1', 'remote_scan' => 3]);
@@ -59,7 +84,11 @@ final class RemoteScreenshotTypeTest extends TestCase
         $response->method('getHeaderLine')->willReturnCallback(static fn (string $name): string => strtolower($name) === 'content-type' ? $contentType : '');
         $response->method('getBody')->willReturn($stream);
         $factory = $this->createMock(RequestFactory::class);
-        $factory->method('request')->willReturn($response);
+        $factory->method('request')->willReturnCallback(static function (string $url) use ($response, &$urls): ResponseInterface {
+            $urls[] = $url;
+
+            return $response;
+        });
 
         return new RemoteScreenshotService($scans, $sites, $tokens, $factory, $context);
     }
