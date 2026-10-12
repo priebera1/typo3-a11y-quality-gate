@@ -11,6 +11,9 @@ use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 final class RemoteScanRepository extends AbstractRepository
 {
+    /** @var array<string, bool>|null */
+    private ?array $remoteScanPageColumns = null;
+
     public function upsertScan(
         string $siteIdentifier,
         string $jobId,
@@ -842,7 +845,10 @@ final class RemoteScanRepository extends AbstractRepository
                 'page_recommendation_json' => $this->encodeJsonForColumn($page['pageRecommendation'] ?? $page['page_recommendation'] ?? $page['recommendation'] ?? []),
                 'crdate' => $now,
                 'tstamp' => $now,
-            ]);
+            ] + ($this->pageColumnExists('screenshot_evidence_json') ? [
+                // Audit C15: the crawler's screenshot evidence summary (additive; older crawlers send none).
+                'screenshot_evidence_json' => $this->encodeJsonForColumn(self::screenshotEvidenceSummary($page['screenshotEvidence'] ?? null)),
+            ] : []));
 
             $pageUidByUrl[$url] = (int)$connection->lastInsertId();
         }
@@ -1506,6 +1512,47 @@ final class RemoteScanRepository extends AbstractRepository
         }
 
         return array_values(array_unique(array_filter($variants, static fn (string $variant): bool => $variant !== '')));
+    }
+
+    /**
+     * The documented scalar fields of `/crawl/results` `pages[].screenshotEvidence` (version 1); anything else is dropped.
+     *
+     * @return array<string, int|bool|string>
+     */
+    public static function screenshotEvidenceSummary(mixed $evidence): array
+    {
+        if (!is_array($evidence) || (int)($evidence['version'] ?? 0) < 1) {
+            return [];
+        }
+
+        return [
+            'version' => (int)$evidence['version'],
+            'originalAvailable' => (bool)($evidence['originalAvailable'] ?? false),
+            'annotationsAvailable' => (bool)($evidence['annotationsAvailable'] ?? false),
+            'imageWidth' => max(0, (int)($evidence['imageWidth'] ?? 0)),
+            'imageHeight' => max(0, (int)($evidence['imageHeight'] ?? 0)),
+            'findingsTotal' => max(0, (int)($evidence['findingsTotal'] ?? 0)),
+            'findingsDrawn' => max(0, (int)($evidence['findingsDrawn'] ?? 0)),
+            'regionsDrawn' => max(0, (int)($evidence['regionsDrawn'] ?? 0)),
+            'issueTypesTotal' => max(0, (int)($evidence['issueTypesTotal'] ?? 0)),
+            'recommendedPrimaryVariant' => ($evidence['recommendedPrimaryVariant'] ?? '') === 'original' ? 'original' : 'highlighted',
+        ];
+    }
+
+    private function pageColumnExists(string $column): bool
+    {
+        if ($this->remoteScanPageColumns === null) {
+            try {
+                $this->remoteScanPageColumns = [];
+                foreach ($this->getConnection(Tables::REMOTE_SCAN_PAGE)->createSchemaManager()->listTableColumns(Tables::REMOTE_SCAN_PAGE) as $definition) {
+                    $this->remoteScanPageColumns[strtolower($definition->getName())] = true;
+                }
+            } catch (\Throwable) {
+                $this->remoteScanPageColumns = [];
+            }
+        }
+
+        return isset($this->remoteScanPageColumns[strtolower($column)]);
     }
 
     public function findPageByUid(int $pageUid): ?array

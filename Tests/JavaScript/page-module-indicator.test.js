@@ -7,6 +7,8 @@ import {
     FOLLOW_SLOW_AFTER_MS,
     FOLLOW_SLOW_INTERVAL_MS,
     isFollowingRunningScan,
+    formatStartedMeta,
+    showNotification,
     startFollowingRunningScan,
     stopFollowingRunningScan,
 } from '../../Resources/Public/JavaScript/backend/page-module-indicator.js';
@@ -212,5 +214,29 @@ describe('Page module indicator: following a running scan', () => {
 
         expect(isFollowingRunningScan()).toBe(false);
         expect(fetch).toHaveBeenCalledTimes(1);
+    });
+});
+
+// Regression (audit C3): the Page module mapped info→0, success→1, warning→-1, error→-2, so a failed scan appeared as a
+// grey notice and a completed one as a yellow warning. It shares the module's TYPO3 severity map now.
+describe('Page module notifications', () => {
+    it('uses the TYPO3 severities: notice -2, info -1, ok 0, warning 1, error 2', () => {
+        const showMessage = vi.fn();
+        window.top.TYPO3 = {...(window.top.TYPO3 || {}), Notification: {showMessage}};
+
+        showNotification('failed', 'error');
+        showNotification('done', 'success');
+        showNotification('careful', 'warning');
+        showNotification('fyi', 'info');
+
+        expect(showMessage.mock.calls.map((call) => call[2])).toEqual([2, 0, 1, -1]);
+    });
+});
+
+// Regression (audit C14): the running meta said "Started just now" for the whole scan.
+describe('running meta', () => {
+    it('shows the start time', () => {
+        expect(formatStartedMeta('Started %s', new Date(2026, 9, 8, 9, 5))).toBe('Started 09:05');
+        expect(formatStartedMeta('Scan in progress', new Date())).toBe('Scan in progress');
     });
 });

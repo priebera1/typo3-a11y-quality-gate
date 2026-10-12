@@ -1,325 +1,182 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <htmlpageheader name="aqgFrontendPageHeader">
-        <table class="aqgp-runhead"><tr>
-            <td class="aqgp-runhead__brand">AQG</td>
-            <td class="aqgp-runhead__ctx">Frontend Page Detail · {relativeUrl}</td>
-            <td class="aqgp-runhead__date">{generatedAt}</td>
+    <htmlpageheader name="aqrHeader">
+        <table class="aqr-runhead"><tr>
+            <td width="62%">AQG · Frontend page report · {title}</td>
+            <td width="38%" class="aqr-right">{generatedAt}</td>
         </tr></table>
     </htmlpageheader>
-    <htmlpagefooter name="aqgFrontendPageFooter">
-        <table class="aqgp-runfoot"><tr>
-            <td width="60%">AQG · Frontend Page Detail Report</td>
-            <td width="40%" class="aqgp-runfoot__page" align="right" style="text-align:right;">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
+    <htmlpagefooter name="aqrFooter">
+        <table class="aqr-runfoot"><tr>
+            <td width="70%">AQG Frontend page report · {title}</td>
+            <td width="30%" class="aqr-right">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
         </tr></table>
     </htmlpagefooter>
-    <sethtmlpagefooter name="aqgFrontendPageFooter" value="on" show-this-page="1" />
 
     <f:if condition="{hasPage}">
         <f:then>
-            <div class="aqgp-cover"><!-- AQG_COVER_WITHOUT_HEADER -->
-                <table class="aqgp-brand-table"><tr>
-                    <td>
-                        <p class="aqgp-brandblock__mark">AQG</p>
-                        <p class="aqgp-brandblock__name">Accessibility Quality Gate</p>
-                        <hr class="aqgp-brandblock__rule" />
-                    </td>
-                    <td class="aqgp-brand-table__logo">
-                        <f:if condition="{hasLogo}">
-                            <f:then><img src="{logoPath}" class="aqgp-logo-img" style="width:16mm;height:auto;" alt="AQG" /></f:then>
-                            <f:else><span class="aqgp-logo-slot">AQG</span></f:else>
-                        </f:if>
-                    </td>
-                </tr></table>
+            <bookmark content="Summary" level="0" />
+            <p class="aqr-title">{title}</p>
+            <p class="aqr-url">{pageUrl}</p>
+            <p class="aqr-meta">Page scan {scanCompletedAt} · HTTP {httpStatusLabel}<f:if condition="{hasScore}"> · Automated signal {score.value} / {score.max}</f:if></p>
+            <p class="aqr-verdict"><b>{issuesSummaryLabel}</b></p>
+            <f:if condition="{hasFailure}"><p class="aqr-box"><b>Scan context.</b> {failureReason}</p></f:if>
 
-                <p class="aqgp-eyebrow">Frontend page accessibility report</p>
-                <h1 class="aqgp-cover__title">Frontend Page Detail</h1>
-                <p class="aqgp-cover__safe"><strong>Automated accessibility signal.</strong></p>
-                <p class="aqgp-cover__safe">Manual review may still be required.</p>
-                <p class="aqgp-a11y-note">Accessibility note: this PDF is a visual report. It is not tagged for screen readers, so its headings, tables and reading order are not available to assistive technology. The same findings are available as a CSV export from the AQG module in the TYPO3 backend.</p>
+            <f:if condition="{pageNotChecked}">
+                <f:else><f:render partial="Export/PdfSeverityRow" arguments="{row: impactRow}" /></f:else>
+            </f:if>
 
-                <hr class="aqgp-cover__rule" />
-
-                <table class="aqgp-covermeta">
-                    <tr>
-                        <td><div class="aqgp-covermeta__label">Page</div><div class="aqgp-covermeta__value">{title}</div></td>
-                        <td><div class="aqgp-covermeta__label">Report type</div><div class="aqgp-covermeta__value">Frontend Page Detail</div></td>
-                    </tr>
-                    <tr>
-                        <td><div class="aqgp-covermeta__label">URL</div><div class="aqgp-covermeta__value aqgp-covermeta__value--mono">{relativeUrl}</div></td>
-                        <td><div class="aqgp-covermeta__label">Generated</div><div class="aqgp-covermeta__value aqgp-covermeta__value--mono">{generatedAt}</div></td>
-                    </tr>
-                    <tr>
-                        <td><div class="aqgp-covermeta__label">Last frontend scan</div><div class="aqgp-covermeta__value aqgp-covermeta__value--mono">{scanCompletedAt}</div></td>
-                        <td><div class="aqgp-covermeta__label">Scan context</div><div class="aqgp-covermeta__value">Page scan</div></td>
-                    </tr>
-                </table>
-
-                <table class="aqgp-cover-metrics-v9" width="100%" cellspacing="0" cellpadding="0">
-                    <tr>
-                        <td width="25%" style="padding:0 4px 0 0;" valign="top">
-                            <table class="aqgp-cover-metric-card" width="100%" cellspacing="0" cellpadding="0">
-                                <tr><td class="aqgp-cover-metric-card__rail aqgp-cover-metric-card__rail--brand">&nbsp;</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__label" align="center">Automated signal</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__value" align="center"><f:if condition="{hasScore}"><f:then>{score.value}<span class="aqgp-cover-metric-card__unit"> / {score.max}</span></f:then><f:else><span class="aqgp-empty">—</span></f:else></f:if></td></tr>
-                                <tr><td class="aqgp-cover-metric-card__foot" align="center">automated only</td></tr>
-                            </table>
-                        </td>
-                        <td width="25%" style="padding:0 4px 0 4px;" valign="top">
-                            <table class="aqgp-cover-metric-card" width="100%" cellspacing="0" cellpadding="0">
-                                <tr><td class="aqgp-cover-metric-card__rail aqgp-cover-metric-card__rail--neutral">&nbsp;</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__label" align="center">HTTP</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__value" align="center">{httpStatusLabel}</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__foot" align="center">on last scan</td></tr>
-                            </table>
-                        </td>
-                        <td width="25%" style="padding:0 4px 0 4px;" valign="top">
-                            <table class="aqgp-cover-metric-card" width="100%" cellspacing="0" cellpadding="0">
-                                <tr><td class="aqgp-cover-metric-card__rail aqgp-cover-metric-card__rail--neutral">&nbsp;</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__label" align="center">Issue groups</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__value" align="center">{pageIssueGroupCount}</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__foot" align="center">distinct rules</td></tr>
-                            </table>
-                        </td>
-                        <td width="25%" style="padding:0 0 0 4px;" valign="top">
-                            <table class="aqgp-cover-metric-card" width="100%" cellspacing="0" cellpadding="0">
-                                <tr><td class="aqgp-cover-metric-card__rail aqgp-cover-metric-card__rail--total">&nbsp;</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__label" align="center">Findings</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__value" align="center">{pageOccurrencesCount}</td></tr>
-                                <tr><td class="aqgp-cover-metric-card__foot" align="center">automated</td></tr>
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-
-                <f:if condition="{hasFailure}">
-                    <div class="aqgp-notice aqgp-mt-l">
-                        <span class="aqgp-notice__label">Scan context</span>
-                        <p class="aqgp-notice__text">{failureReason}</p>
-                    </div>
-                </f:if>
-
-                <table class="aqgp-cover-disclaimer aqgp-mt-l" width="100%" cellspacing="0" cellpadding="0">
-                    <tr><td>This page report is generated from <strong>automated frontend checks</strong>. It is a reporting aid and does not confirm WCAG, BFSG, BITV or EAA compliance. Manual review may still be required.</td></tr>
-                </table>
-            </div>
-
-            <pagebreak />
-    <sethtmlpageheader name="aqgFrontendPageHeader" value="on" show-this-page="1" />
-
-            <div class="aqgp-page">
-                <bookmark content="Executive summary" level="0" />
-                <table class="aqgp-section"><tr>
-                    <td>Executive summary</td>
-                    <td class="aqgp-section__right"><f:if condition="{hasScore}"><f:then>Automated signal {score.value} / {score.max}</f:then><f:else>Automated signal unavailable</f:else></f:if></td>
-                </tr></table>
-
-                <div class="aqgp-starthere">
-                    <p class="aqgp-starthere__label">Start here · Suggested first step</p>
-                    <p class="aqgp-starthere__title"><f:if condition="{priorityFixes.0.title}"><f:then>{priorityFixes.0.title}</f:then><f:else>Review the highest-impact findings on this page</f:else></f:if></p>
-                    <p class="aqgp-starthere__text">
-                        <f:if condition="{hasPageRecommendation} && {pageRecommendation.summary}">
-                            <f:then>{pageRecommendation.summary}</f:then>
-                            <f:else><f:if condition="{priorityFixes.0.guidanceWhyItMatters}"><f:then>{priorityFixes.0.guidanceWhyItMatters}</f:then><f:else>Start with the highest-impact issue group, then review repeated template or component findings before fixing individual content items.</f:else></f:if></f:else>
-                        </f:if>
-                    </p>
-                    <table class="aqgp-kv">
-                        <tr><td class="aqgp-kv__k">Suggested owner</td><td class="aqgp-kv__v"><f:if condition="{priorityFixes.0.whoShouldFixLabel}"><f:then>{priorityFixes.0.whoShouldFixLabel}</f:then><f:else>Mixed</f:else></f:if></td></tr>
-                        <tr><td class="aqgp-kv__k">Fix type</td><td class="aqgp-kv__v"><f:if condition="{priorityFixes.0.fixTypeLabel}"><f:then>{priorityFixes.0.fixTypeLabel}</f:then><f:else>Review in context</f:else></f:if></td></tr>
-                        <tr><td class="aqgp-kv__k">Manual review</td><td class="aqgp-kv__v">May still be required</td></tr>
-                    </table>
-                </div>
-
-                <div class="aqgp-block">
-                    <div class="aqgp-action">
-                        <p class="aqgp-action__label">Recommended action</p>
-                        <f:if condition="{hasPageRecommendation} && {pageRecommendation.hasFirstSteps}">
-                            <f:then><ol class="aqgp-steps"><f:for each="{pageRecommendation.firstSteps}" as="step"><li>{step}</li></f:for></ol></f:then>
-                            <f:else>
-                                <ol class="aqgp-steps">
-                                    <li>Fix the highest-impact issue group first.</li>
-                                    <li>Review whether repeated findings belong to one template or component.</li>
-                                    <li>Re-run the frontend scan for this page.</li>
-                                    <li>Use manual review for keyboard order, screen reader behaviour, labels, meaning and visual context.</li>
-                                </ol>
-                            </f:else>
-                        </f:if>
-                    </div>
-                </div>
-
-                <f:if condition="{hasPageRecommendation} && {pageRecommendation.remediationSummary}">
-                    <div class="aqgp-block">
-                        <p class="aqgp-h3">Recommended remediation grouping</p>
-                        <p class="aqgp-p aqgp-p--muted">{pageRecommendation.remediationSummary}</p>
-                    </div>
-                </f:if>
-
-                <table class="aqgp-section aqgp-section--sub aqgp-mt-m"><tr>
-                    <td>Issue groups on this page</td>
-                    <td class="aqgp-section__right">{pageIssueGroupCount} groups · {pageOccurrencesCount} findings</td>
-                </tr></table>
-
-                <f:if condition="{issues}">
-                    <f:then>
-                        <table class="aqgp-table">
-                            <colgroup><col style="width:46%" /><col style="width:22%" /><col style="width:16%" /><col style="width:16%" /></colgroup>
-                            <thead><tr><th>Issue group</th><th>Impact</th><th class="aqgp-num">Findings</th><th>Owner</th></tr></thead>
+            <table class="aqr-columns" autosize="1"><tr>
+                <td class="aqr-col" style="width:110mm; padding-right:6mm;">
+                    <f:if condition="{startHere}">
+                        <table class="aqr-start"><tr><td>
+                            <p class="aqr-start__title">Start here: {startHere.number} · {startHere.title}</p>
+                            <p class="aqr-muted"><f:render partial="Export/PdfSeverity" arguments="{tone: startHere.impactTone, label: startHere.impactWord}" /> · {startHere.countLabel}<f:if condition="{startHere.whoShouldFixLabel}"> · {startHere.whoShouldFixLabel}</f:if><f:if condition="{startHere.fixTypeLabel}"> · {startHere.fixTypeLabel} fix</f:if></p>
+                            <p>{startHere.guidanceHowToFix}</p>
+                            <f:if condition="{hasPageRecommendation} && {pageRecommendation.hasFirstSteps}">
+                                <ol class="aqr-steps"><f:for each="{pageRecommendation.firstSteps}" as="step"><li>{step}</li></f:for></ol>
+                            </f:if>
+                        </td></tr></table>
+                    </f:if>
+                    <f:if condition="{issues}">
+                        <table class="aqr-table" autosize="1">
+                            <thead><tr><th style="width:8mm">#</th><th>Issue type</th><th style="width:22mm">Impact</th><th class="aqr-num" style="width:10mm">Occ.</th></tr></thead>
                             <tbody>
                             <f:for each="{issues}" as="issue">
                                 <tr>
+                                    <td class="aqr-index">{issue.number}</td>
                                     <td>{issue.title}</td>
-                                    <td><span class="aqgp-badge aqgp-badge--{issue.impact}">&nbsp;{issue.impactLabel}&nbsp;</span></td>
-                                    <td class="aqgp-num">{issue.nodes_count}</td>
-                                    <td><f:if condition="{issue.whoShouldFixLabel}"><f:then>{issue.whoShouldFixLabel}</f:then><f:else>Mixed</f:else></f:if></td>
+                                    <td><f:render partial="Export/PdfSeverity" arguments="{tone: issue.impactTone, label: issue.impactWord}" /></td>
+                                    <td class="aqr-num">{issue.pdfNodesTotal}</td>
                                 </tr>
                             </f:for>
                             </tbody>
                         </table>
-                    </f:then>
-                    <f:else>
-                        <f:if condition="{issueDetailsUnavailable}"><f:then><div class="aqgp-notice aqgp-notice--warning"><span class="aqgp-notice__label">Issue details unavailable</span><p class="aqgp-notice__text">The page summary reports {pageSummaryIssuesCount} automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.</p></div></f:then><f:else><div class="aqgp-notice aqgp-notice--neutral"><span class="aqgp-notice__label">No findings</span><p class="aqgp-notice__text">The automated frontend checks returned no issue groups for this page. Manual review may still be required.</p></div></f:else></f:if>
-                    </f:else>
-                </f:if>
-            </div>
+                    </f:if>
+                </td>
+                <td class="aqr-col" style="width:66mm;">
+                    <f:if condition="{screenshotVar}">
+                        <f:then>
+                            <table class="aqr-shotbox" autosize="1">
+                                <tr><td class="aqr-shotbox__image"><img src="var:{screenshotVar}" style="width:64mm;" alt="Page screenshot" /></td></tr>
+                                <tr><td class="aqr-shotbox__caption">Screenshot at scan time, {scanCompletedAt}.<f:if condition="{screenshotNumbered}"> Outline numbers are the issue groups of this report.</f:if><f:if condition="{showFullScreenshot}"> Full width at the end of this report.</f:if></td></tr>
+                            </table>
+                        </f:then>
+                        <f:else>
+                            <p class="aqr-box aqr-muted">No screenshot is included for this scan. A page that returned an HTTP error or blocked rendering has none, and a screenshot above the export size limit is left out.</p>
+                        </f:else>
+                    </f:if>
+                </td>
+            </tr></table>
 
-            <pagebreak />
+            <p class="aqr-note">This PDF is a visual report and is not tagged for screen readers. The CSV export in the AQG module contains the same findings in an accessible format.</p>
 
-            <div class="aqgp-page">
-                <bookmark content="Page screenshot" level="0" />
-                <table class="aqgp-section"><tr>
-                    <td>Page screenshot</td>
-                    <td class="aqgp-section__right">captured at scan time</td>
-                </tr></table>
-                <p class="aqgp-p aqgp-p--muted">Rendered view of the page as captured during the last frontend scan<f:if condition="{scanCompletedAt}"> ({scanCompletedAt})</f:if>.</p>
-                <f:if condition="{screenshotAvailable}">
-                    <f:then>
-                        <f:format.raw>{screenshotPlaceholder}</f:format.raw>
-                        <p class="aqgp-shot__cap">Captured at scan time · {relativeUrl}</p>
-                    </f:then>
-                    <f:else>
-                        <div class="aqgp-shot--empty">Screenshot not available.</div>
-                        <div class="aqgp-notice aqgp-notice--neutral"><span class="aqgp-notice__label">Note</span><p class="aqgp-notice__text">A screenshot may be unavailable when the page returned an HTTP error, blocked rendering, or the capture step was skipped. The findings below are still based on the completed automated checks.</p></div>
-                    </f:else>
-                </f:if>
-            </div>
-
-            <pagebreak />
-
-            <div class="aqgp-page">
-                <bookmark content="Findings" level="0" />
-                <table class="aqgp-section"><tr>
-                    <td>Findings</td>
-                    <td class="aqgp-section__right">{issuesShownLabel}</td>
-                </tr></table>
-                <p class="aqgp-p aqgp-p--muted">Compact PDF: showing up to 2 findings per issue group. Full node details are available in the HTML detail view and CSV export.</p>
-
-                <f:if condition="{hasIssues}">
-                    <f:then>
-                        <f:for each="{issues}" as="issue">
-                            <div class="aqgp-issue aqgp-issue--{issue.impact}">
-                                <table class="aqgp-issue__head"><tr>
-                                    <td><span class="aqgp-badge aqgp-badge--{issue.impact}">&nbsp;{issue.impactLabel}&nbsp;</span></td>
-                                    <td class="aqgp-issue__count"><div class="aqgp-issue__count-main">{issue.nodes_count} occurrences</div><div class="aqgp-issue__count-sub"><f:if condition="{issue.confidenceLabel}"><f:then>confidence: {issue.confidenceLabel}</f:then><f:else>automated finding</f:else></f:if></div></td>
-                                </tr></table>
-                                <p class="aqgp-issue__title">{issue.title}</p>
-                                <p class="aqgp-issue__rule">Rule: <b>{issue.rule_id}</b></p>
-                                <div class="aqgp-issue__meta">
-                                    <f:if condition="{issue.whoShouldFixLabel}"><span class="aqgp-chip">&nbsp;Owner: <strong>{issue.whoShouldFixLabel}</strong>&nbsp;</span></f:if>
-                                    <f:if condition="{issue.fixTypeLabel}"><span class="aqgp-chip">&nbsp;Fix type: <strong>{issue.fixTypeLabel}</strong>&nbsp;</span></f:if>
-                                    <f:if condition="{issue.confidenceLabel}"><span class="aqgp-chip">&nbsp;Confidence: <strong>{issue.confidenceLabel}</strong>&nbsp;</span></f:if>
-                                    <f:if condition="{issue.wcagCompactLabel}"><span class="aqgp-chip">&nbsp;<strong>{issue.wcagCompactLabel}</strong>&nbsp;</span></f:if>
-                                </div>
-                                <f:if condition="{issue.affectedUsersLabel}"><p class="aqgp-p aqgp-p--muted">Affected users: {issue.affectedUsersLabel}</p></f:if>
-                                <table class="aqgp-qa"><tr>
-                                    <td><p class="aqgp-qa__label">Why it matters</p><p class="aqgp-qa__text"><f:if condition="{issue.guidanceWhyItMatters}"><f:then>{issue.guidanceWhyItMatters}</f:then><f:else>Users may not be able to understand or operate this part of the page reliably.</f:else></f:if></p></td>
-                                    <td><p class="aqgp-qa__label">How to fix</p><p class="aqgp-qa__text aqgp-qa__text--fix">{issue.guidanceHowToFix}</p></td>
-                                </tr></table>
-
-                                <f:if condition="{issue.hasStandardsAndImpact}">
-                                    <div class="aqgp-block aqgp-block--compact">
-                                        <p class="aqgp-h3">Standards and impact</p>
-                                        <f:if condition="{issue.wcagReferences}">
-                                            <p class="aqgp-p"><strong>WCAG:</strong> <f:for each="{issue.wcagReferences}" as="wcag" iteration="wcagIterator">{wcag.label}<f:if condition="{wcagIterator.isLast}"><f:else>; </f:else></f:if></f:for></p>
-                                        </f:if>
-                                        <f:if condition="{issue.techniques}">
-                                            <p class="aqgp-p"><strong>Technique:</strong> <f:for each="{issue.techniques}" as="technique" iteration="techniqueIterator">{technique.label}<f:if condition="{techniqueIterator.isLast}"><f:else>; </f:else></f:if></f:for></p>
-                                        </f:if>
-                                        <f:if condition="{issue.standards}">
-                                            <p class="aqgp-p"><strong>Standards:</strong> <f:for each="{issue.standards}" as="standard" iteration="standardIterator">{standard}<f:if condition="{standardIterator.isLast}"><f:else>, </f:else></f:if></f:for></p>
-                                        </f:if>
-                                        <f:if condition="{issue.documentationLinks}">
-                                            <p class="aqgp-p"><strong>Rule documentation:</strong> <f:for each="{issue.documentationLinks}" as="doc" iteration="docIterator">{doc.label}<f:if condition="{docIterator.isLast}"><f:else>, </f:else></f:if></f:for></p>
-                                        </f:if>
-                                    </div>
-                                </f:if>
-
-                                <f:if condition="{issue.hasNodes}">
-                                    <div class="aqgp-findings">
-                                        <p class="aqgp-findings__label">Findings · {issue.pdfNodesShownLabel}</p>
-                                        <f:for each="{issue.nodes}" as="node">
-                                            <div class="aqgp-node">
-                                                <p class="aqgp-node__head">Finding #{node.index}</p>
-                                                <f:if condition="{node.failure_summary}"><div class="aqgp-node__row"><span class="aqgp-node__k">Failure summary</span><p class="aqgp-node__v">{node.failure_summary}</p></div></f:if>
-                                                <f:if condition="{node.html_snippet}"><div class="aqgp-node__row"><span class="aqgp-node__k">Snippet</span><pre class="aqgp-snippet">{node.html_snippet}</pre></div></f:if>
-                                                <f:if condition="{node.hasNodeRemediation}"><div class="aqgp-node__row"><span class="aqgp-node__k">Suggested remediation</span><p class="aqgp-node__v aqgp-node__v--rec">{node.nodeRemediation.summary}</p></div></f:if>
-                                                <f:if condition="{node.mappedRecord}"><div class="aqgp-node__row"><span class="aqgp-node__k">Mapped TYPO3 record</span><p class="aqgp-node__v aqgp-record">{node.mappedRecord}</p></div></f:if>
-                                            </div>
-                                        </f:for>
-                                    </div>
-                                </f:if>
-                            </div>
-                        </f:for>
-                    </f:then>
-                    <f:else>
-                        <f:if condition="{issueDetailsUnavailable}"><f:then><div class="aqgp-notice aqgp-notice--warning"><span class="aqgp-notice__label">Issue details unavailable</span><p class="aqgp-notice__text">The page summary reports {pageSummaryIssuesCount} automated findings, but no detailed issue rows are available for this page. Re-run the scan or check remote issue persistence.</p></div></f:then><f:else><div class="aqgp-notice aqgp-notice--neutral"><span class="aqgp-notice__label">No findings</span><p class="aqgp-notice__text">No automated findings were stored for this page scan. Manual review may still be required.</p></div></f:else></f:if>
-                    </f:else>
-                </f:if>
-            </div>
-
-            <pagebreak />
-
-            <div class="aqgp-page">
-                <bookmark content="Report and audit support" level="0" />
-                <table class="aqgp-section"><tr>
-                    <td>Report &amp; audit support</td>
-                    <td class="aqgp-section__right">appendix</td>
-                </tr></table>
-                <p class="aqgp-p aqgp-p--muted">The mapping below is provided as reporting context only. It links automated findings to commonly referenced criteria and does not confirm compliance.</p>
-
-                <f:if condition="{wcagSummary}">
-                    <table class="aqgp-table aqgp-mt-s">
-                        <colgroup><col style="width:26%" /><col style="width:18%" /><col style="width:16%" /><col style="width:40%" /></colgroup>
-                        <thead><tr><th>Criterion</th><th>Level</th><th class="aqgp-num">Findings</th><th>Report support note</th></tr></thead>
-                        <tbody>
-                        <f:for each="{wcagSummary}" as="criterion">
-                            <tr>
-                                <td class="aqgp-mono">{criterion.criterion}</td>
-                                <td>{criterion.level}</td>
-                                <td class="aqgp-num">{criterion.issuesTotal}</td>
-                                <td><f:if condition="{criterion.label}"><f:then>{criterion.label}</f:then><f:else>Reporting context for automated findings.</f:else></f:if></td>
+            <bookmark content="Findings" level="0" />
+            <f:if condition="{hasIssues}">
+                <f:then>
+                    <f:for each="{issues}" as="issue" iteration="issueIteration">
+                        <f:comment>Header and first occurrence stay together; the remaining rows continue on the same five fixed-width
+                            columns, so every occurrence lines up and long groups may break across pages.</f:comment>
+                        <table class="aqr-rule aqr-grid" autosize="1">
+                            <f:if condition="{issueIteration.isFirst}">
+                                <tr><td colspan="5"><p class="aqr-h2 aqr-h2--group">Findings <span class="aqr-h2__note">· grouped by issue type, most severe first</span></p></td></tr>
+                            </f:if>
+                            <tr class="aqr-rule__head">
+                                <td class="aqr-rule__no aqr-grid__no" style="width:8mm">{issue.number}</td>
+                                <td class="aqr-rule__title" colspan="4">{issue.title}</td>
                             </tr>
-                        </f:for>
-                        </tbody>
-                    </table>
-                </f:if>
+                            <tr>
+                                <td class="aqr-grid__no" style="width:8mm"></td>
+                                <td class="aqr-rule__meta" colspan="4"><f:render partial="Export/PdfSeverity" arguments="{tone: issue.impactTone, label: issue.impactWord}" /> · {issue.countLabel}<f:if condition="{issue.wcagCompactLabel}"> · {issue.wcagCompactLabel}</f:if><f:if condition="{issue.whoShouldFixLabel}"> · {issue.whoShouldFixLabel}</f:if><f:if condition="{issue.fixTypeLabel}"> · {issue.fixTypeLabel} fix</f:if> · <code>{issue.rule_id}</code></td>
+                            </tr>
+                            <tr><td class="aqr-grid__no" style="width:8mm"></td><td class="aqr-rule__fix" colspan="4"><b>How to fix:</b> {issue.guidanceHowToFix}</td></tr>
+                            <f:if condition="{issue.guidanceWhyItMatters}">
+                                <tr><td class="aqr-grid__no" style="width:8mm"></td><td class="aqr-rule__why" colspan="4">Why it matters: {issue.guidanceWhyItMatters}</td></tr>
+                            </f:if>
+                            <f:if condition="{issue.firstNodes}">
+                                <tr class="aqr-grid__headrow">
+                                    <td class="aqr-grid__no" style="width:8mm"></td>
+                                    <th class="aqr-grid__idx" style="width:11mm">#</th>
+                                    <th class="aqr-grid__where" style="width:46mm">Where</th>
+                                    <th class="aqr-grid__snippet" style="width:66mm">Snippet</th>
+                                    <th>Why it failed</th>
+                                </tr>
+                                <f:for each="{issue.firstNodes}" as="node"><f:render section="Node" arguments="{node: node}" /></f:for>
+                            </f:if>
+                        </table>
+                        <f:if condition="{issue.moreNodes}">
+                            <table class="aqr-grid aqr-grid--continued" autosize="1">
+                                <f:for each="{issue.moreNodes}" as="node"><f:render section="Node" arguments="{node: node}" /></f:for>
+                            </table>
+                        </f:if>
+                        <f:if condition="{issue.moreNodesCount}">
+                            <p class="aqr-more" style="margin-left:8mm;">+ {issue.moreNodesCount} more in the CSV export.</p>
+                        </f:if>
+                    </f:for>
+                    <f:if condition="{moreIssueGroups}">
+                        <p class="aqr-box">{moreIssueGroups} more issue types are listed in the CSV export.</p>
+                    </f:if>
+                </f:then>
+                <f:else>
+                    <f:if condition="{issueDetailsUnavailable}">
+                        <f:then><p class="aqr-box"><b>Issue details unavailable.</b> The page summary reports {pageSummaryIssuesCount} automated findings, but no detailed issue rows are stored for this page. Scan the page again.</p></f:then>
+                        <f:else>
+                            <f:if condition="{hasFailure}">
+                                <f:then><p class="aqr-box"><b>Not checked.</b> The page did not load during the scan (HTTP {httpStatusLabel}), so no accessibility checks ran. This is not a clean result: fix the page or its URL, then scan it again.</p></f:then>
+                                <f:else><p class="aqr-box"><b>No automated findings.</b> The frontend checks returned no issue types for this page. Manual review may still be required.</p></f:else>
+                            </f:if>
+                        </f:else>
+                    </f:if>
+                </f:else>
+            </f:if>
 
-                <div class="aqgp-disclaimer aqgp-mt-m">
-                    <p class="aqgp-disclaimer__label">Audit support notes</p>
-                    <p class="aqgp-disclaimer__text">This report is generated from <strong>automated frontend checks</strong>. It is intended as a reporting aid and does not confirm WCAG, BFSG, BITV or EAA compliance.</p>
-                    <p class="aqgp-disclaimer__text">Manual review may still be required for keyboard navigation, screen reader behaviour, focus order, content clarity and legal interpretation.</p>
-                    <p class="aqgp-disclaimer__text">WCAG / BFSG / BITV mapping in this appendix is report support, not compliance confirmation.</p>
-                </div>
-                <p class="aqgp-footnote">Automated checks support accessibility work but do not replace manual review.</p>
-            </div>
+            <f:if condition="{showFullScreenshot}">
+                <bookmark content="Screenshot" level="0" />
+                <table class="aqr-keep" autosize="1">
+                    <tr><td><p class="aqr-h2">Screenshot</p><p class="aqr-muted">The page as rendered during the scan, {scanCompletedAt}. <f:if condition="{screenshotNumbered}"><f:then>Each outline is numbered with its issue group in this report.</f:then><f:else>This capture predates numbered outlines: its box labels follow the crawler's own count, not the issue groups of this report.</f:else></f:if></p></td></tr>
+                    <tr><td class="aqr-shotbox__image"><img src="var:{screenshotVar}" style="width:182mm;" alt="Page screenshot" /></td></tr>
+                </table>
+            </f:if>
+
+            <bookmark content="About this report" level="0" />
+            <table class="aqr-keep" autosize="1">
+                <f:if condition="{wcagSummary}">
+                    <tr><td>
+                        <p class="aqr-h2">About this report</p>
+                        <table class="aqr-table" autosize="1">
+                            <thead><tr><th style="width:62mm">WCAG criterion</th><th style="width:16mm">Level</th><th class="aqr-num" style="width:16mm">Occ.</th><th class="aqr-gap">Reporting note</th></tr></thead>
+                            <tbody>
+                            <f:for each="{wcagSummary}" as="criterion">
+                                <tr>
+                                    <td>{criterion.criterion}</td>
+                                    <td>{criterion.level}</td>
+                                    <td class="aqr-num">{criterion.issuesTotal}</td>
+                                    <td class="aqr-gap"><f:if condition="{criterion.label}"><f:then>{criterion.label}</f:then><f:else>Reporting context for automated findings.</f:else></f:if></td>
+                                </tr>
+                            </f:for>
+                            </tbody>
+                        </table>
+                    </td></tr>
+                </f:if>
+                <tr><td class="aqr-keep__note"><f:if condition="{wcagSummary}"><f:else><b>About this report.</b> </f:else></f:if>Automated frontend checks of one page, run in a real browser on the AQG service; the automated signal summarises these checks only. The WCAG mapping is reporting context only. Manual review is still required for keyboard order, screen reader behaviour, focus, content clarity and legal interpretation. Automated checks support accessibility work; this report does not confirm WCAG, BFSG, BITV or EAA compliance.</td></tr>
+            </table>
         </f:then>
         <f:else>
-            <div class="aqgp-cover">
-                <table class="aqgp-brand-table"><tr><td><p class="aqgp-brandblock__mark">AQG</p><p class="aqgp-brandblock__name">Accessibility Quality Gate</p><hr class="aqgp-brandblock__rule" /></td></tr></table>
-                <p class="aqgp-eyebrow">Frontend page accessibility report</p>
-                <h1 class="aqgp-cover__title">Frontend Page Detail</h1>
-                <div class="aqgp-notice aqgp-notice--neutral"><span class="aqgp-notice__label">Page not found</span><p class="aqgp-notice__text">The requested frontend page scan could not be found.</p></div>
-            </div>
+            <bookmark content="Summary" level="0" />
+            <p class="aqr-title">Frontend page report</p>
+            <p class="aqr-box"><b>Page not found.</b> The requested frontend page scan could not be found.</p>
+            <p class="aqr-note">This PDF is a visual report and is not tagged for screen readers. The CSV export in the AQG module contains the same findings in an accessible format.</p>
         </f:else>
     </f:if>
+</f:section>
+
+<f:section name="Node">
+    <tr class="aqr-grid__row">
+        <td class="aqr-grid__no" style="width:8mm"></td>
+        <td class="aqr-grid__idx" style="width:11mm">{node.index}</td>
+        <td class="aqr-grid__where" style="width:46mm">{node.whereTitle}<f:if condition="{node.whereContext}"><br /><span class="aqr-cell-sub">{node.whereContext}</span></f:if></td>
+        <td class="aqr-grid__snippet" style="width:66mm"><span class="aqr-snippet">{node.snippet}</span></td>
+        <td class="aqr-grid__cell aqr-cell-sub">{node.whyFailed}</td>
+    </tr>
 </f:section>

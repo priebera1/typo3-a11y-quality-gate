@@ -254,6 +254,38 @@ final class RemoteIssueRepository extends AbstractRepository
 
 
     /**
+     * The crawler fingerprints of every stored issue of a scan (ignored ones included: ignoring is an editor decision,
+     * not a change of the page). Null when a stored issue has no fingerprint — such a scan cannot be compared.
+     *
+     * @return array<string, true>|null fingerprint => true
+     */
+    public function findFingerprintsForScan(int $remoteScanUid): ?array
+    {
+        if ($remoteScanUid <= 0) {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+        $rows = $queryBuilder
+            ->select('fingerprint')
+            ->from(Tables::REMOTE_ISSUE)
+            ->where($queryBuilder->expr()->eq('remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        $fingerprints = [];
+        foreach ($rows as $fingerprint) {
+            $fingerprint = trim((string)$fingerprint);
+            if ($fingerprint === '') {
+                return null;
+            }
+            $fingerprints[$fingerprint] = true;
+        }
+
+        return $fingerprints;
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function findIssueRowsForRemoteScan(int $remoteScanUid): array
@@ -311,6 +343,149 @@ final class RemoteIssueRepository extends AbstractRepository
             ->addOrderBy('uid', 'ASC')
             ->executeQuery()
             ->fetchAllAssociative();
+    }
+
+    /**
+     * Occurrences per stored frontend page: the summed node counts of its issues. An issue stored without nodes still
+     * counts as one occurrence.
+     *
+     * @param list<int> $remoteScanPageUids
+     * @return array<int, int> remote_scan_page uid => occurrences
+     */
+    public function countOccurrencesByRemoteScanPage(array $remoteScanPageUids): array
+    {
+        $uids = array_values(array_unique(array_filter(
+            array_map('intval', $remoteScanPageUids),
+            static fn (int $uid): bool => $uid > 0
+        )));
+        if ($uids === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+        $rows = $queryBuilder
+            ->select('remote_scan_page')
+            ->addSelectLiteral('SUM(CASE WHEN nodes_count > 0 THEN nodes_count ELSE 1 END) AS occurrences')
+            ->from(Tables::REMOTE_ISSUE)
+            ->where(
+                $queryBuilder->expr()->in(
+                    'remote_scan_page',
+                    $queryBuilder->createNamedParameter($uids, Connection::PARAM_INT_ARRAY)
+                )
+            )
+            ->groupBy('remote_scan_page')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $occurrences = [];
+        foreach ($rows as $row) {
+            $occurrences[(int)($row['remote_scan_page'] ?? 0)] = (int)($row['occurrences'] ?? 0);
+        }
+
+        return $occurrences;
+    }
+
+    /**
+     * Stored occurrences of a frontend scan per issue type: one row per rule with its strongest impact, occurrences
+     * (failing elements) and affected pages. The sum over all rows is the scan's stored occurrence total.
+     *
+     * @return list<array{ruleId: string, impact: string, occurrences: int, pages: int, help: string, plainTitle: string}>
+     */
+    public function summarizeIssueTypesForScan(int $remoteScanUid): array
+    {
+        if ($remoteScanUid <= 0) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+        $rows = $queryBuilder
+            ->select('rule_id', 'impact')
+            ->addSelectLiteral(
+                'SUM(CASE WHEN nodes_count > 0 THEN nodes_count ELSE 1 END) AS occurrences',
+                'COUNT(DISTINCT remote_scan_page) AS pages',
+                'MAX(help) AS help',
+                'MAX(plain_language_title) AS plain_title'
+            )
+            ->from(Tables::REMOTE_ISSUE)
+            ->where(
+                $queryBuilder->expr()->eq('remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT))
+            )
+            ->groupBy('rule_id', 'impact')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        // A rule reported with two impacts on different pages is one issue type under its strongest impact.
+        $rank = ['critical' => 4, 'serious' => 3, 'moderate' => 2, 'minor' => 1];
+        $types = [];
+        foreach ($rows as $row) {
+            $ruleId = (string)($row['rule_id'] ?? '');
+            $impact = strtolower(trim((string)($row['impact'] ?? '')));
+            $type = $types[$ruleId] ?? ['ruleId' => $ruleId, 'impact' => $impact, 'occurrences' => 0, 'pages' => 0, 'help' => '', 'plainTitle' => ''];
+            if (($rank[$impact] ?? 0) > ($rank[$type['impact']] ?? 0)) {
+                $type['impact'] = $impact;
+            }
+            $type['occurrences'] += (int)($row['occurrences'] ?? 0);
+            $type['pages'] = max($type['pages'], (int)($row['pages'] ?? 0));
+            $type['help'] = $type['help'] !== '' ? $type['help'] : trim((string)($row['help'] ?? ''));
+            $type['plainTitle'] = $type['plainTitle'] !== '' ? $type['plainTitle'] : trim((string)($row['plain_title'] ?? ''));
+            $types[$ruleId] = $type;
+        }
+
+        $types = array_values($types);
+        usort(
+            $types,
+            static fn (array $a, array $b): int => [($rank[$b['impact']] ?? 0), $b['occurrences'], $a['ruleId']]
+                <=> [($rank[$a['impact']] ?? 0), $a['occurrences'], $b['ruleId']]
+        );
+
+        return $types;
+    }
+
+    /**
+     * @return array<string, int> stored occurrences of a frontend scan per raw impact value
+     */
+    public function countOccurrencesByImpactForScan(int $remoteScanUid): array
+    {
+        if ($remoteScanUid <= 0) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+        $rows = $queryBuilder
+            ->select('impact')
+            ->addSelectLiteral('SUM(CASE WHEN nodes_count > 0 THEN nodes_count ELSE 1 END) AS occurrences')
+            ->from(Tables::REMOTE_ISSUE)
+            ->where(
+                $queryBuilder->expr()->eq('remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT))
+            )
+            ->groupBy('impact')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $occurrences = [];
+        foreach ($rows as $row) {
+            $occurrences[(string)($row['impact'] ?? '')] = (int)($row['occurrences'] ?? 0);
+        }
+
+        return $occurrences;
+    }
+
+    public function countIssueTypesForScan(int $remoteScanUid): int
+    {
+        if ($remoteScanUid <= 0) {
+            return 0;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+
+        return (int)$queryBuilder
+            ->addSelectLiteral('COUNT(DISTINCT rule_id)')
+            ->from(Tables::REMOTE_ISSUE)
+            ->where(
+                $queryBuilder->expr()->eq('remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchOne();
     }
 
     public function findOneByUid(int $uid): ?array

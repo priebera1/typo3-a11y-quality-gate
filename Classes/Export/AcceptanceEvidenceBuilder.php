@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Export;
 
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Service\ScanComparisonService;
+use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Site\Entity\Site;
 
@@ -29,6 +31,7 @@ final class AcceptanceEvidenceBuilder
         private readonly ScanComparisonService $scanComparisonService,
         private readonly PdfTemplateRenderer $pdfTemplateRenderer,
         private readonly PdfGenerator $pdfGenerator,
+        private readonly ?RuleMetadataPresentationService $ruleMetadataPresentationService = null,
     ) {
     }
 
@@ -74,13 +77,48 @@ final class AcceptanceEvidenceBuilder
      */
     public function renderPdf(array $evidence, ?ServerRequestInterface $request = null): string
     {
+        $title = fn (string $ruleId): string => $this->ruleMetadataPresentationService?->friendlyTitleForRule($ruleId) ?? '';
+        $base = (string)$evidence['site']['base'];
+        $rows = [];
+        foreach (['fixed', 'new', 'regressed', 'unresolved', 'unverified'] as $bucket) {
+            $rows[$bucket] = self::pdfRows($evidence[$bucket], $base, $title);
+        }
+
         $html = $this->pdfTemplateRenderer->render(
             templateName: 'Export/AcceptanceEvidencePdf',
-            variables: ['evidence' => $evidence],
+            variables: ['evidence' => $evidence, 'rows' => $rows],
             request: $request,
         );
 
         return $this->pdfGenerator->render($html, 'Accessibility acceptance evidence — ' . $evidence['site']['identifier']);
+    }
+
+    /**
+     * PDF presentation of comparison entries, in the shared print system: the URL as a path of the site named in the
+     * header, the plain rule title, and impact as icon + word. The CSV keeps the raw URL, rule ID and impact.
+     *
+     * @param list<array<string, mixed>> $entries
+     * @param \Closure(string): string $title plain title for a rule ID, '' when none is known
+     * @return list<array<string, mixed>>
+     */
+    public static function pdfRows(array $entries, string $siteBase, \Closure $title): array
+    {
+        $siteBase = rtrim($siteBase, '/');
+
+        return array_map(static function (array $entry) use ($siteBase, $title): array {
+            $url = (string)($entry['url'] ?? '');
+            $ruleId = (string)($entry['ruleId'] ?? '');
+            $impact = strtolower(trim((string)($entry['impact'] ?? '')));
+            $tone = in_array($impact, ['critical', 'serious', 'moderate', 'minor'], true) ? $impact : 'none';
+            $plainTitle = $ruleId !== '' ? trim($title($ruleId)) : '';
+
+            return $entry + [
+                'path' => $siteBase !== '' && str_starts_with($url, $siteBase . '/') ? substr($url, strlen($siteBase)) : $url,
+                'title' => $plainTitle !== '' ? $plainTitle : $ruleId,
+                'impactTone' => $tone,
+                'impactWord' => $tone === 'none' ? 'Not rated' : ucfirst($tone),
+            ];
+        }, $entries);
     }
 
     /**
@@ -173,8 +211,6 @@ final class AcceptanceEvidenceBuilder
             return '—';
         }
 
-        return (new \DateTimeImmutable('@' . $timestamp))
-            ->setTimezone(new \DateTimeZone(date_default_timezone_get()))
-            ->format('d M Y · H:i T');
+        return BackendTimeUtility::formatDateTime($timestamp, 'j M Y, H:i T');
     }
 }

@@ -38,7 +38,7 @@
                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.trial.featuresTitle" default="Trial limits" />
                         </div>
                         <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxPages" default="Max 10 pages per frontend scan" /></div>
-                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxScans" default="Max 5 scans per day" /></div>
+                        <div class="aqg-licence-status__feature"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'check'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxScans" default="Max 5 scans in the last 24 hours" /></div>
                         <div class="aqg-licence-status__feature aqg-licence-status__feature--off"><span class="aqg-licence-status__feature-mark"><f:render partial="Settings/Icon" arguments="{name: 'minus'}" /></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.paidOnly" default="PDF export, AI suggestions and the Statement Assistant are not part of the trial" /></div>
                     </div>
 
@@ -71,7 +71,7 @@
                                     <dd data-aqg-licence-domains-total="true" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.activeDomainsAcrossProjects', default: '%s across all projects')}" hidden></dd>
                                 </f:if>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
-                                <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>
+                                <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.noEndDate" default="No end date" /></f:else></f:if></dd>
                             </dl>
                             <div class="aqg-licence-status__features">
                                 <div class="aqg-licence-status__features-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.original.featuresTitle" default="Included" /></div>
@@ -98,7 +98,7 @@
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domain" default="Domain" /></dt>
                                 <dd><f:if condition="{proStatus.domain}"><f:then>{proStatus.domain}</f:then><f:else>—</f:else></f:if></dd>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.expires" default="Expires" /></dt>
-                                <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else>—</f:else></f:if></dd>
+                                <dd><f:if condition="{proStatus.expiresAt}"><f:then>{proStatus.expiresAt -> f:format.date(format:'d.m.Y')}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.noEndDate" default="No end date" /></f:else></f:if></dd>
                                 <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.seats" default="Seats" /></dt>
                                 <dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.unlimitedEditors" default="Unlimited editors" /></dd>
                             </dl>

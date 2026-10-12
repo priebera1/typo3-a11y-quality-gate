@@ -5,9 +5,6 @@
 <div
         class="tab-pane fade{f:if(condition: '{activeTab} == ''rules''', then: ' show active')}"
         id="a11y-settings-pane-rules"
-        role="tabpanel"
-        aria-labelledby="a11y-settings-tab-rules"
-        tabindex="0"
 >
     <form
             method="post"
@@ -125,7 +122,7 @@
                     <f:for each="{rulesManagement.groups}" as="group">
                         <details class="aqg-rgroup" data-a11y-rule-group="true" data-group-key="{group.key}">
                             <summary class="aqg-rgroup__head">
-                                <span class="aqg-rgroup__chev" aria-hidden="true">›</span>
+                                <span class="aqg-rgroup__chev" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'chevr', size: 'sm'}" /></span>
                                 <span class="aqg-rgroup__title-block">
                                     <span class="aqg-rgroup__title">{group.title}</span>
                                     <span class="aqg-rgroup__sub">{group.subtitle}</span>
@@ -208,7 +205,7 @@
             <header class="aqg-card__head aqg-card__head--quiet">
                 <div>
                     <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.title" default="Rendered page check" /></h3>
-                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.text" default="Controls the FREE, manual HTML-only rendered check used by Scan this page and manual Scan site actions." /></p>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.text" default="The rendered check of Content scans (Scan this page, Scan site): TYPO3 requests each page like an anonymous visitor and checks the returned HTML. It does not send the Scanner Token, so hidden and access-restricted pages are not checked here; a Frontend scan can check them." /></p>
                 </div>
             </header>
 

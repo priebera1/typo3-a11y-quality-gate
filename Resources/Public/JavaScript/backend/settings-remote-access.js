@@ -5,6 +5,9 @@ class AqgRemoteAccessSettings {
     this.testHttpAuthUrl = form.dataset.testHttpAuthUrl || '';
     this.rulesetSiteInput = form.querySelector('input[name="rulesetSite"]');
     this.tokenPresent = form.querySelector('.js-aqg-token-present');
+    this.tokenStored = form.querySelector('.js-aqg-token-stored');
+    this.tokenWarning = form.querySelector('.js-aqg-token-warning');
+    this.hasToken = form.dataset.hasToken === '1';
     this.tokenEmpty = form.querySelector('.js-aqg-token-empty');
     this.tokenValue = form.querySelector('.js-aqg-token-value');
     this.tokenSuccess = form.querySelector('.js-aqg-token-success');
@@ -104,7 +107,7 @@ class AqgRemoteAccessSettings {
       this.restoreButton(
         this.regenerateButton,
         this.regenerateLabel,
-        this.tokenValue?.textContent?.trim()
+        this.hasToken
           ? this.label('labelRegenerate', 'Regenerate token')
           : this.label('labelGenerate', 'Generate token')
       );
@@ -148,12 +151,19 @@ class AqgRemoteAccessSettings {
     }
   }
 
+  /**
+   * Just generated: the masked value and a Copy action for this page view only. The stored state ("Active, never
+   * shown again") and the empty state step aside; the regenerate warning applies from now on.
+   */
   updateToken(maskedToken, fullToken) {
+    this.hasToken = true;
     if (this.tokenValue) {
       this.tokenValue.textContent = maskedToken;
     }
     this.tokenPresent?.removeAttribute('hidden');
+    this.tokenStored?.setAttribute('hidden', 'hidden');
     this.tokenEmpty?.setAttribute('hidden', 'hidden');
+    this.tokenWarning?.removeAttribute('hidden');
     if (this.regenerateLabel) {
       this.regenerateLabel.textContent = this.label('labelRegenerate', 'Regenerate token');
     }

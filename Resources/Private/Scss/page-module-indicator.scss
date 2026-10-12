@@ -48,6 +48,17 @@
   --aqg-indicator-none-border: light-dark(oklch(0.88 0 0), #3a4047);
   --aqg-indicator-focus: oklch(0.62 0.16 245);
   --aqg-indicator-focus: light-dark(oklch(0.62 0.16 245), #56b9f4);
+  // Text colours of the tones: AA on the panel surface at 12-13px (the fill tones above are for dots and borders).
+  --aqg-indicator-ok-text: #1c7444;
+  --aqg-indicator-ok-text: light-dark(#1c7444, #82d8a4);
+  --aqg-indicator-warning-text: #7a5200;
+  --aqg-indicator-warning-text: light-dark(#7a5200, #f1c35e);
+  --aqg-indicator-error-text: #b42318;
+  --aqg-indicator-error-text: light-dark(#b42318, #ff958a);
+  --aqg-indicator-running-text: #1d5ca3;
+  --aqg-indicator-running-text: light-dark(#1d5ca3, #8fc3ff);
+  --aqg-indicator-review-text: #6a3db3;
+  --aqg-indicator-review-text: light-dark(#6a3db3, #c8aaff);
   --aqg-indicator-radius: 6px;
   --aqg-indicator-radius-sm: 4px;
   --aqg-indicator-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -62,7 +73,6 @@
   margin: 0 0 12px;
   overflow: hidden;
   border: 1px solid var(--aqg-indicator-border);
-  border-left-width: 3px;
   border-radius: var(--aqg-indicator-radius);
   background: var(--aqg-indicator-surface);
   color: var(--aqg-indicator-fg);
@@ -109,14 +119,17 @@
   --aqg-indicator-none-bg: #25292e;
   --aqg-indicator-none-border: #3a4047;
   --aqg-indicator-focus: oklch(0.78 0.16 245);
+  --aqg-indicator-ok-text: #82d8a4;
+  --aqg-indicator-warning-text: #f1c35e;
+  --aqg-indicator-error-text: #ff958a;
+  --aqg-indicator-running-text: #8fc3ff;
+  --aqg-indicator-review-text: #c8aaff;
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
-  [data-theme="auto"] .aqg-page-module-indicator,
-  [data-theme="auto"] .aqg-page-module-badge,
-  [data-color-scheme="auto"] .aqg-page-module-indicator,
-  [data-color-scheme="auto"] .aqg-page-module-badge {
+  html:not([data-color-scheme="light"]) .aqg-page-module-indicator,
+  html:not([data-color-scheme="light"]) .aqg-page-module-badge {
     --aqg-indicator-surface: #1c2128;
     --aqg-indicator-surface-2: #232931;
     --aqg-indicator-border: #2d343d;
@@ -141,6 +154,11 @@
     --aqg-indicator-none-bg: #25292e;
     --aqg-indicator-none-border: #3a4047;
     --aqg-indicator-focus: oklch(0.78 0.16 245);
+    --aqg-indicator-ok-text: #82d8a4;
+    --aqg-indicator-warning-text: #f1c35e;
+    --aqg-indicator-error-text: #ff958a;
+    --aqg-indicator-running-text: #8fc3ff;
+    --aqg-indicator-review-text: #c8aaff;
     color-scheme: dark;
   }
 }
@@ -152,11 +170,6 @@
   box-sizing: border-box;
 }
 
-.aqg-page-module-indicator--ok { border-left-color: var(--aqg-indicator-ok); }
-.aqg-page-module-indicator--warning { border-left-color: var(--aqg-indicator-warning); }
-.aqg-page-module-indicator--error { border-left-color: var(--aqg-indicator-error); }
-.aqg-page-module-indicator--none { border-left-color: var(--aqg-indicator-none); }
-.aqg-page-module-indicator--running { border-left-color: var(--aqg-indicator-running); }
 
 .aqg-page-module-indicator__header {
   display: flex;
@@ -171,12 +184,10 @@
 .aqg-page-module-indicator__title {
   min-width: 0;
   margin: 0;
-  color: var(--aqg-indicator-fg-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  color: var(--aqg-indicator-fg);
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.2;
-  text-transform: uppercase;
 }
 
 .aqg-page-module-indicator__status-pill {
@@ -184,13 +195,12 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px 3px 6px;
+  padding: 3px 7px 3px 6px;
   border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: 5px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
@@ -211,19 +221,19 @@
 }
 
 .aqg-page-module-indicator--ok .aqg-page-module-indicator__status-pill {
-  color: var(--aqg-indicator-ok);
+  color: var(--aqg-indicator-ok-text);
   background: var(--aqg-indicator-ok-bg);
   border-color: var(--aqg-indicator-ok-border);
 }
 
 .aqg-page-module-indicator--warning .aqg-page-module-indicator__status-pill {
-  color: var(--aqg-indicator-warning);
+  color: var(--aqg-indicator-warning-text);
   background: var(--aqg-indicator-warning-bg);
   border-color: var(--aqg-indicator-warning-border);
 }
 
 .aqg-page-module-indicator--error .aqg-page-module-indicator__status-pill {
-  color: var(--aqg-indicator-error);
+  color: var(--aqg-indicator-error-text);
   background: var(--aqg-indicator-error-bg);
   border-color: var(--aqg-indicator-error-border);
 }
@@ -235,7 +245,7 @@
 }
 
 .aqg-page-module-indicator--running .aqg-page-module-indicator__status-pill {
-  color: var(--aqg-indicator-running);
+  color: var(--aqg-indicator-running-text);
   background: var(--aqg-indicator-running-bg);
   border-color: var(--aqg-indicator-running-border);
 }
@@ -284,6 +294,30 @@
   line-height: 1.25;
 }
 
+.aqg-page-module-indicator__counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.aqg-page-module-indicator__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.aqg-page-module-indicator__count--critical { color: var(--aqg-indicator-error-text); }
+.aqg-page-module-indicator__count--warning { color: var(--aqg-indicator-warning-text); }
+.aqg-page-module-indicator__count--info { color: var(--aqg-indicator-running-text); }
+.aqg-page-module-indicator__count--review { color: var(--aqg-indicator-review-text); }
+
+// A count row keeps the fg colour; its items carry their own tone.
+.aqg-page-module-indicator__status-row--error .aqg-page-module-indicator__status-value:has(.aqg-page-module-indicator__counts),
+.aqg-page-module-indicator__status-row--warning .aqg-page-module-indicator__status-value:has(.aqg-page-module-indicator__counts) {
+  color: var(--aqg-indicator-fg);
+}
+
 .aqg-page-module-indicator__status-value span {
   overflow: visible;
   text-overflow: clip;
@@ -292,19 +326,19 @@
 }
 
 .aqg-page-module-indicator__status-row--ok .aqg-page-module-indicator__status-value {
-  color: var(--aqg-indicator-ok);
+  color: var(--aqg-indicator-ok-text);
 }
 
 .aqg-page-module-indicator__status-row--warning .aqg-page-module-indicator__status-value {
-  color: var(--aqg-indicator-warning);
+  color: var(--aqg-indicator-warning-text);
 }
 
 .aqg-page-module-indicator__status-row--error .aqg-page-module-indicator__status-value {
-  color: var(--aqg-indicator-error);
+  color: var(--aqg-indicator-error-text);
 }
 
 .aqg-page-module-indicator__status-row--running .aqg-page-module-indicator__status-value {
-  color: var(--aqg-indicator-running);
+  color: var(--aqg-indicator-running-text);
 }
 
 .aqg-page-module-indicator__status-row--none .aqg-page-module-indicator__status-value {
@@ -463,9 +497,8 @@
 }
 
 .aqg-page-module-indicator__meta {
-  color: var(--aqg-indicator-fg-subtle);
-  font-family: var(--aqg-indicator-mono);
-  font-size: 11px;
+  color: var(--aqg-indicator-fg-muted);
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -511,16 +544,13 @@ p.aqg-page-module-indicator__meta:empty {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 16px;
-  padding: 2px 5px;
-  border: 1px solid var(--aqg-indicator-border);
-  border-radius: 3px;
-  background: transparent;
+  min-height: 18px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--aqg-indicator-none-bg);
   color: var(--aqg-indicator-fg);
-  font-family: var(--aqg-indicator-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
   line-height: 1;
 }
 
@@ -620,19 +650,14 @@ p.aqg-page-module-indicator__meta:empty {
   }
 }
 
-.aqg-page-module-indicator--completed,
 .aqg-page-module-indicator--completed .aqg-page-module-indicator__status-pill {
-  border-left-color: var(--aqg-indicator-ok);
-}
-
-.aqg-page-module-indicator--completed .aqg-page-module-indicator__status-pill {
-  color: var(--aqg-indicator-ok);
+  color: var(--aqg-indicator-ok-text);
   background: var(--aqg-indicator-ok-bg);
   border-color: var(--aqg-indicator-ok-border);
 }
 
 .aqg-page-module-indicator__status-row--completed .aqg-page-module-indicator__status-value {
-  color: var(--aqg-indicator-ok);
+  color: var(--aqg-indicator-ok-text);
 }
 
 .aqg-page-module-indicator__progress--completed {

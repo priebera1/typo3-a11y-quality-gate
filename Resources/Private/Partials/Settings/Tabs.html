@@ -1,95 +1,73 @@
-<nav class="aqg-tabs" role="tablist" aria-label="{f:translate(key:'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.ariaLabel', default:'Settings sections')}">
-    <a
-            class="aqg-tab{f:if(condition: '{activeTab} == \'licence\'', then: ' is-active active')}"
-            href="{settingsTabUrls.licence}"
-            role="tab"
-            aria-selected="{settingsTabSelected.licence}"
-            aria-current="{f:if(condition: '{activeTab} == \'licence\'', then: 'page', else: '')}"
-    >
-        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.licence" default="Licence" /></span>
-        <f:if condition="{proStatus.valid}">
-            <f:then>
-                <f:if condition="{proStatus.isTrial}">
-                    <f:then><span class="aqg-tab__badge aqg-tab__badge--trial">TRIAL</span></f:then>
-                    <f:else>
-                        <f:if condition="{proStatus.hasMultiSite}">
-                            <f:then><span class="aqg-tab__badge aqg-tab__badge--agency">AGENCY</span></f:then>
-                            <f:else><span class="aqg-tab__badge aqg-tab__badge--pro">PRO</span></f:else>
-                        </f:if>
-                    </f:else>
-                </f:if>
-            </f:then>
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<nav class="aqg-tabs" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.ariaLabel', default: 'Settings sections')}" data-aqg-settings-nav="true">
+    <ul class="aqg-tabs__list">
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'licence\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.licence}"
+                    aria-current="{settingsTabCurrent.licence}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.licence" default="Licence" /></span>
+            </a>
+        </li>
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'fields\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.fields}"
+                    aria-current="{settingsTabCurrent.fields}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.scanFields" default="Scan fields" /></span>
+            </a>
+        </li>
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'rules\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.rules}"
+                    aria-current="{settingsTabCurrent.rules}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.rules" default="Rules" /></span>
+            </a>
+        </li>
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'gate\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.gate}"
+                    aria-current="{settingsTabCurrent.gate}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.qualityGate" default="Quality gate" /></span>
+            </a>
+        </li>
+        <f:if condition="{isAdmin}">
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'remote_access\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.remote_access}"
+                    aria-current="{settingsTabCurrent.remote_access}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.remoteAccess" default="Remote scan access" /></span>
+                <span class="aqg-tab__lock"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /><span class="visually-hidden"> (<f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.adminOnly" default="administrators only" />)</span></span>
+            </a>
+        </li>
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'ai\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.ai}"
+                    aria-current="{settingsTabCurrent.ai}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.ai" default="AI suggestions" /></span>
+                <span class="aqg-tab__lock"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /><span class="visually-hidden"> (<f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.adminOnly" default="administrators only" />)</span></span>
+            </a>
+        </li>
         </f:if>
-    </a>
-
-    <a
-            class="aqg-tab{f:if(condition: '{activeTab} == \'fields\'', then: ' is-active active')}"
-            href="{settingsTabUrls.fields}"
-            role="tab"
-            aria-selected="{settingsTabSelected.fields}"
-            aria-current="{f:if(condition: '{activeTab} == \'fields\'', then: 'page', else: '')}"
-    >
-        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.scanFields" default="Scan fields" /></span>
-    </a>
-
-    <a
-            class="aqg-tab{f:if(condition: '{activeTab} == \'gate\'', then: ' is-active active')}"
-            href="{settingsTabUrls.gate}"
-            role="tab"
-            aria-selected="{settingsTabSelected.gate}"
-            aria-current="{f:if(condition: '{activeTab} == \'gate\'', then: 'page', else: '')}"
-    >
-        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.qualityGate" default="Quality gate" /></span>
-    </a>
-
-    <a
-            class="aqg-tab{f:if(condition: '{activeTab} == \'rules\'', then: ' is-active active')}"
-            href="{settingsTabUrls.rules}"
-            role="tab"
-            aria-selected="{settingsTabSelected.rules}"
-            aria-current="{f:if(condition: '{activeTab} == \'rules\'', then: 'page', else: '')}"
-    >
-        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.rules" default="Rules" /></span>
-    </a>
-    <f:if condition="{isAdmin}">
-        <a
-                class="aqg-tab{f:if(condition: '{activeTab} == \'remote_access\'', then: ' is-active active')}"
-                href="{settingsTabUrls.remote_access}"
-                role="tab"
-                aria-selected="{settingsTabSelected.remote_access}"
-                aria-current="{f:if(condition: '{activeTab} == \'remote_access\'', then: 'page', else: '')}"
-        >
-            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.remoteAccess" default="Remote scan access" /></span>
-            <span class="aqg-tab__badge aqg-tab__badge--admin">ADMIN</span>
-        </a>
-    </f:if>
-
-
-    <f:if condition="{isAdmin}">
-        <a
-                class="aqg-tab{f:if(condition: '{activeTab} == \'ai\'', then: ' is-active active')}"
-                href="{settingsTabUrls.ai}"
-                role="tab"
-                aria-selected="{settingsTabSelected.ai}"
-                aria-current="{f:if(condition: '{activeTab} == \'ai\'', then: 'page', else: '')}"
-        >
-            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.ai" default="AI suggestions" /></span>
-            <span class="aqg-tab__badge aqg-tab__badge--pro">PRO</span>
-        </a>
-    </f:if>
-
-    <a
-            class="aqg-tab{f:if(condition: '{activeTab} == \'statement\'', then: ' is-active active')}"
-            href="{settingsTabUrls.statement}"
-            role="tab"
-            aria-selected="{settingsTabSelected.statement}"
-            aria-current="{f:if(condition: '{activeTab} == \'statement\'', then: 'page', else: '')}"
-    >
-        <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.statement" default="Statement" /></span>
-        <f:if condition="{statementGeneratorAvailable}">
-            <f:then></f:then>
-            <f:else><span class="aqg-tab__badge aqg-tab__badge--pro">PRO</span></f:else>
-        </f:if>
-    </a>
-
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'statement\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.statement}"
+                    aria-current="{settingsTabCurrent.statement}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.statement" default="Statement" /></span>
+            </a>
+        </li>
+    </ul>
 </nav>
+</html>

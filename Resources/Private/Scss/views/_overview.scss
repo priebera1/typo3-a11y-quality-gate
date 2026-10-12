@@ -2537,7 +2537,9 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-impact--serious,
 }
 
 .a11y-overview .aqg-signal--good { border-left-color: var(--aqi-ok); }
-.a11y-overview .aqg-signal--attention { border-left-color: var(--aqi-warn); }
+.a11y-overview .aqg-signal--attention,
+.a11y-overview .aqg-signal--incomplete,
+.a11y-overview .aqg-signal--no-coverage { border-left-color: var(--aqi-warn); }
 .a11y-overview .aqg-signal--critical { border-left-color: var(--aqi-err); }
 .a11y-overview .aqg-signal--no-scan { border-left-color: var(--aqi-none); }
 
@@ -2584,7 +2586,11 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-impact--serious,
 .a11y-overview .aqg-signal--good .aqg-signal__status-icon,
 .a11y-overview .aqg-signal--good .aqg-signal__status-text { color: var(--aqi-ok); }
 .a11y-overview .aqg-signal--attention .aqg-signal__status-icon,
-.a11y-overview .aqg-signal--attention .aqg-signal__status-text { color: var(--aqi-warn); }
+.a11y-overview .aqg-signal--attention .aqg-signal__status-text,
+.a11y-overview .aqg-signal--incomplete .aqg-signal__status-icon,
+.a11y-overview .aqg-signal--incomplete .aqg-signal__status-text,
+.a11y-overview .aqg-signal--no-coverage .aqg-signal__status-icon,
+.a11y-overview .aqg-signal--no-coverage .aqg-signal__status-text { color: var(--aqi-warn); }
 .a11y-overview .aqg-signal--critical .aqg-signal__status-icon,
 .a11y-overview .aqg-signal--critical .aqg-signal__status-text { color: var(--aqi-err); }
 .a11y-overview .aqg-signal--no-scan .aqg-signal__status-icon { color: var(--aqi-none); }
@@ -2668,6 +2674,7 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-impact--serious,
 }
 
 .a11y-overview .aqg-signal__good-note,
+.a11y-overview .aqg-signal__coverage-note,
 .a11y-overview .aqg-signal__empty-text {
     margin: 0;
     color: var(--aqi-fg-muted);
@@ -2717,7 +2724,9 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-impact--serious,
     border-left-color: var(--aqi-err);
 }
 
-.a11y-overview .aqg-signal--attention {
+.a11y-overview .aqg-signal--attention,
+.a11y-overview .aqg-signal--incomplete,
+.a11y-overview .aqg-signal--no-coverage {
     background: linear-gradient(90deg, color-mix(in oklch, var(--aqi-warn-bg) 62%, var(--aqi-surface)) 0%, var(--aqi-surface) 42%);
     border-color: color-mix(in oklch, var(--aqi-warn-border) 65%, var(--aqi-border));
     border-left-color: var(--aqi-warn);
@@ -4575,7 +4584,7 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric {
     font-weight: 700;
 }
 
-.a11y-overview .aqg-remediation-plan__task h3 {
+.a11y-overview .aqg-remediation-plan__task h4 {
     margin: 0;
     color: var(--aqi-fg, #111827);
     font-size: 13px;
@@ -4688,9 +4697,9 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric dd,
 html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-remediation-plan__title,
 html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-remediation-plan__title,
 body[data-bs-theme="dark"] .a11y-overview .aqg-remediation-plan__title,
-html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-remediation-plan__task h3,
-html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-remediation-plan__task h3,
-body[data-bs-theme="dark"] .a11y-overview .aqg-remediation-plan__task h3,
+html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-remediation-plan__task h4,
+html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-remediation-plan__task h4,
+body[data-bs-theme="dark"] .a11y-overview .aqg-remediation-plan__task h4,
 html[data-theme="fresh"][data-color-scheme="auto"] .a11y-overview .aqg-remediation-plan__meta dd,
 html[data-theme="fresh"][data-color-scheme="dark"] .a11y-overview .aqg-remediation-plan__meta dd,
 body[data-bs-theme="dark"] .a11y-overview .aqg-remediation-plan__meta dd {

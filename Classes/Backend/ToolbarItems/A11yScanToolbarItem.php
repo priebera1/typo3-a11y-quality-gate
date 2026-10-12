@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Backend\ToolbarItems;
 
+use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteOccurrenceTotalsService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
@@ -38,6 +40,8 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         private readonly SiteResolutionService $siteResolutionService,
         private readonly BackendContextService $backendContextService,
         private readonly ScopeAccessService $scopeAccessService,
+        private readonly IssueRepository $issueRepository,
+        private readonly ?RemoteOccurrenceTotalsService $remoteOccurrenceTotalsService = null,
     ) {
     }
 
@@ -57,14 +61,11 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return '';
         }
 
-        $localStatus = $this->resolveLocalStatus();
-        $showRemoteSection = $this->shouldShowRemoteSection();
-        $remoteStatus = $showRemoteSection ? $this->resolveRemoteStatus() : [];
-        $toolbarState = $this->buildToolbarState($localStatus, $remoteStatus, $showRemoteSection);
+        $summary = $this->buildSummary();
 
         $view = $this->createView();
         $view->assignMultiple([
-            'toolbarIcon' => $this->buildToolbarIcon($toolbarState),
+            'toolbarIcon' => $this->buildToolbarIcon($summary['state']),
         ]);
 
         return $view->render('ToolbarItems/A11yScanToolbarItem');
@@ -81,27 +82,70 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return '';
         }
 
-        $localStatus = $this->resolveLocalStatus();
-        $showRemoteSection = $this->shouldShowRemoteSection();
-        $remoteStatus = $showRemoteSection ? $this->resolveRemoteStatus() : [];
-        $toolbarState = $this->buildToolbarState($localStatus, $remoteStatus, $showRemoteSection);
+        $summary = $this->buildSummary();
 
         $view = $this->createView();
         $view->assignMultiple([
-            'localScanStatus' => $localStatus,
-            'remoteScanStatus' => $remoteStatus,
-            'showRemoteSection' => $showRemoteSection,
-            'toolbarRunning' => $toolbarState['running'],
-            'toolbarFootnote' => $toolbarState['footnote'],
-            'toolbarState' => $toolbarState,
-            'toolbarAriaLabel' => $this->buildToolbarAriaLabel($toolbarState),
-            'currentLanguageUid' => $this->requestParameterService->getLanguageUid($this->request),
-            'localToolbarCard' => $this->buildLocalCard($localStatus),
-            'remoteToolbarCard' => $showRemoteSection ? $this->buildRemoteCard($remoteStatus) : [],
+            'toolbarState' => $summary['state'],
+            'toolbarRunning' => $summary['state']['running'],
+            'contentCard' => $summary['content'],
+            'frontendCard' => $summary['frontend'],
+            'siteLabel' => $summary['siteLabel'],
             'moduleUrl' => (string)$this->uriBuilder->buildUriFromRoute('web_a11y'),
         ]);
 
         return $view->render('ToolbarItems/A11yScanToolbarDropDown');
+    }
+
+    /**
+     * @return array{content: array<string, mixed>, frontend: array<string, mixed>|null, state: array{state: string, tone: string, count: int, running: bool, ariaLabel: string}, siteLabel: string}
+     */
+    private function buildSummary(): array
+    {
+        $builder = $this->summaryBuilder();
+        $localStatus = $this->resolveLocalStatus();
+        $siteIdentifier = $this->resolveSiteIdentifierFromRequestOrStatus($localStatus);
+        $canReadSite = $siteIdentifier !== '' && $this->scopeAccessService->canReadSiteIdentifier($siteIdentifier);
+
+        $contentCard = $builder->contentCard($localStatus, $canReadSite ? $this->countOpenTotals($siteIdentifier) : null);
+        $frontendCard = $this->shouldShowRemoteSection() ? $builder->frontendCard($this->withStoredOccurrences($this->resolveRemoteStatus())) : null;
+
+        return [
+            'content' => $contentCard,
+            'frontend' => $frontendCard,
+            'state' => $builder->toolbarState($contentCard, $frontendCard),
+            'siteLabel' => $canReadSite ? $this->siteLabel($siteIdentifier) : '',
+        ];
+    }
+
+    /**
+     * @return array{critical:int,warning:int,info:int,needs_review:int,total:int}|null
+     */
+    private function countOpenTotals(string $siteIdentifier): ?array
+    {
+        $languageUid = $this->requestParameterService->getLanguageUid($this->request);
+
+        try {
+            return $this->issueRepository->countOpenTotalsForSite($siteIdentifier, max(0, $languageUid));
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function siteLabel(string $siteIdentifier): string
+    {
+        $host = (string)parse_url($this->siteResolutionService->resolveSiteBaseByIdentifier($siteIdentifier), PHP_URL_HOST);
+
+        return $host !== '' ? $host : $siteIdentifier;
+    }
+
+    private function summaryBuilder(): ToolbarSummaryBuilder
+    {
+        return new ToolbarSummaryBuilder(
+            fn (string $key, string $fallback): string => $this->translate($key, $fallback),
+            static fn (int $timestamp): string => BackendTimeUtility::formatDateTime($timestamp, 'd.m.Y H:i'),
+            static fn (int $timestamp): string => BackendTimeUtility::formatDateTime($timestamp, 'H:i'),
+        );
     }
 
     public function getAdditionalAttributes(): array
@@ -355,90 +399,13 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     }
 
     /**
-     * @param array<string, mixed> $localStatus
-     * @param array<string, mixed> $remoteStatus
-     * @return array{state: string, tone: string, count: int, running: bool, footnote: string}
-     */
-    private function buildToolbarState(array $localStatus, array $remoteStatus, bool $showRemoteSection): array
-    {
-        $localRunning = (bool)($localStatus['running'] ?? false);
-        $remoteStatusValue = (string)($remoteStatus['status'] ?? '');
-        $remoteRunning = $showRemoteSection && $this->isRemoteRunningStatus($remoteStatusValue);
-        $hasError = !empty($localStatus['error']) || $remoteStatusValue === 'failed' || !empty($remoteStatus['sync_error']);
-
-        $localNew = 0;
-        if (isset($localStatus['summary']) && is_array($localStatus['summary'])) {
-            $localNew = (int)($localStatus['summary']['issuesNew'] ?? 0);
-        }
-        $remoteNew = $showRemoteSection ? (int)($remoteStatus['issues_new'] ?? 0) : 0;
-        $newIssues = $localNew + $remoteNew;
-
-        $hasAnyScan = !empty($localStatus['finishedAt']) || !empty($remoteStatus['finished_at']) || !empty($remoteStatus['uid']);
-
-        if ($localRunning || $remoteRunning) {
-            return [
-                'state' => 'running',
-                'tone' => 'info',
-                'count' => 0,
-                'running' => true,
-                'footnote' => $remoteRunning
-                    ? $this->buildRemoteProgressLabel($remoteStatus)
-                    : $this->translate('overview.localScan.runningTitle', 'Content scan is running'),
-            ];
-        }
-
-        if ($hasError) {
-            return [
-                'state' => 'failed',
-                'tone' => 'error',
-                'count' => 0,
-                'running' => false,
-                'footnote' => $this->translate('toolbar.footnote.failed', 'Last scan needs attention'),
-            ];
-        }
-
-        if ($newIssues > 0) {
-            return [
-                'state' => 'issues',
-                'tone' => $newIssues >= 3 ? 'critical' : 'warning',
-                'count' => $newIssues,
-                'running' => false,
-                'footnote' => sprintf(
-                    $newIssues === 1
-                        ? $this->translate('toolbar.footnote.newIssues.singular', '%d new issue found')
-                        : $this->translate('toolbar.footnote.newIssues.plural', '%d new issues found'),
-                    $newIssues
-                ),
-            ];
-        }
-
-        if (!$hasAnyScan) {
-            return [
-                'state' => 'not-scanned',
-                'tone' => 'none',
-                'count' => 0,
-                'running' => false,
-                'footnote' => $this->translate('toolbar.footnote.notScanned', 'No scan result yet'),
-            ];
-        }
-
-        return [
-            'state' => 'ok',
-            'tone' => 'ok',
-            'count' => 0,
-            'running' => false,
-            'footnote' => $this->translate('toolbar.footnote.ok', 'No new issues in the latest scan'),
-        ];
-    }
-
-    /**
-     * @param array{state: string, tone: string, count: int, running: bool, footnote: string} $state
+     * @param array{state: string, tone: string, count: int, running: bool, ariaLabel: string} $state
      */
     private function buildToolbarIcon(array $state): string
     {
         $stateClass = htmlspecialchars($state['state'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $label = htmlspecialchars($this->buildToolbarAriaLabel($state), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $status = '<span class="aqt-toolbar-dot aqt-toolbar-dot--' . htmlspecialchars($state['tone'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"></span>';
+        $label = htmlspecialchars($state['ariaLabel'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $status = '<span class="aqt-toolbar-dot aqt-toolbar-dot--' . htmlspecialchars($state['running'] ? 'running' : $state['tone'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"></span>';
 
         return <<<HTML
 <span class="t3js-icon aqt-toolbar-trigger aqt-toolbar-trigger--{$stateClass}" role="img" aria-label="{$label}">
@@ -456,237 +423,11 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
 HTML;
     }
 
-    /**
-     * @param array{state: string, tone: string, count: int, running: bool, footnote: string} $state
-     */
-    private function buildToolbarAriaLabel(array $state): string
-    {
-        return match ($state['state']) {
-            'running' => $this->translate('toolbar.aria.running', 'Accessibility scan is running'),
-            'failed' => $this->translate('toolbar.aria.failed', 'Accessibility scan failed'),
-            'issues' => sprintf(
-                $state['count'] === 1
-                    ? $this->translate('toolbar.aria.issues.singular', 'Accessibility: %d new issue')
-                    : $this->translate('toolbar.aria.issues.plural', 'Accessibility: %d new issues'),
-                $state['count']
-            ),
-            'ok' => $this->translate('toolbar.aria.ok', 'Accessibility: no new issues'),
-            default => $this->translate('toolbar.aria.notScanned', 'Accessibility: not scanned yet'),
-        };
-    }
-
-    /**
-     * @param array<string, mixed> $status
-     * @return array<string, mixed>
-     */
-    private function buildLocalCard(array $status): array
-    {
-        $summary = isset($status['summary']) && is_array($status['summary']) ? $status['summary'] : [];
-        $running = (bool)($status['running'] ?? false);
-        $hasError = !empty($status['error']);
-        $newIssues = (int)($summary['issuesNew'] ?? 0);
-        $resolved = (int)($summary['issuesResolved'] ?? 0);
-        $ignored = (int)($summary['issuesIgnored'] ?? 0);
-        $pages = isset($summary['pagesScanned']) ? (string)(int)$summary['pagesScanned'] : '—';
-
-        $tone = $this->resolveCardTone($running, $hasError, $newIssues, !empty($status['finishedAt']));
-
-        return [
-            'label' => $this->translate('toolbar.local', 'Local'),
-            'description' => $this->translate('toolbar.localDescription', 'Checks TYPO3 content records.'),
-            'tone' => $tone,
-            'statusTone' => $running ? 'info' : ($hasError ? 'error' : ($newIssues > 0 ? 'warning' : (!empty($status['finishedAt']) ? 'ok' : 'none'))),
-            'statusLabel' => $running
-                ? $this->translate('toolbar.status.running', 'Running')
-                : ($hasError
-                    ? $this->translate('toolbar.status.failed', 'Failed')
-                    : ($newIssues > 0
-                        ? sprintf($this->translate('toolbar.status.idleNew', 'Idle · %d new'), $newIssues)
-                        : (!empty($status['finishedAt'])
-                            ? $this->translate('toolbar.status.idleClean', 'Idle · clean')
-                            : $this->translate('toolbar.status.remoteIdle', 'Not run yet')))),
-            'statusIcon' => $this->statusIcon($running ? 'info' : ($hasError ? 'error' : ($newIssues > 0 ? 'warning' : (!empty($status['finishedAt']) ? 'ok' : 'none')))),
-            'running' => $running,
-            'progressWidth' => null,
-            'meta' => [
-                [
-                    'label' => $running
-                        ? $this->translate('toolbar.startedAt', 'Started')
-                        : $this->translate('toolbar.lastFinished', 'Last finished'),
-                    'value' => $this->formatTimestamp((int)($running ? ($status['startedAt'] ?? 0) : ($status['finishedAt'] ?? 0))),
-                    'muted' => empty($running ? ($status['startedAt'] ?? 0) : ($status['finishedAt'] ?? 0)),
-                ],
-                [
-                    'label' => $this->translate('toolbar.pages', 'Pages'),
-                    'value' => $pages,
-                    'muted' => $pages === '—',
-                ],
-            ],
-            'results' => [
-                $this->resultItem($this->translate('toolbar.result.new', 'New'), $running ? '—' : $newIssues, $newIssues > 0 ? 'critical' : ''),
-                $this->resultItem($this->translate('toolbar.result.resolved', 'Resolved'), $running ? '—' : $resolved, $resolved > 0 ? 'ok' : ''),
-                $this->resultItem($this->translate('toolbar.result.ignored', 'Ignored'), $running ? '—' : $ignored),
-            ],
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $status
-     * @return array<string, mixed>
-     */
-    private function buildRemoteCard(array $status): array
-    {
-        $statusValue = (string)($status['status'] ?? '');
-        $running = $this->isRemoteRunningStatus($statusValue);
-        $hasError = $statusValue === 'failed' || !empty($status['sync_error']);
-        $hasResult = !empty($status['uid']);
-        $newIssues = (int)($status['issues_new'] ?? 0);
-        $resolved = (int)($status['issues_resolved'] ?? 0);
-        $total = (int)($status['issues_total'] ?? 0);
-        $pagesScanned = (int)($status['pages_scanned'] ?? 0);
-        $pagesTotal = (int)($status['pages_total'] ?? 0);
-        $pagesLabel = $this->buildPagesLabel($pagesScanned, $pagesTotal, $hasResult || $running);
-        $progressWidth = $running && $pagesTotal > 0 ? (int)min(100, max(1, round(($pagesScanned / $pagesTotal) * 100))) : null;
-
-        $statusTone = $running ? 'info' : ($hasError ? 'error' : ($statusValue === 'completed' ? ($newIssues > 0 ? 'warning' : 'ok') : 'none'));
-
-        return [
-            'label' => $this->translate('toolbar.remote', 'Remote'),
-            'description' => $this->translate('toolbar.remoteDescription', 'Checks published frontend pages.'),
-            'tone' => $this->resolveCardTone($running, $hasError, $newIssues, $hasResult),
-            'statusTone' => $statusTone,
-            'statusLabel' => $this->remoteStatusLabel($statusValue, $hasResult, $newIssues),
-            'statusIcon' => $this->statusIcon($statusTone),
-            'running' => $running,
-            'progressWidth' => $progressWidth,
-            'meta' => [
-                [
-                    'label' => $running
-                        ? ($statusValue === 'queued'
-                            ? $this->translate('toolbar.queuedSince', 'Queued since')
-                            : $this->translate('toolbar.startedAt', 'Started'))
-                        : $this->translate('toolbar.lastFinished', 'Last finished'),
-                    'value' => $this->formatTimestamp((int)($running ? ($status['started_at'] ?? 0) : ($status['finished_at'] ?? 0))),
-                    'muted' => empty($running ? ($status['started_at'] ?? 0) : ($status['finished_at'] ?? 0)),
-                ],
-                [
-                    'label' => $this->translate('toolbar.pages', 'Pages'),
-                    'value' => $pagesLabel,
-                    'muted' => $pagesLabel === '—',
-                ],
-            ],
-            'results' => [
-                $this->resultItem($this->translate('toolbar.result.new', 'New'), $running || !$hasResult ? '—' : $newIssues, $newIssues > 0 ? 'critical' : ''),
-                $this->resultItem($this->translate('toolbar.result.resolved', 'Resolved'), $running || !$hasResult ? '—' : $resolved, $resolved > 0 ? 'ok' : ''),
-                $this->resultItem($this->translate('toolbar.result.total', 'Total found'), $running || !$hasResult ? '—' : $total, $total > 0 ? 'warning' : ''),
-            ],
-        ];
-    }
-
-    private function resolveCardTone(bool $running, bool $hasError, int $newIssues, bool $hasResult): string
-    {
-        if ($running) {
-            return 'info';
-        }
-        if ($hasError) {
-            return 'error';
-        }
-        if ($newIssues > 0) {
-            return 'warning';
-        }
-
-        return $hasResult ? 'ok' : 'none';
-    }
-
-    /**
-     * @return array{label: string, value: string|int, toneClass: string, muted: bool}
-     */
-    private function resultItem(string $label, string|int $value, string $tone = ''): array
-    {
-        $isMuted = $value === '—' || $value === 0 || $value === '0';
-
-        return [
-            'label' => $label,
-            'value' => $value,
-            'toneClass' => $tone !== '' && !$isMuted ? 'tone-' . $tone : '',
-            'muted' => $isMuted,
-        ];
-    }
-
-    private function remoteStatusLabel(string $status, bool $hasResult, int $newIssues): string
-    {
-        return match ($status) {
-            'running', 'active', 'processing', 'in_progress', 'in-progress', 'started' => $this->translate('toolbar.status.running', 'Running'),
-            'queued', 'waiting' => $this->translate('toolbar.status.queued', 'Queued'),
-            'completed' => $newIssues > 0
-                ? sprintf($this->translate('toolbar.status.completedNew', 'Completed · %d new'), $newIssues)
-                : $this->translate('toolbar.status.completed', 'Completed'),
-            'failed' => $this->translate('toolbar.status.failed', 'Failed'),
-            default => $hasResult
-                ? ($status !== '' ? ucfirst($status) : $this->translate('toolbar.status.completed', 'Completed'))
-                : $this->translate('toolbar.status.remoteIdle', 'Not run yet'),
-        };
-    }
-
-    private function isRemoteRunningStatus(string $status): bool
-    {
-        $status = strtolower(trim($status));
-
-        return in_array($status, ['waiting', 'queued', 'running', 'active', 'processing', 'in_progress', 'in-progress', 'started'], true);
-    }
-
-    private function buildPagesLabel(int $pagesScanned, int $pagesTotal, bool $hasResult): string
-    {
-        if (!$hasResult && $pagesScanned === 0 && $pagesTotal === 0) {
-            return '—';
-        }
-
-        return $pagesTotal > 0 ? sprintf('%d / %d', $pagesScanned, $pagesTotal) : (string)$pagesScanned;
-    }
-
-    /**
-     * @param array<string, mixed> $status
-     */
-    private function buildRemoteProgressLabel(array $status): string
-    {
-        $pagesScanned = (int)($status['pages_scanned'] ?? 0);
-        $pagesTotal = (int)($status['pages_total'] ?? 0);
-
-        if ($pagesTotal > 0) {
-            return sprintf(
-                $this->translate('toolbar.footnote.remoteRunningProgress', 'Frontend scan is running · %1$d/%2$d pages'),
-                $pagesScanned,
-                $pagesTotal
-            );
-        }
-
-        return $this->translate('toolbar.footnote.remoteRunning', 'Frontend scan is running');
-    }
-
     private function translate(string $key, string $fallback): string
     {
         $translated = $this->backendContextService->translate($key);
 
         return $translated !== '' && $translated !== $key ? $translated : $fallback;
-    }
-
-    private function formatTimestamp(int $timestamp): string
-    {
-        if ($timestamp <= 0) {
-            return '—';
-        }
-
-        return BackendTimeUtility::formatDateTime($timestamp, 'd.m. · H:i');
-    }
-
-    private function statusIcon(string $tone): string
-    {
-        return match ($tone) {
-            'ok' => '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 5.2 L4.2 7.2 L8 3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>',
-            'warning' => '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1.4 L9 8.6 L1 8.6 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /><path d="M5 4 L5 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /><circle cx="5" cy="7.4" r="0.6" fill="currentColor" /></svg>',
-            'error' => '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M3.6 3.6 L6.4 6.4 M6.4 3.6 L3.6 6.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>',
-            default => '<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.6" fill="none" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.2" stroke-dasharray="2 2" /></svg>',
-        };
     }
 
     /**
@@ -726,6 +467,22 @@ HTML;
         return is_array($lastAnyScan) ? $lastAnyScan : [];
     }
 
+
+    /**
+     * The toolbar reports the same occurrence count as the Overview and the exports: the stored findings of the scan.
+     *
+     * @param array<string, mixed> $scan
+     * @return array<string, mixed>
+     */
+    private function withStoredOccurrences(array $scan): array
+    {
+        if ($scan === [] || !isset($this->remoteOccurrenceTotalsService)) {
+            return $scan;
+        }
+        $scan['issues_total'] = $this->remoteOccurrenceTotalsService->forScan($scan)->total;
+
+        return $scan;
+    }
 
     private function resolveSiteIdentifierFromRequest(): string
     {

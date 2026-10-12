@@ -9,7 +9,7 @@ import {A11yProBackendModule} from '../../Resources/Public/JavaScript/backend/pr
 const mountPreview = ({withTemplate = true} = {}) => {
     document.body.innerHTML = `
         <div class="a11y-overview">
-            <div data-a11y-overview-panel="local"><h2 class="aqg-section__title">Content scan</h2></div>
+            <div data-a11y-overview-panel="local"><h2 class="aqg-status__title" id="aqg-local-status-title">29 open issues</h2></div>
             <div data-a11y-overview-panel="remote" hidden>
                 <section data-aqg-free-preview="true">
                     <h2 id="aqg-free-preview-title" tabindex="-1">Frontend scan</h2>
@@ -82,8 +82,8 @@ describe('Free Remote Preview guidance for unreachable sites', () => {
         expect(document.querySelector('[data-a11y-overview-panel="remote"]').hidden).toBe(false);
         expect(document.activeElement).toBe(document.querySelector('#aqg-free-preview-title'));
 
-        A11yProBackendModule.prototype.showOverviewSourceAndFocus.call(context, 'local', '[data-a11y-overview-panel="local"] .aqg-section__title');
-        const localHeading = document.querySelector('[data-a11y-overview-panel="local"] .aqg-section__title');
+        A11yProBackendModule.prototype.showOverviewSourceAndFocus.call(context, 'local', '#aqg-local-status-title');
+        const localHeading = document.querySelector('#aqg-local-status-title');
         expect(document.querySelector('[data-a11y-overview-panel="local"]').hidden).toBe(false);
         expect(document.activeElement).toBe(localHeading);
         expect(localHeading.getAttribute('tabindex')).toBe('-1');
@@ -105,6 +105,6 @@ describe('Free Remote Preview guidance for unreachable sites', () => {
         const template = document.querySelector('template[data-aqg-free-preview-unreachable-template="true"]');
         document.querySelector('[data-aqg-free-preview-message="true"]').append(template.content.cloneNode(true));
         document.querySelector('[data-action="a11y-show-local-scan"]').click();
-        expect(context.showOverviewSourceAndFocus).toHaveBeenLastCalledWith('local', '[data-a11y-overview-panel="local"] .aqg-section__title');
+        expect(context.showOverviewSourceAndFocus).toHaveBeenLastCalledWith('local', '#aqg-local-status-title');
     });
 });

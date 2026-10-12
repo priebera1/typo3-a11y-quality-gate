@@ -1,0 +1,33 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="aqg-scanscope" data-aqg-scan-scope="{kind}">
+    <f:if condition="{kind} == 'remote'">
+        <f:then>
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'globe', size: 'sm'}" />
+            <p class="aqg-scanscope__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.remote.text" default="Checks published pages in a real browser on the AQG service." /></p>
+        </f:then>
+        <f:else>
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'page', size: 'sm'}" />
+            <p class="aqg-scanscope__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.local.text" default="Checks the content fields editors fill in (rich text and images), inside this TYPO3 installation." /></p>
+        </f:else>
+    </f:if>
+    <button type="button" class="aqg-disclosure-btn" aria-expanded="false" aria-controls="aqg-scan-scope-{kind}" data-aqg-toggle="true">
+        <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.more" default="What is checked" />
+    </button>
+    <div class="aqg-scanscope__body" id="aqg-scan-scope-{kind}" hidden="hidden">
+        <f:if condition="{kind} == 'remote'">
+            <f:then>
+                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.remote.details" default="The crawler loads each public page, runs automated rules plus keyboard and structure checks, and stores the results here. Hidden pages are only reached with a Scanner Token." /></p>
+                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.remote.legend" default="Impact levels (Critical, Serious, Moderate, Minor) come from the browser rules. They are not the same scale as the content scan severities." /></p>
+            </f:then>
+            <f:else>
+                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.local.details" default="Scans the content fields enabled under Settings › Scan fields and, when enabled, the server-rendered HTML of each page. No licence key is needed. Output that only exists in the browser (JavaScript, lazy loading) is covered by the Frontend scan." /></p>
+                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scope.local.legend" default="Severities (Critical, Warning, Info, Needs review) rate content issues. They are not the same scale as the frontend scan impact levels." /></p>
+                <f:if condition="{canShowSettings} && {scanFieldsSettingsUrl}">
+                    <p><a href="{scanFieldsSettingsUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.reviewFields" default="Review scan fields" /></a></p>
+                </f:if>
+            </f:else>
+        </f:if>
+    </div>
+</div>
+</html>

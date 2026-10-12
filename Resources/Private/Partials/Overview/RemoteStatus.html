@@ -1,0 +1,106 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<section class="aqg-status aqg-status--{remoteSignalTone}" aria-labelledby="aqg-remote-status-title" data-aqg-status="remote"{f:if(condition: remoteScan, else: ' data-aqg-status-empty="true"')}{f:if(condition: '!{remoteScan} && {activeRemoteScan.job_id}', then: ' hidden="hidden"')}>
+    <div class="aqg-status__main">
+        <f:if condition="{remoteScan}">
+            <f:then>
+                <f:render partial="Overview/RemoteStatusHead" arguments="{_all}" />
+            </f:then>
+            <f:else>
+                <div class="aqg-status__head">
+                    <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'globe'}" /></span>
+                    <h2 class="aqg-status__title" id="aqg-remote-status-title">{remoteSignalLabel}</h2>
+                </div>
+                <p class="aqg-status__text">
+                    <f:translate
+                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.noScanBody"
+                            default="Run a frontend scan to generate automated accessibility findings."
+                    />
+                </p>
+            </f:else>
+        </f:if>
+
+        <f:if condition="{showRemoteScannerTokenNotice} || {proStatus.isTrial}">
+            <ul class="aqg-status__meta aqg-status__meta--access">
+                <f:if condition="{showRemoteScannerTokenNotice}">
+                    <li class="aqg-status__access">
+                        <f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" />
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.publicOnly" default="Public pages only: no Scanner Token is configured, so hidden pages are not scanned and findings outside standard content frames are not linked to their TYPO3 record." />
+                        <a href="{remoteScanAccessSettingsUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remoteScannerTokenNotice.cta" default="Open Remote Scan Access settings" /></a>
+                    </li>
+                </f:if>
+                <f:if condition="{proStatus.isTrial}">
+                    <li class="aqg-status__trial" data-aqg-trial-line="true">
+                        <f:render partial="Overview/TrialLimits" arguments="{trialUsage: trialUsage}" />
+                    </li>
+                </f:if>
+            </ul>
+        </f:if>
+
+        <f:if condition="{remoteScan}">
+            <f:render partial="Overview/RemoteCaveat" arguments="{remoteManualReviewChecklist: remoteManualReviewChecklist}" />
+        </f:if>
+    </div>
+
+    <div class="aqg-status__actions">
+        <f:if condition="{currentPageUid} && {canScanNow}">
+            <f:if condition="{currentPageUrl}">
+                <f:then>
+                    <button
+                            type="button"
+                            class="btn btn-default btn-sm"
+                            data-action="a11y-pro-scan-page"
+                            data-page-uid="{currentPageUid}"
+                            data-page-url="{currentPageUrl}"
+                            data-site-identifier="{siteIdentifier}"
+                            data-language-uid="{currentLanguageUid}"
+                            data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                    >
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanPage"
+                                default="Scan this page"
+                        />
+                    </button>
+                </f:then>
+                <f:else>
+                    <button type="button" class="btn btn-default btn-sm" disabled="disabled" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.notTranslated', default: 'This page is not translated in the selected site language.')}">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanPage"
+                                default="Scan this page"
+                        />
+                    </button>
+                </f:else>
+            </f:if>
+        </f:if>
+
+        <f:if condition="{canScanAll}">
+            <button
+                    type="button"
+                    class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
+                    data-action="a11y-pro-scan-site"
+                    data-root-pid="{siteRootPid}"
+                    data-current-page-uid="{currentPageUid}"
+                    data-site-identifier="{siteIdentifier}"
+                    data-max-pages="{f:if(condition: proStatus.isTrial, then: '10', else: '500')}"
+                    data-language-uid="{currentLanguageUid}"
+                    data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+            >
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanSite"
+                        default="Scan site"
+                />
+            </button>
+        </f:if>
+
+        <f:render
+                partial="Shared/ExportButtons"
+                arguments="{
+                    show: exportRemoteCsvUrl,
+                    csvUrl: exportRemoteCsvUrl,
+                    pdfUrl: exportRemotePdfUrl,
+                    showPdf: proStatus.hasExportPdf,
+                    pdfNoteId: 'aqg-export-pdf-note-remote'
+                }"
+        />
+    </div>
+</section>
+</html>

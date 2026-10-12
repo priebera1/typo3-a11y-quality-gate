@@ -38,10 +38,10 @@ final class ReportTimeZoneTest extends TestCase
 
         // 2026-07-01 12:00 UTC
         date_default_timezone_set('America/New_York');
-        self::assertSame('01 Jul 2026 · 08:00 EDT', $format->invoke($builder, 1_782_907_200));
+        self::assertSame('1 Jul 2026, 08:00 EDT', $format->invoke($builder, 1_782_907_200));
 
         date_default_timezone_set('UTC');
-        self::assertSame('01 Jul 2026 · 12:00 UTC', $format->invoke($builder, 1_782_907_200));
+        self::assertSame('1 Jul 2026, 12:00 UTC', $format->invoke($builder, 1_782_907_200));
     }
 
     #[Test]

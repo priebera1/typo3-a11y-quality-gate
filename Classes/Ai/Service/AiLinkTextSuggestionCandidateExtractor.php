@@ -112,6 +112,8 @@ final class AiLinkTextSuggestionCandidateExtractor
         $previous = libxml_use_internal_errors(true);
         $dom = new \DOMDocument('1.0', 'UTF-8');
         $flags = LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET;
+        // loadHTML() reads input without a charset as ISO-8859-1: hand non-ASCII over as entities to keep the text.
+        $html = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
         $loaded = $dom->loadHTML('<!DOCTYPE html><html><body>' . $html . '</body></html>', $flags);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);

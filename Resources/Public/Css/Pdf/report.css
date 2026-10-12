@@ -1,0 +1,443 @@
+/*
+ * AQG report print system (1.9.9): one stylesheet for every AQG report PDF.
+ *
+ * mPDF renders tables reliably and flexbox/grid not at all, so layout uses tables. Fonts are the Unicode DejaVu
+ * families bundled with mPDF (embedded, subset): text keeps č, ľ, ł, ő, Д. Severity is always an icon shape plus a word,
+ * so it survives grayscale printing; colour is only applied to that pair. No side stripes, no metric tiles.
+ */
+
+body {
+    font-family: dejavusanscondensed, sans-serif;
+    font-size: 9.2pt;
+    line-height: 1.38;
+    color: #1a1c20;
+}
+
+p {
+    margin: 0 0 2mm;
+}
+
+code,
+.aqr-code {
+    font-family: dejavusansmono, monospace;
+    font-size: 8pt;
+    color: #2b2f36;
+    background-color: #f1f2f4;
+}
+
+.aqr-runhead,
+.aqr-runfoot {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: wrap;
+    font-size: 8pt;
+    color: #5a606a;
+}
+
+.aqr-runhead td {
+    padding: 0 0 1.5mm;
+    border-bottom: 0.2mm solid #d4d7dc;
+}
+
+.aqr-runfoot td {
+    padding: 1.5mm 0 0;
+    border-top: 0.2mm solid #d4d7dc;
+}
+
+.aqr-right {
+    text-align: right;
+}
+
+.aqr-num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.aqr-muted {
+    color: #5a606a;
+}
+
+.aqr-small {
+    font-size: 8pt;
+}
+
+.aqr-title {
+    font-size: 19pt;
+    font-weight: bold;
+    line-height: 1.12;
+    margin: 0 0 1.5mm;
+    color: #15171c;
+}
+
+.aqr-url {
+    font-size: 8.4pt;
+    color: #3d434c;
+    margin: 0 0 1.2mm;
+}
+
+.aqr-meta {
+    font-size: 8pt;
+    color: #5a606a;
+    margin: 0 0 4mm;
+}
+
+.aqr-verdict {
+    font-size: 11pt;
+    line-height: 1.35;
+    margin: 0 0 4mm;
+}
+
+.aqr-h2 {
+    font-size: 11.5pt;
+    font-weight: bold;
+    margin: 6mm 0 2mm;
+    color: #15171c;
+}
+
+.aqr-h2__note {
+    font-size: 8.4pt;
+    font-weight: normal;
+    color: #5a606a;
+}
+
+/* A section heading kept in its first group's table, so it never stays alone at a page foot. */
+.aqr-h2--group {
+    margin: 1mm 0 3mm;
+}
+
+.aqr-h2--first {
+    margin-top: 0;
+}
+
+/* Severity row: one line of four figures, divided by hairlines, no tiles. */
+.aqr-sevrow {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 5mm;
+    border-top: 0.45mm solid #15171c;
+    border-bottom: 0.2mm solid #d4d7dc;
+}
+
+.aqr-sevrow td {
+    width: 25%;
+    padding: 2.2mm 2mm 2.2mm 0;
+    vertical-align: top;
+}
+
+.aqr-sevrow td.aqr-sevrow__next {
+    padding-left: 2.5mm;
+    border-left: 0.2mm solid #d4d7dc;
+}
+
+.aqr-sevrow__label {
+    font-size: 8.2pt;
+    font-weight: bold;
+}
+
+.aqr-sevrow__value {
+    font-size: 17pt;
+    font-weight: bold;
+    line-height: 1.1;
+    color: #15171c;
+}
+
+.aqr-sevrow__foot {
+    font-size: 8pt;
+    color: #5a606a;
+}
+
+/* Severity words: the colour applies only to icon + word. */
+.aqr-sev {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.aqr-sev--critical { color: #a61e14; }
+.aqr-sev--serious { color: #a33a00; }
+.aqr-sev--warning,
+.aqr-sev--moderate { color: #7a5000; }
+.aqr-sev--info { color: #1d5ca3; }
+.aqr-sev--review { color: #6a3db3; }
+.aqr-sev--minor,
+.aqr-sev--none { color: #4f5661; }
+.aqr-sev--ok { color: #1c7444; }
+
+/* Tables */
+.aqr-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: wrap;
+    margin: 0 0 3mm;
+    font-size: 8.2pt;
+}
+
+.aqr-table th {
+    text-align: left;
+    font-weight: bold;
+    color: #5a606a;
+    font-size: 8pt;
+    padding: 1.2mm 2mm 1.2mm 0;
+    border-bottom: 0.35mm solid #15171c;
+    vertical-align: bottom;
+}
+
+.aqr-table td {
+    padding: 1.4mm 2mm 1.4mm 0;
+    border-bottom: 0.2mm solid #d4d7dc;
+    vertical-align: top;
+}
+
+/* A reference table's heading is its first header row: mPDF never leaves it alone at a page foot and repeats it
+   on continuation pages. */
+.aqr-table th.aqr-table__title {
+    font-size: 11.5pt;
+    color: #15171c;
+    padding: 6mm 0 2mm;
+    border-bottom: 0;
+}
+
+.aqr-table th.aqr-table__title--first {
+    padding-top: 0;
+}
+
+.aqr-table th.aqr-num,
+.aqr-table td.aqr-num {
+    padding-right: 0;
+    text-align: right;
+}
+
+.aqr-table td.aqr-index {
+    color: #5a606a;
+    white-space: nowrap;
+}
+
+.aqr-cell-sub {
+    font-size: 8pt;
+    color: #5a606a;
+}
+
+.aqr-wrap {
+    overflow: wrap;
+}
+
+.aqr-snippet {
+    font-family: dejavusansmono, monospace;
+    font-size: 8pt;
+    color: #2b2f36;
+}
+
+/* Rule groups: header, fix and first rows stay together; longer occurrence tables may continue on the next page. */
+.aqr-rule {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4mm 0 0;
+    page-break-inside: avoid;
+}
+
+.aqr-rule td {
+    padding: 0;
+    vertical-align: top;
+}
+
+.aqr-rule__head td {
+    border-top: 0.45mm solid #15171c;
+    padding-top: 2mm;
+}
+
+.aqr-rule__no {
+    width: 8mm;
+    font-size: 11pt;
+    font-weight: bold;
+    color: #5a606a;
+}
+
+.aqr-rule__title {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #15171c;
+}
+
+.aqr-rule__meta {
+    font-size: 8pt;
+    color: #5a606a;
+    padding-top: 0.8mm;
+}
+
+.aqr-rule__fix {
+    padding-top: 1.8mm;
+}
+
+.aqr-rule__why {
+    padding-top: 1mm;
+    font-size: 8pt;
+    color: #3d434c;
+}
+
+.aqr-start {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 4mm;
+    background-color: #f2f3f5;
+}
+
+.aqr-start td {
+    padding: 2.6mm 3mm;
+    vertical-align: top;
+}
+
+.aqr-start__title {
+    font-size: 10pt;
+    font-weight: bold;
+    margin: 0 0 1mm;
+}
+
+.aqr-columns {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.aqr-columns > tbody > tr > td,
+.aqr-columns td.aqr-col {
+    vertical-align: top;
+    padding: 0;
+}
+
+.aqr-note {
+    margin-top: 5mm;
+    padding-top: 2mm;
+    border-top: 0.2mm solid #d4d7dc;
+    font-size: 8pt;
+    color: #5a606a;
+}
+
+.aqr-box {
+    padding: 2.4mm 3mm;
+    border: 0.2mm solid #d4d7dc;
+    margin: 0 0 3mm;
+    font-size: 8pt;
+}
+
+.aqr-kv {
+    border-collapse: collapse;
+}
+
+.aqr-kv td {
+    padding: 0.6mm 4mm 0.6mm 0;
+    font-size: 8pt;
+    vertical-align: top;
+}
+
+.aqr-kv td.aqr-kv__k {
+    color: #5a606a;
+    white-space: nowrap;
+}
+
+.aqr-steps {
+    margin: 1mm 0 0 4mm;
+    padding: 0;
+    font-size: 8.2pt;
+}
+
+.aqr-steps li {
+    margin: 0 0 0.8mm;
+}
+
+.aqr-more {
+    font-size: 8pt;
+    color: #5a606a;
+}
+
+.aqr-table th.aqr-gap,
+.aqr-table td.aqr-gap {
+    padding-left: 4mm;
+}
+
+.aqr-table--dense td {
+    padding-top: 0.9mm;
+    padding-bottom: 0.9mm;
+}
+
+
+/* Screenshot: image and caption are rows of one table, so mPDF never sets the caption beside the image. */
+.aqr-shotbox,
+.aqr-keep {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.aqr-keep {
+    margin: 5mm 0 0;
+    page-break-inside: avoid;
+}
+
+.aqr-shotbox td,
+.aqr-keep td {
+    padding: 0;
+    vertical-align: top;
+}
+
+.aqr-shotbox td.aqr-shotbox__image,
+.aqr-keep td.aqr-shotbox__image {
+    border: 0.2mm solid #d4d7dc;
+}
+
+.aqr-shotbox td.aqr-shotbox__caption {
+    padding-top: 1.2mm;
+    font-size: 8pt;
+    color: #5a606a;
+}
+
+.aqr-keep .aqr-h2 {
+    margin-top: 0;
+}
+
+/* A bordered note inside a table cell is its own cell: mPDF draws a paragraph border per line inside cells. */
+.aqr-keep td.aqr-keep__note {
+    padding: 2.4mm 3mm;
+    border: 0.2mm solid #d4d7dc;
+    font-size: 8pt;
+    color: #3d434c;
+}
+
+/* Occurrence grid: the rule header block and every occurrence row share the same fixed-width columns. The first table
+   (header + first occurrence) is kept together; the continuation table starts flush below it, with no margin. */
+.aqr-grid {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: wrap;
+    font-size: 8.2pt;
+}
+
+.aqr-grid--continued {
+    margin: 0;
+}
+
+.aqr-grid td.aqr-grid__no {
+    padding: 0;
+    border: 0;
+}
+
+.aqr-grid tr.aqr-grid__headrow th {
+    text-align: left;
+    font-weight: bold;
+    color: #5a606a;
+    font-size: 8pt;
+    padding: 2mm 2mm 1mm 0;
+    border-bottom: 0.35mm solid #15171c;
+    vertical-align: bottom;
+}
+
+.aqr-grid tr.aqr-grid__row td {
+    padding: 1mm 2mm 1mm 0;
+    border-bottom: 0.2mm solid #d4d7dc;
+    vertical-align: top;
+}
+
+.aqr-grid tr.aqr-grid__row td.aqr-grid__no {
+    border-bottom: 0;
+}
+
+.aqr-grid td.aqr-grid__idx {
+    color: #5a606a;
+    white-space: nowrap;
+}

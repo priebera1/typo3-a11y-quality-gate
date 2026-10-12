@@ -127,7 +127,8 @@ Plan details, trial access and pricing:
 
 | Version | TYPO3 | PHP | Support |
 |---------|-------|-----|---------|
-| 1.4+ | 13.4 LTS / 14.3+ | 8.2+ | Features and bugfixes |
+| 2.0+ | 13.4 LTS / 14.3+ | 8.2+ | Features and bugfixes |
+| 1.4 – 1.9 | 13.4 LTS / 14.3+ | 8.2+ | Superseded by 2.0 (same requirements; see the upgrade notes) |
 | 1.3.x | 13.4 LTS | 8.2+ | Security and bugfixes |
 
 ---

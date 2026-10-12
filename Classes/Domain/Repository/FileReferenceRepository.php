@@ -44,7 +44,7 @@ final class FileReferenceRepository extends AbstractRepository implements FileRe
     ): array {
         $referenceQueryBuilder = $this->getQueryBuilder(Tables::SYS_FILE_REFERENCE);
 
-        $selectFields = ['uid', 'uid_local', 'alternative', 'title', 'tx_a11y_is_decorative'];
+        $selectFields = ['uid', 'uid_local', 'alternative', 'title', 'tx_a11y_is_decorative', 'sys_language_uid'];
 
         $references = $referenceQueryBuilder
             ->select(...$selectFields)
@@ -118,7 +118,7 @@ final class FileReferenceRepository extends AbstractRepository implements FileRe
         $metadataQueryBuilder = $this->getQueryBuilder(Tables::SYS_FILE_METADATA);
 
         $metadataRows = $metadataQueryBuilder
-            ->select('file', 'alternative', 'title')
+            ->select('file', 'sys_language_uid', 'alternative', 'title')
             ->from(Tables::SYS_FILE_METADATA)
             ->where(
                 $metadataQueryBuilder->expr()->in(
@@ -126,12 +126,15 @@ final class FileReferenceRepository extends AbstractRepository implements FileRe
                     $metadataQueryBuilder->createNamedParameter($fileUids, Connection::PARAM_INT_ARRAY)
                 )
             )
+            ->orderBy('uid', 'ASC')
             ->executeQuery()
             ->fetchAllAssociative();
 
-        $metadataByFileUid = [];
+        // Metadata per file and language: a reference falls back to the metadata of its own language, else the
+        // default language, as TYPO3 renders it. Another language's alternative text never counts.
+        $metadataByFileAndLanguage = [];
         foreach ($metadataRows as $metadataRow) {
-            $metadataByFileUid[(int)$metadataRow['file']] = [
+            $metadataByFileAndLanguage[(int)$metadataRow['file']][(int)($metadataRow['sys_language_uid'] ?? 0)] ??= [
                 'alternative' => $metadataRow['alternative'] ?? null,
                 'title' => $metadataRow['title'] ?? null,
             ];
@@ -146,10 +149,10 @@ final class FileReferenceRepository extends AbstractRepository implements FileRe
                 continue;
             }
 
-            $metadata = $metadataByFileUid[$uidLocal] ?? [
-                'alternative' => null,
-                'title' => null,
-            ];
+            $referenceLanguageUid = max(0, (int)($reference['sys_language_uid'] ?? 0));
+            $metadata = $metadataByFileAndLanguage[$uidLocal][$referenceLanguageUid]
+                ?? $metadataByFileAndLanguage[$uidLocal][0]
+                ?? ['alternative' => null, 'title' => null];
 
             $reference['identifier'] = $file['identifier'];
             $reference['metadata_alternative'] = $metadata['alternative'];

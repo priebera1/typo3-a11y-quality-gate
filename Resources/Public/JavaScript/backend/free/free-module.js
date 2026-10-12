@@ -1,6 +1,23 @@
 import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
 import { A11yBaseModule } from '@priebera/a11y-quality-gate/backend/core/base-module.js';
 import { FREE_SELECTORS, PRO_SELECTORS } from '@priebera/a11y-quality-gate/backend/core/constants.js';
+import {
+    contentScanNotification,
+    scanCancelledNotification,
+    scanFailedNotification,
+} from '@priebera/a11y-quality-gate/backend/core/scan-notification.js';
+
+/**
+ * The language a scan control starts: its own data-language-uid, else the language of the module it sits in.
+ * Never a silent default-language scan while a translation is selected.
+ */
+const resolveScanLanguageUid = (button) => {
+    const value = button.dataset.languageUid
+        ?? button.closest('[data-a11y-language-uid]')?.dataset.a11yLanguageUid
+        ?? '0';
+    const languageUid = Number.parseInt(value, 10);
+    return Number.isNaN(languageUid) ? 0 : languageUid;
+};
 
 export class A11yFreeBackendModule extends A11yBaseModule {
     constructor() {
@@ -81,7 +98,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             const batchCloseConfirm = event.target.closest(FREE_SELECTORS.batchCloseConfirm);
             if (batchCloseConfirm) {
                 event.preventDefault();
-                this.closeBatchConfirm();
+                this.closeBatchConfirm(true, true);
                 return;
             }
 
@@ -142,7 +159,16 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
     bindBatchIgnoreEvents() {
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && this.batchSelection?.size > 0) {
+            if (event.key !== 'Escape') {
+                return;
+            }
+            // Escape closes an open confirmation first and keeps the selection; a second Escape clears it.
+            const form = document.querySelector(FREE_SELECTORS.batchConfirm);
+            if (form && !form.hidden) {
+                this.closeBatchConfirm(true, true);
+                return;
+            }
+            if (this.batchSelection?.size > 0) {
                 this.clearBatchSelection();
             }
         });
@@ -351,9 +377,21 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             return;
         }
 
+        this.rememberBatchConfirmOpener();
         this.prepareBatchForm(form, 'selected');
         form.hidden = false;
         form.querySelector(FREE_SELECTORS.batchReason)?.focus();
+    }
+
+    rememberBatchConfirmOpener() {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement) || active === document.body) {
+            this.batchConfirmOpener = null;
+            return;
+        }
+        // An item of a "More actions" menu is gone once the menu closes: focus returns to the menu's summary instead.
+        const menuSummary = active.closest('details[data-aqg-menu]')?.querySelector(':scope > summary');
+        this.batchConfirmOpener = menuSummary instanceof HTMLElement ? menuSummary : active;
     }
 
     openBatchRuleConfirm(button, scope) {
@@ -365,18 +403,28 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             return;
         }
 
-        this.prepareBatchForm(form, scope, ruleId, count);
+        this.rememberBatchConfirmOpener();
+        this.prepareBatchForm(form, scope, ruleId, count, this.ruleTitleFor(button));
         form.hidden = false;
         form.querySelector(FREE_SELECTORS.batchReason)?.focus();
     }
 
-    closeBatchConfirm(clearMode = true) {
+    closeBatchConfirm(clearMode = true, restoreFocus = false) {
         const form = document.querySelector(FREE_SELECTORS.batchConfirm);
         if (!form) {
             return;
         }
 
+        const wasOpen = !form.hidden;
         form.hidden = true;
+        if (restoreFocus && wasOpen) {
+            // Focus goes back to what opened the confirmation, never to the document body.
+            const opener = this.batchConfirmOpener;
+            const target = opener && document.contains(opener) && !opener.closest('[hidden]')
+                ? opener
+                : document.querySelector(FREE_SELECTORS.batchOpenConfirm);
+            target?.focus();
+        }
         const error = form.querySelector(FREE_SELECTORS.batchError);
         if (error) {
             error.hidden = true;
@@ -413,7 +461,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         }
 
         if (countLabel) {
-            countLabel.textContent = selectedCount === 1 ? 'issue selected' : 'issues selected';
+            countLabel.textContent = selectedCount === 1
+                ? this.translate('pageDetail.bulk.selectedOne', 'issue selected')
+                : this.translate('pageDetail.bulk.selectedMany', 'issues selected');
         }
 
         document.querySelectorAll(FREE_SELECTORS.batchIssueCard).forEach((card) => {
@@ -445,7 +495,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         });
     }
 
-    prepareBatchForm(form, mode, ruleId = '', ruleCount = 0) {
+    prepareBatchForm(form, mode, ruleId = '', ruleCount = 0, ruleTitle = '') {
         const inputs = form.querySelector(FREE_SELECTORS.batchSelectedInputs);
         const title = form.querySelector(FREE_SELECTORS.batchConfirmTitle);
         const sub = form.querySelector(FREE_SELECTORS.batchConfirmSub);
@@ -480,14 +530,14 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             }
 
             const titleTemplate = mode === 'site'
-                ? this.translate('pageDetail.bulk.ignoreRuleOnSite', 'Ignore all %s issues on this site')
-                : this.translate('pageDetail.bulk.ignoreRuleOnPage', 'Ignore all %s issues on this page');
-            title && (title.textContent = this.format(titleTemplate, ruleId));
+                ? this.translate('pageDetail.bulk.ignoreRuleOnSite', 'Ignore all issues of “%s” on this site')
+                : this.translate('pageDetail.bulk.ignoreRuleOnPage', 'Ignore all issues of “%s” on this page');
+            title && (title.textContent = this.format(titleTemplate, String(ruleTitle || ruleId).replace(/\.$/, '')));
             sub && (sub.textContent = this.format(
                 this.translate('pageDetail.bulk.ignoreRuleText', 'This will mark %d open issues with this rule as ignored. They stay visible in the report but no longer block the quality gate.'),
                 ruleCount
             ));
-            summary && (summary.innerHTML = this.buildBatchSummaryHtml([{ ruleId, count: ruleCount }]));
+            summary && (summary.innerHTML = this.buildBatchSummaryHtml([{ ruleId, ruleTitle, count: ruleCount }]));
             return;
         }
 
@@ -527,18 +577,27 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             .map((card) => ({
                 uid: String(card.dataset.issueUid || ''),
                 ruleId: String(card.dataset.ruleId || 'unknown'),
+                ruleTitle: this.ruleTitleFor(card),
             }))
             .filter((item) => item.uid !== '');
+    }
+
+    /** The rule's title as the card shows it; the rule ID only when no card names it. */
+    ruleTitleFor(element) {
+        const title = element?.closest?.('[data-aqg-rule-card="true"]')?.querySelector('.aqg-rulecard__title')?.textContent;
+
+        return String(title || '').trim();
     }
 
     groupSelectedByRule(selected) {
         const map = new Map();
         selected.forEach((issue) => {
-            const current = map.get(issue.ruleId) || 0;
-            map.set(issue.ruleId, current + 1);
+            const current = map.get(issue.ruleId) || { ruleId: issue.ruleId, ruleTitle: issue.ruleTitle || '', count: 0 };
+            current.count += 1;
+            map.set(issue.ruleId, current);
         });
 
-        return Array.from(map.entries()).map(([ruleId, count]) => ({ ruleId, count }));
+        return Array.from(map.values());
     }
 
     buildBatchSummaryHtml(items) {
@@ -547,17 +606,26 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         }
 
         const rows = items
-            .map((item) => `
+            .map((item) => {
+                const count = Number(item.count || 0);
+                const countLabel = this.format(
+                    count === 1
+                        ? this.translate('pageDetail.bulk.summaryCount.singular', '%d issue')
+                        : this.translate('pageDetail.bulk.summaryCount.plural', '%d issues'),
+                    count
+                );
+                const title = String(item.ruleTitle || '').trim();
+
+                return `
                 <li class="aqg-bulkconfirm__summary-row">
-                    <span class="aqg-bulkconfirm__summary-rule"></span>
-                    <span>${this.escapeHtml(item.ruleId)}</span>
-                    <span class="aqg-bulkconfirm__summary-count">${Number(item.count || 0)}×</span>
-                </li>
-            `)
+                    <span class="aqg-bulkconfirm__summary-rule">${this.escapeHtml(title || item.ruleId)}${title ? ` <code>${this.escapeHtml(item.ruleId)}</code>` : ''}</span>
+                    <span class="aqg-bulkconfirm__summary-count">${this.escapeHtml(countLabel)}</span>
+                </li>`;
+            })
             .join('');
 
         return `
-            <div class="aqg-bulkconfirm__summary-title">Selection breakdown</div>
+            <p class="aqg-bulkconfirm__summary-title">${this.escapeHtml(this.translate('pageDetail.bulk.summaryTitle', 'Selected issues by rule'))}</p>
             <ul class="aqg-bulkconfirm__summary-list">${rows}</ul>
         `;
     }
@@ -1414,6 +1482,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
         if (trigger) {
             trigger.hidden = false;
+            // The trigger sits in the occurrence's closed "More actions" menu: give focus back to that menu.
+            const menuToggle = trigger.closest('details[data-aqg-menu="true"]')?.querySelector('summary');
+            (menuToggle instanceof HTMLElement ? menuToggle : trigger).focus();
         }
     }
 
@@ -1471,10 +1542,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 this.pollLocalScanCancellationUntilStopped();
             }
 
-            this.showNotification(
-                this.translate('notification.scan.cancelRequested', 'Content scan cancellation requested.'),
-                'info'
-            );
+            // The scan's own answer brings the one "cancelled" notification; the request is only announced.
+            this.announce(this.translate('notification.scan.cancelRequested', 'Content scan cancellation requested.'));
         } catch (error) {
             this.localScanCancellationRequested = false;
             const message = error instanceof Error ? error.message : this.translate('js.error.unknown', 'Unknown error');
@@ -1518,7 +1587,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
         const endpoint = ajaxUrls.a11y_scan_page || '';
         const pageUid = Number.parseInt(button.dataset.pageUid || '0', 10);
-        const languageUid = Number.parseInt(button.dataset.languageUid || '0', 10);
+        const languageUid = resolveScanLanguageUid(button);
 
         if (!endpoint || pageUid <= 0) {
             this.showNotification(
@@ -1528,12 +1597,13 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             return;
         }
 
+        this.localScanInFlight = true;
         this.setLoadingState(button, true);
-        this.updateLocalScanProgress(
-            true,
-            this.translate('overview.localScan.runningEta', 'This usually takes a moment. You can view progress while it runs.'),
-            new Date()
-        );
+        this.setLocalScanControlsBusy(true);
+        this.setLastCompletedLabel('local', true);
+        this.updateLocalScanProgress(true, this.localScanRunningMessage(), new Date());
+        this.setLocalScanTitle(this.describeLocalScanTarget(button));
+        this.announce(this.describeLocalScanStart(button));
         await this.yieldForPaint();
 
         try {
@@ -1542,26 +1612,22 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
             if (this.isLocalScanCancelledResponse(data)) {
                 this.localScanCancellationRequested = false;
-                this.showNotification(
-                    this.translate('notification.scan.cancelled', 'Content scan was cancelled.'),
-                    'info'
-                );
+                this.showScanResult(scanCancelledNotification('content', this.scanLabel()));
                 this.updateLocalScanProgress(false, '');
+                this.setLastCompletedLabel('local', false);
+                this.localScanInFlight = false;
+                this.setLocalScanControlsBusy(false);
                 this.setLoadingState(button, false);
                 return;
             }
 
             this.localScanCancellationRequested = false;
 
-            this.showNotification(
-                this.format(
-                    this.translate('notification.scan.completed', 'Scan complete — %d new, %d resolved.'),
-                    Number(data.issuesNew || 0),
-                    Number(data.issuesResolved || 0)
-                ),
-                'success'
-            );
-            this.showScanWarnings(data);
+            // One notification per scan: what ran, and which rendered checks did not, with the way to the reasons.
+            this.showScanResult(contentScanNotification(data, { scope: 'page' }, this.scanLabel()), {
+                detailsTarget: 'aqg-rendered-coverage',
+                detailsLabel: this.translate('notification.scanResult.action.pageDetails', 'Show details'),
+            });
 
             this.updateLocalScanProgress(
                 true,
@@ -1572,14 +1638,94 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             this.reloadCurrentModule(2600);
         } catch (error) {
             this.localScanCancellationRequested = false;
-            const message = error instanceof Error ? error.message : this.translate('js.error.unknown', 'Unknown error');
-            this.showNotification(
-                this.format(this.translate('notification.scan.failed', 'Scan failed: %s'), message),
-                'error'
-            );
-            this.updateLocalScanProgress(false, '');
+            await this.showLocalScanFailure(error);
+            this.localScanInFlight = false;
+            this.setLocalScanControlsBusy(false);
             this.setLoadingState(button, false);
         }
+    }
+
+    /**
+     * Every other content scan control is unavailable while one content scan runs: one scan per installation.
+     */
+    setLocalScanControlsBusy(isBusy) {
+        const reason = isBusy
+            ? this.translate('overview.localScan.busyReason', 'A content scan is already running')
+            : '';
+        document.querySelectorAll(`${FREE_SELECTORS.rescanButton}, ${FREE_SELECTORS.scanAllButton}`).forEach((control) => {
+            this.setScanControlAvailable(control, !isBusy, reason);
+        });
+    }
+
+    /** The running line: the earlier result stays on screen below, labelled as the last completed scan. */
+    localScanRunningMessage() {
+        return document.querySelector('[data-aqg-last-completed="local"]')
+            ? this.translate('overview.scan.previousStaysVisible', 'Previous result stays visible until it finishes.')
+            : this.translate('overview.localScan.runningShort', 'This usually takes a moment.');
+    }
+
+    describeLocalScanTarget(button) {
+        const pageTitle = String(button.dataset.pageTitle || button.closest('[data-a11y-page-row]')?.dataset.a11yPageTitle || '').trim();
+        return pageTitle !== ''
+            ? this.format(this.translate('overview.localScan.pageRunningTitle', 'Scanning %s…'), pageTitle)
+            : this.translate('overview.localScan.runningTitle', 'Content scan is running');
+    }
+
+    setLocalScanTitle(text) {
+        document.querySelectorAll(PRO_SELECTORS.localScanProgressTitle).forEach((titleEl) => {
+            titleEl.textContent = text;
+        });
+    }
+
+    describeLocalScanStart(button) {
+        const pageTitle = String(button.dataset.pageTitle || button.closest('[data-a11y-page-row]')?.dataset.a11yPageTitle || '').trim();
+        return pageTitle !== ''
+            ? this.format(this.translate('overview.localScan.pageStarted', 'Content scan started: %s.'), pageTitle)
+            : this.translate('overview.localScan.started', 'Content scan started.');
+    }
+
+    /**
+     * A failed content scan shows its reason in the progress block, which turns into the failed state (no bar); the
+     * toast only says that it failed. Results below are labelled as the last completed scan.
+     */
+    async showLocalScanFailure(error) {
+        const message = await this.readableLocalScanError(error);
+        const title = this.translate('overview.localScan.failedTitle', 'Content scan failed');
+
+        this.updateLocalScanProgress(true, message, null, 'failed');
+        this.setLastCompletedLabel('local', true);
+        // The scan status shows the reason; the toast says where to find it, the announcement reads it.
+        this.showScanResult(scanFailedNotification(
+            'content',
+            this.translate('notification.scanResult.failedReason', 'The reason is shown in the scan status.'),
+            this.scanLabel()
+        ), { announce: false });
+        this.announce(`${title}: ${message}`);
+    }
+
+    async readableLocalScanError(error) {
+        // fetch() rejects with a TypeError when the request never reached TYPO3 (offline, aborted, proxy).
+        if (error instanceof TypeError) {
+            return this.translate('notification.scan.connectionLost', 'The request did not reach TYPO3. Check the connection and try again.');
+        }
+        if (error instanceof Error && error.message.trim() !== '') {
+            return error.message;
+        }
+        // An HTTP error answer of the scan endpoint carries its translated reason as `error`.
+        const response = error?.response;
+        if (response && typeof response.clone === 'function') {
+            try {
+                const data = await response.clone().json();
+                const reason = String(data?.error || data?.message || '').trim();
+                if (reason !== '') {
+                    return reason;
+                }
+            } catch {
+                // not JSON: fall through to the generic text
+            }
+        }
+
+        return this.translate('js.error.unknown', 'Unknown error');
     }
 
     async yieldForPaint() {
@@ -1587,30 +1733,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         await new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
     }
 
-    showScanWarnings(data) {
-        const warnings = Array.isArray(data?.warnings) ? data.warnings : [];
-        warnings.forEach((warning) => {
-            const message = String(warning?.message || '').trim();
-            if (message === '') {
-                return;
-            }
-
-            this.showNotification(
-                this.format(
-                    this.translate('notification.scan.warning', 'Scan completed with a warning: %s'),
-                    message
-                ),
-                'warning'
-            );
-        });
-    }
-
-
     formatLocalScanStartedAt(date = new Date()) {
-        return `${this.translate('overview.progress.started', 'Started')} ${date.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-        })} · `;
+        return `${this.translate('overview.progress.started', 'Started')} ${this.formatClockTime(date)} · `;
     }
 
     updateLocalScanProgress(visible, message = '', startedAt = null, status = 'active') {
@@ -1624,6 +1748,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
         boxes.forEach((box) => {
             const isCompleted = normalizedStatus === 'completed';
+            const isFailed = normalizedStatus === 'failed';
             const isIndeterminate = visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus);
             const spinner = box.querySelector('.spinner-border');
             const fill = box.querySelector('.aqg-progress-block__fill');
@@ -1632,6 +1757,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             box.classList.toggle('d-none', !visible);
             box.classList.toggle('aqg-progress-block--indeterminate', isIndeterminate);
             box.classList.toggle('aqg-progress-block--completed', isCompleted);
+            box.classList.toggle('aqg-progress-block--failed', visible && isFailed);
 
             if (spinner) {
                 spinner.classList.toggle('d-none', !isIndeterminate);
@@ -1644,12 +1770,14 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             }
 
             if (cancelButton) {
-                cancelButton.classList.toggle('d-none', isCompleted || !visible);
+                cancelButton.classList.toggle('d-none', isCompleted || isFailed || !visible);
             }
         });
 
+        // The previous result stays in place while a scan runs (no jump), marked as about to be replaced.
         staticBlocks.forEach((block) => {
-            block.classList.toggle('d-none', visible);
+            block.classList.remove('d-none');
+            block.classList.toggle('is-stale', visible && !['completed', 'failed', 'cancelled'].includes(normalizedStatus));
         });
 
         if (message) {
@@ -1658,16 +1786,25 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             });
         }
 
-        const titleText = normalizedStatus === 'completed'
-            ? this.translate('overview.localScan.completedTitle', 'Content scan completed')
-            : this.translate('overview.localScan.runningTitle', 'Content scan is running');
+        let titleText = this.translate('overview.localScan.runningTitle', 'Content scan is running');
+        if (normalizedStatus === 'completed') {
+            titleText = this.translate('overview.localScan.completedTitle', 'Content scan completed');
+        } else if (normalizedStatus === 'failed') {
+            titleText = this.translate('overview.localScan.failedTitle', 'Content scan failed');
+        }
         titleElements.forEach((titleEl) => {
             titleEl.textContent = titleText;
         });
+        document.querySelectorAll('[data-a11y-local-scan-state="true"]').forEach((stateEl) => {
+            stateEl.textContent = this.describeScanState(normalizedStatus);
+        });
 
-        const statusText = normalizedStatus === 'completed'
-            ? this.translate('overview.scan.completedShort', 'completed')
-            : this.translate('overview.localScan.activeShort', 'active');
+        let statusText = this.translate('overview.localScan.activeShort', 'active');
+        if (normalizedStatus === 'completed') {
+            statusText = this.translate('overview.scan.completedShort', 'completed');
+        } else if (normalizedStatus === 'failed') {
+            statusText = this.translate('overview.scan.failedShort', 'failed');
+        }
         statusElements.forEach((statusEl) => {
             statusEl.textContent = statusText;
             statusEl.className = 'aqg-status-badge';
@@ -1691,12 +1828,13 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 return;
             }
 
-            if (normalizedStatus === 'completed') {
+            if (normalizedStatus === 'completed' || normalizedStatus === 'failed') {
                 startedEl.textContent = '';
                 return;
             }
 
-            if (startedEl.textContent.trim() !== '') {
+            // A scan started here always shows its own start; a restored one keeps the time the server rendered.
+            if (!(startedAt instanceof Date) && startedEl.textContent.trim() !== '') {
                 return;
             }
 
@@ -1721,7 +1859,7 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
         const endpoint = ajaxUrls.a11y_scan_site || '';
         const rootPid = Number.parseInt(button.dataset.rootPid || '0', 10);
-        const languageUid = Number.parseInt(button.dataset.languageUid || '0', 10);
+        const languageUid = resolveScanLanguageUid(button);
 
         if (!endpoint || rootPid <= 0) {
             this.showNotification(
@@ -1731,12 +1869,13 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             return;
         }
 
+        this.localScanInFlight = true;
         this.setLoadingState(button, true);
-        this.updateLocalScanProgress(
-            true,
-            this.translate('overview.localScan.runningEta', 'This usually takes a moment. You can view progress while it runs.'),
-            new Date()
-        );
+        this.setLocalScanControlsBusy(true);
+        this.setLastCompletedLabel('local', true);
+        this.updateLocalScanProgress(true, this.localScanRunningMessage(), new Date());
+        this.setLocalScanTitle(this.translate('overview.localScan.siteRunningTitle', 'Scanning the site…'));
+        this.announce(this.translate('overview.localScan.siteStarted', 'Content scan of the site started.'));
         await this.yieldForPaint();
 
         try {
@@ -1745,26 +1884,21 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
             if (this.isLocalScanCancelledResponse(data)) {
                 this.localScanCancellationRequested = false;
-                this.showNotification(
-                    this.translate('notification.scan.cancelled', 'Content scan was cancelled.'),
-                    'info'
-                );
+                this.showScanResult(scanCancelledNotification('content', this.scanLabel()));
                 this.updateLocalScanProgress(false, '');
+                this.setLastCompletedLabel('local', false);
+                this.localScanInFlight = false;
+                this.setLocalScanControlsBusy(false);
                 this.setLoadingState(button, false);
                 return;
             }
 
             this.localScanCancellationRequested = false;
 
-            this.showNotification(
-                this.format(
-                    this.translate('notification.scanAll.completed', 'Full scan complete — %d new, %d resolved.'),
-                    Number(data.issuesNew || 0),
-                    Number(data.issuesResolved || 0)
-                ),
-                'success'
-            );
-            this.showScanWarnings(data);
+            // One notification per scan: what ran, and which rendered checks did not, with the way to the reasons.
+            this.showScanResult(contentScanNotification(data, { scope: 'site' }, this.scanLabel()), {
+                detailsTarget: 'aqg-rendered-coverage',
+            });
 
             this.updateLocalScanProgress(
                 true,
@@ -1775,12 +1909,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             this.reloadCurrentModule(2600);
         } catch (error) {
             this.localScanCancellationRequested = false;
-            const message = error instanceof Error ? error.message : this.translate('js.error.unknown', 'Unknown error');
-            this.showNotification(
-                this.format(this.translate('notification.scan.failed', 'Scan failed: %s'), message),
-                'error'
-            );
-            this.updateLocalScanProgress(false, '');
+            await this.showLocalScanFailure(error);
+            this.localScanInFlight = false;
+            this.setLocalScanControlsBusy(false);
             this.setLoadingState(button, false);
         }
     }
@@ -1826,6 +1957,11 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
                 const response = await new AjaxRequest(statusUrl.toString()).get();
                 const data = await response.resolve();
+                // A scan started on this page while the request was in flight: its answer predates the scan and must
+                // not give the scan controls back.
+                if (this.scanInProgress || this.localScanInFlight || this.getRestorableRemoteScanState?.()) {
+                    return;
+                }
                 const status = data.status || {};
                 const remoteStatus = data.remoteStatus || {};
                 const running = Boolean(status.running);
@@ -1842,10 +1978,12 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                         true,
                         this.localScanCancellationRequested
                             ? this.translate('overview.localScan.cancelling', 'Cancelling content scan...')
-                            : this.translate('overview.localScan.runningEta', 'This usually takes a moment. You can view progress while it runs.'),
+                            : this.localScanRunningMessage(),
                         startedAt
                     );
-                } else if (document.querySelector(`${PRO_SELECTORS.localScanProgressBox}:not(.d-none)`)) {
+                    this.setLastCompletedLabel('local', true);
+                } else if (document.querySelector(`${PRO_SELECTORS.localScanProgressBox}.aqg-progress-block--indeterminate:not(.d-none)`)) {
+                    // Only a block that shows a running scan turns into "completed": a failed one keeps its reason.
                     this.localScanCancellationRequested = false;
                     this.updateLocalScanProgress(
                         true,
@@ -1862,7 +2000,11 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 });
 
                 document.querySelectorAll(FREE_SELECTORS.rescanButton).forEach((button) => {
-                    button.disabled = running || remoteRunning;
+                    this.setScanControlAvailable(
+                        button,
+                        !(running || remoteRunning),
+                        this.translate('overview.localScan.busyReason', 'A content scan is already running')
+                    );
                 });
 
                 document.querySelectorAll(PRO_SELECTORS.proScanSiteButton).forEach((button) => {

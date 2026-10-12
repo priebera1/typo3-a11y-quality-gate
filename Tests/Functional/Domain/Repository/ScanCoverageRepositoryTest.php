@@ -26,6 +26,8 @@ final class ScanCoverageRepositoryTest extends AbstractFunctionalTestCase
         foreach ([[1, 0], [2, 1], [3, 2], [4, 1]] as [$uid, $pid]) {
             $pool->getConnectionForTable('pages')->insert('pages', ['uid' => $uid, 'pid' => $pid, 'title' => 'Page ' . $uid, 'doktype' => 1]);
         }
+        // Created after the site scan of page 1 had started.
+        $pool->getConnectionForTable('pages')->insert('pages', ['uid' => 5, 'pid' => 1, 'title' => 'Page 5', 'doktype' => 1, 'crdate' => 1_790_001_500]);
 
         foreach ([
             // site, root page, language, scope, status, finished
@@ -62,6 +64,14 @@ final class ScanCoverageRepositoryTest extends AbstractFunctionalTestCase
         self::assertSame(1_790_002_000, (int)$this->subject->findLastCompletedSubtreeScanCoveringPage('main', 3, 1)['finished_at']);
         self::assertSame(1_790_003_000, (int)$this->subject->findLastCompletedSubtreeScanCoveringPage('main', 4, 0)['finished_at']);
         self::assertNull($this->subject->findLastCompletedSubtreeScanCoveringPage('third', 3, 0));
+    }
+
+    #[Test]
+    public function aSiteScanDoesNotCoverAPageCreatedAfterItStarted(): void
+    {
+        // Regression guard: the Page module showed "Content scan · No issues found" for a page that did not exist yet
+        // when the last site scan ran.
+        self::assertNull($this->subject->findLastCompletedSubtreeScanCoveringPage('main', 5, 0));
     }
 
     #[Test]

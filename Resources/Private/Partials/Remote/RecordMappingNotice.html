@@ -1,0 +1,32 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:if condition="{recordMappingNotice.show}">
+    <div class="aqg-note aqg-note--info" role="note" data-aqg-record-mapping-notice="no-scanner-token">
+        <f:render partial="Shared/AqgIcon" arguments="{name: 'info'}" />
+        <div class="aqg-note__text">
+            <strong>
+                <f:if condition="{recordMappingNotice.allUnmapped}">
+                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recordMapping.noneLinked" default="No occurrence on this page is linked to a TYPO3 record." /></f:then>
+                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recordMapping.someNotLinked" default="%1$d of %2$d occurrences are not linked to a TYPO3 record." arguments="{0: recordMappingNotice.unmappedNodes, 1: recordMappingNotice.totalNodes}" /></f:else>
+                </f:if>
+            </strong>
+            <f:if condition="{recordMappingNotice.linkedNodes} > 0">
+                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recordMapping.noTokenPartialReason" default="This site has no Scanner Token, so TYPO3 marks no content records for the crawler: only occurrences inside standard content frames are linked (%d here). Generate a token for this site in Remote scan access, then scan again." arguments="{0: recordMappingNotice.linkedNodes}" /></f:then>
+                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recordMapping.noTokenReason" default="This site has no Scanner Token, so TYPO3 did not mark its content records for the crawler. Generate a token for this site in Remote scan access, then scan again." /></f:else>
+            </f:if>
+            <f:if condition="{recordMappingNotice.pageLevelNodes} > 0">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recordMapping.pageLevel" default="%d more belong to the page template and are never linked to a record." arguments="{0: recordMappingNotice.pageLevelNodes}" />
+            </f:if>
+        </div>
+        <f:if condition="{recordMappingNotice.settingsUrl}">
+            <div class="aqg-note__actions">
+                <a href="{recordMappingNotice.settingsUrl}" class="btn btn-default btn-sm">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remoteScannerTokenNotice.cta" default="Open Remote Scan Access settings" />
+                </a>
+            </div>
+        </f:if>
+    </div>
+</f:if>
+</html>

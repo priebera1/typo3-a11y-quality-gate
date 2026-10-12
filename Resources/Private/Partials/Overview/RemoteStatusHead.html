@@ -1,0 +1,96 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div class="aqg-status__head">
+    <span class="aqg-status__glyph" aria-hidden="true">
+        <f:switch expression="{remoteSignalTone}">
+            <f:case value="critical"><f:render partial="Shared/AqgIcon" arguments="{name: 'crit'}" /></f:case>
+            <f:case value="good"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok'}" /></f:case>
+            <f:case value="no-scan"><f:render partial="Shared/AqgIcon" arguments="{name: 'globe'}" /></f:case>
+            <f:case value="no-coverage"><f:render partial="Shared/AqgIcon" arguments="{name: 'x'}" /></f:case>
+            <f:defaultCase><f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" /></f:defaultCase>
+        </f:switch>
+    </span>
+    <h2 class="aqg-status__title" id="{f:if(condition: titleId, then: titleId, else: 'aqg-remote-status-title')}" {f:if(condition: focusable, then: 'tabindex="-1"')}>
+        <span class="aqg-status__tone">{remoteSignalLabel}</span>
+        <span class="aqg-status__sep" aria-hidden="true">·</span>
+        <f:variable name="occurrencesTotal" value="{f:if(condition: remoteOccurrences, then: remoteOccurrences.total, else: remoteScan.issues_total)}" />
+        {occurrencesTotal}
+        <f:if condition="{occurrencesTotal} == 1">
+            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metric.occurrence" default="occurrence" /></f:then>
+            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metric.occurrences" default="occurrences" /></f:else>
+        </f:if>
+        <span class="aqg-status__sep" aria-hidden="true">·</span>
+        <f:variable name="affectedPagesTotal" value="{f:if(condition: remoteReportSummary.affectedPagesTotal, then: remoteReportSummary.affectedPagesTotal, else: totalRemotePages)}" />
+        {affectedPagesTotal}
+        <f:if condition="{affectedPagesTotal} == 1">
+            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.affectedPage" default="affected page" /></f:then>
+            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.affectedPages" default="affected pages" /></f:else>
+        </f:if>
+    </h2>
+    <f:if condition="{remoteScore.hasValue}">
+        <f:then>
+            <span class="aqg-status__score aqg-status__score--{remoteScoreTone}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.scoreLabel" default="AQG signal" /> {remoteScore.value} / {remoteScore.max}</span>
+        </f:then>
+        <f:else>
+            <span class="aqg-status__score aqg-status__score--unavailable"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.scoreUnavailable" default="AQG signal unavailable" /></span>
+        </f:else>
+    </f:if>
+</div>
+
+<ul class="aqg-status__counts" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.metricsAria', default: 'Frontend scan metrics')}">
+    <f:if condition="{remoteSignalTone} != 'no-coverage'">
+    <li class="aqg-status__count">
+        <strong><f:if condition="{remoteReportSummary.priorityFixesTotal}"><f:then>{remoteReportSummary.priorityFixesTotal}</f:then><f:else>{remotePriorityFixes -> f:count()}</f:else></f:if></strong>
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.priorityFixes" default="priority fixes" />
+    </li>
+    </f:if>
+    <f:if condition="{remoteReportingGroups.automatedIssuesTotal} || {remoteReportSummary.wcagCriteriaTotal}">
+        <li class="aqg-status__count">
+            <f:if condition="{remoteReportingGroups.automatedIssuesTotal}">
+                <f:then><strong>{remoteReportingGroups.automatedIssuesTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.signal.wcagMapped" default="WCAG-mapped findings" /></f:then>
+                <f:else><strong>{remoteReportSummary.wcagCriteriaTotal}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportSummary.wcagCriteria" default="WCAG criteria" /></f:else>
+            </f:if>
+        </li>
+    </f:if>
+    <f:if condition="{totalRemoteFailedPages} > 0">
+        <f:then>
+            <li class="aqg-status__count aqg-status__count--failed">
+                <f:render partial="Shared/AqgIcon" arguments="{name: 'x', size: 'sm'}" />
+                <a href="#a11y-remote-failed-pages" data-aqg-reveal="true"><strong>{totalRemoteFailedPages}</strong> <f:if condition="{totalRemoteFailedPages} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.failedPage" default="failed page" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.failedPages" default="failed pages" /></f:else></f:if></a>
+            </li>
+        </f:then>
+        <f:else>
+            <li class="aqg-status__count is-zero"><strong>0</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.failedPages" default="failed pages" /></li>
+        </f:else>
+    </f:if>
+</ul>
+
+<ul class="aqg-status__meta">
+    <li>
+        <f:if condition="{remoteScan.scan_scope} == 'page'">
+            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.pageScan" default="Page scan" /></f:then>
+            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteScan" default="Site scan" /></f:else>
+        </f:if>
+    </li>
+    <li>
+        <f:if condition="{remoteScan.pages_scanned} == 1">
+            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.pageLoaded" default="%d page loaded" arguments="{0: remoteScan.pages_scanned}" /></f:then>
+            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.pagesLoaded" default="%d pages loaded" arguments="{0: remoteScan.pages_scanned}" /></f:else>
+        </f:if>
+    </li>
+    <f:if condition="{currentLanguageOption.title}">
+        <li>{currentLanguageOption.title}</li>
+    </f:if>
+    <li>
+        <f:if condition="{remoteScan.finished_at_formatted}">
+            <f:then>{remoteScan.finished_at_formatted}</f:then>
+            <f:else>{remoteScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:else>
+        </f:if>
+    </li>
+    <f:if condition="{remoteOccurrences.notStoredNote}">
+        <li class="aqg-status__meta-note">{remoteOccurrences.notStoredNote}</li>
+    </f:if>
+</ul>
+<f:if condition="{remoteCoverageNote}">
+    <p class="aqg-status__note" data-aqg-coverage-note="true">{remoteCoverageNote}</p>
+</f:if>
+</html>

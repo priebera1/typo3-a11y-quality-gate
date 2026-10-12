@@ -20,6 +20,15 @@ class AqgFrontendDebug {
 
         const params = new URLSearchParams(window.location.search);
         const highlightParam = params.get('aqgh');
+        const selectorParam = params.get('aqgs');
+
+        // An occurrence without a record marker: highlight the element the crawler's selector names.
+        if (!highlightParam && selectorParam) {
+            window.setTimeout(() => {
+                this.startSelectorHighlight(selectorParam);
+            }, 700);
+            return;
+        }
 
         if (!highlightParam) {
             return;
@@ -61,6 +70,46 @@ class AqgFrontendDebug {
         }
 
         console.warn('[AQG] Elements not found for uids', uids);
+    }
+
+    async startSelectorHighlight(selector) {
+        for (let attempt = 0; attempt <= this.maxRetryAttempts; attempt++) {
+            if (this.highlightBySelector(selector) > 0) {
+                return;
+            }
+            await this.wait(this.retryDelay);
+        }
+
+        console.warn('[AQG] Element not found for selector', selector);
+    }
+
+    highlightBySelector(selector) {
+        let target = null;
+        try {
+            target = document.querySelector(selector);
+        } catch {
+            return 0;
+        }
+        if (!(target instanceof HTMLElement)) {
+            return 0;
+        }
+
+        this.removeExistingHighlight();
+        this.applyHighlight(target, 1);
+        target.scrollIntoView({
+            behavior: 'auto',
+            block: 'center',
+            inline: 'nearest',
+        });
+
+        if (this.highlightTimeout) {
+            window.clearTimeout(this.highlightTimeout);
+        }
+        this.highlightTimeout = window.setTimeout(() => {
+            this.removeExistingHighlight();
+        }, 8000);
+
+        return 1;
     }
 
     async tryHighlightWithRetry(uids) {

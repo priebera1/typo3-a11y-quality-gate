@@ -1,0 +1,10 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:if condition="{date}">
+    <p class="aqg-last-completed" data-aqg-last-completed="{source}" {f:if(condition: visible, else: 'hidden="hidden"')}>
+        <span class="aqg-last-completed__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.scan.lastCompleted" default="Last completed scan · %s" arguments="{0: date}" /></span>
+    </p>
+</f:if>
+</html>

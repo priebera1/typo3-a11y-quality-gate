@@ -23,6 +23,7 @@ final class ProCrawlerService
         private readonly ProLicenceService $proLicenceService,
         private readonly ProTokenService $proTokenService,
         private readonly AqgCrawlerClient $crawlerClient,
+        private readonly ?TrialUsageService $trialUsageService = null,
     ) {
     }
 
@@ -86,6 +87,9 @@ final class ProCrawlerService
                 0,
                 $exception
             );
+        } finally {
+            // Accepted, refused at the Trial limit or lost in transit: the shown allowance may be out of date now.
+            $this->trialUsageService?->forget($domain);
         }
 
         if (!$responseDto->success || $responseDto->jobId === null) {

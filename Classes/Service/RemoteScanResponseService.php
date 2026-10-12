@@ -48,7 +48,13 @@ final class RemoteScanResponseService
             'issuesResolved' => $summaryResult->issuesResolved,
             'startedAt' => $summaryResult->startedAt,
             'finishedAt' => $summaryResult->finishedAt,
-            'pagesTotal' => $summaryResult->pagesScanned,
+            // NOT-02: the pages the scan was expected to check — the crawler's own total (summary contract 1.4+), the
+            // total the status polls stored, or at least every page it loaded or failed — never only the loaded ones.
+            'pagesTotal' => max(
+                (int)(property_exists($summaryResult, 'pagesTotal') ? $summaryResult->pagesTotal : 0),
+                (int)($existingScan['pages_total'] ?? 0),
+                (int)$summaryResult->pagesScanned + (int)$summaryResult->pagesFailed,
+            ),
             'contrast' => property_exists($summaryResult, 'contrast') ? $summaryResult->contrast : [],
             'contrastDetails' => property_exists($summaryResult, 'contrastDetails') ? $summaryResult->contrastDetails : [],
             'score' => property_exists($summaryResult, 'score') ? $summaryResult->score : [],

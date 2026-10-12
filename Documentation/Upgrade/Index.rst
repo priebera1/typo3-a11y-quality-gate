@@ -45,6 +45,30 @@ the release notes and these instructions; updating stays a deliberate step in
 Composer or the Extension Manager. A development checkout without a release
 version, such as ``dev-main``, shows no notice.
 
+..  _upgrade-2-0:
+
+Upgrading to AQG 2.0
+====================
+
+AQG 2.0 redesigns the backend views, the rich-text feedback and the PDF reports.
+It needs no configuration change:
+
+*   The requirements are the same as for 1.9: TYPO3 13.4 LTS or 14.3 and later,
+    PHP 8.2 and later.
+*   The update adds database columns only. Run
+    ``vendor/bin/typo3 extension:setup`` (or the database analyser in Classic
+    installations) and flush the caches.
+*   Rulesets, findings, ignore states, field configuration, the licence, the
+    Scanner Token and the AI settings are kept.
+*   The next content scan updates findings whose stored snippet format changed
+    without reporting them as resolved and new; ignored findings stay ignored.
+*   Some frontend scan features, such as the Highlighted / Original screenshot
+    switch, need the matching AQG service release. AQG 1.9 installations keep
+    working with that service release, so a service update does not require an
+    extension update.
+
+The changelog lists every change of the release.
+
 ..  _upgrade-after:
 
 After an update

@@ -40,7 +40,7 @@ Update notice
 
 When a newer stable AQG release is available, administrators see one line at
 the top of the Overview and the Settings view, for example
-:guilabel:`AQG 1.9.9 is available · You're using 1.9.8.`, with links to the
+:guilabel:`AQG 2.0.0 is available · You're using 1.9.8.`, with links to the
 release notes and the update instructions. The close button hides the notice of
 that release for the administrator; the choice is stored in their backend user
 settings, so other administrators still see it and a later release appears

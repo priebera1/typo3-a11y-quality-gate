@@ -1,0 +1,31 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<span class="aqg-status__plan" data-aqg-trial="plan"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proStatus.trial" default="TRIAL" /></span>
+<f:if condition="{trialUsage}">
+    <f:then>
+        <span data-aqg-trial="pages"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.trialUsage.maxPages" default="Max %d pages per frontend scan" arguments="{0: trialUsage.maxPagesPerJob}" /></span>
+        <f:if condition="{trialUsage.limitsEnforced}">
+            <f:then>
+                <span class="aqg-status__sep" aria-hidden="true">·</span>
+                <span data-aqg-trial="used"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.trialUsage.used" default="%1$d of %2$d scans used in the last 24 hours" arguments="{0: trialUsage.jobsUsed, 1: trialUsage.jobsLimit}" /></span>
+                <span class="aqg-status__sep" aria-hidden="true">·</span>
+                <f:if condition="!{trialUsage.available} && {trialUsage.nextScanAtFormatted}">
+                    <f:then><span data-aqg-trial="remaining"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.trialUsage.nextScan" default="No scans left until %s" arguments="{0: trialUsage.nextScanAtFormatted}" /></span></f:then>
+                    <f:else><span data-aqg-trial="remaining"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.trialUsage.remaining" default="Scans left: %d" arguments="{0: trialUsage.scansRemaining}" /></span></f:else>
+                </f:if>
+            </f:then>
+            <f:else>
+                <span class="aqg-status__sep" aria-hidden="true">·</span>
+                <span data-aqg-trial="unlimited"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.trialUsage.notEnforced" default="No 24-hour scan limit applies to this installation" /></span>
+            </f:else>
+        </f:if>
+    </f:then>
+    <f:else>
+        <span data-aqg-trial="pages"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxPages" default="Max 10 pages per frontend scan" /></span>
+        <span class="aqg-status__sep" aria-hidden="true">·</span>
+        <span data-aqg-trial="scans"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.limit.maxScans" default="Max 5 scans in the last 24 hours" /></span>
+    </f:else>
+</f:if>
+</html>

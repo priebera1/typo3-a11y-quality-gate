@@ -17,6 +17,9 @@ CREATE TABLE tx_a11y_scan (
     issues_new       int(11)      NOT NULL DEFAULT 0,
     issues_resolved  int(11)      NOT NULL DEFAULT 0,
     issues_ignored   int(11)      NOT NULL DEFAULT 0,
+    rendered_checked int(11)      NOT NULL DEFAULT 0,
+    rendered_skipped int(11)      NOT NULL DEFAULT 0,
+    rendered_skipped_json mediumtext,
     crdate           int(11)      NOT NULL DEFAULT 0,
     tstamp           int(11)      NOT NULL DEFAULT 0,
 
@@ -236,6 +239,7 @@ CREATE TABLE tx_a11y_remote_scan_page (
     keyboard_summary_json mediumtext,
     remediation_summary_json mediumtext,
     page_recommendation_json mediumtext,
+    screenshot_evidence_json text,
     failure_reason text,
     is_failed tinyint(1) DEFAULT '0' NOT NULL,
 

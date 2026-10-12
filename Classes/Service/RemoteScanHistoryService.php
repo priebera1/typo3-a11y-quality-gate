@@ -6,17 +6,23 @@ namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
+use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class RemoteScanHistoryService
 {
+    /** Regression answers are kept briefly; a new scan changes the key, so they are never staler than the scan. */
+    private const REGRESSION_CACHE_TTL = 900;
+
     public function __construct(
         private readonly ExtensionContextService $extensionContextService,
         private readonly ProCrawlerService $proCrawlerService,
+        private readonly ?CacheManager $cacheManager = null,
     ) {
     }
 
@@ -148,31 +154,60 @@ final class RemoteScanHistoryService
         string $sourceType,
         string $startUrl = '',
         ?int $languageId = null,
+        string $cacheVersion = '',
+    ): array {
+        // Audit C16/X1: one answer per site, scan type, URL, language and latest scan ($cacheVersion), so the Overview
+        // does not ask the AQG service on every render. Without a version nothing is cached.
+        $cacheKey = trim($cacheVersion) !== ''
+            ? 'regression_' . sha1(implode('|', [trim($siteBase), trim($siteIdentifier), strtolower(trim($sourceType)), trim($startUrl), (string)$languageId, trim($cacheVersion)]))
+            : '';
+        $cached = $cacheKey !== '' ? $this->cacheGet($cacheKey) : null;
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        [$alert, $cacheable] = $this->fetchRegressionAlert($siteBase, $siteIdentifier, $sourceType, $startUrl, $languageId);
+        if ($cacheKey !== '' && $cacheable) {
+            $this->cacheSet($cacheKey, $alert);
+        }
+
+        return $alert;
+    }
+
+    /**
+     * @return array{0: array<string, mixed>, 1: bool} the alert and whether it may be cached
+     */
+    private function fetchRegressionAlert(
+        string $siteBase,
+        string $siteIdentifier,
+        string $sourceType,
+        string $startUrl,
+        ?int $languageId,
     ): array {
         $siteIdentifier = trim($siteIdentifier);
         $sourceType = strtolower(trim($sourceType));
         $startUrl = trim($startUrl);
 
         if (trim($siteBase) === '' || $siteIdentifier === '') {
-            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.noSite', 'Regression signal is not available without a site context.'));
+            return [$this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.noSite', 'Regression signal is not available without a site context.')), false];
         }
 
         if ($sourceType === '') {
-            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.error.sourceTypeMissing', 'Internal configuration issue: source type is missing.'));
+            return [$this->emptyRegressionAlert(BackendLabelUtility::translate('remote.error.sourceTypeMissing', 'Internal configuration issue: source type is missing.')), false];
         }
 
         if (!in_array($sourceType, ['sitemap', 'crawl', 'single_page'], true)) {
-            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.invalidType', 'Invalid scan type for regression signal.'));
+            return [$this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.invalidType', 'Invalid scan type for regression signal.')), false];
         }
 
         if ($sourceType === 'single_page' && $startUrl === '') {
-            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.error.pageUrlMissing', 'Internal configuration issue: page URL is missing.'));
+            return [$this->emptyRegressionAlert(BackendLabelUtility::translate('remote.error.pageUrlMissing', 'Internal configuration issue: page URL is missing.')), false];
         }
 
         try {
             $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
             if ($domain === '') {
-                return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.noDomain', 'Regression signal is not available without a valid domain context.'));
+                return [$this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.noDomain', 'Regression signal is not available without a valid domain context.')), false];
             }
 
             $payload = $this->proCrawlerService->getRegressionAlert(
@@ -184,14 +219,27 @@ final class RemoteScanHistoryService
                 languageId: $languageId,
             );
         } catch (TokenRefreshException $exception) {
-            $this->logHistoryError('AQG regression alert request failed', $exception);
-            return $this->emptyRegressionAlert($this->mapRegressionAlertError($exception));
+            $apiError = $exception->getPrevious();
+            // 404 "not_found" means there is no earlier compatible scan to compare with: an answer, not a fault.
+            $nothingToCompare = $apiError instanceof ApiRequestFailedException
+                && $apiError->httpStatus === 404
+                && $apiError->apiErrorCode === 'not_found';
+            if ($nothingToCompare) {
+                $this->logHistoryDebug('AQG regression alert: no compatible earlier scan to compare', $exception);
+            } else {
+                $this->logHistoryError('AQG regression alert request failed', $exception);
+            }
+
+            return [
+                $this->emptyRegressionAlert($this->mapRegressionAlertError($exception)),
+                $apiError instanceof ApiRequestFailedException && $apiError->httpStatus >= 400 && $apiError->httpStatus < 500 && $apiError->httpStatus !== 429,
+            ];
         } catch (\Throwable $exception) {
             $this->logHistoryError('AQG regression alert request failed unexpectedly', $exception);
-            return $this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.'));
+            return [$this->emptyRegressionAlert(BackendLabelUtility::translate('remote.regression.error.unavailableNow', 'Regression signal is not available right now.')), false];
         }
 
-        return $this->normalizeRegressionAlertPayload($payload, $siteIdentifier, $sourceType, $startUrl);
+        return [$this->normalizeRegressionAlertPayload($payload, $siteIdentifier, $sourceType, $startUrl), true];
     }
 
     /**
@@ -1380,6 +1428,49 @@ final class RemoteScanHistoryService
         }
 
         return ucwords(str_replace(['_', '-'], ' ', $value));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function cacheGet(string $key): ?array
+    {
+        if ($this->cacheManager === null) {
+            return null;
+        }
+        try {
+            $value = $this->cacheManager->getCache(ProConstants::CACHE_IDENTIFIER)->get($key);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($value) ? $value : null;
+    }
+
+    /**
+     * @param array<string, mixed> $value
+     */
+    private function cacheSet(string $key, array $value): void
+    {
+        if ($this->cacheManager === null) {
+            return;
+        }
+        try {
+            $this->cacheManager->getCache(ProConstants::CACHE_IDENTIFIER)->set($key, $value, [], self::REGRESSION_CACHE_TTL);
+        } catch (\Throwable) {
+        }
+    }
+
+    private function logHistoryDebug(string $message, \Throwable $exception): void
+    {
+        try {
+            GeneralUtility::makeInstance(LogManager::class)
+                ->getLogger(__CLASS__)
+                ->debug($message, [
+                    'exception' => $exception::class,
+                ]);
+        } catch (\Throwable) {
+        }
     }
 
     private function logHistoryError(string $message, \Throwable $exception): void

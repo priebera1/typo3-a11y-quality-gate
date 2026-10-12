@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.0.0] - 2026-10-12
+
+Accessibility Quality Gate 2.0 refreshes the TYPO3 backend experience, makes scan results easier to interpret and act on, improves accessibility feedback while editing, and strengthens frontend scanning and report security. Existing findings, ignore states and configuration are preserved.
+
+### Highlights
+
+- **Redesigned scan views:** Clearer Content scan and Frontend scan overviews, grouped findings, recommended fixes, affected pages and collapsible technical details. The interface also works better with narrow TYPO3 module widths.
+- **Less intrusive editor feedback:** CKEditor shows compact issue markers without interrupting typing or text selection; details open on request and support keyboard navigation.
+- **Improved reports:** More compact PDF exports, better Unicode support, readable severity indicators, consistent occurrence counts and clearer downloadable file names.
+- **Scan notifications and coverage:** Results explain open, new and resolved findings, pages that could not be checked and incomplete scans, with links to the relevant reports.
+- **Frontend screenshot evidence:** Reports retain screenshots associated with their own scans. When provided by the updated AQG service, page reports offer Original and Highlighted views.
+- **Updated TYPO3 integration:** Refined toolbar, Page module indicator, Settings layout and responsive tables for TYPO3 13 and 14.
+
+### Improvements and fixes
+
+- Corrected scan status and coverage reporting so failed or incomplete scans are not presented as clean results.
+- Improved comparison with previous compatible scans and preserved historical report selection when browsing or filtering results.
+- Avoided duplicate findings between rich-text and rendered-page checks; repeated scans preserve finding identities, resolution history and ignored states.
+- Improved handling of hidden or restricted pages, missing record mappings, multilingual field labels and special characters in findings and exports.
+- Fixed links from findings to the affected frontend page and improved keyboard focus when closing screenshot previews or issue dialogs.
+- Made frontend scan permissions and page actions consistent with backend access checks.
+- Quality Gate configuration is read-only for non-administrators; unauthorized saves are rejected with a user-facing message rather than displaying a raw JSON response.
+- Clarified Scanner Token guidance and trial scan usage where supported by the AQG service.
+
+### Security
+
+- Hardened rendered-page requests against private or reserved network destinations, including IPv4/IPv6 address resolution and redirects.
+- Restricted screenshot access to users permitted to view the corresponding frontend report, site and page.
+- Preserved server-side authorization for administrator-only settings and scan operations.
+
+### Upgrade notes
+
+- **Requirements:** TYPO3 13.4 LTS or 14.3+, PHP 8.2+. Upgrade through Composer or the TYPO3 Extension Manager, apply pending database schema updates and clear TYPO3 caches.
+- **Database:** Only additive schema changes (`tx_a11y_scan.rendered_checked`, `rendered_skipped`, `rendered_skipped_json` and `tx_a11y_remote_scan_page.screenshot_evidence_json`). Existing data is not removed.
+- **Configuration and findings:** No new licence key, TypoScript or TSconfig changes are required. Existing rules, findings, ignore states, field configuration, Scanner Tokens and AI settings remain in place. A subsequent content scan updates affected stored snippet formats without treating unchanged issues as newly introduced.
+- **Custom template overrides:** If you override AQG's internal PDF or backend partials, review them after upgrading; some internal templates and stylesheets have been replaced.
+- **AQG service:** Updated frontend screenshot evidence, scan history/coverage and trial usage features depend on the compatible AQG service. Earlier screenshots may not have both image variants. The updated service remains compatible with AQG 1.9.x clients.
+
 ## [1.9.8] - 2026-10-04
 
 ### Changed

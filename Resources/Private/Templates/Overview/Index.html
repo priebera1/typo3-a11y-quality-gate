@@ -1,65 +1,30 @@
 <html
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
-        xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
 <f:layout name="Module" />
 
 <f:section name="Content">
     <div
-            class="a11y-overview aqg-module aqg-stack container-fluid"
+            class="a11y-overview aqg-module aqg-stack container-fluid aqg-sv"
             data-a11y-site-identifier="{siteIdentifier}"
             data-a11y-current-page-uid="{currentPageUid}"
         data-a11y-language-uid="{currentLanguageUid}"
     >
 
-        <header class="aqg-page-head aqg-page-head--with-language">
-            <div>
-            <h2 class="aqg-page-head__title">
+        <header class="aqg-viewhead">
+            <h1 class="aqg-viewhead__title">
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.overview.title"
                         default="Accessibility overview"
                 />
-            </h2>
-            <p class="aqg-page-head__sub">
-                <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.overview.description"
-                        default="Review the latest scan results and open page-level issue summaries."
-                />
-            </p>
-            </div>
+            </h1>
 
             <f:if condition="{hasLanguageOptions}">
-                <div class="aqg-page-head__language">
-                    <f:if condition="{languageOptionCount} > 1">
-                        <f:then>
-                            <f:render partial="Shared/LanguageSwitcher" arguments="{_all}" />
-                        </f:then>
-                        <f:else>
-                            <div class="aqg-lang aqg-lang--single">
-                                <div class="aqg-lang__readonly" title="{currentLanguageOption.title} {currentLanguageOption.locale}">
-                                    <f:if condition="{currentLanguageOption.flagIdentifier}">
-                                        <span class="aqg-lang__flag" aria-hidden="true">
-                                            <core:icon identifier="{currentLanguageOption.flagIdentifier}" size="small" />
-                                        </span>
-                                    </f:if>
-                                    <span>{currentLanguageOption.title}</span>
-                                    <f:if condition="{currentLanguageOption.locale}">
-                                        <span class="aqg-lang__locale">{currentLanguageOption.locale}</span>
-                                    </f:if>
-                                </div>
-                            </div>
-                        </f:else>
-                    </f:if>
-                    <div class="aqg-lang__context">
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.language.active" default="Active" /> · {currentLanguageOption.title}
-                        <f:if condition="{currentLanguageOption.hasResults}">
-                            · {currentLanguageOption.pageLabel}
-                        </f:if>
-                    </div>
+                <div class="aqg-viewhead__language">
+                    <f:render partial="Shared/LanguageControl" arguments="{_all}" />
                 </div>
             </f:if>
-
         </header>
 
         <f:render partial="Shared/UpdateNotice" arguments="{updateNotice: updateNotice}" />
@@ -70,17 +35,15 @@
             </f:then>
             <f:else>
         <f:if condition="{licenceNotice}">
-            <div class="aqg-notice aqg-tone-warning" role="status" data-aqg-licence-notice="{licenceNotice.state}">
-                <span class="aqg-notice__icon" aria-hidden="true">
-                    <f:render partial="Overview/Icon" arguments="{name: 'warning'}" />
-                </span>
-                <div class="aqg-notice__body">
-                    <strong class="aqg-notice__title">{licenceNotice.title}</strong>
-                    <div class="aqg-notice__text">{licenceNotice.text}</div>
+            <div class="aqg-note aqg-note--warning" role="status" data-aqg-licence-notice="{licenceNotice.state}">
+                <f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" />
+                <div class="aqg-note__text">
+                    <strong>{licenceNotice.title}</strong>
+                    {licenceNotice.text}
                 </div>
-                <div class="aqg-notice__actions">
+                <div class="aqg-note__actions">
                     <f:if condition="{licenceNotice.primaryAction}">
-                        <a href="{licenceNotice.primaryAction.url}" class="btn btn-primary btn-sm" data-aqg-licence-action="{licenceNotice.primaryAction.action}" {f:if(condition: licenceNotice.primaryAction.external, then: 'target="_blank" rel="noopener noreferrer"')}>{licenceNotice.primaryAction.label}</a>
+                        <a href="{licenceNotice.primaryAction.url}" class="btn btn-default btn-sm" data-aqg-licence-action="{licenceNotice.primaryAction.action}" {f:if(condition: licenceNotice.primaryAction.external, then: 'target="_blank" rel="noopener noreferrer"')}>{licenceNotice.primaryAction.label}</a>
                     </f:if>
                     <a href="{licenceNotice.settingsUrl}" class="btn btn-default btn-sm">
                         <f:translate
@@ -92,106 +55,6 @@
             </div>
         </f:if>
 
-        <f:if condition="{fieldsInitializedCount} > 0">
-            <div class="aqg-notice aqg-tone-info" role="status" data-aqg-first-run="fields-initialized">
-                <span class="aqg-notice__icon" aria-hidden="true">
-                    <f:render partial="Overview/Icon" arguments="{name: 'ok'}" />
-                </span>
-                <div class="aqg-notice__body">
-                    <strong class="aqg-notice__title">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.title"
-                                default="AQG is ready to scan"
-                        />
-                    </strong>
-                    <div class="aqg-notice__text">
-                        <f:translate
-                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.text"
-                                default="AQG found %1$d rich-text and image fields in your TYPO3 content and enabled them for scanning. Next: Scan this page or Scan site."
-                                arguments="{0: fieldsInitializedCount}"
-                        />
-                    </div>
-                </div>
-                <f:if condition="{canShowSettings}">
-                    <div class="aqg-notice__actions">
-                        <a href="{scanFieldsSettingsUrl}" class="btn btn-default btn-sm">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.firstRun.reviewFields"
-                                    default="Review scan fields"
-                            />
-                        </a>
-                    </div>
-                </f:if>
-            </div>
-        </f:if>
-
-        <f:if condition="!{hasEnabledFields}">
-            <div class="aqg-notice aqg-tone-warning" role="status" data-aqg-first-run="fields-missing">
-                <span class="aqg-notice__icon" aria-hidden="true">
-                    <f:render partial="Overview/Icon" arguments="{name: 'warning'}" />
-                </span>
-                <div class="aqg-notice__body">
-                    <f:if condition="{hasFieldConfiguration}">
-                        <f:then>
-                            <strong class="aqg-notice__title">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.fieldsDisabled.title"
-                                        default="No content fields are enabled for scanning"
-                                />
-                            </strong>
-                            <div class="aqg-notice__text">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.fieldsDisabled.text"
-                                        default="Content scans skip all TYPO3 content fields until at least one field is enabled."
-                                />
-                            </div>
-                        </f:then>
-                        <f:else>
-                            <strong class="aqg-notice__title">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.noFieldsFound.title"
-                                        default="No scannable content fields found"
-                                />
-                            </strong>
-                            <div class="aqg-notice__text">
-                                <f:translate
-                                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.noFieldsFound.text"
-                                        default="AQG found no rich-text or image fields in TCA. Refresh the field list after installing the extensions that provide your content."
-                                />
-                            </div>
-                        </f:else>
-                    </f:if>
-                </div>
-                <f:if condition="{canShowSettings}">
-                    <div class="aqg-notice__actions">
-                        <a href="{scanFieldsSettingsUrl}" class="btn btn-primary btn-sm">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.chooseFields"
-                                    default="Choose scan fields"
-                            />
-                        </a>
-                    </div>
-                </f:if>
-            </div>
-        </f:if>
-
-        <div class="aqg-stack aqg-scan-progress-stack" data-a11y-scan-progress-stack="true">
-            <f:render
-                    partial="Shared/RemoteScanProgress"
-                    arguments="{
-                        activeRemoteScan: activeRemoteScan
-                    }"
-            />
-
-            <f:render
-                    partial="Shared/LocalScanProgress"
-                    arguments="{
-                        isRunning: isRelevantLocalScanRunning,
-                        scanStatus: scanStatus
-                    }"
-            />
-        </div>
-
         <f:if condition="{remoteUiAvailable}">
             <f:render
                     partial="Overview/SourceTabs"
@@ -201,11 +64,19 @@
             />
         </f:if>
 
-        <div class="a11y-overview-panel" data-a11y-overview-panel="local">
+        <div
+                class="a11y-overview-panel"
+                data-a11y-overview-panel="local"
+                id="aqg-overview-panel-local"
+                {f:if(condition: remoteUiAvailable, then: 'role="tabpanel" aria-labelledby="aqg-overview-tab-local" tabindex="0"')}
+        >
             <f:render
                     partial="Overview/LocalPanel"
                     arguments="{
                         lastScan: lastScan,
+                        localRenderedCoverage: localRenderedCoverage,
+                        lastScanScopeLabel: lastScanScopeLabel,
+                        hasLocalResults: hasLocalResults,
                         totalCounts: totalCounts,
                         localNewCounts: localNewCounts,
                         localScanDelta: localScanDelta,
@@ -227,6 +98,7 @@
                         currentPageDetailUrl: currentPageDetailUrl,
                         scanStatus: scanStatus,
                         isRelevantLocalScanRunning: isRelevantLocalScanRunning,
+                        canCancelLocalScan: canCancelLocalScan,
                         exportLocalCsvUrl: exportLocalCsvUrl,
                         exportLocalPdfUrl: exportLocalPdfUrl,
                         proStatus: proStatus,
@@ -234,7 +106,12 @@
                         currentLanguageUid: currentLanguageUid,
                         languageOptions: languageOptions,
                         gettingStarted: gettingStarted,
-                        showFreePreviewNextStep: showFreePreviewNextStep
+                        showFreePreviewNextStep: showFreePreviewNextStep,
+                        fieldsInitializedCount: fieldsInitializedCount,
+                        hasEnabledFields: hasEnabledFields,
+                        hasFieldConfiguration: hasFieldConfiguration,
+                        canShowSettings: canShowSettings,
+                        scanFieldsSettingsUrl: scanFieldsSettingsUrl
                     }"
             />
         </div>
@@ -243,12 +120,19 @@
             <div
                     class="a11y-overview-panel"
                     data-a11y-overview-panel="remote"
+                    id="aqg-overview-panel-remote"
+                    role="tabpanel"
+                    aria-labelledby="aqg-overview-tab-remote"
+                    tabindex="0"
                     hidden="hidden"
             >
                 <f:render
                         partial="Overview/RemotePanel"
                         arguments="{
                             remoteScan: remoteScan,
+                            remoteOccurrences: remoteOccurrences,
+                            activeRemoteScan: activeRemoteScan,
+                            canCancelRemoteScan: canCancelRemoteScan,
                             remotePages: remotePages,
                             remoteFailedPages: remoteFailedPages,
                             remotePriorityFixes: remotePriorityFixes,
@@ -258,9 +142,12 @@
                             remoteReportSummary: remoteReportSummary,
                             remoteScore: remoteScore,
                             remoteSignalTone: remoteSignalTone,
+                            trialUsage: trialUsage,
                             remoteSignalLabel: remoteSignalLabel,
                             remoteScoreTone: remoteScoreTone,
                             remoteSignalIcon: remoteSignalIcon,
+                            remoteCoverageNote: remoteCoverageNote,
+                            remotePriorityEmpty: remotePriorityEmpty,
                             remoteHasPriorityFixes: remoteHasPriorityFixes,
                             remoteHasNoPriorityFixes: remoteHasNoPriorityFixes,
                             remoteManualReviewChecklist: remoteManualReviewChecklist,
@@ -269,6 +156,8 @@
                             remoteShowKeyboardSummary: remoteShowKeyboardSummary,
                             remoteStructureSummary: remoteStructureSummary,
                             remoteContrastDetails: remoteContrastDetails,
+                            remoteRemediationSummary: remoteRemediationSummary,
+                            remoteComponentSummary: remoteComponentSummary,
                             remoteHasAdditionalAutomatedSignals: remoteHasAdditionalAutomatedSignals,
                             remoteScanHasIssues: remoteScanHasIssues,
                             remotePagesArePageScanFallback: remotePagesArePageScanFallback,
@@ -277,6 +166,8 @@
                             remotePagesEmptyTitle: remotePagesEmptyTitle,
                             remotePagesEmptyBody: remotePagesEmptyBody,
                             remotePagesCountLabel: remotePagesCountLabel,
+                            remoteRule: remoteRule,
+                            remoteRuleFilter: remoteRuleFilter,
                             totalRemotePages: totalRemotePages,
                             totalRemotePagesIsSingle: totalRemotePagesIsSingle,
                             totalRemoteFailedPages: totalRemoteFailedPages,
@@ -289,7 +180,7 @@
                             remoteQuery: remoteQuery,
                             remoteFailedQuery: remoteFailedQuery,
                             canScanAll: canScanAll,
-                        canScanNow: canScanNow,
+                            canScanNow: canScanNow,
                             siteRootPid: siteRootPid,
                             currentPageUid: currentPageUid,
                             isPageContext: isPageContext,
@@ -299,6 +190,7 @@
                             exportRemotePdfUrl: exportRemotePdfUrl,
                             proStatus: proStatus,
                             currentLanguageUid: currentLanguageUid,
+                            currentLanguageOption: currentLanguageOption,
                             languageOptions: languageOptions,
                             showRemoteScannerTokenNotice: showRemoteScannerTokenNotice,
                             remoteScanAccessSettingsUrl: remoteScanAccessSettingsUrl,

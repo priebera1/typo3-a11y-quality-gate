@@ -89,12 +89,13 @@ final class InformationDensityTemplateTest extends TestCase
     public function countsDistinguishIssueTypesFromOccurrences(): void
     {
         $detail = $this->read('Templates/RemotePageDetail/Show.html');
-        $panel = $this->read('Partials/Overview/RemotePanel.html');
-        $hero = $this->between($detail, '<div class="aqg-hero__strip">', '</header>');
+        $panel = $this->read('Partials/Overview/RemotePanel.html') . $this->read('Partials/Overview/RemoteStatusHead.html');
+        $header = $this->between($detail, '<header class="aqg-pagehead aqg-pagehead--frontend">', '</header>');
 
-        self::assertMatchesRegularExpression('/remotePageDetail\.issueTypes"[^>]*\/>\s*<\/span>\s*<span[^>]*>\{remotePage\.issues_count\}/', $hero);
-        self::assertMatchesRegularExpression('/remotePageDetail\.occurrencesTotal"[^>]*\/><\/span>\s*<span[^>]*>\{pageFindingsCount\}/', $hero);
-        self::assertStringNotContainsString('remote.history.findings', $hero);
+        // The page header counts issue types (distinct rules) and occurrences (instances), each with its own unit.
+        self::assertMatchesRegularExpression('/pageModuleIndicator\.metric\.issueTypes\.plural"[^>]*arguments="\{0: remotePage\.issues_count\}"/', $header);
+        self::assertMatchesRegularExpression('/pageModuleIndicator\.metric\.occurrences\.plural"[^>]*arguments="\{0: pageFindingsCount\}"/', $header);
+        self::assertStringNotContainsString('remote.history.findings', $header);
         self::assertStringNotContainsString('remotePageDetail.issueGroups', $detail);
 
         self::assertStringContainsString('overview.remote.table.issueTypes', $panel);
@@ -122,18 +123,19 @@ final class InformationDensityTemplateTest extends TestCase
         $panel = $this->read('Partials/Overview/RemotePanel.html');
         $tables = [
             'Affected pages' => [
-                $this->between($panel, 'id="a11y-remote-top-pages">', '</table>'),
-                ['overview.table.page', 'overview.remote.table.issueTypes', 'overview.proSummary.table.httpStatus', 'overview.table.actions'],
+                $this->between($panel, 'id="a11y-remote-top-pages"', '</table>'),
+                ['overview.table.page', 'overview.remote.table.issueTypes', 'overview.remote.table.occurrences', 'overview.proSummary.table.httpStatus', 'overview.table.actions'],
             ],
+            // Audit T1/T4: the page title is the row link, so the failed-pages table needs no Actions column.
             'Failed pages' => [
                 $this->between($panel, 'id="a11y-remote-failed-pages">', '</table>'),
-                ['overview.table.page', 'overview.proSummary.table.httpStatus', 'overview.proSummary.table.failureReason', 'overview.table.actions'],
+                ['overview.table.page', 'overview.proSummary.table.httpStatus', 'overview.proSummary.table.failureReason'],
             ],
         ];
 
         foreach ($tables as $name => [$table, $columns]) {
             preg_match_all(
-                '/<th\b[^>]*>\s*<f:translate\s+key="LLL:EXT:a11y_quality_gate\/Resources\/Private\/Language\/locallang\.xlf:([\w.]+)"/',
+                '/<th\b[^>]*>\s*(?:<span class="visually-hidden">\s*)?<f:translate\s+key="LLL:EXT:a11y_quality_gate\/Resources\/Private\/Language\/locallang\.xlf:([\w.]+)"/',
                 $this->between($table, '<thead>', '</thead>'),
                 $headers
             );
@@ -163,51 +165,89 @@ final class InformationDensityTemplateTest extends TestCase
     }
 
     #[Test]
-    public function localFindingsLeadWithTheIssueAndKeepRuleWideActionsInAMenu(): void
+    public function localFindingsGroupOccurrencesByRuleAndKeepRuleWideActionsInAMenu(): void
     {
         $detail = $this->read('Templates/PageDetail/Show.html');
-        $head = $this->between($detail, '<header class="aqg-issue__head">', '</header>');
+        $card = $this->between($detail, '<article class="aqg-rulecard"', '</article>');
+        $toggle = $this->between($card, '<button', '</button>');
 
-        self::assertLessThan(
-            strpos($head, 'aqg-issue__pills'),
-            strpos($head, '<h2 class="aqg-issue__title">'),
-            'The issue title comes before its status pills.'
-        );
-        self::assertStringNotContainsString('a11y-bulk-open-rule', $head);
-        self::assertStringNotContainsString('a11y-bulk-select-rule', $head);
+        // One card per rule: the heading button names severity, rule and count, nothing else.
+        self::assertStringContainsString('<h3 class="aqg-rulecard__heading">', $card);
+        self::assertStringContainsString('{rule.title}', $toggle);
+        self::assertStringContainsString('aria-controls="{rule.anchorId}-body"', $toggle);
+        foreach (['howToFix', 'guidance.owner', 'guidance.fixType', 'affectedUser', 'rule_id'] as $secondary) {
+            self::assertStringNotContainsString($secondary, $toggle);
+        }
+        self::assertLessThan(strpos($card, '<ul class="aqg-occs">'), strpos($card, '<p class="aqg-rulecard__fix">'), 'The fix line comes before the occurrences.');
 
+        // Rule-wide bulk actions live once per rule in the "More actions" menu, never on an occurrence.
+        $occurrence = $this->between($detail, '<f:section name="Occurrence">', '</f:section>');
+        foreach (['a11y-bulk-open-rule', 'a11y-bulk-select-rule'] as $ruleWide) {
+            self::assertStringNotContainsString($ruleWide, $occurrence);
+        }
         $menu = $this->between($detail, '<details class="aqg-menu" data-aqg-menu="true">', '</details>');
         foreach (['a11y-bulk-select-rule', 'a11y-bulk-open-rule-page', 'a11y-bulk-open-rule-site'] as $action) {
             self::assertStringContainsString('data-action="' . $action . '"', $menu);
         }
         self::assertStringContainsString('<f:if condition="{canIgnoreRuleOnSite}">', $menu, 'Site-wide ignore keeps its permission check.');
 
-        $actions = $this->between($detail, '<div class="aqg-issue__actions">', '<f:if condition="{issue.statusEnum.value} == 0">
-                                <div class="aqg-ignore-form');
-        self::assertLessThan(strpos($actions, 'data-aqg-menu'), strpos($actions, 'action.editRecord'), 'Edit record stays the first action.');
-        self::assertStringContainsString('class="btn btn-primary btn-sm"', $actions);
+        // An occurrence reads where (content element), what (markup), then its one visible action: Edit record. Ignore
+        // is secondary and sits in the occurrence's own "More actions" menu.
+        $row = $this->between($occurrence, '<div class="aqg-occ__row">', '<div class="aqg-occ__tech">');
+        self::assertLessThan(strpos($row, '{issue.snippetPreview}'), strpos($row, '{issue.location.title}'));
+        self::assertLessThan(strpos($row, '<div class="aqg-occ__actions">'), strpos($row, '{issue.snippetPreview}'));
+        $actions = $this->between($row, '<div class="aqg-occ__actions">', '<div class="aqg-occ__tech">');
+        self::assertLessThan(strpos($actions, 'a11y-ignore-trigger'), strpos($actions, 'action.editRecord'));
+        self::assertStringContainsString('<a href="{issue.editLink}" class="btn btn-default btn-sm">', $actions);
+        $occurrenceMenu = $this->between($actions, '<details class="aqg-menu aqg-occ__menu" data-aqg-menu="true">', '</details>');
+        self::assertStringContainsString('a11y-ignore-trigger', $occurrenceMenu);
+        self::assertSame(1, substr_count($this->between($detail, '<header class="aqg-pagehead">', '</header>'), 'btn-primary'));
+
+        // Owner, fix type and WCAG sit behind the rule's closed "Standards and rule reference"; table, uid, field,
+        // selector and the full snippet behind each occurrence's closed "Technical details".
+        $reference = $this->between($card, '<div class="aqg-details-body" id="{rule.anchorId}-details" hidden="hidden" data-aqg-rule-reference="true">', '</div>');
+        self::assertStringContainsString('partial="Issue/LocalGuidance" arguments="{guidance: rule.guidance, section: \'reference\'}"', $reference);
+        $technical = $this->between($occurrence, '<div class="aqg-details-body aqg-occ__techbody" id="aqg-occ-{issue.uid}-tech" hidden="hidden" data-aqg-occ-technical="true">', '</dl>');
+        foreach (['{issue.source_table}', '{issue.source_uid}', '{issue.source_field}', '{issue.css_selector}', '{issue.context_snippet}', '{issue.rule_id}'] as $field) {
+            self::assertStringContainsString($field, $technical);
+        }
+        self::assertStringNotContainsString('{issue.context_snippet}', str_replace($technical, '', $detail));
+        self::assertStringNotContainsString('{issue.css_selector}', str_replace($technical, '', $detail));
     }
 
     #[Test]
     public function remoteRuleSummariesShowOnlyTheEssentials(): void
     {
         $detail = $this->read('Templates/RemotePageDetail/Show.html');
-        $summary = $this->between($detail, '<summary class="aqg-rule__head aqg-rule__summary">', '</summary>');
+        $rule = $this->between($detail, '<f:section name="Rule">', '</f:section>');
+        $toggle = $this->between($rule, '<button', '</button>');
 
-        foreach (['whoShouldFix', 'fixType', 'confidence', 'affectedUserItems', 'wcagPrimaryLabel', 'pageDetail.ruleLabel'] as $secondary) {
-            self::assertStringNotContainsString($secondary, $summary);
+        // An h3 with a button: badge, title and count are its whole accessible name.
+        self::assertStringContainsString('<h3 class="aqg-rulecard__heading">', $rule);
+        foreach (['whoShouldFix', 'fixType', 'confidence', 'affectedUserItems', 'wcagPrimaryLabel', 'pageDetail.ruleLabel', 'guidanceHowToFix'] as $secondary) {
+            self::assertStringNotContainsString($secondary, $toggle);
         }
-        self::assertStringContainsString('{issue.count}', $summary);
-        self::assertStringContainsString('issue.primaryFixSummary', $summary);
+        self::assertStringContainsString('{issue.count}', $toggle);
+        self::assertStringContainsString('aria-expanded="{f:if(condition: issue.isDefaultOpen', $toggle);
+        // The one concrete fix stays visible next to the button, also on a collapsed card.
+        self::assertStringContainsString('<p class="aqg-rulecard__fix">', $rule);
+        self::assertStringContainsString('{issue.guidanceHowToFix}', $this->between($rule, '<p class="aqg-rulecard__fix">', '</p>'));
 
-        $details = $this->between($detail, '<summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.moreDetails"', '</details>');
-        foreach (['issue.whoShouldFix', 'issue.fixType', 'issue.confidence', 'issue.affectedUserItems', '{issue.rule_id}'] as $secondary) {
+        $details = $this->between($rule, '<div class="aqg-details-body" id="{issue.anchorId}-details" hidden="hidden" data-aqg-rule-reference="true">', '</p>
+            </div>');
+        foreach (['issue.whoShouldFix', 'issue.fixType', 'issue.confidence', '{issue.rule_id}'] as $secondary) {
             self::assertStringContainsString($secondary, $details);
         }
+        $why = $this->between($rule, '<div class="aqg-details-body" id="{issue.anchorId}-why" hidden="hidden" data-aqg-rule-why="true">', '</div>
+            </f:if>');
+        self::assertStringContainsString('issue.affectedUserItems', $why);
 
-        // One note for all rules instead of one per rule, and per-element remediation starts closed.
+        // One note for all rules instead of one per rule; why a node failed and its technical data start closed, and a
+        // node's own remediation only appears when it differs from the rule's.
         self::assertSame(1, substr_count($detail, 'module.remotePageDetail.guidance.note'));
-        self::assertStringContainsString('<details class="aqg-node-remediation">', $detail);
+        $technical = $this->between($rule, '<div class="aqg-details-body aqg-occ__techbody" id="{issue.anchorId}-node-{iterator.cycle}" hidden="hidden" data-aqg-occ-technical="true">', '</dl>');
+        self::assertStringContainsString('<f:if condition="{node.showNodeRemediation}">', $technical);
+        self::assertStringContainsString('<ul class="aqg-failure__list">', $technical);
         self::assertStringContainsString('id="{issue.anchorId}"', $detail);
     }
 
@@ -218,15 +258,16 @@ final class InformationDensityTemplateTest extends TestCase
         $metadata = $this->between($detail, '<f:section name="RemoteMetadata">', '</f:section>');
         $withoutMetadata = str_replace($metadata, '', $detail);
 
-        self::assertStringContainsString('<details class="aqg-section aqg-tech-details" data-aqg-technical-details="true">', $metadata);
+        self::assertStringContainsString('<details class="aqg-evidence__row" data-aqg-technical-details="true">', $metadata);
+        self::assertStringNotContainsString(' open', $this->openingTag($metadata, '<details'));
         foreach (['{remoteScan.job_id}', '{remoteScan.user_agent}', '{remotePage.screenshot_path}', 'module.remotePageDetail.scanType.frontendHttp'] as $technical) {
             self::assertStringContainsString($technical, $metadata);
             self::assertStringNotContainsString($technical, $withoutMetadata, $technical . ' belongs to the technical details only.');
         }
         self::assertStringNotContainsString('aqg-shot__caption', $detail);
 
-        $hero = $this->between($detail, '<div class="aqg-hero__strip">', '</header>');
-        self::assertStringContainsString('<f:if condition="!{remoteDetail.httpStatusIsSuccess}">', $hero, 'A routine success status is not shown in the summary.');
+        $header = $this->between($detail, '<header class="aqg-pagehead aqg-pagehead--frontend">', '</header>');
+        self::assertStringContainsString('<f:if condition="!{remoteDetail.httpStatusIsSuccess} && !{remoteDetail.isFailed}">', $header, 'A routine success status is not shown in the summary.');
     }
 
     #[Test]
@@ -253,8 +294,8 @@ final class InformationDensityTemplateTest extends TestCase
     public function priorityFixCardsKeepOwnerFixTypeAndConfidenceInTheirDetails(): void
     {
         $panel = $this->read('Partials/Overview/RemotePanel.html');
-        $item = $this->between($panel, '<article class="aqg-pfix-item">', '</article>');
-        $details = $this->between($item, '<details class="aqg-rule-metadata aqg-rule-metadata--compact aqg-pfix-item__details">', '</details>');
+        $item = $this->between($panel, '<li class="aqg-fix">', '</li>');
+        $details = $this->between($item, '<div class="aqg-fix__details aqg-details-body"', '</div>');
         $visible = str_replace($details, '', $item);
 
         foreach (['{fix.displayTitle}', '{fix.impact}', '{fix.issuesTotal}', '{fix.affectedPagesTotal}', '{fix.shortFix}', 'viewAffectedPages'] as $primary) {
@@ -264,6 +305,12 @@ final class InformationDensityTemplateTest extends TestCase
             self::assertStringNotContainsString($secondary, $visible);
             self::assertStringContainsString($secondary, $details);
         }
+        self::assertStringContainsString('hidden="hidden"', $this->openingTag($item, '<div class="aqg-fix__details'));
+
+        // Fixes 6-10 are reachable on the Overview: they expand in place instead of linking to the pages table.
+        self::assertStringContainsString('id="aqg-priority-fixes-more"', $panel);
+        self::assertStringContainsString('aria-controls="aqg-priority-fixes-more"', $panel);
+        self::assertStringNotContainsString('overview.remote.priorityFixes.viewTopPages', $panel);
     }
 
     #[Test]

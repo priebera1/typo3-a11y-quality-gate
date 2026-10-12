@@ -22,6 +22,15 @@ final class RemoteScanAccessSettingsService
     }
 
     /**
+     * Whether frontend scans of the site send a Scanner Token: the site's own token, else the default token. This is
+     * the token buildForSite() hands to the crawler, so "configured" and "used" cannot disagree.
+     */
+    public function hasScannerTokenForSite(string $siteIdentifier): bool
+    {
+        return $this->buildForSite($siteIdentifier)['scannerPreviewToken'] !== '';
+    }
+
+    /**
      * @return array{scannerPreviewToken:string,scannerTokenLength:int,resolvedRulesetUid:int,resolvedRulesetSiteIdentifier:string,httpAuthUser:string,httpAuthPass:string,excludedPatterns:list<string>,priorityUrls:list<string>,cookieSelectors:list<string>}
      */
     public function buildForSite(string $siteIdentifier = ''): array

@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Scan\LegacySnippetIdentity;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -71,6 +72,36 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
     /**
      * @return 'inserted'|'updated'|'protected'
      */
+    /**
+     * Audit C6: open findings of the rendered check that a scan identified as duplicates of a rich-text finding of the
+     * same element are retired, not resolved: nothing was fixed, the element is counted once under its rich-text rule.
+     * The rows stay in the table (deleted = 1); ignored ones are left as they are.
+     *
+     * @param list<string> $fingerprints
+     */
+    public function retireOpenDuplicates(string $siteIdentifier, int $pageUid, array $fingerprints): int
+    {
+        $fingerprints = array_values(array_unique(array_filter($fingerprints, static fn (string $value): bool => $value !== '')));
+        if ($siteIdentifier === '' || $pageUid <= 0 || $fingerprints === []) {
+            return 0;
+        }
+
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+
+        return (int)$qb->update(Tables::ISSUE)
+            ->set('deleted', 1)
+            ->set('tstamp', time())
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_type', $qb->createNamedParameter('rendered')),
+                $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)),
+                $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+                $qb->expr()->in('fingerprint', $qb->createNamedParameter($fingerprints, Connection::PARAM_STR_ARRAY))
+            )
+            ->executeStatement();
+    }
+
     public function upsert(RuleViolation $violation, CheckContext $ctx, int $scanUid): string
     {
         $fingerprint = $violation->fingerprint($ctx);
@@ -85,6 +116,24 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         $hint = $this->effectiveHint($violation);
         $existing = $this->findByFingerprint($fingerprint, $ctx->siteIdentifier);
         $recoveredBySourceAndRule = false;
+
+        if ($existing === null) {
+            $existing = $this->findLegacyIdentity($violation, $ctx, $fingerprint, $scanUid, [
+                'source_table' => $sourceTable,
+                'source_uid' => $sourceUid,
+                'source_field' => $sourceField,
+                'source_type' => $sourceType,
+            ]);
+            $recoveredBySourceAndRule = $existing !== null;
+            if ($existing !== null && IssueStatus::fromInt((int)$existing['status'])->isProtected()) {
+                // An ignored or muted finding keeps its decision; only its identity follows the 1.9.9 snippet.
+                $this->getConnection(Tables::ISSUE)->update(
+                    Tables::ISSUE,
+                    ['fingerprint' => $fingerprint, 'context_snippet' => $violation->contextSnippet],
+                    ['uid' => (int)$existing['uid']]
+                );
+            }
+        }
 
         if ($existing === null) {
             $existing = $this->findResolvedBySourceAndRule(
@@ -222,16 +271,14 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
                 'page_uid',
                 $qb->createNamedParameter($pageUid, Connection::PARAM_INT)
             ),
-            $qb->expr()->or(
-                $qb->expr()->eq(
-                    'status',
-                    $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)
-                ),
-                $qb->expr()->eq(
-                    'status',
-                    $qb->createNamedParameter(IssueStatus::Resolved->value, Connection::PARAM_INT)
-                ),
+            // Only open issues: an issue resolved by an earlier scan stays resolved with its original time and
+            // author, and is not counted as resolved again by every unchanged scan.
+            $qb->expr()->eq(
+                'status',
+                $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)
             ),
+            // UPDATE queries carry no deleted restriction: a retired duplicate (audit C6) is not a resolved issue.
+            $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
         );
 
         if ($sourceLangUid >= 0) {
@@ -1188,6 +1235,65 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         if ($issueUid <= 0) {
             return;
         }
+    }
+
+    /**
+     * The stored finding of this element when it was recorded with a snippet written before 1.9.9 (marker attributes,
+     * byte entities; see LegacySnippetIdentity): same page, language, source, rule and context path, and the stored
+     * snippet rewritten the 1.9.9 way gives this violation's fingerprint. Whatever its status, the finding keeps its
+     * identity instead of being resolved and recorded again.
+     *
+     * @param array{source_table:string,source_uid:int,source_field:string,source_type:string} $source
+     * @return array<string, mixed>|null
+     */
+    private function findLegacyIdentity(RuleViolation $violation, CheckContext $ctx, string $fingerprint, int $scanUid, array $source): ?array
+    {
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $rows = $qb->select('uid', 'status', 'first_seen_scan_uid', 'ignored_until', 'context_snippet', 'context_path', 'css_selector')
+            ->from(Tables::ISSUE)
+            ->where(
+                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($ctx->siteIdentifier)),
+                $qb->expr()->eq('page_uid', $qb->createNamedParameter($ctx->pageUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_lang_uid', $qb->createNamedParameter($ctx->sourceLangUid, Connection::PARAM_INT)),
+                $qb->expr()->eq('source_table', $qb->createNamedParameter($source['source_table'])),
+                $qb->expr()->eq('source_uid', $qb->createNamedParameter($source['source_uid'], Connection::PARAM_INT)),
+                $qb->expr()->eq('source_field', $qb->createNamedParameter($source['source_field'])),
+                $qb->expr()->eq('source_type', $qb->createNamedParameter($source['source_type'])),
+                $qb->expr()->eq('rule_id', $qb->createNamedParameter($violation->ruleId)),
+                $qb->expr()->neq('fingerprint', $qb->createNamedParameter($fingerprint)),
+                // A finding this scan already matched is another element.
+                $qb->expr()->neq('last_seen_scan_uid', $qb->createNamedParameter($scanUid, Connection::PARAM_INT)),
+            )
+            ->orderBy('uid', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            $upgradedSnippet = LegacySnippetIdentity::upgrade((string)($row['context_snippet'] ?? ''));
+            if ($upgradedSnippet === null) {
+                continue;
+            }
+
+            $storedForm = new RuleViolation(
+                ruleId: $violation->ruleId,
+                severity: $violation->severity,
+                message: $violation->message,
+                hint: $violation->hint,
+                contextSnippet: $upgradedSnippet,
+                contextPath: (string)($row['context_path'] ?? ''),
+                sourceType: $source['source_type'],
+                frontendUrl: $violation->frontendUrl,
+                cssSelector: (string)($row['css_selector'] ?? ''),
+                sourceTable: $source['source_table'],
+                sourceUid: $source['source_uid'],
+                sourceField: $source['source_field'],
+            );
+            if (hash_equals($fingerprint, $storedForm->fingerprint($ctx))) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     /**

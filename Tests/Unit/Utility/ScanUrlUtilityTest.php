@@ -58,4 +58,24 @@ final class ScanUrlUtilityTest extends TestCase
             ScanUrlUtility::comparable('https://example.test/foo'),
         );
     }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function displayPathProvider(): iterable
+    {
+        yield 'path without host' => ['https://example.test/aqg-01-local-broken', '/aqg-01-local-broken'];
+        yield 'site root' => ['https://example.test', '/'];
+        yield 'query is kept' => ['https://example.test/news?page=2', '/news?page=2'];
+        yield 'path case is preserved' => ['https://example.test/Foo/', '/Foo/'];
+        yield 'no host falls back to the caller' => ['/relative/path', ''];
+        yield 'empty stays empty' => ['', ''];
+    }
+
+    #[Test]
+    #[DataProvider('displayPathProvider')]
+    public function displayPathShowsWhatTellsPagesApart(string $url, string $expected): void
+    {
+        self::assertSame($expected, ScanUrlUtility::displayPath($url));
+    }
 }

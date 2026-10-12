@@ -13,6 +13,7 @@ use Priebera\A11yQualityGate\Service\LanguageUidResolver;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Exception\ScanCancelledException;
+use Priebera\A11yQualityGate\Service\ScanResultSummaryService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -43,8 +44,33 @@ final class ScanAjaxController extends AbstractApiController
         private readonly BackendRecordAccessService $backendRecordAccessService,
         private readonly LanguageUidResolver $languageUidResolver,
         private readonly ScopeAccessService $scopeAccessService,
+        private readonly ?ScanResultSummaryService $scanResultSummaryService = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
+    }
+
+    /**
+     * What is open in the scanned scope after the scan, and the report that shows it (NOT-01): the notification states
+     * the total, not only the change. Omitted when it cannot be read; the client then names only the change.
+     *
+     * @return array<string, mixed>
+     */
+    private function resultSummary(string $scope, string $siteIdentifier, int $uid, int $languageUid): array
+    {
+        if (!$this->scanResultSummaryService instanceof ScanResultSummaryService || $siteIdentifier === '') {
+            return [];
+        }
+
+        try {
+            return [
+                'scope' => $scope,
+                'openIssues' => $this->scanResultSummaryService->contentOpenIssues($scope, $siteIdentifier, $uid, $languageUid),
+                'reportUrl' => $this->scanResultSummaryService->contentReportUrl($scope, $siteIdentifier, $uid, $languageUid),
+            ];
+        } catch (\Throwable $exception) {
+            $this->logScanFailure($exception);
+            return [];
+        }
     }
 
     public function scanPageAction(ServerRequestInterface $request): ResponseInterface
@@ -119,8 +145,9 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
                 'warnings' => $result->warnings,
+                'renderedCoverage' => $result->renderedCoverage(),
                 'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
-            ]);
+            ] + $this->resultSummary('page', $siteIdentifier, $pageUid, $languageUid));
         } catch (ScanCancelledException) {
             $this->scanStatusService->markCancelled();
 
@@ -226,8 +253,9 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesResolved' => $result->issuesResolved,
                 'issuesIgnored' => $result->issuesIgnored,
                 'warnings' => $result->warnings,
+                'renderedCoverage' => $result->renderedCoverage(),
                 'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
-            ]);
+            ] + $this->resultSummary('site', $siteIdentifier, $rootPid, $languageUid));
         } catch (ScanCancelledException) {
             $this->scanStatusService->markCancelled();
 

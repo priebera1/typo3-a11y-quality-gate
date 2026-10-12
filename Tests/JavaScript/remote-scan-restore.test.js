@@ -42,11 +42,24 @@ describe('Restoring a frontend scan on module load', () => {
             monitorRemoteScan: vi.fn().mockRejectedValue(new Error('Frontend scan did not complete successfully.')),
             resetRemoteScanDomState: vi.fn(),
             showNotification: vi.fn(),
+            announce: vi.fn(),
+            notifyRemoteScanFailure(notificationMessage, message) {
+                return A11yProBackendModule.prototype.notifyRemoteScanFailure.call(this, notificationMessage, message);
+            },
+            showScanResult(notification, options) {
+                return A11yProBackendModule.prototype.showScanResult.call(this, notification, options);
+            },
+            scanLabel() {
+                return A11yProBackendModule.prototype.scanLabel.call(this);
+            },
+            format: (template) => template,
             translate: (_key, fallback) => fallback,
         };
 
         A11yProBackendModule.prototype.restoreRemoteScanStateFromDom.call(module);
         await vi.waitFor(() => expect(module.showNotification).toHaveBeenCalled());
+        // No visible status block in this fixture: the toast keeps the full reason.
+        expect(module.showNotification).toHaveBeenCalledWith('Frontend scan failed: Frontend scan did not complete successfully.', 'error');
 
         expect(module.updateRemoteScanUi).toHaveBeenLastCalledWith(expect.objectContaining({visible: true, status: 'failed'}));
     });

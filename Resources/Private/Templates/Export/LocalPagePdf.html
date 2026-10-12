@@ -1,192 +1,77 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <htmlpageheader name="aqgLocalPageHeader">
-        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:helvetica, arial, sans-serif; font-size:8pt;"><tbody><tr>
-            <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
-                <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
-            </td>
-            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#5f6670; font-family:helvetica, arial, sans-serif; font-size:8pt; letter-spacing:0.04em;">
-                <div class="aqgp-header__context" style="color:#5f6670; font-weight:bold; letter-spacing:0.08em;">LOCAL PAGE DETAIL</div>
-                <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
-            </td>
-        </tr></tbody></table>
+    <htmlpageheader name="aqrHeader">
+        <table class="aqr-runhead"><tr>
+            <td width="60%">AQG · Content scan · {pageTitle}</td>
+            <td width="40%" class="aqr-right">{generatedAt}</td>
+        </tr></table>
     </htmlpageheader>
-    <sethtmlpageheader name="aqgLocalPageHeader" value="on" show-this-page="1" />
-
-    <htmlpagefooter name="aqgLocalPageFooter">
-        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:helvetica, arial, sans-serif; font-size:8pt;"><tbody><tr>
-            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#5f6670; vertical-align:top; text-align:left; width:55%;">AQG · Local page detail · {pagePathLabel}</td>
-            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#5f6670; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
-        </tr></tbody></table>
+    <htmlpagefooter name="aqrFooter">
+        <table class="aqr-runfoot"><tr>
+            <td width="70%">AQG Content scan page report · {pageTitle}</td>
+            <td width="30%" class="aqr-right">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
+        </tr></table>
     </htmlpagefooter>
-    <sethtmlpagefooter name="aqgLocalPageFooter" value="on" show-this-page="1" />
-    <div class="aqgp-report-title">
-        <h1 class="aqgp-h1">{title}</h1>
-        <div class="aqgp-sub">{subtitle}</div>
-    </div>
-    <p class="aqgp-a11y-note">Accessibility note: this PDF is a visual report. It is not tagged for screen readers, so its headings, tables and reading order are not available to assistive technology. The same findings are available as a CSV export from the AQG module in the TYPO3 backend.</p>
-    <hr class="aqgp-header__rule" />
 
-    <table class="aqgp-meta">
-        <tr>
-            <td>
-                <div class="aqgp-meta__label">Generated</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">{generatedAt}</div>
-            </td>
-            <td>
-                <div class="aqgp-meta__label">Site</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">{siteLabel}</div>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <div class="aqgp-meta__label">Page UID</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">uid:{pageUid}</div>
-            </td>
-            <td>
-                <div class="aqgp-meta__label">Path</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">{pagePathLabel}</div>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <div class="aqgp-meta__label">Filters</div>
-                <div class="aqgp-meta__value aqgp-meta__value--chips">
-                    <span class="aqgp-chip">STATUS · {statusLabel}</span>
-                    <span class="aqgp-chip">SEVERITY · {severityLabel}</span>
-                </div>
-            </td>
-            <td>
-                <div class="aqgp-meta__label">Last scan</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">{lastScanLabel}</div>
-            </td>
-        </tr>
-    </table>
+    <bookmark content="Summary" level="0" />
+    <p class="aqr-title">{pageTitle}</p>
+    <p class="aqr-url">{pageUrl}</p>
+    <p class="aqr-meta">Content scan · Page UID {pageUid} · {filterLabel} · Generated {generatedAt}</p>
+    <p class="aqr-verdict"><b>{verdict}</b><f:if condition="{groupsCount}"> Grouped by rule, most severe first; every occurrence is listed.</f:if></p>
 
-    <bookmark content="Totals" level="0" />
-    <table class="aqgp-section-title">
-        <tr>
-            <td>Totals</td>
-            <td class="aqgp-section-title__right">{totalFoot}</td>
-        </tr>
-    </table>
-
-    <table class="aqgp-cards">
-        <tr>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--critical{criticalZeroClass}"><tbody>
-                    <tr><td class="aqgp-card__label">Critical</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.critical}</td></tr>
-                    <tr><td class="aqgp-card__foot">{criticalFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--warning{warningZeroClass}"><tbody>
-                    <tr><td class="aqgp-card__label">Warnings</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.warning}</td></tr>
-                    <tr><td class="aqgp-card__foot">{warningFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--info{infoZeroClass}"><tbody>
-                    <tr><td class="aqgp-card__label">Info</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.info}</td></tr>
-                    <tr><td class="aqgp-card__foot">{infoFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--needs_review{needsReviewZeroClass}"><tbody>
-                    <tr><td class="aqgp-card__label">Needs review</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.needs_review}</td></tr>
-                    <tr><td class="aqgp-card__foot">{needsReviewFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--total{totalZeroClass}"><tbody>
-                    <tr><td class="aqgp-card__label">Total</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.total}</td></tr>
-                    <tr><td class="aqgp-card__foot">{totalCardFoot}</td></tr>
-                </tbody></table>
-            </td>
-        </tr>
-    </table>
-
-    <bookmark content="Issues" level="0" />
-    <table class="aqgp-section-title">
-        <tr>
-            <td>Issues</td>
-            <td class="aqgp-section-title__right">{issuesShownLabel}</td>
-        </tr>
-    </table>
+    <f:render partial="Export/PdfSeverityRow" arguments="{row: severityRow}" />
 
     <f:if condition="{hasIssues}">
         <f:then>
-            <f:for each="{issues}" as="issue">
-                <div class="aqgp-local-issue aqgp-local-issue--{issue.severityKey}">
-                    <table class="aqgp-local-issue__head">
-                        <tr>
-                            <td class="aqgp-local-issue__num">#{issue.index}</td>
-                            <td class="aqgp-local-issue__main">
-                                <div class="aqgp-local-issue__title">{issue.message}</div>
-                                <div class="aqgp-local-issue__sub">{issue.ruleTitle} · {issue.rule_id}</div>
-                                <div class="aqgp-local-issue__badges">
-                                    <span class="aqgp-badge aqgp-badge--{issue.severityKey}">{issue.severityLabel}</span>
-                                    <span class="aqgp-badge aqgp-badge--{issue.statusKey}">{issue.statusLabel}</span>
-                                </div>
-                            </td>
-                        </tr>
+            <bookmark content="Findings" level="0" />
+            <f:for each="{groups}" as="group">
+                <f:comment>The rule header and its first occurrence stay together; the remaining rows continue in a table with
+                    the same four fixed-width columns, so every occurrence lines up and long groups may break across pages.</f:comment>
+                <table class="aqr-rule aqr-grid" autosize="1">
+                    <tr class="aqr-rule__head">
+                        <td class="aqr-rule__no aqr-grid__no" style="width:8mm">{group.number}</td>
+                        <td class="aqr-rule__title" colspan="3">{group.title}</td>
+                    </tr>
+                    <tr>
+                        <td class="aqr-grid__no" style="width:8mm"></td>
+                        <td class="aqr-rule__meta" colspan="3"><f:render partial="Export/PdfSeverity" arguments="{tone: group.tone, label: group.severityLabel}" /> · {group.countLabel} · {group.sourceLabel} · <code>{group.ruleId}</code></td>
+                    </tr>
+                    <f:if condition="{group.howToFix}">
+                        <tr><td class="aqr-grid__no" style="width:8mm"></td><td class="aqr-rule__fix" colspan="3"><b>How to fix:</b> {group.howToFix}</td></tr>
+                    </f:if>
+                    <f:if condition="{group.whyItMatters}">
+                        <tr><td class="aqr-grid__no" style="width:8mm"></td><td class="aqr-rule__why" colspan="3">Why it matters: {group.whyItMatters}</td></tr>
+                    </f:if>
+                    <tr class="aqr-grid__headrow">
+                        <td class="aqr-grid__no" style="width:8mm"></td>
+                        <th class="aqr-grid__idx" style="width:11mm">#</th>
+                        <th class="aqr-grid__where" style="width:60mm">Where</th>
+                        <th>Snippet</th>
+                    </tr>
+                    <f:for each="{group.firstOccurrences}" as="occurrence"><f:render section="Occurrence" arguments="{occurrence: occurrence}" /></f:for>
+                </table>
+                <f:if condition="{group.moreOccurrences}">
+                    <table class="aqr-grid aqr-grid--continued" autosize="1">
+                        <f:for each="{group.moreOccurrences}" as="occurrence"><f:render section="Occurrence" arguments="{occurrence: occurrence}" /></f:for>
                     </table>
-
-                    <div class="aqgp-local-issue__body">
-                        <f:if condition="{issue.hint}">
-                            <div class="aqgp-local-fix">
-                                <div class="aqgp-local-fix__label">How to fix</div>
-                                <div class="aqgp-local-fix__text">{issue.hint}</div>
-                            </div>
-                        </f:if>
-
-                        <table class="aqgp-local-kv">
-                            <tr>
-                                <td>Rule</td>
-                                <td>{issue.rule_id}</td>
-                            </tr>
-                            <tr>
-                                <td>Source table</td>
-                                <td>{issue.source_table}</td>
-                            </tr>
-                            <tr>
-                                <td>Source UID</td>
-                                <td>uid:{issue.source_uid}</td>
-                            </tr>
-                            <tr>
-                                <td>Field</td>
-                                <td>{issue.source_field}</td>
-                            </tr>
-                            <f:if condition="{issue.context_path}">
-                                <tr>
-                                    <td>Context</td>
-                                    <td>{issue.context_path}</td>
-                                </tr>
-                            </f:if>
-                        </table>
-
-                        <f:if condition="{issue.context_snippet}">
-                            <div class="aqgp-local-snippet">
-                                <div class="aqgp-local-snippet__label">Context snippet</div>
-                                <pre>{issue.context_snippet}</pre>
-                            </div>
-                        </f:if>
-                    </div>
-                </div>
+                </f:if>
             </f:for>
         </f:then>
         <f:else>
-            <div class="aqgp-empty">
-                <div class="aqgp-empty__title">No matching issues on this page</div>
-                <div class="aqgp-empty__body">No issues match the active filters. This page may still have findings under another severity or status filter.</div>
-            </div>
+            <p class="aqr-box">No issues on this page match the report's filters. Automated checks support accessibility work but do not replace manual review.</p>
         </f:else>
     </f:if>
 
+    <bookmark content="About this report" level="0" />
+    <p class="aqr-note">This PDF is a visual report and is not tagged for screen readers. The CSV export in the AQG module contains the same findings in an accessible format. Content scans check the rich text, images and rendered HTML of this page inside TYPO3. Automated checks support accessibility work; they do not confirm WCAG, BFSG, BITV or EAA compliance.</p>
+</f:section>
+
+<f:section name="Occurrence">
+    <tr class="aqr-grid__row">
+        <td class="aqr-grid__no" style="width:8mm"></td>
+        <td class="aqr-grid__idx" style="width:11mm">{occurrence.index}</td>
+        <td class="aqr-grid__where" style="width:60mm">{occurrence.whereTitle}<f:if condition="{occurrence.whereContext}"><br /><span class="aqr-cell-sub">{occurrence.whereContext}</span></f:if><f:if condition="{occurrence.technical}"><br /><span class="aqr-cell-sub">{occurrence.technical}</span></f:if></td>
+        <td class="aqr-grid__cell"><f:if condition="{occurrence.snippet}"><f:then><span class="aqr-snippet">{occurrence.snippet}</span></f:then><f:else><span class="aqr-cell-sub">{occurrence.message}</span></f:else></f:if></td>
+    </tr>
 </f:section>

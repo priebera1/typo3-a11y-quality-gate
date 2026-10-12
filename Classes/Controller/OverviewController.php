@@ -18,21 +18,29 @@ use Priebera\A11yQualityGate\Pro\Configuration\ProSettings;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteOccurrenceTotalsService;
+use Priebera\A11yQualityGate\Pro\Service\TrialUsageService;
+use Priebera\A11yQualityGate\Scan\RenderedCoverage;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
+use Priebera\A11yQualityGate\Pro\ViewModel\RemoteEmptyState;
+use Priebera\A11yQualityGate\Pro\ViewModel\RemoteScanSignal;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
 use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
+use Priebera\A11yQualityGate\Service\LocalOverviewScanSelection;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
 use Priebera\A11yQualityGate\Service\RemoteScanHistoryService;
 use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
+use Priebera\A11yQualityGate\Service\ScanPermissionService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -49,6 +57,7 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -102,6 +111,10 @@ final class OverviewController extends AbstractBackendModuleController
         private readonly ?PublicSiteAddressClassifier $publicSiteAddressClassifier = null,
         private readonly ?ProSettings $proSettings = null,
         private readonly ?RemoteScanRecoveryService $remoteScanRecoveryService = null,
+        private readonly ?ScanPermissionService $scanPermissionService = null,
+        private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
+        private readonly ?TrialUsageService $trialUsageService = null,
+        private readonly ?RemoteOccurrenceTotalsService $remoteOccurrenceTotalsService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -273,7 +286,19 @@ final class OverviewController extends AbstractBackendModuleController
         $lastPageScan = $siteIdentifier !== '' && $isPageContext
             ? $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $currentPageUid, $currentLanguageUid)
             : null;
-        $lastScan = $this->selectMostRecentScan($lastSubtreeScan, $lastPageScan);
+        // The status describes the site scan (or, on a page, the newer of it and the page's own scan); without either it
+        // falls back to the site's newest content scan of any scope, so it never says "No scan on record" above
+        // open issues that page scans found. The scope is named in the status.
+        $localScanSelection = LocalOverviewScanSelection::select(
+            $lastSubtreeScan,
+            $lastPageScan,
+            $siteIdentifier !== '' && $lastSubtreeScan === null && $lastPageScan === null
+                ? $this->scanRepository->findLastCompletedScan($siteIdentifier, $currentLanguageUid)
+                : null,
+            $isPageContext
+        );
+        $lastScan = $localScanSelection->scan;
+        $lastScanScopeLabel = $this->buildLocalScanScopeLabel($localScanSelection);
 
         $lastScan = $this->withFormattedScanTimestamps($lastScan);
 
@@ -296,8 +321,14 @@ final class OverviewController extends AbstractBackendModuleController
         }
 
         $remoteIsPageContext = $isPageContext || ($isFreePreview && $currentPageUid > 0);
+        // First: a job that finished at the AQG service while nobody watched is read back and stored here. Selecting the
+        // displayed result before that showed the previous result for the scan that had just completed.
+        $activeRemoteScan = $siteIdentifier !== ''
+            ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $remoteIsPageContext, $currentPageUid, $currentLanguageUid)
+            : null;
+        $currentPageIsSiteRoot = $currentPageUid > 0 && $currentPageUid === $siteRootPid;
         $remoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewRemoteScan($siteIdentifier, $remoteIsPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl, $selectedRemoteScanUid, $isFreePreview)
+            ? $this->resolveOverviewRemoteScan($siteIdentifier, $remoteIsPageContext, $currentPageUid, $currentLanguageUid, $currentPageUrl, $selectedRemoteScanUid, $isFreePreview, $currentPageIsSiteRoot)
             : null;
         $remoteScan = $this->withFormattedScanTimestamps($remoteScan);
         $this->logRemoteReportingDebug('AQG remote reporting selected overview scan', [
@@ -326,9 +357,6 @@ final class OverviewController extends AbstractBackendModuleController
         }
         $latestRemotePageScan = $this->withFormattedScanTimestamps($latestRemotePageScan);
 
-        $activeRemoteScan = $siteIdentifier !== ''
-            ? $this->resolveOverviewActiveRemoteScan($siteIdentifier, $remoteIsPageContext, $currentPageUid, $currentLanguageUid)
-            : null;
 
         $pageStats = [];
         $totalLocalPages = 0;
@@ -458,6 +486,7 @@ final class OverviewController extends AbstractBackendModuleController
                 );
                 $remotePages = array_slice($filteredRemotePages, $remotePagination['offset'], self::REMOTE_PER_PAGE);
             }
+            $remotePages = $this->withRemoteRowData($remotePages, $isFreePreview);
 
             $remoteFailedPages = $this->remoteScanRepository->findFailedPagesForScanPaginated(
                 $remoteScanUid,
@@ -588,6 +617,7 @@ final class OverviewController extends AbstractBackendModuleController
                         'language' => $currentLanguageUid,
                         'rule' => $remoteRule,
                     ], static fn (mixed $value): bool => $value !== '')) . ($remoteRule !== '' ? '#' . RuleAnchorUtility::anchorId($remoteRule) : ''),
+                    'urlPath' => ScanUrlUtility::displayPath((string)($page['url'] ?? '')),
                 ],
             $remotePages
         );
@@ -598,12 +628,16 @@ final class OverviewController extends AbstractBackendModuleController
                         'remotePageUid' => (int)$page['uid'],
                         'site' => $siteIdentifier,
                     ]),
+                    'urlPath' => ScanUrlUtility::displayPath((string)($page['url'] ?? '')),
                 ],
             $remoteFailedPages
         );
 
         $pageStats = array_map(
             fn(array $stat): array => $stat + [
+                    'canScan' => $this->scanPermissionService !== null
+                        ? $this->scanPermissionService->canScanPage((int)($stat['pageUid'] ?? 0))
+                        : $this->accessControlService->canShowScanNow(),
                     'isFolder' => (int)($stat['pageDoktype'] ?? 0) === 254,
                     'detailUrl' => $this->buildRouteUrl('web_a11y.pageDetail', [
                         'pageUid' => $stat['pageUid'],
@@ -711,8 +745,13 @@ final class OverviewController extends AbstractBackendModuleController
         );
 
         $backendUser = $this->backendContextService->getBackendUser();
-        $canScanAll = $this->accessControlService->canShowScanAll($backendUser);
-        $canScanNow = $this->accessControlService->canShowScanNow($backendUser);
+        // Scan controls follow the endpoints' rule: the TSconfig flag and edit access to the page or site root.
+        $canScanAll = $this->scanPermissionService !== null
+            ? $this->scanPermissionService->canScanSite($siteRootPid)
+            : $this->accessControlService->canShowScanAll($backendUser);
+        $canScanNow = $this->scanPermissionService !== null
+            ? $this->scanPermissionService->canScanPage($currentPageUid)
+            : $this->accessControlService->canShowScanNow($backendUser);
         $canManageRemoteAccessSettings = $this->accessControlService->canManageAdminOnlySettings($backendUser);
         $showRemoteScannerTokenNotice = !$isFreePreview
             && $canManageRemoteAccessSettings
@@ -793,16 +832,66 @@ final class OverviewController extends AbstractBackendModuleController
             $remotePagesEmptyTitle = $this->translateWithFallback('overview.remote.pages.ruleEmptyTitle', 'No page with this rule in this scan');
             $remotePagesEmptyBody = $this->translateWithFallback('overview.remote.pages.ruleEmptyBody', 'Show all pages to see the other results of this scan.');
         }
-        $remoteSignalTone = $this->resolveRemoteSignalTone(
+        // Coverage decides before score and tone: a scan that loaded no page, or missed pages, is never "good".
+        $remoteSignal = RemoteScanSignal::resolve(
             is_array($remoteScan) ? $remoteScan : null,
             is_array($remoteScore) ? $remoteScore : [],
             $remoteHasPriorityFixes,
-            is_array($remoteReportingSummary['reportSummary'] ?? null) ? $remoteReportingSummary['reportSummary'] : []
+            is_array($remoteReportingSummary['reportSummary'] ?? null) ? $remoteReportingSummary['reportSummary'] : [],
+            is_array($remoteScan) ? $this->remoteScanRepository->countPagesForScan((int)($remoteScan['uid'] ?? 0), true) : 0
         );
-        $remoteScoreTone = $this->resolveRemoteScoreTone(is_array($remoteScore) ? $remoteScore : []);
+        $remoteSignalTone = $remoteSignal->tone;
+        $remoteScore = is_array($remoteScore) ? $remoteScore : [];
+        if (!$remoteSignal->showScoreValue) {
+            $remoteScore['hasValue'] = false;
+        }
+        $remoteCoverageIsComplete = $remoteSignal->coverage?->isComplete() ?? false;
+        $remoteScoreTone = $remoteCoverageIsComplete ? $this->resolveRemoteScoreTone($remoteScore) : 'unavailable';
         $remoteSignalLabel = $this->resolveRemoteSignalLabel($remoteSignalTone);
         $remoteSignalIcon = $remoteSignalTone === 'good' ? 'ok' : ($remoteSignalTone === 'no-scan' ? 'empty' : 'warning');
+        $remoteCoverageNote = $remoteSignal->coverage !== null && !$remoteCoverageIsComplete && $remoteSignal->coverage->expectedPages > 0
+            ? sprintf(
+                $remoteSignal->coverage->expectedPages === 1
+                    ? $this->translateWithFallback('overview.remote.signal.coverage.single', 'Checked %1$d of 1 page. A page that could not be loaded is listed under Failed / unreachable pages.')
+                    : $this->translateWithFallback('overview.remote.signal.coverage', 'Checked %1$d of %2$d pages. Pages that could not be loaded are listed under Failed / unreachable pages.'),
+                $remoteSignal->coverage->loadedPages,
+                $remoteSignal->coverage->expectedPages
+            )
+            : '';
+        // An empty priority list or page list describes the scan shown: never an all-clear for pages that were not checked.
+        $remotePriorityEmpty = match (RemoteEmptyState::priorityFixes($remoteSignal->coverage)) {
+            RemoteEmptyState::PRIORITY_CLEAR => [
+                'state' => RemoteEmptyState::PRIORITY_CLEAR,
+                'title' => $this->translateWithFallback('overview.remote.priorityFixes.emptyClearTitle', 'No priority fixes needed'),
+                'body' => $this->translateWithFallback('overview.remote.priorityFixes.emptyClearBody', 'The latest frontend scan did not find issues requiring prioritisation.'),
+            ],
+            RemoteEmptyState::PRIORITY_INCOMPLETE => [
+                'state' => RemoteEmptyState::PRIORITY_INCOMPLETE,
+                'title' => $this->translateWithFallback('overview.remote.priorityFixes.emptyIncompleteTitle', 'No priority fixes on the checked pages'),
+                'body' => $this->translateWithFallback('overview.remote.priorityFixes.emptyIncompleteBody', 'Some pages could not be checked, so this is not an all-clear. They are listed under Failed / unreachable pages.'),
+            ],
+            default => [
+                'state' => RemoteEmptyState::PRIORITY_NO_COVERAGE,
+                'title' => $this->translateWithFallback('overview.remote.priorityFixes.emptyNoCoverageTitle', 'No priority list'),
+                'body' => $this->translateWithFallback('overview.remote.priorityFixes.emptyNoCoverageBody', 'This scan could not check any page. Fix the failed pages below, then scan again.'),
+            ],
+        };
+        if ($remotePages === []) {
+            switch (RemoteEmptyState::affectedPages(is_array($remoteScan), $remoteSignal->coverage, $remoteRuleFilter !== [])) {
+                case RemoteEmptyState::PAGES_NO_COVERAGE:
+                    $remotePagesEmptyTitle = $this->translateWithFallback('overview.remote.pages.noCoverageTitle', 'No page was checked in this scan');
+                    $remotePagesEmptyBody = $this->translateWithFallback('overview.remote.pages.noCoverageBody', 'Pages that could not be loaded are listed under Failed / unreachable pages.');
+                    break;
+                case RemoteEmptyState::PAGES_NOT_STORED:
+                    $remotePagesEmptyTitle = $this->translateWithFallback('overview.remote.pages.notStoredTitle', 'No page results stored for this scan');
+                    $remotePagesEmptyBody = $this->translateWithFallback('overview.remote.pages.notStoredBody', 'Scan again to list the checked pages.');
+                    break;
+            }
+        }
         $totalRemotePagesIsSingle = $totalRemotePages === 1;
+        $remotePagesCountLabel = $totalRemotePagesIsSingle
+            ? $this->translateWithFallback('overview.proSummary.page', 'page')
+            : $remotePagesCountLabel;
         $this->logRemoteHistoryDebug('AQG remote history overview context', [
             'pageUid' => $currentPageUid,
             'siteIdentifier' => $siteIdentifier,
@@ -836,6 +925,13 @@ final class OverviewController extends AbstractBackendModuleController
             'hasPageContext' => true,
             'emptyState' => [],
             'lastScan' => $lastScan,
+            'localRenderedCoverage' => $this->buildLocalRenderedCoverage(
+                is_array($lastScan) ? $lastScan : null,
+                !$isFreePreview,
+                $siteIdentifier !== '' && $this->hasEffectiveScannerToken($siteIdentifier)
+            ),
+            'lastScanScopeLabel' => $lastScanScopeLabel,
+            'hasLocalResults' => is_array($lastScan) || (int)($totalCounts['total'] ?? 0) > 0,
             'pageStats' => $pageStats,
             'totalLocalPages' => $totalLocalPages,
             'localPagination' => $localPagination,
@@ -845,6 +941,13 @@ final class OverviewController extends AbstractBackendModuleController
             'localScanDelta' => $localScanDelta,
             'canScanAll' => $canScanAll,
             'canScanNow' => $canScanNow,
+            // Cancel follows the running scan's scope; before one runs, it follows what this user may start here.
+            'canCancelLocalScan' => (bool)($scanStatus['running'] ?? false) && $this->scanPermissionService instanceof ScanPermissionService
+                ? $this->scanPermissionService->canCancelLocalScan($scanStatus)
+                : $canScanNow || $canScanAll,
+            'canCancelRemoteScan' => is_array($activeRemoteScan) && $this->scanPermissionService instanceof ScanPermissionService
+                ? $this->scanPermissionService->canCancelRemoteScan($activeRemoteScan)
+                : $canScanNow || $canScanAll,
             'siteRootPid' => $siteRootPid,
             'currentPageUid' => $currentPageUid,
             'isPageContext' => $isPageContext,
@@ -864,6 +967,7 @@ final class OverviewController extends AbstractBackendModuleController
             'scanFieldsSettingsUrl' => $this->buildRouteUrl('web_a11y.settings', array_replace($returnParameters, ['tab' => 'fields'])),
             'licenceNotice' => $licenceNotice,
             'remoteScan' => $remoteScan,
+            'remoteOccurrences' => $this->buildRemoteOccurrenceView(is_array($remoteScan) ? $remoteScan : null),
             'latestRemotePageScan' => $latestRemotePageScan,
             'activeRemoteScan' => $activeRemoteScan,
             'remotePages' => $remotePages,
@@ -879,7 +983,9 @@ final class OverviewController extends AbstractBackendModuleController
             'remoteScoreTone' => $remoteScoreTone,
             'remoteSignalIcon' => $remoteSignalIcon,
             'remoteHasPriorityFixes' => $remoteHasPriorityFixes,
-            'remoteHasNoPriorityFixes' => !$remoteHasPriorityFixes,
+            'remoteHasNoPriorityFixes' => !$remoteHasPriorityFixes && $remoteCoverageIsComplete,
+            'remoteCoverageNote' => $remoteCoverageNote,
+            'remotePriorityEmpty' => $remotePriorityEmpty,
             'remoteManualReviewChecklist' => $remoteReportingSummary['manualReviewChecklist'] ?? [],
             'remoteReportingGroups' => $remoteReportingSummary['reportingGroups'] ?? [],
             'remoteKeyboardSummary' => $remoteKeyboardSummary,
@@ -908,6 +1014,7 @@ final class OverviewController extends AbstractBackendModuleController
             'remoteFailedPaginationItems' => $remoteFailedPaginationItems,
             'proStatus' => $proStatus,
             'freePreview' => $freePreview,
+            'trialUsage' => $this->resolveTrialUsage($proStatus, $siteBase, $siteIdentifier),
             'freeSubmitIntent' => $freeSubmitIntent,
             'remoteUiAvailable' => $remoteUiAvailable,
             'exportLocalCsvUrl' => $exportLocalCsvUrl,
@@ -1019,6 +1126,43 @@ final class OverviewController extends AbstractBackendModuleController
         $notice['settingsUrl'] = $this->buildRouteUrl('web_a11y.settings', array_replace($returnParameters, ['tab' => 'licence']));
 
         return $notice;
+    }
+
+    /**
+     * The Trial's frontend scan allowance as the AQG crawler enforces it, or null to show the plan limits only.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveTrialUsage(object $proStatus, string $siteBase, string $siteIdentifier): ?array
+    {
+        if (
+            !(bool)($proStatus->valid ?? false)
+            || !(bool)($proStatus->isTrial ?? false)
+            || !$this->trialUsageService instanceof TrialUsageService
+            || $siteIdentifier === ''
+        ) {
+            return null;
+        }
+
+        $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($siteBase);
+        if ($domain === '') {
+            return null;
+        }
+
+        $usage = $this->trialUsageService->getUsage(
+            $domain,
+            $this->extensionContextService->getExtensionVersion(),
+            rtrim($siteBase, '/') . '/',
+            $siteIdentifier,
+        );
+        if ($usage === null) {
+            return null;
+        }
+
+        $nextScanAt = $usage['nextScanAt'] !== '' ? strtotime($usage['nextScanAt']) : false;
+        $usage['nextScanAtFormatted'] = $nextScanAt !== false ? BackendTimeUtility::formatDateTime($nextScanAt) : '';
+
+        return $usage;
     }
 
     private function resolvePaidEntitlement(object $proStatus): string
@@ -1195,7 +1339,7 @@ final class OverviewController extends AbstractBackendModuleController
                 'apiPriorityFixesCount' => count($summaryResult->priorityFixes),
                 'fallbackPriorityFixesCount' => count($fallbackSummary['priorityFixes'] ?? []),
                 'fallbackWcagSummaryCount' => count($fallbackSummary['wcagSummary'] ?? []),
-            ], 'warning');
+            ]);
 
             if ($summaryResult->priorityFixes === [] && ($fallbackSummary['priorityFixes'] ?? []) === [] && ($fallbackSummary['wcagSummary'] ?? []) === []) {
                 return null;
@@ -1218,30 +1362,6 @@ final class OverviewController extends AbstractBackendModuleController
         );
     }
 
-
-    /**
-     * @param array<string, mixed>|null $remoteScan
-     * @param array<string, mixed> $remoteScore
-     * @param array<string, mixed> $reportSummary
-     */
-    private function resolveRemoteSignalTone(?array $remoteScan, array $remoteScore, bool $hasPriorityFixes, array $reportSummary): string
-    {
-        if (!is_array($remoteScan)) {
-            return 'no-scan';
-        }
-
-        $scoreTone = strtolower(trim((string)($remoteScore['tone'] ?? '')));
-        if (in_array($scoreTone, ['critical', 'attention', 'good'], true)) {
-            return $scoreTone;
-        }
-
-        $overallImpact = strtolower(trim((string)($reportSummary['overallImpact'] ?? '')));
-        if ($overallImpact === 'critical') {
-            return 'critical';
-        }
-
-        return $hasPriorityFixes ? 'attention' : 'good';
-    }
 
     /**
      * @param array<string, mixed> $remoteScore
@@ -1270,14 +1390,108 @@ final class OverviewController extends AbstractBackendModuleController
         return 'success';
     }
 
+    /**
+     * Audit C13: the Content status says when rendered checks did not run, so a scan with skipped pages never reads as
+     * complete. The pages and reasons are listed (bounded, the count is not); older scans have no record and show none.
+     * Pages visitors are not shown (hidden, scheduled, restricted) get one hint that says why the rendered check cannot
+     * open them and which scan can.
+     *
+     * @param array<string, mixed>|null $scan
+     * @return array{skipped: int, note: string, pages: list<array{pageUid: int, title: string, reason: string}>, more: string, notPublicHint: string}
+     */
+    private function buildLocalRenderedCoverage(?array $scan, bool $frontendScansAvailable, bool $hasScannerToken): array
+    {
+        $skipped = (int)($scan['rendered_skipped'] ?? 0);
+        if ($scan === null || $skipped <= 0) {
+            return ['skipped' => 0, 'note' => '', 'pages' => [], 'more' => '', 'notPublicHint' => ''];
+        }
+
+        $total = $skipped + (int)($scan['rendered_checked'] ?? 0);
+        $note = $total <= 1
+            ? $this->translateWithFallback('overview.local.renderedSkipped.only', 'Rendered HTML not checked')
+            : sprintf(
+                $this->translateWithFallback('overview.local.renderedSkipped.ofTotal', 'Rendered HTML not checked on %1$d of %2$d pages'),
+                $skipped,
+                $total
+            );
+
+        $translate = fn (string $key, string $fallback): string => $this->translateWithFallback($key, $fallback);
+        $entries = json_decode((string)($scan['rendered_skipped_json'] ?? ''), true);
+        $pages = [];
+        foreach (is_array($entries) ? $entries : [] as $entry) {
+            $pageUid = (int)($entry['pageUid'] ?? 0);
+            if ($pageUid <= 0) {
+                continue;
+            }
+            $record = BackendUtility::getRecord('pages', $pageUid, 'title') ?? [];
+            $pages[] = [
+                'pageUid' => $pageUid,
+                'title' => trim((string)($record['title'] ?? '')) !== '' ? trim((string)$record['title']) : '#' . $pageUid,
+                'reason' => RenderedCoverage::describe(is_array($entry) ? $entry : [], $translate),
+            ];
+        }
+
+        $more = $skipped - count($pages);
+        $notPublicHint = '';
+        if (RenderedCoverage::countNotPublic($scan) > 0) {
+            $notPublicHint = $this->translateWithFallback(
+                'overview.local.renderedSkipped.notPublicHint',
+                'Visitors do not get hidden or restricted pages, and the rendered check requests each page as a visitor, without the Scanner Token. The content checks of these pages ran.'
+            ) . ' ' . match (true) {
+                !$frontendScansAvailable => $this->translateWithFallback(
+                    'overview.local.renderedSkipped.notPublicHint.free',
+                    'The Free Remote Preview checks public pages only.'
+                ),
+                $hasScannerToken => $this->translateWithFallback(
+                    'overview.local.renderedSkipped.notPublicHint.token',
+                    'A Frontend scan can check them: it sends this site\'s Scanner Token.'
+                ),
+                default => $this->translateWithFallback(
+                    'overview.local.renderedSkipped.notPublicHint.noToken',
+                    'A Frontend scan can check them once this site has a Scanner Token (Settings, Remote scan access).'
+                ),
+            };
+        }
+
+        return [
+            'skipped' => $skipped,
+            'note' => $note,
+            'pages' => $pages,
+            'more' => $more > 0
+                ? sprintf($this->translateWithFallback('overview.local.renderedSkipped.more', '%d more pages are not listed.'), $more)
+                : '',
+            'notPublicHint' => $notPublicHint,
+        ];
+    }
+
+    private function buildLocalScanScopeLabel(LocalOverviewScanSelection $selection): string
+    {
+        if ($selection->scope === LocalOverviewScanSelection::SCOPE_SITE) {
+            return $this->translateWithFallback('overview.lastScan.scopeSite', 'Site scan');
+        }
+
+        if ($selection->scope !== LocalOverviewScanSelection::SCOPE_PAGE) {
+            return '';
+        }
+
+        $page = $selection->scopePageUid > 0 ? BackendUtility::getRecord('pages', $selection->scopePageUid, 'title') : null;
+        $title = trim((string)($page['title'] ?? ''));
+
+        return sprintf(
+            $this->translateWithFallback('overview.lastScan.scopePage', 'Page scan: %s'),
+            $title !== '' ? $title : (string)$selection->scopePageUid
+        );
+    }
+
     private function resolveRemoteSignalLabel(string $remoteSignalTone): string
     {
         return match ($remoteSignalTone) {
-            'critical' => 'Critical',
-            'attention' => 'Needs attention',
-            'good' => 'Good automated signal',
-            'no-scan' => 'No remote scan has been run yet',
-            default => 'Needs attention',
+            'critical' => $this->translateWithFallback('overview.remote.signal.critical', 'Critical'),
+            'good' => $this->translateWithFallback('overview.remote.signal.good', 'Good automated signal'),
+            'incomplete' => $this->translateWithFallback('overview.remote.signal.incomplete', 'Scan incomplete'),
+            'no-coverage' => $this->translateWithFallback('overview.remote.signal.noCoverage', 'No page could be scanned'),
+            'no-scan' => $this->translateWithFallback('overview.remote.signal.noScanTitle', 'No frontend scan has been run yet'),
+            default => $this->translateWithFallback('overview.remote.signal.attention', 'Needs attention'),
         };
     }
 
@@ -1364,9 +1578,12 @@ final class OverviewController extends AbstractBackendModuleController
 
     private function hasEffectiveScannerToken(string $siteIdentifier): bool
     {
-        $defaultRuleset = $this->rulesetRepository->findDefault();
+        // The token scans of this site actually send: the site's own, else the default one.
+        if ($this->remoteScanAccessSettingsService !== null) {
+            return $this->remoteScanAccessSettingsService->hasScannerTokenForSite($siteIdentifier);
+        }
 
-        return trim((string)($defaultRuleset['scanner_token'] ?? '')) !== '';
+        return trim((string)($this->rulesetRepository->findDefault()['scanner_token'] ?? '')) !== '';
     }
 
     private function firstNonEmptyRulesetValue(?array $siteRuleset, ?array $defaultRuleset, string $field): string
@@ -1430,6 +1647,70 @@ final class OverviewController extends AbstractBackendModuleController
                 $page['typo3_page_uid'] = $pageUid;
                 $page['page_uid'] = $pageUid;
             }
+        }
+        unset($page);
+
+        return $pages;
+    }
+
+    /**
+     * The occurrence count of the shown frontend scan comes from its stored findings (the same rows as the CSV and the
+     * PDF). When the crawler's run counter is higher, the difference is stated: it counted elements whose signature
+     * duplicated one it had already recorded.
+     *
+     * @param array<string, mixed>|null $remoteScan
+     * @return array{total: int, notStored: int, notStoredNote: string}
+     */
+    private function buildRemoteOccurrenceView(?array $remoteScan): array
+    {
+        if ($remoteScan === null) {
+            return ['total' => 0, 'notStored' => 0, 'notStoredNote' => ''];
+        }
+        if (!isset($this->remoteOccurrenceTotalsService)) {
+            return ['total' => (int)($remoteScan['issues_total'] ?? 0), 'notStored' => 0, 'notStoredNote' => ''];
+        }
+
+        $totals = $this->remoteOccurrenceTotalsService->forScan($remoteScan);
+
+        return [
+            'total' => $totals->total,
+            'notStored' => $totals->notStored,
+            'notStoredNote' => $totals->notStored > 0
+                ? sprintf(
+                    $totals->notStored === 1
+                        ? $this->translateWithFallback('overview.remote.status.notStored.singular', 'The crawler counted %d more occurrence: an element with the same signature was already recorded.')
+                        : $this->translateWithFallback('overview.remote.status.notStored.plural', 'The crawler counted %d more occurrences: elements with the same signature were already recorded.'),
+                    $totals->notStored
+                )
+                : '',
+        ];
+    }
+
+    /**
+     * The Affected pages rows use the Content table's pattern: occurrences next to issue types, and a scan action only
+     * where the page scan endpoint would accept it (TSconfig flag and edit access to the mapped page). Free Remote
+     * Preview keeps its single scan action in the status card.
+     *
+     * @param array<int, array<string, mixed>> $pages
+     * @return array<int, array<string, mixed>>
+     */
+    private function withRemoteRowData(array $pages, bool $isFreePreview): array
+    {
+        if ($pages === []) {
+            return $pages;
+        }
+
+        $occurrences = $this->remoteIssueRepository->countOccurrencesByRemoteScanPage(
+            array_map(static fn (array $page): int => (int)($page['uid'] ?? 0), $pages)
+        );
+        foreach ($pages as &$page) {
+            $issueTypes = (int)($page['issues_count'] ?? 0);
+            $page['occurrences'] = max($issueTypes, (int)($occurrences[(int)($page['uid'] ?? 0)] ?? 0));
+            $mappedPageUid = (int)($page['typo3_page_uid'] ?? 0);
+            $page['canScan'] = !$isFreePreview
+                && $mappedPageUid > 0
+                && $this->scanPermissionService !== null
+                && $this->scanPermissionService->canScanPage($mappedPageUid);
         }
         unset($page);
 
@@ -1584,22 +1865,6 @@ final class OverviewController extends AbstractBackendModuleController
      * @param array<string, mixed>|null $second
      * @return array<string, mixed>|null
      */
-    private function selectMostRecentScan(?array $first, ?array $second): ?array
-    {
-        if ($first === null) {
-            return $second;
-        }
-
-        if ($second === null) {
-            return $first;
-        }
-
-        return (int)($second['finished_at'] ?? 0) > (int)($first['finished_at'] ?? 0)
-            ? $second
-            : $first;
-    }
-
-
     /**
      * @param array<string, mixed> $scanStatus
      */
@@ -1667,17 +1932,27 @@ final class OverviewController extends AbstractBackendModuleController
         string $currentPageUrl = '',
         int $selectedRemoteScanUid = 0,
         bool $isFreePreview = false,
+        bool $isSiteRootPage = false,
     ): ?array {
         if ($selectedRemoteScanUid > 0) {
             $selectedScan = $this->remoteScanRepository->findScanByUid($selectedRemoteScanUid);
             $selectedScanScope = is_array($selectedScan) ? (string)($selectedScan['scan_scope'] ?? '') : '';
-            $scopeMatchesContext = $isPageContext || $selectedScanScope === 'site';
+            // The site root also shows the page scans of the root page itself ("Scan this page" on the root).
+            $isScanOfTheRootPage = $isSiteRootPage
+                && $selectedScanScope === 'page'
+                && is_array($selectedScan)
+                && (int)($selectedScan['page_uid'] ?? 0) === $currentPageUid;
+            $scopeMatchesContext = $isPageContext || $selectedScanScope === 'site' || $isScanOfTheRootPage;
             $selectedScanIsFreePreview = is_array($selectedScan) && (int)($selectedScan['is_free_preview'] ?? 0) === 1;
+            // A scan of all languages (-1) belongs to every language view; otherwise only to its own language.
+            $selectedScanLanguage = is_array($selectedScan) ? (int)($selectedScan['language_uid'] ?? -1) : -1;
+            $languageMatches = $selectedScanLanguage < 0 || $languageUid < 0 || $selectedScanLanguage === $languageUid;
 
             if (is_array($selectedScan)
                 && (string)($selectedScan['site_identifier'] ?? '') === $siteIdentifier
                 && strtolower((string)($selectedScan['status'] ?? '')) === 'completed'
                 && $scopeMatchesContext
+                && $languageMatches
                 && $selectedScanIsFreePreview === $isFreePreview
                 && $this->selectedScanBelongsToCurrentPageContext(
                     $selectedScan,
@@ -1707,7 +1982,39 @@ final class OverviewController extends AbstractBackendModuleController
             }
         }
 
-        return $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, $isFreePreview);
+        $siteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, $isFreePreview);
+
+        // The site root is the site context, but "Scan this page" there scans the root page itself. That result is the
+        // root page's latest one when it is newer than the last site scan; otherwise it never appeared at all.
+        if ($isSiteRootPage && $currentPageUid > 0) {
+            $rootPageScan = $this->remoteScanRepository->findLastCompletedPageScanByPageOrUrl(
+                $siteIdentifier,
+                $currentPageUid,
+                $languageUid,
+                $currentPageUrl,
+                $isFreePreview
+            );
+            if (is_array($rootPageScan)
+                && (!is_array($siteScan) || $this->scanFinishedAt($rootPageScan) > $this->scanFinishedAt($siteScan))
+            ) {
+                return $rootPageScan;
+            }
+        }
+
+        return $siteScan;
+    }
+
+    /** @param array<string, mixed> $scan */
+    private function scanFinishedAt(array $scan): int
+    {
+        foreach (['finished_at', 'persisted_at', 'crdate'] as $field) {
+            $value = (int)($scan[$field] ?? 0);
+            if ($value > 0) {
+                return $value;
+            }
+        }
+
+        return 0;
     }
 
 
@@ -2025,7 +2332,9 @@ final class OverviewController extends AbstractBackendModuleController
         int $languageUid
     ): array {
         $sourceType = strtolower(trim((string)($remoteScan['source_type'] ?? 'sitemap')));
-        if (!in_array($sourceType, ['sitemap', 'crawl'], true)) {
+        // Audit C16: a page scan is compared as a page scan. Asking for a sitemap comparison with the page's URL
+        // matched no pair and answered 404 on every render.
+        if (!in_array($sourceType, ['sitemap', 'crawl', 'single_page'], true)) {
             $sourceType = 'sitemap';
         }
 
@@ -2036,6 +2345,9 @@ final class OverviewController extends AbstractBackendModuleController
             $sourceType,
             trim((string)($remoteScan['start_url'] ?? '')),
             $languageUid >= 0 ? $languageUid : null,
+            is_array($remoteScan)
+                ? trim((string)($remoteScan['job_id'] ?? '')) . '@' . (int)($remoteScan['finished_at'] ?? 0)
+                : '',
         );
         $alert = $this->guardRegressionPair($alert, $siteIdentifier);
 

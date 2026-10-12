@@ -1,179 +1,97 @@
 <f:layout name="Pdf" />
 
 <f:section name="Content">
-    <htmlpageheader name="aqgLocalOverviewHeader">
-        <table class="aqgp-header-mpdf" style="width:100%; border-collapse:collapse; font-family:helvetica, arial, sans-serif; font-size:8pt;"><tbody><tr>
-            <td style="border:0; padding:0; vertical-align:top; width:45%; text-align:left;">
-                <span class="aqgp-header__brand aqgp-header__brand--large" style="display:inline-block; padding-bottom:4px; border-bottom:1px solid #1e232a; font-weight:bold; letter-spacing:0.22em; color:#1e232a;">AQG</span>
-            </td>
-            <td class="right" style="border:0; padding:0; vertical-align:top; width:55%; text-align:right; color:#5f6670; font-family:helvetica, arial, sans-serif; font-size:8pt; letter-spacing:0.04em;">
-                <div class="aqgp-header__context" style="color:#5f6670; font-weight:bold; letter-spacing:0.08em;">LOCAL CONTENT SCAN</div>
-                <div><strong style="color:#545b66; font-weight:bold;">{generatedAt}</strong> · Page ###AQG_PAGENO### of ###AQG_NBPG###</div>
-            </td>
-        </tr></tbody></table>
+    <htmlpageheader name="aqrHeader">
+        <table class="aqr-runhead"><tr>
+            <td width="55%">AQG · Content scan report</td>
+            <td width="45%" class="aqr-right">{siteHost}</td>
+        </tr></table>
     </htmlpageheader>
-    <sethtmlpageheader name="aqgLocalOverviewHeader" value="on" show-this-page="1" />
-
-    <htmlpagefooter name="aqgLocalOverviewFooter">
-        <table class="aqgp-footer-mpdf" style="width:100%; border-collapse:collapse; font-family:helvetica, arial, sans-serif; font-size:8pt;"><tbody><tr>
-            <td style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#5f6670; vertical-align:top; text-align:left; width:55%;">AQG · Local accessibility report · {rootPageTitle}</td>
-            <td class="right" style="border:0; border-top:1px solid #d4d8de; padding-top:5px; color:#5f6670; vertical-align:top; text-align:right; width:45%;">Page ###AQG_PAGENO### of ###AQG_NBPG### · {generatedAt}</td>
-        </tr></tbody></table>
+    <htmlpagefooter name="aqrFooter">
+        <table class="aqr-runfoot"><tr>
+            <td width="70%">AQG Content scan report · {siteHost} · {generatedAt}</td>
+            <td width="30%" class="aqr-right">Page ###AQG_PAGENO### of ###AQG_NBPG###</td>
+        </tr></table>
     </htmlpagefooter>
-    <sethtmlpagefooter name="aqgLocalOverviewFooter" value="on" show-this-page="1" />
-    <div class="aqgp-report-title">
-        <h1 class="aqgp-h1">Accessibility report</h1>
-        <p class="aqgp-sub">{siteLabel} · {scopeLabel}</p>
-    </div>
-    <p class="aqgp-a11y-note">Accessibility note: this PDF is a visual report. It is not tagged for screen readers, so its headings, tables and reading order are not available to assistive technology. The same findings are available as a CSV export from the AQG module in the TYPO3 backend.</p>
-    <hr class="aqgp-header__rule" />
 
-    <table class="aqgp-meta">
+    <bookmark content="Summary" level="0" />
+    <p class="aqr-title">Content scan report</p>
+    <p class="aqr-meta">{siteLabel} · {filterLabel} · Generated {generatedAt}</p>
+    <p class="aqr-verdict"><b>{verdict}</b></p>
+
+    <f:render partial="Export/PdfSeverityRow" arguments="{row: severityRow}" />
+
+    <f:if condition="{startHere}">
+        <p class="aqr-h2">Start here</p>
+        <f:if condition="{startHereNote}"><p class="aqr-muted">{startHereNote}</p></f:if>
+        <table class="aqr-table" autosize="1">
+            <thead><tr><th width="38%">Rule</th><th width="10%" class="aqr-num">Issues</th><th width="52%" class="aqr-gap">How to fix</th></tr></thead>
+            <tbody>
+            <f:for each="{startHere}" as="rule">
+                <tr>
+                    <td><b>{rule.title}</b><br /><f:render partial="Export/PdfSeverity" arguments="{tone: rule.tone, label: rule.severityLabel}" /> <span class="aqr-cell-sub">· <code>{rule.ruleId}</code></span></td>
+                    <td class="aqr-num">{rule.count}</td>
+                    <td class="aqr-gap">{rule.howToFix}</td>
+                </tr>
+            </f:for>
+            </tbody>
+        </table>
+    </f:if>
+
+    <f:if condition="{summaryPages}">
+        <p class="aqr-h2">Pages with the most issues</p>
+        <f:render section="PagesTable" arguments="{pages: summaryPages}" />
+        <f:if condition="{morePagesLabel}"><p class="aqr-muted">{morePagesLabel}</p></f:if>
+    </f:if>
+
+    <f:if condition="{hasIssues}">
+        <f:else>
+            <p class="aqr-box">No issues match this report's filters. Automated checks support accessibility work but do not replace manual review.</p>
+        </f:else>
+    </f:if>
+
+    <p class="aqr-note">This PDF is a visual report and is not tagged for screen readers. The CSV export in the AQG module contains the same findings in an accessible format. Automated checks support accessibility work; they do not confirm WCAG, BFSG, BITV or EAA compliance.</p>
+
+    <f:if condition="{morePagesLabel}">
+        <pagebreak />
+        <bookmark content="All pages" level="0" />
+        <f:render section="PagesTable" arguments="{pages: pages, title: 'All pages with issues', titleCount: pagesCount}" />
+
+        <bookmark content="All rules" level="0" />
+        <table class="aqr-table aqr-table--dense" autosize="1">
+            <thead><tr><th colspan="5" class="aqr-table__title">All rules ({rulesCount})</th></tr><tr><th width="52%">Rule</th><th width="18%">Severity</th><th width="14%">Source</th><th width="8%" class="aqr-num">Pages</th><th width="8%" class="aqr-num">Issues</th></tr></thead>
+            <tbody>
+            <f:for each="{rules}" as="rule">
+                <tr>
+                    <td>{rule.title} <code>{rule.ruleId}</code></td>
+                    <td><f:render partial="Export/PdfSeverity" arguments="{tone: rule.tone, label: rule.severityLabel}" /></td>
+                    <td>{rule.sourceLabel}</td>
+                    <td class="aqr-num">{rule.pages}</td>
+                    <td class="aqr-num">{rule.count}</td>
+                </tr>
+            </f:for>
+            </tbody>
+        </table>
+
+        <bookmark content="Report details" level="0" />
+        <p class="aqr-box"><b>Report details.</b> {siteLabel} · {filterLabel}. Content scans check the rich text, images and rendered HTML of each page inside this TYPO3 installation; the frontend scan is a separate report.</p>
+    </f:if>
+</f:section>
+
+<f:section name="PagesTable">
+    <table class="aqr-table aqr-table--dense" autosize="1">
+        <thead><f:if condition="{title}"><tr><th colspan="6" class="aqr-table__title aqr-table__title--first">{title} ({titleCount})</th></tr></f:if><tr><th width="52%">Page</th><th width="10%" class="aqr-num">Critical</th><th width="10%" class="aqr-num">Warnings</th><th width="8%" class="aqr-num">Info</th><th width="10%" class="aqr-num">Review</th><th width="10%" class="aqr-num">Total</th></tr></thead>
         <tbody>
-        <tr>
-            <td>
-                <div class="aqgp-meta__label">Generated</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">{generatedAt}</div>
-            </td>
-            <td>
-                <div class="aqgp-meta__label">Site</div>
-                <div class="aqgp-meta__value aqgp-meta__value--mono">{siteLabel}</div>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <div class="aqgp-meta__label">Scope</div>
-                <div class="aqgp-meta__value">{scopeLabel}</div>
-            </td>
-            <td>
-                <div class="aqgp-meta__label">Filters</div>
-                <div class="aqgp-meta__value aqgp-meta__value--chips">
-                    <span class="aqgp-chip">STATUS · {statusLabel}</span>
-                    <span class="aqgp-chip">SEVERITY · {severityLabel}</span>
-                </div>
-            </td>
-        </tr>
+        <f:for each="{pages}" as="page">
+            <tr>
+                <td>{page.title} <span class="aqr-cell-sub">{page.path}</span></td>
+                <td class="aqr-num"><f:if condition="{page.critical}"><f:then>{page.critical}</f:then><f:else>—</f:else></f:if></td>
+                <td class="aqr-num"><f:if condition="{page.warning}"><f:then>{page.warning}</f:then><f:else>—</f:else></f:if></td>
+                <td class="aqr-num"><f:if condition="{page.info}"><f:then>{page.info}</f:then><f:else>—</f:else></f:if></td>
+                <td class="aqr-num"><f:if condition="{page.needs_review}"><f:then>{page.needs_review}</f:then><f:else>—</f:else></f:if></td>
+                <td class="aqr-num"><b>{page.total}</b></td>
+            </tr>
+        </f:for>
         </tbody>
     </table>
-
-    <bookmark content="Totals" level="0" />
-    <table class="aqgp-section-title">
-        <tbody><tr><td>Totals</td><td class="aqgp-section-title__right">open issues across all pages</td></tr></tbody>
-    </table>
-    <table class="aqgp-cards">
-        <tbody><tr>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--critical{f:if(condition: totals.critical, else: ' is-zero')}"><tbody>
-                    <tr><td class="aqgp-card__label">Critical</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.critical}</td></tr>
-                    <tr><td class="aqgp-card__foot">{criticalFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--warning{f:if(condition: totals.warning, else: ' is-zero')}"><tbody>
-                    <tr><td class="aqgp-card__label">Warnings</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.warning}</td></tr>
-                    <tr><td class="aqgp-card__foot">{warningFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--info{f:if(condition: totals.info, else: ' is-zero')}"><tbody>
-                    <tr><td class="aqgp-card__label">Info</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.info}</td></tr>
-                    <tr><td class="aqgp-card__foot">{infoFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--needs_review{f:if(condition: totals.needs_review, else: ' is-zero')}"><tbody>
-                    <tr><td class="aqgp-card__label">Needs review</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.needs_review}</td></tr>
-                    <tr><td class="aqgp-card__foot">{needsReviewFoot}</td></tr>
-                </tbody></table>
-            </td>
-            <td>
-                <table class="aqgp-card aqgp-card-table aqgp-card--total{f:if(condition: totals.total, else: ' is-zero')}"><tbody>
-                    <tr><td class="aqgp-card__label">Total</td></tr>
-                    <tr><td class="aqgp-card__value">{totals.total}</td></tr>
-                    <tr><td class="aqgp-card__foot">{totalFoot}</td></tr>
-                </tbody></table>
-            </td>
-        </tr></tbody>
-    </table>
-
-    <bookmark content="Top affected pages" level="0" />
-    <table class="aqgp-section-title">
-        <tbody><tr><td>Top affected pages</td><td class="aqgp-section-title__right">{topPagesShown} of {affectedPagesCount}</td></tr></tbody>
-    </table>
-    <f:if condition="{topPages}">
-        <f:then>
-            <table class="aqgp-table">
-                <thead>
-                <tr>
-                    <th>Page</th>
-                    <th class="num">Critical</th>
-                    <th class="num">Warnings</th>
-                    <th class="num">Info</th>
-                    <th class="num">Needs review</th>
-                    <th class="num">Total</th>
-                </tr>
-                </thead>
-                <tbody>
-                <f:for each="{topPages}" as="page">
-                    <tr>
-                        <td>
-                            <span class="aqgp-table__title">{page.pageTitle}</span>
-                            <span class="aqgp-table__sub">{page.pageSub}</span>
-                        </td>
-                        <td class="num"><span class="aqgp-count aqgp-count--{page.criticalTone}">{page.critical}</span></td>
-                        <td class="num"><span class="aqgp-count aqgp-count--{page.warningTone}">{page.warning}</span></td>
-                        <td class="num"><span class="aqgp-count aqgp-count--{page.infoTone}">{page.info}</span></td>
-                        <td class="num"><span class="aqgp-count aqgp-count--{page.needsReviewTone}">{page.needs_review}</span></td>
-                        <td class="num"><span class="aqgp-count aqgp-count--total">{page.total}</span></td>
-                    </tr>
-                </f:for>
-                </tbody>
-            </table>
-        </f:then>
-        <f:else>
-            <div class="aqgp-empty">
-                <p class="aqgp-empty__title">No matching page data found</p>
-                <p class="aqgp-empty__body">No pages match the active filters. Adjust severity or status filters before exporting.</p>
-            </div>
-        </f:else>
-    </f:if>
-
-    <bookmark content="Top rules" level="0" />
-    <table class="aqgp-section-title">
-        <tbody><tr><td>Top rules</td><td class="aqgp-section-title__right">{topRulesShown} rules</td></tr></tbody>
-    </table>
-    <f:if condition="{topRules}">
-        <f:then>
-            <table class="aqgp-table">
-                <thead>
-                <tr>
-                    <th>Rule</th>
-                    <th class="num">Count</th>
-                </tr>
-                </thead>
-                <tbody>
-                <f:for each="{topRules}" as="rule">
-                    <tr>
-                        <td>
-                            <span class="aqgp-table__title">{rule.title}</span>
-                            <span class="aqgp-table__sub">{rule.ruleId}</span>
-                        </td>
-                        <td class="num"><span class="aqgp-count aqgp-count--{rule.tone}">{rule.count}</span></td>
-                    </tr>
-                </f:for>
-                </tbody>
-            </table>
-        </f:then>
-        <f:else>
-            <div class="aqgp-empty">
-                <p class="aqgp-empty__title">No rule data found</p>
-                <p class="aqgp-empty__body">Once content is scanned, the rules triggered most often will appear here.</p>
-            </div>
-        </f:else>
-    </f:if>
-
 </f:section>

@@ -114,7 +114,39 @@ export const initializeAiSettings = (root) => {
     const saveButton = root.querySelector('[data-action="aqg-ai-save"]');
     const replaceButton = root.querySelector('[data-action="aqg-ai-replace"]');
     const keyField = root.querySelector('[data-aqg-ai-key-field="true"]');
+    const keySummary = root.querySelector('[data-aqg-ai-key-summary="true"]');
+    const keyHint = root.querySelector('[data-aqg-ai-keyhint="true"]');
+    const configSource = root.querySelector('[data-aqg-ai-config-source="true"]');
     const linkTextToggle = root.querySelector('[data-aqg-ai-link-text-toggle="true"]');
+    const fill = (template, value) => String(template || '').replace('%s', String(value));
+
+    // After a save the stored key, its source and the key panel follow the server's uiState; the secret itself is
+    // never part of it, only the last characters the server keeps as a hint.
+    const renderKeyState = (state) => {
+        if (state.source === 'environment') {
+            return;
+        }
+        const configured = state.configured === true;
+        if (keyHint instanceof HTMLElement) {
+            const hint = String(state.keyHint || '').trim();
+            keyHint.textContent = configured && hint !== '' ? `••••••••••••${hint}` : '—';
+        }
+        if (configSource instanceof HTMLElement) {
+            configSource.textContent = configured ? (root.dataset.labelConfigSite || '') : (root.dataset.labelConfigNone || '');
+        }
+        if (keySummary instanceof HTMLElement) {
+            keySummary.hidden = !configured;
+        }
+        if (keyField instanceof HTMLElement) {
+            keyField.classList.toggle('is-hidden', configured);
+        }
+        [[saveButton, configured], [replaceButton, !configured]].forEach(([button, hide]) => {
+            if (button instanceof HTMLElement) {
+                button.hidden = hide;
+                button.classList.toggle('is-hidden', hide);
+            }
+        });
+    };
 
     const messageForCode = (code) => ({
         permission_denied: root.dataset.messagePermissionDenied,
@@ -505,7 +537,10 @@ export const initializeAiSettings = (root) => {
                     siteIdentifier: siteIdentifier(),
                     modelId,
                 });
-                show(root.dataset.messageModelSelected || '', 'ok');
+                // A chosen model is verified right away, so the page shows "Connected" or the reason it is not.
+                show(root.dataset.messageTestingConnection || root.dataset.messageModelSelected || '', 'info');
+                await send(root.dataset.testUrl, {siteIdentifier: siteIdentifier()});
+                show(root.dataset.messageConnectionSuccessful || '', 'ok');
             } catch (error) {
                 show(error instanceof Error ? error.message : messageForCode('internal_error'), 'error');
             } finally {
@@ -563,6 +598,7 @@ export const initializeAiSettings = (root) => {
             return;
         }
 
+        let focusModelSelect = false;
         setBusy(button, true);
         if (action === 'aqg-ai-save') {
             show(root.dataset.messageSavingKey || '', 'info');
@@ -580,8 +616,20 @@ export const initializeAiSettings = (root) => {
                 if (keyInput instanceof HTMLInputElement) {
                     keyInput.value = '';
                 }
-                const warning = data.warningCode ? messageForCode(data.warningCode) : '';
-                show(warning || root.dataset.messageSaved || '', warning !== '' ? 'error' : 'ok');
+                renderKeyState(uiState);
+                const connectionCode = String(data.connectionCode || '');
+                if (data.warningCode) {
+                    show(messageForCode(data.warningCode), 'error');
+                } else if (connectionCode === 'connection_successful') {
+                    show(fill(root.dataset.messageSavedConnected, uiState.selectedModelLabel || uiState.selectedModelId), 'ok');
+                } else if (connectionCode === 'model_not_selected') {
+                    show(root.dataset.messageSavedChooseModel || root.dataset.messageSaved || '', 'info');
+                    focusModelSelect = true;
+                } else if (connectionCode !== '') {
+                    show(fill(root.dataset.messageSavedNotConnected, messageForCode(connectionCode)), 'error');
+                } else {
+                    show(root.dataset.messageSaved || '', 'ok');
+                }
             } else if (action === 'aqg-ai-refresh-models') {
                 await send(root.dataset.refreshModelsUrl, {siteIdentifier: siteIdentifier()});
                 show(root.dataset.messageModelsRefreshed || '', 'ok');
@@ -593,6 +641,9 @@ export const initializeAiSettings = (root) => {
             show(error instanceof Error ? error.message : messageForCode('internal_error'), 'error');
         } finally {
             setBusy(button, false);
+            if (focusModelSelect && modelSelect instanceof HTMLSelectElement) {
+                modelSelect.focus();
+            }
         }
     });
 

@@ -29,6 +29,7 @@ use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
 use Priebera\A11yQualityGate\Service\RemoteScanResponseService;
 use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\ScanResultSummaryService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -72,6 +73,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         StreamFactoryInterface $streamFactory,
         BackendUserService $backendUserService,
         private readonly ?RemoteScanSubmissionTracker $remoteScanSubmissionTracker = null,
+        private readonly ?ScanResultSummaryService $scanResultSummaryService = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -1007,6 +1009,35 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
     }
 
+    /**
+     * The stored result of a finished frontend scan for its completion notification (NOT-01, NOT-02): occurrences and
+     * issue types as stored, pages expected / loaded / failed / not checked, and the report URL. Overrides the
+     * crawler's `pagesTotal` with the expected page count; omitted entirely when the stored scan cannot be read.
+     *
+     * @param array<string, mixed>|null $scan
+     * @return array<string, mixed>
+     */
+    private function frontendResultSummary(?array $scan): array
+    {
+        if (!is_array($scan) || !$this->scanResultSummaryService instanceof ScanResultSummaryService) {
+            return [];
+        }
+
+        try {
+            $result = $this->scanResultSummaryService->frontendResult($scan);
+        } catch (\Throwable $exception) {
+            try {
+                GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__)
+                    ->warning('Frontend scan result summary could not be built.', ['exceptionClass' => $exception::class, 'exceptionMessage' => $exception->getMessage()]);
+            } catch (\Throwable) {
+                // The notification then names only the change since the previous scan.
+            }
+            return [];
+        }
+
+        return ['pagesTotal' => (int)$result['pagesExpected']] + $result;
+    }
+
     public function summaryAction(ServerRequestInterface $request): ResponseInterface
     {
         $accessResponse = $this->ensureAnyScanPermission();
@@ -1034,12 +1065,19 @@ final class ProCrawlerAjaxController extends AbstractApiController
             }
 
             if ($this->remoteScanRepository->isPersisted($jobId)) {
+                // Another view stored the result first: its stored counts give this view's notification the same facts.
+                $storedScan = $this->remoteScanRepository->findScanByJobId($jobId);
+
                 return $this->jsonResponse([
                     'success' => true,
                     'saved' => true,
                     'jobId' => $jobId,
                     'alreadyPersisted' => true,
-                ]);
+                    'pagesScanned' => is_array($storedScan) ? (int)($storedScan['pages_scanned'] ?? 0) : null,
+                    'pagesFailed' => is_array($storedScan) ? (int)($storedScan['pages_failed'] ?? 0) : null,
+                    'issuesNew' => is_array($storedScan) ? (int)($storedScan['issues_new'] ?? 0) : null,
+                    'issuesResolved' => is_array($storedScan) ? (int)($storedScan['issues_resolved'] ?? 0) : null,
+                ] + $this->frontendResultSummary($storedScan));
             }
 
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
@@ -1134,7 +1172,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'reportingGroups' => $summaryResult->reportingGroups,
                 'startedAt' => $summaryResult->startedAt,
                 'finishedAt' => $summaryResult->finishedAt,
-            ]);
+            ] + $this->frontendResultSummary($this->remoteScanRepository->findScanByJobId($jobId)));
         } catch (FreePreviewException $exception) {
             return $this->buildFreePreviewExceptionResponse($exception);
         } catch (TokenRefreshException $exception) {

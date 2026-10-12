@@ -8,45 +8,34 @@
         data-a11y-state="{toolbarState.state}"
         data-a11y-tone="{toolbarState.tone}"
         data-a11y-count="{toolbarState.count}"
-        data-a11y-label="{toolbarAriaLabel}"
+        data-a11y-label="{toolbarState.ariaLabel}"
 ></span>
 
 <div class="aqt-pop" role="region" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ariaLabel', default: 'Accessibility Quality Gate toolbar summary')}">
-    <p class="dropdown-headline aqt-pop__title">
-        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" />
-    </p>
-    <div class="dropdown-item-text aqt-pop__title-sub">
-        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.summary" default="Current scan health snapshot" />
+    <div class="aqt-pop__head">
+        <p class="dropdown-headline aqt-pop__title">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" default="Accessibility" />
+        </p>
+        <f:if condition="{siteLabel}">
+            <p class="aqt-pop__site">{siteLabel}</p>
+        </f:if>
     </div>
 
-    <ul class="dropdown-list aqt-card-list">
-        <li>
-            <f:render partial="ToolbarItems/ScanCard" arguments="{card: localToolbarCard}" />
+    <ul class="aqt-sections">
+        <li class="aqt-sections__item">
+            <f:render partial="ToolbarItems/ScanCard" arguments="{card: contentCard}" />
         </li>
-        <f:if condition="{showRemoteSection}">
-            <li>
-                <f:render partial="ToolbarItems/ScanCard" arguments="{card: remoteToolbarCard}" />
+        <f:if condition="{frontendCard}">
+            <li class="aqt-sections__item">
+                <f:render partial="ToolbarItems/ScanCard" arguments="{card: frontendCard}" />
             </li>
         </f:if>
     </ul>
 
-    <hr class="dropdown-divider" aria-hidden="true">
-
-    <div class="dropdown-item-text aqt-pop__foot">
-        <a href="{moduleUrl}" class="btn btn-sm btn-default aqt-pop__button aqt-pop__button--primary">
-            <span>
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.openModule" />
-            </span>
-            <span class="aqt-pop__button-icon" aria-hidden="true">↗</span>
+    <div class="aqt-pop__foot">
+        <a href="{moduleUrl}" class="btn btn-primary btn-sm aqt-pop__button">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.openModule" default="Open Accessibility module" />
         </a>
-        <span class="aqt-pop__foot-meta">
-            <f:if condition="{toolbarFootnote}">
-                <f:then>{toolbarFootnote}</f:then>
-                <f:else>
-                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.synced" default="Updated now" />
-                </f:else>
-            </f:if>
-        </span>
     </div>
 </div>
 </html>

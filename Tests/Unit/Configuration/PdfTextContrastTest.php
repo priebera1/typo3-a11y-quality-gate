@@ -23,7 +23,7 @@ final class PdfTextContrastTest extends TestCase
      */
     public static function stylesheetProvider(): iterable
     {
-        foreach (['base.css', 'local.css', 'statement.css'] as $file) {
+        foreach (['report.css', 'statement.css'] as $file) {
             yield $file => [self::PDF_CSS . $file];
         }
         // Running headers and footers are styled inline in the templates (mPDF page headers).

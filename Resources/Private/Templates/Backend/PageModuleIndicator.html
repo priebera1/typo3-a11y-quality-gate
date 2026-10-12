@@ -6,6 +6,7 @@
     data-language-uid="{languageUid}"
     data-aqg-indicator-running="{f:if(condition: isRunning, then: '1', else: '0')}"
     data-remote-scan-enabled="{f:if(condition: remoteScanEnabled, then: '1', else: '0')}"
+    data-aqg-report-url="{reportUrl}"
     data-running-headline="{runningHeadline}"
     data-running-body="{runningBody}"
     data-running-meta="{runningMeta}"
@@ -30,8 +31,22 @@
                 <div class="aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--{row.state}" data-aqg-indicator-source="{row.source}">
                     <span class="aqg-page-module-indicator__status-kind">{row.label}</span>
                     <span class="aqg-page-module-indicator__status-value">
-                        <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: row.state}" />
-                        <span>{row.headline}</span>
+                        <f:if condition="{row.counts}">
+                            <f:then>
+                                <span class="aqg-page-module-indicator__counts">
+                                    <f:for each="{row.counts}" as="count">
+                                        <span class="aqg-page-module-indicator__count aqg-page-module-indicator__count--{count.tone}">
+                                            <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: count.icon}" />
+                                            <span>{count.label}</span>
+                                        </span>
+                                    </f:for>
+                                </span>
+                            </f:then>
+                            <f:else>
+                                <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: row.state}" />
+                                <span>{row.headline}</span>
+                            </f:else>
+                        </f:if>
                     </span>
                     <f:if condition="{row.meta}">
                         <span class="aqg-page-module-indicator__status-meta">{row.meta}</span>
@@ -42,7 +57,7 @@
     </div>
 
     <f:if condition="{progress}">
-        <div class="aqg-page-module-indicator__progress {progress.modeClass}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{progress.percent}">
+        <div class="aqg-page-module-indicator__progress {progress.modeClass}" role="progressbar" aria-valuemin="0" aria-valuemax="100"{f:if(condition: progress.determinate, then: ' aria-valuenow="{progress.percent}"')} aria-valuetext="{progress.valueText}">
             <span class="aqg-page-module-indicator__progress-bar" style="width:{progress.percent}%"></span>
         </div>
     </f:if>

@@ -84,6 +84,11 @@ final class ScannerAccessTokenService
         }
     }
 
+    /**
+     * A request is a scanner request when it carries the token scans of its site send: the site's own token, else the
+     * default token (RemoteScanAccessSettingsService::buildForSite()). A copy of the default token in another site's
+     * ruleset changes nothing, and another site's own token never unlocks this site.
+     */
     public function isValidTokenForRequest(string $token, ServerRequestInterface $request): bool
     {
         $token = trim($token);
@@ -92,35 +97,22 @@ final class ScannerAccessTokenService
         }
 
         try {
-            $rulesets = $this->rulesetRepository->findAllByScannerToken($token);
-            if ($rulesets === []) {
+            $siteIdentifier = $this->resolveRequestSiteIdentifier($request);
+            if ($siteIdentifier === '') {
                 return false;
             }
 
-            $siteRulesets = array_values(array_filter(
-                $rulesets,
-                static fn (array $ruleset): bool => trim((string)($ruleset['site_identifier'] ?? '')) !== ''
-            ));
-
-            if ($siteRulesets === []) {
-                return $this->defaultTokenMatchesRequest($rulesets, $token, $request);
+            $siteToken = trim((string)($this->rulesetRepository->findBySiteIdentifier($siteIdentifier)['scanner_token'] ?? ''));
+            if ($siteToken !== '') {
+                return hash_equals($siteToken, $token);
             }
 
-            foreach ($siteRulesets as $ruleset) {
-                $storedToken = trim((string)($ruleset['scanner_token'] ?? ''));
-                if (
-                    $this->rulesetMatchesRequest($ruleset, $request)
-                    && $storedToken !== ''
-                    && hash_equals($storedToken, $token)
-                ) {
-                    return true;
-                }
-            }
+            $defaultToken = trim((string)($this->rulesetRepository->findDefault()['scanner_token'] ?? ''));
+
+            return $defaultToken !== '' && hash_equals($defaultToken, $token);
         } catch (\Throwable) {
             return false;
         }
-
-        return false;
     }
 
     public function flush(): void
@@ -129,92 +121,6 @@ final class ScannerAccessTokenService
             $this->cacheManager->getCache(ProConstants::CACHE_IDENTIFIER)->remove(self::CACHE_KEY);
         } catch (\Throwable) {
         }
-    }
-
-
-    /**
-     * Default tokens are migration/default-site fallback only. They may unlock a
-     * request site only while that site has no own scanner token configured.
-     *
-     * @param list<array<string, mixed>> $rulesets
-     */
-    private function defaultTokenMatchesRequest(array $rulesets, string $token, ServerRequestInterface $request): bool
-    {
-        $siteIdentifier = $this->resolveRequestSiteIdentifier($request);
-        if ($siteIdentifier === '') {
-            return false;
-        }
-
-        try {
-            $siteRuleset = $this->rulesetRepository->findBySiteIdentifier($siteIdentifier);
-        } catch (\Throwable) {
-            return false;
-        }
-        $siteToken = trim((string)($siteRuleset['scanner_token'] ?? ''));
-
-        if ($siteToken !== '') {
-            return false;
-        }
-
-        return $this->matchesDefaultStoredTokenOnly($rulesets, $token);
-    }
-
-    /**
-     * @param list<array<string, mixed>> $rulesets
-     */
-    private function matchesDefaultStoredTokenOnly(array $rulesets, string $token): bool
-    {
-        foreach ($rulesets as $ruleset) {
-            $siteIdentifier = trim((string)($ruleset['site_identifier'] ?? ''));
-            if ($siteIdentifier !== '') {
-                continue;
-            }
-
-            $storedToken = trim((string)($ruleset['scanner_token'] ?? ''));
-            if ($storedToken !== '' && hash_equals($storedToken, $token)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array<string, mixed> $ruleset
-     */
-    private function rulesetMatchesRequest(array $ruleset, ServerRequestInterface $request): bool
-    {
-        $siteIdentifier = trim((string)($ruleset['site_identifier'] ?? ''));
-        if ($siteIdentifier === '') {
-            return false;
-        }
-
-        $requestSite = $request->getAttribute('site');
-        if (
-            is_object($requestSite)
-            && method_exists($requestSite, 'getIdentifier')
-            && $requestSite->getIdentifier() === $siteIdentifier
-        ) {
-            return true;
-        }
-
-        try {
-            $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
-        } catch (\Throwable) {
-            return false;
-        }
-
-        $siteBase = $site->getBase();
-        $siteHost = strtolower($siteBase->getHost());
-        $requestHost = strtolower($request->getUri()->getHost());
-        if ($siteHost === '' || $requestHost === '' || $siteHost !== $requestHost) {
-            return false;
-        }
-
-        return $this->normalizePort($siteBase->getPort(), $siteBase->getScheme()) === $this->normalizePort(
-            $request->getUri()->getPort(),
-            $request->getUri()->getScheme()
-        );
     }
 
     private function resolveRequestSiteIdentifier(ServerRequestInterface $request): string

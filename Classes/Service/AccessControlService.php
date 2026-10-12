@@ -5,16 +5,41 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Contract\AccessControlServiceInterface;
+use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
 final class AccessControlService implements AccessControlServiceInterface
 {
-    public function __construct(private readonly ConnectionPool $connectionPool) {}
+    private const MODULE_IDENTIFIER = 'web_a11y';
+
+    public function __construct(
+        private readonly ConnectionPool $connectionPool,
+        private readonly ?ModuleProvider $moduleProvider = null,
+    ) {}
+
+    /**
+     * Access to the Accessibility module: the precondition for any AQG result outside the module itself (toolbar,
+     * Page module panel). The backend routes of both inherit it from web_a11y.
+     */
+    public function canAccessModule(?BackendUserAuthentication $backendUser = null): bool
+    {
+        $backendUser ??= $GLOBALS['BE_USER'] ?? null;
+        if (!$backendUser instanceof BackendUserAuthentication) {
+            return false;
+        }
+
+        if ($this->moduleProvider instanceof ModuleProvider) {
+            return $this->moduleProvider->accessGranted(self::MODULE_IDENTIFIER, $backendUser);
+        }
+
+        return $backendUser->isAdmin() || $backendUser->check('modules', self::MODULE_IDENTIFIER);
+    }
 
     public function canShowToolbarItem(?BackendUserAuthentication $backendUser = null): bool
     {
-        return $this->resolveVisibilityFlag($backendUser, 'showToolbarItem', true);
+        return $this->canAccessModule($backendUser)
+            && $this->resolveVisibilityFlag($backendUser, 'showToolbarItem', true);
     }
 
     public function canShowScanAll(?BackendUserAuthentication $backendUser = null): bool

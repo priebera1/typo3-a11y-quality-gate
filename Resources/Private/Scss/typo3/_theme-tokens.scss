@@ -32,6 +32,9 @@
     --aqi-review: #7c3aed;
     --aqi-review-bg: #f5f3ff;
     --aqi-review-border: #c4b5fd;
+    /* Frontend "serious" impact, between danger and warning. Literal for the same reason as the muted tokens:
+       >= 4.5:1 on the surface and on its own 8 % tint (5.9:1 on white). */
+    --aqi-serious: #a34a05;
     --aqi-none: #5b6472;
     --aqi-none-bg: var(--typo3-surface-container-low, #f4f5f7);
     --aqi-none-border: var(--typo3-component-border-color, #d9dde3);
@@ -124,6 +127,7 @@
     --aqi-review: #c084fc;
     --aqi-review-bg: #2e1f48;
     --aqi-review-border: #6b3fa0;
+    --aqi-serious: #ffad66;
     --aqi-none: #a0a8b5;
     --aqi-none-bg: var(--typo3-surface-container-low, #25292e);
     --aqi-none-border: var(--typo3-component-border-color, #3a4047);
@@ -336,7 +340,7 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-history-panel__toggle {
     .aqg-pfix-item__body strong,
     .aqg-pfix-guidance-inline strong,
     .aqg-remediation-plan__title,
-    .aqg-remediation-plan__task h3,
+    .aqg-remediation-plan__task h4,
     .aqg-remediation-plan__meta dd,
     .aqg-remediation-plan__steps strong,
     .aqg-remediation-plan__examples strong,

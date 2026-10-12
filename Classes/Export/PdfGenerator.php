@@ -11,11 +11,18 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class PdfGenerator
 {
+    public const DEFAULT_FONT = 'dejavusanscondensed';
+
     /**
      * mPDF writes no structure tree, so the reports are untagged PDFs: screen readers get no headings, tables or
      * reading order from them. The UI and the reports say so and point to the CSV export as the accessible copy.
      * What mPDF can write is set here: the document language, the title shown instead of the file name, and a
      * bookmark outline built from the templates' <bookmark> tags.
+     *
+     * Text is set in the Unicode DejaVu families that ship with mPDF, embedded as subsets. mPDF's core fonts (`mode
+     * 'c'`) only know Windows-1252 and printed every other character as "?": Cyrillic snippets, and Slovak, Czech,
+     * Polish or Hungarian letters such as č, ľ, ł or ő. Characters DejaVu lacks (CJK in a quoted frontend snippet) are
+     * substituted from mPDF's bundled fonts instead of printing as empty boxes.
      *
      * @param array<string, string> $imageVars
      */
@@ -29,9 +36,9 @@ final class PdfGenerator
         $tempDir = $this->prepareTempDir();
 
         $mpdf = new Mpdf([
-            'mode' => 'c',
+            'mode' => 'utf-8',
             'format' => 'A4',
-            'default_font' => 'helvetica',
+            'default_font' => self::DEFAULT_FONT,
             'margin_top' => 28,
             'margin_right' => 14,
             'margin_bottom' => 18,
@@ -54,14 +61,14 @@ final class PdfGenerator
         try {
             $mpdf->autoScriptToLang = false;
             $mpdf->autoLangToFont = false;
-            $mpdf->useSubstitutions = false;
+            $mpdf->useSubstitutions = true;
             if (property_exists($mpdf, 'simpleTables')) {
                 $mpdf->simpleTables = true;
             }
             if (property_exists($mpdf, 'packTableData')) {
                 $mpdf->packTableData = true;
             }
-            $mpdf->SetDefaultFont('helvetica');
+            $mpdf->SetDefaultFont(self::DEFAULT_FONT);
             $mpdf->SetTitle($title);
             $mpdf->SetAuthor('Accessibility Quality Gate');
             $language = preg_match('/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/', $language) === 1 ? $language : 'en';
@@ -225,7 +232,7 @@ final class PdfGenerator
     private function readDefaultCss(): string
     {
         $path = GeneralUtility::getFileAbsFileName(
-            'EXT:a11y_quality_gate/Resources/Public/Css/Pdf/base.css'
+            'EXT:a11y_quality_gate/Resources/Public/Css/Pdf/report.css'
         );
 
         if ($path === '' || !is_file($path) || !is_readable($path)) {

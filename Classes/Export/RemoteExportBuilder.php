@@ -8,11 +8,16 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteOccurrenceTotalsService;
+use Priebera\A11yQualityGate\Pro\ViewModel\RemoteOccurrenceTotals;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
+use Priebera\A11yQualityGate\Pro\ViewModel\RecordMappingNotice;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
+use Priebera\A11yQualityGate\Service\IssueLocationService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
 use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
+use Priebera\A11yQualityGate\Utility\OccurrencePresentationUtility;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -21,8 +26,11 @@ final class RemoteExportBuilder
     private const PDF_SCREENSHOT_MAX_BYTES = 2097152;
     private const PDF_SCREENSHOT_MAX_WIDTH = 1400;
     private const PDF_SCREENSHOT_JPEG_QUALITY = 70;
-    private const PDF_MAX_ISSUE_GROUPS = 8;
-    private const PDF_MAX_NODES_PER_ISSUE = 2;
+    // Every issue group and, up to a cap, every occurrence: the PDF is a work list, the CSV holds everything.
+    private const PDF_MAX_ISSUE_GROUPS = 40;
+    private const PDF_MAX_NODES_PER_ISSUE = 25;
+    // A full-width screenshot only helps a reader when there is a lot to locate; otherwise the thumbnail suffices.
+    private const PDF_FULL_SCREENSHOT_MIN_OCCURRENCES = 11;
     private const PDF_MAX_CONTRAST_DETAILS_PER_NODE = 1;
     private const PDF_MAX_FOREGROUND_CANDIDATES = 3;
     private const PDF_MAX_BACKGROUND_CANDIDATES = 2;
@@ -44,6 +52,8 @@ final class RemoteExportBuilder
         private readonly PdfGenerator $pdfGenerator,
         private readonly PdfTemplateRenderer $pdfTemplateRenderer,
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
+        private readonly ?IssueLocationService $issueLocationService = null,
+        private readonly ?RemoteOccurrenceTotalsService $remoteOccurrenceTotalsService = null,
     ) {
     }
 
@@ -420,14 +430,64 @@ final class RemoteExportBuilder
         $preparedFailedPages = $this->prepareFailedPages($failedPages);
         $pagesScanned = (int)($scan['pages_scanned'] ?? count($pages));
         $pagesFailed = (int)($scan['pages_failed'] ?? count($failedPages));
-        $issuesTotal = (int)($scan['issues_total'] ?? 0);
+        // Totals and the severity row come from the stored findings, like the CSV: the row adds up to the total. The ten
+        // priority fixes are a ranking, not the breakdown; every issue type is listed under "All issue types".
+        $occurrences = isset($this->remoteOccurrenceTotalsService)
+            ? $this->remoteOccurrenceTotalsService->forScan($scan)
+            : RemoteOccurrenceTotals::reportedOnly((int)($scan['issues_total'] ?? 0));
+        $issuesTotal = $occurrences->total;
         $issuesNew = (int)($scan['issues_new'] ?? 0);
         $issuesResolved = (int)($scan['issues_resolved'] ?? 0);
         $reporting = $this->preparePdfReportingSummary($scan);
+        $impactRow = $occurrences->hasBreakdown ? $occurrences->severityRow() : [];
+        $allIssueTypes = $this->prepareAllIssueTypesForPdf((int)$scan['uid']);
+        $fixes = [];
+        foreach (array_values($reporting['priorityFixes']) as $position => $fix) {
+            $impact = strtolower(trim((string)($fix['impact'] ?? '')));
+            $fixes[] = $fix + [
+                'number' => $position + 1,
+                'impactTone' => in_array($impact, ['critical', 'serious', 'moderate', 'minor'], true) ? $impact : 'minor',
+                'impactWord' => $impact !== '' ? ucfirst($impact) : 'Minor',
+                'countLabel' => (int)($fix['issuesTotal'] ?? 0) . ' ' . $this->pluralize('occurrence', (int)($fix['issuesTotal'] ?? 0)),
+                'pagesLabel' => (int)($fix['affectedPagesTotal'] ?? 0) . ' ' . $this->pluralize('page', (int)($fix['affectedPagesTotal'] ?? 0)),
+            ];
+        }
+        $affectedPages = count(array_filter($preparedPages, static fn (array $page): bool => (int)$page['issuesCount'] > 0));
+        $verdict = $pagesScanned === 0
+            ? 'No page could be checked in this scan.'
+            : sprintf(
+                '%d %s on %d of %d checked %s.',
+                $issuesTotal,
+                $this->pluralize('occurrence', $issuesTotal),
+                $affectedPages,
+                $pagesScanned,
+                $this->pluralize('page', $pagesScanned)
+            ) . ($pagesFailed > 0 ? sprintf(' %d %s could not be loaded.', $pagesFailed, $pagesFailed === 1 ? 'page' : 'pages') : '');
+        $occurrencesNote = $occurrences->notStored > 0
+            ? sprintf(
+                'The scan summary counted %d; %d %s not in the stored results because an element with the same signature was already recorded.',
+                $issuesTotal + $occurrences->notStored,
+                $occurrences->notStored,
+                $occurrences->notStored === 1 ? 'occurrence is' : 'occurrences are'
+            )
+            : '';
 
         $html = $this->pdfTemplateRenderer->render(
             templateName: 'Export/RemoteOverviewPdf',
             variables: [
+                'verdict' => $verdict,
+                'occurrencesNote' => $occurrencesNote,
+                'impactRow' => $impactRow,
+                'fixes' => $fixes,
+                'fixesAreRanking' => $fixes !== [] && count($fixes) < count($allIssueTypes),
+                'allIssueTypes' => self::allIssueTypesAddInformation($fixes, $allIssueTypes) ? $allIssueTypes : [],
+                'allIssueTypesCount' => count($allIssueTypes),
+                'allIssueTypesTotal' => array_sum(array_column($allIssueTypes, 'occurrences')),
+                'startHere' => $fixes[0] ?? [],
+                'pagesAll' => $preparedPages,
+                'pagesAllCount' => count($preparedPages),
+                'failedPagesAll' => $preparedFailedPages,
+                'scanScopeLabel' => (string)($scan['scan_scope'] ?? '') === 'page' ? 'Page scan' : 'Site scan',
                 'title' => 'Frontend accessibility overview report',
                 'subtitle' => $siteLabel . ' · last completed scan',
                 'generatedAt' => $generatedAt,
@@ -608,11 +668,28 @@ final class RemoteExportBuilder
             }
         }
 
+        $impactRow = [];
+        foreach (['critical' => 'Critical', 'serious' => 'Serious', 'moderate' => 'Moderate', 'minor' => 'Minor'] as $impact => $label) {
+            $types = count(array_filter($allIssues, static fn (array $issue): bool => ($issue['impact'] ?? '') === $impact));
+            $impactRow[] = ['tone' => $impact, 'label' => $label, 'count' => $types, 'foot' => $types === 1 ? 'issue type' : 'issue types'];
+        }
+        $startHere = $issues[0] ?? [];
+
         $html = $this->pdfTemplateRenderer->render(
             templateName: 'Export/RemotePagePdf',
             variables: [
                 'title' => (string)($remotePage['title'] ?? 'Frontend page report'),
                 'subtitle' => (string)($remotePage['url'] ?? ''),
+                'pageUrl' => $pageUrl,
+                'impactRow' => $impactRow,
+                'startHere' => $startHere,
+                'issuesSummaryLabel' => self::pageVerdict($issueGroupCount, $occurrencesCount, $failureReason !== '' || $httpStatus >= 400),
+                'pageNotChecked' => ($failureReason !== '' || $httpStatus >= 400) && $issueGroupCount === 0,
+                'moreIssueGroups' => max(0, $issueGroupCount - $issueGroupsShown),
+                'showFullScreenshot' => ($screenshot['imageVars'] ?? []) !== [] && $occurrencesCount >= self::PDF_FULL_SCREENSHOT_MIN_OCCURRENCES,
+                'screenshotVar' => (string)array_key_first($screenshot['imageVars'] ?? []),
+                // Audit C15: captures with screenshot evidence number their outlines like this report's issue groups.
+                'screenshotNumbered' => (bool)((json_decode((string)($remotePage['screenshot_evidence_json'] ?? ''), true) ?: [])['annotationsAvailable'] ?? false),
                 'generatedAt' => $generatedAt,
                 'logoPath' => $logoPath,
                 'hasLogo' => $logoPath !== '',
@@ -718,9 +795,11 @@ final class RemoteExportBuilder
         if (($screenshot['html'] ?? '') !== '') {
             $fallbackHtml = str_replace(
                 (string)$screenshot['html'],
-                '<div class="aqgp-screenshot-placeholder"><strong>Screenshot could not be embedded.</strong><br />The page detail report was generated without the screenshot image.</div>',
+                '<p class="aqr-box">Screenshot could not be embedded. The report was generated without the screenshot image.</p>',
                 $html
             );
+            // The screenshot can appear twice (thumbnail and full width): drop every reference to the image variable.
+            $fallbackHtml = (string)preg_replace('/<img\b[^>]*src="var:aqgRemotePageScreenshot\d+"[^>]*>/i', '', $fallbackHtml);
         }
 
         try {
@@ -1050,6 +1129,7 @@ final class RemoteExportBuilder
                     'mapped_ctype' => (string)($node['mapped_ctype'] ?? ''),
                     'mapped_cid' => (string)($node['mapped_cid'] ?? ''),
                     'mappedRecord' => $mappedRecord,
+                    'target_json' => (string)($node['target_json'] ?? ''),
                     'contrastDetails' => $contrastDetails,
                     'hasContrastDetails' => $contrastDetails !== [],
                     'nodeRemediation' => $nodeRemediation,
@@ -1101,51 +1181,72 @@ final class RemoteExportBuilder
 
 
     /**
-     * Keep the rich HTML/CSV data intact while rendering only a compact,
-     * mPDF-safe subset in the Remote Page Detail PDF.
+     * The issue groups as the PDF lists them: numbered `n` per group and `n.m` per occurrence, every occurrence up to a
+     * cap with where it is (TYPO3 record or page template), a decoded one-line snippet and the first failed check.
      *
      * @param array<int, array<string, mixed>> $issues
      * @return array<int, array<string, mixed>>
      */
     private function preparePageIssueRowsForPdf(array $issues): array
     {
-        $compact = array_slice($issues, 0, self::PDF_MAX_ISSUE_GROUPS);
+        $compact = array_values(array_slice($issues, 0, self::PDF_MAX_ISSUE_GROUPS));
 
-        foreach ($compact as &$issue) {
+        foreach ($compact as $position => &$issue) {
+            $number = $position + 1;
+            $issue['number'] = $number;
             $issue['guidanceWhyItMatters'] = $this->truncatePdfNullableString($issue['guidanceWhyItMatters'] ?? null, self::PDF_MAX_GUIDANCE_CHARS);
             $issue['guidanceHowToFix'] = $this->truncatePdfText((string)($issue['guidanceHowToFix'] ?? ''), self::PDF_MAX_GUIDANCE_CHARS);
+            $issue['impactTone'] = in_array($issue['impact'] ?? '', ['critical', 'serious', 'moderate', 'minor'], true) ? (string)$issue['impact'] : 'minor';
+            $issue['impactWord'] = ucfirst((string)($issue['impactTone']));
 
             $allNodes = is_array($issue['nodes'] ?? null) ? $issue['nodes'] : [];
             $totalNodes = max((int)($issue['nodes_count'] ?? 0), count($allNodes));
             $nodes = array_slice($allNodes, 0, self::PDF_MAX_NODES_PER_ISSUE);
-            $shownNodes = count($nodes);
             $issue['pdfNodesTotal'] = $totalNodes;
-            $issue['pdfNodesShown'] = $shownNodes;
-            $issue['pdfNodesWereTruncated'] = $totalNodes > $shownNodes;
-            $issue['pdfNodesShownLabel'] = $totalNodes . ' ' . $this->pluralize('occurrence', $totalNodes) . ' total · ' . $shownNodes . ' shown in PDF';
+            $issue['countLabel'] = $totalNodes . ' ' . $this->pluralize('occurrence', $totalNodes);
+            $issue['moreNodesCount'] = max(0, $totalNodes - count($nodes));
 
-            foreach ($nodes as &$node) {
-                $node['failure_summary'] = $this->truncatePdfText((string)($node['failure_summary'] ?? ''), self::PDF_MAX_FAILURE_SUMMARY_CHARS);
-                $node['html_snippet'] = $this->truncatePdfText(strip_tags((string)($node['html_snippet'] ?? '')), self::PDF_MAX_HTML_SNIPPET_CHARS);
-
-                if (is_array($node['nodeRemediation'] ?? null)) {
-                    $node['nodeRemediation'] = $this->compactNodeRemediationForPdf($node['nodeRemediation']);
-                    $node['hasNodeRemediation'] = $node['nodeRemediation'] !== [];
-                }
-
-                if (is_array($node['contrastDetails'] ?? null)) {
-                    $node['contrastDetails'] = $this->compactContrastDetailsForPdf($node['contrastDetails']);
-                    $node['hasContrastDetails'] = $node['contrastDetails'] !== [];
-                }
+            foreach ($nodes as $nodePosition => &$node) {
+                $node['index'] = $number . '.' . ($nodePosition + 1);
+                $node['snippet'] = OccurrencePresentationUtility::snippetPreview((string)($node['html_snippet'] ?? ''), LocalReportModel::SNIPPET_LIMIT);
+                $groups = OccurrencePresentationUtility::failureSummaryGroups((string)($node['failure_summary'] ?? ''));
+                $firstCheck = (string)($groups[0]['items'][0] ?? $groups[0]['heading'] ?? '');
+                $node['whyFailed'] = $this->truncatePdfText($firstCheck, 140);
+                $node = $node + $this->describeNodeLocation($node);
             }
             unset($node);
 
             $issue['nodes'] = $nodes;
+            $issue['firstNodes'] = array_slice($nodes, 0, 1);
+            $issue['moreNodes'] = array_slice($nodes, 1);
             $issue['hasNodes'] = $nodes !== [];
         }
         unset($issue);
 
         return $compact;
+    }
+
+    /**
+     * @param array<string, mixed> $node
+     * @return array{whereTitle: string, whereContext: string}
+     */
+    private function describeNodeLocation(array $node): array
+    {
+        $table = trim((string)($node['mapped_table'] ?? ''));
+        $uid = (int)($node['mapped_uid'] ?? 0);
+        if ($table !== '' && $uid > 0) {
+            $location = $this->issueLocationService?->describe($table, $uid, '') ?? [];
+            $context = trim((string)($location['context'] ?? ''));
+
+            return [
+                'whereTitle' => trim((string)($location['title'] ?? '')) !== '' ? trim((string)$location['title']) : $table . ' ' . $uid,
+                'whereContext' => implode(' · ', array_filter([$context, $table . ' ' . $uid], static fn (string $part): bool => $part !== '')),
+            ];
+        }
+
+        return RecordMappingNotice::isPageLevelNode($node)
+            ? ['whereTitle' => 'Page template', 'whereContext' => 'not a content record']
+            : ['whereTitle' => 'Not linked to a TYPO3 record', 'whereContext' => ''];
     }
 
     /**
@@ -2802,7 +2903,7 @@ final class RemoteExportBuilder
      */
     private function formatPdfDate(?int $timestamp = null): string
     {
-        return BackendTimeUtility::formatDateTime($timestamp ?? time(), 'd M Y · H:i T');
+        return BackendTimeUtility::formatDateTime($timestamp ?? time(), 'j M Y, H:i T');
     }
 
     private function formatPdfDateFromMixed(mixed $value): string
@@ -2855,6 +2956,70 @@ final class RemoteExportBuilder
         }
 
         return 0;
+    }
+
+    /**
+     * The headline of a Frontend page PDF. A page that did not load was never checked, so it gets no "0 issues" verdict.
+     */
+    public static function pageVerdict(int $issueTypes, int $occurrences, bool $pageFailed): string
+    {
+        if ($issueTypes === 0 && $occurrences === 0) {
+            return $pageFailed ? 'Page not checked: it did not load during the scan' : 'No automated findings';
+        }
+
+        return $issueTypes . ' ' . ($issueTypes === 1 ? 'issue type' : 'issue types')
+            . ' · ' . $occurrences . ' ' . ($occurrences === 1 ? 'occurrence' : 'occurrences');
+    }
+
+    /**
+     * Every issue type of a scan from its stored findings, most severe first, with plain titles. The occurrences add up
+     * to the scan's stored total.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function prepareAllIssueTypesForPdf(int $remoteScanUid): array
+    {
+        $types = [];
+        foreach ($this->remoteIssueRepository->summarizeIssueTypesForScan($remoteScanUid) as $position => $type) {
+            $impact = in_array($type['impact'], RemoteOccurrenceTotals::IMPACTS, true) ? $type['impact'] : '';
+            $plainTitle = $type['plainTitle'] !== ''
+                ? $type['plainTitle']
+                : $this->ruleMetadataPresentationService->friendlyTitleForRule($type['ruleId'], $type['help']);
+            $types[] = $type + [
+                'number' => $position + 1,
+                'title' => $plainTitle !== '' ? $plainTitle : $this->humanizeRuleId($type['ruleId']),
+                'impactTone' => $impact !== '' ? $impact : 'none',
+                'impactWord' => $impact !== '' ? ucfirst($impact) : 'Not rated',
+            ];
+        }
+
+        return $types;
+    }
+
+    /**
+     * "All issue types" reconciles the Frontend overview with the CSV. It repeats nothing when "What to fix first"
+     * already lists every stored issue type with the same occurrences.
+     *
+     * @param list<array<string, mixed>> $fixes
+     * @param list<array<string, mixed>> $allIssueTypes
+     */
+    public static function allIssueTypesAddInformation(array $fixes, array $allIssueTypes): bool
+    {
+        if ($allIssueTypes === []) {
+            return false;
+        }
+        $ranked = [];
+        foreach ($fixes as $fix) {
+            $ranked[(string)($fix['ruleId'] ?? '')] = (int)($fix['issuesTotal'] ?? 0);
+        }
+        $stored = [];
+        foreach ($allIssueTypes as $type) {
+            $stored[(string)($type['ruleId'] ?? '')] = (int)($type['occurrences'] ?? 0);
+        }
+        ksort($ranked);
+        ksort($stored);
+
+        return $ranked !== $stored;
     }
 
     private function pluralize(string $singular, int $count): string

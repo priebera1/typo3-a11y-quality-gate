@@ -1,9 +1,6 @@
 <div
         class="tab-pane fade{f:if(condition: '{activeTab} == ''fields''', then: ' show active')}"
         id="a11y-settings-pane-fields"
-        role="tabpanel"
-        aria-labelledby="a11y-settings-tab-fields"
-        tabindex="0"
 >
     <div class="aqg-stack">
         <form method="post" action="{refreshUrl}" id="a11y-settings-refresh-fields-form" hidden="hidden">
@@ -153,7 +150,7 @@
                                                         <span class="aqg-field-row__label a11y-field-row__title">{field.field_label}</span>
                                                         <code class="aqg-field-row__name">{field.field_name}</code>
                                                     </span>
-                                                    <span class="aqg-field-row__type a11y-field-row__type-badge">{field.field_type}</span>
+                                                    <span class="aqg-field-row__type a11y-field-row__type-badge"><f:switch expression="{field.field_type}"><f:case value="rte"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.fields.type.rte" default="Rich text" /></f:case><f:case value="file"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.fields.type.file" default="File" /></f:case><f:defaultCase>{field.field_type}</f:defaultCase></f:switch></span>
                                                 </label>
                                             </f:for>
                                         </div>

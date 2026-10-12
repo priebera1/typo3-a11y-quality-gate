@@ -46,13 +46,52 @@ final class RenderedHtmlIssueFactory
         );
     }
 
+    /**
+     * The element's own markup without AQG's record markers (`data-aqg-*` attributes, `div.aqg-marker` wrappers),
+     * which the rendered check requests for record mapping and which are not part of the page. A page-level element
+     * (`html`, `body`) is represented by its opening tag only, so the finding does not change with the page's content.
+     */
     public function elementSnippet(\DOMElement $element, int $maxLength = 240): string
     {
         $document = new \DOMDocument();
-        $document->appendChild($document->importNode($element, true));
+        $copy = $document->importNode($element, !in_array(strtolower($element->tagName), ['html', 'body'], true));
+        $document->appendChild($copy);
+        if ($copy instanceof \DOMElement) {
+            $this->removeAqgMarkers($copy);
+        }
         $html = trim($document->saveHTML($document->documentElement) ?: '');
+        if (in_array(strtolower($element->tagName), ['html', 'body'], true)) {
+            $html = (string)preg_replace('#</(?:html|body)>\s*$#i', '', $html);
+        }
 
         return mb_substr($html, 0, $maxLength);
+    }
+
+    private function removeAqgMarkers(\DOMElement $root): void
+    {
+        $elements = [$root];
+        foreach ($root->getElementsByTagName('*') as $descendant) {
+            $elements[] = $descendant;
+        }
+
+        foreach ($elements as $element) {
+            foreach (iterator_to_array($element->attributes ?? []) as $attribute) {
+                if ($attribute instanceof \DOMAttr && str_starts_with(strtolower($attribute->name), 'data-aqg-')) {
+                    $element->removeAttribute($attribute->name);
+                }
+            }
+        }
+
+        foreach (array_reverse($elements) as $element) {
+            if ($element === $root || !$element->parentNode instanceof \DOMNode
+                || !in_array('aqg-marker', preg_split('/\s+/', trim($element->getAttribute('class'))) ?: [], true)) {
+                continue;
+            }
+            while ($element->firstChild !== null) {
+                $element->parentNode->insertBefore($element->firstChild, $element);
+            }
+            $element->parentNode->removeChild($element);
+        }
     }
 
     public function buildPath(\DOMElement $element): string

@@ -1,65 +1,68 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
 <section
-        class="aqg-section aqg-section--scan aqg-free-preview"
+        class="aqg-status aqg-status--{f:if(condition: remoteScan, then: remoteSignalTone, else: 'no-scan')} aqg-free-preview"
         data-aqg-free-preview="true"
         data-aqg-free-preview-state="{freePreview.state}"
+        aria-labelledby="aqg-free-preview-title"
 >
-    <div class="aqg-section__head">
-        <div>
-            <h2 class="aqg-section__title" id="aqg-free-preview-title" tabindex="-1">
-                <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote"
-                        default="Frontend scan"
-                />
-            </h2>
-            <p class="aqg-section__sub">
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.title" default="Free Remote Preview" />
-                —
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.description" default="Scan the currently selected page with AQG's remote frontend checks." />
-                <span data-aqg-free-preview-requirements="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.requirements" default="No licence key, account or email needed. The site must be reachable from the internet." /></span>
-            </p>
-        </div>
+    <div class="aqg-status__main">
+        <f:if condition="{remoteScan}">
+            <f:then>
+                <f:variable name="titleId" value="aqg-free-preview-title" />
+                <f:variable name="focusable" value="1" />
+                <f:render partial="Overview/RemoteStatusHead" arguments="{_all}" />
+            </f:then>
+            <f:else>
+                <div class="aqg-status__head">
+                    <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'globe'}" /></span>
+                    <h2 class="aqg-status__title" id="aqg-free-preview-title" tabindex="-1">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.title" default="Free Remote Preview" />
+                    </h2>
+                </div>
+                <p class="aqg-status__text">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.description" default="Scan the currently selected page with AQG's remote frontend checks." />
+                </p>
+            </f:else>
+        </f:if>
 
-        <div class="aqg-section__actions">
-            <f:if condition="{freePreview.submitCapable} && {freePreview.state} == 'FREE_AVAILABLE' && {canScanNow}">
-                <button
-                        type="button"
-                        class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
-                        data-action="a11y-pro-scan-site"
-                        data-aqg-free-preview-submit="true"
-                        data-root-pid="{siteRootPid}"
-                        data-current-page-uid="{currentPageUid}"
-                        data-site-identifier="{siteIdentifier}"
-                        data-free-submit-intent="{freeSubmitIntent}"
-                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running', default: 'Scanning selected page…')}"
-                ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.run" default="Scan this page — Free" /></button>
+        <ul class="aqg-status__meta aqg-status__meta--free">
+            <f:if condition="{remoteScan}">
+                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.title" default="Free Remote Preview" /></li>
             </f:if>
-
-            <f:if condition="{freePreview.hasTodayResult}">
-                <a href="#a11y-remote-top-pages" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPageResult" default="View this page's result" /></a>
+            <li data-aqg-free-preview-requirements="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.requirements" default="No licence key, account or email needed. The site must be reachable from the internet." /></li>
+            <f:if condition="{freePreview.jobsLimit}">
+                <li>
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.freeScansToday" default="Free scans today" />:
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.scanUsage" default="%1$d of %2$d used" arguments="{0: freePreview.jobsUsed, 1: freePreview.jobsLimit}" />
+                    <f:if condition="!{freePreview.available}">
+                        <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.limitReached" default="Free scan limit reached for today." /></strong>
+                    </f:if>
+                </li>
+                <f:if condition="{freePreview.resetsAt}">
+                    <li>
+                        <f:if condition="{freePreview.available}">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.resets" default="Limit resets" /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.nextScans" default="Next free scans" /></f:else>
+                        </f:if>
+                        <time
+                                datetime="{freePreview.resetsAt}"
+                                data-aqg-free-preview-countdown="true"
+                                data-aqg-free-preview-resets-at="{freePreview.resetsAt}"
+                        >{freePreview.resetsAt -> f:format.date(format: 'd.m.Y H:i')}</time>
+                    </li>
+                </f:if>
             </f:if>
+        </ul>
 
-            <button
-                    type="button"
-                    class="btn btn-default btn-sm"
-                    data-action="a11y-free-preview-retry"
-                    {f:if(condition: freePreview.retryable, else: 'hidden="hidden"')}
-            ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.retry" default="Retry" /></button>
-        </div>
-    </div>
-
-    <div class="aqg-section__body">
-        <div data-aqg-free-preview-message="true">
+        <div class="aqg-status__message" data-aqg-free-preview-message="true">
             <f:if condition="{freePreview.siteAddressLocal}">
                 <f:then>
                     <f:render partial="Overview/FreePreviewUnreachable" arguments="{variant: 'local', siteHost: freePreview.siteHost}" />
                 </f:then>
                 <f:else>
                     <f:if condition="{freePreview.message}">
-                        <div class="aqg-notice aqg-tone-warning mb-3" role="status">
-                            <div class="aqg-notice__body">
-                                <div class="aqg-notice__text">{freePreview.message}</div>
-                            </div>
+                        <div class="aqg-note aqg-note--warning" role="status">
+                            <div class="aqg-note__text">{freePreview.message}</div>
                         </div>
                     </f:if>
                 </f:else>
@@ -71,33 +74,36 @@
             </template>
         </f:if>
 
-        <f:if condition="{freePreview.jobsLimit}">
-            <div class="aqg-section__meta-row">
-                <div class="aqg-meta-item">
-                    <span class="aqg-meta-item__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.freeScansToday" default="Free scans today" /></span>
-                    <span class="aqg-meta-item__value"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.scanUsage" default="%1$d of %2$d used" arguments="{0: freePreview.jobsUsed, 1: freePreview.jobsLimit}" /></span>
-                    <f:if condition="!{freePreview.available}">
-                        <span class="aqg-meta-item__hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.limitReached" default="Free scan limit reached for today." /></span>
-                    </f:if>
-                </div>
-                <f:if condition="{freePreview.resetsAt}">
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:if condition="{freePreview.available}">
-                                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.resets" default="Limit resets" /></f:then>
-                                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.nextScans" default="Next free scans" /></f:else>
-                            </f:if>
-                        </span>
-                        <time
-                                class="aqg-meta-item__value"
-                                datetime="{freePreview.resetsAt}"
-                                data-aqg-free-preview-countdown="true"
-                                data-aqg-free-preview-resets-at="{freePreview.resetsAt}"
-                        >{freePreview.resetsAt -> f:format.date(format: 'd.m.Y H:i')}</time>
-                    </div>
-                </f:if>
-            </div>
+        <f:if condition="{remoteScan}">
+            <f:render partial="Overview/RemoteCaveat" arguments="{remoteManualReviewChecklist: remoteManualReviewChecklist}" />
         </f:if>
+    </div>
+
+    <div class="aqg-status__actions">
+        <f:if condition="{freePreview.submitCapable} && {freePreview.state} == 'FREE_AVAILABLE' && {canScanNow}">
+            <button
+                    type="button"
+                    class="btn btn-primary btn-sm aqg-scan-site-btn aqg-scan-site-btn--primary"
+                    data-action="a11y-pro-scan-site"
+                    data-aqg-free-preview-submit="true"
+                    data-root-pid="{siteRootPid}"
+                    data-current-page-uid="{currentPageUid}"
+                    data-site-identifier="{siteIdentifier}"
+                    data-free-submit-intent="{freeSubmitIntent}"
+                    data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running', default: 'Scanning selected page…')}"
+            ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.run" default="Scan this page — Free" /></button>
+        </f:if>
+
+        <f:if condition="{freePreview.hasTodayResult}">
+            <a href="#a11y-remote-top-pages" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.viewPageResult" default="View this page's result" /></a>
+        </f:if>
+
+        <button
+                type="button"
+                class="btn btn-default btn-sm"
+                data-action="a11y-free-preview-retry"
+                {f:if(condition: freePreview.retryable, else: 'hidden="hidden"')}
+        ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.retry" default="Retry" /></button>
     </div>
 </section>
 </html>

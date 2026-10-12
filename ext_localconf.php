@@ -47,11 +47,15 @@ defined('TYPO3') || die();
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\FileReferenceDecorativeHook::class;
 
-    // Rendered page checks use internal short-lived AQG parameters. Keep only AQG-owned
+    // Rendered page checks and "Show on page" use internal short-lived AQG parameters. Keep only AQG-owned
     // parameters out of cHash validation and avoid changing TYPO3's global cache-disabling handling.
+    // `aqgs` (the crawler selector of an occurrence without a record marker) was missing, so "Show on page" for such an
+    // occurrence ended in "Request parameters could not be validated (&cHash empty)" (FUN-01). It only steers the
+    // highlight script, which runs only when debug markers are authorised (backend user or valid Scanner Token).
     foreach ([
         'aqgDebug',
         'aqgh',
+        'aqgs',
         'tx_aqg_rendered_check',
         '_aqg_page',
         '_aqg_lang',

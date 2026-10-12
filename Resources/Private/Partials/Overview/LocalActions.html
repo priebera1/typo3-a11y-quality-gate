@@ -1,140 +1,200 @@
 <html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
-<section class="aqg-section aqg-section--scan">
-    <div class="aqg-section__head">
-        <div>
-            <h2 class="aqg-section__title">
-                <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.local"
-                        default="Content scan"
-                />
+<f:variable name="hasOpenIssues" value="{f:if(condition: '{totalCounts.total} > 0', then: 1, else: 0)}" />
+<f:variable name="localTone" value="none" />
+<f:if condition="{hasOpenIssues}">
+    <f:then>
+        <f:variable name="localTone" value="info" />
+        <f:if condition="{totalCounts.warning} > 0"><f:variable name="localTone" value="attention" /></f:if>
+        <f:if condition="{totalCounts.critical} > 0"><f:variable name="localTone" value="critical" /></f:if>
+    </f:then>
+    <f:else>
+        <f:if condition="{lastScan}"><f:variable name="localTone" value="good" /></f:if>
+    </f:else>
+</f:if>
+
+<section class="aqg-status aqg-status--{localTone}" aria-labelledby="aqg-local-status-title" data-aqg-status="local">
+    <div class="aqg-status__main">
+        <div class="aqg-status__head">
+            <span class="aqg-status__glyph" aria-hidden="true">
+                <f:switch expression="{localTone}">
+                    <f:case value="critical"><f:render partial="Shared/AqgIcon" arguments="{name: 'crit'}" /></f:case>
+                    <f:case value="attention"><f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" /></f:case>
+                    <f:case value="info"><f:render partial="Shared/AqgIcon" arguments="{name: 'info'}" /></f:case>
+                    <f:case value="good"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok'}" /></f:case>
+                    <f:defaultCase><f:render partial="Shared/AqgIcon" arguments="{name: 'page'}" /></f:defaultCase>
+                </f:switch>
+            </span>
+            <h2 class="aqg-status__title" id="aqg-local-status-title">
+                <f:if condition="{hasOpenIssues}">
+                    <f:then>
+                        <f:if condition="{totalCounts.total} == 1">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.issues.singular" default="%d open issue" arguments="{0: totalCounts.total}" /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.issues.plural" default="%d open issues" arguments="{0: totalCounts.total}" /></f:else>
+                        </f:if>
+                        <f:if condition="!{localQuery} && {totalLocalPages} > 0">
+                            <f:if condition="{totalLocalPages} == 1">
+                                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.onPages.singular" default="on %d page" arguments="{0: totalLocalPages}" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.onPages.plural" default="on %d pages" arguments="{0: totalLocalPages}" /></f:else>
+                            </f:if>
+                        </f:if>
+                    </f:then>
+                    <f:else>
+                        <f:if condition="{lastScan}">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues" default="No open accessibility issues found." /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.noScan" default="No content scan yet" /></f:else>
+                        </f:if>
+                    </f:else>
+                </f:if>
             </h2>
-            <p class="aqg-section__sub">
-                <f:translate
-                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localActions.description"
-                        default="Scan the configured TYPO3 content fields."
-                />
-            </p>
         </div>
 
-        <div class="aqg-section__actions">
-            <f:if condition="{currentPageHasIssues} && {currentPageDetailUrl}">
-                <a href="{currentPageDetailUrl}" class="btn btn-default btn-sm">
-                    <f:translate
-                            key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.viewIssues"
-                            default="View issues"
-                    />
-                </a>
+        <div data-a11y-local-scan-static="true" class="aqg-status__body {f:if(condition: isRelevantLocalScanRunning, then: 'd-none', else: '')}">
+            <f:if condition="{hasOpenIssues}">
+                <ul class="aqg-status__counts" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.bySeverity', default: 'Open issues by severity')}">
+                    <f:render section="Count" arguments="{level: 'critical', icon: 'crit', count: totalCounts.critical, delta: localNewCounts.critical, lastScan: lastScan}" />
+                    <f:render section="Count" arguments="{level: 'warning', icon: 'warn', count: totalCounts.warning, delta: localNewCounts.warning, lastScan: lastScan}" />
+                    <f:render section="Count" arguments="{level: 'info', icon: 'info', count: totalCounts.info, delta: localNewCounts.info, lastScan: lastScan}" />
+                    <f:render section="Count" arguments="{level: 'needs_review', icon: 'rev', count: totalCounts.needs_review, delta: localNewCounts.needs_review, lastScan: lastScan}" />
+                </ul>
             </f:if>
 
-            <f:if condition="{currentPageUid} && {canScanNow}">
-                <button
-                        type="button"
-                        class="btn btn-default btn-sm"
-                        data-action="a11y-rescan"
-                        data-page-uid="{currentPageUid}"
-                        data-language-uid="{currentLanguageUid}"
-                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
-                        {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
-                >
+            <f:if condition="{lastScan}">
+                <f:then>
+                    <ul class="aqg-status__meta">
+                        <f:if condition="{lastScanScopeLabel}">
+                            <li>{lastScanScopeLabel}</li>
+                        </f:if>
+                        <li>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label" default="Last scan" />
+                            <f:if condition="{lastScan.finished_at_formatted}"><f:then>{lastScan.finished_at_formatted}</f:then><f:else>{lastScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:else></f:if>
+                        </li>
+                        <li>
+                            <f:if condition="{lastScan.pages_scanned} == 1">
+                                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.meta.pageScannedCount.singular" default="%d page scanned" arguments="{0: lastScan.pages_scanned}" /></f:then>
+                                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.meta.pageScannedCount.plural" default="%d pages scanned" arguments="{0: lastScan.pages_scanned}" /></f:else>
+                            </f:if>
+                        </li>
+                        <f:if condition="{lastScan.issues_resolved} > 0">
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.meta.resolved" default="%d resolved by this scan" arguments="{0: lastScan.issues_resolved}" /></li>
+                        </f:if>
+                                            <f:if condition="{localRenderedCoverage.skipped}">
+                            <li class="aqg-status__meta-note aqg-status__meta-note--warn" data-aqg-rendered-coverage="true">
+                                <f:render partial="Shared/AqgIcon" arguments="{name: 'warn', size: 'sm'}" />
+                                <details class="aqg-coverage-details" id="aqg-rendered-coverage">
+                                    <summary>{localRenderedCoverage.note} · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.renderedSkipped.details" default="Pages and reasons" /></summary>
+                                    <ul class="aqg-coverage-details__list">
+                                        <f:for each="{localRenderedCoverage.pages}" as="skippedPage">
+                                            <li><span class="aqg-coverage-details__page">{skippedPage.title}</span> <span class="aqg-coverage-details__uid">#{skippedPage.pageUid}</span> · {skippedPage.reason}</li>
+                                        </f:for>
+                                    </ul>
+                                    <f:if condition="{localRenderedCoverage.more}"><p class="aqg-coverage-details__more">{localRenderedCoverage.more}</p></f:if>
+                                    <f:if condition="{localRenderedCoverage.notPublicHint}"><p class="aqg-coverage-details__hint" data-aqg-rendered-coverage-hint="true">{localRenderedCoverage.notPublicHint}</p></f:if>
+                                </details>
+                            </li>
+                        </f:if>
+</ul>
+                </f:then>
+                <f:else>
+                    <f:if condition="{hasOpenIssues}">
+                        <f:then>
+                            <ul class="aqg-status__meta" data-aqg-local-results-without-scan="true">
+                                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.meta.fromPageScans" default="From earlier page scans" /></li>
+                                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.meta.noSiteScan" default="No site scan yet" /></li>
+                            </ul>
+                        </f:then>
+                        <f:else>
+                            <f:if condition="{gettingStarted}">
+                                <f:then>
+                                    <f:render partial="Overview/GettingStarted" arguments="{gettingStarted: gettingStarted, canScanNow: canScanNow, canScanAll: canScanAll, currentPageUid: currentPageUid}" />
+                                </f:then>
+                                <f:else>
+                                    <p class="aqg-status__text">
+                                        <f:translate
+                                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.text"
+                                                default="Run a content scan to check this page tree for accessibility issues."
+                                        />
+                                    </p>
+                                </f:else>
+                            </f:if>
+                        </f:else>
+                    </f:if>
+                </f:else>
+            </f:if>
+        </div>
+    </div>
+
+    <div class="aqg-status__actions">
+        <f:if condition="{currentPageHasIssues} && {currentPageDetailUrl}">
+            <a href="{currentPageDetailUrl}" class="aqg-status__link">
+                <f:translate
+                        key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.viewPageIssues"
+                        default="View this page's issues"
+                />
+            </a>
+        </f:if>
+
+        <f:if condition="{currentPageUid} && {canScanNow}">
+            <button
+                    type="button"
+                    class="btn btn-default btn-sm"
+                    data-action="a11y-rescan"
+                    data-page-uid="{currentPageUid}"
+                    data-language-uid="{currentLanguageUid}"
+                    data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                    {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
+            >
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanNow"
                         default="Scan this page"
                 />
-                </button>
-            </f:if>
+            </button>
+        </f:if>
 
-            <f:if condition="{canScanAll}">
-                <button
-                        type="button"
-                        class="btn btn-primary btn-sm"
-                        data-action="a11y-scan-all"
-                        data-root-pid="{siteRootPid}"
-                        data-language-uid="{currentLanguageUid}"
-                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
-                        {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
-                >
+        <f:if condition="{canScanAll}">
+            <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    data-action="a11y-scan-all"
+                    data-root-pid="{siteRootPid}"
+                    data-language-uid="{currentLanguageUid}"
+                    data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                    {f:if(condition: scanStatus.running, then: 'disabled="disabled"')}
+            >
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanAll"
                         default="Scan site"
                 />
-                </button>
-            </f:if>
-        </div>
-    </div>
+            </button>
+        </f:if>
 
-    <div class="aqg-section__body">
-        <div data-a11y-local-scan-static="true" class="{f:if(condition: isRelevantLocalScanRunning, then: 'd-none', else: '')}">
-                <f:if condition="{lastScan}">
-                    <f:then>
-                        <div class="aqg-section__meta-row">
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.label"
-                                    default="Last scan"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value"><f:if condition="{lastScan.finished_at_formatted}"><f:then>{lastScan.finished_at_formatted}</f:then><f:else>{lastScan.finished_at -> f:format.date(format: 'd.m.Y H:i')}</f:else></f:if></span>
-                    </div>
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.pages"
-                                    default="Pages"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">{lastScan.pages_scanned}</span>
-                    </div>
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.newIssues"
-                                    default="New issues"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">+{lastScan.issues_new}</span>
-                    </div>
-                    <div class="aqg-meta-item">
-                        <span class="aqg-meta-item__label">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.lastScan.resolvedIssues"
-                                    default="Resolved"
-                            />
-                        </span>
-                        <span class="aqg-meta-item__value">-{lastScan.issues_resolved}</span>
-                    </div>
-                </div>
-                    </f:then>
-                    <f:else>
-                        <f:if condition="{gettingStarted}">
-                            <f:then>
-                                <f:render partial="Overview/GettingStarted" arguments="{gettingStarted: gettingStarted, canScanNow: canScanNow, canScanAll: canScanAll, currentPageUid: currentPageUid}" />
-                            </f:then>
-                            <f:else>
-                        <div class="aqg-empty aqg-empty--compact">
-                    <div class="aqg-empty__icon" aria-hidden="true">
-                        <f:render partial="Overview/Icon" arguments="{name: 'empty'}" />
-                    </div>
-                    <div>
-                        <div class="aqg-empty__title">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.title"
-                                    default="No scan on record"
-                            />
-                        </div>
-                        <div class="aqg-empty__body">
-                            <f:translate
-                                    key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noScanYet.text"
-                                    default="Run a content scan to check this page tree for accessibility issues."
-                            />
-                        </div>
-                    </div>
-                </div>
-                            </f:else>
-                        </f:if>
-                    </f:else>
-                </f:if>
-        </div>
+        <f:if condition="{hasOpenIssues}">
+            <f:render
+                    partial="Shared/ExportButtons"
+                    arguments="{
+                        show: exportLocalCsvUrl,
+                        csvUrl: exportLocalCsvUrl,
+                        pdfUrl: exportLocalPdfUrl,
+                        showPdf: showPdfExport,
+                        pdfNoteId: 'aqg-export-pdf-note-local'
+                    }"
+            />
+        </f:if>
     </div>
 </section>
+
+<f:section name="Count">
+    <li class="aqg-status__count aqg-status__count--{level}{f:if(condition: count, else: ' is-zero')}">
+        <f:render partial="Shared/AqgIcon" arguments="{name: icon, size: 'sm'}" />
+        <strong>{count}</strong>
+        <f:switch expression="{level}">
+            <f:case value="critical"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" default="Critical" /></f:case>
+            <f:case value="warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warningPlural" default="Warnings" /></f:case>
+            <f:case value="info"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" default="Info" /></f:case>
+            <f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" default="Needs review" /></f:defaultCase>
+        </f:switch>
+        <f:if condition="{lastScan} && {delta} > 0">
+            <span class="aqg-status__delta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.newDelta" default="+%d new" arguments="{0: delta}" /></span>
+        </f:if>
+    </li>
+</f:section>
 </html>

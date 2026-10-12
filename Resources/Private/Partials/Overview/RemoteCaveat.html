@@ -1,0 +1,12 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<p class="aqg-status__caveat">
+    <f:render partial="Shared/AqgIcon" arguments="{name: 'info', size: 'sm'}" />
+    <span>
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.caveat" default="Automated checks cover part of WCAG. Manual review is still required." />
+        <f:if condition="{remoteManualReviewChecklist}">
+            <f:variable name="checklistCount" value="{remoteManualReviewChecklist -> f:count()}" />
+            <a href="#aqg-evidence-manual-review" data-aqg-reveal="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.status.checklistLink" default="Manual review checklist (%d tasks)" arguments="{0: checklistCount}" /></a>
+        </f:if>
+    </span>
+</p>
+</html>

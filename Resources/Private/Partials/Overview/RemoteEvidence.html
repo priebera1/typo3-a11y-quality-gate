@@ -1,0 +1,271 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<section class="aqg-block aqg-evidence-section" aria-labelledby="aqg-remote-evidence-title">
+    <div class="aqg-block__head">
+        <div class="aqg-block__heading">
+            <h2 class="aqg-block__title" id="aqg-remote-evidence-title">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.evidence.title" default="Reports and evidence" />
+            </h2>
+        </div>
+    </div>
+
+    <div class="aqg-evidence">
+        <f:if condition="!{freePreview.isFree} && ({regressionAlert.available} || {regressionAlert.message} || {remoteScanCompare.available} || {remoteScanCompare.message})">
+            <details class="aqg-evidence__row" id="aqg-evidence-changes">
+                <summary class="aqg-evidence__summary">
+                    <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.regression.kicker" default="Changes since the previous scan" /></span>
+                    <span class="aqg-evidence__line">
+                        <f:if condition="{regressionAlert.available}">
+                            <f:then>{regressionAlert.title}</f:then>
+                            <f:else>
+                                <f:if condition="{regressionAlert.message}">
+                                    <f:then>{regressionAlert.message}</f:then>
+                                    <f:else>{remoteScanCompare.message}</f:else>
+                                </f:if>
+                            </f:else>
+                        </f:if>
+                    </span>
+                    <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                </summary>
+                <div class="aqg-evidence__body">
+                    <f:if condition="{regressionAlert.available}">
+                        <f:render partial="Remote/RegressionSignal" arguments="{alert: regressionAlert, viewedJobId: remoteScan.job_id}" />
+                    </f:if>
+                    <f:if condition="{remoteScanCompare.available} || {remoteScanCompare.message}">
+                        <f:render partial="Remote/ScanComparison" arguments="{comparison: remoteScanCompare, viewedJobId: remoteScan.job_id}" />
+                    </f:if>
+                </div>
+            </details>
+        </f:if>
+
+        <f:if condition="{remoteHasAdditionalAutomatedSignals}">
+            <details class="aqg-evidence__row" id="aqg-evidence-signals">
+                <summary class="aqg-evidence__summary">
+                    <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.title" default="Additional automated signals" /></span>
+                    <span class="aqg-evidence__line">
+                        <f:if condition="{remoteStructureSummary}">{remoteStructureSummary.landmarkIssuesLabel}</f:if>
+                        <f:if condition="{remoteShowKeyboardSummary}"><f:if condition="{remoteStructureSummary}"> · </f:if>{remoteKeyboardSummary.invisibleFocusIssuesLabel}</f:if>
+                    </span>
+                    <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                </summary>
+                <div class="aqg-evidence__body aqg-signals">
+                    <p class="aqg-evidence__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.subtitle" default="Compact technical signals for report support. Review them in context." /></p>
+
+                    <f:if condition="{remoteRemediationSummary} && !{freePreview.isFree}">
+                        <div class="aqg-signals__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.remediation.title" default="Suggested remediation grouping" /></h3>
+                            <f:if condition="{remoteRemediationSummary.hasItems}">
+                                <dl class="aqg-kvlist">
+                                    <f:for each="{remoteRemediationSummary.items}" as="item">
+                                        <dt>{item.label}</dt>
+                                        <dd><f:if condition="{item.countLabel}"><f:then>{item.countLabel}</f:then><f:else>{item.description}</f:else></f:if></dd>
+                                    </f:for>
+                                </dl>
+                            </f:if>
+                            <f:if condition="{remoteRemediationSummary.recommendation}">
+                                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.recommendation" default="Recommendation: %s" arguments="{0: remoteRemediationSummary.recommendation}" /></p>
+                            </f:if>
+                            <f:if condition="{remoteRemediationSummary.note}"><p>{remoteRemediationSummary.note}</p></f:if>
+                        </div>
+                    </f:if>
+
+                    <f:if condition="{remoteComponentSummary}">
+                        <div class="aqg-signals__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.components.title" default="Likely shared template/component issue" /></h3>
+                            <p><strong>{remoteComponentSummary.likelyRepeatedTemplateIssuesLabel}</strong></p>
+                            <f:if condition="{remoteComponentSummary.hasTopRepeatedRules}">
+                                <ul class="aqg-signals__list">
+                                    <f:for each="{remoteComponentSummary.topRepeatedRules}" as="rule">
+                                        <li>
+                                            <code>{rule.ruleId}</code> {rule.issuesLabel}<f:if condition="{rule.affectedPagesLabel}"> · {rule.affectedPagesLabel}</f:if><f:if condition="{rule.recommendedOwnerLabel}"> · {rule.recommendedOwnerLabel}</f:if>
+                                            <f:if condition="{rule.componentHint}"><br />{rule.componentHint}</f:if>
+                                            <f:if condition="{rule.suggestedAction}"><br /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.suggestedAction" default="Suggested action: %s" arguments="{0: rule.suggestedAction}" /></f:if>
+                                        </li>
+                                    </f:for>
+                                </ul>
+                            </f:if>
+                            <f:if condition="{remoteComponentSummary.note}"><p>{remoteComponentSummary.note}</p></f:if>
+                        </div>
+                    </f:if>
+
+                    <f:if condition="{remoteStructureSummary}">
+                        <div class="aqg-signals__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.title" default="Template / structure signal" /></h3>
+                            <p>
+                                <strong>{remoteStructureSummary.landmarkIssuesLabel}</strong>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.across" default="across %s" arguments="{0: remoteStructureSummary.affectedPagesLabel}" />
+                                · {remoteStructureSummary.outlineIssuesTotal} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.outlineIssues" default="outline issues" />
+                                · {remoteStructureSummary.headingIssuesTotal} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.headingIssues" default="heading issues" />
+                            </p>
+                            <f:if condition="{remoteStructureSummary.likelyTemplateIssue}">
+                                <f:then>
+                                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.structure.likelyTemplate" default="Likely template/layout issue — review shared landmarks and heading structure." /></p>
+                                </f:then>
+                                <f:else>
+                                    <f:if condition="{remoteStructureSummary.recommendation}"><p>{remoteStructureSummary.recommendation}</p></f:if>
+                                </f:else>
+                            </f:if>
+                            <f:if condition="{remoteStructureSummary.hasTopWarnings}">
+                                <ul class="aqg-signals__list">
+                                    <f:for each="{remoteStructureSummary.topWarnings}" as="warning">
+                                        <li><strong>{warning.typeLabel}</strong> {warning.issuesLabel}<f:if condition="{warning.affectedPagesLabel}"> · {warning.affectedPagesLabel}</f:if><f:if condition="{warning.recommendation}"><br />{warning.recommendation}</f:if></li>
+                                    </f:for>
+                                </ul>
+                            </f:if>
+                            <f:if condition="{remoteStructureSummary.topRules}">
+                                <ul class="aqg-signals__list">
+                                    <f:for each="{remoteStructureSummary.topRules}" as="rule">
+                                        <li><code>{rule.ruleId}</code> {rule.issuesLabel}<f:if condition="{rule.affectedPagesLabel}"> · {rule.affectedPagesLabel}</f:if></li>
+                                    </f:for>
+                                </ul>
+                            </f:if>
+                        </div>
+                    </f:if>
+
+                    <f:if condition="{remoteShowKeyboardSummary}">
+                        <div class="aqg-signals__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.title" default="Keyboard exploration signal" /></h3>
+                            <p>
+                                {remoteKeyboardSummary.focusStepsTotal} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.review.focusSteps" default="focus steps" />
+                                · {remoteKeyboardSummary.uniqueFocusedElementsTotal} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.keyboard.focusedElements" default="focused elements" />
+                                · {remoteKeyboardSummary.possibleKeyboardTrapLabel}
+                                · {remoteKeyboardSummary.invisibleFocusIssuesLabel}
+                            </p>
+                            <f:if condition="{remoteKeyboardSummary.hasTopWarnings}">
+                                <ul class="aqg-signals__list">
+                                    <f:for each="{remoteKeyboardSummary.topWarnings}" as="warning">
+                                        <li><strong>{warning.typeLabel}</strong> {warning.issuesLabel}<f:if condition="{warning.affectedPagesLabel}"> · {warning.affectedPagesLabel}</f:if><f:if condition="{warning.recommendation}"><br />{warning.recommendation}</f:if></li>
+                                    </f:for>
+                                </ul>
+                            </f:if>
+                        </div>
+                    </f:if>
+
+                    <f:if condition="{remoteContrastDetails}">
+                        <div class="aqg-signals__group">
+                            <h3><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.title" default="Contrast samples" /></h3>
+                            <ul class="aqg-signals__list">
+                                <f:for each="{remoteContrastDetails}" as="contrast">
+                                    <li>
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.actual" default="Actual" /> <strong>{contrast.actualRatio}</strong>
+                                        · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.required" default="Required" /> <strong>{contrast.requiredRatio}</strong>
+                                        <f:if condition="{contrast.foreground}"> · <abbr title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.foreground', default: 'Foreground')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.fg" default="FG" /></abbr> <code>{contrast.foreground}</code></f:if>
+                                        <f:if condition="{contrast.background}"> · <abbr title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.background', default: 'Background')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.contrast.bg" default="BG" /></abbr> <code>{contrast.background}</code></f:if>
+                                        · {contrast.issuesLabel}
+                                    </li>
+                                </f:for>
+                            </ul>
+                        </div>
+                    </f:if>
+                </div>
+            </details>
+        </f:if>
+
+        <f:if condition="{remoteManualReviewChecklist}">
+            <details class="aqg-evidence__row" id="aqg-evidence-manual-review">
+                <summary class="aqg-evidence__summary">
+                    <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.manualReview.title" default="Manual review checklist" /></span>
+                    <span class="aqg-evidence__line">
+                        {remoteManualReviewChecklist -> f:count()}
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.manualReview.verificationTasks" default="generic verification tasks — not scan failures." />
+                    </span>
+                    <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                </summary>
+                <div class="aqg-evidence__body">
+                    <p class="aqg-evidence__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.manualReview.subtitle" default="Generic review tasks that automated checks cannot fully verify." /></p>
+                    <ul class="aqg-checklist">
+                        <f:for each="{remoteManualReviewChecklist}" as="item">
+                            <li class="aqg-checklist__item">
+                                <strong>{item.title}</strong>
+                                <span class="aqg-checklist__meta">{item.statusLabel}<f:if condition="{item.recommendedOwner}"> · {item.recommendedOwnerLabel}</f:if></span>
+                                <f:if condition="{item.description}"><p>{item.description}</p></f:if>
+                            </li>
+                        </f:for>
+                    </ul>
+                </div>
+            </details>
+        </f:if>
+
+        <details class="aqg-evidence__row" id="aqg-evidence-reporting-aid">
+            <summary class="aqg-evidence__summary">
+                <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.title" default="WCAG / BFSG / BITV reporting aid" /></span>
+                <span class="aqg-evidence__line">
+                    <f:if condition="{remoteReportingGroups.automatedIssuesLabel}">
+                        <f:then>{remoteReportingGroups.automatedIssuesLabel}</f:then>
+                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.subtitle" default="Automated WCAG-mapped findings grouped for reporting context. This does not confirm compliance." /></f:else>
+                    </f:if>
+                </span>
+                <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+            </summary>
+            <div class="aqg-evidence__body">
+                <p class="aqg-evidence__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.subtitle" default="Automated WCAG-mapped findings grouped for reporting context. This does not confirm compliance." /></p>
+                <f:if condition="{remoteReportingGroups.groups}">
+                    <f:then>
+                        <div class="aqg-table-wrap aqg-table-wrap--plain">
+                            <table class="aqg-table aqg-table--compact">
+                                <thead>
+                                    <tr>
+                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.group" default="Group" /></th>
+                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.findings" default="Findings" /></th>
+                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.criteria" default="Criteria" /></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <f:for each="{remoteReportingGroups.groups}" as="group">
+                                        <tr class="aqg-reporting-group--{group.groupId}">
+                                            <td>{group.title}</td>
+                                            <td>{group.automatedIssuesLabel}</td>
+                                            <td>{group.wcagCriteriaText}</td>
+                                        </tr>
+                                    </f:for>
+                                </tbody>
+                            </table>
+                        </div>
+                    </f:then>
+                    <f:else>
+                        <p>
+                            <f:if condition="{remoteScanHasIssues}">
+                                <f:then>
+                                    <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyUnmappedTitle" default="No WCAG-mapped findings available" /></strong>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyUnmappedBody" default="This scan found issues, but none of the current findings could be mapped to a specific WCAG success criterion." />
+                                </f:then>
+                                <f:else>
+                                    <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyTitle" default="No WCAG breakdown available" /></strong>
+                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyBody" default="Run a frontend scan to generate a breakdown by WCAG success criterion." />
+                                </f:else>
+                            </f:if>
+                        </p>
+                    </f:else>
+                </f:if>
+                <f:if condition="{remoteReportingGroups.disclaimer}">
+                    <p class="aqg-evidence__intro">{remoteReportingGroups.disclaimer}</p>
+                </f:if>
+            </div>
+        </details>
+
+        <f:if condition="!{freePreview.isFree}">
+            <details class="aqg-evidence__row" id="aqg-evidence-history">
+                <summary class="aqg-evidence__summary">
+                    <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteTitle" default="Frontend scan history" /></span>
+                    <span class="aqg-evidence__line">
+                        <f:if condition="{remoteScanHistory.siteScans}">
+                            <f:then>{remoteScanHistory.siteScans -> f:count()} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteScans" default="Site scans" /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.emptySite" default="No site frontend scan history available yet." /></f:else>
+                        </f:if>
+                    </span>
+                    <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
+                </summary>
+                <div class="aqg-evidence__body">
+                    <f:if condition="{remoteScanHistory.siteScans}">
+                        <f:then>
+                            <f:render partial="Remote/ScanHistoryTable" arguments="{items: remoteScanHistory.siteScans}" />
+                        </f:then>
+                        <f:else>
+                            <p class="aqg-history-notice"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.emptySite" default="No site frontend scan history available yet." /></p>
+                        </f:else>
+                    </f:if>
+                </div>
+            </details>
+        </f:if>
+    </div>
+</section>
+</html>

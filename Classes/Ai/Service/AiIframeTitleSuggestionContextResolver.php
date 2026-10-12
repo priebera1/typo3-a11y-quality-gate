@@ -82,8 +82,9 @@ final class AiIframeTitleSuggestionContextResolver
 
         $previous = libxml_use_internal_errors(true);
         $document = new \DOMDocument('1.0', 'UTF-8');
+        // loadHTML() reads input without a charset as ISO-8859-1: hand non-ASCII over as entities to keep the text.
         $loaded = $document->loadHTML(
-            '<!DOCTYPE html><html><body>' . $snippet . '</body></html>',
+            '<!DOCTYPE html><html><body>' . mb_encode_numericentity($snippet, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8') . '</body></html>',
             LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET,
         );
         libxml_clear_errors();

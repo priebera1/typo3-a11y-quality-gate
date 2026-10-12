@@ -15,11 +15,13 @@ use Priebera\A11yQualityGate\Pro\Service\ProLicenceDomainService;
 use Priebera\A11yQualityGate\Pro\Service\ProLicenceService;
 use Priebera\A11yQualityGate\Pro\Service\ProSiteFingerprintService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
 use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\AccessibilityStatementService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
+use Priebera\A11yQualityGate\Service\BackendLanguageService;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
@@ -121,6 +123,7 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly ScopeAccessService $scopeAccessService,
         private readonly ?ProLicenceDomainService $proLicenceDomainService = null,
         private readonly ?UpdateNoticeService $updateNoticeService = null,
+        private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -158,7 +161,7 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         $this->fieldConfigurationBootstrapService->initializeIfUnconfigured();
-        $fieldGroups = $this->fieldConfigRepository->findGroupedForSettings();
+        $fieldGroups = $this->withReadableFieldLabels($this->fieldConfigRepository->findGroupedForSettings());
         $returnParameters = $this->getA11yModuleReturnParameters($request);
 
         $saveUrl = $this->buildRouteUrl('web_a11y.settingsSave');
@@ -171,7 +174,7 @@ final class SettingsController extends AbstractBackendModuleController
         $currentSiteIdentifier = $site?->getIdentifier() ?? '';
         $selectedRulesetSite = trim((string)($request->getQueryParams()['rulesetSite'] ?? $currentSiteIdentifier));
         $activeTab = $this->resolveActiveTab((string)($request->getQueryParams()['tab'] ?? 'licence'));
-        $isAdmin = $this->backendContextService->isAdmin();
+        $isAdmin = $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser());
         if (in_array($activeTab, ['remote_access', 'ai'], true) && !$isAdmin) {
             $activeTab = 'licence';
         }
@@ -192,7 +195,9 @@ final class SettingsController extends AbstractBackendModuleController
         $remoteAccessCookieAcceptSelectorsText = $this->jsonListToTextarea((string)($remoteAccessRuleset['cookie_accept_selectors'] ?? '[]'));
         $remoteAccessPriorityUrlsText = $this->jsonListToTextarea((string)($remoteAccessRuleset['crawl_priority_urls'] ?? '[]'));
         $remoteAccessScannerToken = trim((string)($remoteAccessRuleset['scanner_token'] ?? ''));
-        $remoteAccessMaskedScannerToken = $remoteAccessScannerToken !== '' ? 'Generated token is stored securely' : '';
+        // Same answer as the Overview and the scans: the selected site's own token, else the default token.
+        $remoteAccessHasScannerToken = $remoteAccessScannerToken !== ''
+            || ($this->remoteScanAccessSettingsService?->hasScannerTokenForSite($selectedRulesetSite) ?? false);
         $remoteAccessHasHttpAuthPassword = trim((string)($remoteAccessRuleset['http_auth_pass'] ?? '')) !== '';
 
         $siteRulesets = $this->enrichRulesetsWithSiteLabels(
@@ -266,9 +271,8 @@ final class SettingsController extends AbstractBackendModuleController
             'remoteAccessExcludedPatternsText' => $remoteAccessExcludedPatternsText,
             'remoteAccessCookieAcceptSelectorsText' => $remoteAccessCookieAcceptSelectorsText,
             'remoteAccessPriorityUrlsText' => $remoteAccessPriorityUrlsText,
-            'remoteAccessMaskedScannerToken' => $remoteAccessMaskedScannerToken,
             'remoteAccessScannerToken' => '',
-            'remoteAccessHasScannerToken' => $remoteAccessScannerToken !== '',
+            'remoteAccessHasScannerToken' => $remoteAccessHasScannerToken,
             'remoteAccessHasHttpAuthPassword' => $remoteAccessHasHttpAuthPassword,
             'remoteAccessSaveUrl' => $saveUrl,
             'remoteAccessRegenerateTokenUrl' => $this->buildRouteUrl('ajax_a11y_regenerate_scanner_token'),
@@ -306,7 +310,7 @@ final class SettingsController extends AbstractBackendModuleController
             'supportUrl' => $publicLinks[PublicLinkProvider::SUPPORT],
             'portalUrl' => $publicLinks[PublicLinkProvider::PORTAL],
             'settingsTabUrls' => $settingsTabUrls,
-            'settingsTabSelected' => $this->buildSettingsTabSelectedStates($activeTab),
+            'settingsTabCurrent' => $this->buildSettingsTabCurrentStates($activeTab),
             'aiConfigurationStatus' => $aiConfigurationStatus,
             'aiSiteIdentifier' => $aiSiteIdentifier,
             'aiSettingsSaveUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_save'),
@@ -374,7 +378,7 @@ final class SettingsController extends AbstractBackendModuleController
             (string)($body['qualityGateFormSubmitted'] ?? '') === '1'
             || (string)($body['remoteScanAccessFormSubmitted'] ?? '') === '1'
         )) {
-            return $this->buildAdminOnlySettingsDeniedResponse();
+            return $this->buildAdminOnlySettingsDeniedResponse($request, (string)($body['tab'] ?? 'fields'));
         }
         if (!$isAdmin) {
             $body = $this->removeAdminOnlyRulesetFields($body);
@@ -513,7 +517,7 @@ final class SettingsController extends AbstractBackendModuleController
 
         $backendUser = $this->backendContextService->getBackendUser();
         if (!$this->accessControlService->canManageAdminOnlySettings($backendUser)) {
-            return $this->buildAdminOnlySettingsDeniedResponse();
+            return $this->buildAdminOnlySettingsDeniedResponse($request, $activeTab);
         }
 
         try {
@@ -1458,19 +1462,16 @@ final class SettingsController extends AbstractBackendModuleController
     }
 
     /**
-     * Explicit aria-selected values per settings tab.
-     *
-     * TYPO3 14's Fluid resolves the inline `f:if(..., then: 'true', else: 'false')` used for
-     * aria-selected to "false" even on the active tab, so the tablist exposed no selected tab at
-     * all (WCAG 4.1.2). Precomputing the strings keeps the markup correct on TYPO3 13 and 14.
+     * The settings sections are pages linked from a navigation list: the current one carries aria-current="page".
+     * Precomputed strings, because an inline Fluid ternary in an ARIA attribute resolved wrongly on TYPO3 14.
      *
      * @return array<string, string>
      */
-    private function buildSettingsTabSelectedStates(string $activeTab): array
+    private function buildSettingsTabCurrentStates(string $activeTab): array
     {
         $states = [];
         foreach (['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement'] as $tab) {
-            $states[$tab] = $tab === $activeTab ? 'true' : 'false';
+            $states[$tab] = $tab === $activeTab ? 'page' : 'false';
         }
 
         return $states;
@@ -1623,16 +1624,31 @@ final class SettingsController extends AbstractBackendModuleController
         return true;
     }
 
-    private function buildAdminOnlySettingsDeniedResponse(): ResponseInterface
+    /**
+     * A normal form post returns to the settings tab with an error notification; only script requests get JSON.
+     */
+    private function buildAdminOnlySettingsDeniedResponse(ServerRequestInterface $request, string $tab): ResponseInterface
     {
-        $message = 'Only administrators can save AQG licence and installation configuration.';
-        $this->addFlashMessage($message, ContextualFeedbackSeverity::ERROR);
+        $message = $this->translateWithFallback(
+            'settings.adminOnly.save',
+            'Only administrators can change this configuration. Your changes were not saved.'
+        );
 
-        return new JsonResponse([
-            'success' => false,
-            'code' => 'admin_only_settings_required',
-            'message' => $message,
-        ], 403);
+        $accept = strtolower($request->getHeaderLine('accept'));
+        $requestedWith = strtolower($request->getHeaderLine('x-requested-with'));
+        if (str_contains($accept, 'application/json') || $requestedWith === 'xmlhttprequest') {
+            return new JsonResponse([
+                'success' => false,
+                'code' => 'admin_only_settings_required',
+                'message' => $message,
+            ], 403);
+        }
+
+        $this->addFlashMessage($message, ContextualFeedbackSeverity::ERROR);
+        $redirectParameters = $this->getA11yModuleReturnParameters($request);
+        $redirectParameters['tab'] = $this->resolveActiveTab($tab);
+
+        return new RedirectResponse($this->buildRouteUrl('web_a11y.settings', $redirectParameters), 303);
     }
 
     private function buildSettingsPostResponse(
@@ -1679,6 +1695,32 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Field labels stored by an earlier discovery can be unresolved label references (TYPO3 14 translation domains such
+     * as `frontend.db.tt_content:bodytext` were stored raw). Resolve them for display; fall back to the field name.
+     *
+     * @param array<string, array<string, mixed>> $fieldGroups
+     * @return array<string, array<string, mixed>>
+     */
+    private function withReadableFieldLabels(array $fieldGroups): array
+    {
+        $languageService = GeneralUtility::makeInstance(BackendLanguageService::class);
+        foreach ($fieldGroups as $table => $group) {
+            foreach (is_array($group['fields'] ?? null) ? $group['fields'] : [] as $index => $field) {
+                $label = trim((string)($field['field_label'] ?? ''));
+                if ($label !== '' && !BackendLanguageService::isLabelReference($label)) {
+                    continue;
+                }
+                $translated = $label !== '' ? trim($languageService->translateRawLabel($label)) : '';
+                $fieldGroups[$table]['fields'][$index]['field_label'] = $translated !== '' && $translated !== $label
+                    ? $translated
+                    : (string)($field['field_name'] ?? $label);
+            }
+        }
+
+        return $fieldGroups;
     }
 
     private function resolveActiveTab(string $tab): string

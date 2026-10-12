@@ -1,6 +1,4 @@
 import { Plugin } from '@ckeditor/ckeditor5-core';
-import { ContextualBalloon } from '@ckeditor/ckeditor5-ui';
-import A11yPanelView from '@priebera/a11y-quality-gate/ckeditor/a11y-panel.js';
 
 const MAX_SNIPPET = 120;
 const MAX_LIVE_VALIDATION_HTML_SIZE = 500000;
@@ -28,24 +26,24 @@ export default class A11yPlugin extends Plugin {
         return 'A11yQualityGate';
     }
 
-    static get requires() {
-        return [ContextualBalloon];
-    }
-
     init() {
         const editor = this.editor;
 
-        this._balloon = editor.plugins.get(ContextualBalloon);
-        this._panelView = null;
         this._summaryElement = null;
-        this._activeElementTarget = null;
         this._markerMeta = new Map();
         this._elementIssueMeta = new Map();
-        this._editableClickBound = false;
-        this._hidePanelTimer = null;
-        this._panelHoverBound = false;
-        this._activeHighlightTarget = null;
-        this._panelPinned = false;
+        // Indicator gutter and details panel: nothing opens on caret movement, selection or typing.
+        this._gutter = null;
+        this._gutterHost = null;
+        this._gutterFrame = null;
+        this._chipEntries = new WeakMap();
+        this._chipBlocks = new WeakMap();
+        this._popover = null;
+        this._popoverAnchor = null;
+        this._popoverEntries = [];
+        this._popoverScope = 'block';
+        this._outsidePointer = null;
+        this._escapeListener = null;
         this._currentIssues = [];
         this._rawIssues = [];
         this._cachedHighlightTimer = null;
@@ -92,9 +90,16 @@ export default class A11yPlugin extends Plugin {
 
         editor.on('ready', () => {
             this._installSummaryBar();
-            this._bindEditableEvents();
+            this._installGutter();
             this._installDecorationObserver();
             this._fetchAndHighlight();
+        });
+
+        editor.on('destroy', () => {
+            this._closePopover({ returnFocus: false });
+            if (this._gutterFrame !== null) {
+                window.cancelAnimationFrame(this._gutterFrame);
+            }
         });
 
         editor.on('a11y:refresh', () => {
@@ -617,7 +622,6 @@ export default class A11yPlugin extends Plugin {
         }
 
         this._elementIssueMeta.clear();
-        this._activeElementTarget = null;
     }
 
     _clearAllMarkers(writer) {
@@ -754,157 +758,525 @@ export default class A11yPlugin extends Plugin {
             .substring(0, MAX_SNIPPET);
     }
 
+    /**
+     * The caret only marks the indicator of its line; nothing opens while the editor types, selects or moves.
+     */
     _onSelectionChange() {
-        const markerName = this._getSelectedMarkerName();
-
-        if (!markerName) {
-            if (!this._activeElementTarget) {
-                this._hidePanel();
-            }
-            return;
-        }
-
-        this._activeElementTarget = null;
-        this._activeHighlightTarget = null;
-        this._clearSelectedElementState();
-
-        const issueData = this._markerMeta.get(markerName) ?? null;
-
-        if (issueData) {
-            this._showPanel(issueData);
-            return;
-        }
-
-        this._hidePanel();
+        this._markCurrentChip();
     }
 
-    _getSelectedMarkerName() {
-        const selection = this.editor.model.document.selection;
-        const position = selection.getFirstPosition();
+    _markCurrentChip() {
+        if (!this._gutter) {
+            return;
+        }
 
-        if (!position) {
+        const block = this._blockAtSelection();
+        for (const chip of this._gutter.querySelectorAll('.ck-a11y-chip')) {
+            chip.classList.toggle('is-current', block !== null && this._chipBlocks.get(chip) === block);
+        }
+    }
+
+    _blockAtSelection() {
+        const editable = this.editor.ui.getEditableElement();
+        const view = this.editor.editing.view;
+        const position = view.document.selection.getFirstPosition();
+        if (!editable || !position) {
             return null;
         }
 
-        for (const marker of this.editor.model.markers) {
-            if (!marker.name.startsWith('a11yIssue:')) {
-                continue;
+        try {
+            const domPosition = view.domConverter.viewPositionToDom(position);
+            const node = domPosition?.parent ?? null;
+            return node instanceof Node ? this._topLevelBlock(editable, node) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    _topLevelBlock(editable, node) {
+        let block = node instanceof Element ? node : node?.parentElement ?? null;
+        if (!block || !editable.contains(block) || block === editable) {
+            return null;
+        }
+        while (block.parentElement && block.parentElement !== editable) {
+            block = block.parentElement;
+        }
+
+        return block;
+    }
+
+    /**
+     * A narrow gutter on the right edge of the editing area: one small marker per block with issues (severity icon and
+     * count). The marker never covers text (the editable keeps a right padding while it is shown), never takes focus
+     * on its own, and opens the details only when it is pressed.
+     */
+    _installGutter() {
+        if (this._gutter) {
+            return;
+        }
+
+        const editorElement = this.editor.ui.view.element;
+        const main = editorElement?.querySelector('.ck-editor__main') ?? null;
+        if (!main) {
+            return;
+        }
+
+        const gutter = document.createElement('div');
+        gutter.className = 'ck-a11y-gutter';
+        gutter.hidden = true;
+        gutter.addEventListener('mousedown', (event) => {
+            // Keep the editor's focus and selection on a pointer press; the click opens the details.
+            if (event.target instanceof Element && event.target.closest('.ck-a11y-chip')) {
+                event.preventDefault();
             }
-
-            if (marker.getRange().containsPosition(position)) {
-                return marker.name;
-            }
-        }
-
-        return null;
-    }
-
-    _showPanel(issueData, targetElement = null, options = {}) {
-        this._cancelHidePanel();
-
-        if (options.pinned !== undefined) {
-            this._panelPinned = options.pinned;
-        }
-
-        if (!this._panelView) {
-            this._panelView = new A11yPanelView(this.editor.locale, this._labels());
-            this._panelView.on('ignore', (event, issueData) => {
-                this._postIgnore(issueData);
-            });
-            this._panelView.on('details', () => {
-                this._togglePanelDetails();
-            });
-        }
-
-        const previousFingerprint = this._panelView.issueData?.fingerprint ?? '';
-        this._panelView.set('issueData', issueData);
-
-        if (previousFingerprint !== (issueData?.fingerprint ?? '')) {
-            this._collapsePanelDetails();
-        }
-
-        if (targetElement) {
-            this._activeElementTarget = targetElement;
-        }
-
-        if (!this._balloon.hasView(this._panelView)) {
-            this._balloon.add({
-                view: this._panelView,
-                position: this._balloonPosition(targetElement),
-            });
-            this._bindPanelHoverEvents();
-            return;
-        }
-
-        this._balloon.updatePosition(this._balloonPosition(targetElement));
-        this._bindPanelHoverEvents();
-    }
-
-    _scheduleHidePanel(delay = 120) {
-        if (this._panelPinned) {
-            return;
-        }
-
-        this._cancelHidePanel();
-        this._hidePanelTimer = window.setTimeout(() => {
-            this._hidePanel();
-        }, delay);
-    }
-
-    _cancelHidePanel() {
-        if (this._hidePanelTimer !== null) {
-            window.clearTimeout(this._hidePanelTimer);
-            this._hidePanelTimer = null;
-        }
-    }
-
-    _bindPanelHoverEvents() {
-        if (this._panelHoverBound || !this._panelView?.element) {
-            return;
-        }
-
-        this._panelView.element.addEventListener('mouseenter', () => {
-            this._cancelHidePanel();
         });
-
-        this._panelView.element.addEventListener('mouseleave', () => {
-            if (this._panelPinned) {
+        gutter.addEventListener('click', (event) => {
+            const chip = event.target instanceof Element ? event.target.closest('.ck-a11y-chip') : null;
+            if (!chip) {
                 return;
             }
+            const entries = this._chipEntries.get(chip) ?? [];
+            if (this._popover && this._popoverAnchor === chip) {
+                this._closePopover({ returnFocus: 'editor' });
+                return;
+            }
+            this._openPopover(entries, chip);
+        });
+        main.classList.add('ck-a11y-gutter-host');
+        main.append(gutter);
+        this._gutter = gutter;
+        this._gutterHost = main;
 
-            this._activeHighlightTarget?.classList.remove('is-hover', 'is-selected');
-            this._activeHighlightTarget = null;
-            this._scheduleHidePanel(180);
+        const editable = this.editor.ui.getEditableElement();
+        editable?.addEventListener('scroll', () => this._scheduleGutterRender(), { passive: true });
+        window.addEventListener('resize', () => this._scheduleGutterRender(), { passive: true });
+        this.editor.ui.on('update', () => this._scheduleGutterRender());
+
+        if (this.editor.plugins.has('SourceEditing')) {
+            this.editor.plugins.get('SourceEditing').on('change:isSourceEditingMode', () => {
+                this._closePopover({ returnFocus: false });
+                this._scheduleGutterRender();
+            });
+        }
+    }
+
+    _isSourceEditingMode() {
+        return this.editor.plugins.has('SourceEditing') && this.editor.plugins.get('SourceEditing').isSourceEditingMode === true;
+    }
+
+    _scheduleGutterRender() {
+        if (this._gutterFrame !== null) {
+            return;
+        }
+        this._gutterFrame = window.requestAnimationFrame(() => {
+            this._gutterFrame = null;
+            this._renderGutter();
+        });
+    }
+
+    /**
+     * Issues of the editing area grouped by top-level block, each with the element that shows it.
+     *
+     * @returns {Array<{block: Element, top: number, entries: Array<{issue: object, target: Element, markerName: string}>}>}
+     */
+    _collectGutterGroups(editable) {
+        const groups = new Map();
+        const add = (target, issue, markerName = '') => {
+            const block = this._topLevelBlock(editable, target);
+            if (!block || !issue) {
+                return;
+            }
+            if (!groups.has(block)) {
+                groups.set(block, { block, target, entries: [], keys: new Set() });
+            }
+            const group = groups.get(block);
+            const key = markerName !== '' ? `marker:${markerName.replace(/:\d+$/, '')}:${issue.fingerprint}` : `issue:${issue.fingerprint}:${issue.ruleId}`;
+            if (group.keys.has(key)) {
+                return;
+            }
+            group.keys.add(key);
+            group.entries.push({ issue, target, markerName });
+        };
+
+        for (const mark of editable.querySelectorAll('[data-a11y-marker]')) {
+            const markerName = mark.getAttribute('data-a11y-marker') ?? '';
+            add(mark, this._markerMeta.get(markerName), markerName);
+        }
+        for (const element of editable.querySelectorAll('.ck-a11y-element[data-a11y-fp]')) {
+            const merged = this._elementIssueMeta.get(element.getAttribute('data-a11y-fp') ?? '');
+            const issues = merged?.relatedIssues?.length ? merged.relatedIssues : (merged ? [merged] : []);
+            issues.forEach((issue) => add(element, issue));
+        }
+
+        const editableTop = editable.getBoundingClientRect().top;
+        return Array.from(groups.values())
+            .map((group) => ({ ...group, top: group.target.getBoundingClientRect().top - editableTop + editable.scrollTop }))
+            .sort((a, b) => a.top - b.top);
+    }
+
+    _renderGutter() {
+        const gutter = this._gutter;
+        const editable = this.editor.ui.getEditableElement();
+        const editorElement = this.editor.ui.view.element;
+        if (!gutter || !editable || !editorElement) {
+            return;
+        }
+
+        const groups = this._isSourceEditingMode() || this._currentIssues.length === 0 ? [] : this._collectGutterGroups(editable);
+        editorElement.classList.toggle('ck-a11y-has-gutter', groups.length > 0);
+        gutter.hidden = groups.length === 0;
+
+        // The gutter covers the editing area (not the toolbar) and scrolls with it.
+        const hostRect = this._gutterHost.getBoundingClientRect();
+        const editableRect = editable.getBoundingClientRect();
+        gutter.style.top = `${Math.round(editableRect.top - hostRect.top)}px`;
+        gutter.style.height = `${Math.round(editable.clientHeight || editableRect.height)}px`;
+
+        const openKeys = this._popover && this._popoverAnchor instanceof HTMLElement && gutter.contains(this._popoverAnchor)
+            ? this._popoverAnchor.dataset.a11yBlockKey ?? ''
+            : '';
+        gutter.replaceChildren();
+        this._chipEntries = new WeakMap();
+        this._chipBlocks = new WeakMap();
+
+        let lastTop = -Infinity;
+        groups.forEach((group, index) => {
+            const entries = group.entries;
+            const severity = entries
+                .map((entry) => this._normalizeSeverity(entry.issue.severity))
+                .sort((a, b) => this._severityRank(b) - this._severityRank(a))[0] ?? 'warning';
+            const top = Math.max(group.top - editable.scrollTop + 2, lastTop + 24);
+            lastTop = top;
+
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.tabIndex = -1;
+            chip.className = `ck-a11y-chip ck-a11y-chip--${severity}`;
+            chip.dataset.a11yBlockKey = String(index);
+            chip.style.top = `${Math.round(top)}px`;
+            chip.setAttribute('aria-haspopup', 'dialog');
+            chip.setAttribute('aria-expanded', 'false');
+            const first = entries[0].issue;
+            chip.setAttribute('aria-label', entries.length === 1
+                ? this._label('chipOne', 'Accessibility: %s. Show how to fix it').replace('%s', `${this._severityLabel(first.severity)}, ${String(first.message || first.ruleId).replace(/[.!?]+$/, '')}`)
+                : this._label('chipMany', 'Accessibility: %d issues here. Show how to fix them').replace('%d', String(entries.length)));
+            chip.title = entries.length === 1
+                ? `${this._severityLabel(first.severity)} · ${first.message || first.ruleId}`
+                : this._label('issuesOnElement', '%d issues on this element').replace('%d', String(entries.length));
+            chip.innerHTML = `<span class="ck-a11y-chip__icon" aria-hidden="true"></span>${entries.length > 1 ? `<span class="ck-a11y-chip__count" aria-hidden="true">${entries.length}</span>` : ''}`;
+            this._chipEntries.set(chip, entries);
+            this._chipBlocks.set(chip, group.block);
+            gutter.append(chip);
         });
 
-        this._panelHoverBound = true;
+        this._markCurrentChip();
+        this._refreshOpenPopover(openKeys);
     }
 
-    _hidePanel() {
-        this._cancelHidePanel();
-        this._panelPinned = false;
-        this._activeElementTarget = null;
-        this._activeHighlightTarget = null;
-        this._clearSelectedElementState();
-
-        if (this._panelView && this._balloon.hasView(this._panelView)) {
-            this._balloon.remove(this._panelView);
+    /**
+     * Keeps an open details panel in step with a new validation result: its issues are shown again when they still
+     * exist, otherwise it closes. Focus moves only when it was inside the panel.
+     */
+    _refreshOpenPopover(blockKey) {
+        if (!this._popover) {
+            return;
         }
+
+        if (this._popoverScope === 'all') {
+            if (this._currentIssues.length === 0) {
+                this._closePopover({ returnFocus: 'invoker' });
+                return;
+            }
+            this._fillPopover(this._allEntries());
+            return;
+        }
+
+        const chip = blockKey !== '' ? this._gutter?.querySelector(`.ck-a11y-chip[data-a11y-block-key="${CSS.escape(blockKey)}"]`) : null;
+        const fingerprints = new Set(this._popoverEntries.map((entry) => entry.issue.fingerprint));
+        const entries = chip ? (this._chipEntries.get(chip) ?? []) : [];
+        if (!chip || !entries.some((entry) => fingerprints.has(entry.issue.fingerprint))) {
+            this._closePopover({ returnFocus: 'editor' });
+            return;
+        }
+        this._popoverAnchor = chip;
+        chip.setAttribute('aria-expanded', 'true');
+        this._fillPopover(entries);
     }
 
-    _balloonPosition(targetElement = null) {
-        if (targetElement) {
-            return {
-                target: targetElement,
-            };
+    _allEntries() {
+        const editable = this.editor.ui.getEditableElement();
+        const entries = editable ? this._collectGutterGroups(editable).flatMap((group) => group.entries) : [];
+        const seen = new Set(entries.map((entry) => entry.issue.fingerprint));
+        // Issues without a place in the text (the server found them, the editor shows no element) are listed too.
+        for (const issue of this._currentIssues) {
+            const normalized = this._normalizeIssueData(issue);
+            if (!seen.has(normalized.fingerprint)) {
+                seen.add(normalized.fingerprint);
+                entries.push({ issue: normalized, target: null, markerName: '' });
+            }
         }
 
-        const view = this.editor.editing.view;
-        const range = view.document.selection.getFirstRange();
+        return entries;
+    }
 
-        return {
-            target: range ? () => view.domConverter.viewRangeToDom(range) : undefined,
+    /**
+     * Details of one marker (or of all issues from the summary), on explicit request only: a non-modal panel inside
+     * the editor frame, closed by Escape, its close button or a click elsewhere. Focus moves into it and returns to
+     * the editor (or the summary button) when it closes.
+     */
+    _openPopover(entries, anchor, scope = 'block') {
+        if (!Array.isArray(entries) || entries.length === 0 || !this._gutterHost) {
+            return;
+        }
+
+        this._closePopover({ returnFocus: false });
+
+        const popover = document.createElement('div');
+        const titleId = `ck-a11y-popover-title-${Math.random().toString(36).slice(2, 8)}`;
+        popover.className = 'ck-a11y-popover';
+        popover.setAttribute('role', 'dialog');
+        popover.setAttribute('aria-modal', 'false');
+        popover.setAttribute('aria-labelledby', titleId);
+        popover.dataset.titleId = titleId;
+        popover.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                this._closePopover({ returnFocus: 'invoker' });
+            }
+        });
+        popover.addEventListener('click', (event) => this._onPopoverClick(event));
+
+        this._popover = popover;
+        this._popoverAnchor = anchor;
+        this._popoverScope = scope;
+        this._gutterHost.append(popover);
+        anchor?.setAttribute('aria-expanded', 'true');
+        this._fillPopover(entries);
+        this._positionPopover();
+
+        this._outsidePointer = (event) => {
+            const target = event.target;
+            if (target instanceof Node && (popover.contains(target) || anchor?.contains(target))) {
+                return;
+            }
+            this._closePopover({ returnFocus: false });
         };
+        document.addEventListener('mousedown', this._outsidePointer, true);
+        // Escape closes the panel wherever focus is, except inside another dialog of the page.
+        this._escapeListener = (event) => {
+            if (event.key !== 'Escape' || !this._popover) {
+                return;
+            }
+            const active = document.activeElement;
+            if (active instanceof Element && !this._popover.contains(active) && active.closest('[role="dialog"], .modal')) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            this._closePopover({ returnFocus: this._popover.contains(active) || active === document.body ? 'invoker' : false });
+            if (active === document.body || active === null) {
+                this.editor.editing.view.focus();
+            }
+        };
+        document.addEventListener('keydown', this._escapeListener, true);
+
+        popover.querySelector('.ck-a11y-popover__title')?.focus({ preventScroll: true });
+    }
+
+    _entriesKey(entries) {
+        return entries.map((entry) => `${entry.issue.fingerprint}|${entry.issue.ruleId}|${entry.issue.message}|${entry.markerName}`).join('\n');
+    }
+
+    _fillPopover(entries) {
+        const popover = this._popover;
+        if (!popover) {
+            return;
+        }
+
+        // Editor focus and layout changes re-render the gutter: unchanged issues keep the panel (and its focus) as is.
+        const key = this._entriesKey(entries);
+        if (popover.dataset.entriesKey === key && popover.childElementCount > 0) {
+            this._popoverEntries = entries;
+            return;
+        }
+        const focusWasInside = popover.contains(document.activeElement);
+        popover.dataset.entriesKey = key;
+        this._popoverEntries = entries;
+        const titleId = popover.dataset.titleId ?? '';
+        const title = entries.length === 1
+            ? this._label('accessibilityIssue', 'Accessibility issue')
+            : this._label('issuesFoundOther', '%d issues found').replace('%d', String(entries.length));
+        const severity = entries
+            .map((entry) => this._normalizeSeverity(entry.issue.severity))
+            .sort((a, b) => this._severityRank(b) - this._severityRank(a))[0] ?? 'warning';
+
+        popover.className = `ck-a11y-popover ck-a11y-popover--${severity}${popover.classList.contains('ck-a11y-popover--narrow') ? ' ck-a11y-popover--narrow' : ''}`;
+        popover.innerHTML = `
+            <div class="ck-a11y-popover__head">
+                <h3 class="ck-a11y-popover__title" id="${titleId}" tabindex="-1">${this._escapeHtml(title)}</h3>
+                <button type="button" class="ck-a11y-popover__close" data-a11y-popover-close="1" aria-label="${this._labelHtml('close', 'Close')}">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <ol class="ck-a11y-popover__list">
+                ${entries.map((entry, index) => this._popoverItemHtml(entry, index)).join('')}
+            </ol>
+        `;
+        if (focusWasInside) {
+            popover.querySelector('.ck-a11y-popover__title')?.focus({ preventScroll: true });
+        }
+    }
+
+    _popoverItemHtml(entry, index) {
+        const issue = entry.issue;
+        const severity = this._normalizeSeverity(issue.severity);
+        const canIgnore = (issue.fingerprint ?? '') !== '' && !(issue.issueCount > 1);
+        const canSelect = entry.target instanceof Element;
+        const details = [
+            issue.ruleId ? `<div class="ck-a11y-panel__details-row"><span class="ck-a11y-panel__details-key">${this._labelHtml('rule', 'Rule')}</span><span class="ck-a11y-panel__details-val">${this._escapeHtml(issue.ruleId)}</span></div>` : '',
+            issue.contextPath ? `<div class="ck-a11y-panel__details-row"><span class="ck-a11y-panel__details-key">${this._labelHtml('location', 'Location')}</span><span class="ck-a11y-panel__details-val">${this._escapeHtml(issue.contextPath)}</span></div>` : '',
+            issue.snippet ? `<code class="ck-a11y-panel__snippet">${this._escapeHtml(issue.snippet)}</code>` : '',
+        ].join('');
+
+        return `
+            <li class="ck-a11y-popover__issue">
+                <span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}">
+                    <span class="ck-a11y-panel__severity-dot" aria-hidden="true"></span>${this._escapeHtml(this._severityLabel(severity))}
+                </span>
+                <p class="ck-a11y-popover__message">${this._escapeHtml(issue.message || issue.ruleId || this._label('accessibilityIssue', 'Accessibility issue'))}</p>
+                <p class="ck-a11y-popover__fix"><strong>${this._labelHtml('howToFix', 'How to fix')}:</strong> ${this._escapeHtml(issue.hint || this._label('noGuidance', 'No editor guidance is available for this rule yet. Review the highlighted content and the rule details below.'))}</p>
+                ${details !== '' ? `<details class="ck-a11y-popover__details"><summary>${this._labelHtml('showDetails', 'Show details')}</summary><div class="ck-a11y-panel__details">${details}</div></details>` : ''}
+                <div class="ck-a11y-popover__actions">
+                    ${canSelect ? `<button type="button" class="ck-a11y-panel__btn" data-a11y-select="${index}">${this._labelHtml('selectInText', 'Select in text')}</button>` : ''}
+                    ${canIgnore ? `<button type="button" class="ck-a11y-panel__btn ck-a11y-panel__btn--ghost" data-a11y-ignore="${index}">${this._labelHtml('ignoreIssue', 'Ignore this issue')}</button>` : ''}
+                </div>
+            </li>
+        `;
+    }
+
+    _onPopoverClick(event) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) {
+            return;
+        }
+
+        if (target.closest('[data-a11y-popover-close]')) {
+            this._closePopover({ returnFocus: 'invoker' });
+            return;
+        }
+
+        const selectButton = target.closest('[data-a11y-select]');
+        if (selectButton) {
+            const entry = this._popoverEntries[Number.parseInt(selectButton.getAttribute('data-a11y-select') ?? '-1', 10)];
+            this._closePopover({ returnFocus: false });
+            this._selectEntryInEditor(entry);
+            return;
+        }
+
+        const ignoreButton = target.closest('[data-a11y-ignore]');
+        if (ignoreButton) {
+            const entry = this._popoverEntries[Number.parseInt(ignoreButton.getAttribute('data-a11y-ignore') ?? '-1', 10)];
+            if (entry) {
+                ignoreButton.disabled = true;
+                this._postIgnore(entry.issue);
+            }
+        }
+    }
+
+    /** Places the editor's selection on the issue's text or element and gives the editor focus back. */
+    _selectEntryInEditor(entry) {
+        const editor = this.editor;
+        if (!entry) {
+            editor.editing.view.focus();
+            return;
+        }
+
+        try {
+            const marker = entry.markerName !== '' ? editor.model.markers.get(entry.markerName) : null;
+            if (marker) {
+                editor.model.change((writer) => writer.setSelection(marker.getRange()));
+            } else if (entry.target instanceof Element) {
+                const view = editor.editing.view;
+                const viewElement = view.domConverter.mapDomToView(entry.target);
+                const modelElement = viewElement ? editor.editing.mapper.toModelElement(viewElement) : null;
+                if (modelElement) {
+                    editor.model.change((writer) => writer.setSelection(modelElement, 'on'));
+                } else {
+                    const viewPosition = view.domConverter.domPositionToView(entry.target, 0);
+                    const modelPosition = viewPosition ? editor.editing.mapper.toModelPosition(viewPosition) : null;
+                    if (modelPosition) {
+                        editor.model.change((writer) => writer.setSelection(modelPosition));
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('[A11Y] Could not select the issue in the editor', error);
+        }
+
+        editor.editing.view.focus();
+        editor.editing.view.scrollToTheSelection();
+    }
+
+    _positionPopover() {
+        const popover = this._popover;
+        const host = this._gutterHost;
+        if (!popover || !host) {
+            return;
+        }
+
+        const hostRect = host.getBoundingClientRect();
+        const anchorRect = this._popoverAnchor instanceof Element ? this._popoverAnchor.getBoundingClientRect() : hostRect;
+        const narrow = hostRect.width < 460;
+        popover.classList.toggle('ck-a11y-popover--narrow', narrow);
+        const fromSummary = this._popoverScope === 'all';
+        const top = fromSummary ? 4 : Math.max(4, anchorRect.bottom - hostRect.top + 4);
+        popover.style.top = `${Math.round(top)}px`;
+        // Never taller than the space left in the window: the panel scrolls inside instead.
+        const spaceBelow = window.innerHeight - (hostRect.top + top) - 12;
+        popover.style.maxHeight = `${Math.max(180, Math.round(spaceBelow))}px`;
+    }
+
+    /**
+     * @param {{returnFocus: 'invoker'|'editor'|false}} options where focus goes when it was inside the panel
+     */
+    _closePopover({ returnFocus = 'invoker' } = {}) {
+        const popover = this._popover;
+        if (!popover) {
+            return;
+        }
+
+        const focusWasInside = popover.contains(document.activeElement);
+        const anchor = this._popoverAnchor;
+        document.removeEventListener('mousedown', this._outsidePointer, true);
+        document.removeEventListener('keydown', this._escapeListener, true);
+        this._outsidePointer = null;
+        this._escapeListener = null;
+        popover.remove();
+        this._popover = null;
+        this._popoverAnchor = null;
+        this._popoverEntries = [];
+        anchor?.setAttribute('aria-expanded', 'false');
+
+        if (!focusWasInside || returnFocus === false) {
+            return;
+        }
+
+        // A marker is not in the tab order: going back to it would strand keyboard focus, so the editor takes it.
+        if (returnFocus === 'invoker' && anchor instanceof HTMLElement && anchor.isConnected && !anchor.classList.contains('ck-a11y-chip')) {
+            anchor.focus();
+            return;
+        }
+        this.editor.editing.view.focus();
+    }
+
+    _escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     _installSummaryBar() {
@@ -929,8 +1301,20 @@ export default class A11yPlugin extends Plugin {
         summary.setAttribute('role', 'status');
         summary.setAttribute('aria-live', 'polite');
         summary.addEventListener('click', (event) => {
-            if (event.target instanceof Element && event.target.closest('[data-a11y-refresh]')) {
+            if (!(event.target instanceof Element)) {
+                return;
+            }
+            if (event.target.closest('[data-a11y-refresh]')) {
                 this.editor.fire('a11y:refresh');
+                return;
+            }
+            const showButton = event.target.closest('[data-a11y-show-issues]');
+            if (showButton) {
+                if (this._popover && this._popoverAnchor === showButton) {
+                    this._closePopover({ returnFocus: 'invoker' });
+                    return;
+                }
+                this._openPopover(this._allEntries(), showButton, 'all');
             }
         });
 
@@ -943,6 +1327,25 @@ export default class A11yPlugin extends Plugin {
         if (!this._summaryElement) {
             return;
         }
+
+        // A screen reader hears the result, not every "Updating…" while the editor types.
+        this._summaryElement.setAttribute('aria-busy', state === 'loading' || state === 'updating' ? 'true' : 'false');
+        const summaryHadFocus = this._summaryElement.contains(document.activeElement);
+        const showIssuesWasOpen = this._popover !== null && this._popoverScope === 'all';
+        this._renderSummaryContent(state, issues);
+        const showButton = this._summaryElement.querySelector('[data-a11y-show-issues]');
+        if (showIssuesWasOpen && this._popover) {
+            if (showButton) {
+                this._popoverAnchor = showButton;
+                showButton.setAttribute('aria-expanded', 'true');
+            }
+        }
+        if (summaryHadFocus) {
+            (showButton ?? this._summaryElement.querySelector('button'))?.focus();
+        }
+    }
+
+    _renderSummaryContent(state, issues = []) {
 
         if (state === 'loading' || state === 'updating') {
             const title = state === 'updating'
@@ -1010,7 +1413,8 @@ export default class A11yPlugin extends Plugin {
                 </span>
             </span>
             <span class="ck-a11y-summary__right">
-                <span class="ck-a11y-summary__help">${this._labelHtml('selectHighlight', 'Select a highlight to see how to fix it.')}</span>
+                <span class="ck-a11y-summary__help">${this._labelHtml('selectHighlight', 'Open a marker at the right edge of the text to see how to fix it.')}</span>
+                <button class="ck-a11y-summary__link" type="button" data-a11y-show-issues="1" aria-haspopup="dialog" aria-expanded="false">${this._labelHtml('showIssues', 'Show issues')}</button>
             </span>
         `;
     }
@@ -1207,12 +1611,8 @@ export default class A11yPlugin extends Plugin {
         this._currentIssues = visibleIssues;
         this._applyHighlights(visibleIssues);
         this._applyElementDecorations(visibleIssues);
-
-        if (visibleIssues.length === 0) {
-            this._hidePanel();
-        }
-
         this._renderSummary(visibleIssues.length > 0 ? 'issues' : 'ok', visibleIssues);
+        this._scheduleGutterRender();
     }
 
     _filterIssuesForCurrentEditor(issues) {
@@ -1317,137 +1717,6 @@ export default class A11yPlugin extends Plugin {
         }, delay);
     }
 
-    _bindEditableEvents() {
-        if (this._editableClickBound) {
-            return;
-        }
-
-        const editable = this.editor.ui.getEditableElement();
-        if (!editable) {
-            return;
-        }
-
-        editable.addEventListener('mouseover', (event) => {
-            const target = event.target instanceof Element
-                ? event.target.closest('.a11y-highlight, .ck-a11y-mark, .a11y-element-highlight, .ck-a11y-element')
-                : null;
-
-            if (!target) {
-                if (this._activeHighlightTarget && !this._isPanelElement(event.relatedTarget)) {
-                    this._scheduleHidePanel(120);
-                }
-                return;
-            }
-
-            this._cancelHidePanel();
-
-            const issueData = this._issueDataForDomTarget(target);
-            if (!issueData) {
-                return;
-            }
-
-            this._activeHighlightTarget = target;
-            target.classList.add('is-hover');
-            this._clearSelectedElementState(target);
-            target.classList.add('is-selected');
-            this._showPanel(issueData, target, { pinned: false });
-        });
-
-        editable.addEventListener('mouseout', (event) => {
-            const target = event.target instanceof Element
-                ? event.target.closest('.a11y-highlight, .ck-a11y-mark, .a11y-element-highlight, .ck-a11y-element')
-                : null;
-
-            if (!target) {
-                return;
-            }
-
-            if (event.relatedTarget instanceof Node && (target.contains(event.relatedTarget) || this._isPanelElement(event.relatedTarget))) {
-                return;
-            }
-
-            target.classList.remove('is-hover', 'is-selected');
-            if (this._activeHighlightTarget === target) {
-                this._activeHighlightTarget = null;
-            }
-            this._scheduleHidePanel(420);
-        });
-
-        editable.addEventListener('mouseleave', (event) => {
-            if (this._isPanelElement(event.relatedTarget)) {
-                return;
-            }
-            this._scheduleHidePanel(220);
-        });
-
-        editable.addEventListener('click', (event) => {
-            const target = event.target instanceof Element
-                ? event.target.closest('.a11y-highlight, .ck-a11y-mark, .a11y-element-highlight, .ck-a11y-element')
-                : null;
-
-            if (!target) {
-                this._panelPinned = false;
-                this._scheduleHidePanel(80);
-                return;
-            }
-
-            const issueData = this._issueDataForDomTarget(target);
-            if (!issueData) {
-                return;
-            }
-
-            this._clearSelectedElementState(target);
-            target.classList.add('is-selected');
-            this._activeHighlightTarget = target;
-
-            if (this._isNativeEditorInteraction(event.target)) {
-                // Keep native CKEditor behaviour for links/widgets. The AQG panel stays visible,
-                // but we do not prevent the editor's own link/table/image UI from opening.
-                this._showPanel(issueData, target, { pinned: false });
-                this._scheduleCachedHighlightRefresh(180);
-                return;
-            }
-
-            this._showPanel(issueData, target, { pinned: true });
-            event.preventDefault();
-            event.stopPropagation();
-        });
-
-        this._editableClickBound = true;
-    }
-
-    _isPanelElement(node) {
-        return node instanceof Node && !!this._panelView?.element?.contains(node);
-    }
-
-    _collapsePanelDetails() {
-        if (!this._panelView?.element) {
-            return;
-        }
-
-        this._panelView.element.classList.remove('ck-a11y-panel--details-expanded');
-        const button = this._panelView.element.querySelector('.ck-a11y-panel__btn--ghost');
-        if (button) {
-            button.textContent = this._label('showDetails', 'Show details');
-            button.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    _togglePanelDetails() {
-        if (!this._panelView?.element) {
-            return;
-        }
-
-        const isOpen = this._panelView.element.classList.toggle('ck-a11y-panel--details-expanded');
-        const button = this._panelView.element.querySelector('.ck-a11y-panel__btn--ghost');
-        if (button) {
-            button.textContent = isOpen
-                ? this._label('hideDetails', 'Hide details')
-                : this._label('showDetails', 'Show details');
-            button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        }
-    }
-
     _issueDataForDomTarget(target) {
         const elementIssue = this._issueDataForElement(target);
         if (elementIssue) {
@@ -1465,28 +1734,6 @@ export default class A11yPlugin extends Plugin {
     _issueDataForElement(target) {
         const key = target.getAttribute('data-a11y-fp') ?? '';
         return this._elementIssueMeta.get(key) ?? null;
-    }
-
-    _isNativeEditorInteraction(target) {
-        if (!(target instanceof Element)) {
-            return false;
-        }
-
-        return target.closest('a[href], button, input, textarea, select, [contenteditable="false"], .ck-widget') !== null;
-    }
-
-    _clearSelectedElementState(exceptElement = null) {
-        const editable = this.editor.ui.getEditableElement();
-        if (!editable) {
-            return;
-        }
-
-        for (const element of editable.querySelectorAll('.ck-a11y-element.is-selected, .a11y-element-highlight.is-selected, .ck-a11y-mark.is-selected, .a11y-highlight.is-selected')) {
-            if (exceptElement && element === exceptElement) {
-                continue;
-            }
-            element.classList.remove('is-selected');
-        }
     }
 
     async _postIgnore(issueData) {
@@ -1534,8 +1781,8 @@ export default class A11yPlugin extends Plugin {
                 return;
             }
 
+            this._closePopover({ returnFocus: 'editor' });
             this.editor.fire('a11y:refresh');
-            this._hidePanel();
         } catch (error) {
             console.warn('[A11Y] Ignore error', error);
         }

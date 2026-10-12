@@ -15,6 +15,9 @@ export default defineConfig({
             '@typo3/backend/severity.js': fileURLToPath(
                 new URL('./Tests/JavaScript/stubs/severity.js', import.meta.url),
             ),
+            '@typo3/backend/viewport.js': fileURLToPath(
+                new URL('./Tests/JavaScript/stubs/viewport.js', import.meta.url),
+            ),
         },
     },
 });

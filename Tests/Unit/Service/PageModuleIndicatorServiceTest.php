@@ -39,7 +39,9 @@ final class PageModuleIndicatorServiceTest extends TestCase
         'pageModuleIndicator.freeHint.open' => 'OPEN-FRONTEND-SCAN',
         'pageModuleIndicator.proHint.remoteScanAvailable' => 'PAID-RUN-FRONTEND-SCAN',
         'pageModuleIndicator.metric.critical' => '%d CRITICAL',
-        'pageModuleIndicator.metric.warnings' => '%d WARNINGS',
+        'pageModuleIndicator.metric.warning.singular' => '%d WARNING',
+        'pageModuleIndicator.metric.warning.plural' => '%d WARNINGS',
+        'pageModuleIndicator.metric.info' => '%d INFO',
         'pageModuleIndicator.metric.issueTypes.singular' => '%d ISSUE TYPE',
         'pageModuleIndicator.metric.issueTypes.plural' => '%d ISSUE TYPES',
         'pageModuleIndicator.metric.occurrences.singular' => '%d OCCURRENCE',
@@ -49,6 +51,7 @@ final class PageModuleIndicatorServiceTest extends TestCase
         'pageModuleIndicator.row.lastScan' => 'LAST %s',
         'pageModuleIndicator.headline.none' => 'NOT-SCANNED',
         'pageModuleIndicator.headline.ok' => 'NO-ISSUES',
+        'pageModuleIndicator.headline.remoteNotLoaded' => 'PAGE-NOT-LOADED',
         'pageModuleIndicator.headline.issues' => 'ISSUES-FOUND',
         'pageModuleIndicator.headline.attention' => 'NEEDS-ATTENTION',
     ];
@@ -162,13 +165,18 @@ final class PageModuleIndicatorServiceTest extends TestCase
             $this->proLicence(),
             $this->createMock(FreeRemotePreviewService::class),
             $remoteScans,
-            ['critical' => 2, 'warning' => 1, 'info' => 0, 'needs_review' => 0],
+            ['critical' => 2, 'warning' => 1, 'info' => 3, 'needs_review' => 0],
             1789100000,
         );
 
         [$content, $frontend] = $this->assigned['rows'];
         self::assertSame(['content', 'CONTENT-SCAN', 'error'], [$content['source'], $content['label'], $content['state']]);
-        self::assertSame('2 CRITICAL · 1 WARNINGS', $content['headline']);
+        self::assertSame('2 CRITICAL · 1 WARNING · 3 INFO', $content['headline']);
+        // Each severity is its own icon + word item (audit M2: "notes" became "info", no colour-only count line).
+        self::assertSame(
+            [['critical', '2 CRITICAL'], ['warning', '1 WARNING'], ['info', '3 INFO']],
+            array_map(static fn (array $item): array => [$item['tone'], $item['label']], $content['counts'])
+        );
         self::assertSame(['frontend', 'FRONTEND-SCAN', 'error'], [$frontend['source'], $frontend['label'], $frontend['state']]);
         // A page row counts the rules found on the page.
         self::assertSame('1 ISSUE TYPE', $frontend['headline']);
@@ -176,6 +184,48 @@ final class PageModuleIndicatorServiceTest extends TestCase
         self::assertStringContainsString('2026', $content['meta']);
         self::assertStringContainsString('2026', $frontend['meta']);
         self::assertSame('', $this->assigned['meta'], 'Scan times live in the rows, not in an unlabelled footer.');
+    }
+
+    #[Test]
+    public function aFrontendPageThatCouldNotBeLoadedIsNeverReportedAsClean(): void
+    {
+        $remoteScans = $this->createMock(RemoteScanRepository::class);
+        $remoteScans->method('findLatestPageForCompletedPageScan')->willReturn([
+            'uid' => 256,
+            'issues_count' => 0,
+            'is_failed' => 1,
+            'http_status' => 404,
+            'remote_scan_finished_at' => 1789200000,
+        ]);
+
+        $this->render($this->proLicence(), $this->createMock(FreeRemotePreviewService::class), $remoteScans);
+
+        $frontend = $this->assigned['rows'][1];
+        self::assertSame('warning', $frontend['state'], 'A 404 page proves nothing about the page, so it is not "ok".');
+        self::assertSame('PAGE-NOT-LOADED', $frontend['headline']);
+        self::assertNotSame('ok', $this->assigned['overallState']);
+    }
+
+    #[Test]
+    public function aFreePageScanThatLoadedNoPageIsNeverReportedAsClean(): void
+    {
+        $remoteScans = $this->createMock(RemoteScanRepository::class);
+        $remoteScans->method('findLastCompletedPageScanByPageOrUrl')->willReturn([
+            'scan_scope' => 'page',
+            'finished_at' => 1789000000,
+            'issues_total' => 0,
+            'pages_scanned' => 0,
+            'pages_failed' => 1,
+            'is_free_preview' => 1,
+        ]);
+
+        $free = $this->createMock(FreeRemotePreviewService::class);
+        $free->method('peekEntitlementStatus')->willReturn(null);
+
+        $this->render($this->freeLicence(), $free, $remoteScans);
+
+        self::assertSame('warning', $this->assigned['rows'][1]['state']);
+        self::assertSame('PAGE-NOT-LOADED', $this->assigned['rows'][1]['headline']);
     }
 
     #[Test]

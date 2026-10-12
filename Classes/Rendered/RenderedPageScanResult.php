@@ -20,6 +20,7 @@ final readonly class RenderedPageScanResult
         public string $warning = '',
         public string $failureReason = '',
         public int $h1Count = 0,
+        public int $statusCode = 0,
     ) {
     }
 }
