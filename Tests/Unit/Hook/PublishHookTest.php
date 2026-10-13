@@ -148,6 +148,112 @@ final class PublishHookTest extends TestCase
         self::assertSame([], $this->flashMessages);
     }
 
+    #[Test]
+    public function unhidingATranslationJudgesItsDefaultPageInItsLanguageAndRehidesTheTranslation(): void
+    {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->expects(self::once())->method('check')->with(42, 'main', 1)->willReturn(QualityGateVerdict::fail(
+            mode: 2,
+            counts: ['critical' => 1, 'warning' => 0, 'info' => 0, 'needs_review' => 0],
+            reasons: ['1 critical issue(s) exceed threshold 0'],
+            reasonDetails: [['severity' => 'critical', 'count' => 1, 'threshold' => 0]],
+        ));
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->expects(self::once())->method('scanPage')
+            ->with(self::anything(), 42, 1, self::anything(), self::anything())
+            ->willReturn(new ScanResult(11));
+
+        // The page tree sends only `hidden` for the German record 77 of page 42.
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->method('fetchAssociative')->willReturn(['l10n_parent' => 42, 'sys_language_uid' => 1]);
+        $connection->expects(self::once())->method('update')->with('pages', ['hidden' => 1], ['uid' => 77]);
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getConnectionForTable')->willReturn($connection);
+
+        $this->unhidePage($checker, $scans, true, $pool, true, [], 77);
+
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $this->flashMessages[0]['severity'] ?? null);
+    }
+
+    #[Test]
+    public function aDefaultLanguagePageIsJudgedAsItself(): void
+    {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->expects(self::once())->method('check')->with(42, 'main', 0)->willReturn(QualityGateVerdict::pass());
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->expects(self::once())->method('scanPage')
+            ->with(self::anything(), 42, 0, self::anything(), self::anything())
+            ->willReturn(new ScanResult(11));
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->method('fetchAssociative')->willReturn(['l10n_parent' => 0, 'sys_language_uid' => 0]);
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getConnectionForTable')->willReturn($connection);
+
+        $this->unhidePage($checker, $scans, true, $pool);
+
+        self::assertSame([], $this->flashMessages);
+    }
+
+    #[Test]
+    public function savingAPageThatIsAlreadyVisibleDoesNotTakeItOffline(): void
+    {
+        // FormEngine sends hidden = 0 with every save of a visible page, e.g. after a title change.
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->expects(self::never())->method('check');
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->expects(self::never())->method('scanPage');
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->method('fetchOne')->willReturn(0);
+        $connection->expects(self::never())->method('update');
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getConnectionForTable')->willReturn($connection);
+
+        $this->unhidePage($checker, $scans, true, $pool, true);
+
+        self::assertSame([], $this->flashMessages);
+    }
+
+    #[Test]
+    public function unhidingAHiddenPageIsJudgedAndBlocked(): void
+    {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->expects(self::once())->method('check')->with(42, 'main', 0)->willReturn(QualityGateVerdict::fail(
+            mode: 2,
+            counts: ['critical' => 1, 'warning' => 0, 'info' => 0, 'needs_review' => 0],
+            reasons: ['1 critical issue(s) exceed threshold 0'],
+            reasonDetails: [['severity' => 'critical', 'count' => 1, 'threshold' => 0]],
+        ));
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->expects(self::once())->method('scanPage')->willReturn(new ScanResult(11));
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->method('fetchOne')->willReturn(1);
+        $connection->method('fetchAssociative')->willReturn(['l10n_parent' => 0, 'sys_language_uid' => 0]);
+        $connection->expects(self::once())->method('update')->with('pages', ['hidden' => 1], ['uid' => 42]);
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getConnectionForTable')->willReturn($connection);
+
+        $this->unhidePage($checker, $scans, true, $pool, true);
+
+        self::assertSame(ContextualFeedbackSeverity::ERROR, $this->flashMessages[0]['severity'] ?? null);
+    }
+
+    #[Test]
+    public function aPageStateThatCannotBeReadStillRunsTheGate(): void
+    {
+        $checker = $this->createMock(QualityGateChecker::class);
+        $checker->expects(self::once())->method('check')->willReturn(QualityGateVerdict::pass());
+        $scans = $this->createMock(ScanOrchestrator::class);
+        $scans->expects(self::once())->method('scanPage')->willReturn(new ScanResult(11));
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->method('fetchOne')->willThrowException(new \RuntimeException('connection lost'));
+        $pool = $this->createMock(ConnectionPool::class);
+        $pool->method('getConnectionForTable')->willReturn($connection);
+
+        $this->unhidePage($checker, $scans, true, $pool);
+
+        self::assertSame([], $this->flashMessages);
+    }
+
     /**
      * @param array<string, mixed> $extraDatamap
      */
@@ -158,6 +264,7 @@ final class PublishHookTest extends TestCase
         ?ConnectionPool $pool = null,
         bool $licenceValid = false,
         array $extraDatamap = [],
+        int $pageUid = 42,
     ): void {
         $users = $this->createMock(BackendUserService::class);
         $users->method('canAccessAccessibilityModule')->willReturn($moduleAccess);
@@ -206,8 +313,14 @@ final class PublishHookTest extends TestCase
         );
 
         $dataHandler = $this->createMock(DataHandler::class);
-        $dataHandler->datamap = ['pages' => [42 => ['hidden' => 0]]] + $extraDatamap;
+        $dataHandler->datamap = ['pages' => [$pageUid => ['hidden' => 0]]] + $extraDatamap;
 
+        // DataHandler calls the hook for every record before it writes, then once after all operations.
+        foreach ($dataHandler->datamap as $table => $records) {
+            foreach ($records as $uid => $fields) {
+                $hook->processDatamap_preProcessFieldArray($fields, $table, $uid, $dataHandler);
+            }
+        }
         $hook->processDatamap_afterAllOperations($dataHandler);
     }
 }

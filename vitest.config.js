@@ -18,6 +18,12 @@ export default defineConfig({
             '@typo3/backend/viewport.js': fileURLToPath(
                 new URL('./Tests/JavaScript/stubs/viewport.js', import.meta.url),
             ),
+            '@typo3/backend/storage/module-state-storage.js': fileURLToPath(
+                new URL('./Tests/JavaScript/stubs/module-state-storage.js', import.meta.url),
+            ),
+            '@ckeditor/ckeditor5-core': fileURLToPath(
+                new URL('./Tests/JavaScript/stubs/ckeditor5-core.js', import.meta.url),
+            ),
         },
     },
 });

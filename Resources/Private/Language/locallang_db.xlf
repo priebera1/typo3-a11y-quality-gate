@@ -220,6 +220,9 @@
                 <source>JSON list of URLs that should be prioritized by remote crawler jobs.</source>
             </trans-unit>
 
+            <trans-unit id="tx_a11y_ruleset.publish_mode.inherit">
+                <source>Inherit — no site override, the global configuration applies</source>
+            </trans-unit>
             <trans-unit id="tx_a11y_ruleset.publish_mode.off">
                 <source>Off — no quality gate check</source>
             </trans-unit>

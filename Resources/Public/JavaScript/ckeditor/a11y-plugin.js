@@ -53,6 +53,10 @@ export default class A11yPlugin extends Plugin {
         this._lastFetchedData = '';
         this._liveValidationAbortController = null;
         this._liveValidationSequence = 0;
+        // Whether the shown result is the live check of the current text or, when that is unavailable, the
+        // stored result of the last content scan.
+        this._resultSource = 'live';
+        this._ready = false;
 
         editor.conversion.for('editingDowncast').markerToHighlight({
             model: 'a11yIssue',
@@ -84,6 +88,11 @@ export default class A11yPlugin extends Plugin {
         });
 
         editor.model.document.on('change:data', () => {
+            // CKEditor loads the initial content as a data change before the editor is ready. That is not an
+            // edit: the first result is the live check started on ready.
+            if (!this._ready) {
+                return;
+            }
             this._scheduleCachedHighlightRefresh();
             this._scheduleValidationRefresh();
         });
@@ -92,7 +101,8 @@ export default class A11yPlugin extends Plugin {
             this._installSummaryBar();
             this._installGutter();
             this._installDecorationObserver();
-            this._fetchAndHighlight();
+            this._ready = true;
+            this._fetchLiveValidation({ initial: true });
         });
 
         editor.on('destroy', () => {
@@ -100,13 +110,20 @@ export default class A11yPlugin extends Plugin {
             if (this._gutterFrame !== null) {
                 window.cancelAnimationFrame(this._gutterFrame);
             }
+            window.clearTimeout(this._validationRefreshTimer ?? undefined);
+            window.clearTimeout(this._cachedHighlightTimer ?? undefined);
+            this._liveValidationAbortController?.abort();
         });
 
         editor.on('a11y:refresh', () => {
-            this._fetchAndHighlight();
+            this._fetchLiveValidation({ initial: true });
         });
     }
 
+    /**
+     * The stored findings of the last content scan for this field: only a fallback while the live check of the
+     * current text is unavailable, and shown as such.
+     */
     async _fetchAndHighlight() {
         const cfg = this.editor.config.get('a11yQualityGate') ?? {};
         const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
@@ -121,8 +138,8 @@ export default class A11yPlugin extends Plugin {
             return;
         }
 
-        this._renderSummary('loading');
-
+        // A live check started meanwhile (an edit, Retry) is newer than this fallback.
+        const validationSequence = this._liveValidationSequence;
         let issues = [];
 
         try {
@@ -155,8 +172,13 @@ export default class A11yPlugin extends Plugin {
             return;
         }
 
+        if (validationSequence !== this._liveValidationSequence) {
+            return;
+        }
+
         this._rawIssues = issues;
         this._lastFetchedData = this.editor.getData();
+        this._resultSource = 'stored';
         this._syncIssuesWithCurrentEditor();
     }
 
@@ -1381,6 +1403,21 @@ export default class A11yPlugin extends Plugin {
             return;
         }
 
+        const retryButton = `<button class="ck-a11y-summary__link" type="button" data-a11y-refresh="1">${this._labelHtml('retry', 'Retry')}</button>`;
+
+        if (state === 'storedOk') {
+            this._summaryElement.className = 'ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--error ck-a11y-summary--stored';
+            this._summaryElement.innerHTML = `
+                <span class="ck-a11y-summary__left">
+                    <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
+                    <span class="ck-a11y-summary__title">${this._labelHtml('storedNoIssues', 'No issues in the last content scan')}</span>
+                    <span class="ck-a11y-summary__help">${this._labelHtml('storedNoIssuesHelp', 'Live check unavailable: the current text was not checked.')}</span>
+                </span>
+                <span class="ck-a11y-summary__right">${retryButton}</span>
+            `;
+            return;
+        }
+
         if (state === 'ok') {
             this._summaryElement.className = 'ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--ok';
             this._summaryElement.innerHTML = `
@@ -1397,8 +1434,9 @@ export default class A11yPlugin extends Plugin {
         const counts = this._countSeverities(issues);
         const total = counts.critical + counts.warning + counts.needs_review + counts.info;
         const variant = counts.critical > 0 ? 'critical' : 'issues';
+        const stored = state === 'stored';
 
-        this._summaryElement.className = `ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--${variant}`;
+        this._summaryElement.className = `ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--${variant}${stored ? ' ck-a11y-summary--stored' : ''}`;
         this._summaryElement.innerHTML = `
             <span class="ck-a11y-summary__left">
                 <span class="ck-a11y-summary__dot" aria-hidden="true"></span>
@@ -1413,8 +1451,11 @@ export default class A11yPlugin extends Plugin {
                 </span>
             </span>
             <span class="ck-a11y-summary__right">
-                <span class="ck-a11y-summary__help">${this._labelHtml('selectHighlight', 'Open a marker at the right edge of the text to see how to fix it.')}</span>
+                <span class="ck-a11y-summary__help">${stored
+                    ? this._labelHtml('storedResultsHelp', 'Live check unavailable: these results are from the last content scan and may not match the current text.')
+                    : this._labelHtml('selectHighlight', 'Open a marker at the right edge of the text to see how to fix it.')}</span>
                 <button class="ck-a11y-summary__link" type="button" data-a11y-show-issues="1" aria-haspopup="dialog" aria-expanded="false">${this._labelHtml('showIssues', 'Show issues')}</button>
+                ${stored ? retryButton : ''}
             </span>
         `;
     }
@@ -1510,7 +1551,11 @@ export default class A11yPlugin extends Plugin {
         return (String(html).match(/<\s*(a|img|table|th|td|button|iframe|svg|h[1-6])\b/gi) ?? []).length;
     }
 
-    async _fetchLiveValidation() {
+    /**
+     * Live check of the current text. `initial` (editor opened, Retry, after Ignore) shows "Checking accessibility…";
+     * after an edit the status says it is updating. Without a usable live result the stored findings are shown.
+     */
+    async _fetchLiveValidation({ initial = false } = {}) {
         const cfg = this.editor.config.get('a11yQualityGate') ?? {};
         const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
         const endpoint = ajaxUrls.a11y_rte_validate || ajaxUrls['a11y_rte_validate'];
@@ -1534,7 +1579,7 @@ export default class A11yPlugin extends Plugin {
         }
 
         const validationSequence = ++this._liveValidationSequence;
-        this._renderSummary('updating');
+        this._renderSummary(initial ? 'loading' : 'updating');
 
         if (this._liveValidationAbortController) {
             this._liveValidationAbortController.abort();
@@ -1600,6 +1645,7 @@ export default class A11yPlugin extends Plugin {
 
         this._rawIssues = issues;
         this._lastFetchedData = currentData;
+        this._resultSource = 'live';
         this._syncIssuesWithCurrentEditor();
     }
 
@@ -1611,7 +1657,8 @@ export default class A11yPlugin extends Plugin {
         this._currentIssues = visibleIssues;
         this._applyHighlights(visibleIssues);
         this._applyElementDecorations(visibleIssues);
-        this._renderSummary(visibleIssues.length > 0 ? 'issues' : 'ok', visibleIssues);
+        const stored = this._resultSource === 'stored';
+        this._renderSummary(visibleIssues.length > 0 ? (stored ? 'stored' : 'issues') : (stored ? 'storedOk' : 'ok'), visibleIssues);
         this._scheduleGutterRender();
     }
 

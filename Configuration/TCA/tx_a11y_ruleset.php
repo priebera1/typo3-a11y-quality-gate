@@ -78,6 +78,10 @@ $tca = [
                 'renderType' => 'selectSingle',
                 'items' => [
                     [
+                        'label' => $ll . 'tx_a11y_ruleset.publish_mode.inherit',
+                        'value' => -1,
+                    ],
+                    [
                         'label' => $ll . 'tx_a11y_ruleset.publish_mode.off',
                         'value' => 0,
                     ],

@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.1] - 2026-10-13
+
+### Changed
+
+* The Quality Gate runs when a hidden page is made visible: when it is published or unhidden in the page tree, the list or the page properties. Saving a page that is already visible, for example after changing its title or other page properties, no longer runs the gate again, so a page that is online is not taken offline or warned about by a routine save. Hidden pages and their translations are still checked when they are made visible, in warning and blocking mode.
+
+### Fixed
+
+* "Show details" in the CKEditor issue popover opened an empty area, and the plain HTML editor panel did not show the rule, location and snippet of a finding. Both show their details again.
+* Opening a rich text field showed the stored findings of the last content scan first and replaced them about two seconds later with the live check of the text, announced as a content change although nothing was edited (for example 4 critical findings, then "Accessibility check passed"). The editor now shows "Checking accessibility…" until the live check of the current text answers. If the live check is unavailable, it shows the findings of the last content scan, labelled as such, with Retry.
+* The Statement Assistant offered sites the user cannot access, and generating a statement for them failed with "Access denied". It now offers only the sites the user can read and explains when there is none.
+* Removing a Quality Gate site override or resetting the publishing rules to their defaults deleted that site's Remote Scan Access settings, including its Scanner Token, HTTP authentication and crawl lists. These settings are now kept, and the site uses the global publishing rules again.
+* Saving Remote Scan Access settings or generating a Scanner Token for a site without its own publishing rules created a "Warn editors" site override. Such sites now keep using the global publishing rules.
+* Rules disabled in Settings > Rules, dictionary and rendered-check settings were ignored for sites with a Quality Gate site override, so disabled rules still counted towards the gate. They now apply to every site.
+* Unhiding a translated page judged it as a default-language page, so a translation with open critical issues could be published in blocking mode. The gate now checks the translation's own language and keeps the translation hidden when it fails.
+* The page issue list offered "Apply", "Mark as decorative" and AI alt text suggestions to editors who are not allowed to change image references, and the action then failed. These controls are now shown only to editors who may use them.
+* The toolbar showed the frontend crawler's own count of new issues (for example "396 new" after a site scan identical to the previous one) while the scan notification correctly reported 0. The toolbar now compares the latest frontend scan with the previous compatible scan from the stored results, like the notification, and shows no change count when there is no compatible earlier scan.
+* The toolbar showed "Not scanned yet" for frontend scans when opened from the Dashboard or another module without a page, although the site had frontend scans. It now uses the page selected in the page tree, or the site of the latest content scan, for both its content and its frontend summary, and the content summary no longer reports the last content scan of another site or language. With a licence, a Free Remote Preview result is no longer shown as the site's latest frontend scan, matching the Overview.
+* Frontend scan history rows of scans that the AQG service no longer lists for this installation showed 0 critical, serious and moderate occurrences. They now show the stored occurrences by impact, as the Overview does, or "—" when no findings were stored for that scan.
+
 ## [2.0.0] - 2026-10-12
 
 Accessibility Quality Gate 2.0 refreshes the TYPO3 backend experience, makes scan results easier to interpret and act on, improves accessibility feedback while editing, and strengthens frontend scanning and report security. Existing findings, ignore states and configuration are preserved.

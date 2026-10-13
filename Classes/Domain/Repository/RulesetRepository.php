@@ -10,6 +10,12 @@ use TYPO3\CMS\Core\Database\Connection;
 final class RulesetRepository extends AbstractRepository
 {
     /**
+     * A site row also stores the site's Remote Scan Access settings (Scanner Token, HTTP auth, crawl lists). With this
+     * mode it carries only those: the site has no Quality Gate override and uses the global configuration.
+     */
+    public const PUBLISH_MODE_INHERIT = -1;
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findBySiteIdentifier(string $siteIdentifier): ?array
@@ -169,7 +175,7 @@ final class RulesetRepository extends AbstractRepository
         }
 
         $siteRuleset = $this->findBySiteIdentifier($siteIdentifier);
-        if ($siteRuleset !== null) {
+        if ($siteRuleset !== null && (int)($siteRuleset['publish_mode'] ?? 0) !== self::PUBLISH_MODE_INHERIT) {
             return $siteRuleset;
         }
 
@@ -177,6 +183,25 @@ final class RulesetRepository extends AbstractRepository
     }
 
     /**
+     * Rule selection, dictionary and rendered-check settings are edited once for all sites (Settings > Rules writes
+     * the default ruleset). A site row is used only when it carries a rules configuration of its own; a Quality Gate
+     * override or a site's Remote Scan Access settings do not replace them.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findRulesConfigurationForSite(string $siteIdentifier): ?array
+    {
+        $siteRuleset = $this->findBySiteIdentifier($siteIdentifier);
+        if ($siteRuleset !== null && trim((string)($siteRuleset['rules_json'] ?? '')) !== '') {
+            return $siteRuleset;
+        }
+
+        return $this->findDefault();
+    }
+
+    /**
+     * The sites with a Quality Gate override.
+     *
      * @return list<array<string, mixed>>
      */
     public function findSiteSpecificRulesets(): array
@@ -191,6 +216,10 @@ final class RulesetRepository extends AbstractRepository
                     'site_identifier',
                     $queryBuilder->createNamedParameter('')
                 ),
+                $queryBuilder->expr()->neq(
+                    'publish_mode',
+                    $queryBuilder->createNamedParameter(self::PUBLISH_MODE_INHERIT, Connection::PARAM_INT)
+                ),
                 $queryBuilder->expr()->eq(
                     'deleted',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
@@ -204,6 +233,9 @@ final class RulesetRepository extends AbstractRepository
     }
 
     /**
+     * Removes the Quality Gate overrides of all other sites. A site that also has Remote Scan Access settings keeps
+     * them: only its override is dropped.
+     *
      * @param list<string> $siteIdentifiersToKeep
      */
     public function deleteSiteSpecificExcept(array $siteIdentifiersToKeep): void
@@ -224,15 +256,34 @@ final class RulesetRepository extends AbstractRepository
 
             $connection->update(
                 Tables::RULESET,
-                [
-                    'deleted' => 1,
-                    'tstamp' => $now,
-                ],
+                $this->hasRemoteScanAccessSettings($ruleset)
+                    ? ['publish_mode' => self::PUBLISH_MODE_INHERIT, 'tstamp' => $now]
+                    : ['deleted' => 1, 'tstamp' => $now],
                 [
                     'uid' => (int)$ruleset['uid'],
                 ]
             );
         }
+    }
+
+    /**
+     * @param array<string, mixed> $ruleset
+     */
+    private function hasRemoteScanAccessSettings(array $ruleset): bool
+    {
+        foreach (['scanner_token', 'http_auth_user', 'http_auth_pass'] as $field) {
+            if (trim((string)($ruleset[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        foreach (['excluded_patterns', 'cookie_accept_selectors', 'crawl_priority_urls'] as $field) {
+            if ($this->normalizeJsonList((string)($ruleset[$field] ?? '')) !== '[]') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -288,7 +339,7 @@ final class RulesetRepository extends AbstractRepository
         bool $isGlobal = true,
     ): ?array {
         $siteIdentifier = trim($siteIdentifier);
-        $publishMode = max(0, min(2, $publishMode));
+        $publishMode = max($siteIdentifier !== '' ? self::PUBLISH_MODE_INHERIT : 0, min(2, $publishMode));
         $thresholdCritical = max(0, $thresholdCritical);
         $thresholdWarning = max(-1, $thresholdWarning);
 
@@ -386,9 +437,10 @@ final class RulesetRepository extends AbstractRepository
 
         $existing = $this->findBySiteIdentifier($siteIdentifier);
         if (!is_array($existing)) {
+            // A Scanner Token is no Quality Gate override: the site keeps the global configuration.
             $existing = $this->saveForSiteOrDefault(
                 siteIdentifier: $siteIdentifier,
-                publishMode: 1,
+                publishMode: self::PUBLISH_MODE_INHERIT,
                 thresholdCritical: 0,
                 thresholdWarning: -1,
                 isGlobal: false,
@@ -432,9 +484,10 @@ final class RulesetRepository extends AbstractRepository
             : $this->findDefault();
 
         if (!is_array($existing)) {
+            // Remote Scan Access settings are no Quality Gate override: a new site row keeps the global configuration.
             $existing = $this->saveForSiteOrDefault(
                 siteIdentifier: $siteIdentifier,
-                publishMode: 1,
+                publishMode: $siteIdentifier !== '' ? self::PUBLISH_MODE_INHERIT : 1,
                 thresholdCritical: 0,
                 thresholdWarning: -1,
             );

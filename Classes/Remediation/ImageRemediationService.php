@@ -16,7 +16,7 @@ final class ImageRemediationService implements ImageRemediationServiceInterface
 {
     private const DECORATIVE_FIELDS = ['tx_a11y_is_decorative', 'alternative'];
     private const INFORMATIVE_FIELDS = ['tx_a11y_is_decorative'];
-    private const ALT_TEXT_FIELDS = ['alternative', 'tx_a11y_is_decorative'];
+    public const ALT_TEXT_FIELDS = ['alternative', 'tx_a11y_is_decorative'];
 
     public function __construct(
         private readonly ImageFindingContextResolverInterface $resolver,

@@ -13,6 +13,7 @@ use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
+use Priebera\A11yQualityGate\Service\ScanResultSummaryService;
 use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -42,6 +43,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         private readonly ScopeAccessService $scopeAccessService,
         private readonly IssueRepository $issueRepository,
         private readonly ?RemoteOccurrenceTotalsService $remoteOccurrenceTotalsService = null,
+        private readonly ?ScanResultSummaryService $scanResultSummaryService = null,
     ) {
     }
 
@@ -61,7 +63,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return '';
         }
 
-        $summary = $this->buildSummary();
+        $summary = $this->buildSummary(false);
 
         $view = $this->createView();
         $view->assignMultiple([
@@ -82,7 +84,7 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return '';
         }
 
-        $summary = $this->buildSummary();
+        $summary = $this->buildSummary(true);
 
         $view = $this->createView();
         $view->assignMultiple([
@@ -98,9 +100,13 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     }
 
     /**
+     * Both cards describe the same site: the request's, else the one of the last Content scan (the toolbar request of
+     * the Dashboard and other modules carries no page). Without a readable site the Frontend card is left out instead
+     * of claiming "Not scanned yet". What the last frontend scan changed is only needed in the dropdown.
+     *
      * @return array{content: array<string, mixed>, frontend: array<string, mixed>|null, state: array{state: string, tone: string, count: int, running: bool, ariaLabel: string}, siteLabel: string}
      */
-    private function buildSummary(): array
+    private function buildSummary(bool $withFrontendChanges): array
     {
         $builder = $this->summaryBuilder();
         $localStatus = $this->resolveLocalStatus();
@@ -108,7 +114,14 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         $canReadSite = $siteIdentifier !== '' && $this->scopeAccessService->canReadSiteIdentifier($siteIdentifier);
 
         $contentCard = $builder->contentCard($localStatus, $canReadSite ? $this->countOpenTotals($siteIdentifier) : null);
-        $frontendCard = $this->shouldShowRemoteSection() ? $builder->frontendCard($this->withStoredOccurrences($this->resolveRemoteStatus())) : null;
+        $frontendCard = null;
+        if ($canReadSite && $this->shouldShowRemoteSection()) {
+            $remoteScan = $this->withStoredOccurrences($this->resolveRemoteStatus($siteIdentifier));
+            $frontendCard = $builder->frontendCard(
+                $remoteScan,
+                $withFrontendChanges ? $this->frontendChanges($remoteScan) : null
+            );
+        }
 
         return [
             'content' => $contentCard,
@@ -199,6 +212,14 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         }
         $languageUid = $this->requestParameterService->getLanguageUid($this->request);
 
+        // The registry holds the last content scan of whichever site and language was scanned last. For another site
+        // or language it says nothing about this one: that one's own last scan, or none, is shown instead.
+        $statusLanguageUid = (int)($status['languageUid'] ?? -1);
+        if ($this->resolveSiteIdentifierFromStatus($status) !== $siteIdentifier
+            || ($languageUid >= 0 && $statusLanguageUid >= 0 && $statusLanguageUid !== $languageUid)) {
+            $status = [];
+        }
+
         try {
             $runningScan = $this->scanRepository->findLatestRunningScan($siteIdentifier, $languageUid);
             if (is_array($runningScan) && !$this->isStaleRunningScan($runningScan)) {
@@ -256,10 +277,17 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     private function resolveSiteIdentifierFromRequestOrStatus(array $status): string
     {
         $siteIdentifier = $this->resolveSiteIdentifierFromRequest();
-        if ($siteIdentifier !== '') {
-            return $siteIdentifier;
-        }
 
+        return $siteIdentifier !== '' ? $siteIdentifier : $this->resolveSiteIdentifierFromStatus($status);
+    }
+
+    /**
+     * The site of the scanned page or root of a local scan status, '' when unknown.
+     *
+     * @param array<string, mixed> $status
+     */
+    private function resolveSiteIdentifierFromStatus(array $status): string
+    {
         $pageUid = (int)($status['pageUid'] ?? 0);
         if ($pageUid > 0) {
             $siteIdentifier = $this->siteResolutionService->resolveSiteIdentifierForPageId($pageUid);
@@ -431,15 +459,14 @@ HTML;
     }
 
     /**
+     * The scan the Frontend card reports for a readable site: a running scan first, else the last completed paid scan
+     * (site scan before page scan). Free Remote Preview results belong to the Overview's Free Remote Preview, which is
+     * where an installation without crawler access sees them; the toolbar shows frontend scans only with that access.
+     *
      * @return array<string, mixed>
      */
-    private function resolveRemoteStatus(): array
+    private function resolveRemoteStatus(string $siteIdentifier): array
     {
-        $siteIdentifier = $this->resolveSiteIdentifierFromRequest();
-        if ($siteIdentifier === '' || !$this->scopeAccessService->canReadSiteIdentifier($siteIdentifier)) {
-            return [];
-        }
-
         $languageUid = $this->requestParameterService->getLanguageUid($this->request);
         $siteBase = $this->siteResolutionService->resolveSiteBaseByIdentifier($siteIdentifier);
 
@@ -450,7 +477,7 @@ HTML;
                 : $activeSiteScan;
         }
 
-        $lastSiteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
+        $lastSiteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, false);
         if (is_array($lastSiteScan)) {
             return $lastSiteScan;
         }
@@ -462,9 +489,29 @@ HTML;
                 : $activeAnyScan;
         }
 
-        $lastAnyScan = $this->remoteScanRepository->findLastCompletedScanBySite($siteIdentifier, $languageUid);
+        $lastPageScan = $this->remoteScanRepository->findLastCompletedPageScanBySite($siteIdentifier, $languageUid, false);
 
-        return is_array($lastAnyScan) ? $lastAnyScan : [];
+        return is_array($lastPageScan) ? $lastPageScan : [];
+    }
+
+    /**
+     * New and resolved occurrences of a completed scan against the previous compatible scan, from the stored findings
+     * (the scan notification's numbers). Null — no claim — while the service is unavailable.
+     *
+     * @param array<string, mixed> $scan
+     * @return array{available: bool, new?: int, resolved?: int}|null
+     */
+    private function frontendChanges(array $scan): ?array
+    {
+        if ($this->scanResultSummaryService === null || strtolower((string)($scan['status'] ?? '')) !== 'completed') {
+            return null;
+        }
+
+        try {
+            return $this->scanResultSummaryService->frontendComparison($scan);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
 

@@ -29,6 +29,10 @@ The rule reference is the authoritative list of everything a scan applies.
     written to the database when a content scan, a rendered page check, a CLI
     run or a Scheduler task runs. The backend module can therefore show findings
     that the editor has already fixed but not yet rescanned, and vice versa.
+    When the editor opens, it shows "Checking accessibility…" until the live
+    check of the current text answers. If the live check is unavailable, it
+    shows the findings of the last content scan instead, labelled as such, with
+    a Retry action.
 
 ..  _usage-ckeditor-registration:
 

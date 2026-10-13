@@ -7,7 +7,7 @@ Quality gate (publishing)
 ============================
 
 The quality gate evaluates the open findings of a page when an editor publishes
-or unhides it. It is configured on the :guilabel:`Publishing rules` tab of the
+or unhides it, that is, when a hidden page record is made visible. It is configured on the :guilabel:`Publishing rules` tab of the
 Settings view and stored in the ruleset record :sql:`tx_a11y_ruleset`.
 
 ..  _configuration-quality-gate-fields:
@@ -68,6 +68,13 @@ How the gate behaves
     scans so that the gate works on current data; see :ref:`automation`.
 *   In warn mode the editor is informed but keeps control over the publication.
     In block mode the DataHandler operation is rejected.
+*   The gate runs when a hidden page is made visible: unhiding it in the page
+    tree or list, or saving its page properties with the page set to visible.
+    Saving a page that is already visible, for example after changing its title,
+    does not run the gate again, so a routine edit never takes an online page
+    offline. A translated page is judged in its own language when the
+    translation is made visible. Changes to content elements never run the
+    gate; they give the editor feedback on the changed element.
 *   The gate applies to everyone who publishes or unhides a page, including
     backend users without access to the Accessibility module. It never grants
     access to the module.

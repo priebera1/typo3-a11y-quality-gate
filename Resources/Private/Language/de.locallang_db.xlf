@@ -274,6 +274,10 @@
         <source>JSON list of URLs that should be prioritized by remote crawler jobs.</source>
         <target>JSON-Liste von URLs, die Remote-Crawler-Aufträge bevorzugt behandeln sollen.</target>
       </trans-unit>
+      <trans-unit id="tx_a11y_ruleset.publish_mode.inherit">
+        <source>Inherit — no site override, the global configuration applies</source>
+        <target>Erben – keine Website-Überschreibung, die globale Konfiguration gilt</target>
+      </trans-unit>
       <trans-unit id="tx_a11y_ruleset.publish_mode.off">
         <source>Off — no quality gate check</source>
         <target>Aus – keine Quality-Gate-Prüfung</target>

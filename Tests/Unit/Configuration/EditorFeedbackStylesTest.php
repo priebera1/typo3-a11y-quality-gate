@@ -63,6 +63,33 @@ final class EditorFeedbackStylesTest extends TestCase
     }
 
     #[Test]
+    public function onlyTheLegacyBalloonPanelCollapsesIssueDetails(): void
+    {
+        $css = (string)preg_replace('#/\*.*?\*/#s', '', (string)file_get_contents(self::CSS));
+        preg_match_all('/([^{}]+)\{([^{}]*)\}/', $css, $rules, PREG_SET_ORDER);
+
+        $unscoped = [];
+        foreach ($rules as [, $selectors, $declarations]) {
+            if (!preg_match('/(^|;)\s*display:\s*none/i', $declarations)) {
+                continue;
+            }
+            foreach (explode(',', $selectors) as $selector) {
+                $selector = trim($selector);
+                if (str_contains($selector, '.ck-a11y-panel__details') && !preg_match('/\.ck-a11y-panel[\s:.]/', $selector)) {
+                    $unscoped[] = $selector;
+                }
+            }
+        }
+
+        self::assertSame(
+            [],
+            $unscoped,
+            'The CKEditor issue popover (<details> "Show details") and the plain HTML panel render .ck-a11y-panel__details '
+            . 'outside the legacy balloon panel; an unscoped display:none opened an empty disclosure.'
+        );
+    }
+
+    #[Test]
     public function thePlainHtmlIssueListSummaryIsTranslated(): void
     {
         self::assertArrayHasKey('plainShowIssueList', EditorFeedbackLabels::LABELS);

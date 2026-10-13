@@ -1593,7 +1593,8 @@ body[data-bs-theme="dark"],
 .ck-a11y-panel__hint { margin: 0 12px 10px !important; padding: 9px 11px !important; background: var(--cka-info-bg) !important; border: 1px solid var(--cka-info-border) !important; border-left: 3px solid var(--cka-info) !important; border-radius: 5px !important; }
 .ck-a11y-panel__hint-label { color: var(--cka-info) !important; font-size: 10px !important; }
 .ck-a11y-panel__hint-text { color: var(--cka-fg) !important; font-size: 12.5px !important; line-height: 1.45 !important; }
-.ck-a11y-panel__details { display: none !important; background: var(--cka-surface-3) !important; border-top: 1px solid var(--cka-divider) !important; padding: 9px 12px !important; }
+/* Only the legacy balloon panel (.ck-a11y-panel) collapses its details; the issue popover and the plain HTML panel show them. */
+.ck-a11y-panel__details { background: var(--cka-surface-3) !important; border-top: 1px solid var(--cka-divider) !important; padding: 9px 12px !important; }
 .ck-a11y-panel--details-expanded .ck-a11y-panel__details,
 .ck-a11y-panel:hover .ck-a11y-panel__details,
 .ck-a11y-panel:focus-within .ck-a11y-panel__details { display: block !important; }

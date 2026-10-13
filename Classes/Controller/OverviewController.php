@@ -31,6 +31,7 @@ use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
 use Priebera\A11yQualityGate\Pro\ViewModel\RemoteEmptyState;
+use Priebera\A11yQualityGate\Pro\ViewModel\RemoteOccurrenceTotals;
 use Priebera\A11yQualityGate\Pro\ViewModel\RemoteScanSignal;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
@@ -2077,16 +2078,16 @@ final class OverviewController extends AbstractBackendModuleController
             -1
         );
 
-        $siteScans = array_slice(
+        $siteScans = $this->withStoredHistoryTotals(array_slice(
             $this->mergeHistoryItemsByJobId($apiSiteScans, $localSiteScans),
             0,
             10
-        );
-        $pageScans = array_slice(
+        ));
+        $pageScans = $this->withStoredHistoryTotals(array_slice(
             $this->mergeHistoryItemsByJobId($apiPageScans, $localPageScans),
             0,
             10
-        );
+        ));
 
         foreach ($siteScans as &$item) {
             if (is_array($item)) {
@@ -2197,8 +2198,44 @@ final class OverviewController extends AbstractBackendModuleController
                 'compareUrl' => '',
                 'compareLabel' => $this->translateWithFallback('remote.history.noComparable', 'No comparable previous scan found.'),
                 'hasComparablePrevious' => false,
+                'localScan' => [
+                    'uid' => (int)($row['uid'] ?? 0),
+                    'issues_total' => (int)($row['issues_total'] ?? 0),
+                    'persisted_at' => (int)($row['persisted_at'] ?? 0),
+                ],
             ];
         }
+
+        return $items;
+    }
+
+    /**
+     * History rows known only from the local database (the AQG API returns the scans of the current installation
+     * identity only) have no score or impact figures from the API. Their occurrences and impact breakdown come from the
+     * stored findings, as in the Overview; without stored findings the breakdown is unknown and shown as "—", never 0.
+     * Rows the API returned keep its figures.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function withStoredHistoryTotals(array $items): array
+    {
+        foreach ($items as &$item) {
+            $localScan = $item['localScan'] ?? null;
+            unset($item['localScan']);
+            if (!is_array($localScan)) {
+                continue;
+            }
+
+            $totals = $this->remoteOccurrenceTotalsService?->forScan($localScan);
+            foreach (RemoteOccurrenceTotals::IMPACTS as $impact) {
+                $item[$impact] = $totals !== null && $totals->hasBreakdown ? $totals->byImpact[$impact] : '—';
+            }
+            if ($totals !== null && $totals->hasBreakdown) {
+                $item['issuesTotal'] = $totals->total;
+            }
+        }
+        unset($item);
 
         return $items;
     }
