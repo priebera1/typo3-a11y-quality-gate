@@ -159,9 +159,13 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
     {
         $xpath = $this->render('Settings/TabStatement', [
             'statementGeneratorAvailable' => true,
-            'siteOptionsWithoutDefault' => [['identifier' => 'main', 'label' => 'Main site']],
+            'statementSiteOptions' => [['identifier' => 'main', 'label' => 'Main site']],
             'statementDefaultSiteIdentifier' => 'main',
         ]);
+        self::assertSame(['main'], array_map(
+            static fn (\DOMNode $option): string => (string)$option->attributes?->getNamedItem('value')?->nodeValue,
+            iterator_to_array($xpath->query('//select[contains(@class, "js-aqg-statement-site")]/option'))
+        ));
 
         $optional = $xpath->query('//details[contains(@class, "aqg-statement-optional")]')->item(0);
         self::assertInstanceOf(\DOMElement::class, $optional);
@@ -177,6 +181,23 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
         self::assertSame(
             'status',
             $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " js-aqg-statement-status ")]')->item(0)?->getAttribute('role')
+        );
+    }
+
+    #[Test]
+    public function statementAssistantExplainsMissingSiteAccessInsteadOfOfferingAPlan(): void
+    {
+        $xpath = $this->render('Settings/TabStatement', [
+            'statementGeneratorAvailable' => false,
+            'statementNoReadableSite' => true,
+            'statementSiteOptions' => [],
+        ]);
+
+        self::assertSame(0, $xpath->query('//select[contains(@class, "js-aqg-statement-site")]')->length);
+        self::assertSame(0, $xpath->query('//*[contains(@class, "aqg-card--locked")]')->length, 'A licensed installation must not be offered a plan.');
+        self::assertStringContainsString(
+            'ask a TYPO3 administrator',
+            $this->text($xpath, '//*[@data-aqg-statement-no-site="true"]')
         );
     }
 

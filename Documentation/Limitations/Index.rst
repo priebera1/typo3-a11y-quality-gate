@@ -100,7 +100,10 @@ Quality gate
 ============
 
 *   The gate scans the content of a page when the page is published or
-    unhidden and decides on that fresh result. Frontend scan results are not
+    unhidden and decides on that fresh result. A page that is already visible
+    is not checked again when it is saved, and content changes on a visible
+    page do not take it offline; use scheduled scans and the reports to follow
+    them. Frontend scan results are not
     part of the decision. If that scan fails, the page is published without a
     decision and the editor sees a warning. Schedule regular scans to keep the
     reports current, see :ref:`automation`.

@@ -26,7 +26,7 @@ final class RuleConfigurationService
             return $this->disabledRuleIdsCache[$siteIdentifier];
         }
 
-        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
+        $ruleset = $this->rulesetRepository->findRulesConfigurationForSite($siteIdentifier);
         if (!is_array($ruleset)) {
             return $this->disabledRuleIdsCache[$siteIdentifier] = [];
         }
@@ -119,7 +119,7 @@ final class RuleConfigurationService
      */
     public function getRenderedCheckSettingsForSite(string $siteIdentifier): array
     {
-        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
+        $ruleset = $this->rulesetRepository->findRulesConfigurationForSite($siteIdentifier);
         if (!is_array($ruleset)) {
             return [
                 'enabled' => true,

@@ -73,6 +73,9 @@ final class EditorFeedbackLabels
         'liveFailedStatus' => 'Live validation failed (%s).',
         'liveFailed' => 'Live validation failed.',
         'liveFailedRetry' => 'Live validation failed. You can keep editing and try again after saving.',
+        'storedResultsHelp' => 'Live check unavailable: these results are from the last content scan and may not match the current text.',
+        'storedNoIssues' => 'No issues in the last content scan',
+        'storedNoIssuesHelp' => 'Live check unavailable: the current text was not checked.',
     ];
 
     /**

@@ -6572,8 +6572,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Wie das Quality Gate die passende Konfiguration wählt</target>
             </trans-unit>
             <trans-unit id="settings.qualityGate.guidance.step1">
-                <source>An editor saves and publishes the page, or unhides it.</source>
-                <target>Ein Redakteur speichert und veröffentlicht die Seite oder blendet sie ein.</target>
+                <source>An editor makes a hidden page visible: publishes it or unhides it. Saving a page that is already visible does not run the gate again.</source>
+                <target>Ein Redakteur macht eine verborgene Seite sichtbar: veröffentlicht sie oder blendet sie ein. Das Speichern einer bereits sichtbaren Seite löst die Prüfung nicht erneut aus.</target>
             </trans-unit>
             <trans-unit id="settings.qualityGate.guidance.step2">
                 <source>AQG looks for a site-specific configuration matching the page’s site.</source>
@@ -6616,8 +6616,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Alles aus FREE</target>
             </trans-unit>
             <trans-unit id="settings.publishingRules.freeGuidance.step1">
-                <source>An editor saves and publishes a page.</source>
-                <target>Ein Redakteur speichert und veröffentlicht eine Seite.</target>
+                <source>An editor publishes a hidden page or unhides it.</source>
+                <target>Ein Redakteur veröffentlicht eine verborgene Seite oder blendet sie ein.</target>
             </trans-unit>
             <trans-unit id="settings.publishingRules.freeGuidance.step2">
                 <source>AQG counts open critical issues.</source>
@@ -8106,6 +8106,18 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="rte.liveFailedRetry">
                 <source>Live validation failed. You can keep editing and try again after saving.</source>
                 <target>Live-Prüfung fehlgeschlagen. Sie können weiterarbeiten und es nach dem Speichern erneut versuchen.</target>
+            </trans-unit>
+            <trans-unit id="rte.storedResultsHelp">
+                <source>Live check unavailable: these results are from the last content scan and may not match the current text.</source>
+                <target>Live-Prüfung nicht verfügbar: Diese Ergebnisse stammen aus dem letzten Inhaltsscan und entsprechen möglicherweise nicht dem aktuellen Text.</target>
+            </trans-unit>
+            <trans-unit id="rte.storedNoIssues">
+                <source>No issues in the last content scan</source>
+                <target>Keine Probleme im letzten Inhaltsscan</target>
+            </trans-unit>
+            <trans-unit id="rte.storedNoIssuesHelp">
+                <source>Live check unavailable: the current text was not checked.</source>
+                <target>Live-Prüfung nicht verfügbar: Der aktuelle Text wurde nicht geprüft.</target>
             </trans-unit>
             <trans-unit id="action.close">
                 <source>Close</source>
@@ -10910,6 +10922,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="settings.qualityGate.readOnly">
                 <source>Only TYPO3 administrators can change Quality Gate settings. This configuration is read-only.</source>
                 <target>Nur TYPO3-Administratoren können die Quality-Gate-Einstellungen ändern. Diese Konfiguration ist schreibgeschützt.</target>
+            </trans-unit>
+            <trans-unit id="settings.statement.noReadableSite">
+                <source>None of the sites is available to you, so no accessibility statement can be generated. A statement needs access to the site's root page; ask a TYPO3 administrator for it.</source>
+                <target>Ihnen ist keine Website zugänglich, daher kann keine Barrierefreiheitserklärung erstellt werden. Eine Erklärung benötigt Zugriff auf die Root-Seite der Website; wenden Sie sich dafür an einen TYPO3-Administrator.</target>
             </trans-unit>
         </body>
     </file>

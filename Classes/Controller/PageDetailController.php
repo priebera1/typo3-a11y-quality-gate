@@ -19,9 +19,11 @@ use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Ai\Contract\AiFeatureAccessServiceInterface;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Remediation\ImageAltTextValidator;
+use Priebera\A11yQualityGate\Remediation\ImageFindingContext;
 use Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver;
 use Priebera\A11yQualityGate\Remediation\ImageFindingVersionTokenService;
 use Priebera\A11yQualityGate\Remediation\ImageRemediationPreviewService;
+use Priebera\A11yQualityGate\Remediation\ImageRemediationService;
 use Priebera\A11yQualityGate\Service\IssueLocationService;
 use Priebera\A11yQualityGate\Service\LocalIssueGuidanceService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
@@ -152,6 +154,7 @@ final class PageDetailController extends AbstractBackendModuleController
             ? $this->scanPermissionService->canScanPage($pageUid)
             : $this->accessControlService->canShowScanNow($backendUser);
         $canShowSettings = $this->accessControlService->canShowSettings($backendUser);
+        $canRemediateImages = $this->accessControlService->canRemediateImages($backendUser);
 
         if ($siteIdentifier !== '') {
             $this->issueRepository->reopenExpiredIgnoredIssues($siteIdentifier);
@@ -178,6 +181,7 @@ final class PageDetailController extends AbstractBackendModuleController
             $currentPage,
             $openRuleCountsOnPage,
             $openRuleCountsOnSite,
+            $canRemediateImages,
             $aiAltSuggestionAvailable,
             $aiLinkTextSuggestionAvailable,
             $aiIframeTitleSuggestionAvailable
@@ -278,10 +282,10 @@ final class PageDetailController extends AbstractBackendModuleController
             $row['imagePreviewAvailable'] = false;
             $row['imagePreviewUrl'] = '';
             $row['imagePreviewPath'] = '';
-            if ($row['hasEditAccess'] && $this->imageFindingContextResolver->supportsIssueRow($row)) {
+            if ($this->offersImageRemediation($row, $canRemediateImages)) {
                 try {
                     $imageContext = $this->imageFindingContextResolver->resolve((int)$row['uid']);
-                    $row['imageRemediationAvailable'] = true;
+                    $row['imageRemediationAvailable'] = $this->canEditImageReference($imageContext);
                     $row['imageRemediationVersion'] = $this->imageFindingVersionTokenService->create($imageContext);
                     $row['imageIsDecorative'] = (int)($imageContext->fileReference['tx_a11y_is_decorative'] ?? 0) === 1;
                     $row['imageAlternative'] = trim((string)($imageContext->fileReference['alternative'] ?? ''));
@@ -548,6 +552,34 @@ final class PageDetailController extends AbstractBackendModuleController
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');
+    }
+
+    /**
+     * Alt text, decorative marking and AI alt suggestions need the image remediation capability (administrators, or
+     * TSconfig options.a11y_quality_gate.allowImageRemediation) as well as edit access; the endpoints refuse anyone
+     * else, so the actions are offered only then.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function offersImageRemediation(array $row, bool $canRemediateImages): bool
+    {
+        return $canRemediateImages
+            && (bool)($row['hasEditAccess'] ?? false)
+            && $this->imageFindingContextResolver->supportsIssueRow($row);
+    }
+
+    /**
+     * The field permissions the endpoints check (ImageRemediationPermissionService::assertCanModify()): an editor whose
+     * groups may not edit the content element or the image reference's alternative text gets no actions.
+     */
+    private function canEditImageReference(ImageFindingContext $context): bool
+    {
+        return $this->backendRecordAccessService->canEditRecordFields($context->sourceTable, $context->sourceUid)
+            && $this->backendRecordAccessService->canEditRecordFields(
+                Tables::SYS_FILE_REFERENCE,
+                $context->fileReferenceUid,
+                ImageRemediationService::ALT_TEXT_FIELDS,
+            );
     }
 
     /**

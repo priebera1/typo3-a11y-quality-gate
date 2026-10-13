@@ -102,10 +102,16 @@ final class ToolbarSummaryBuilder
     }
 
     /**
+     * What the last frontend scan changed comes from its stored findings against the previous compatible scan (the
+     * scan notification's numbers), never from the crawler's own `issues_new` / `issues_resolved`: those count against
+     * the crawler's history, so a re-run of an unchanged site reported every occurrence as new. Without such a
+     * comparison the card makes no claim about what changed.
+     *
      * @param array<string, mixed> $scan a tx_a11y_remote_scan row, [] when none is stored
+     * @param array{available: bool, new?: int, resolved?: int}|null $comparison ScanResultSummaryService::frontendComparison()
      * @return array<string, mixed>
      */
-    public function frontendCard(array $scan): array
+    public function frontendCard(array $scan, ?array $comparison = null): array
     {
         $card = [
             'key' => 'frontend',
@@ -164,7 +170,9 @@ final class ToolbarSummaryBuilder
         }
 
         $occurrences = max(0, (int)($scan['issues_total'] ?? 0));
-        $delta = $this->delta((int)($scan['issues_new'] ?? 0), (int)($scan['issues_resolved'] ?? 0));
+        $delta = ($comparison['available'] ?? false) === true
+            ? $this->delta((int)($comparison['new'] ?? 0), (int)($comparison['resolved'] ?? 0))
+            : '';
         $complete = max(0, (int)($scan['pages_failed'] ?? 0)) === 0 && ($pagesTotal === 0 || $pagesScanned >= $pagesTotal);
 
         if ($occurrences > 0) {

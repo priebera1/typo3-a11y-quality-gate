@@ -29,6 +29,14 @@ final class PublishHook
      */
     private array $shownFlashMessages = [];
 
+    /**
+     * Page records each DataHandler run makes visible (hidden before, `hidden = 0` submitted), by DataHandler instance:
+     * the hook is a shared service and DataHandler runs can be nested.
+     *
+     * @var array<int, array<int, true>>
+     */
+    private array $pagesBecomingVisible = [];
+
     public function __construct(
         private readonly QualityGateChecker $qualityGateChecker,
         private readonly ScanOrchestrator $scanOrchestrator,
@@ -43,6 +51,37 @@ final class PublishHook
     ) {
     }
 
+    /**
+     * The Quality Gate decides when a page goes live: when a hidden page record is made visible (unhide in the page
+     * tree or list, the "Page visible" toggle). FormEngine submits `hidden = 0` with every save of a visible page, so
+     * the stored state before the save tells a publish from a routine edit of a page that is already online. A state
+     * that cannot be read counts as hidden: the gate runs rather than being skipped.
+     *
+     * @param array<string, mixed> $incomingFieldArray
+     */
+    public function processDatamap_preProcessFieldArray(array &$incomingFieldArray, string $table, int|string $id, DataHandler $dataHandler): void
+    {
+        if ($table !== Tables::PAGES
+            || !is_numeric($id)
+            || (int)$id <= 0
+            || !array_key_exists('hidden', $incomingFieldArray)
+            || (int)$incomingFieldArray['hidden'] !== 0) {
+            return;
+        }
+
+        try {
+            $storedHidden = $this->connectionPool->getConnectionForTable(Tables::PAGES)->fetchOne(
+                'SELECT hidden FROM pages WHERE uid = ? AND deleted = 0',
+                [(int)$id],
+            );
+        } catch (\Throwable) {
+            $storedHidden = null;
+        }
+        if (!in_array($storedHidden, [0, '0'], true)) {
+            $this->pagesBecomingVisible[spl_object_id($dataHandler)][(int)$id] = true;
+        }
+    }
+
     public function processDatamap_afterAllOperations(DataHandler $dataHandler): void
     {
         // Content feedback points editors to the AQG module, so only module users get it. The Quality Gate
@@ -53,6 +92,7 @@ final class PublishHook
         }
 
         $this->handlePageUnhide($dataHandler);
+        unset($this->pagesBecomingVisible[spl_object_id($dataHandler)]);
     }
 
     private function handleContentElementChanges(DataHandler $dataHandler): void
@@ -92,18 +132,41 @@ final class PublishHook
                 continue;
             }
 
-            if (!array_key_exists('hidden', $data) || (int)$data['hidden'] !== 0) {
-                continue;
-            }
-
             $pageUid = is_numeric($rawPageUid) ? (int)$rawPageUid : 0;
-            if ($pageUid <= 0) {
+            if ($pageUid <= 0 || !isset($this->pagesBecomingVisible[spl_object_id($dataHandler)][$pageUid])) {
                 continue;
             }
 
-            $languageUid = (int)($data['sys_language_uid'] ?? 0);
-            $this->scanAndCheckPageGate($pageUid, $dataHandler, $languageUid);
+            [$gatedPageUid, $languageUid] = $this->resolveGatedPage($pageUid, (int)($data['sys_language_uid'] ?? 0));
+            $this->scanAndCheckPageGate($gatedPageUid, $dataHandler, $languageUid, $pageUid);
         }
+    }
+
+    /**
+     * A translated page record (connected mode) has no content of its own: the content is stored on the
+     * default-language page in the record's language, and that is what the scan and the verdict must look at.
+     * Unhiding a translation only sends `hidden`, so the language comes from the record, not from the datamap.
+     *
+     * @return array{0: int, 1: int} the default-language page uid and the language uid
+     */
+    private function resolveGatedPage(int $pageUid, int $submittedLanguageUid): array
+    {
+        try {
+            $record = $this->connectionPool->getConnectionForTable(Tables::PAGES)->fetchAssociative(
+                'SELECT l10n_parent, sys_language_uid FROM pages WHERE uid = ? AND deleted = 0',
+                [$pageUid],
+            );
+        } catch (\Throwable) {
+            $record = false;
+        }
+        if (!is_array($record)) {
+            return [$pageUid, $submittedLanguageUid];
+        }
+
+        $languageUid = (int)($record['sys_language_uid'] ?? 0);
+        $defaultPageUid = (int)($record['l10n_parent'] ?? 0);
+
+        return $languageUid > 0 && $defaultPageUid > 0 ? [$defaultPageUid, $languageUid] : [$pageUid, $languageUid];
     }
 
     /**
@@ -234,7 +297,10 @@ final class PublishHook
         );
     }
 
-    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler, int $languageUid = 0): void
+    /**
+     * @param int $pageRecordUid the unhidden page record (a translation is re-hidden, not its default-language page)
+     */
+    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler, int $languageUid = 0, int $pageRecordUid = 0): void
     {
         $site = $this->siteResolutionService->resolveSiteByPageId($pageUid);
         if ($site === null) {
@@ -288,7 +354,7 @@ final class PublishHook
         $proStatus = $this->getProStatusForSite((string)$site->getBase());
 
         if ($verdict->isBlockingMode() && $proStatus->valid) {
-            $this->reHidePage($pageUid);
+            $this->reHidePage($pageRecordUid > 0 ? $pageRecordUid : $pageUid);
 
             $message = $this->buildVerdictMessage($verdict, $scannedAt);
 

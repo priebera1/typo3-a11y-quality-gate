@@ -122,6 +122,18 @@ class ScanResultSummaryService
     }
 
     /**
+     * What a persisted frontend scan changed against the previous compatible scan, for views other than the scan
+     * notification (the toolbar): the same numbers as frontendResult()['comparison'].
+     *
+     * @param array<string, mixed> $scan a tx_a11y_remote_scan row
+     * @return array{available: bool, new?: int, resolved?: int}
+     */
+    public function frontendComparison(array $scan): array
+    {
+        return (int)($scan['persisted_at'] ?? 0) > 0 ? $this->comparisonWithPreviousScan($scan) : ['available' => false];
+    }
+
+    /**
      * New and resolved issues against the previous compatible stored scan (same site, scope, scan type, language,
      * start URL, Free vs paid — `RemoteScanPairingService`), from the stored fingerprints.
      *

@@ -95,12 +95,28 @@ final class ToolbarSummaryBuilderTest extends TestCase
             'uid' => 5, 'status' => 'completed', 'scan_scope' => 'site', 'finished_at' => 2000,
             'issues_total' => 408, 'issues_new' => 0, 'issues_resolved' => 0,
             'pages_scanned' => 19, 'pages_total' => 19, 'pages_failed' => 0,
-        ]);
+        ], ['available' => true, 'new' => 3, 'resolved' => 1]);
 
         self::assertSame('open', $card['state']);
         self::assertSame('408 occurrences', $card['tagLabel']);
-        self::assertSame('0 new and 0 resolved in the last scan', $card['delta']);
+        self::assertSame('3 new and 1 resolved in the last scan', $card['delta']);
         self::assertSame('Site scan · D2000 · 19 of 19 pages', $card['meta']);
+    }
+
+    #[Test]
+    public function theCrawlersOwnNewCountNeverReachesTheFrontendCard(): void
+    {
+        // A re-run of an unchanged site: the crawler counted all 396 as new, the stored findings show no change.
+        $scan = [
+            'uid' => 7, 'status' => 'completed', 'scan_scope' => 'site', 'finished_at' => 2000,
+            'issues_total' => 396, 'issues_new' => 396, 'issues_resolved' => 0,
+            'pages_scanned' => 19, 'pages_total' => 19, 'pages_failed' => 0,
+        ];
+
+        self::assertSame('0 new and 0 resolved in the last scan', $this->builder()->frontendCard($scan, ['available' => true, 'new' => 0, 'resolved' => 0])['delta']);
+        self::assertSame('', $this->builder()->frontendCard($scan, ['available' => false])['delta'], 'Without a compatible earlier scan nothing is claimed.');
+        self::assertSame('', $this->builder()->frontendCard($scan)['delta']);
+        self::assertSame('396 occurrences', $this->builder()->frontendCard($scan)['tagLabel']);
     }
 
     #[Test]

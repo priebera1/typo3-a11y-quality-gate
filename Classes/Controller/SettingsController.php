@@ -208,18 +208,22 @@ final class SettingsController extends AbstractBackendModuleController
             $siteOptions,
             static fn (array $siteOption): bool => (string)($siteOption['identifier'] ?? '') !== ''
         ));
-        $statementDefaultSiteIdentifier = $this->resolveDefaultStatementSiteIdentifier($siteOptionsWithoutDefault, $currentSiteIdentifier);
+        // Generating a statement needs read access to the site (buildAccessibilityStatementFromRequest()), so only
+        // those sites are offered; any other choice would end in "Access denied".
+        $statementSiteOptions = $this->filterReadableSiteOptions($siteOptionsWithoutDefault);
+        $statementDefaultSiteIdentifier = $this->resolveDefaultStatementSiteIdentifier($statementSiteOptions, $currentSiteIdentifier);
         $statementProStatus = $statementDefaultSiteIdentifier !== ''
             ? $this->proStatusResolverService->resolveForSiteIdentifier($statementDefaultSiteIdentifier)
             : $proStatus;
         if (!$this->hasStatementGeneratorCapability($statementProStatus)) {
-            $capableStatementSiteIdentifier = $this->resolveFirstStatementCapableSiteIdentifier($siteOptionsWithoutDefault);
+            $capableStatementSiteIdentifier = $this->resolveFirstStatementCapableSiteIdentifier($statementSiteOptions);
             if ($capableStatementSiteIdentifier !== '') {
                 $statementDefaultSiteIdentifier = $capableStatementSiteIdentifier;
                 $statementProStatus = $this->proStatusResolverService->resolveForSiteIdentifier($statementDefaultSiteIdentifier);
             }
         }
-        $statementGeneratorAvailable = $this->hasStatementGeneratorCapability($statementProStatus);
+        $statementCapable = $this->hasStatementGeneratorCapability($statementProStatus);
+        $statementGeneratorAvailable = $statementCapable && $statementSiteOptions !== [];
         $usedSiteIdentifiers = array_map(
             static fn (array $ruleset): string => (string)($ruleset['site_identifier'] ?? ''),
             $siteRulesets
@@ -282,6 +286,8 @@ final class SettingsController extends AbstractBackendModuleController
             'licenceDomainsUrl' => $this->buildRouteUrl('ajax_a11y_licence_domains'),
             'licenceDomainsUpdateUrl' => $this->buildRouteUrl('ajax_a11y_licence_domains_update'),
             'statementGeneratorAvailable' => $statementGeneratorAvailable,
+            'statementNoReadableSite' => $statementCapable && $statementSiteOptions === [],
+            'statementSiteOptions' => $statementSiteOptions,
             'statementDefaultSiteIdentifier' => $statementDefaultSiteIdentifier,
             'statementProStatus' => $statementProStatus,
             'remoteAccessSiteUrl' => $this->resolveRemoteAccessSiteUrl($site),
@@ -1317,6 +1323,18 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         return '';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $siteOptions
+     * @return list<array<string, mixed>>
+     */
+    private function filterReadableSiteOptions(array $siteOptions): array
+    {
+        return array_values(array_filter(
+            $siteOptions,
+            fn (array $siteOption): bool => $this->scopeAccessService->canReadSiteIdentifier((string)($siteOption['identifier'] ?? ''))
+        ));
     }
 
     /**

@@ -58,7 +58,7 @@
                         <label class="aqg-field">
                             <span class="aqg-field__label"><f:translate key="settings.statement.site" extensionName="A11yQualityGate" /></span>
                             <select class="form-select js-aqg-statement-site" name="siteId">
-                                <f:for each="{siteOptionsWithoutDefault}" as="siteOption">
+                                <f:for each="{statementSiteOptions}" as="siteOption">
                                     <f:if condition="{siteOption.identifier} == {statementDefaultSiteIdentifier}">
                                         <f:then>
                                             <option value="{siteOption.identifier}" selected="selected">{siteOption.label}</option>
@@ -332,6 +332,14 @@
                 </div>
             </section>
         </f:then>
+        <f:else if="{statementNoReadableSite}">
+            <div class="aqg-notice aqg-tone-info" role="status" data-aqg-statement-no-site="true">
+                <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                <span class="aqg-notice__body">
+                    <span class="aqg-notice__text"><f:translate key="settings.statement.noReadableSite" extensionName="A11yQualityGate" /></span>
+                </span>
+            </div>
+        </f:else>
         <f:else>
             <section class="aqg-card aqg-card--locked">
                 <div class="aqg-card__head">

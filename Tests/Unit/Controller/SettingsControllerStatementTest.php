@@ -18,6 +18,7 @@ use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Psr\Http\Message\ResponseInterface;
 use ReflectionClass;
+use ReflectionMethod;
 use ReflectionProperty;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Http\ResponseFactory;
@@ -340,6 +341,24 @@ final class SettingsControllerStatementTest extends TestCase
 
         self::assertSame(403, $response->getStatusCode());
         self::assertSame('access_denied', $this->decode($response)['code']);
+    }
+
+    #[Test]
+    public function theSiteChoiceOffersOnlySitesTheUserCanRead(): void
+    {
+        $this->scopeAccess = $this->createMock(ScopeAccessService::class);
+        $this->scopeAccess->method('canReadSiteIdentifier')->willReturnCallback(
+            static fn (string $identifier): bool => $identifier === 'main'
+        );
+        $method = new ReflectionMethod(SettingsController::class, 'filterReadableSiteOptions');
+
+        $options = $method->invoke($this->subject(), [
+            ['identifier' => 'demo', 'label' => 'demo (demo.example.org)'],
+            ['identifier' => 'main', 'label' => 'main (example.org)'],
+            ['identifier' => 'other', 'label' => 'other (other.example.org)'],
+        ]);
+
+        self::assertSame([['identifier' => 'main', 'label' => 'main (example.org)']], $options);
     }
 
     private function subject(): SettingsController

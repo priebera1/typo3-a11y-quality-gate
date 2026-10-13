@@ -1,5 +1,6 @@
 import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
 import Viewport from '@typo3/backend/viewport.js';
+import { ModuleStateStorage } from '@typo3/backend/storage/module-state-storage.js';
 
 let A11yToolbarSelector;
 (function (selector) {
@@ -24,6 +25,39 @@ const THEME_DATASET_KEYS = [
  * document's own root and body are read: a light or dark component somewhere inside the page says nothing about
  * the backend scheme (TYPO3 14 kept the toolbar in its light theme that way).
  */
+/**
+ * The page selected in the page tree ('' when none), the toolbar's context in modules without a page.
+ */
+export function selectedTreePage(storage = ModuleStateStorage) {
+    try {
+        const identifier = String(storage.current('web')?.identifier ?? '');
+        return /^[1-9][0-9]*$/.test(identifier) ? identifier : '';
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * The toolbar describes what the backend shows: the page, site and language of the current module, else — in modules
+ * without a page (Dashboard, Scheduler, …) — the page selected in the page tree. Without either the server falls back
+ * to the site of the last Content scan. An `id` that is not a page uid (the File list's folder, `1:/user_upload/`) is
+ * not a page context.
+ */
+export function withToolbarContext(renderUrl, moduleUrl, treePage = '') {
+    ['id', 'site', 'pageUid', 'language', 'languageUid', 'L', 'sys_language_uid'].forEach((key) => {
+        const value = moduleUrl.searchParams.get(key);
+        if (value === null || value === '' || ((key === 'id' || key === 'pageUid') && !/^[1-9][0-9]*$/.test(value))) {
+            return;
+        }
+        renderUrl.searchParams.set(key, value);
+    });
+    if (treePage !== '' && !renderUrl.searchParams.has('id') && !renderUrl.searchParams.has('pageUid') && !renderUrl.searchParams.has('site')) {
+        renderUrl.searchParams.set('id', treePage);
+    }
+
+    return renderUrl;
+}
+
 export function documentUsesDarkTheme(doc, prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches === true) {
     if (!doc?.documentElement) {
         return false;
@@ -154,15 +188,11 @@ class A11yScanToolbarMenu {
         this.setIconLoading(showLoading);
 
         try {
-            const url = new URL(TYPO3.settings.ajaxUrls.a11y_toolbar_render, window.location.origin);
-            const currentUrl = this.resolveCurrentBackendModuleUrl();
-
-            ['id', 'site', 'pageUid', 'language', 'languageUid', 'L', 'sys_language_uid'].forEach((key) => {
-                const value = currentUrl.searchParams.get(key);
-                if (value !== null && value !== '') {
-                    url.searchParams.set(key, value);
-                }
-            });
+            const url = withToolbarContext(
+                new URL(TYPO3.settings.ajaxUrls.a11y_toolbar_render, window.location.origin),
+                this.resolveCurrentBackendModuleUrl(),
+                selectedTreePage()
+            );
 
             const response = await new AjaxRequest(url.toString()).get();
             const html = await response.resolve();

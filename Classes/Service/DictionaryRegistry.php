@@ -197,7 +197,7 @@ final class DictionaryRegistry
      */
     private function resolveRulesetDictionarySettings(string $siteIdentifier): array
     {
-        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
+        $ruleset = $this->rulesetRepository->findRulesConfigurationForSite($siteIdentifier);
         if (!is_array($ruleset)) {
             return [];
         }

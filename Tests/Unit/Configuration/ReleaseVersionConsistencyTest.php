@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ReleaseVersionConsistencyTest extends TestCase
 {
-    private const EXPECTED_VERSION = '1.9.9';
+    private const EXPECTED_VERSION = '2.0.1';
 
     #[Test]
     public function extEmconfAndComposerDeclareTheSameVersion(): void
