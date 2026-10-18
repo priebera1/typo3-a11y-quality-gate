@@ -129,6 +129,8 @@ describe('CKEditor accessibility feedback on open', () => {
         await settle();
 
         expect(summaryText()).toContain('2 issues found');
+        expect(summaryText().replace(/\s+/g, ' ')).toContain('2 critical issues');
+        expect(summaryText()).not.toContain('Criticals');
         expect(summary().classList.contains('ck-a11y-summary--critical')).toBe(true);
         expect(summary().classList.contains('ck-a11y-summary--stored')).toBe(false);
         expect(calls()).toEqual([`POST ${VALIDATE}`]);

@@ -195,10 +195,12 @@ final class FixVerificationService
 
         $message = match (true) {
             $outcome === self::OUTCOME_RESOLVED => BackendLabelUtility::translate('verifyFix.message.resolved', 'The fresh scan of this page no longer reports this issue. Manual review may still be required.'),
-            $outcome === self::OUTCOME_STILL_PRESENT => sprintf(
-                BackendLabelUtility::translate('verifyFix.message.stillPresent', 'The fresh scan still reports this issue on the page (%d occurrences).'),
-                (int)($verification['remaining_occurrences'] ?? 0)
-            ),
+            $outcome === self::OUTCOME_STILL_PRESENT => (int)($verification['remaining_occurrences'] ?? 0) === 1
+                ? BackendLabelUtility::translate('verifyFix.message.stillPresentOne', 'The fresh scan still reports this issue on the page (1 occurrence).')
+                : sprintf(
+                    BackendLabelUtility::translate('verifyFix.message.stillPresent', 'The fresh scan still reports this issue on the page (%d occurrences).'),
+                    (int)($verification['remaining_occurrences'] ?? 0)
+                ),
             $outcome === self::OUTCOME_NOT_VERIFIED => match ($reason) {
                 'scan_cancelled' => BackendLabelUtility::translate('verifyFix.reason.scanCancelled', 'The verification scan was cancelled. Nothing was verified.'),
                 'page_failed' => BackendLabelUtility::translate('verifyFix.reason.pageFailed', 'The page did not load for the scanner, so the fix could not be checked.'),

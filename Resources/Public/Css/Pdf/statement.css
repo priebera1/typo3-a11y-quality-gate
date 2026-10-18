@@ -12,14 +12,14 @@ body {
 
 .aqg-statement-pdf h2 {
     font-size: 13pt;
-    margin: 8mm 0 3mm 0;
+    margin: 6mm 0 2.5mm 0;
     color: #111827;
     border-bottom: 0.2mm solid #e5e7eb;
     padding-bottom: 1.5mm;
 }
 
 .aqg-statement-pdf p {
-    line-height: 1.45;
+    line-height: 1.4;
     margin: 0 0 3mm 0;
 }
 
@@ -40,7 +40,7 @@ body {
 .aqg-statement-pdf dt {
     font-weight: bold;
     color: #4b5563;
-    margin-top: 2mm;
+    margin-top: 1.5mm;
 }
 
 .aqg-statement-pdf dd {
@@ -52,8 +52,8 @@ body {
 .aqg-statement-contact-warning {
     border: 0.2mm solid #e5e7eb;
     background: #f9fafb;
-    padding: 4mm;
-    margin-bottom: 5mm;
+    padding: 3mm 4mm;
+    margin-bottom: 4mm;
 }
 
 .aqg-warning-banner,
@@ -71,6 +71,22 @@ body {
     padding: 1mm 2mm;
     font-weight: bold;
     font-size: 9pt;
+}
+
+/*
+ * Pagination (mPDF): a heading or a definition label never ends a page without what follows it, and short
+ * units (a list item, the boxed notices) move to the next page whole instead of being split. mPDF still splits a block that is taller than one page, so long statements keep all content.
+ */
+.aqg-statement-pdf h2,
+.aqg-statement-pdf dt {
+    page-break-after: avoid;
+}
+
+.aqg-statement-pdf li,
+.aqg-statement-meta,
+.aqg-warning-banner,
+.aqg-statement-contact-warning {
+    page-break-inside: avoid;
 }
 
 .aqg-pdf-footer {

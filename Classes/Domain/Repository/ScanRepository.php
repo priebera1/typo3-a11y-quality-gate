@@ -270,6 +270,7 @@ final class ScanRepository extends AbstractRepository
 
         $row = $qb
             ->orderBy('started_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
@@ -301,6 +302,7 @@ final class ScanRepository extends AbstractRepository
 
         $row = $qb
             ->orderBy('started_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
@@ -328,6 +330,7 @@ final class ScanRepository extends AbstractRepository
 
         $row = $qb
             ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
@@ -375,6 +378,7 @@ final class ScanRepository extends AbstractRepository
 
         $row = $qb
             ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
@@ -404,6 +408,7 @@ final class ScanRepository extends AbstractRepository
 
         $row = $qb
             ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();
@@ -435,6 +440,7 @@ final class ScanRepository extends AbstractRepository
 
         $row = $qb
             ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchAssociative();

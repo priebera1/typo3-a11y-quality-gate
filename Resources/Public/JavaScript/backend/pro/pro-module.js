@@ -21,6 +21,10 @@ const FREE_PREVIEW_UNREACHABLE_CODES = new Set([
     'private_network_blocked',
     'dns_lookup_failed',
 ]);
+// A paid submit the crawler did not answer may have been accepted. TYPO3 keeps its Idempotency-Key, so sending the same
+// submit again picks up that scan instead of starting a second one (O1).
+export const REMOTE_SUBMIT_CONFIRM_ATTEMPTS = 3;
+export const REMOTE_SUBMIT_CONFIRM_DELAY_MS = 5000;
 
 export class A11yProBackendModule extends A11yFreeBackendModule {
     constructor() {
@@ -467,9 +471,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
                     followLinks: true,
                     axeLocale: 'en',
                 };
-            const submitResponse = await new AjaxRequest(submitEndpoint).post(payload);
-
-            const submitData = await submitResponse.resolve();
+            const submitData = await this.postRemoteSubmit(submitEndpoint, payload);
             await this.handleProSubmitPayload(button, submitData, {
                 fallbackScope: isFreePreview ? 'page' : 'site',
                 fallbackPageUid: isFreePreview ? currentPageUid : null,
@@ -592,9 +594,7 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
             if (remotePageUid > 0) {
                 payload.remotePageUid = remotePageUid;
             }
-            const submitResponse = await new AjaxRequest(submitEndpoint).post(payload);
-
-            const submitData = await submitResponse.resolve();
+            const submitData = await this.postRemoteSubmit(submitEndpoint, payload);
             await this.handleProSubmitPayload(button, submitData, {
                 fallbackScope: 'page',
                 fallbackPageUid: pageUid,
@@ -812,6 +812,37 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         });
     }
 
+    /**
+     * Sends a frontend scan submit. When the AQG scanner did not confirm it (`submit_unconfirmed`: timeout or server
+     * error), the same submit is sent again a few times: TYPO3 sends the same Idempotency-Key, so the scanner answers with
+     * the scan it may already have accepted, or starts it now — never a second one.
+     */
+    async postRemoteSubmit(submitEndpoint, payload) {
+        for (let attempt = 1; ; attempt++) {
+            try {
+                const response = await new AjaxRequest(submitEndpoint).post(payload);
+                return await response.resolve();
+            } catch (error) {
+                const errorPayload = await this.extractAjaxErrorData(error);
+                if (errorPayload?.code !== 'submit_unconfirmed' || attempt >= REMOTE_SUBMIT_CONFIRM_ATTEMPTS) {
+                    throw error;
+                }
+
+                this.updateRemoteScanUi({
+                    visible: true,
+                    status: 'queued',
+                    message: this.translate(
+                        'notification.proScan.confirmingSubmit',
+                        'Checking whether the AQG scanner accepted the scan…'
+                    ),
+                    pagesScanned: null,
+                    pagesTotal: null,
+                });
+                await new Promise((resolve) => window.setTimeout(resolve, REMOTE_SUBMIT_CONFIRM_DELAY_MS));
+            }
+        }
+    }
+
     async extractAjaxErrorData(error) {
         const objectCandidates = [
             error?.responseJSON,
@@ -929,6 +960,9 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
     }
 
     extractReadableRemoteError(errorPayload, error, fallbackMessage) {
+        if (this.isSessionExpiredError(error, errorPayload)) {
+            return this.sessionExpiredMessage();
+        }
         const payloadFallback = this.buildFallbackMessageFromErrorPayload(errorPayload);
 
         const candidates = [
@@ -1078,16 +1112,22 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
         }
 
         if ((statusData.status || '') !== 'completed') {
-            throw new Error(
-                this.extractReadableRemoteError(
-                    statusData,
-                    null,
-                    this.translate(
-                        'notification.proScan.didNotComplete',
-                        'Frontend scan did not complete successfully.'
-                    )
+            // A failed job carries a translated reason for its failure code (D3b): title and message, never the
+            // crawler's own text.
+            const message = this.extractReadableRemoteError(
+                statusData,
+                null,
+                this.translate(
+                    'notification.proScan.didNotComplete',
+                    'Frontend scan did not complete successfully.'
                 )
             );
+            const title = typeof statusData.title === 'string' ? statusData.title.trim() : '';
+            const failure = new Error(title !== '' && !message.startsWith(title) ? `${title}: ${message}` : message);
+            if (typeof statusData.failureCode === 'string' && statusData.failureCode !== '') {
+                failure.code = statusData.failureCode;
+            }
+            throw failure;
         }
 
         const summaryData = await this.fetchRemoteSummary(scanState.jobId, scanState.siteIdentifier);

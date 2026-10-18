@@ -1703,6 +1703,24 @@ export class A11yFreeBackendModule extends A11yBaseModule {
         this.announce(`${title}: ${message}`);
     }
 
+    /**
+     * TYPO3 answers an AJAX request of an expired or ended backend login with 401 and an empty body. The scan was not
+     * started; the user has to log in again — not "Unknown error". A 401 that carries an AQG answer (a Free Remote
+     * Preview token error, for example) is that answer, not a login problem.
+     */
+    isSessionExpiredError(error, errorPayload = null) {
+        if (Number(error?.response?.status ?? error?.status ?? 0) !== 401) {
+            return false;
+        }
+
+        return !(errorPayload && typeof errorPayload === 'object'
+            && ['code', 'state', 'error', 'message'].some((key) => errorPayload[key] !== undefined && errorPayload[key] !== null && errorPayload[key] !== ''));
+    }
+
+    sessionExpiredMessage() {
+        return this.translate('notification.scan.sessionExpired', 'Your TYPO3 login has expired. Log in again, then repeat the action.');
+    }
+
     async readableLocalScanError(error) {
         // fetch() rejects with a TypeError when the request never reached TYPO3 (offline, aborted, proxy).
         if (error instanceof TypeError) {
@@ -1723,6 +1741,9 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             } catch {
                 // not JSON: fall through to the generic text
             }
+        }
+        if (this.isSessionExpiredError(error)) {
+            return this.sessionExpiredMessage();
         }
 
         return this.translate('js.error.unknown', 'Unknown error');

@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Tests\Unit\Command;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Priebera\A11yQualityGate\Command\InstallationIdentityCommand;
 use Priebera\A11yQualityGate\Command\MonitorCommand;
 use Priebera\A11yQualityGate\Command\ScanCommand;
 use Symfony\Component\Config\FileLocator;
@@ -35,7 +36,7 @@ final class ConsoleCommandRegistrationTest extends TestCase
     {
         $registrations = $this->commandRegistrations();
 
-        foreach (['a11y:scan', 'a11y:monitor'] as $command) {
+        foreach (['a11y:scan', 'a11y:monitor', 'a11y:installation:identity'] as $command) {
             self::assertCount(1, $registrations[$command] ?? [], $command . ' must be registered exactly once.');
             self::assertNull($registrations[$command][0]['aliasFor'], $command . ' must not be an alias (hidden from `typo3 list` and the TYPO3 14 Scheduler).');
             self::assertFalse($registrations[$command][0]['hidden'], $command . ' must be listed.');
@@ -51,6 +52,10 @@ final class ConsoleCommandRegistrationTest extends TestCase
             $registrations['a11y:monitor'][0]['schedulable'],
             'The Scheduler offers monitoring as the "Accessibility monitoring" task with site and language selectors, not as a raw console command.'
         );
+        self::assertFalse(
+            $registrations['a11y:installation:identity'][0]['schedulable'],
+            'A new installation identity is a one-off operator decision with licensing consequences, never a Scheduler task.'
+        );
         self::assertTrue(
             $registrations['a11y:scan'][0]['schedulable'],
             '"Execute console commands" has offered a11y:scan on TYPO3 13 since 1.0.0; existing tasks must keep working.'
@@ -60,7 +65,7 @@ final class ConsoleCommandRegistrationTest extends TestCase
     #[Test]
     public function commandClassesAreConfiguredInServicesYamlOnly(): void
     {
-        foreach ([ScanCommand::class, MonitorCommand::class] as $className) {
+        foreach ([ScanCommand::class, MonitorCommand::class, InstallationIdentityCommand::class] as $className) {
             self::assertSame(
                 [],
                 (new \ReflectionClass($className))->getAttributes(AsCommand::class),

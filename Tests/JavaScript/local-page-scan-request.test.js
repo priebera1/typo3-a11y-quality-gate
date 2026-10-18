@@ -62,6 +62,12 @@ const createModule = () => ({
     readableLocalScanError(error) {
         return A11yFreeBackendModule.prototype.readableLocalScanError.call(this, error);
     },
+    isSessionExpiredError(error) {
+        return A11yFreeBackendModule.prototype.isSessionExpiredError.call(this, error);
+    },
+    sessionExpiredMessage() {
+        return A11yFreeBackendModule.prototype.sessionExpiredMessage.call(this);
+    },
 });
 
 afterEach(() => {

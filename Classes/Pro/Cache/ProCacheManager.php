@@ -13,6 +13,7 @@ use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 final class ProCacheManager
 {
     private const TOKEN_TAG = 'aqg_access_token';
+    private const LICENCE_ANSWER_TAG = 'aqg_licence_answer';
 
     public function __construct(
         private readonly CacheManager $cacheManager,
@@ -39,7 +40,7 @@ final class ProCacheManager
     {
         $payload = $result->toArray();
 
-        $this->getCache()->set($cacheKey, $payload, [], max(1, $ttl));
+        $this->getCache()->set($cacheKey, $payload, [self::LICENCE_ANSWER_TAG], max(1, $ttl));
         if ($graceTtl <= 0) {
             $this->getCache()->remove($this->buildGraceKey($cacheKey));
             return;
@@ -53,7 +54,19 @@ final class ProCacheManager
      */
     public function setFreshLicenceResult(string $cacheKey, LicenceValidationResult $result, int $ttl): void
     {
-        $this->getCache()->set($cacheKey, $result->toArray(), [], max(1, $ttl));
+        $this->getCache()->set($cacheKey, $result->toArray(), [self::LICENCE_ANSWER_TAG], max(1, $ttl));
+    }
+
+    /**
+     * Drops the cached licence answers and access tokens, so the next request of each site asks the AQG service
+     * again, and keeps the offline grace copies. A domain change (portal or Licence tab) is no licence verdict: it
+     * must not take away the last known good licence an outage falls back on — the Licence tab lists the domains on
+     * every visit, and a flush of everything turned the next outage into an immediate downgrade to Free.
+     */
+    public function flushLicenceAnswersAndTokens(): void
+    {
+        $this->getCache()->flushByTag(self::LICENCE_ANSWER_TAG);
+        $this->flushTokens();
     }
 
     /**

@@ -15,6 +15,10 @@ final class RuleMetadataKeyResolver
         'empty_link' => 'link-name',
         'rendered.empty_button' => 'button-name',
         'empty_button' => 'button-name',
+        // Explicit: the substring fallback below would otherwise match the generic form-field
+        // 'label' rule and present form-label advice for an unnamed button.
+        'rte.button_label_missing' => 'button-name',
+        'button_label_missing' => 'button-name',
         'rendered.iframe_missing_title' => 'frame-title',
         'rte.iframe_missing_title' => 'frame-title',
         'iframe_missing_title' => 'frame-title',

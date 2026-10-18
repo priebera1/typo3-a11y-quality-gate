@@ -115,9 +115,11 @@ final class A11yScanTask extends AbstractTask
     public function execute(): bool
     {
         if ($this->pageUid <= 0 && $this->rootPid <= 0) {
+            // The TYPO3 14 task form (TCA) saves a task without a page or root page; the TYPO3 13 form refuses it.
+            // Reported as a failed run, shown in the Scheduler list, instead of a "successful" run that scanned nothing.
             $this->logger?->warning('A11yScanTask skipped because neither pageUid nor rootPid is configured.');
 
-            return true;
+            throw new \RuntimeException('Please configure either a single page UID or a root page.', 1792141200);
         }
 
         try {

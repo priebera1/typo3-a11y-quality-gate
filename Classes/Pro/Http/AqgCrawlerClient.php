@@ -44,6 +44,7 @@ final class AqgCrawlerClient
         array $cookieSelectors = [],
         ?int $languageId = null,
         string $languageCode = '',
+        string $idempotencyKey = '',
     ): CrawlerSubmitResponseDto {
         $requestPayload = [
             'siteId' => $siteId,
@@ -96,11 +97,13 @@ final class AqgCrawlerClient
             $requestPayload['languageCode'] = $languageCode;
         }
 
+        // A repeated submit with the same key gets the scan the crawler already accepted (PaidSubmitIdempotencyStore).
         $payload = $this->requestJson(
             '/crawl/submit',
             'POST',
             $accessToken,
-            $requestPayload
+            $requestPayload,
+            $idempotencyKey !== '' ? ['Idempotency-Key' => $idempotencyKey] : [],
         );
 
         return CrawlerSubmitResponseDto::fromArray($payload);
@@ -450,9 +453,14 @@ final class AqgCrawlerClient
             'scannerTokenPresent' => isset($payload['scannerToken']) && trim((string)$payload['scannerToken']) !== '',
         ]);
 
+        ServiceReachability::assertReachable(ServiceReachability::SERVICE_CRAWLER, $url, 'AQG crawler request skipped: the service did not answer earlier in this request.');
+
         try {
             $response = $this->requestFactory->request($url, $method, $options);
         } catch (ClientExceptionInterface | \JsonException $exception) {
+            if ($exception instanceof ClientExceptionInterface) {
+                ServiceReachability::markUnreachable(ServiceReachability::SERVICE_CRAWLER, $url);
+            }
             throw new ApiRequestFailedException(
                 'AQG crawler request failed: '
                 . $exception->getMessage()

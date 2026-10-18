@@ -68,6 +68,7 @@ describe('Free Remote Preview browser boundary', () => {
             setLoadingState: vi.fn(),
             setScanInProgress: vi.fn(),
             handleProSubmitPayload: vi.fn().mockResolvedValue(undefined),
+            postRemoteSubmit: A11yProBackendModule.prototype.postRemoteSubmit,
             showNotification: vi.fn(),
             translate: (_key, fallback) => fallback,
             remoteSubmitInProgress: false,

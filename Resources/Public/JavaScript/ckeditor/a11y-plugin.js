@@ -1465,12 +1465,7 @@ export default class A11yPlugin extends Plugin {
             return '';
         }
 
-        let label = this._severityLabel(severity);
-        if (count !== 1 && severity === 'critical') {
-            label = this._label('severityCriticalPlural', 'Criticals');
-        } else if (count !== 1 && severity === 'warning') {
-            label = this._label('severityWarningPlural', 'Warnings');
-        }
+        const label = this._escapeHtml(this._severityCountLabel(severity, count));
 
         return `
             <span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}">
@@ -1869,6 +1864,19 @@ export default class A11yPlugin extends Plugin {
         }
 
         return 'warning';
+    }
+
+    // Unit after the number in the summary ("1 critical issue", "5 critical issues").
+    _severityCountLabel(severity, count) {
+        const labels = {
+            critical: ['countCriticalOne', 'critical issue', 'countCriticalOther', 'critical issues'],
+            warning: ['countWarningOne', 'warning', 'countWarningOther', 'warnings'],
+            needs_review: ['countNeedsReviewOne', 'needs review', 'countNeedsReviewOther', 'need review'],
+            info: ['countInfoOne', 'info note', 'countInfoOther', 'info notes'],
+        };
+        const [oneKey, oneFallback, otherKey, otherFallback] = labels[this._normalizeSeverity(severity)] || labels.warning;
+
+        return count === 1 ? this._label(oneKey, oneFallback) : this._label(otherKey, otherFallback);
     }
 
     _severityLabel(severity) {

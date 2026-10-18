@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Functional\Scheduler;
 
+use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\Test;
 use Priebera\A11yQualityGate\Command\MonitorCommand;
+use Priebera\A11yQualityGate\Scheduler\A11yScanTask;
 use Priebera\A11yQualityGate\Scheduler\MonitoringTask;
 use Priebera\A11yQualityGate\Scheduler\MonitoringTaskAdditionalFieldProvider;
 use Priebera\A11yQualityGate\Tests\Functional\AbstractFunctionalTestCase;
@@ -18,6 +20,7 @@ use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Scheduler\Domain\Repository\SchedulerTaskRepository;
 use TYPO3\CMS\Scheduler\Service\TaskService;
+use TYPO3\CMS\Scheduler\Task\ExecuteSchedulableCommandTask;
 
 /**
  * `a11y:monitor` in the real container, and the monitoring task in the Scheduler of the running TYPO3 version.
@@ -139,6 +142,55 @@ final class MonitoringSchedulerFunctionalTest extends AbstractFunctionalTestCase
         [, $errors] = $this->save($uid, ['tasktype' => MonitoringTask::class, 'execution_details' => $execution, MonitoringTask::PARAM_RECIPIENTS => 'nobody']);
         self::assertStringContainsString('"nobody" is not a valid e-mail address.', implode(' ', $errors));
         self::assertSame('qa@example.org, web@example.org', $this->get(SchedulerTaskRepository::class)->findByUid($uid)->recipients, 'A refused save changes nothing.');
+    }
+
+    /**
+     * Regression (2.0.2, AQG-202-11): TYPO3 14 listed `a11y:scan` in a separate "A11y" category of the New task wizard.
+     * It is listed with the AQG tasks now, and stays a registered task type, so an existing `a11y:scan` task (created in
+     * the TYPO3 14 form or migrated from TYPO3 13) is still restored as the console command task.
+     */
+    #[Test]
+    public function theScanCommandIsListedWithTheAqgTasksAndExistingCommandTasksStayRegistered(): void
+    {
+        if ((new Typo3Version())->getMajorVersion() < 14) {
+            self::assertTrue(
+                $this->get(CommandRegistry::class)->filter('a11y')['a11y:scan']['schedulable'] ?? false,
+                'TYPO3 13 "Execute console commands" keeps offering a11y:scan.'
+            );
+            return;
+        }
+
+        $GLOBALS['LANG'] = $this->get(LanguageServiceFactory::class)->create('default');
+        $taskService = $this->get(TaskService::class);
+        $categories = $taskService->getCategorizedTaskTypes();
+
+        self::assertArrayNotHasKey('a11y', $categories);
+        self::assertEqualsCanonicalizing(
+            [A11yScanTask::class, MonitoringTask::class, 'a11y:scan'],
+            array_keys($categories['Accessibility Quality Gate'] ?? [])
+        );
+        self::assertSame('Accessibility Quality Gate: Content scan command (a11y:scan)', $categories['Accessibility Quality Gate']['a11y:scan']['title']);
+        self::assertTrue($taskService->isTaskTypeRegistered('a11y:scan'));
+
+        // As stored by the TYPO3 14 form for "a11y:scan --page-uid=1".
+        $this->get(ConnectionPool::class)->getConnectionForTable('tx_scheduler_task')->insert('tx_scheduler_task', [
+            'uid' => 77,
+            'tasktype' => 'a11y:scan',
+            'description' => 'Existing command task',
+            'parameters' => [
+                'optionValues' => ['root-pid' => '', 'depth' => '99', 'page-uid' => '1', 'language' => 'all', 'changed-only' => false],
+                'options' => ['page-uid' => true, 'root-pid' => false, 'depth' => false, 'language' => false, 'changed-only' => false],
+                'commandIdentifier' => 'a11y:scan',
+                'arguments' => [],
+            ],
+            'execution_details' => ['runningType' => '1', 'multiple' => false, 'start' => time(), 'end' => 0, 'frequency' => '0', 'interval' => 0, 'cronCmd' => '', 'isNewSingleExecution' => false],
+            'nextexecution' => time(),
+            'disable' => 1,
+        ], ['parameters' => Types::JSON, 'execution_details' => Types::JSON]);
+        $task = $this->get(SchedulerTaskRepository::class)->findByUid(77);
+        self::assertInstanceOf(ExecuteSchedulableCommandTask::class, $task);
+        self::assertSame('a11y:scan', $task->getTaskType());
+        self::assertSame('a11y:scan --page-uid=1', $task->getAdditionalInformation());
     }
 
     /**

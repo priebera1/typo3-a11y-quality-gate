@@ -377,6 +377,22 @@ async function extractAjaxErrorMessage(error, fallback) {
     }
 
     const response = error?.response || error?.xhr || null;
+    // TYPO3's AjaxRequest rejects with its AjaxResponse, which holds the fetch Response of the failed request.
+    if (response && typeof response.clone === 'function' && typeof response.text === 'function') {
+        try {
+            const text = (await response.clone().text()).trim();
+            if (text !== '') {
+                try {
+                    const data = JSON.parse(text);
+                    return String(data?.error || data?.message || fallback);
+                } catch {
+                    return fallback;
+                }
+            }
+        } catch {
+            // body not readable: fall through
+        }
+    }
     if (response && typeof response.responseText === 'string' && response.responseText.trim() !== '') {
         try {
             const data = JSON.parse(response.responseText);
@@ -719,6 +735,8 @@ async function scanPage(button) {
                 ].join(' '),
                 severity: 'warning',
                 details: notification.details,
+                // The content scan has stored its report; the failed frontend part does not take its action away.
+                reportUrl: notification.reportUrl,
             };
         }
         showScanNotification(notification, {

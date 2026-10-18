@@ -4095,6 +4095,14 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Accessibility Quality Gate: Site Scan</source>
                 <target>Accessibility Quality Gate: Website-Scan</target>
             </trans-unit>
+            <trans-unit id="scheduler.command.scan.title">
+                <source>Accessibility Quality Gate: Content scan command (a11y:scan)</source>
+                <target>Accessibility Quality Gate: Content-Scan-Befehl (a11y:scan)</target>
+            </trans-unit>
+            <trans-unit id="scheduler.command.scan.description">
+                <source>Runs the a11y:scan console command with its command line options. For new tasks, “Accessibility Quality Gate: Site Scan” runs the same content scan with page and site selection.</source>
+                <target>Führt den Konsolenbefehl a11y:scan mit seinen Kommandozeilenoptionen aus. Für neue Aufgaben führt „Accessibility Quality Gate: Website-Scan“ denselben Content-Scan mit Seiten- und Website-Auswahl aus.</target>
+            </trans-unit>
             <trans-unit id="scheduler.validation.depthPositive">
                 <source>Depth must be greater than 0.</source>
                 <target>Die Tiefe muss größer als 0 sein.</target>
@@ -7295,6 +7303,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Select a configured site and enter username and password before testing.</source>
                 <target>Wählen Sie eine konfigurierte Website und geben Sie Benutzername und Passwort ein, bevor Sie testen.</target>
             </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.privateSite">
+                <source>The site address is local or private (for example DDEV, localhost or a VPN host), so this server does not test it: the AQG crawler only reaches public sites.</source>
+                <target>Die Website-Adresse ist lokal oder privat (zum Beispiel DDEV, localhost oder ein VPN-Host). Dieser Server testet sie daher nicht: Der AQG-Crawler erreicht nur öffentliche Websites.</target>
+            </trans-unit>
             <trans-unit id="settings.remoteAccess.httpAuth.okDetail">
                 <source>Connection OK — the crawler reached the frontend with these credentials.</source>
                 <target>Verbindung erfolgreich – der Crawler hat das Frontend mit diesen Zugangsdaten erreicht.</target>
@@ -8031,17 +8043,9 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Critical</source>
                 <target>Kritisch</target>
             </trans-unit>
-            <trans-unit id="rte.severityCriticalPlural">
-                <source>Criticals</source>
-                <target>Kritisch</target>
-            </trans-unit>
             <trans-unit id="rte.severityWarning">
                 <source>Warning</source>
                 <target>Warnung</target>
-            </trans-unit>
-            <trans-unit id="rte.severityWarningPlural">
-                <source>Warnings</source>
-                <target>Warnungen</target>
             </trans-unit>
             <trans-unit id="rte.severityInfo">
                 <source>Info</source>
@@ -8050,6 +8054,38 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="rte.severityNeedsReview">
                 <source>Needs review</source>
                 <target>Zu prüfen</target>
+            </trans-unit>
+            <trans-unit id="rte.countCriticalOne">
+                <source>critical issue</source>
+                <target>kritisches Problem</target>
+            </trans-unit>
+            <trans-unit id="rte.countCriticalOther">
+                <source>critical issues</source>
+                <target>kritische Probleme</target>
+            </trans-unit>
+            <trans-unit id="rte.countWarningOne">
+                <source>warning</source>
+                <target>Warnung</target>
+            </trans-unit>
+            <trans-unit id="rte.countWarningOther">
+                <source>warnings</source>
+                <target>Warnungen</target>
+            </trans-unit>
+            <trans-unit id="rte.countNeedsReviewOne">
+                <source>needs review</source>
+                <target>zu prüfen</target>
+            </trans-unit>
+            <trans-unit id="rte.countNeedsReviewOther">
+                <source>need review</source>
+                <target>zu prüfen</target>
+            </trans-unit>
+            <trans-unit id="rte.countInfoOne">
+                <source>info note</source>
+                <target>Hinweis</target>
+            </trans-unit>
+            <trans-unit id="rte.countInfoOther">
+                <source>info notes</source>
+                <target>Hinweise</target>
             </trans-unit>
             <trans-unit id="rte.plainChecking">
                 <source>Checking HTML accessibility…</source>
@@ -8422,6 +8458,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="export.pdf.paidOnly">
                 <source>PDF export needs a PRO or Agency licence.</source>
                 <target>Der PDF-Export erfordert eine PRO- oder Agency-Lizenz.</target>
+            </trans-unit>
+            <trans-unit id="export.pdf.libraryMissing">
+                <source>PDF export needs the mPDF library (mpdf/mpdf), which this TYPO3 installation does not provide. CSV export keeps working.</source>
+                <target>Der PDF-Export benötigt die mPDF-Bibliothek (mpdf/mpdf), die diese TYPO3-Installation nicht bereitstellt. Der CSV-Export funktioniert weiterhin.</target>
             </trans-unit>
             <trans-unit id="renderedCheck.error.invalidUrl">
                 <source>Rendered page URL is invalid.</source>
@@ -8943,6 +8983,98 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>The frontend scan request failed. Details are in the TYPO3 log.</source>
                 <target>Die Anfrage für den Frontend-Scan ist fehlgeschlagen. Details stehen im TYPO3-Log.</target>
             </trans-unit>
+            <trans-unit id="remoteScanError.submitUnconfirmed.title">
+                <source>Scan start not confirmed</source>
+                <target>Scanstart nicht bestätigt</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.submitUnconfirmed.message">
+                <source>The AQG scanner did not confirm the frontend scan in time; it may have started anyway. Start the scan again: AQG then picks up the scan the scanner already accepted instead of starting a second one.</source>
+                <target>Der AQG-Scanner hat den Frontend-Scan nicht rechtzeitig bestätigt; er wurde möglicherweise trotzdem gestartet. Starten Sie den Scan erneut: AQG übernimmt dann den bereits angenommenen Scan, statt einen zweiten zu starten.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapNotFound.title">
+                <source>Sitemap not found</source>
+                <target>Sitemap nicht gefunden</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapNotFound.message">
+                <source>The site's sitemap answered "not found" to the AQG scanner, so no page was scanned. Check that the sitemap exists on the public site (EXT:seo, or the sitemap URL set for the site language) and start the scan again.</source>
+                <target>Die Sitemap der Website hat dem AQG-Scanner mit „nicht gefunden“ geantwortet, deshalb wurde keine Seite geprüft. Prüfen Sie, ob die Sitemap auf der öffentlichen Website existiert (EXT:seo oder die für die Sprache der Website eingetragene Sitemap-URL), und starten Sie den Scan erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapHttpError.title">
+                <source>Sitemap could not be loaded</source>
+                <target>Sitemap konnte nicht geladen werden</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapHttpError.message">
+                <source>The site's sitemap refused the AQG scanner or answered with a server error (for example HTTP authentication, a firewall or an error page), so no page was scanned. Make the sitemap reachable from the internet, or enter the HTTP authentication in the AQG settings, and start the scan again.</source>
+                <target>Die Sitemap der Website hat den AQG-Scanner abgewiesen oder mit einem Serverfehler geantwortet (zum Beispiel HTTP-Authentifizierung, eine Firewall oder eine Fehlerseite), deshalb wurde keine Seite geprüft. Machen Sie die Sitemap aus dem Internet erreichbar oder hinterlegen Sie die HTTP-Authentifizierung in den AQG-Einstellungen, und starten Sie den Scan erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapInvalid.title">
+                <source>Sitemap is not valid</source>
+                <target>Sitemap ist ungültig</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapInvalid.message">
+                <source>The site's sitemap address returned no usable XML sitemap (no URL list, too large, or too many nested sitemaps or redirects), so no page was scanned. Check the sitemap in a browser and start the scan again.</source>
+                <target>Unter der Sitemap-Adresse der Website steht keine verwendbare XML-Sitemap (keine URL-Liste, zu groß oder zu viele verschachtelte Sitemaps oder Weiterleitungen), deshalb wurde keine Seite geprüft. Prüfen Sie die Sitemap im Browser und starten Sie den Scan erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapBlocked.title">
+                <source>Sitemap points to another host</source>
+                <target>Sitemap verweist auf einen anderen Host</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapBlocked.message">
+                <source>The site's sitemap lists sitemaps on another host name, which the AQG scanner does not load, so no page was scanned. Use a sitemap on the site's own host name.</source>
+                <target>Die Sitemap der Website verweist auf Sitemaps unter einem anderen Hostnamen, die der AQG-Scanner nicht lädt; deshalb wurde keine Seite geprüft. Verwenden Sie eine Sitemap unter dem eigenen Hostnamen der Website.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.siteUnreachable.title">
+                <source>Site did not answer</source>
+                <target>Website antwortet nicht</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.siteUnreachable.message">
+                <source>The AQG scanner could not connect to the site, or the site did not answer in time, so no page was scanned. Check that the site is online and reachable from the internet, then start the scan again.</source>
+                <target>Der AQG-Scanner konnte keine Verbindung zur Website herstellen, oder die Website hat nicht rechtzeitig geantwortet; deshalb wurde keine Seite geprüft. Prüfen Sie, ob die Website online und aus dem Internet erreichbar ist, und starten Sie den Scan erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.tlsCertificateInvalid.title">
+                <source>TLS certificate not valid</source>
+                <target>TLS-Zertifikat ungültig</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.tlsCertificateInvalid.message">
+                <source>The site's TLS certificate could not be verified (expired, self-signed or issued for another host name), so the AQG scanner did not load it. Renew or correct the certificate and start the scan again.</source>
+                <target>Das TLS-Zertifikat der Website konnte nicht geprüft werden (abgelaufen, selbst signiert oder für einen anderen Hostnamen ausgestellt), deshalb hat der AQG-Scanner die Website nicht geladen. Erneuern oder korrigieren Sie das Zertifikat und starten Sie den Scan erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.jobTimeout.title">
+                <source>Scan took too long</source>
+                <target>Scan hat zu lange gedauert</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.jobTimeout.message">
+                <source>The frontend scan ran longer than the AQG scanner's time limit and was stopped. Scan fewer pages (a lower page limit or excluded sections), or scan single pages.</source>
+                <target>Der Frontend-Scan lief länger als das Zeitlimit des AQG-Scanners und wurde beendet. Prüfen Sie weniger Seiten (ein niedrigeres Seitenlimit oder ausgeschlossene Bereiche) oder scannen Sie einzelne Seiten.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanStalled.title">
+                <source>Scan stopped</source>
+                <target>Scan abgebrochen</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanStalled.message">
+                <source>The AQG scanner stopped working on this frontend scan (for example after a restart) and ended it. Start the scan again.</source>
+                <target>Der AQG-Scanner hat die Arbeit an diesem Frontend-Scan eingestellt (zum Beispiel nach einem Neustart) und ihn beendet. Starten Sie den Scan erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.entitlementEnded.title">
+                <source>Licence ended before the scan started</source>
+                <target>Lizenz vor dem Scanstart beendet</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.entitlementEnded.message">
+                <source>The licence or trial that queued this frontend scan ended before the scan started, so it did not run. Check the licence in the AQG settings.</source>
+                <target>Die Lizenz oder Testphase, mit der dieser Frontend-Scan eingereiht wurde, endete vor dem Scanstart; der Scan wurde deshalb nicht ausgeführt. Prüfen Sie die Lizenz in den AQG-Einstellungen.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanFailed.title">
+                <source>Frontend scan failed</source>
+                <target>Frontend-Scan fehlgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanFailed.message">
+                <source>The AQG scanner could not complete this frontend scan. Start the scan again; if it fails again, contact AQG support with the time of the scan.</source>
+                <target>Der AQG-Scanner konnte diesen Frontend-Scan nicht abschließen. Starten Sie den Scan erneut; schlägt er wieder fehl, wenden Sie sich mit dem Zeitpunkt des Scans an den AQG-Support.</target>
+            </trans-unit>
+            <trans-unit id="notification.proScan.confirmingSubmit">
+                <source>Checking whether the AQG scanner accepted the scan…</source>
+                <target>Es wird geprüft, ob der AQG-Scanner den Scan angenommen hat…</target>
+            </trans-unit>
             <trans-unit id="proCrawler.jobUnavailable.message">
                 <source>This frontend scan is no longer available for this installation. Start a new scan.</source>
                 <target>Dieser Frontend-Scan ist für diese Installation nicht mehr verfügbar. Starten Sie einen neuen Scan.</target>
@@ -9046,6 +9178,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="verifyFix.message.stillPresent">
                 <source>The fresh scan still reports this issue on the page (%d occurrences).</source>
                 <target>Der neue Scan meldet dieses Problem weiterhin auf der Seite (%d Vorkommen).</target>
+            </trans-unit>
+            <trans-unit id="verifyFix.message.stillPresentOne">
+                <source>The fresh scan still reports this issue on the page (1 occurrence).</source>
+                <target>Der neue Scan meldet dieses Problem weiterhin auf der Seite (1 Vorkommen).</target>
             </trans-unit>
             <trans-unit id="verifyFix.message.pending">
                 <source>A fresh scan of this page is running.</source>
@@ -10182,6 +10318,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="notification.scan.connectionLost">
                 <source>The request did not reach TYPO3. Check the connection and try again.</source>
                 <target>Die Anfrage hat TYPO3 nicht erreicht. Prüfen Sie die Verbindung und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="notification.scan.sessionExpired">
+                <source>Your TYPO3 login has expired. Log in again, then repeat the action.</source>
+                <target>Ihre TYPO3-Anmeldung ist abgelaufen. Melden Sie sich erneut an und wiederholen Sie die Aktion.</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.linkedRecord">
                 <source>In</source>

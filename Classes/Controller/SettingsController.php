@@ -738,6 +738,9 @@ final class SettingsController extends AbstractBackendModuleController
         if (!($result['success'] ?? false)) {
             return $this->buildStatementFailureResponse($result, 'settings.statement.error.pdfUnavailable');
         }
+        if (!PdfGenerator::isAvailable()) {
+            return $this->buildStatementFailureResponse(['code' => 'pdf_library_missing', 'statusCode' => 503], 'export.pdf.libraryMissing');
+        }
 
         $statement = is_array($result['statement'] ?? null) ? $result['statement'] : [];
         $title = $this->translate('settings.statement.pdf.title');
@@ -1026,6 +1029,19 @@ final class SettingsController extends AbstractBackendModuleController
                 $encryptedPassword = trim((string)($defaultRuleset['http_auth_pass'] ?? ''));
             }
             $password = $this->secretEncryptionService->decrypt($encryptedPassword);
+        }
+
+        $siteHost = $site instanceof Site ? trim((string)(parse_url((string)$site->getBase(), PHP_URL_HOST) ?? '')) : '';
+        if ($siteUrl === '' && $siteHost !== '' && $this->isLocalOrPrivateHost($siteHost) && $username !== '' && $password !== '') {
+            // A staging site on a private address (VPN, internal DNS, DDEV) was answered with "select a site and
+            // enter username and password" although both were given.
+            return new JsonResponse([
+                'success' => false,
+                'ok' => false,
+                'status' => 0,
+                'code' => 'private_site',
+                'message' => $this->translateWithFallback('settings.remoteAccess.httpAuth.privateSite', 'The site address is local or private (for example DDEV, localhost or a VPN host), so this server does not test it: the AQG crawler only reaches public sites.'),
+            ], 400);
         }
 
         if ($siteUrl === '' || $username === '' || $password === '') {

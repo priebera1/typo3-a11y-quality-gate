@@ -43,6 +43,9 @@ final class RemoteScanErrorPresenter
         }
 
         $kind = match (true) {
+            // A paid submit that timed out or met a server error may have been accepted (ProCrawlerService keeps its
+            // Idempotency-Key): repeating it picks that scan up instead of starting a second one.
+            $apiCode === 'submit_unconfirmed' => 'submitUnconfirmed',
             $apiCode === 'trial_crawl_limit' => 'trialLimit',
             $httpStatus === 429 || in_array($apiCode, ['too_many_active_jobs', 'rate_limit_exceeded', 'crawler_rate_limited'], true) => 'limit',
             // A revoked token or a licence refusal on token refresh (removed project, expired licence) is a
@@ -78,7 +81,7 @@ final class RemoteScanErrorPresenter
             'invalidTarget', 'targetNotPublic', 'targetNotFound', 'redirectBlocked' => 400,
             'notFound' => 404,
             'conflict' => 409,
-            'unavailable' => 503,
+            'unavailable', 'submitUnconfirmed' => 503,
             default => $httpStatus >= 400 && $httpStatus <= 599 ? $httpStatus : 500,
         };
 
@@ -88,6 +91,56 @@ final class RemoteScanErrorPresenter
             $kind,
             $kind === 'limit' || $kind === 'trialLimit' ? $apiException->retryAfter : null,
         );
+    }
+
+    /**
+     * Why a frontend scan the crawler accepted did not complete, from the crawler's failure code (`errorCode` of
+     * /crawl/status). The crawler's free-text error is never shown; an unknown or missing code is the generic
+     * "could not complete" — newer crawler codes stay readable for this release.
+     *
+     * @return array{code:string,title:string,message:string}
+     */
+    public function presentJobFailure(?string $failureCode): array
+    {
+        $code = trim((string)$failureCode);
+        $kind = match ($code) {
+            'sitemap_not_found' => 'sitemapNotFound',
+            'sitemap_http_error' => 'sitemapHttpError',
+            'sitemap_invalid' => 'sitemapInvalid',
+            'sitemap_blocked' => 'sitemapBlocked',
+            'site_unreachable' => 'siteUnreachable',
+            'site_not_found' => 'targetNotFound',
+            'site_not_public' => 'targetNotPublic',
+            'tls_certificate_invalid' => 'tlsCertificateInvalid',
+            'job_timeout' => 'jobTimeout',
+            'scan_stalled' => 'scanStalled',
+            'entitlement_ended' => 'entitlementEnded',
+            default => 'scanFailed',
+        };
+        if ($kind === 'targetNotFound' || $kind === 'targetNotPublic') {
+            $presented = $this->result(400, $code, $kind, null);
+
+            return ['code' => $code, 'title' => $presented['title'], 'message' => $presented['message']];
+        }
+
+        [$titleFallback, $messageFallback] = match ($kind) {
+            'sitemapNotFound' => ['Sitemap not found', 'The site\'s sitemap answered "not found" to the AQG scanner, so no page was scanned. Check that the sitemap exists on the public site (EXT:seo, or the sitemap URL set for the site language) and start the scan again.'],
+            'sitemapHttpError' => ['Sitemap could not be loaded', 'The site\'s sitemap refused the AQG scanner or answered with a server error (for example HTTP authentication, a firewall or an error page), so no page was scanned. Make the sitemap reachable from the internet, or enter the HTTP authentication in the AQG settings, and start the scan again.'],
+            'sitemapInvalid' => ['Sitemap is not valid', 'The site\'s sitemap address returned no usable XML sitemap (no URL list, too large, or too many nested sitemaps or redirects), so no page was scanned. Check the sitemap in a browser and start the scan again.'],
+            'sitemapBlocked' => ['Sitemap points to another host', 'The site\'s sitemap lists sitemaps on another host name, which the AQG scanner does not load, so no page was scanned. Use a sitemap on the site\'s own host name.'],
+            'siteUnreachable' => ['Site did not answer', 'The AQG scanner could not connect to the site, or the site did not answer in time, so no page was scanned. Check that the site is online and reachable from the internet, then start the scan again.'],
+            'tlsCertificateInvalid' => ['TLS certificate not valid', 'The site\'s TLS certificate could not be verified (expired, self-signed or issued for another host name), so the AQG scanner did not load it. Renew or correct the certificate and start the scan again.'],
+            'jobTimeout' => ['Scan took too long', 'The frontend scan ran longer than the AQG scanner\'s time limit and was stopped. Scan fewer pages (a lower page limit or excluded sections), or scan single pages.'],
+            'scanStalled' => ['Scan stopped', 'The AQG scanner stopped working on this frontend scan (for example after a restart) and ended it. Start the scan again.'],
+            'entitlementEnded' => ['Licence ended before the scan started', 'The licence or trial that queued this frontend scan ended before the scan started, so it did not run. Check the licence in the AQG settings.'],
+            default => ['Frontend scan failed', 'The AQG scanner could not complete this frontend scan. Start the scan again; if it fails again, contact AQG support with the time of the scan.'],
+        };
+
+        return [
+            'code' => preg_match('/^[a-z0-9_]{1,64}$/', $code) === 1 ? $code : 'scan_failed',
+            'title' => BackendLabelUtility::translate('remoteScanFailure.' . $kind . '.title', $titleFallback),
+            'message' => BackendLabelUtility::translate('remoteScanFailure.' . $kind . '.message', $messageFallback),
+        ];
     }
 
     /**
@@ -134,6 +187,7 @@ final class RemoteScanErrorPresenter
             'notFound' => ['Remote scan not found', 'The AQG scanner no longer has this scan.'],
             'conflict' => ['Remote scan conflict', 'Another frontend scan for this site is still running. Wait for it to finish.'],
             'unavailable' => ['Remote scanner unavailable', 'The AQG scanner could not be reached or is temporarily unavailable. Try again later.'],
+            'submitUnconfirmed' => ['Scan start not confirmed', 'The AQG scanner did not confirm the frontend scan in time; it may have started anyway. Start the scan again: AQG then picks up the scan the scanner already accepted instead of starting a second one.'],
             default => ['Remote scan failed', 'The frontend scan request failed. Details are in the TYPO3 log.'],
         };
 

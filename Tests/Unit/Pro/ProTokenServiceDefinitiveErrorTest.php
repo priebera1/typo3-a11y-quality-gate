@@ -45,7 +45,10 @@ final class ProTokenServiceDefinitiveErrorTest extends TestCase
     {
         $cache = $this->createMock(ProCacheManager::class);
         $cache->method('getToken')->willReturn(null);
-        $cache->expects($definitive ? self::once() : self::never())->method('flushAll');
+        // A domain refusal concerns one site: answers and tokens go, the other sites' offline grace copies stay.
+        $domainOnly = in_array($errorCode, ['domain_limit_reached', 'domain_not_activated', 'domain_not_detected'], true);
+        $cache->expects($definitive && !$domainOnly ? self::once() : self::never())->method('flushAll');
+        $cache->expects($domainOnly ? self::once() : self::never())->method('flushLicenceAnswersAndTokens');
         $client = $this->createMock(AqgApiClient::class);
         $client->method('issueToken')->willReturn(AccessTokenResponseDto::fromArray([
             'success' => false,

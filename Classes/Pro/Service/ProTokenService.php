@@ -80,7 +80,11 @@ final class ProTokenService
         if (!$responseDto->success || $responseDto->accessToken === null) {
             // A licence verdict from the token endpoint is as definitive as one from validation: no cached
             // positive licence state may keep the paid UI open for another hour.
-            if (in_array((string)$responseDto->errorCode, self::DEFINITIVE_TOKEN_ERRORS, true)) {
+            if (in_array((string)$responseDto->errorCode, self::DOMAIN_TOKEN_ERRORS, true)) {
+                // A refusal for this one domain is no verdict on the other sites of the installation: their offline
+                // grace copies stay (the refused site's next validation replaces its own state).
+                $this->cacheManager->flushLicenceAnswersAndTokens();
+            } elseif (in_array((string)$responseDto->errorCode, self::DEFINITIVE_TOKEN_ERRORS, true)) {
                 $this->cacheManager->flushAll();
             }
 

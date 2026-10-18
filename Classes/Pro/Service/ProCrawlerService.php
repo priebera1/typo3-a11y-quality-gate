@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Pro\Service;
 
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerResultsResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerStatusResult;
+use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResponseDto;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResult;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSummaryResult;
 use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
@@ -14,6 +15,7 @@ use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Http\AqgCrawlerClient;
+use Priebera\A11yQualityGate\Utility\StringListUtility;
 
 final class ProCrawlerService
 {
@@ -24,6 +26,7 @@ final class ProCrawlerService
         private readonly ProTokenService $proTokenService,
         private readonly AqgCrawlerClient $crawlerClient,
         private readonly ?TrialUsageService $trialUsageService = null,
+        private readonly ?PaidSubmitIdempotencyStore $submitKeys = null,
     ) {
     }
 
@@ -47,6 +50,7 @@ final class ProCrawlerService
         array $cookieSelectors = [],
         ?int $languageId = null,
         string $languageCode = '',
+        string $purpose = '',
     ): CrawlerSubmitResult {
         $licence = $this->proLicenceService->validate($domain, $version);
 
@@ -58,39 +62,67 @@ final class ProCrawlerService
             $captureScreenshot = false;
         }
 
-        $token = $this->proTokenService->getValidToken($domain, $version);
+        // Kept until the crawler answers, so a repeated submit of this request picks up the scan a timed-out attempt
+        // may have started (O1) — and the token-refresh retry below is never a second scan either.
+        $fingerprint = $this->submitFingerprint(
+            $domain, $siteId, $startUrl, $sitemapUrl, $sourceType, $maxPages, $followLinks, $axeLocale, $captureScreenshot,
+            $cookieDismiss, $scannerPreviewToken !== '', $httpAuthUser !== '' && $httpAuthPass !== '', $excludedPatterns,
+            $priorityUrls, $cookieSelectors, $languageId, $languageCode, $purpose,
+        );
+        $idempotencyKey = $this->submitKeys?->keyFor($fingerprint) ?? PaidSubmitIdempotencyStore::newKey();
+        // The crawler's own failure, as opposed to one of the licence API while fetching a token.
+        $crawlerFailure = null;
 
         try {
-            $responseDto = $this->crawlerClient->submit(
-                $token->accessToken,
-                $siteId,
-                $startUrl,
-                $sitemapUrl,
-                $sourceType,
-                $maxPages,
-                $followLinks,
-                $axeLocale,
-                $captureScreenshot,
-                $cookieDismiss,
-                $scannerPreviewToken,
-                $httpAuthUser,
-                $httpAuthPass,
-                $excludedPatterns,
-                $priorityUrls,
-                $cookieSelectors,
-                $languageId,
-                $languageCode,
-            );
-        } catch (ApiRequestFailedException $exception) {
-            throw new TokenRefreshException(
-                'Remote crawler submit failed: ' . $exception->getMessage(),
-                0,
-                $exception
-            );
+            $responseDto = $this->withCurrentToken($domain, $version, 'submit', function (string $accessToken) use (
+                $siteId, $startUrl, $sitemapUrl, $sourceType, $maxPages, $followLinks, $axeLocale, $captureScreenshot,
+                $cookieDismiss, $scannerPreviewToken, $httpAuthUser, $httpAuthPass, $excludedPatterns, $priorityUrls,
+                $cookieSelectors, $languageId, $languageCode, $idempotencyKey, &$crawlerFailure,
+            ): CrawlerSubmitResponseDto {
+                try {
+                    return $this->crawlerClient->submit(
+                        $accessToken,
+                        $siteId,
+                        $startUrl,
+                        $sitemapUrl,
+                        $sourceType,
+                        $maxPages,
+                        $followLinks,
+                        $axeLocale,
+                        $captureScreenshot,
+                        $cookieDismiss,
+                        $scannerPreviewToken,
+                        $httpAuthUser,
+                        $httpAuthPass,
+                        $excludedPatterns,
+                        $priorityUrls,
+                        $cookieSelectors,
+                        $languageId,
+                        $languageCode,
+                        $idempotencyKey,
+                    );
+                } catch (ApiRequestFailedException $exception) {
+                    $crawlerFailure = $exception;
+                    throw $exception;
+                }
+            });
+        } catch (TokenRefreshException $exception) {
+            if ($exception->getPrevious() === $crawlerFailure && $this->isUnconfirmedSubmit($crawlerFailure)) {
+                $this->submitKeys?->markUnconfirmed($fingerprint, $idempotencyKey);
+                throw new TokenRefreshException(
+                    'Remote crawler submit not confirmed (the scan may have been accepted): ' . $exception->getMessage(),
+                    0,
+                    new ApiRequestFailedException('The crawler did not answer the submit.', 503, $exception, 'submit_unconfirmed'),
+                );
+            }
+            $this->submitKeys?->release($fingerprint, $idempotencyKey, false);
+            throw $exception;
         } finally {
             // Accepted, refused at the Trial limit or lost in transit: the shown allowance may be out of date now.
             $this->trialUsageService?->forget($domain);
         }
+
+        $this->submitKeys?->release($fingerprint, $idempotencyKey);
 
         if (!$responseDto->success || $responseDto->jobId === null) {
             throw new TokenRefreshException(
@@ -101,6 +133,72 @@ final class ProCrawlerService
         return CrawlerSubmitResult::fromResponseDto($responseDto);
     }
 
+
+    /**
+     * No answer, or a server error, after the request may have reached the crawler: a timeout, a dropped connection,
+     * an unreadable body, 408 or 5xx. A request this PHP process never sent (the crawler did not answer earlier, code
+     * `transport_error`) and every 4xx are definitive.
+     */
+    private function isUnconfirmedSubmit(?ApiRequestFailedException $exception): bool
+    {
+        if (!$exception instanceof ApiRequestFailedException || $exception->apiErrorCode === 'transport_error') {
+            return false;
+        }
+
+        return $exception->httpStatus === 0 || $exception->httpStatus === 408 || $exception->httpStatus >= 500;
+    }
+
+    /**
+     * What decides which scan runs, without the secrets themselves (only whether a scanner token or HTTP credentials
+     * are sent): the same request gets the same key, a changed setting is a new scan.
+     *
+     * @param list<string>|array<int|string, string> $excludedPatterns
+     * @param list<string>|array<int|string, string> $priorityUrls
+     * @param list<string>|array<int|string, string> $cookieSelectors
+     */
+    private function submitFingerprint(
+        string $domain,
+        string $siteId,
+        string $startUrl,
+        ?string $sitemapUrl,
+        RemoteScanSourceType $sourceType,
+        int $maxPages,
+        bool $followLinks,
+        string $axeLocale,
+        bool $captureScreenshot,
+        bool $cookieDismiss,
+        bool $withScannerToken,
+        bool $withHttpAuth,
+        array $excludedPatterns,
+        array $priorityUrls,
+        array $cookieSelectors,
+        ?int $languageId,
+        string $languageCode,
+        string $purpose,
+    ): string {
+        return hash('sha256', json_encode([
+            'v' => 1,
+            // Verify fix scans the page as it is now: it never picks up a page scan started before the fix.
+            'purpose' => $purpose,
+            'domain' => $domain,
+            'siteId' => $siteId,
+            'startUrl' => $startUrl,
+            'sitemapUrl' => trim((string)$sitemapUrl),
+            'sourceType' => $sourceType->value,
+            'maxPages' => $maxPages,
+            'followLinks' => $followLinks,
+            'axeLocale' => $axeLocale,
+            'captureScreenshot' => $captureScreenshot,
+            'cookieDismiss' => $cookieDismiss,
+            'scannerToken' => $withScannerToken,
+            'httpAuth' => $withHttpAuth,
+            'excludedPatterns' => StringListUtility::normalize($excludedPatterns),
+            'priorityUrls' => StringListUtility::normalize($priorityUrls),
+            'cookieSelectors' => StringListUtility::normalize($cookieSelectors),
+            'languageId' => $languageId,
+            'languageCode' => trim($languageCode),
+        ], JSON_THROW_ON_ERROR));
+    }
 
     /**
      * A licence refused only for this site's domain says what to fix (activate it, free a slot, or use a domain a
@@ -136,17 +234,7 @@ final class ProCrawlerService
 
     public function getResults(string $domain, string $version, string $jobId): CrawlerResultsResult
     {
-        $token = $this->proTokenService->getValidToken($domain, $version);
-
-        try {
-            $responseDto = $this->crawlerClient->results($token->accessToken, $jobId);
-        } catch (ApiRequestFailedException $exception) {
-            throw new TokenRefreshException(
-                'Remote crawler results request failed: ' . $exception->getMessage(),
-                0,
-                $exception
-            );
-        }
+        $responseDto = $this->withCurrentToken($domain, $version, 'results request', fn (string $accessToken) => $this->crawlerClient->results($accessToken, $jobId));
 
         if (!$responseDto->success || $responseDto->jobId === null) {
             throw new TokenRefreshException(
@@ -159,17 +247,7 @@ final class ProCrawlerService
 
     public function getStatus(string $domain, string $version, string $jobId): CrawlerStatusResult
     {
-        $token = $this->proTokenService->getValidToken($domain, $version);
-
-        try {
-            $responseDto = $this->crawlerClient->status($token->accessToken, $jobId);
-        } catch (ApiRequestFailedException $exception) {
-            throw new TokenRefreshException(
-                'Remote crawler status request failed: ' . $exception->getMessage(),
-                0,
-                $exception
-            );
-        }
+        $responseDto = $this->withCurrentToken($domain, $version, 'status request', fn (string $accessToken) => $this->crawlerClient->status($accessToken, $jobId));
 
         if (!$responseDto->success || $responseDto->jobId === null) {
             throw new TokenRefreshException(
@@ -214,6 +292,35 @@ final class ProCrawlerService
         }
 
         return CrawlerSummaryResult::fromResponseDto($responseDto);
+    }
+
+    /**
+     * Runs a crawler request with the cached token and, when the crawler refuses that token (401: expired, or revoked
+     * — e.g. after a plan change the token's rights no longer match the licence), once more with a new one. Before,
+     * only the history-type reads did that, so scan submit, status and results failed until the cached token expired.
+     *
+     * @template T
+     * @param callable(string): T $request
+     * @return T
+     */
+    private function withCurrentToken(string $domain, string $version, string $label, callable $request): mixed
+    {
+        $token = $this->proTokenService->getValidToken($domain, $version);
+        try {
+            return $request($token->accessToken);
+        } catch (ApiRequestFailedException $exception) {
+            // Only the crawler's answer that it refuses the token (401) — never a match in the message, which embeds
+            // the request URL, payload and token length: a timed-out submit whose URL contains "401" was sent twice.
+            if ($exception->httpStatus !== 401) {
+                throw new TokenRefreshException('Remote crawler ' . $label . ' failed: ' . $exception->getMessage(), 0, $exception);
+            }
+        }
+
+        try {
+            return $request($this->proTokenService->getValidToken($domain, $version, true)->accessToken);
+        } catch (ApiRequestFailedException $retryException) {
+            throw new TokenRefreshException('Remote crawler ' . $label . ' failed after token refresh: ' . $retryException->getMessage(), 0, $retryException);
+        }
     }
 
     private function isTokenExpiredCrawlerException(ApiRequestFailedException $exception): bool

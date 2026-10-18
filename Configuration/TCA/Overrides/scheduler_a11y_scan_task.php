@@ -116,3 +116,18 @@ ExtensionManagementUtility::addRecordType(
     '',
     'tx_scheduler_task'
 );
+
+// TYPO3 14 lists every schedulable console command as a task type of its own, grouped by the command namespace, so
+// `a11y:scan` appeared in a separate "A11y" category next to the AQG tasks. Core adds these items before the TCA
+// overrides run. The command stays schedulable and keeps its task type: persisted `a11y:scan` tasks (also those
+// migrated from TYPO3 13) are resolved through this item and fail as "not registered" without it. It is only listed
+// in the AQG category, under a name that tells it apart from the Site Scan task.
+foreach ($GLOBALS['TCA']['tx_scheduler_task']['columns']['tasktype']['config']['items'] ?? [] as $index => $item) {
+    if (is_array($item) && ($item['value'] ?? null) === 'a11y:scan') {
+        $GLOBALS['TCA']['tx_scheduler_task']['columns']['tasktype']['config']['items'][$index] = array_replace($item, [
+            'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.command.scan.title',
+            'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.command.scan.description',
+            'group' => 'Accessibility Quality Gate',
+        ]);
+    }
+}

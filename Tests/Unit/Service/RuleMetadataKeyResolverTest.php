@@ -19,6 +19,7 @@ final class RuleMetadataKeyResolverTest extends TestCase
             'image-alt',
             'link-name',
             'button-name',
+            'label',
             'frame-title',
             'form_control_missing_label',
             'file_reference_alt_quality',
@@ -40,6 +41,7 @@ final class RuleMetadataKeyResolverTest extends TestCase
         yield 'rendered form label' => ['rendered.form_control_missing_label', 'form_control_missing_label'];
         yield 'structured file reference alt' => ['structured.file_reference_alt_quality', 'file_reference_alt_quality'];
         yield 'rendered empty heading' => ['rendered.empty_heading', 'empty_heading'];
+        yield 'rte button without name is not the form label rule' => ['rte.button_label_missing', 'button-name'];
         yield 'rte empty heading' => ['rte.empty_heading', 'empty_heading'];
     }
 

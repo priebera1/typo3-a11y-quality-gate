@@ -111,6 +111,31 @@ final class PdfGeneratorTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\/MarkInfo\s*<<\s*\/Marked\s+true/', $pdf);
     }
 
+    /**
+     * Regression (2.0.2, AQG-202-03): the statement draft has a footer but no running header, yet every page kept the
+     * report header's 28 mm top margin; with that waste a four-page statement spilled a few lines onto a fifth page.
+     * A footer-only document starts below a 16 mm margin, a document with a running header still reserves 28 mm.
+     */
+    #[Test]
+    public function onlyADocumentWithARunningHeaderReservesHeaderSpace(): void
+    {
+        $footer = '<htmlpagefooter name="f"><div>Footer</div></htmlpagefooter><sethtmlpagefooter name="f" value="on" />';
+        $header = '<htmlpageheader name="h"><div>Header</div></htmlpageheader><sethtmlpageheader name="h" value="on" show-this-page="1" />';
+        // Taller than a page below a 28 mm top margin, shorter than one below 16 mm (A4, 18 mm bottom margin).
+        $body = '<div style="height: 255mm; margin: 0; padding: 0;"></div><p style="margin: 0;">End</p>';
+
+        $footerOnly = (new PdfGenerator())->render($footer . $body, 'Statement', [], self::CSS);
+        $withHeader = (new PdfGenerator())->render($header . $footer . $body, 'Report', [], self::CSS);
+
+        self::assertSame(1, $this->pageCount($footerOnly));
+        self::assertSame(2, $this->pageCount($withHeader));
+    }
+
+    private function pageCount(string $pdf): int
+    {
+        return preg_match_all('/\/Type\s*\/Page(?![a-zA-Z])/', $pdf);
+    }
+
     private function contentStreams(string $pdf): string
     {
         preg_match_all('/stream\r?\n(.*?)\r?\nendstream/s', $pdf, $matches);
