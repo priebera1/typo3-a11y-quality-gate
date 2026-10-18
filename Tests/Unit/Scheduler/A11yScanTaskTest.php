@@ -10,6 +10,21 @@ use Priebera\A11yQualityGate\Scheduler\A11yScanTask;
 
 final class A11yScanTaskTest extends TestCase
 {
+    /**
+     * The TYPO3 14 task form saves an AQG scan task without a page or root page. Its runs were reported as successful
+     * while nothing was scanned (2026-10-16 audit, TYPO3 14.3); such a run fails visibly in the Scheduler.
+     */
+    #[Test]
+    public function aTaskWithoutPageOrRootPageFailsVisibly(): void
+    {
+        $task = self::createTask();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Please configure either a single page UID or a root page.');
+
+        $task->execute();
+    }
+
     #[Test]
     public function setTaskParametersMapsNativeTcaFields(): void
     {

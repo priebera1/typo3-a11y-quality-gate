@@ -310,7 +310,7 @@ final class AccessibilityStatementServiceTest extends TestCase
     {
         $this->remoteScanRepository->expects(self::once())
             ->method('findLastCompletedSiteScanBySite')
-            ->with('main', -1, false)
+            ->with('main', 0, false)
             ->willReturn(['uid' => 12, 'job_id' => self::JOB_ID, 'source_type' => 'crawl']);
         $payload = self::payload();
         $payload['source']['sourceType'] = 'crawl';
@@ -324,6 +324,31 @@ final class AccessibilityStatementServiceTest extends TestCase
 
         self::assertTrue($statement['available']);
         self::assertStringContainsString('Site crawl', $statement['html']);
+    }
+
+    /**
+     * A site scan of the German /de/ base (1 page) finished after the English site scan (7 pages): the statement was
+     * drafted from the German one, for "https://example.org/de/" (2026-10-16 audit). Another language's scan is used
+     * only when the default language has none.
+     */
+    #[Test]
+    public function aSiteScanOfTheDefaultLanguageComesBeforeANewerScanOfAnotherLanguage(): void
+    {
+        $calls = [];
+        $this->remoteScanRepository->method('findLastCompletedSiteScanBySite')->willReturnCallback(
+            static function (string $site, int $languageUid, ?bool $isFree) use (&$calls): ?array {
+                $calls[] = $languageUid;
+                return $languageUid === 0 ? null : ['uid' => 13, 'job_id' => self::JOB_ID, 'source_type' => 'crawl', 'language_uid' => 1];
+            }
+        );
+        $payload = self::payload();
+        $payload['source']['sourceType'] = 'crawl';
+        $this->crawler->method('getAccessibilityStatement')->willReturn($payload);
+
+        $statement = $this->subject()->loadLatestSiteScan(self::SITE_BASE, 'main', 'en', []);
+
+        self::assertSame([0, -1], $calls, 'the default language first, any language only without one');
+        self::assertTrue($statement['available']);
     }
 
     #[Test]
@@ -438,6 +463,11 @@ final class AccessibilityStatementServiceTest extends TestCase
                 0,
                 new class ('cURL error 28') extends \RuntimeException implements ClientExceptionInterface {},
             )),
+            'upstream_unavailable', 503, null, 'The AQG service could not be reached or failed while preparing the statement.',
+        ];
+        // The service did not answer earlier in the same request, so the call was skipped without a client exception.
+        yield 'skipped after an earlier timeout' => [
+            new TokenRefreshException('Remote crawler accessibility statement request failed', 0, new ApiRequestFailedException('AQG crawler request skipped: the service did not answer earlier in this request.', 0, null, 'transport_error')),
             'upstream_unavailable', 503, null, 'The AQG service could not be reached or failed while preparing the statement.',
         ];
         yield 'malformed JSON' => [

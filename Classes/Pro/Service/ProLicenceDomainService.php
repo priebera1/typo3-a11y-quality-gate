@@ -57,8 +57,9 @@ final class ProLicenceDomainService
         $result = $this->normalize($payload);
         if ($result['success']) {
             // The portal may have changed the domains since the last validation: cached per-site licence answers
-            // and tokens are dropped, so the next request of each site asks the service again.
-            $this->cacheManager->flushAll();
+            // and tokens are dropped, so the next request of each site asks the service again. The offline grace
+            // copies stay: a domain list is no licence verdict.
+            $this->cacheManager->flushLicenceAnswersAndTokens();
         }
 
         return $result;
@@ -97,7 +98,7 @@ final class ProLicenceDomainService
         $result = $this->normalize($payload);
         if ($result['success']) {
             // Activation changes what each site may do right now.
-            $this->cacheManager->flushAll();
+            $this->cacheManager->flushLicenceAnswersAndTokens();
         }
 
         return $result;

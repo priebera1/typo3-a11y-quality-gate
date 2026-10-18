@@ -138,4 +138,20 @@ final class PdfReadabilityTest extends TestCase
         yield 'Content page report' => ['LocalPagePdf.html', 'Occurrence'];
         yield 'Frontend page report' => ['RemotePagePdf.html', 'Node'];
     }
+
+    /**
+     * Regression (2.0.2, AQG-202-03): the statement PDF ended a page with a definition label ("Responsible unit")
+     * whose value started the next page, and spilled its closing notes onto an almost empty last page. A heading or
+     * label keeps at least one following line on its page; short units are not split. Whole sections are not kept
+     * together: mPDF would move them and leave large gaps.
+     */
+    #[Test]
+    public function theStatementKeepsHeadingsAndLabelsWithTheirContent(): void
+    {
+        $css = preg_replace('/\s+/', ' ', (string)file_get_contents(self::PDF_CSS . 'statement.css'));
+
+        self::assertMatchesRegularExpression('/\.aqg-statement-pdf h2, \.aqg-statement-pdf dt \{ page-break-after: avoid; \}/', $css);
+        self::assertMatchesRegularExpression('/\.aqg-statement-pdf li, \.aqg-statement-meta, \.aqg-warning-banner, \.aqg-statement-contact-warning \{ page-break-inside: avoid; \}/', $css);
+        self::assertDoesNotMatchRegularExpression('/\.aqg-statement-section[^{]*\{[^}]*page-break-inside/', $css);
+    }
 }

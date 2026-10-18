@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\FreePreview\FreePreviewException;
 use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
+use Priebera\A11yQualityGate\Pro\Enum\CrawlerJobStatus;
 use Priebera\A11yQualityGate\Pro\Enum\FeatureFlag;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
@@ -20,6 +21,7 @@ use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanSubmissionTracker;
+use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\DateTimeService;
@@ -164,6 +166,15 @@ final class ProCrawlerAjaxController extends AbstractApiController
             );
             if ($scopeAccessResponse !== null) {
                 return $scopeAccessResponse;
+            }
+
+            // A paid scan (no Free Remote Preview intent) from a view rendered while the licence was still valid: a plan
+            // change or a refused key names the licence state, as for a page scan, instead of "Free request expired".
+            if ($isFreePreview && trim((string)($data['freeSubmitIntent'] ?? '')) === '' && (bool)($proStatus->configured ?? false)) {
+                $crawlerAccessResponse = $this->ensureCrawlerAccess($proStatus);
+                if ($crawlerAccessResponse !== null) {
+                    return $crawlerAccessResponse;
+                }
             }
 
             if ($isFreePreview) {
@@ -552,6 +563,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 axeLocale: 'en',
                 cookieDismiss: true,
                 requireProOrAgency: true,
+                submitPurpose: 'verify_fix',
             );
             if ($submission instanceof ResponseInterface) {
                 return $submission;
@@ -644,6 +656,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         string $axeLocale,
         bool $cookieDismiss,
         bool $requireProOrAgency,
+        string $submitPurpose = '',
     ): array|ResponseInterface {
         $siteIdentifier = $site->getIdentifier();
         $languageContext = $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
@@ -762,6 +775,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 cookieSelectors: $remoteAccessSettings['cookieSelectors'],
                 languageId: $languageContext !== null ? (int)$languageContext['languageId'] : null,
                 languageCode: $languageCode,
+                purpose: $submitPurpose,
             );
 
             $this->remoteScanRepository->markSubmitted(
@@ -956,6 +970,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 );
             }
 
+            // A failed job says why, from the crawler's failure code (D3b); its free-text error never reaches the browser.
+            $failure = $result->status === CrawlerJobStatus::Failed
+                ? $this->remoteScanErrorPresenter->presentJobFailure($result->failureCode)
+                : null;
+
             return $this->jsonResponse([
                 'success' => true,
                 'jobId' => $result->jobId,
@@ -975,7 +994,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'syncError' => is_array($scan) ? (string)($scan['sync_error'] ?? '') : '',
                 'persisted' => is_array($scan) && (int)($scan['persisted_at'] ?? 0) > 0,
                 'languageUid' => is_array($scan) ? (int)($scan['language_uid'] ?? -1) : -1,
-            ]);
+            ] + ($failure !== null ? [
+                'failureCode' => $failure['code'],
+                'title' => $failure['title'],
+                'message' => $failure['message'],
+            ] : []));
         } catch (FreePreviewException $exception) {
             return $this->buildFreePreviewExceptionResponse($exception);
         } catch (TokenRefreshException $exception) {
@@ -1362,6 +1385,20 @@ final class ProCrawlerAjaxController extends AbstractApiController
     {
         if ($proStatus->valid && $proStatus->hasCrawler) {
             return null;
+        }
+
+        // A saved key the AQG service refuses (another installation, a PRO change without a selected installation, an
+        // expired trial, an outage without grace) names its own next step, as in the Licence tab, instead of asking a
+        // paying customer for "a valid licence".
+        if ((bool)($proStatus->configured ?? false) && !(bool)($proStatus->valid ?? false)) {
+            $guidance = LicenceGuidance::forReason((string)($proStatus->reason ?? ''));
+
+            return $this->buildSimpleErrorResponse(
+                message: $this->translate($guidance->textKey, 'The saved licence key is not active. Open the Licence tab in the AQG settings.'),
+                status: 403,
+                code: 'licence_not_active',
+                title: $this->translate($guidance->titleKey, 'Licence is not active')
+            );
         }
 
         return $this->buildSimpleErrorResponse(

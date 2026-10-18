@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.0.2] - 2026-10-18
+
+AQG 2.0.2 is a maintenance release: frontend scans say why they failed and no longer start twice, sites without a sitemap can be scanned, licence checks ride out service outages, and remediation guidance, editor feedback and PDF exports are more accurate.
+
+### Added
+
+* A failed frontend scan now says why: the sitemap was not found, could not be loaded, is not valid or points to another host; the site did not answer or its TLS certificate is not valid; the scan reached the scanner's time limit or was stopped; or the licence ended before the scan started. Each reason comes with the next step.
+* `vendor/bin/typo3 a11y:installation:identity` shows the AQG identity fingerprint of an installation. With `--new-installation --confirm=<fingerprint>` it gives a copy of an activated database that became a separate installation (for example a new client site built from an existing one) an identity of its own, so it no longer shares the source's Agency project and scan history. Deployments, restores and domain changes keep the identity as before; the command never runs on its own and cannot be scheduled.
+
+### Changed
+
+* TYPO3 14 Scheduler: the `a11y:scan` console command is listed in the "Accessibility Quality Gate" category as "Content scan command (a11y:scan)", next to the Site Scan and monitoring tasks, instead of in a separate "A11y" category. Existing `a11y:scan` tasks keep running unchanged; TYPO3 13 is not affected.
+* Frontend scans ask for a new scanner token when the AQG service refuses the cached one (for example after a licence change), instead of failing until the cached token expires.
+
+### Fixed
+
+* Frontend site scans of a site without `/sitemap.xml` always failed, which affected every new TYPO3 site without an EXT:seo sitemap. AQG now uses the sitemap of the site language and, when there is none, crawls from the start page. A sitemap that refuses access or answers with a server error is still reported as such.
+* A paid frontend scan whose start the AQG service did not confirm (timeout, dropped connection or server error) could still run in the background, spend a trial scan and block a new start with "a scan is already running". AQG now checks whether the scanner accepted the scan and, when the same scan is started again within 15 minutes, picks up the accepted scan instead of starting a second one.
+* Opening the Licence tab deleted the 48-hour offline copy of the licence check, so the next AQG service outage dropped a PRO or Agency installation to Free at once. The offline copy is now kept; a definitive refusal of the key still replaces it.
+* While the AQG service did not answer, the Overview waited for every request to time out in turn (more than 40 seconds). A service that does not answer is now skipped for the rest of the page request.
+* Saving content with findings through DataHandler on the command line (imports, deployment scripts, Scheduler tasks, `impexp`) ended in a fatal error after the records were written. The Quality Gate decision is now kept as a queued message.
+* After saving several records at once, the Overview and the toolbar could name different scans as the latest one.
+* A customer whose saved key the AQG service refuses was asked for "a valid Trial, PRO or Agency licence" when starting a scan, and a site scan started from an outdated view answered "Free Remote Preview request expired". Both now name the licence state and its next step, as the Licence tab does.
+* With an expired TYPO3 login, a scan answered "Content scan failed: Unknown error". It now says that the login expired.
+* The Statement Assistant drafted the statement from the newest site scan of any language. It now prefers the default language or an all-languages scan.
+* On TYPO3 14, a Site Scan Scheduler task saved without a page or root page reported success and scanned nothing. It now fails with "Please configure either a single page UID or a root page."
+* The HTTP authentication test of a site on a local or private host (DDEV, localhost, VPN) asked for a site, user name and password. It now explains that the AQG crawler only reaches public sites.
+* PDF export without the mPDF library ended in a fatal error. It now explains that PDF export needs `mpdf/mpdf`; CSV export keeps working.
+* The Content Overview, page view and Content PDF gave an unnamed button the advice and WCAG reference of the form-field label rule ("Add a visible label and associate it with the form field."). They now recommend visible button text or an accessible name such as `aria-label` (WCAG 4.1.2), like the CSV export and the editors.
+* The accessibility statement PDF could end a page with a heading or field label whose text continued on the next page, and could add an almost empty last page. Headings and labels now stay with their text, list items and notices are not split, and the space reserved for a running header is no longer left empty. Long statements still continue over as many pages as they need.
+* The CKEditor and plain HTML summaries read "5 Criticals" or "1 Critical". They now read "5 critical issues", "1 warning" or "2 need review", with matching German wording.
+* "Scan again" in the Page module: when the frontend part was refused (for example for a site on a private host), the notification said "Frontend scan failed: Unknown error" and lost its "Open page report" action. It now gives the reason and keeps the action to the content report.
+* Verify fix reported "(1 occurrences)" when one occurrence was left; it now reads "(1 occurrence)".
+
+### Upgrade notes
+
+* **Requirements:** unchanged — TYPO3 13.4 LTS or 14.3+, PHP 8.2+. No database schema, TypoScript or configuration changes; clear TYPO3 caches after the update.
+* **AQG service:** frontend failure reasons and duplicate-start protection use the current AQG scanning service. Older service versions keep working with the generic failure message and without the duplicate check.
+
 ## [2.0.1] - 2026-10-13
 
 ### Changed

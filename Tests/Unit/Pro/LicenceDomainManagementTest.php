@@ -158,8 +158,10 @@ final class LicenceDomainManagementTest extends TestCase
             ],
         ]);
         $cache = $this->createMock(ProCacheManager::class);
-        // The portal may have changed the domains: cached per-site answers and tokens are dropped.
-        $cache->expects(self::once())->method('flushAll');
+        // The portal may have changed the domains: cached per-site answers and tokens are dropped, the offline
+        // grace copies are kept.
+        $cache->expects(self::once())->method('flushLicenceAnswersAndTokens');
+        $cache->expects(self::never())->method('flushAll');
 
         $result = $this->domainService($client, $cache)->list('client.example', '1.9.8');
 
@@ -241,6 +243,7 @@ final class LicenceDomainManagementTest extends TestCase
         );
         $cache = $this->createMock(ProCacheManager::class);
         $cache->expects(self::never())->method('flushAll');
+        $cache->expects(self::never())->method('flushLicenceAnswersAndTokens');
         $service = $this->domainService($client, $cache);
 
         $mismatch = $service->list('client.example', '1.9.8');

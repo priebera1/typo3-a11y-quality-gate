@@ -148,7 +148,11 @@ final class AccessibilityStatementService
         }
 
         try {
-            $scan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteId, -1, false);
+            // A multilingual site has a site scan per language. The statement describes the site as the Overview shows
+            // it by default — the default language, or a scan of all languages — and a scan of another language stands
+            // in only without one. The newest scan of any language made a 1-page /de/ crawl the whole site's statement.
+            $scan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteId, 0, false)
+                ?? $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteId, -1, false);
         } catch (\Throwable $exception) {
             return $this->failFromException('AQG accessibility statement site scan lookup failed', $exception);
         }
@@ -443,7 +447,9 @@ final class AccessibilityStatementService
         }
         if ($status === 0) {
             // No HTTP answer at all (connection, timeout) versus an answer that was not usable JSON.
-            return $apiException->getPrevious() instanceof ClientExceptionInterface
+            // A request skipped because the service did not answer earlier in this request (ServiceReachability)
+            // carries the transport error code without the client exception.
+            return $apiException->getPrevious() instanceof ClientExceptionInterface || $apiException->apiErrorCode === 'transport_error'
                 ? $this->failure('upstream_unavailable', 503, 'settings.statement.error.serviceUnavailable')
                 : $this->invalidResponse();
         }

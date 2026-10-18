@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
@@ -24,12 +25,14 @@ final class BackendFlashMessageService
         string $title = '',
         bool $storeInSession = true,
     ): void {
+        // The CLI backend user (_cli_: imports, deployments, Scheduler, `a11y:scan`) has no session; storing a message
+        // there is a fatal error that aborts the whole DataHandler run after the records were written.
         $this->getQueue()->enqueue(
             new FlashMessage(
                 $message,
                 $title,
                 $severity,
-                $storeInSession,
+                $storeInSession && !Environment::isCli(),
             )
         );
     }

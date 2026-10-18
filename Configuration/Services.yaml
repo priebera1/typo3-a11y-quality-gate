@@ -134,6 +134,14 @@ services:
         # Scheduled with the "Accessibility monitoring" task (site and language selectors), not as a raw command.
         schedulable: false
 
+  Priebera\A11yQualityGate\Command\InstallationIdentityCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:installation:identity'
+        description: 'Show the AQG identity of this TYPO3 installation, or give a database copy that is a separate installation a new one.'
+        # A one-off operator decision with licensing consequences (a new Agency project): never a Scheduler task.
+        schedulable: false
+
   Priebera\A11yQualityGate\Service\RemoteMonitoringService:
     public: true
 

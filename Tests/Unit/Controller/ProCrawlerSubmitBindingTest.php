@@ -67,6 +67,7 @@ final class ProCrawlerSubmitBindingTest extends TestCase
     private FixVerificationService $fixVerificationService;
     private bool $licenceIsTrial = false;
     private bool $licenceIsPaid = true;
+    private ?string $licenceReason = null;
     private FreeRemotePreviewService $freeRemotePreviewService;
     private Site $siteA;
     private Site $siteB;
@@ -140,6 +141,54 @@ final class ProCrawlerSubmitBindingTest extends TestCase
 
         self::assertSame(200, $response->getStatusCode());
         self::assertSame('https://a.example/about', $this->decode($response)['startUrl']);
+    }
+
+    /**
+     * After an Agency licence changed to PRO without a selected installation, every installation's saved key is refused
+     * as project_mismatch. A scan then asked this paying customer for "a valid Trial, PRO or Agency licence"; it names
+     * the licence state instead, as the Licence tab does, and never reaches the crawler.
+     */
+    #[Test]
+    public function aSavedKeyTheServiceRefusesIsReportedAsItsLicenceState(): void
+    {
+        $this->licenceIsPaid = false;
+        $this->licenceReason = 'project_mismatch';
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->with(10)->willReturn(true);
+        $this->frontendPageUrlService->method('resolveForPage')->with($this->siteA, 10, 0)->willReturn('https://a.example/about');
+        $this->proCrawlerService->expects(self::never())->method('submit');
+
+        $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10, 'siteIdentifier' => 'client-a']));
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('licence_not_active', $this->decode($response)['code']);
+    }
+
+    /**
+     * The Overview was rendered while the licence was still valid, then the plan changed (its scanner tokens stop at
+     * once): "Scan site" sends no Free Remote Preview intent. It took the Free channel and answered "Free Remote Preview
+     * request expired"; it names the licence state instead and never reaches either crawler channel.
+     */
+    #[Test]
+    public function aSiteScanWithASavedKeyTheServiceRefusesIsReportedAsItsLicenceState(): void
+    {
+        $this->licenceIsPaid = false;
+        $this->licenceReason = 'project_mismatch';
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->willReturn(true);
+        $this->scopeAccessService->method('canEditSite')->willReturn(true);
+        $this->proCrawlerService->expects(self::never())->method('submit');
+        $this->freeRemotePreviewService->expects(self::never())->method('submit');
+
+        $response = $this->controller()->submitSiteAction($this->request([
+            'rootPid' => 1,
+            'pageUid' => 1,
+            'siteIdentifier' => 'client-a',
+            'maxPages' => 20,
+        ]));
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('licence_not_active', $this->decode($response)['code']);
     }
 
     #[Test]
@@ -376,6 +425,37 @@ final class ProCrawlerSubmitBindingTest extends TestCase
         );
     }
 
+    /**
+     * D3b: the status of a failed job says why, from the crawler's failure code, and never forwards the crawler's text.
+     */
+    #[Test]
+    public function aFailedJobSaysWhyFromItsFailureCode(): void
+    {
+        $this->storedScan(isFreePreview: false);
+        $this->proCrawlerService->method('getStatus')->willReturn(
+            new CrawlerStatusResult(self::JOB, CrawlerJobStatus::Failed, 0, 0, null, null, 'sitemap_not_found'),
+        );
+
+        $payload = $this->decode($this->controller()->statusAction($this->pollRequest()));
+
+        self::assertSame('sitemap_not_found', $payload['failureCode'] ?? null);
+        self::assertSame('Sitemap not found', $payload['title'] ?? null);
+        self::assertStringContainsString('no page was scanned', (string)($payload['message'] ?? ''));
+        self::assertArrayNotHasKey('error', $payload);
+    }
+
+    #[Test]
+    public function aRunningJobHasNoFailureReason(): void
+    {
+        $this->storedScan(isFreePreview: false);
+        $this->proCrawlerService->method('getStatus')->willReturn($this->runningStatus());
+
+        $payload = $this->decode($this->controller()->statusAction($this->pollRequest()));
+
+        self::assertArrayNotHasKey('failureCode', $payload);
+        self::assertArrayNotHasKey('message', $payload);
+    }
+
     #[Test]
     public function aTransientStatusFailureIsNotTreatedAsAGoneJob(): void
     {
@@ -474,7 +554,7 @@ final class ProCrawlerSubmitBindingTest extends TestCase
             proAvailable: true,
             plan: $this->licenceIsPaid ? 'pro' : 'free',
             features: ['crawler'],
-            reason: null,
+            reason: $this->licenceReason,
             reasonLabel: null,
             statusLabel: '',
             showProHints: false,

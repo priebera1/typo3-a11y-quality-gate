@@ -6,7 +6,9 @@
 Command line usage
 ===================
 
-AQG registers the Symfony console command ``a11y:scan``.
+AQG registers the Symfony console commands ``a11y:scan``, ``a11y:monitor``
+(see :ref:`automation-monitoring`) and ``a11y:installation:identity`` (see
+:ref:`automation-cli-installation-identity`).
 
 ..  code-block:: bash
 
@@ -76,3 +78,59 @@ The command exits with a non-zero status when neither ``--root-pid`` nor
     ``--changed-only`` scan on a shorter interval. The quality gate evaluates
     stored findings, so the more current the data is, the more useful the gate
     becomes.
+
+..  _automation-cli-installation-identity:
+
+Installation identity of a copied database
+==========================================
+
+Every TYPO3 installation has an AQG identity: a random id that AQG stores in
+the database (:sql:`sys_registry`) the first time it contacts the AQG service.
+The AQG service recognises the installation by it — an Agency licence's project
+with its own frontend scans, history and evidence, a PRO licence's licensed
+installation, and the Free Remote Preview allowance.
+
+The identity moves with the database on purpose. Deployments, TYPO3 and AQG
+updates, a new domain or Site Configuration, a moved server, a restored backup
+and a staging copy of the same site keep it, so the installation keeps its
+project and history. AQG never replaces it on its own.
+
+A copy of an activated database that becomes a **different** installation — for
+example a new client site built from an existing one — still has its source's
+identity. To the AQG service both are one installation: they share one Agency
+project and one scan history, and each one's sites replace the other's in the
+project. Give that copy, and only that copy, a new identity:
+
+..  code-block:: bash
+
+    # Show the identity fingerprint (never the id itself)
+    vendor/bin/typo3 a11y:installation:identity
+
+    # On the copy only: a new identity, confirmed with the fingerprint shown above
+    vendor/bin/typo3 a11y:installation:identity --new-installation --confirm=1a2b-3c4d-5e6f-7a8b
+
+Two installations that show the same fingerprint are one installation for the
+AQG service. ``--new-installation`` changes nothing unless ``--confirm`` names the
+fingerprint of the installation it runs on, so a copied script or a run on the
+wrong system is refused. The command cannot be scheduled.
+
+After a new identity:
+
+*   **Agency**: the copy is enrolled as a new project of the licence on its next
+    licence check. It takes one project slot, starts with an empty frontend scan
+    history and can no longer read the scans, history or evidence of the project
+    it was copied from. Its first public domain is activated automatically;
+    activate further domains in the :guilabel:`Licence` tab or the customer
+    portal.
+*   **PRO and Trial** cover one installation: the copy is refused as
+    ``project_mismatch`` and needs a licence of its own.
+*   **Free Remote Preview**: the site's proof file changes with the identity; the
+    copy has its own daily allowance.
+*   Cached licence answers and scanner tokens are cleared. Results of frontend
+    scans stored in the copied database stay as they are, but their details
+    remain with the source project.
+*   The source installation keeps its identity, project and history.
+
+The previous identity is not kept on the copy (it would let the copy act as its
+source). To undo the change, restore the :sql:`sys_registry` entry
+``a11y_quality_gate`` / ``anonymous_installation_id`` from a backup of the copy.

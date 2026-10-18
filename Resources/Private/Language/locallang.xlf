@@ -845,6 +845,12 @@
             <trans-unit id="scheduler.task.title">
                 <source>Accessibility Quality Gate: Site Scan</source>
             </trans-unit>
+            <trans-unit id="scheduler.command.scan.title">
+                <source>Accessibility Quality Gate: Content scan command (a11y:scan)</source>
+            </trans-unit>
+            <trans-unit id="scheduler.command.scan.description">
+                <source>Runs the a11y:scan console command with its command line options. For new tasks, “Accessibility Quality Gate: Site Scan” runs the same content scan with page and site selection.</source>
+            </trans-unit>
             <trans-unit id="scheduler.validation.depthPositive">
                 <source>Depth must be greater than 0.</source>
             </trans-unit>
@@ -5467,6 +5473,9 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="settings.remoteAccess.httpAuth.missingInput">
                 <source>Select a configured site and enter username and password before testing.</source>
             </trans-unit>
+            <trans-unit id="settings.remoteAccess.httpAuth.privateSite">
+                <source>The site address is local or private (for example DDEV, localhost or a VPN host), so this server does not test it: the AQG crawler only reaches public sites.</source>
+            </trans-unit>
             <trans-unit id="settings.remoteAccess.httpAuth.okDetail">
                 <source>Connection OK — the crawler reached the frontend with these credentials.</source>
             </trans-unit>
@@ -6019,20 +6028,38 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="rte.severityCritical">
                 <source>Critical</source>
             </trans-unit>
-            <trans-unit id="rte.severityCriticalPlural">
-                <source>Criticals</source>
-            </trans-unit>
             <trans-unit id="rte.severityWarning">
                 <source>Warning</source>
-            </trans-unit>
-            <trans-unit id="rte.severityWarningPlural">
-                <source>Warnings</source>
             </trans-unit>
             <trans-unit id="rte.severityInfo">
                 <source>Info</source>
             </trans-unit>
             <trans-unit id="rte.severityNeedsReview">
                 <source>Needs review</source>
+            </trans-unit>
+            <trans-unit id="rte.countCriticalOne">
+                <source>critical issue</source>
+            </trans-unit>
+            <trans-unit id="rte.countCriticalOther">
+                <source>critical issues</source>
+            </trans-unit>
+            <trans-unit id="rte.countWarningOne">
+                <source>warning</source>
+            </trans-unit>
+            <trans-unit id="rte.countWarningOther">
+                <source>warnings</source>
+            </trans-unit>
+            <trans-unit id="rte.countNeedsReviewOne">
+                <source>needs review</source>
+            </trans-unit>
+            <trans-unit id="rte.countNeedsReviewOther">
+                <source>need review</source>
+            </trans-unit>
+            <trans-unit id="rte.countInfoOne">
+                <source>info note</source>
+            </trans-unit>
+            <trans-unit id="rte.countInfoOther">
+                <source>info notes</source>
             </trans-unit>
             <trans-unit id="rte.plainChecking">
                 <source>Checking HTML accessibility…</source>
@@ -6312,6 +6339,9 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="export.pdf.paidOnly">
                 <source>PDF export needs a PRO or Agency licence.</source>
+            </trans-unit>
+            <trans-unit id="export.pdf.libraryMissing">
+                <source>PDF export needs the mPDF library (mpdf/mpdf), which this TYPO3 installation does not provide. CSV export keeps working.</source>
             </trans-unit>
             <trans-unit id="renderedCheck.error.invalidUrl">
                 <source>Rendered page URL is invalid.</source>
@@ -6703,6 +6733,75 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="remoteScanError.failed.message">
                 <source>The frontend scan request failed. Details are in the TYPO3 log.</source>
             </trans-unit>
+            <trans-unit id="remoteScanError.submitUnconfirmed.title">
+                <source>Scan start not confirmed</source>
+            </trans-unit>
+            <trans-unit id="remoteScanError.submitUnconfirmed.message">
+                <source>The AQG scanner did not confirm the frontend scan in time; it may have started anyway. Start the scan again: AQG then picks up the scan the scanner already accepted instead of starting a second one.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapNotFound.title">
+                <source>Sitemap not found</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapNotFound.message">
+                <source>The site's sitemap answered "not found" to the AQG scanner, so no page was scanned. Check that the sitemap exists on the public site (EXT:seo, or the sitemap URL set for the site language) and start the scan again.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapHttpError.title">
+                <source>Sitemap could not be loaded</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapHttpError.message">
+                <source>The site's sitemap refused the AQG scanner or answered with a server error (for example HTTP authentication, a firewall or an error page), so no page was scanned. Make the sitemap reachable from the internet, or enter the HTTP authentication in the AQG settings, and start the scan again.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapInvalid.title">
+                <source>Sitemap is not valid</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapInvalid.message">
+                <source>The site's sitemap address returned no usable XML sitemap (no URL list, too large, or too many nested sitemaps or redirects), so no page was scanned. Check the sitemap in a browser and start the scan again.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapBlocked.title">
+                <source>Sitemap points to another host</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.sitemapBlocked.message">
+                <source>The site's sitemap lists sitemaps on another host name, which the AQG scanner does not load, so no page was scanned. Use a sitemap on the site's own host name.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.siteUnreachable.title">
+                <source>Site did not answer</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.siteUnreachable.message">
+                <source>The AQG scanner could not connect to the site, or the site did not answer in time, so no page was scanned. Check that the site is online and reachable from the internet, then start the scan again.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.tlsCertificateInvalid.title">
+                <source>TLS certificate not valid</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.tlsCertificateInvalid.message">
+                <source>The site's TLS certificate could not be verified (expired, self-signed or issued for another host name), so the AQG scanner did not load it. Renew or correct the certificate and start the scan again.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.jobTimeout.title">
+                <source>Scan took too long</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.jobTimeout.message">
+                <source>The frontend scan ran longer than the AQG scanner's time limit and was stopped. Scan fewer pages (a lower page limit or excluded sections), or scan single pages.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanStalled.title">
+                <source>Scan stopped</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanStalled.message">
+                <source>The AQG scanner stopped working on this frontend scan (for example after a restart) and ended it. Start the scan again.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.entitlementEnded.title">
+                <source>Licence ended before the scan started</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.entitlementEnded.message">
+                <source>The licence or trial that queued this frontend scan ended before the scan started, so it did not run. Check the licence in the AQG settings.</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanFailed.title">
+                <source>Frontend scan failed</source>
+            </trans-unit>
+            <trans-unit id="remoteScanFailure.scanFailed.message">
+                <source>The AQG scanner could not complete this frontend scan. Start the scan again; if it fails again, contact AQG support with the time of the scan.</source>
+            </trans-unit>
+            <trans-unit id="notification.proScan.confirmingSubmit">
+                <source>Checking whether the AQG scanner accepted the scan…</source>
+            </trans-unit>
             <trans-unit id="proCrawler.jobUnavailable.message">
                 <source>This frontend scan is no longer available for this installation. Start a new scan.</source>
             </trans-unit>
@@ -6780,6 +6879,9 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="verifyFix.message.stillPresent">
                 <source>The fresh scan still reports this issue on the page (%d occurrences).</source>
+            </trans-unit>
+            <trans-unit id="verifyFix.message.stillPresentOne">
+                <source>The fresh scan still reports this issue on the page (1 occurrence).</source>
             </trans-unit>
             <trans-unit id="verifyFix.message.pending">
                 <source>A fresh scan of this page is running.</source>
@@ -7632,6 +7734,9 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="notification.scan.connectionLost">
                 <source>The request did not reach TYPO3. Check the connection and try again.</source>
+            </trans-unit>
+            <trans-unit id="notification.scan.sessionExpired">
+                <source>Your TYPO3 login has expired. Log in again, then repeat the action.</source>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.linkedRecord">
                 <source>In</source>

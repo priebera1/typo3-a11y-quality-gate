@@ -200,6 +200,7 @@ final class AqgApiClient
     private function postJson(string $path, array $payload, bool $throwOnHttpError = false): array
     {
         $url = rtrim(ProSettings::resolveApiBaseUrl(), '/') . $path;
+        ServiceReachability::assertReachable(ServiceReachability::SERVICE_API, $url, 'AQG API request skipped: the service did not answer earlier in this request.');
 
         try {
             $response = $this->requestFactory->request(
@@ -217,6 +218,9 @@ final class AqgApiClient
                 ]
             );
         } catch (ClientExceptionInterface | \JsonException $exception) {
+            if ($exception instanceof ClientExceptionInterface) {
+                ServiceReachability::markUnreachable(ServiceReachability::SERVICE_API, $url);
+            }
             $this->logRequestFailure($path, 0, 'transport_error');
             throw new ApiRequestFailedException(
                 'AQG API request failed.',

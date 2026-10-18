@@ -150,7 +150,10 @@ How validation works
     licence's first project. The :guilabel:`Licence` tab shows the projects in
     use; free a slot in the customer portal. A removed project is reported as
     ``project_removed`` and stays removed until you restore it in the portal,
-    with its previous scan history.
+    with its previous scan history. The installation is recognised by an id
+    stored in its database, so a copy of an activated database is the same
+    project until you give the copy a new identity, see
+    :ref:`automation-cli-installation-identity`.
 *   Trial keys do not start their runtime when they are issued. The trial window
     starts on the first successful validation from a production domain;
     validating from a development host such as ``localhost`` or a

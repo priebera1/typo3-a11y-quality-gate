@@ -15,6 +15,7 @@ final class CrawlerStatusResult
         public readonly ?int $pagesTotal,
         public readonly ?string $startedAt,
         public readonly ?string $finishedAt,
+        public readonly ?string $failureCode = null,
     ) {
     }
 
@@ -27,6 +28,9 @@ final class CrawlerStatusResult
             pagesTotal: $dto->pagesTotal,
             startedAt: $dto->startedAt,
             finishedAt: $dto->finishedAt,
+            failureCode: $dto->status !== null && CrawlerJobStatus::fromString($dto->status) === CrawlerJobStatus::Failed
+                ? $dto->failureCode
+                : null,
         );
     }
 }

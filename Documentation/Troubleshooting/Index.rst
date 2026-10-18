@@ -108,7 +108,10 @@ overview.
 
 ``licence_project_mismatch`` / ``trial_project_mismatch``
     The key is registered to a different TYPO3 project. Use the key of this
-    project; if the installation was moved or rebuilt, contact support.
+    project; if the installation was moved or rebuilt, contact support. If this
+    installation was set up from a copy of another installation's database and
+    then given a new identity (:ref:`automation-cli-installation-identity`), a
+    PRO or trial key of the source does not cover it.
 
 ``api_unreachable`` / ``rate_limited``
     The licence service could not be reached, or asked AQG to slow down.

@@ -57,6 +57,19 @@ const severityLabel = (severity) => {
     }
 };
 
+// Unit after the number in the summary ("1 critical issue", "5 critical issues").
+const SEVERITY_COUNT_LABELS = {
+    critical: ['countCriticalOne', 'critical issue', 'countCriticalOther', 'critical issues'],
+    warning: ['countWarningOne', 'warning', 'countWarningOther', 'warnings'],
+    needs_review: ['countNeedsReviewOne', 'needs review', 'countNeedsReviewOther', 'need review'],
+    info: ['countInfoOne', 'info note', 'countInfoOther', 'info notes'],
+};
+
+const severityCountLabel = (severity, count) => {
+    const [oneKey, oneFallback, otherKey, otherFallback] = SEVERITY_COUNT_LABELS[normalizeSeverity(severity)] || SEVERITY_COUNT_LABELS.info;
+    return count === 1 ? editorLabel(oneKey, oneFallback) : editorLabel(otherKey, otherFallback);
+};
+
 class PlainHtmlA11yValidator {
     constructor(container) {
         this.container = container;
@@ -535,13 +548,7 @@ class PlainHtmlA11yValidator {
             return '';
         }
 
-        let label = severityLabel(severity);
-        if (count !== 1 && severity === 'critical') {
-            label = editorLabel('severityCriticalPlural', 'Criticals');
-        } else if (count !== 1 && severity === 'warning') {
-            label = editorLabel('severityWarningPlural', 'Warnings');
-        }
-        label = escapeHtml(label);
+        const label = escapeHtml(severityCountLabel(severity, count));
 
         return `
             <span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}">

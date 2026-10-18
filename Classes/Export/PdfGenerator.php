@@ -14,6 +14,15 @@ final class PdfGenerator
     public const DEFAULT_FONT = 'dejavusanscondensed';
 
     /**
+     * mPDF is a Composer dependency. A Classic mode installation that does not provide it has no PDF export; the
+     * export actions say so instead of failing with "Class Mpdf\\Mpdf not found".
+     */
+    public static function isAvailable(): bool
+    {
+        return class_exists(Mpdf::class);
+    }
+
+    /**
      * mPDF writes no structure tree, so the reports are untagged PDFs: screen readers get no headings, tables or
      * reading order from them. The UI and the reports say so and point to the CSV export as the accessible copy.
      * What mPDF can write is set here: the document language, the title shown instead of the file name, and a
@@ -132,8 +141,10 @@ final class PdfGenerator
             // mPDF only writes the active header/footer when a page is created.
             // Create the first page explicitly after the header/footer has been set,
             // otherwise the first page can be generated without the page chrome.
+            // The top margin holds the running header; a document with a footer only (the statement draft) does
+            // not reserve that space on every page.
             if ($hasPageChrome) {
-                $mpdf->AddPage('', '', '', '', '', 14, 14, 28, 18, 6, 6);
+                $mpdf->AddPage('', '', '', '', '', 14, 14, $pageChrome['header'] !== '' ? 28 : 16, 18, 6, 6);
             }
 
             $mpdf->WriteHTML($body, HTMLParserMode::HTML_BODY);

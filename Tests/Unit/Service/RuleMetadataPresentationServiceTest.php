@@ -73,4 +73,23 @@ final class RuleMetadataPresentationServiceTest extends TestCase
         self::assertSame('axe-core-Regeldokumentation', $german['documentationLinks'][0]['label']);
     }
 
+    #[Test]
+    public function anUnnamedRteButtonGetsButtonGuidanceNotFormLabelGuidance(): void
+    {
+        $service = new BackendLanguageService();
+        (new \ReflectionProperty(BackendLanguageService::class, 'explicitLanguageCatalogues'))->setValue($service, [
+            'en:locallang.xlf' => [
+                'rule.presentation.button_name.fix' => 'Add visible button text or an accessible name that clearly describes the action.',
+                'rule.presentation.label.fix' => 'Add a visible label and associate it with the form field.',
+            ],
+        ]);
+        $subject = new RuleMetadataPresentationService($service);
+
+        $button = $subject->present(['rule_id' => 'rte.button_label_missing']);
+        $field = $subject->present(['rule_id' => 'label']);
+
+        self::assertSame('Add visible button text or an accessible name that clearly describes the action.', $button['howToFix']);
+        self::assertSame('4.1.2', $button['wcagReferences'][0]['criterion'] ?? null);
+        self::assertSame('Add a visible label and associate it with the form field.', $field['howToFix']);
+    }
 }

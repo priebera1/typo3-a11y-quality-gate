@@ -1330,6 +1330,7 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
                 $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Resolved->value, Connection::PARAM_INT)),
             )
             ->orderBy('tstamp', 'DESC')
+            ->addOrderBy('uid', 'DESC')
             ->setMaxResults(1);
 
         $row = $qb->executeQuery()->fetchAssociative();

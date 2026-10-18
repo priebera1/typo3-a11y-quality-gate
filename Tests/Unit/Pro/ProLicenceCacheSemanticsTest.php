@@ -67,6 +67,29 @@ final class ProLicenceCacheSemanticsTest extends TestCase
         yield 'answer without verdict' => [static fn () => LicenceValidationResponseDto::fromArray(['success' => false, 'error' => ['code' => 'invalid_request']])];
     }
 
+    /**
+     * The Licence tab lists the licence domains on every visit, and a successful listing dropped the whole AQG cache,
+     * the offline grace copy included. An outage after that visit read as "licence could not be checked": a paying
+     * customer lost every licensed feature at once instead of keeping the last valid licence (2026-10-16 audit).
+     */
+    #[Test]
+    public function aDomainListingKeepsTheOfflineGraceCopy(): void
+    {
+        $service = $this->service([
+            $this->validResponse('+30 days'),
+            static fn () => throw new ApiRequestFailedException('AQG API request failed.', 0, null, 'transport_error'),
+        ]);
+        self::assertTrue($service->validate('example.org', '2.0.2')->valid);
+        $this->store['aqg_token_example'] = ['data' => ['accessToken' => 'old'], 'tags' => ['aqg_access_token'], 'lifetime' => 3000];
+
+        $this->cache->flushLicenceAnswersAndTokens();
+
+        self::assertNull($this->freshEntry(), 'the next request asks the service again');
+        self::assertArrayNotHasKey('aqg_token_example', $this->store, 'tokens are issued again');
+        self::assertNotNull($this->graceEntry());
+        self::assertTrue($service->validate('example.org', '2.0.2')->valid, 'an outage keeps the last valid licence');
+    }
+
     #[DataProvider('transientFailureProvider')]
     #[Test]
     public function aTransientFailureKeepsTheLastKnownGoodLicence(\Closure $failure): void

@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Export\PdfReportBuilder;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Export\RemoteExportBuilder;
+use Priebera\A11yQualityGate\Export\PdfGenerator;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\FrontendPageUrlService;
@@ -139,6 +140,10 @@ final class ExportController
                 );
             }
 
+            if (!PdfGenerator::isAvailable()) {
+                return $this->pdfLibraryMissingResponse();
+            }
+
             return $this->buildRemotePdfResponse(
                 request: $request,
                 siteIdentifier: $context['siteIdentifier'],
@@ -171,6 +176,10 @@ final class ExportController
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,
             );
+        }
+
+        if (!PdfGenerator::isAvailable()) {
+            return $this->pdfLibraryMissingResponse();
         }
 
         $pdf = $context['pageUid'] !== null && $context['pageUid'] > 0
@@ -325,6 +334,10 @@ final class ExportController
                 contentType: 'text/plain; charset=UTF-8',
                 statusCode: 403,
             );
+        }
+
+        if ($format === 'pdf' && !PdfGenerator::isAvailable()) {
+            return $this->pdfLibraryMissingResponse();
         }
 
         $evidence = $this->acceptanceEvidenceBuilder->build($site, $pair['from'], $pair['to']);
@@ -513,6 +526,16 @@ final class ExportController
         }
 
         return $pageUid > 0 ? (string)$pageUid : 'r' . $remotePageUid;
+    }
+
+    private function pdfLibraryMissingResponse(): ResponseInterface
+    {
+        return $this->downloadResponse(
+            content: BackendLabelUtility::translate('export.pdf.libraryMissing', 'PDF export needs the mPDF library (mpdf/mpdf), which this TYPO3 installation does not provide. CSV export keeps working.'),
+            filename: 'aqg-pdf-export-unavailable.txt',
+            contentType: 'text/plain; charset=UTF-8',
+            statusCode: 503,
+        );
     }
 
     private function downloadResponse(

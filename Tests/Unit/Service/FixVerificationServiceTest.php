@@ -116,6 +116,22 @@ final class FixVerificationServiceTest extends TestCase
         self::assertSame(['resolved' => 'Resolved', 'still_present' => 'Still present', 'not_verified' => 'Not verified'], $labels);
     }
 
+    /**
+     * Regression (2.0.2, AQG-202-06): a fix that removed one of two occurrences read "(1 occurrences)".
+     */
+    #[Test]
+    public function stillPresentNamesOneOccurrenceInTheSingular(): void
+    {
+        $service = $this->service(null, []);
+        $message = static fn (int $remaining): string => $service->presentOutcome(
+            ['outcome' => 'still_present', 'remaining_occurrences' => $remaining],
+            static fn (int $uid): string => ''
+        )['message'];
+
+        self::assertSame('The fresh scan still reports this issue on the page (1 occurrence).', $message(1));
+        self::assertSame('The fresh scan still reports this issue on the page (2 occurrences).', $message(2));
+    }
+
     #[Test]
     public function anOlderResolvedVerdictBesideANewerScanIsSupersededNotReassurance(): void
     {

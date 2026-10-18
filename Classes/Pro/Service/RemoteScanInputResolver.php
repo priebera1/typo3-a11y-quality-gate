@@ -69,15 +69,18 @@ final class RemoteScanInputResolver
         if ($sitemapUrl === '') {
             $sitemapUrl = $languageBase . '/sitemap.xml';
         }
+        // A new TYPO3 site has no /sitemap.xml until the EXT:seo sitemap is set up. The crawler then failed every site
+        // scan ("Sitemap request failed … HTTP 404"); it crawls the language's pages from its start page instead.
+        $useSitemap = !$this->isSitemapMissing($sitemapUrl, $languageBase);
 
         return new RemoteScanRequestData(
             siteIdentifier: $siteIdentifier,
             domain: $domain,
             startUrl: $languageBase . '/',
-            sitemapUrl: $sitemapUrl,
-            sourceType: RemoteScanSourceType::Sitemap,
+            sitemapUrl: $useSitemap ? $sitemapUrl : null,
+            sourceType: $useSitemap ? RemoteScanSourceType::Sitemap : RemoteScanSourceType::Crawl,
             maxPages: max(1, $maxPages),
-            followLinks: false,
+            followLinks: !$useSitemap,
             axeLocale: trim($axeLocale) !== '' ? trim($axeLocale) : 'en',
         );
     }
@@ -195,24 +198,7 @@ final class RemoteScanInputResolver
         $rootSitemapUrl = $siteBase . '/sitemap.xml';
 
         try {
-            $response = $this->requestFactory->request($rootSitemapUrl, 'GET', [
-                'headers' => [
-                    'Accept' => 'application/xml,text/xml;q=0.9,*/*;q=0.8',
-                ],
-                'timeout' => 10,
-                // This server fetches the sitemap itself: a redirect (for example a redirect record for
-                // /sitemap.xml) may stay on the site's own scheme, host and port, never lead to another host.
-                'allow_redirects' => [
-                    'max' => 3,
-                    'protocols' => ['http', 'https'],
-                    'on_redirect' => function ($request, $response, $uri) use ($siteBase): void {
-                        if (!$this->isSameOrigin((string)$uri, $siteBase)) {
-                            throw new \RuntimeException('Sitemap redirect to another origin is not followed.');
-                        }
-                    },
-                ],
-                'http_errors' => false,
-            ]);
+            $response = $this->requestFactory->request($rootSitemapUrl, 'GET', $this->buildSitemapRequestOptions($siteBase));
 
             if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
                 return null;
@@ -237,6 +223,72 @@ final class RemoteScanInputResolver
         }
 
         return null;
+    }
+
+    /**
+     * True only for a definitive answer that there is no sitemap: 404 or 410, or a successful answer that is neither a
+     * sitemap nor a sitemap index. Anything else keeps the sitemap — HTTP authentication of a staging site, a firewall,
+     * a timeout or a server error: the crawler fetches it with the site's scan access settings, which this server lacks.
+     */
+    private function isSitemapMissing(string $sitemapUrl, string $siteBase): bool
+    {
+        try {
+            $response = $this->requestFactory->request($sitemapUrl, 'GET', $this->buildSitemapRequestOptions($siteBase));
+        } catch (\Throwable) {
+            return false;
+        }
+
+        $status = $response->getStatusCode();
+        if ($status === 404 || $status === 410) {
+            return true;
+        }
+        if ($status < 200 || $status >= 300) {
+            return false;
+        }
+
+        $body = (string)$response->getBody();
+
+        return !$this->isUrlSet($body) && !$this->isSitemapIndex($body);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSitemapRequestOptions(string $siteBase): array
+    {
+        return [
+            'headers' => [
+                'Accept' => 'application/xml,text/xml;q=0.9,*/*;q=0.8',
+            ],
+            'timeout' => 10,
+            // This server fetches the sitemap itself: a redirect (for example a redirect record for
+            // /sitemap.xml) may stay on the site's own scheme, host and port, never lead to another host.
+            'allow_redirects' => [
+                'max' => 3,
+                'protocols' => ['http', 'https'],
+                'on_redirect' => function ($request, $response, $uri) use ($siteBase): void {
+                    if (!$this->isSameOrigin((string)$uri, $siteBase)) {
+                        throw new \RuntimeException('Sitemap redirect to another origin is not followed.');
+                    }
+                },
+            ],
+            'http_errors' => false,
+        ];
+    }
+
+    private function isSitemapIndex(string $xmlContent): bool
+    {
+        try {
+            $xml = @simplexml_load_string($xmlContent);
+            if (!$xml instanceof \SimpleXMLElement) {
+                return false;
+            }
+
+            $locNodes = $xml->xpath('//*[local-name()="sitemap"]/*[local-name()="loc"]');
+            return is_array($locNodes) && $locNodes !== [];
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function isSameOrigin(string $url, string $siteBase): bool

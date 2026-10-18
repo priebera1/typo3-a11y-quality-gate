@@ -12,6 +12,7 @@ import {
     startFollowingRunningScan,
     stopFollowingRunningScan,
 } from '../../Resources/Public/JavaScript/backend/page-module-indicator.js';
+import {resetAjaxPostHandler, setAjaxPostHandler} from './stubs/ajax-request.js';
 
 // A frontend scan started in the Accessibility module was shown as "Scan running / Frontend scan: 0/1 pages
 // processed" in the Page module until the browser was reloaded: the indicator only followed scans it had started
@@ -238,5 +239,49 @@ describe('running meta', () => {
     it('shows the start time', () => {
         expect(formatStartedMeta('Started %s', new Date(2026, 9, 8, 9, 5))).toBe('Started 09:05');
         expect(formatStartedMeta('Scan in progress', new Date())).toBe('Scan in progress');
+    });
+});
+
+// Regression (2.0.2, AQG-202-01): "Scan again" in the Page module runs the content scan and then the frontend scan.
+// When the frontend part was refused (a private DDEV site: HTTP 400 private_network_blocked with a clear message),
+// the toast said "Frontend scan failed: Unknown error" and lost its "Open page report" action, although the content
+// scan had stored its report. TYPO3's AjaxRequest rejects with the fetch Response, which the message reader ignored.
+describe('Page module combined scan with a refused frontend scan', () => {
+    const REPORT = '/typo3/module/web/a11y/page?token=t&id=42&pageUid=42&site=main&language=0';
+    const REFUSAL = 'The AQG scanner only reaches sites on the public internet.';
+
+    afterEach(() => {
+        resetAjaxPostHandler();
+        delete window.top.TYPO3;
+    });
+
+    it('names the refusal and keeps the action that opens the content report', async () => {
+        vi.useRealTimers();
+        const showMessage = vi.fn();
+        const setUrl = vi.fn();
+        globalThis.TYPO3.settings.ajaxUrls.a11y_scan_page = '/typo3/ajax/a11y/scan/page';
+        globalThis.TYPO3.settings.ajaxUrls.a11y_pro_crawl_submit_page = '/typo3/ajax/a11y/pro/crawl/submit-page';
+        window.top.TYPO3 = {...globalThis.TYPO3, Notification: {showMessage}, Backend: {ContentContainer: {setUrl}}};
+        setAjaxPostHandler(async (endpoint) => {
+            if (endpoint.includes('submit-page')) {
+                throw {response: new Response(JSON.stringify({success: false, code: 'private_network_blocked', error: REFUSAL}), {status: 400})};
+            }
+            return {resolve: async () => ({success: true, issuesNew: 0, issuesResolved: 0, openIssues: {total: 2, critical: 2}, reportUrl: REPORT})};
+        });
+        document.body.innerHTML = panelHtml({
+            running: false,
+            meta: 'Content scan: last checked yesterday',
+            extra: '<button type="button" data-aqg-indicator-scan="true" data-aqg-scan-mode="combined" data-remote-scan-enabled="1" data-page-url="https://example.org/page" data-site-identifier="main">Scan again</button>',
+        });
+
+        document.querySelector('[data-aqg-indicator-scan]').click();
+        await vi.waitFor(() => expect(showMessage).toHaveBeenCalled());
+
+        const [, message, , , actions] = showMessage.mock.calls[0];
+        expect(message).toContain(REFUSAL);
+        expect(message).not.toContain('Unknown error');
+        expect(actions).toHaveLength(1);
+        actions[0].action.execute();
+        expect(setUrl).toHaveBeenCalledWith(REPORT);
     });
 });
