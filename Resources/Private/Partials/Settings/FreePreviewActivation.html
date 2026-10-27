@@ -1,0 +1,185 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:if condition="{freePreviewActivation}">
+    <section class="aqg-card aqg-free-activation" id="aqg-free-preview-activation" aria-labelledby="aqg-free-preview-activation-title" data-aqg-free-activation="true">
+        <header class="aqg-card__head">
+            <div>
+                <h3 class="aqg-card__title" id="aqg-free-preview-activation-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.title" default="FREE Remote Preview" /></h3>
+                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.intro" default="Without a licence, the FREE Remote Preview checks one public page per scan with the AQG cloud crawler. It sends the AQG service the address of the page you choose, the site's base URL and this installation's anonymous installation ID. The crawler opens that page like a visitor and returns its accessibility findings. It takes no screenshots, follows no links and receives no TYPO3 content, passwords or editor data." /></p>
+            </div>
+        </header>
+        <div class="aqg-card__body aqg-stack">
+            <p class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.retention" default="FREE results are kept on the AQG service only for a limited time, as described in its privacy information. That is separate from the frontend scan history stored in this TYPO3 installation, which Settings › Scan history governs." /></p>
+            <f:if condition="{freePreviewActivation.paidLicenceActive}">
+                <div class="aqg-notice aqg-tone-info" role="note">
+                    <span class="aqg-notice__body"><span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.paidActive" default="A licence is active: frontend scans use the licence, not the FREE Remote Preview. The activation below only matters without a licence." /></span></span>
+                </div>
+            </f:if>
+
+            <f:if condition="{freePreviewActivation.hasSites}">
+                <f:then>
+                    <div class="aqg-history-table-wrap">
+                        <table class="aqg-history-table" data-aqg-free-activation-sites="true">
+                            <caption><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.caption" default="FREE Remote Preview per domain" /></caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.site" default="Sites" /></th>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.status" default="Status" /></th>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.acceptedAt" default="Accepted (recorded by the AQG service, UTC)" /></th>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.termsVersion" default="Terms version" /></th>
+                                    <f:if condition="{freePreviewActivation.canManage}">
+                                        <th scope="col"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions" default="Actions" /></span></th>
+                                    </f:if>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <f:for each="{freePreviewActivation.sites}" as="row">
+                                    <tr data-aqg-free-activation-site="{row.identifier}" data-aqg-free-activation-state="{row.state}">
+                                        <td>{row.siteLabel}<br /><span class="aqg-history-table__muted">{row.domain}</span></td>
+                                        <td><span class="aqg-free-activation__state aqg-free-activation__state--{row.stateTone}">{row.stateLabel}</span></td>
+                                        <td>
+                                            <f:if condition="{row.acceptance}">
+                                                <f:then>
+                                                    <time datetime="{row.acceptance.acceptedAt}">{row.acceptance.acceptedAtUtc}</time>
+                                                    <f:if condition="{freePreviewActivation.canManage}">
+                                                    <details class="aqg-free-activation__details">
+                                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details" default="Acceptance details" /></summary>
+                                                        <dl>
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.id" default="Acceptance ID" /></dt><dd><code>{row.acceptance.id}</code></dd>
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.organisation" default="Organisation" /></dt><dd>{row.acceptance.organisation}</dd>
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.acceptedBy" default="Accepted by" /></dt><dd>{row.acceptance.acceptedBy}</dd>
+                                                            <f:if condition="{row.acceptance.validUntilUtc}">
+                                                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.validUntil" default="Valid until (UTC)" /></dt><dd>{row.acceptance.validUntilUtc}</dd>
+                                                            </f:if>
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.documents" default="Accepted documents" /></dt>
+                                                            <dd>
+                                                                <f:for each="{row.acceptance.documents}" as="document" iteration="documentIteration">
+                                                                    {document.type} {document.language} {document.version}<f:if condition="!{documentIteration.isLast}">, </f:if>
+                                                                </f:for>
+                                                            </dd>
+                                                            <f:if condition="{row.acceptance.statusCheckedAt}">
+                                                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.checked" default="Status last checked with the AQG service" /></dt><dd>{row.acceptance.statusCheckedAt -> f:format.date(format: 'd.m.Y H:i')}</dd>
+                                                            </f:if>
+                                                        </dl>
+                                                    </details>
+                                                    </f:if>
+                                                </f:then>
+                                                <f:else>—</f:else>
+                                            </f:if>
+                                        </td>
+                                        <td><f:if condition="{row.acceptance}"><f:then>{row.acceptance.termsVersion}</f:then><f:else>—</f:else></f:if></td>
+                                        <f:if condition="{freePreviewActivation.canManage}">
+                                            <td class="aqg-history-table__actions">
+                                                <f:if condition="{row.canDisable}">
+                                                    <form method="post" action="{freePreviewActivation.toggleUrl}">
+                                                        <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                                        <input type="hidden" name="site" value="{row.identifier}" />
+                                                        <input type="hidden" name="enabled" value="0" />
+                                                        <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.disable" default="Switch off" /><span class="visually-hidden"> ({row.domain})</span></button>
+                                                    </form>
+                                                </f:if>
+                                                <f:if condition="{row.canEnable}">
+                                                    <form method="post" action="{freePreviewActivation.toggleUrl}">
+                                                        <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                                        <input type="hidden" name="site" value="{row.identifier}" />
+                                                        <input type="hidden" name="enabled" value="1" />
+                                                        <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.enable" default="Switch on" /><span class="visually-hidden"> ({row.domain})</span></button>
+                                                    </form>
+                                                </f:if>
+                                                <f:if condition="{row.acceptance}">
+                                                    <form method="post" action="{freePreviewActivation.refreshUrl}">
+                                                        <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                                        <input type="hidden" name="site" value="{row.identifier}" />
+                                                        <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.refresh" default="Check status" /><span class="visually-hidden"> ({row.domain})</span></button>
+                                                    </form>
+                                                </f:if>
+                                            </td>
+                                        </f:if>
+                                    </tr>
+                                </f:for>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="aqg-field__help" data-aqg-free-activation-shared-domain="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.sharedDomain" default="FREE is activated per domain. Sites with the same domain (with or without www.) share one activation: switching it off, renewing or a refusal by the AQG service applies to all of them." /></p>
+                </f:then>
+                <f:else>
+                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.noSites" default="No site with a host name is configured. Add a base URL in the Site Configuration first." /></p>
+                </f:else>
+            </f:if>
+
+            <f:if condition="{freePreviewActivation.canManage}">
+                <f:then>
+                    <f:if condition="{freePreviewActivation.termsAvailable} && {freePreviewActivation.hasSites}">
+                        <f:then>
+                            <form method="post" action="{freePreviewActivation.acceptUrl}" class="aqg-stack" id="a11y-settings-free-preview-form" data-aqg-free-activation-form="true">
+                                <f:for each="{returnParameters}" as="value" key="name">
+                                    <input type="hidden" name="{name}" value="{value}" />
+                                </f:for>
+                                <input type="hidden" name="termsVersion" value="{freePreviewActivation.termsVersion}" />
+                                <h4 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.title" default="Activate or renew FREE Remote Preview" /></h4>
+                                <div class="aqg-field">
+                                    <span class="aqg-field__label" id="aqg-free-documents-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.documents" arguments="{0: freePreviewActivation.termsVersion}" default="Read the terms (version %s) before accepting:" /></span>
+                                    <ul aria-labelledby="aqg-free-documents-label">
+                                        <f:for each="{freePreviewActivation.documents}" as="document">
+                                            <li><a href="{document.url}" target="_blank" rel="noopener noreferrer">{document.label} ({document.version})<span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.newWindow" default="(opens in a new window)" /></span></a></li>
+                                        </f:for>
+                                    </ul>
+                                </div>
+                                <div class="aqg-field">
+                                    <label class="aqg-field__label" for="aqg-free-site"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.site" default="Domain" /></label>
+                                    <select id="aqg-free-site" name="site" class="aqg-select" required="required">
+                                        <f:for each="{freePreviewActivation.sites}" as="row">
+                                            <f:if condition="{row.notPublic}">
+                                                <f:then><option value="{row.identifier}" disabled="disabled">{row.domain} ({row.siteLabel}) – <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.notPublic" default="not reachable from the internet" /></option></f:then>
+                                                <f:else><option value="{row.identifier}" {f:if(condition: row.selected, then: 'selected="selected"')}>{row.domain} ({row.siteLabel})</option></f:else>
+                                            </f:if>
+                                        </f:for>
+                                    </select>
+                                </div>
+                                <div class="aqg-field">
+                                    <label class="aqg-field__label" for="aqg-free-organisation"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.organisation" default="Organisation (legal name of the website operator)" /></label>
+                                    <input type="text" id="aqg-free-organisation" name="organisation" class="aqg-input" required="required" minlength="2" maxlength="200" autocomplete="organization" />
+                                </div>
+                                <div class="aqg-field">
+                                    <label class="aqg-field__label" for="aqg-free-name"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.name" default="Your name" /></label>
+                                    <input type="text" id="aqg-free-name" name="acceptedByName" class="aqg-input" value="{freePreviewActivation.defaultName}" required="required" minlength="2" maxlength="200" autocomplete="name" />
+                                </div>
+                                <div class="aqg-field">
+                                    <label class="aqg-field__label" for="aqg-free-email"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.email" default="Your email address" /></label>
+                                    <input type="email" id="aqg-free-email" name="acceptedByEmail" class="aqg-input" value="{freePreviewActivation.defaultEmail}" required="required" maxlength="254" autocomplete="email" aria-describedby="aqg-free-email-help" />
+                                    <p class="aqg-field__help" id="aqg-free-email-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.emailHelp" default="Sent to the AQG service with your name and organisation as evidence of who accepted the terms. It does not create an AQG account." /></p>
+                                </div>
+                                <div class="aqg-confirm-check">
+                                    <input type="checkbox" id="aqg-free-accept" name="acceptTerms" value="1" required="required" aria-describedby="aqg-free-accept-help" />
+                                    <label for="aqg-free-accept" lang="{freePreviewActivation.statementLanguage}">{freePreviewActivation.statement}</label>
+                                </div>
+                                <p class="aqg-field__help" id="aqg-free-accept-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.acceptHelp" default="Only TYPO3 administrators can accept on behalf of the organisation. FREE is activated only when the AQG service has recorded your acceptance; it records the time itself (UTC). You are not asked again before each scan, only when the terms change." /></p>
+                                <div>
+                                    <button type="submit" class="btn btn-primary btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.submit" default="Accept and activate FREE Remote Preview" /></button>
+                                </div>
+                            </form>
+                        </f:then>
+                        <f:else>
+                            <f:if condition="{freePreviewActivation.hasSites}">
+                                <div class="aqg-notice aqg-tone-warning" role="note" data-aqg-free-activation-closed="{freePreviewActivation.termsError}">
+                                    <span class="aqg-notice__body">
+                                        <span class="aqg-notice__text">
+                                            <f:switch expression="{freePreviewActivation.termsError}">
+                                                <f:case value="unavailable"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.closed.unavailable" default="The AQG service could not be reached, so the FREE terms cannot be shown. FREE Remote Preview cannot be activated right now. Try again later." /></f:case>
+                                                <f:case value="statement_mismatch"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.closed.statementMismatch" default="The declaration in this extension version does not match the FREE terms the AQG service has published. Update the extension to activate FREE Remote Preview." /></f:case>
+                                                <f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.closed.notPublished" default="The AQG service has not published the FREE terms and data processing terms yet. FREE Remote Preview can be activated once they are available." /></f:defaultCase>
+                                            </f:switch>
+                                        </span>
+                                    </span>
+                                </div>
+                            </f:if>
+                        </f:else>
+                    </f:if>
+                </f:then>
+                <f:else>
+                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.adminOnly" default="Only TYPO3 administrators can activate the FREE Remote Preview and accept its terms." /></p>
+                </f:else>
+            </f:if>
+        </div>
+    </section>
+</f:if>
+</html>

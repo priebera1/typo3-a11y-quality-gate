@@ -21,6 +21,13 @@ final class ProTokenService
      */
     private const DOMAIN_TOKEN_ERRORS = ['domain_limit_reached', 'domain_not_activated', 'domain_not_detected'];
 
+    /**
+     * 2.1.0: the licence is valid, but its owner has not accepted the current data processing agreement, so the AQG
+     * service issues no hosted token. Not a licence verdict — the cached licence state stays (validation still answers
+     * valid); only the scan needs the acceptance.
+     */
+    private const DPA_REQUIRED = 'dpa_acceptance_required';
+
     private const DEFINITIVE_TOKEN_ERRORS = [
         'licence_invalid',
         'licence_project_mismatch',
@@ -88,14 +95,15 @@ final class ProTokenService
                 $this->cacheManager->flushAll();
             }
 
-            // A domain answer names what to fix (activate the domain, or report it from a site), so its code reaches
-            // the scan error presenter; other refusals stay a licence authentication failure.
+            // A domain answer names what to fix (activate the domain, or report it from a site), and so does a missing
+            // DPA acceptance (accept it in the customer area): their codes reach the scan error presenter. Other
+            // refusals stay a licence authentication failure.
             $errorCode = (string)$responseDto->errorCode;
             throw new TokenRefreshException(
                 $responseDto->errorMessage ?? 'AQG token issuance failed.',
                 0,
-                in_array($errorCode, self::DOMAIN_TOKEN_ERRORS, true)
-                    ? new ApiRequestFailedException('AQG token issuance refused for the domain.', 403, null, $errorCode)
+                in_array($errorCode, [...self::DOMAIN_TOKEN_ERRORS, self::DPA_REQUIRED], true)
+                    ? new ApiRequestFailedException('AQG token issuance refused: ' . $errorCode . '.', 403, null, $errorCode)
                     : null,
             );
         }

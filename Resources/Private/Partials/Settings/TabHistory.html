@@ -1,0 +1,128 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<div
+        class="tab-pane fade{f:if(condition: '{activeTab} == ''history''', then: ' show active')}"
+        id="a11y-settings-pane-history"
+>
+    <f:if condition="{isAdmin} && {historyRetention}">
+        <f:then>
+            <div class="aqg-stack">
+                <section class="aqg-card" aria-labelledby="aqg-history-local-title">
+                    <header class="aqg-card__head aqg-card__head--quiet">
+                        <div>
+                            <h3 class="aqg-card__title" id="aqg-history-local-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.local.title" default="Frontend scan history in this TYPO3 installation" /></h3>
+                            <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.local.text" default="Stored results of frontend scans: pages, findings, counts and comparisons. They are kept as long as you keep them. Choose a period to review and delete older scans." /></p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body">
+                        <form method="post" action="{historyRetention.saveUrl}" class="aqg-stack" id="a11y-settings-history-form">
+                            <f:for each="{returnParameters}" as="value" key="name">
+                                <input type="hidden" name="{name}" value="{value}" />
+                            </f:for>
+                            <input type="hidden" name="tab" value="history" />
+                            <div class="aqg-field">
+                                <label class="aqg-field__label" for="aqg-local-history-retention"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.local.label" default="Keep stored frontend scans" /></label>
+                                <select id="aqg-local-history-retention" name="localHistoryRetention" class="aqg-select" aria-describedby="aqg-local-history-retention-help">
+                                    <option value="keep" {f:if(condition: '{historyRetention.setting} == \'keep\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.option.keep" default="Keep while this installation keeps them (default)" /></option>
+                                    <option value="1y" {f:if(condition: '{historyRetention.setting} == \'1y\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.option.1y" default="1 year" /></option>
+                                    <option value="3y" {f:if(condition: '{historyRetention.setting} == \'3y\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.option.3y" default="3 years" /></option>
+                                    <option value="5y" {f:if(condition: '{historyRetention.setting} == \'5y\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.option.5y" default="5 years" /></option>
+                                </select>
+                                <p class="aqg-field__help" id="aqg-local-history-retention-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.local.help" default="Nothing is deleted when you save. Older scans are deleted only after you review and confirm them below, or when the command a11y:history:prune runs with --apply. A period counts calendar years back from now (UTC). The newest scan of each comparison, scans of a Verify fix that is still running and the scans monitoring still compares with are always kept." /></p>
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-primary btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.local.save" default="Save period" /></button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <f:if condition="{historyRetention.cutoff}">
+                    <section class="aqg-card" aria-labelledby="aqg-history-review-title">
+                        <header class="aqg-card__head aqg-card__head--quiet">
+                            <div>
+                                <h3 class="aqg-card__title" id="aqg-history-review-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.title" default="Review older scans" /></h3>
+                                <p class="aqg-card__sub" id="aqg-history-review-cutoff"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.cutoff" arguments="{0: historyRetention.cutoff}" default="Selected: stored frontend scans that finished before %s. Scans that finished at or after this time are kept." /></p>
+                            </div>
+                        </header>
+                        <div class="aqg-card__body aqg-stack">
+                            <f:if condition="{historyRetention.scans} > 0">
+                                <f:then>
+                                    <dl class="aqg-stack" data-aqg-history-review="true">
+                                        <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.scans" default="Scans to delete" /></dt><dd>{historyRetention.scans}</dd></div>
+                                        <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.pages" default="Stored pages" /></dt><dd>{historyRetention.pages}</dd></div>
+                                        <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.occurrences" default="Occurrences" /></dt><dd>{historyRetention.occurrences}</dd></div>
+                                        <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.oldest" default="Oldest selected scan finished" /></dt><dd>{historyRetention.oldest}</dd></div>
+                                        <div><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.newest" default="Newest selected scan finished" /></dt><dd>{historyRetention.newest}</dd></div>
+                                    </dl>
+                                    <f:if condition="{historyRetention.multipleGroups}">
+                                        <div class="aqg-history-table-wrap">
+                                            <table class="aqg-history-table" data-aqg-history-by-site="true">
+                                                <caption><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.bySite" default="Scans to delete per site and language" /></caption>
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.site" default="Site" /></th>
+                                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.language" default="Language" /></th>
+                                                        <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.scans" default="Scans to delete" /></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <f:for each="{historyRetention.bySite}" as="row">
+                                                        <tr><td>{row.site}</td><td>{row.languageLabel}</td><td>{row.scans}</td></tr>
+                                                    </f:for>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </f:if>
+                                </f:then>
+                                <f:else>
+                                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.none" default="No stored scan can be deleted for this period. Nothing to delete." /></p>
+                                </f:else>
+                            </f:if>
+                            <f:if condition="{historyRetention.kept} > 0">
+                                <div data-aqg-history-kept="true">
+                                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.kept" arguments="{0: historyRetention.kept}" default="Kept although older than the period: %s scans." /></p>
+                                    <ul>
+                                        <f:if condition="{historyRetention.protected.baseline} > 0"><li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.keptBaseline" arguments="{0: historyRetention.protected.baseline}" default="%s newest scans of a comparison (the next scan is compared with them)" /></li></f:if>
+                                        <f:if condition="{historyRetention.protected.running} > 0"><li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.keptRunning" arguments="{0: historyRetention.protected.running}" default="%s scans that have not finished" /></li></f:if>
+                                        <f:if condition="{historyRetention.protected.verification} > 0"><li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.keptVerification" arguments="{0: historyRetention.protected.verification}" default="%s scans of a Verify fix that is still running" /></li></f:if>
+                                        <f:if condition="{historyRetention.protected.monitoring} > 0"><li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.keptMonitoring" arguments="{0: historyRetention.protected.monitoring}" default="%s scans monitoring still compares with" /></li></f:if>
+                                    </ul>
+                                </div>
+                            </f:if>
+                            <f:if condition="{historyRetention.scans} > 0">
+                                <form method="post" action="{historyRetention.pruneUrl}" class="aqg-stack" id="a11y-settings-history-prune-form">
+                                    <f:for each="{returnParameters}" as="value" key="name">
+                                        <input type="hidden" name="{name}" value="{value}" />
+                                    </f:for>
+                                    <input type="hidden" name="tab" value="history" />
+                                    <input type="hidden" name="reviewedCutoff" value="{historyRetention.reviewedCutoff}" />
+                                    <input type="hidden" name="reviewToken" value="{historyRetention.reviewToken}" />
+                                    <div class="aqg-confirm-check">
+                                        <input type="checkbox" id="aqg-history-confirm" name="confirmDeletion" value="1" required="required" aria-describedby="aqg-history-irreversible" />
+                                        <label for="aqg-history-confirm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.confirm" arguments="{0: historyRetention.scans, 1: historyRetention.cutoff}" default="I have reviewed this. Permanently delete these %1$s scans that finished before %2$s from this TYPO3 installation." /></label>
+                                    </div>
+                                    <p class="aqg-field__help" id="aqg-history-irreversible"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.irreversible" default="This cannot be undone in TYPO3. Only the scans listed here are deleted, even if more scans become older before you confirm. The AQG service keeps its own copy of the scan history; this does not delete it." /></p>
+                                    <div>
+                                        <button type="submit" class="btn btn-danger btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.review.delete" default="Delete reviewed scans" /></button>
+                                    </div>
+                                </form>
+                            </f:if>
+                        </div>
+                    </section>
+                </f:if>
+
+                <div class="aqg-notice aqg-tone-info" role="note">
+                    <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                    <span class="aqg-notice__body">
+                        <span class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.cloud.title" default="Data on the AQG service" /></span>
+                        <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.history.cloud.text" default="Screenshots are not stored in TYPO3. The AQG service keeps them only for the retention period of the plan the scan ran under and then deletes them automatically; the scan results, counts and comparisons stored here stay available. Free Remote Preview results have no screenshots and are kept on the AQG service only for a limited time. These periods are set by the AQG service, are described in its privacy information, and cannot be changed here. The period above applies only to the history stored in this TYPO3 installation." /></span>
+                    </span>
+                </div>
+            </div>
+        </f:then>
+        <f:else>
+            <f:render partial="Settings/TabLicence" arguments="{_all}" />
+        </f:else>
+    </f:if>
+</div>
+</html>

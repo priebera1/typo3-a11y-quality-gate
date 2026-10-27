@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Pro\Exception\TokenRefreshException;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\RemoteScreenshotAccessPolicy;
+use Priebera\A11yQualityGate\Service\RemoteScreenshotState;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -50,19 +51,33 @@ final class RemoteScreenshotController extends AbstractApiController
                 return $this->forbiddenResponse();
             }
 
-            $result = $this->remoteScreenshotService->fetchScreenshotByRemotePageUid(
-                $remotePageUid,
-                (string)($queryParams['variant'] ?? '') === 'original' ? 'original' : 'highlighted'
-            );
-
-            if (!is_array($result)) {
-                return $this->notFoundResponse('Screenshot could not be loaded');
+            $variant = (string)($queryParams['variant'] ?? '') === 'original' ? 'original' : 'highlighted';
+            // The browser keeps the image for this backend user only: every view revalidates (no-cache), the ETag names
+            // the user, and a matching ETag is answered after the access check above without asking the AQG service.
+            // After Switch User or another login the ETag no longer matches, so no other user's image is reused. Within
+            // the hour of the ETag a copy this user already loaded may still be shown after the service deleted it.
+            $etag = $this->buildEtag($remotePageUid, $variant);
+            if ($etag !== '' && trim($request->getHeaderLine('If-None-Match')) === $etag) {
+                return $this->privateImageHeaders($this->responseFactory->createResponse(304), $etag);
             }
 
-            $response = $this->responseFactory->createResponse(200)
+            $result = $this->remoteScreenshotService->fetchScreenshotOrState($remotePageUid, $variant);
+
+            if (!isset($result['content'])) {
+                // Why there is no image, for the page's fallback text (pro-module.js): expired and deleted only on
+                // the AQG service's explicit answer, everything else is "could not be loaded".
+                $state = (string)($result['state'] ?? RemoteScreenshotState::UNAVAILABLE);
+                return $this->jsonResponse([
+                    'success' => false,
+                    'screenshotState' => $state,
+                    'error' => 'Screenshot could not be loaded.',
+                ], in_array($state, [RemoteScreenshotState::EXPIRED, RemoteScreenshotState::DELETED], true) ? 410 : 404)
+                    ->withHeader('Cache-Control', 'no-store');
+            }
+
+            $response = $this->privateImageHeaders($this->responseFactory->createResponse(200), $etag)
                 ->withHeader('Content-Type', $result['contentType'])
                 ->withHeader('X-Content-Type-Options', 'nosniff')
-                ->withHeader('Cache-Control', 'private, max-age=300')
                 ->withHeader('Content-Disposition', 'inline; filename="' . $result['filename'] . '"');
 
             $response->getBody()->write($result['content']);
@@ -78,6 +93,26 @@ final class RemoteScreenshotController extends AbstractApiController
                 'error' => 'Screenshot could not be loaded.',
             ], 500);
         }
+    }
+
+    /** Bound to the user and to the hour, so a kept copy is fetched again at least hourly. '' without a user. */
+    private function buildEtag(int $remotePageUid, string $variant): string
+    {
+        $userUid = $this->getBackendUserUid();
+        if ($userUid <= 0) {
+            return '';
+        }
+
+        return '"' . hash('sha256', implode('|', ['aqg-screenshot', $remotePageUid, $variant, $userUid, intdiv(time(), 3600)])) . '"';
+    }
+
+    private function privateImageHeaders(ResponseInterface $response, string $etag): ResponseInterface
+    {
+        $response = $response
+            ->withHeader('Cache-Control', 'private, no-cache')
+            ->withHeader('Vary', 'Cookie');
+
+        return $etag !== '' ? $response->withHeader('ETag', $etag) : $response;
     }
 
     private function logScreenshotFailure(int $remotePageUid, \Throwable $exception): void

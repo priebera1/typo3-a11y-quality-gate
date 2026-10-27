@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\FreePreview\FreePreviewActivationService;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
@@ -40,6 +41,7 @@ final class PageModuleIndicatorService
         private readonly ?AccessControlService $accessControlService = null,
         private readonly ?RemoteScanSubmissionTracker $remoteScanSubmissionTracker = null,
         private readonly ?ScanPermissionService $scanPermissionService = null,
+        private readonly ?FreePreviewActivationService $freePreviewActivationService = null,
     ) {
     }
 
@@ -274,7 +276,14 @@ final class PageModuleIndicatorService
         $jobsLimit = max(0, (int)($status['jobsLimit'] ?? 0));
         $scansRemaining = max(0, (int)($status['scansRemaining'] ?? 0));
 
-        if ($status === null || ($state === 'FREE_AVAILABLE' && $jobsLimit === 0)) {
+        $activationState = $this->freePreviewActivationService?->status(rtrim((string)$site->getBase(), '/') . '/')['state'];
+        if ($activationState !== null && $activationState !== FreePreviewActivationService::STATE_ACTIVE) {
+            // Not activated (no accepted FREE terms recorded by the AQG service): no free scans can start yet.
+            $text = $this->translate(
+                'pageModuleIndicator.freeHint.activationRequired',
+                'Free Remote Preview is not activated for this site yet. A TYPO3 administrator activates it once in the AQG module under Settings › Licence.'
+            );
+        } elseif ($status === null || ($state === 'FREE_AVAILABLE' && $jobsLimit === 0)) {
             $text = $this->translate(
                 'pageModuleIndicator.freeHint.available',
                 'Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free scans per day.'

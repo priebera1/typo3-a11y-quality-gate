@@ -114,6 +114,12 @@ services:
         identifier: 'a11y-quality-gate/modify-page-layout-content-listener'
         event: TYPO3\CMS\Backend\Controller\Event\ModifyPageLayoutContentEvent
 
+  Priebera\A11yQualityGate\EventListener\FreeTermsCacheFlushListener:
+    tags:
+      - name: event.listener
+        identifier: 'a11y-quality-gate/free-terms-cache-flush-listener'
+        event: TYPO3\CMS\Core\Cache\Event\CacheFlushEvent
+
   # Console commands are registered here only, never also with #[AsCommand]: TYPO3 13 and 14 autoconfigure
   # that attribute into a second console.command tag, and the second tag of a command registers it as an
   # alias of itself, which hides it from `typo3 list` and from the TYPO3 14 Scheduler task types
@@ -140,6 +146,15 @@ services:
         command: 'a11y:installation:identity'
         description: 'Show the AQG identity of this TYPO3 installation, or give a database copy that is a separate installation a new one.'
         # A one-off operator decision with licensing consequences (a new Agency project): never a Scheduler task.
+        schedulable: false
+
+  Priebera\A11yQualityGate\Command\HistoryPruneCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:history:prune'
+        description: 'Delete stored frontend scans older than the period set in Settings › Scan history (dry run unless --apply).'
+        # Deletes stored history: run deliberately by an operator (dry run by default), never as a recurring Scheduler task,
+        # so a shortened period cannot delete scans nobody reviewed.
         schedulable: false
 
   Priebera\A11yQualityGate\Service\RemoteMonitoringService:

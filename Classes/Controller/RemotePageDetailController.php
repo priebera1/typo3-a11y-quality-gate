@@ -20,6 +20,7 @@ use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Service\FixVerificationService;
 use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
+use Priebera\A11yQualityGate\Service\RemoteScreenshotState;
 use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanPermissionService;
@@ -213,8 +214,11 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         $remotePageDebugUrl = $this->buildRemotePageDebugUrl((string)($remotePage['url'] ?? ''));
 
+        // Screenshots end on the AQG service after their retention period; the findings below do not. A screenshot
+        // past its reported end is shown as deleted after retention without asking the service (RemoteScreenshotState).
+        $screenshotState = RemoteScreenshotState::resolve($remotePage, time());
         $remoteScreenshotProxyUrl = '';
-        if (!$isFreePreview && !$scanIsFreePreview && !empty($remotePage['screenshot_path']) && $remotePageUid > 0) {
+        if (!$isFreePreview && !$scanIsFreePreview && $screenshotState === RemoteScreenshotState::AVAILABLE && $remotePageUid > 0) {
             $remoteScreenshotProxyUrl = $this->buildRemoteScreenshotProxyUrl(
                 $resolvedSiteIdentifier,
                 $remotePageUid
@@ -415,6 +419,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                     'screenshot_original_url' => $remoteScreenshotProxyUrl !== '' ? $remoteScreenshotProxyUrl . '&variant=original' : '',
                 ],
             // Audit C15: numbered outlines and an untouched Original exist for captures with screenshot evidence.
+            'screenshotState' => $screenshotState,
             'screenshotEvidence' => is_array($decodedEvidence = json_decode((string)($remotePage['screenshot_evidence_json'] ?? ''), true)) ? $decodedEvidence : [],
             'remoteScan' => $remoteScan,
             'remoteDetail' => $remoteDetail,

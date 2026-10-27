@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Export;
 
+use Priebera\A11yQualityGate\Service\RemoteScreenshotState;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
@@ -656,7 +657,7 @@ final class RemoteExportBuilder
             (string)($remotePage['site_identifier'] ?? $remotePage['site'] ?? 'Frontend scan')
         );
         $relativeUrl = $this->relativePathFromUrl($pageUrl);
-        $screenshot = $this->buildScreenshotBlock($remotePageUid);
+        $screenshot = $this->buildScreenshotBlock($remotePageUid, $remotePage);
         $remoteScan = $this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0));
         $reporting = $this->preparePdfPageReportingSummary($remotePage, $allIssues, $remoteScan);
 
@@ -3214,47 +3215,66 @@ final class RemoteExportBuilder
 
 
     /**
+     * Why a page's screenshot is not in the PDF, said precisely: a screenshot the AQG service deleted after its retention
+     * period, one that was never taken or could not be captured, and one that could not be loaded for this export are
+     * different facts, and none of them makes the scan results incomplete. (PDF exports stay English.)
+     *
      * @return array{html:string,meta:string,imageVars:array<string,string>}
      */
-    private function buildScreenshotNotIncludedBlock(): array
+    private function buildScreenshotNotIncludedBlock(string $reason = RemoteScreenshotState::UNAVAILABLE): array
     {
+        [$title, $text] = match ($reason) {
+            RemoteScreenshotState::EXPIRED => ['Screenshot no longer available.', 'The AQG service deleted it automatically after its retention period. The scan results in this report are complete.'],
+            RemoteScreenshotState::DELETED => ['Screenshot deleted.', 'The screenshot was deleted on the AQG service. The scan results in this report are complete.'],
+            RemoteScreenshotState::FAILED => ['No screenshot.', 'The screenshot could not be captured during this scan. The scan results in this report are complete.'],
+            RemoteScreenshotState::NOT_CAPTURED => ['No screenshot.', 'No screenshot was taken during this scan.'],
+            RemoteScreenshotState::UNKNOWN => ['No screenshot.', 'No screenshot is stored for this scan.'],
+            'too_large' => ['Screenshot not included in export.', 'The screenshot exceeds the size limit of this export.'],
+            default => ['Screenshot not included in export.', 'The screenshot could not be loaded for this export. The scan results in this report are complete.'],
+        };
+
         return [
             'html' => '<div class="aqgp-screenshot-placeholder">'
-                . '<strong>Screenshot not included in export.</strong><br />'
-                . 'File size exceeded limit or screenshot unavailable.'
+                . '<strong>' . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</strong><br />'
+                . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
                 . '</div>',
-            'meta' => 'not included',
+            'meta' => 'not included (' . str_replace('_', ' ', $reason) . ')',
             'imageVars' => [],
         ];
     }
 
     /**
+     * The stored state decides first (RemoteScreenshotState): a screenshot that expired, was deleted, failed or was never
+     * taken is not requested from the AQG service at all.
+     *
+     * @param array<string, mixed> $remotePage
      * @return array{html:string,meta:string,imageVars:array<string,string>}
      */
-    private function buildScreenshotBlock(int $remotePageUid): array
+    private function buildScreenshotBlock(int $remotePageUid, array $remotePage = []): array
     {
         if ($remotePageUid <= 0) {
             return $this->buildScreenshotNotIncludedBlock();
         }
 
-        try {
-            $image = $this->remoteScreenshotService->fetchScreenshotByRemotePageUid($remotePageUid);
-        } catch (\Throwable) {
-            return $this->buildScreenshotNotIncludedBlock();
+        $storedState = $remotePage !== [] ? RemoteScreenshotState::resolve($remotePage, time()) : RemoteScreenshotState::AVAILABLE;
+        if ($storedState !== RemoteScreenshotState::AVAILABLE) {
+            return $this->buildScreenshotNotIncludedBlock($storedState);
         }
 
-        if (!is_array($image)) {
+        try {
+            $image = $this->remoteScreenshotService->fetchScreenshotOrState($remotePageUid);
+        } catch (\Throwable) {
             return $this->buildScreenshotNotIncludedBlock();
         }
 
         $content = $image['content'] ?? null;
         if (!is_string($content) || $content === '') {
-            return $this->buildScreenshotNotIncludedBlock();
+            return $this->buildScreenshotNotIncludedBlock((string)($image['state'] ?? RemoteScreenshotState::UNAVAILABLE));
         }
 
         $optimized = $this->optimizeScreenshotForPdf($content);
         if ($optimized === null) {
-            return $this->buildScreenshotNotIncludedBlock();
+            return $this->buildScreenshotNotIncludedBlock('too_large');
         }
 
         $varName = 'aqgRemotePageScreenshot' . $remotePageUid;

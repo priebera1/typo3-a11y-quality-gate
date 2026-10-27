@@ -1722,6 +1722,298 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Licence management is only available to TYPO3 administrators.</source>
                 <target>Die Lizenzverwaltung ist nur für TYPO3-Administratoren verfügbar.</target>
             </trans-unit>
+            <trans-unit id="settings.freePreview.title">
+                <source>FREE Remote Preview</source>
+                <target>FREE Remote Preview</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.intro">
+                <source>Without a licence, the FREE Remote Preview checks one public page per scan with the AQG cloud crawler. It sends the AQG service the address of the page you choose, the site's base URL and this installation's anonymous installation ID. The crawler opens that page like a visitor and returns its accessibility findings. It takes no screenshots, follows no links and receives no TYPO3 content, passwords or editor data.</source>
+                <target>Ohne Lizenz prüft die FREE Remote Preview je Scan eine öffentliche Seite mit dem AQG-Cloud-Crawler. Sie sendet dem AQG-Dienst die Adresse der gewählten Seite, die Basis-URL der Site und die anonyme Installations-ID dieser Installation. Der Crawler öffnet die Seite wie ein Besucher und liefert ihre Barrierefreiheitsbefunde. Er erstellt keine Screenshots, folgt keinen Links und erhält keine TYPO3-Inhalte, Passwörter oder Redakteursdaten.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.retention">
+                <source>FREE results are kept on the AQG service only for a limited time, as described in its privacy information. That is separate from the frontend scan history stored in this TYPO3 installation, which Settings › Scan history governs.</source>
+                <target>FREE-Ergebnisse werden beim AQG-Dienst nur begrenzte Zeit aufbewahrt, wie in seinen Datenschutzhinweisen beschrieben. Das ist unabhängig von der in dieser TYPO3-Installation gespeicherten Frontend-Scan-Historie, für die Einstellungen › Scan-Historie gilt.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.paidActive">
+                <source>A licence is active: frontend scans use the licence, not the FREE Remote Preview. The activation below only matters without a licence.</source>
+                <target>Eine Lizenz ist aktiv: Frontend-Scans nutzen die Lizenz, nicht die FREE Remote Preview. Die Aktivierung unten ist nur ohne Lizenz von Bedeutung.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.sites.caption">
+                <source>FREE Remote Preview per domain</source>
+                <target>FREE Remote Preview je Domain</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.sites.sharedDomain">
+                <source>FREE is activated per domain. Sites with the same domain (with or without www.) share one activation: switching it off, renewing or a refusal by the AQG service applies to all of them.</source>
+                <target>FREE wird je Domain aktiviert. Sites mit derselben Domain (mit oder ohne www.) teilen sich eine Aktivierung: Ausschalten, Erneuern oder eine Ablehnung durch den AQG-Service gilt für alle.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.sites.site">
+                <source>Sites</source>
+                <target>Sites</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.sites.status">
+                <source>Status</source>
+                <target>Status</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.sites.acceptedAt">
+                <source>Accepted (recorded by the AQG service, UTC)</source>
+                <target>Akzeptiert (vom AQG-Dienst erfasst, UTC)</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.sites.termsVersion">
+                <source>Terms version</source>
+                <target>Version der Bedingungen</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details">
+                <source>Acceptance details</source>
+                <target>Details der Annahme</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.id">
+                <source>Acceptance ID</source>
+                <target>Annahme-ID</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.organisation">
+                <source>Organisation</source>
+                <target>Organisation</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.acceptedBy">
+                <source>Accepted by</source>
+                <target>Akzeptiert von</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.validUntil">
+                <source>Valid until (UTC)</source>
+                <target>Gültig bis (UTC)</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.documents">
+                <source>Accepted documents</source>
+                <target>Akzeptierte Dokumente</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.checked">
+                <source>Status last checked with the AQG service</source>
+                <target>Status zuletzt beim AQG-Dienst geprüft</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.disable">
+                <source>Switch off</source>
+                <target>Ausschalten</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.enable">
+                <source>Switch on</source>
+                <target>Einschalten</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.refresh">
+                <source>Check status</source>
+                <target>Status prüfen</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.noSites">
+                <source>No site with a host name is configured. Add a base URL in the Site Configuration first.</source>
+                <target>Es ist keine Site mit Hostnamen konfiguriert. Legen Sie zuerst eine Basis-URL in der Site-Konfiguration fest.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.title">
+                <source>Activate or renew FREE Remote Preview</source>
+                <target>FREE Remote Preview aktivieren oder erneuern</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.documents">
+                <source>Read the terms (version %s) before accepting:</source>
+                <target>Lesen Sie die Bedingungen (Version %s), bevor Sie zustimmen:</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.newWindow">
+                <source>(opens in a new window)</source>
+                <target>(öffnet in einem neuen Fenster)</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.site">
+                <source>Domain</source>
+                <target>Domain</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.notPublic">
+                <source>not reachable from the internet</source>
+                <target>aus dem Internet nicht erreichbar</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.organisation">
+                <source>Organisation (legal name of the website operator)</source>
+                <target>Organisation (rechtlicher Name des Website-Betreibers)</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.name">
+                <source>Your name</source>
+                <target>Ihr Name</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.email">
+                <source>Your email address</source>
+                <target>Ihre E-Mail-Adresse</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.emailHelp">
+                <source>Sent to the AQG service with your name and organisation as evidence of who accepted the terms. It does not create an AQG account.</source>
+                <target>Wird mit Ihrem Namen und Ihrer Organisation als Nachweis, wer die Bedingungen akzeptiert hat, an den AQG-Dienst gesendet. Es wird kein AQG-Konto angelegt.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.acceptHelp">
+                <source>Only TYPO3 administrators can accept on behalf of the organisation. FREE is activated only when the AQG service has recorded your acceptance; it records the time itself (UTC). You are not asked again before each scan, only when the terms change.</source>
+                <target>Nur TYPO3-Administratoren können im Namen der Organisation zustimmen. FREE wird erst aktiviert, wenn der AQG-Dienst Ihre Zustimmung erfasst hat; den Zeitpunkt erfasst er selbst (UTC). Sie werden nicht vor jedem Scan erneut gefragt, nur wenn sich die Bedingungen ändern.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.form.submit">
+                <source>Accept and activate FREE Remote Preview</source>
+                <target>Zustimmen und FREE Remote Preview aktivieren</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.closed.unavailable">
+                <source>The AQG service could not be reached, so the FREE terms cannot be shown. FREE Remote Preview cannot be activated right now. Try again later.</source>
+                <target>Der AQG-Dienst war nicht erreichbar, daher können die FREE-Bedingungen nicht angezeigt werden. FREE Remote Preview kann gerade nicht aktiviert werden. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.closed.statementMismatch">
+                <source>The declaration in this extension version does not match the FREE terms the AQG service has published. Update the extension to activate FREE Remote Preview.</source>
+                <target>Die Erklärung in dieser Extension-Version passt nicht zu den vom AQG-Dienst veröffentlichten FREE-Bedingungen. Aktualisieren Sie die Extension, um FREE Remote Preview zu aktivieren.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.closed.notPublished">
+                <source>The AQG service has not published the FREE terms and data processing terms yet. FREE Remote Preview can be activated once they are available.</source>
+                <target>Der AQG-Dienst hat die FREE-Bedingungen und die Bedingungen zur Auftragsverarbeitung noch nicht veröffentlicht. FREE Remote Preview kann aktiviert werden, sobald sie verfügbar sind.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.adminOnly">
+                <source>Only TYPO3 administrators can activate the FREE Remote Preview and accept its terms.</source>
+                <target>Nur TYPO3-Administratoren können die FREE Remote Preview aktivieren und ihre Bedingungen akzeptieren.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.not_activated">
+                <source>Not activated</source>
+                <target>Nicht aktiviert</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.active">
+                <source>Active</source>
+                <target>Aktiv</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.disabled">
+                <source>Switched off</source>
+                <target>Ausgeschaltet</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.renewal_required">
+                <source>New terms: accept again</source>
+                <target>Neue Bedingungen: erneut zustimmen</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.revoked">
+                <source>No longer accepted by AQG: accept again</source>
+                <target>Von AQG nicht mehr anerkannt: erneut zustimmen</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.expired">
+                <source>Expired: accept again</source>
+                <target>Abgelaufen: erneut zustimmen</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.state.identity_changed">
+                <source>Accepted for another installation: accept again</source>
+                <target>Für eine andere Installation akzeptiert: erneut zustimmen</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.document.free_terms">
+                <source>FREE Remote Preview terms</source>
+                <target>Bedingungen der FREE Remote Preview</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.document.dpa">
+                <source>FREE Remote Preview data processing terms</source>
+                <target>Bedingungen zur Auftragsverarbeitung der FREE Remote Preview</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.accepted">
+                <source>The AQG service recorded your acceptance. FREE Remote Preview is active for this site.</source>
+                <target>Der AQG-Dienst hat Ihre Zustimmung erfasst. FREE Remote Preview ist für diese Site aktiv.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.confirmation_required">
+                <source>Nothing was activated: confirm the declaration first.</source>
+                <target>Nichts wurde aktiviert: Bestätigen Sie zuerst die Erklärung.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.invalid_input">
+                <source>Nothing was activated: enter the organisation, your name and a valid email address.</source>
+                <target>Nichts wurde aktiviert: Geben Sie die Organisation, Ihren Namen und eine gültige E-Mail-Adresse ein.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.invalid_site">
+                <source>Nothing was activated: choose a configured site with a host name.</source>
+                <target>Nichts wurde aktiviert: Wählen Sie eine konfigurierte Site mit Hostnamen.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.site_not_public">
+                <source>Nothing was activated: the AQG service cannot reach this site's address from the internet.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst kann die Adresse dieser Site nicht aus dem Internet erreichen.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.terms_not_published">
+                <source>Nothing was activated: the AQG service has not published the FREE terms yet.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst hat die FREE-Bedingungen noch nicht veröffentlicht.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.unavailable">
+                <source>Nothing was activated: the AQG service could not be reached. Try again later.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst war nicht erreichbar. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.terms_changed">
+                <source>Nothing was activated: the terms have changed since this page was loaded. Read the current version and accept again.</source>
+                <target>Nichts wurde aktiviert: Die Bedingungen haben sich seit dem Laden dieser Seite geändert. Lesen Sie die aktuelle Version und stimmen Sie erneut zu.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.statement_mismatch">
+                <source>Nothing was activated: this extension version's declaration does not match the published terms. Update the extension.</source>
+                <target>Nichts wurde aktiviert: Die Erklärung dieser Extension-Version passt nicht zu den veröffentlichten Bedingungen. Aktualisieren Sie die Extension.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.conflict">
+                <source>Nothing was activated: the AQG service already holds a different acceptance for this request. Reload the page and try again.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst hat für diese Anfrage bereits eine andere Zustimmung. Laden Sie die Seite neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.proof_failed">
+                <source>Nothing was activated: the AQG service could not confirm that this TYPO3 installation serves the site. Check that the site is publicly reachable at its base URL.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst konnte nicht bestätigen, dass diese TYPO3-Installation die Site ausliefert. Prüfen Sie, ob die Site unter ihrer Basis-URL öffentlich erreichbar ist.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.not_available">
+                <source>Nothing was activated: the AQG service does not offer FREE activation yet.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst bietet die FREE-Aktivierung noch nicht an.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.rate_limited">
+                <source>Nothing was activated: too many requests. Try again in a few minutes.</source>
+                <target>Nichts wurde aktiviert: zu viele Anfragen. Versuchen Sie es in einigen Minuten erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.rejected">
+                <source>Nothing was activated: the AQG service did not accept the request.</source>
+                <target>Nichts wurde aktiviert: Der AQG-Dienst hat die Anfrage nicht angenommen.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.invalid_confirmation">
+                <source>Nothing was activated: the AQG service's confirmation did not match the request. Try again or contact AQG support.</source>
+                <target>Nichts wurde aktiviert: Die Bestätigung des AQG-Dienstes passte nicht zur Anfrage. Versuchen Sie es erneut oder wenden Sie sich an den AQG-Support.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.enabled">
+                <source>FREE Remote Preview is switched on again for this site, with the existing acceptance.</source>
+                <target>FREE Remote Preview ist für diese Site wieder eingeschaltet, mit der bestehenden Zustimmung.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.disabled">
+                <source>FREE Remote Preview is switched off for this site. No new FREE scans start; the recorded acceptance is kept.</source>
+                <target>FREE Remote Preview ist für diese Site ausgeschaltet. Es starten keine neuen FREE-Scans; die erfasste Zustimmung bleibt erhalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.not_activated">
+                <source>FREE Remote Preview is not activated for this site yet.</source>
+                <target>FREE Remote Preview ist für diese Site noch nicht aktiviert.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.renewal_required">
+                <source>The terms have changed: accept the current version to switch FREE Remote Preview on.</source>
+                <target>Die Bedingungen haben sich geändert: Stimmen Sie der aktuellen Version zu, um FREE Remote Preview einzuschalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.revoked">
+                <source>The AQG service no longer accepts this acceptance: accept the terms again.</source>
+                <target>Der AQG-Dienst erkennt diese Zustimmung nicht mehr an: Stimmen Sie den Bedingungen erneut zu.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.expired">
+                <source>The acceptance has expired: accept the terms again.</source>
+                <target>Die Zustimmung ist abgelaufen: Stimmen Sie den Bedingungen erneut zu.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_valid">
+                <source>The AQG service confirms the acceptance is valid.</source>
+                <target>Der AQG-Dienst bestätigt, dass die Zustimmung gültig ist.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_outdated">
+                <source>The terms have changed: accept the current version.</source>
+                <target>Die Bedingungen haben sich geändert: Stimmen Sie der aktuellen Version zu.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_revoked">
+                <source>The AQG service no longer accepts this acceptance: accept the terms again.</source>
+                <target>Der AQG-Dienst erkennt diese Zustimmung nicht mehr an: Stimmen Sie den Bedingungen erneut zu.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_expired">
+                <source>The acceptance has expired: accept the terms again.</source>
+                <target>Die Zustimmung ist abgelaufen: Stimmen Sie den Bedingungen erneut zu.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_unavailable">
+                <source>The AQG service could not be reached; the status was not changed. Try again later.</source>
+                <target>Der AQG-Dienst war nicht erreichbar; der Status wurde nicht geändert. Versuchen Sie es später erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_invalid_confirmation">
+                <source>The AQG service's answer did not match this acceptance; the status was not changed.</source>
+                <target>Die Antwort des AQG-Dienstes passte nicht zu dieser Zustimmung; der Status wurde nicht geändert.</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.flash.status_not_activated">
+                <source>FREE Remote Preview is not activated for this site.</source>
+                <target>FREE Remote Preview ist für diese Site nicht aktiviert.</target>
+            </trans-unit>
             <trans-unit id="settings.licence.openProductPage">
                 <source>Open product page</source>
                 <target>Produktseite öffnen</target>
@@ -2527,6 +2819,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Free Remote Preview: check this page in a real browser from the AQG module — a limited number of free scans per day.</source>
                 <target>Free Remote Preview: Prüfen Sie diese Seite im AQG-Modul in einem echten Browser – mit einer begrenzten Anzahl kostenloser Scans pro Tag.</target>
             </trans-unit>
+            <trans-unit id="pageModuleIndicator.freeHint.activationRequired">
+                <source>Free Remote Preview is not activated for this site yet. A TYPO3 administrator activates it once in the AQG module under Settings › Licence.</source>
+                <target>Free Remote Preview ist für diese Site noch nicht aktiviert. Ein TYPO3-Administrator aktiviert sie einmal im AQG-Modul unter Einstellungen › Lizenz.</target>
+            </trans-unit>
             <trans-unit id="pageModuleIndicator.freeHint.remaining">
                 <source>Free Remote Preview: %1$d of %2$d free scans left today.</source>
                 <target>Free Remote Preview: Heute noch %1$d von %2$d kostenlosen Scans verfügbar.</target>
@@ -3268,8 +3564,24 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Screenshot-Vorschau</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.screenshotUnavailable">
-                <source>Screenshot not available. The capture from this scan is no longer stored, or the scan was run by another licence or Agency project.</source>
-                <target>Screenshot nicht verfügbar. Die Aufnahme dieses Scans ist nicht mehr gespeichert, oder der Scan wurde von einer anderen Lizenz bzw. einem anderen Agency-Projekt ausgeführt.</target>
+                <source>Screenshot could not be loaded. It may belong to another licence or Agency project, or the AQG service could not provide it right now. The scan results are not affected.</source>
+                <target>Der Screenshot konnte nicht geladen werden. Er gehört möglicherweise zu einer anderen Lizenz bzw. einem anderen Agency-Projekt, oder der AQG-Dienst konnte ihn gerade nicht bereitstellen. Die Scanergebnisse sind davon nicht betroffen.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotExpired">
+                <source>The screenshot is no longer available. It was deleted automatically after its retention period. The historical scan results are kept.</source>
+                <target>Der Screenshot ist nicht mehr verfügbar. Er wurde gemäß der Aufbewahrungsfrist automatisch gelöscht. Die historischen Scanergebnisse bleiben erhalten.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotDeleted">
+                <source>The screenshot was deleted. The scan results are kept.</source>
+                <target>Der Screenshot wurde gelöscht. Die Scanergebnisse bleiben erhalten.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotFailed">
+                <source>The screenshot could not be captured during this scan. The scan results are complete without it.</source>
+                <target>Der Screenshot konnte bei diesem Scan nicht aufgenommen werden. Die Scanergebnisse sind auch ohne ihn vollständig.</target>
+            </trans-unit>
+            <trans-unit id="module.remotePageDetail.screenshotNotCaptured">
+                <source>No screenshot was taken during this scan. The scan results are complete without it.</source>
+                <target>Bei diesem Scan wurde kein Screenshot erstellt. Die Scan-Ergebnisse sind auch ohne ihn vollständig.</target>
             </trans-unit>
             <trans-unit id="module.remotePageDetail.screenshotSub">
                 <source>Captured at scan time · click to enlarge</source>
@@ -6275,6 +6587,34 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>No site frontend scan history available yet.</source>
                 <target>Noch kein Verlauf von Frontend-Scans der Website vorhanden.</target>
             </trans-unit>
+            <trans-unit id="remote.history.stored.title">
+                <source>All stored site scans</source>
+                <target>Alle gespeicherten Site-Scans</target>
+            </trans-unit>
+            <trans-unit id="remote.history.stored.range">
+                <source>Scans %1$s–%2$s of %3$s stored in this TYPO3 installation, newest first.</source>
+                <target>Scans %1$s–%2$s von %3$s, die in dieser TYPO3-Installation gespeichert sind, neueste zuerst.</target>
+            </trans-unit>
+            <trans-unit id="remote.history.stored.newer">
+                <source>Newer scans</source>
+                <target>Neuere Scans</target>
+            </trans-unit>
+            <trans-unit id="remote.history.stored.older">
+                <source>Older scans</source>
+                <target>Ältere Scans</target>
+            </trans-unit>
+            <trans-unit id="remote.history.stored.page">
+                <source>Page %1$s of %2$s</source>
+                <target>Seite %1$s von %2$s</target>
+            </trans-unit>
+            <trans-unit id="remote.history.stored.close">
+                <source>Show latest scans only</source>
+                <target>Nur die neuesten Scans anzeigen</target>
+            </trans-unit>
+            <trans-unit id="remote.history.stored.browse">
+                <source>Browse all %s stored site scans</source>
+                <target>Alle %s gespeicherten Site-Scans durchsuchen</target>
+            </trans-unit>
             <trans-unit id="overview.local.paginationAria">
                 <source>Content scan pages pagination</source>
                 <target>Seitennavigation der Seiten aus dem Inhaltsscan</target>
@@ -8455,6 +8795,18 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Free Remote Preview is temporarily unavailable.</source>
                 <target>Die Free Remote Preview ist vorübergehend nicht verfügbar.</target>
             </trans-unit>
+            <trans-unit id="freePreview.error.activationRequired">
+                <source>Free Remote Preview is not activated for this site. A TYPO3 administrator activates it in Settings › Licence by accepting the FREE terms.</source>
+                <target>Free Remote Preview ist für diese Site nicht aktiviert. Ein TYPO3-Administrator aktiviert sie unter Einstellungen › Lizenz, indem er den FREE-Bedingungen zustimmt.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.error.activationRenewal">
+                <source>The AQG service no longer accepts this site's FREE Remote Preview activation (the terms changed, or the acceptance was withdrawn or expired). A TYPO3 administrator accepts the current terms in Settings › Licence.</source>
+                <target>Der AQG-Dienst erkennt die FREE-Remote-Preview-Aktivierung dieser Site nicht mehr an (die Bedingungen haben sich geändert oder die Zustimmung wurde widerrufen oder ist abgelaufen). Ein TYPO3-Administrator stimmt unter Einstellungen › Lizenz den aktuellen Bedingungen zu.</target>
+            </trans-unit>
+            <trans-unit id="freePreview.activate">
+                <source>Activate Free Remote Preview</source>
+                <target>Free Remote Preview aktivieren</target>
+            </trans-unit>
             <trans-unit id="export.pdf.paidOnly">
                 <source>PDF export needs a PRO or Agency licence.</source>
                 <target>Der PDF-Export erfordert eine PRO- oder Agency-Lizenz.</target>
@@ -8934,6 +9286,14 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="remoteScanError.auth.message">
                 <source>The AQG scanner did not accept the licence. Revalidate the licence in the AQG settings.</source>
                 <target>Der AQG-Scanner hat die Lizenz nicht akzeptiert. Prüfen Sie die Lizenz in den AQG-Einstellungen erneut.</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.dpaRequired.title">
+                <source>Data processing agreement not accepted</source>
+                <target>Auftragsverarbeitungsvertrag nicht akzeptiert</target>
+            </trans-unit>
+            <trans-unit id="remoteScanError.dpaRequired.message">
+                <source>The licence is valid, but scans on the AQG service need the current AQG data processing agreement (DPA). The licence owner accepts it once in the AQG customer area on the Licence page: https://typo3.priebera.sk/portal/licenses Then start the scan again; there is nothing to change in TYPO3. If the owner account cannot sign in, contact AQG support.</source>
+                <target>Die Lizenz ist gültig, aber Scans im AQG-Dienst setzen den aktuellen AQG-Auftragsverarbeitungsvertrag (AVV) voraus. Der Lizenzinhaber akzeptiert ihn einmalig im AQG-Kundenbereich auf der Seite „Lizenz“: https://typo3.priebera.sk/portal/licenses Starten Sie den Scan danach erneut; in TYPO3 ist nichts zu ändern. Kann sich das Inhaberkonto nicht anmelden, wenden Sie sich an den AQG-Support.</target>
             </trans-unit>
             <trans-unit id="remoteScanError.notAllowed.title">
                 <source>Remote scan not allowed</source>
@@ -9940,16 +10300,16 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Ihr Plan umfasst browserbasierte Scans der ganzen Website im Tab „Frontend-Scan“.</target>
             </trans-unit>
             <trans-unit id="freePreview.requirements">
-                <source>No licence key, account or email needed. The site must be reachable from the internet.</source>
-                <target>Kein Lizenzschlüssel, kein Konto und keine E-Mail-Adresse nötig. Die Website muss aus dem Internet erreichbar sein.</target>
+                <source>No licence key or AQG account needed: a TYPO3 administrator activates it once by accepting the FREE terms. The site must be reachable from the internet.</source>
+                <target>Kein Lizenzschlüssel und kein AQG-Konto nötig: Ein TYPO3-Administrator aktiviert sie einmal, indem er den FREE-Bedingungen zustimmt. Die Site muss aus dem Internet erreichbar sein.</target>
             </trans-unit>
             <trans-unit id="freePreview.nextStep.title">
                 <source>See what your visitors experience</source>
                 <target>Sehen Sie, was Ihre Besucher erleben</target>
             </trans-unit>
             <trans-unit id="freePreview.nextStep.text">
-                <source>Run a free browser-based accessibility scan of this page. No licence key, account or email needed.</source>
-                <target>Starten Sie einen kostenlosen browserbasierten Barrierefreiheits-Scan dieser Seite. Kein Lizenzschlüssel, kein Konto und keine E-Mail-Adresse nötig.</target>
+                <source>Run a free browser-based accessibility scan of this page. No licence key or AQG account needed; a TYPO3 administrator activates it once.</source>
+                <target>Führen Sie einen kostenlosen browserbasierten Barrierefreiheits-Scan dieser Seite aus. Kein Lizenzschlüssel und kein AQG-Konto nötig; ein TYPO3-Administrator aktiviert ihn einmal.</target>
             </trans-unit>
             <trans-unit id="freePreview.nextStep.action">
                 <source>Open Free Remote Preview</source>
@@ -11066,6 +11426,154 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="settings.statement.noReadableSite">
                 <source>None of the sites is available to you, so no accessibility statement can be generated. A statement needs access to the site's root page; ask a TYPO3 administrator for it.</source>
                 <target>Ihnen ist keine Website zugänglich, daher kann keine Barrierefreiheitserklärung erstellt werden. Eine Erklärung benötigt Zugriff auf die Root-Seite der Website; wenden Sie sich dafür an einen TYPO3-Administrator.</target>
+            </trans-unit>
+            <trans-unit id="settings.tab.history">
+                <source>Scan history</source>
+                <target>Scan-Verlauf</target>
+            </trans-unit>
+            <trans-unit id="settings.history.local.title">
+                <source>Frontend scan history in this TYPO3 installation</source>
+                <target>Frontend-Scan-Verlauf in dieser TYPO3-Installation</target>
+            </trans-unit>
+            <trans-unit id="settings.history.local.text">
+                <source>Stored results of frontend scans: pages, findings, counts and comparisons. They are kept as long as you keep them. Choose a period to review and delete older scans.</source>
+                <target>Gespeicherte Ergebnisse von Frontend-Scans: Seiten, Befunde, Zahlen und Vergleiche. Sie bleiben erhalten, solange Sie sie behalten. Wählen Sie einen Zeitraum, um ältere Scans zu prüfen und zu löschen.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.local.label">
+                <source>Keep stored frontend scans</source>
+                <target>Gespeicherte Frontend-Scans behalten</target>
+            </trans-unit>
+            <trans-unit id="settings.history.option.keep">
+                <source>Keep while this installation keeps them (default)</source>
+                <target>Behalten, solange diese Installation sie behält (Standard)</target>
+            </trans-unit>
+            <trans-unit id="settings.history.option.1y">
+                <source>1 year</source>
+                <target>1 Jahr</target>
+            </trans-unit>
+            <trans-unit id="settings.history.option.3y">
+                <source>3 years</source>
+                <target>3 Jahre</target>
+            </trans-unit>
+            <trans-unit id="settings.history.option.5y">
+                <source>5 years</source>
+                <target>5 Jahre</target>
+            </trans-unit>
+            <trans-unit id="settings.history.local.help">
+                <source>Nothing is deleted when you save. Older scans are deleted only after you review and confirm them below, or when the command a11y:history:prune runs with --apply. A period counts calendar years back from now (UTC). The newest scan of each comparison, scans of a Verify fix that is still running and the scans monitoring still compares with are always kept.</source>
+                <target>Beim Speichern wird nichts gelöscht. Ältere Scans werden erst gelöscht, wenn Sie sie unten prüfen und bestätigen oder wenn der Befehl a11y:history:prune mit --apply läuft. Ein Zeitraum zählt Kalenderjahre ab jetzt zurück (UTC). Der neueste Scan jedes Vergleichs, Scans einer noch laufenden Fix-Prüfung und die Scans, mit denen das Monitoring noch vergleicht, bleiben immer erhalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.local.save">
+                <source>Save period</source>
+                <target>Zeitraum speichern</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.title">
+                <source>Review older scans</source>
+                <target>Ältere Scans prüfen</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.cutoff">
+                <source>Selected: stored frontend scans that finished before %s. Scans that finished at or after this time are kept.</source>
+                <target>Ausgewählt: gespeicherte Frontend-Scans, die vor %s abgeschlossen wurden. Scans, die zu diesem Zeitpunkt oder später abgeschlossen wurden, bleiben erhalten.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.scans">
+                <source>Scans to delete</source>
+                <target>Zu löschende Scans</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.oldest">
+                <source>Oldest selected scan finished</source>
+                <target>Ältester ausgewählter Scan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.newest">
+                <source>Newest selected scan finished</source>
+                <target>Neuester ausgewählter Scan abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.bySite">
+                <source>Scans to delete per site and language</source>
+                <target>Zu löschende Scans je Site und Sprache</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.site">
+                <source>Site</source>
+                <target>Site</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.language">
+                <source>Language</source>
+                <target>Sprache</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.allLanguages">
+                <source>All languages</source>
+                <target>Alle Sprachen</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.pages">
+                <source>Stored pages</source>
+                <target>Gespeicherte Seiten</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.occurrences">
+                <source>Occurrences</source>
+                <target>Vorkommen</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.confirm">
+                <source>I have reviewed this. Permanently delete these %1$s scans that finished before %2$s from this TYPO3 installation.</source>
+                <target>Ich habe das geprüft. Diese %1$s Scans, die vor %2$s abgeschlossen wurden, endgültig aus dieser TYPO3-Installation löschen.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.irreversible">
+                <source>This cannot be undone in TYPO3. Only the scans listed here are deleted, even if more scans become older before you confirm. The AQG service keeps its own copy of the scan history; this does not delete it.</source>
+                <target>Dies kann in TYPO3 nicht rückgängig gemacht werden. Gelöscht werden nur die hier aufgeführten Scans, auch wenn vor Ihrer Bestätigung weitere Scans älter werden. Der AQG-Dienst behält seine eigene Kopie der Scan-Historie; diese wird hierdurch nicht gelöscht.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.delete">
+                <source>Delete reviewed scans</source>
+                <target>Geprüfte Scans löschen</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.none">
+                <source>No stored scan can be deleted for this period. Nothing to delete.</source>
+                <target>Für diesen Zeitraum kann kein gespeicherter Scan gelöscht werden. Es gibt nichts zu löschen.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.kept">
+                <source>Kept although older than the period: %s scans.</source>
+                <target>Erhalten, obwohl älter als der Zeitraum: %s Scans.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.keptBaseline">
+                <source>%s newest scans of a comparison (the next scan is compared with them)</source>
+                <target>%s neueste Scans eines Vergleichs (der nächste Scan wird mit ihnen verglichen)</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.keptRunning">
+                <source>%s scans that have not finished</source>
+                <target>%s Scans, die noch nicht abgeschlossen sind</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.keptVerification">
+                <source>%s scans of a Verify fix that is still running</source>
+                <target>%s Scans einer noch laufenden Fix-Prüfung</target>
+            </trans-unit>
+            <trans-unit id="settings.history.review.keptMonitoring">
+                <source>%s scans monitoring still compares with</source>
+                <target>%s Scans, mit denen das Monitoring noch vergleicht</target>
+            </trans-unit>
+            <trans-unit id="settings.history.cloud.title">
+                <source>Data on the AQG service</source>
+                <target>Daten beim AQG-Dienst</target>
+            </trans-unit>
+            <trans-unit id="settings.history.cloud.text">
+                <source>Screenshots are not stored in TYPO3. The AQG service keeps them only for the retention period of the plan the scan ran under and then deletes them automatically; the scan results, counts and comparisons stored here stay available. Free Remote Preview results have no screenshots and are kept on the AQG service only for a limited time. These periods are set by the AQG service, are described in its privacy information, and cannot be changed here. The period above applies only to the history stored in this TYPO3 installation.</source>
+                <target>Screenshots werden nicht in TYPO3 gespeichert. Der AQG-Dienst bewahrt sie nur für die Aufbewahrungsfrist des Plans auf, unter dem der Scan lief, und löscht sie danach automatisch; die hier gespeicherten Scan-Ergebnisse, Zählungen und Vergleiche bleiben verfügbar. Ergebnisse der Free Remote Preview haben keine Screenshots und werden beim AQG-Dienst nur für begrenzte Zeit aufbewahrt. Diese Fristen legt der AQG-Dienst fest, sie sind in seinen Datenschutzhinweisen beschrieben und können hier nicht geändert werden. Der Zeitraum oben gilt nur für die in dieser TYPO3-Installation gespeicherte Historie.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.flash.saved">
+                <source>Scan history period saved. Nothing was deleted.</source>
+                <target>Zeitraum für den Scan-Verlauf gespeichert. Es wurde nichts gelöscht.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.flash.invalid">
+                <source>Choose one of the offered periods.</source>
+                <target>Wählen Sie einen der angebotenen Zeiträume.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.flash.confirmRequired">
+                <source>Nothing was deleted: confirm the review first.</source>
+                <target>Es wurde nichts gelöscht: Bestätigen Sie zuerst die Prüfung.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.flash.reviewOutdated">
+                <source>Nothing was deleted: the number of older scans has changed since your review. Review it again.</source>
+                <target>Es wurde nichts gelöscht: Die Zahl älterer Scans hat sich seit Ihrer Prüfung geändert. Prüfen Sie erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.history.flash.deleted">
+                <source>%d older scans were deleted from this TYPO3 installation.</source>
+                <target>%d ältere Scans wurden aus dieser TYPO3-Installation gelöscht.</target>
             </trans-unit>
         </body>
     </file>

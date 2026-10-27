@@ -43,7 +43,7 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 - Automated local scans via TYPO3 Scheduler
 - Changed-only scan mode for incremental rescans
 - Quality gate warning mode on page publish / unhide; editors can continue after reviewing the warning
-- Free Remote Preview — a limited daily browser-based frontend scan with axe-core (current limits are shown in the module)
+- Free Remote Preview — a limited daily browser-based frontend scan with axe-core (current limits are shown in the module); a TYPO3 administrator activates it once per site by accepting the FREE terms and DPA, recorded by the AQG service (2.1.0+)
 - FREE rendered page check — inspects the server-rendered HTML of a page; runs for backend page and site scans and for single-page CLI/Scheduler runs
 - CSV export
 - TCA-based field discovery for `tt_content` RTE and file fields
@@ -57,7 +57,7 @@ Supports TYPO3 13.4 LTS and TYPO3 14.3+.
 - Remote CSV export
 - Per-site quality gate configuration
 - Quality gate blocking mode on publish / unhide
-- Scan history and comparison of compatible scans (same site, scope, scan type, language and start URL)
+- Scan history and comparison of compatible scans (same site, scope, scan type, language and start URL); the stored history is kept indefinitely by default, can be browsed page by page, and administrators can set a 1-, 3- or 5-year period and delete older scans after reviewing them (2.1.0+)
 
 The trial runs for 5 days with up to 10 pages per frontend scan and 5 frontend scans per day.
 
@@ -280,6 +280,11 @@ configuration identifier.
 
 # Scan a specific language
 ./vendor/bin/typo3 a11y:scan --root-pid=1 --language=1
+
+# Review stored frontend scans older than the period in Settings › Scan history (dry run) …
+./vendor/bin/typo3 a11y:history:prune
+# … and delete them (never scheduled automatically)
+./vendor/bin/typo3 a11y:history:prune --apply
 ```
 
 ### Scheduled frontend monitoring (PRO / Agency)

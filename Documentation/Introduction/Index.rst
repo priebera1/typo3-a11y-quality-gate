@@ -169,6 +169,11 @@ require an active licence key.
         -   no
         -   yes
 
+The :guilabel:`Trial` column describes the earlier trial keys with the
+``aqg_trial_`` prefix. The 14-day Agency Trial offered on the product website is
+an ordinary Agency licence (``aqg_live_`` key) for its duration and has every
+feature of the :guilabel:`Agency` column.
+
 Plan details, trial access and pricing are documented on the product website:
 
 *   `Product page <https://typo3.priebera.sk/products/accessibility-quality-gate>`__

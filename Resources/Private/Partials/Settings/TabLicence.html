@@ -228,6 +228,8 @@
         </aside>
     </form>
 
+    <f:render partial="Settings/FreePreviewActivation" arguments="{freePreviewActivation: freePreviewActivation, returnParameters: returnParameters}" />
+
     <f:if condition="{isAdmin}">
         <f:if condition="{hasLicenceKey}">
             <section class="aqg-card aqg-licence-domains"

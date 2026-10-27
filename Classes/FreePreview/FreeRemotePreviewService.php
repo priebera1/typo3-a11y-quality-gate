@@ -23,6 +23,7 @@ final class FreeRemotePreviewService
         private readonly AqgCrawlerClient $crawlerClient,
         private readonly InstallationIdentityServiceInterface $installationIdentityService,
         private readonly ProCacheManager $cacheManager,
+        private readonly ?FreePreviewActivationService $activationService = null,
     ) {
     }
 
@@ -42,6 +43,12 @@ final class FreeRemotePreviewService
         string $version,
         bool $forceRefresh = false,
     ): array {
+        // Before an administrator has activated FREE for the site (accepted terms recorded by the AQG service), the
+        // status is not requested: nothing about the site is sent to the AQG service before that acceptance.
+        if ($this->activationService !== null && $this->activationService->activeAcceptanceId($siteUrl) === '') {
+            return $this->activationRequiredViewData($siteUrl) + ['fromCache' => false];
+        }
+
         $cacheKey = $this->buildStatusCacheKey($siteUrl, $siteIdentifier);
 
         if (!$forceRefresh) {
@@ -116,7 +123,7 @@ final class FreeRemotePreviewService
     private function fetchEntitlementStatus(string $siteUrl, string $siteIdentifier, string $version): array
     {
         try {
-            $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version);
+            $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version, false, $this->acceptanceIdFor($siteUrl));
             $payload = $this->crawlerClient->entitlementStatus(
                 $token->accessToken,
                 $this->installationIdentityService->getOrCreateInstallationId(),
@@ -124,9 +131,15 @@ final class FreeRemotePreviewService
                 $siteIdentifier,
             );
         } catch (FreePreviewException $exception) {
-            return $this->errorViewData($exception);
+            $this->recordTermsRefusal($siteUrl, $exception->errorCode);
+            return $exception->state === 'ACTIVATION_REQUIRED'
+                ? $this->activationRequiredViewData($siteUrl)
+                : $this->errorViewData($exception);
         } catch (ApiRequestFailedException $exception) {
-            return $this->errorViewData($this->mapApiException($exception));
+            $this->recordTermsRefusal($siteUrl, $exception->apiErrorCode);
+            return in_array(trim($exception->apiErrorCode), FreePreviewException::TERMS_ACCEPTANCE_CODES, true)
+                ? $this->activationRequiredViewData($siteUrl)
+                : $this->errorViewData($this->mapApiException($exception));
         } catch (\Throwable) {
             return $this->errorViewData(new FreePreviewException(
                 'Free Remote Preview status is temporarily unavailable.',
@@ -196,7 +209,20 @@ final class FreeRemotePreviewService
         string $version,
         string $idempotencyKey,
     ): CrawlerSubmitResult {
-        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version);
+        // A FREE scan is sent to the AQG crawler only with a server-recorded acceptance of the FREE terms for the site.
+        $acceptanceId = $this->activationService?->activeAcceptanceId($siteUrl) ?? '';
+        if ($this->activationService !== null && $acceptanceId === '') {
+            throw $this->activationRequiredException();
+        }
+
+        try {
+            $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version, false, $acceptanceId);
+        } catch (FreePreviewException $exception) {
+            $this->recordTermsRefusal($siteUrl, $exception->errorCode);
+            throw $exception->state === 'ACTIVATION_REQUIRED'
+                ? $this->mapApiException(new ApiRequestFailedException($exception->getMessage(), $exception->httpStatus, $exception, $exception->errorCode))
+                : $exception;
+        }
 
         try {
             $response = $this->crawlerClient->submitFree(
@@ -206,11 +232,13 @@ final class FreeRemotePreviewService
                 $siteIdentifier,
                 $startUrl,
                 $idempotencyKey,
+                $acceptanceId,
             );
         } catch (ApiRequestFailedException $exception) {
             if ($this->mayHaveChangedFreeUsage($exception)) {
                 $this->forgetEntitlementStatus($siteUrl, $siteIdentifier);
             }
+            $this->recordTermsRefusal($siteUrl, $exception->apiErrorCode);
             throw $this->mapApiException($exception);
         }
 
@@ -248,7 +276,7 @@ final class FreeRemotePreviewService
 
     public function getStatus(string $siteUrl, string $siteIdentifier, string $version, string $jobId): CrawlerStatusResult
     {
-        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version);
+        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version, false, $this->acceptanceIdFor($siteUrl));
         try {
             $response = $this->crawlerClient->status($token->accessToken, $jobId);
         } catch (ApiRequestFailedException $exception) {
@@ -264,7 +292,7 @@ final class FreeRemotePreviewService
 
     public function getSummary(string $siteUrl, string $siteIdentifier, string $version, string $jobId): CrawlerSummaryResult
     {
-        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version);
+        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version, false, $this->acceptanceIdFor($siteUrl));
         try {
             $response = $this->crawlerClient->summary($token->accessToken, $jobId);
         } catch (ApiRequestFailedException $exception) {
@@ -280,7 +308,7 @@ final class FreeRemotePreviewService
 
     public function getResults(string $siteUrl, string $siteIdentifier, string $version, string $jobId): CrawlerResultsResult
     {
-        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version);
+        $token = $this->tokenService->getValidToken($siteUrl, $siteIdentifier, $version, false, $this->acceptanceIdFor($siteUrl));
         try {
             $response = $this->crawlerClient->results($token->accessToken, $jobId);
         } catch (ApiRequestFailedException $exception) {
@@ -294,9 +322,82 @@ final class FreeRemotePreviewService
         return CrawlerResultsResult::fromResponseDto($response);
     }
 
+    /**
+     * The acceptance id for reading a job already submitted (status, summary, results): also while FREE is switched
+     * off, so a scan started before stays readable. New scans need an active acceptance (submit()).
+     */
+    private function acceptanceIdFor(string $siteUrl): string
+    {
+        if ($this->activationService === null) {
+            return '';
+        }
+        $status = $this->activationService->status($siteUrl);
+        $acceptance = $status['acceptance'];
+
+        return $acceptance !== null && in_array($status['state'], [FreePreviewActivationService::STATE_ACTIVE, FreePreviewActivationService::STATE_DISABLED], true)
+            ? $acceptance->acceptanceId
+            : '';
+    }
+
+    private function recordTermsRefusal(string $siteUrl, string $errorCode): void
+    {
+        if (in_array(trim($errorCode), FreePreviewException::TERMS_ACCEPTANCE_CODES, true)) {
+            $this->activationService?->recordServiceRefusal($siteUrl, trim($errorCode));
+        }
+    }
+
+    private function activationRequiredException(): FreePreviewException
+    {
+        return new FreePreviewException(
+            BackendLabelUtility::translate('freePreview.error.activationRequired', 'Free Remote Preview is not activated for this site. A TYPO3 administrator activates it in Settings › Licence by accepting the FREE terms.'),
+            'ACTIVATION_REQUIRED',
+            'free_terms_acceptance_required',
+            403,
+        );
+    }
+
+    /**
+     * The Overview state before activation (or after the AQG service stopped accepting the acceptance): no quota, no
+     * scan button, and the reason with the way to activate.
+     *
+     * @return array<string, mixed>
+     */
+    private function activationRequiredViewData(string $siteUrl): array
+    {
+        $state = $this->activationService?->status($siteUrl)['state'] ?? FreePreviewActivationService::STATE_NOT_ACTIVATED;
+
+        return [
+            'isFree' => true,
+            'entitlement' => 'free_daily',
+            'state' => 'ACTIVATION_REQUIRED',
+            'activationState' => $state,
+            'remoteCrawlerVisible' => true,
+            'available' => false,
+            'jobsUsed' => null,
+            'jobsLimit' => null,
+            'pagesUsed' => null,
+            'pagesLimit' => null,
+            'resetsAt' => '',
+            'upgradeUrl' => '',
+            'errorCode' => 'free_terms_acceptance_required',
+            'message' => BackendLabelUtility::translate('freePreview.error.activationRequired', 'Free Remote Preview is not activated for this site. A TYPO3 administrator activates it in Settings › Licence by accepting the FREE terms.'),
+            'retryable' => false,
+        ];
+    }
+
     private function mapApiException(ApiRequestFailedException $exception): FreePreviewException
     {
         $code = trim($exception->apiErrorCode);
+        if (in_array($code, FreePreviewException::TERMS_ACCEPTANCE_CODES, true)) {
+            return new FreePreviewException(
+                BackendLabelUtility::translate('freePreview.error.activationRenewal', 'The AQG service no longer accepts this site\'s FREE Remote Preview activation (the terms changed, or the acceptance was withdrawn or expired). A TYPO3 administrator accepts the current terms in Settings › Licence.'),
+                'ACTIVATION_REQUIRED',
+                $code,
+                $exception->httpStatus > 0 ? $exception->httpStatus : 403,
+                $exception->details,
+                $exception,
+            );
+        }
         // API throttling is temporary: the request may succeed later, so it is neither a contract nor a site error.
         $rateLimited = in_array($code, FreePreviewException::RATE_LIMIT_CODES, true);
         $state = $rateLimited ? 'API_UNAVAILABLE' : match ($code) {

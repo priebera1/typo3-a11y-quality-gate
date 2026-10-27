@@ -19,7 +19,7 @@ use ReflectionMethod;
  */
 final class SettingsTabSelectionTest extends TestCase
 {
-    private const TABS = ['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement'];
+    private const TABS = ['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement', 'history'];
 
     #[Test]
     public function exactlyOneSectionIsCurrentForEveryActiveTab(): void

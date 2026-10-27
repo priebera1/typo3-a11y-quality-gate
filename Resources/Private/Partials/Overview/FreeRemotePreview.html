@@ -29,7 +29,7 @@
             <f:if condition="{remoteScan}">
                 <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.title" default="Free Remote Preview" /></li>
             </f:if>
-            <li data-aqg-free-preview-requirements="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.requirements" default="No licence key, account or email needed. The site must be reachable from the internet." /></li>
+            <li data-aqg-free-preview-requirements="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.requirements" default="No licence key or AQG account needed: a TYPO3 administrator activates it once by accepting the FREE terms. The site must be reachable from the internet." /></li>
             <f:if condition="{freePreview.jobsLimit}">
                 <li>
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.freeScansToday" default="Free scans today" />:
@@ -92,6 +92,10 @@
                     data-free-submit-intent="{freeSubmitIntent}"
                     data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.running', default: 'Scanning selected page…')}"
             ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.run" default="Scan this page — Free" /></button>
+        </f:if>
+
+        <f:if condition="{freePreview.activationUrl}">
+            <a href="{freePreview.activationUrl}" class="btn btn-primary btn-sm" data-aqg-free-preview-activate="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.activate" default="Activate Free Remote Preview" /></a>
         </f:if>
 
         <f:if condition="{freePreview.hasTodayResult}">

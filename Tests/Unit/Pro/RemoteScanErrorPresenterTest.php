@@ -87,6 +87,30 @@ final class RemoteScanErrorPresenterTest extends TestCase
     }
 
     /**
+     * 2.1.0: a valid licence whose owner has not accepted the current DPA is told where to accept it, never to
+     * revalidate the licence — directly from the token endpoint and after the crawler refused the cached token.
+     */
+    #[Test]
+    public function aMissingDpaAcceptanceNamesTheCustomerAreaInsteadOfTheLicence(): void
+    {
+        $presenter = new RemoteScanErrorPresenter();
+        $refusal = new ApiRequestFailedException('AQG token issuance refused: dpa_acceptance_required.', 403, null, 'dpa_acceptance_required');
+
+        foreach ([
+            new TokenRefreshException('Hosted scans need the AQG data processing agreement.', 0, $refusal),
+            new TokenRefreshException('Remote crawler submit failed after token refresh', 0, new TokenRefreshException('refused', 0, $refusal)),
+        ] as $exception) {
+            $presented = $presenter->present($exception);
+            self::assertSame(403, $presented['status']);
+            self::assertSame('dpa_acceptance_required', $presented['code']);
+            self::assertSame('Data processing agreement not accepted', $presented['title']);
+            self::assertStringContainsString(RemoteScanErrorPresenter::DPA_ACCEPTANCE_URL, $presented['message']);
+            self::assertStringNotContainsString('Revalidate', $presented['message']);
+        }
+        self::assertStringStartsWith('https://', RemoteScanErrorPresenter::DPA_ACCEPTANCE_URL);
+    }
+
+    /**
      * @return iterable<string, array{0:string, 1:string, 2:string}>
      */
     public static function domainRefusalProvider(): iterable

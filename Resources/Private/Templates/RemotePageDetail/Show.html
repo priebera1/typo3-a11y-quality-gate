@@ -153,7 +153,7 @@
                     </f:if>
                 </div>
 
-                <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, scanIsFreePreview: scanIsFreePreview, screenshotEvidence: screenshotEvidence}" />
+                <f:render section="RemoteScreenshot" arguments="{remotePage: remotePage, isFreePreview: isFreePreview, scanIsFreePreview: scanIsFreePreview, screenshotEvidence: screenshotEvidence, screenshotState: screenshotState}" />
             </header>
 
             <f:render
@@ -1083,7 +1083,11 @@
                             data-action="a11y-open-screenshot-modal"
                             data-image-url="{remotePage.screenshot_proxy_url}"
                             data-image-title="{remotePage.title}"
-                            data-unavailable-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotUnavailable', default: 'Screenshot not available. Screenshots can only be loaded by the licence or Agency project that ran the scan.')}"
+                            data-unavailable-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotUnavailable', default: 'Screenshot could not be loaded. It may belong to another licence or Agency project, or the AQG service could not provide it right now. The scan results are not affected.')}"
+                            data-expired-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotExpired', default: 'The screenshot is no longer available. It was deleted automatically after its retention period. The historical scan results are kept.')}"
+                            data-deleted-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotDeleted', default: 'The screenshot was deleted. The scan results are kept.')}"
+                            data-failed-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotFailed', default: 'The screenshot could not be captured during this scan. The scan results are complete without it.')}"
+                            data-not-captured-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotNotCaptured', default: 'No screenshot was taken during this scan. The scan results are complete without it.')}"
                             aria-describedby="aqg-shot-sub"
                     >
                         <img
@@ -1109,6 +1113,10 @@
                         <span class="aqg-shot__label">
                             <f:if condition="{scanIsFreePreview}">
                                 <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:freePreview.screenshotNotInScan" default="This Free Remote Preview result has no screenshot. Scan the page again to capture one." /></f:then>
+                                <f:else if="{screenshotState} == 'expired'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotExpired" default="The screenshot is no longer available. It was deleted automatically after its retention period. The historical scan results are kept." /></f:else>
+                                <f:else if="{screenshotState} == 'deleted'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotDeleted" default="The screenshot was deleted. The scan results are kept." /></f:else>
+                                <f:else if="{screenshotState} == 'failed'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotFailed" default="The screenshot could not be captured during this scan. The scan results are complete without it." /></f:else>
+                                <f:else if="{screenshotState} == 'not_captured'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.screenshotNotCaptured" default="No screenshot was taken during this scan. The scan results are complete without it." /></f:else>
                                 <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.noScreenshot" default="No screenshot for this scan" /></f:else>
                             </f:if>
                         </span>

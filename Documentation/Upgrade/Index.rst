@@ -112,3 +112,24 @@ Findings are matched across scans by a stable fingerprint. Ignore states survive
 rescans as long as the underlying content is unchanged. Editing the content that
 produced a finding creates a new finding, which is open again — this is
 intentional, because the changed content has to be re-evaluated.
+
+..  _upgrade-2-1-0:
+
+Upgrading to 2.1.0
+==================
+
+*   Run the database update (:guilabel:`Analyze Database Structure`, or
+    ``vendor/bin/typo3 extension:setup -e a11y_quality_gate``). It adds the
+    columns ``screenshot_state`` and ``screenshot_expires_at`` to
+    ``tx_a11y_remote_scan_page``; nothing is changed or removed, and pages stored
+    by earlier versions keep working ("no screenshot stored" when no image is
+    known).
+*   The stored frontend scan history is kept indefinitely, as before. Nothing is
+    deleted by the update or by saving a period in
+    :guilabel:`Settings > Scan history`.
+*   Installations without a licence: the FREE Remote Preview must be activated
+    once per domain by an administrator (:ref:`usage-remote-scans-free-activation`).
+    Until then FREE scans are off. Activation needs the acceptance endpoints and
+    published FREE terms on the AQG service.
+*   Licensed installations (Trial, PRO, Agency) need no action.
+

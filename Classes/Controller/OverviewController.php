@@ -70,6 +70,9 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 #[AsController]
 final class OverviewController extends AbstractBackendModuleController
 {
+    /** Rows per page of Overview › Frontend scan history › all stored scans. */
+    private const STORED_HISTORY_PAGE_SIZE = 25;
+
     private const LOCAL_PER_PAGE = 25;
     private const REMOTE_PER_PAGE = 25;
     private const REMOTE_FAILED_PER_PAGE = 25;
@@ -694,6 +697,13 @@ final class OverviewController extends AbstractBackendModuleController
         }
         $freePreview['hasTodayResult'] = $isFreePreview
             && $this->isTodayFreePreviewResult(is_array($remoteScan) ? $remoteScan : null);
+        // Before activation (Settings › Licence › FREE Remote Preview) administrators get the way there; editors read
+        // that an administrator activates it.
+        $freePreview['activationUrl'] = $isFreePreview
+            && (string)($freePreview['state'] ?? '') === 'ACTIVATION_REQUIRED'
+            && $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser())
+                ? $this->buildRouteUrl('web_a11y.settings', ['tab' => 'licence', 'site' => $siteIdentifier]) . '#aqg-free-preview-activation'
+                : '';
         $freePreview['trialUrl'] = $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::TRIAL);
         if (trim((string)($freePreview['upgradeUrl'] ?? '')) === '') {
             $freePreview['upgradeUrl'] = $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::PRICING);
@@ -2134,6 +2144,77 @@ final class OverviewController extends AbstractBackendModuleController
             'debugPageApiCount' => count(is_array($pageHistory['items'] ?? null) ? $pageHistory['items'] : []),
             'debugLocalSiteCount' => count($localSiteScans),
             'debugLocalPageCount' => count($localPageScans),
+            'stored' => $this->buildStoredHistoryPage($request, $siteIdentifier, $currentPageUid, $languageUid, $siteScansCount),
+        ];
+    }
+
+    /**
+     * Every completed site scan stored in this installation, page by page (`historyPage`, 25 per page, newest first):
+     * the list above shows only the latest ten, and the scan history may be kept for years (Settings › Scan history).
+     * Rows link to the stored report and to the previous compatible scan, as in the list above.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildStoredHistoryPage(
+        ServerRequestInterface $request,
+        string $siteIdentifier,
+        int $currentPageUid,
+        int $languageUid,
+        int $recentShown,
+    ): array {
+        $sourceTypes = ['sitemap', 'crawl', 'site'];
+        $total = $this->remoteScanRepository->countCompletedHistoryScansBySiteAndSourceTypes($siteIdentifier, $sourceTypes);
+        $pages = max(1, (int)ceil($total / self::STORED_HISTORY_PAGE_SIZE));
+        $requested = (int)($request->getQueryParams()['historyPage'] ?? 0);
+        $pageUrl = function (int $page) use ($request, $siteIdentifier, $currentPageUid, $languageUid): string {
+            $parameters = $this->getA11yModuleReturnParameters($request);
+            $parameters['site'] = $siteIdentifier;
+            $parameters['language'] = $languageUid;
+            if ($currentPageUid > 0) {
+                $parameters['id'] = $currentPageUid;
+            }
+            $parameters['historyPage'] = $page;
+            // The history is on the Frontend scan tab: open that tab, or the anchor would point into a hidden panel.
+            $parameters['aqgSource'] = 'remote';
+
+            return $this->buildRouteUrl('web_a11y', $parameters) . '#aqg-evidence-history';
+        };
+
+        $result = [
+            'active' => false,
+            'total' => $total,
+            'browseUrl' => $total > $recentShown ? $pageUrl(1) : '',
+        ];
+        if ($requested < 1 || $total === 0) {
+            return $result;
+        }
+
+        $page = min($requested, $pages);
+        $items = $this->withStoredHistoryTotals($this->buildLocalRemoteHistoryItems(
+            $siteIdentifier,
+            $sourceTypes,
+            self::STORED_HISTORY_PAGE_SIZE,
+            -1,
+            ($page - 1) * self::STORED_HISTORY_PAGE_SIZE,
+            true,
+        ));
+        foreach ($items as &$item) {
+            $item = $this->enrichRemoteHistoryItemUrls($request, $item, $siteIdentifier, $currentPageUid, $languageUid);
+        }
+        unset($item);
+
+        return [
+            'active' => true,
+            'total' => $total,
+            'browseUrl' => '',
+            'items' => $items,
+            'page' => $page,
+            'pages' => $pages,
+            'first' => ($page - 1) * self::STORED_HISTORY_PAGE_SIZE + 1,
+            'last' => ($page - 1) * self::STORED_HISTORY_PAGE_SIZE + count($items),
+            'newerUrl' => $page > 1 ? $pageUrl($page - 1) : '',
+            'olderUrl' => $page < $pages ? $pageUrl($page + 1) : '',
+            'closeUrl' => $pageUrl(0),
         ];
     }
 
@@ -2145,13 +2226,16 @@ final class OverviewController extends AbstractBackendModuleController
         string $siteIdentifier,
         array $sourceTypes,
         int $limit,
-        int $languageUid
+        int $languageUid,
+        int $offset = 0,
+        bool $withComparablePrevious = false,
     ): array {
         $rows = $this->remoteScanRepository->findCompletedHistoryScansBySiteAndSourceTypes(
             $siteIdentifier,
             $sourceTypes,
             $limit,
-            $languageUid
+            $languageUid,
+            $offset
         );
 
         $items = [];
@@ -2204,6 +2288,18 @@ final class OverviewController extends AbstractBackendModuleController
                     'persisted_at' => (int)($row['persisted_at'] ?? 0),
                 ],
             ];
+            if ($withComparablePrevious) {
+                // Only a compatible earlier scan (site, scope, source, language, start URL, Free vs paid) is offered;
+                // the comparison itself checks the pair again (resolveComparePair()).
+                $previous = $this->remoteScanPairingService->findPreviousCompatible($row);
+                $previousJobId = is_array($previous) ? trim((string)($previous['job_id'] ?? '')) : '';
+                if ($previousJobId !== '') {
+                    $last = array_key_last($items);
+                    $items[$last]['compareFromJobId'] = $previousJobId;
+                    $items[$last]['hasComparablePrevious'] = true;
+                    $items[$last]['compareLabel'] = $this->translateWithFallback('remote.history.compareWithPrevious', 'Compare with previous compatible scan');
+                }
+            }
         }
 
         return $items;

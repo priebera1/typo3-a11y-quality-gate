@@ -243,7 +243,7 @@
         </details>
 
         <f:if condition="!{freePreview.isFree}">
-            <details class="aqg-evidence__row" id="aqg-evidence-history">
+            <details class="aqg-evidence__row" id="aqg-evidence-history"{f:if(condition: remoteScanHistory.stored.active, then: ' open')}>
                 <summary class="aqg-evidence__summary">
                     <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.siteTitle" default="Frontend scan history" /></span>
                     <span class="aqg-evidence__line">
@@ -255,12 +255,36 @@
                     <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
                 </summary>
                 <div class="aqg-evidence__body">
-                    <f:if condition="{remoteScanHistory.siteScans}">
+                    <f:if condition="{remoteScanHistory.stored.active}">
                         <f:then>
-                            <f:render partial="Remote/ScanHistoryTable" arguments="{items: remoteScanHistory.siteScans}" />
+                            <h3 class="aqg-evidence__subtitle" id="aqg-stored-history-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.title" default="All stored site scans" /></h3>
+                            <p class="aqg-evidence__intro" id="aqg-stored-history-range"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.range" arguments="{0: remoteScanHistory.stored.first, 1: remoteScanHistory.stored.last, 2: remoteScanHistory.stored.total}" default="Scans %1$s–%2$s of %3$s stored in this TYPO3 installation, newest first." /></p>
+                            <f:render partial="Remote/ScanHistoryTable" arguments="{items: remoteScanHistory.stored.items}" />
+                            <nav class="aqg-history-pager" aria-labelledby="aqg-stored-history-title" data-aqg-history-pager="true">
+                                <f:if condition="{remoteScanHistory.stored.newerUrl}">
+                                    <a href="{remoteScanHistory.stored.newerUrl}" class="btn btn-sm btn-default" rel="prev"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.newer" default="Newer scans" /></a>
+                                </f:if>
+                                <span class="aqg-history-pager__position"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.page" arguments="{0: remoteScanHistory.stored.page, 1: remoteScanHistory.stored.pages}" default="Page %1$s of %2$s" /></span>
+                                <f:if condition="{remoteScanHistory.stored.olderUrl}">
+                                    <a href="{remoteScanHistory.stored.olderUrl}" class="btn btn-sm btn-default" rel="next"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.older" default="Older scans" /></a>
+                                </f:if>
+                                <a href="{remoteScanHistory.stored.closeUrl}" class="btn btn-sm btn-default"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.close" default="Show latest scans only" /></a>
+                            </nav>
                         </f:then>
                         <f:else>
-                            <p class="aqg-history-notice"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.emptySite" default="No site frontend scan history available yet." /></p>
+                            <f:if condition="{remoteScanHistory.siteScans}">
+                                <f:then>
+                                    <f:render partial="Remote/ScanHistoryTable" arguments="{items: remoteScanHistory.siteScans}" />
+                                </f:then>
+                                <f:else>
+                                    <p class="aqg-history-notice"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.emptySite" default="No site frontend scan history available yet." /></p>
+                                </f:else>
+                            </f:if>
+                            <f:if condition="{remoteScanHistory.stored.browseUrl}">
+                                <p class="aqg-history-pager">
+                                    <a href="{remoteScanHistory.stored.browseUrl}" class="btn btn-sm btn-default"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.stored.browse" arguments="{0: remoteScanHistory.stored.total}" default="Browse all %s stored site scans" /></a>
+                                </p>
+                            </f:if>
                         </f:else>
                     </f:if>
                 </div>

@@ -126,20 +126,67 @@ final class AqgApiClient
         return $payload;
     }
 
+    /**
+     * `$freeTermsAcceptanceId` (2.1.0+): the server-recorded acceptance of the FREE Remote Preview terms this
+     * installation's administrator gave for the site (FreePreviewActivationService). The AQG service decides on its own
+     * whether that acceptance is valid; the field is sent only when there is one.
+     */
     public function issueFreeToken(
         string $installationId,
         string $siteUrl,
         string $siteIdentifier,
         string $version,
+        string $freeTermsAcceptanceId = '',
     ): AccessTokenResponseDto {
-        $payload = $this->postJson('/auth/token', [
+        $request = [
             'installationId' => $installationId,
             'siteUrl' => $siteUrl,
             'siteIdentifier' => $siteIdentifier,
             'version' => $version,
-        ], true);
+        ];
+        if ($freeTermsAcceptanceId !== '') {
+            $request['freeTermsAcceptanceId'] = $freeTermsAcceptanceId;
+        }
+        $payload = $this->postJson('/auth/token', $request, true);
 
         return AccessTokenResponseDto::fromArray($payload);
+    }
+
+    /**
+     * The FREE Remote Preview terms in force (version, documents with URL and hash, the acceptance statement hashes).
+     * A service that has not published them answers 404 (`route_not_found`): activation then stays impossible.
+     *
+     * @return array<string, mixed> the decoded body
+     * @throws ApiRequestFailedException on transport errors and any HTTP error
+     */
+    public function fetchFreeTerms(string $language): array
+    {
+        return $this->requestJson('GET', '/free-preview/terms?language=' . rawurlencode($language), null, true);
+    }
+
+    /**
+     * Records the administrator's acceptance on the AQG service, which stores it with its own UTC timestamp and answers
+     * with the acceptance (id, versions, acceptedAt). Replaying the same idempotency key returns the same acceptance.
+     *
+     * @param array<string, mixed> $request
+     * @return array<string, mixed>
+     * @throws ApiRequestFailedException on transport errors and any HTTP error
+     */
+    public function acceptFreeTerms(array $request): array
+    {
+        return $this->requestJson('POST', '/free-preview/acceptances', $request, true);
+    }
+
+    /**
+     * The current state of a recorded acceptance (valid, outdated, revoked, expired), as the AQG service sees it.
+     *
+     * @param array<string, mixed> $request
+     * @return array<string, mixed>
+     * @throws ApiRequestFailedException on transport errors and any HTTP error
+     */
+    public function freeTermsAcceptanceStatus(array $request): array
+    {
+        return $this->requestJson('POST', '/free-preview/acceptances/status', $request, true);
     }
 
     /**
@@ -199,24 +246,30 @@ final class AqgApiClient
      */
     private function postJson(string $path, array $payload, bool $throwOnHttpError = false): array
     {
+        return $this->requestJson('POST', $path, $payload, $throwOnHttpError);
+    }
+
+    /**
+     * @param array<string, mixed>|null $payload the JSON body (POST), null for a GET
+     * @return array<string, mixed>
+     */
+    private function requestJson(string $method, string $path, ?array $payload, bool $throwOnHttpError = false): array
+    {
         $url = rtrim(ProSettings::resolveApiBaseUrl(), '/') . $path;
         ServiceReachability::assertReachable(ServiceReachability::SERVICE_API, $url, 'AQG API request skipped: the service did not answer earlier in this request.');
 
         try {
-            $response = $this->requestFactory->request(
-                $url,
-                'POST',
-                [
-                    'headers' => [
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                    ],
-                    'body' => json_encode($payload, JSON_THROW_ON_ERROR),
-                    'timeout' => ProConstants::REQUEST_TIMEOUT,
-                    'http_errors' => false,
-                    'allow_redirects' => false,
-                ]
-            );
+            $options = [
+                'headers' => ['Accept' => 'application/json'],
+                'timeout' => ProConstants::REQUEST_TIMEOUT,
+                'http_errors' => false,
+                'allow_redirects' => false,
+            ];
+            if ($payload !== null) {
+                $options['headers']['Content-Type'] = 'application/json';
+                $options['body'] = json_encode($payload, JSON_THROW_ON_ERROR);
+            }
+            $response = $this->requestFactory->request($url, $method, $options);
         } catch (ClientExceptionInterface | \JsonException $exception) {
             if ($exception instanceof ClientExceptionInterface) {
                 ServiceReachability::markUnreachable(ServiceReachability::SERVICE_API, $url);

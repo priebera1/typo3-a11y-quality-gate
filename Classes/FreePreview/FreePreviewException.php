@@ -13,6 +13,18 @@ final class FreePreviewException extends \RuntimeException
     public const RATE_LIMIT_CODES = ['rate_limit_exceeded', 'free_preview_rate_limited'];
 
     /**
+     * The AQG service refused FREE access because the recorded acceptance of the FREE Remote Preview terms is missing,
+     * for an older version, revoked, expired or not this installation's (FreePreviewActivationService).
+     */
+    public const TERMS_ACCEPTANCE_CODES = [
+        'free_terms_acceptance_required',
+        'free_terms_outdated',
+        'free_terms_acceptance_revoked',
+        'free_terms_acceptance_expired',
+        'free_terms_acceptance_mismatch',
+    ];
+
+    /**
      * @param array<string, mixed> $freeDaily
      */
     public function __construct(

@@ -17,6 +17,10 @@ use Priebera\A11yQualityGate\Pro\Service\ProSiteFingerprintService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
 use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
+use Priebera\A11yQualityGate\FreePreview\FreePreviewActivationService;
+use Priebera\A11yQualityGate\FreePreview\FreePreviewStatement;
+use Priebera\A11yQualityGate\FreePreview\FreeTermsAcceptance;
+use Priebera\A11yQualityGate\Service\LocalHistoryRetentionService;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\AccessibilityStatementService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
@@ -72,6 +76,7 @@ final class SettingsController extends AbstractBackendModuleController
         'remote_access',
         'ai',
         'statement',
+        'history',
     ];
 
     /**
@@ -124,6 +129,8 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly ?ProLicenceDomainService $proLicenceDomainService = null,
         private readonly ?UpdateNoticeService $updateNoticeService = null,
         private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
+        private readonly ?LocalHistoryRetentionService $localHistoryRetentionService = null,
+        private readonly ?FreePreviewActivationService $freePreviewActivationService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -175,7 +182,7 @@ final class SettingsController extends AbstractBackendModuleController
         $selectedRulesetSite = trim((string)($request->getQueryParams()['rulesetSite'] ?? $currentSiteIdentifier));
         $activeTab = $this->resolveActiveTab((string)($request->getQueryParams()['tab'] ?? 'licence'));
         $isAdmin = $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser());
-        if (in_array($activeTab, ['remote_access', 'ai'], true) && !$isAdmin) {
+        if (in_array($activeTab, ['remote_access', 'ai', 'history'], true) && !$isAdmin) {
             $activeTab = 'licence';
         }
 
@@ -325,6 +332,8 @@ final class SettingsController extends AbstractBackendModuleController
             'aiSettingsTestUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_test'),
             'aiSettingsLinkTextToggleUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_link_text_toggle'),
             'updateNotice' => $updateNotice,
+            'historyRetention' => $this->buildHistoryRetentionView($activeTab, $isAdmin),
+            'freePreviewActivation' => $this->buildFreePreviewActivationView($activeTab, $isAdmin, $site, (bool)($proStatus->valid ?? false)),
         ]);
 
         return $moduleTemplate->renderResponse('Settings/Index');
@@ -1504,7 +1513,7 @@ final class SettingsController extends AbstractBackendModuleController
     private function buildSettingsTabCurrentStates(string $activeTab): array
     {
         $states = [];
-        foreach (['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement'] as $tab) {
+        foreach (self::AVAILABLE_TABS as $tab) {
             $states[$tab] = $tab === $activeTab ? 'page' : 'false';
         }
 
@@ -1656,6 +1665,322 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         return true;
+    }
+
+    /**
+     * Settings › Scan history (administrators): the period for the frontend scan history stored in this installation,
+     * and the review of what it would delete now (LocalHistoryRetentionService — nothing is deleted on its own).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function buildHistoryRetentionView(string $activeTab, bool $isAdmin): ?array
+    {
+        if ($activeTab !== 'history' || !$isAdmin || $this->localHistoryRetentionService === null) {
+            return null;
+        }
+        $setting = $this->localHistoryRetentionService->getSetting();
+        $preview = $this->localHistoryRetentionService->preview($setting);
+        // Exact UTC instants, as the command prints them and as the deletion compares them: "before 2025-10-20 18:40:12
+        // UTC" is the boundary, not the whole day.
+        $formatUtc = static fn (int $timestamp): string => LocalHistoryRetentionService::formatUtc($timestamp);
+
+        $bySite = [];
+        foreach ($preview['bySite'] as $row) {
+            $bySite[] = $row + ['languageLabel' => $this->historyLanguageLabel($row['site'], $row['language'])];
+        }
+
+        return [
+            'setting' => $setting,
+            'options' => array_keys(LocalHistoryRetentionService::OPTIONS),
+            'saveUrl' => $this->buildRouteUrl('web_a11y.settingsHistoryRetentionSave'),
+            'pruneUrl' => $this->buildRouteUrl('web_a11y.settingsHistoryRetentionPrune'),
+            'scans' => $preview['scans'],
+            'pages' => $preview['pages'],
+            'occurrences' => $preview['occurrences'],
+            'oldest' => $formatUtc($preview['oldest']),
+            'newest' => $formatUtc($preview['newest']),
+            'cutoff' => $preview['cutoff'] !== null ? $formatUtc($preview['cutoff']) : '',
+            'reviewedCutoff' => (int)($preview['cutoff'] ?? 0),
+            'reviewToken' => $preview['reviewToken'],
+            'olderTotal' => $preview['olderTotal'],
+            'kept' => array_sum($preview['protected']),
+            'protected' => $preview['protected'],
+            'bySite' => $bySite,
+            'multipleGroups' => count($bySite) > 1,
+        ];
+    }
+
+    /**
+     * Settings › Licence › FREE Remote Preview: per domain (with the readable sites using it) whether FREE is activated
+     * (the AQG service's confirmation of the accepted terms, with its UTC acceptance time), and for administrators the
+     * activation with the published documents. Only administrators load the published terms (one cached request); editors see the status only.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function buildFreePreviewActivationView(string $activeTab, bool $isAdmin, ?Site $site, bool $paidLicenceActive): ?array
+    {
+        if ($activeTab !== 'licence' || $this->freePreviewActivationService === null) {
+            return null;
+        }
+        $language = FreePreviewStatement::languageFor($this->getBackendLanguageCode());
+        $termsResult = $isAdmin ? $this->freePreviewActivationService->getTerms($language) : ['terms' => null, 'error' => ''];
+        $terms = $termsResult['terms'];
+
+        $sites = [];
+        try {
+            $allSites = $this->siteFinder->getAllSites();
+        } catch (\Throwable) {
+            $allSites = [];
+        }
+        $selected = $this->resolveLicenceSite($site)?->getIdentifier() ?? '';
+        // The AQG service binds an acceptance to installation + domain, so the store keeps one per normalised domain:
+        // sites sharing a domain (`/en/`, `www.…/de/`) share one activation and get one row. Only sites the user may
+        // read on the site root are listed, so module access alone shows no other site's status.
+        $domainGroups = [];
+        foreach ($allSites as $candidate) {
+            $base = (string)$candidate->getBase();
+            $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase($base);
+            if ($domain === '' || !$this->scopeAccessService->canReadSite($candidate)) {
+                continue;
+            }
+            $domainGroups[$domain] ??= ['base' => $base, 'identifier' => $candidate->getIdentifier(), 'siteIdentifiers' => []];
+            $domainGroups[$domain]['siteIdentifiers'][] = $candidate->getIdentifier();
+            if ($candidate->getIdentifier() === $selected) {
+                $domainGroups[$domain]['base'] = $base;
+                $domainGroups[$domain]['identifier'] = $selected;
+            }
+        }
+        foreach ($domainGroups as $group) {
+            sort($group['siteIdentifiers'], SORT_STRING);
+            $base = $group['base'];
+            $status = $this->freePreviewActivationService->status($base, $terms);
+            $acceptance = $status['acceptance'];
+            $sites[] = [
+                // The site the actions name; the service resolves it to the shared domain.
+                'identifier' => $group['identifier'],
+                'siteIdentifiers' => $group['siteIdentifiers'],
+                'siteLabel' => implode(', ', $group['siteIdentifiers']),
+                'base' => $base,
+                'domain' => $status['domain'],
+                'state' => $status['state'],
+                'stateLabel' => $this->translateWithFallback('settings.freePreview.state.' . $status['state'], $status['state']),
+                'stateTone' => match ($status['state']) {
+                    FreePreviewActivationService::STATE_ACTIVE => 'ok',
+                    FreePreviewActivationService::STATE_NOT_ACTIVATED, FreePreviewActivationService::STATE_DISABLED => 'neutral',
+                    default => 'warn',
+                },
+                'notPublic' => $this->freePreviewActivationService->isClearlyNotPublic($base),
+                'selected' => in_array($selected, $group['siteIdentifiers'], true),
+                'canEnable' => $status['state'] === FreePreviewActivationService::STATE_DISABLED,
+                'canDisable' => $status['state'] === FreePreviewActivationService::STATE_ACTIVE,
+                'acceptance' => $acceptance instanceof FreeTermsAcceptance ? [
+                    'id' => $acceptance->acceptanceId,
+                    'termsVersion' => $acceptance->termsVersion,
+                    'documents' => $acceptance->documents,
+                    'acceptedAt' => $acceptance->acceptedAt,
+                    'acceptedAtUtc' => LocalHistoryRetentionService::formatUtc($acceptance->acceptedAtTimestamp),
+                    'validUntilUtc' => LocalHistoryRetentionService::formatUtc($acceptance->validUntilTimestamp),
+                    'organisation' => $acceptance->organisationName,
+                    'acceptedBy' => $acceptance->acceptedByName,
+                    'statusCheckedAt' => $acceptance->statusCheckedAt,
+                ] : null,
+            ];
+        }
+
+        $documents = [];
+        foreach ($terms?->documentsFor($language) ?? [] as $document) {
+            $documents[] = $document + [
+                'label' => $document['title'] !== ''
+                    ? $document['title']
+                    : $this->translateWithFallback('settings.freePreview.document.' . $document['type'], $document['type']),
+            ];
+        }
+        $backendUser = $this->backendContextService->getBackendUser();
+
+        return [
+            'canManage' => $isAdmin,
+            'sites' => $sites,
+            'hasSites' => $sites !== [],
+            'multipleSites' => count($sites) > 1,
+            'paidLicenceActive' => $paidLicenceActive,
+            'termsAvailable' => $terms !== null && $terms->acceptsStatement($language),
+            'termsError' => $terms === null ? ($termsResult['error'] !== '' ? $termsResult['error'] : 'not_published') : ($terms->acceptsStatement($language) ? '' : 'statement_mismatch'),
+            'termsVersion' => $terms?->version ?? '',
+            'documents' => $documents,
+            'statement' => FreePreviewStatement::text($language),
+            'statementLanguage' => $language,
+            'defaultName' => trim((string)($backendUser?->user['realName'] ?? '')),
+            'defaultEmail' => trim((string)($backendUser?->user['email'] ?? '')),
+            'acceptUrl' => $this->buildRouteUrl('web_a11y.settingsFreePreviewAccept'),
+            'toggleUrl' => $this->buildRouteUrl('web_a11y.settingsFreePreviewToggle'),
+            'refreshUrl' => $this->buildRouteUrl('web_a11y.settingsFreePreviewRefresh'),
+        ];
+    }
+
+    /** Records the administrator's acceptance on the AQG service; FREE is active only with its confirmation. */
+    public function acceptFreePreviewAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyAdminOnly($request, 'licence');
+        if ($denied !== null) {
+            return $denied;
+        }
+        $body = $this->parseRequestBody($request);
+        $site = $this->findSiteByIdentifier((string)($body['site'] ?? ''));
+        $code = 'invalid_site';
+        if ($site !== null && $this->freePreviewActivationService !== null) {
+            $result = $this->freePreviewActivationService->accept(
+                (string)$site->getBase(),
+                $site->getIdentifier(),
+                [
+                    'organisation' => (string)($body['organisation'] ?? ''),
+                    'name' => (string)($body['acceptedByName'] ?? ''),
+                    'email' => (string)($body['acceptedByEmail'] ?? ''),
+                    'authorityConfirmed' => (string)($body['acceptTerms'] ?? '') === '1',
+                    'termsVersion' => (string)($body['termsVersion'] ?? ''),
+                    'language' => $this->getBackendLanguageCode(),
+                    'userUid' => $this->getBackendUserUid(),
+                ],
+                $this->extensionContextService->getExtensionVersion(),
+            );
+            $code = $result['code'];
+        }
+
+        return $this->freePreviewRedirect($request, $code, $code === 'accepted');
+    }
+
+    /** Switches FREE scans on or off for a site; the recorded acceptance is never changed. */
+    public function toggleFreePreviewAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyAdminOnly($request, 'licence');
+        if ($denied !== null) {
+            return $denied;
+        }
+        $body = $this->parseRequestBody($request);
+        $site = $this->findSiteByIdentifier((string)($body['site'] ?? ''));
+        $code = $site !== null && $this->freePreviewActivationService !== null
+            ? $this->freePreviewActivationService->setEnabled(
+                (string)$site->getBase(),
+                (string)($body['enabled'] ?? '') === '1',
+                $this->freePreviewActivationService->getTerms(FreePreviewStatement::languageFor($this->getBackendLanguageCode()))['terms'],
+            )
+            : 'invalid_site';
+
+        return $this->freePreviewRedirect($request, $code, in_array($code, ['enabled', 'disabled'], true));
+    }
+
+    /** Asks the AQG service for the current state of the site's recorded acceptance. */
+    public function refreshFreePreviewAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyAdminOnly($request, 'licence');
+        if ($denied !== null) {
+            return $denied;
+        }
+        $body = $this->parseRequestBody($request);
+        $site = $this->findSiteByIdentifier((string)($body['site'] ?? ''));
+        $code = $site !== null && $this->freePreviewActivationService !== null
+            ? 'status_' . $this->freePreviewActivationService->refresh((string)$site->getBase(), $site->getIdentifier())
+            : 'invalid_site';
+
+        return $this->freePreviewRedirect($request, $code, $code === 'status_' . FreeTermsAcceptance::STATUS_VALID);
+    }
+
+    private function freePreviewRedirect(ServerRequestInterface $request, string $code, bool $success): ResponseInterface
+    {
+        $redirectParameters = $this->getA11yModuleReturnParameters($request);
+        $redirectParameters['tab'] = 'licence';
+        $this->addFlashMessage(
+            $this->translateWithFallback('settings.freePreview.flash.' . $code, $this->translateWithFallback('settings.freePreview.flash.rejected', 'Free Remote Preview was not activated.')),
+            $success ? ContextualFeedbackSeverity::OK : ContextualFeedbackSeverity::WARNING
+        );
+
+        return new RedirectResponse($this->buildRouteUrl('web_a11y.settings', $redirectParameters) . '#aqg-free-preview-activation', 303);
+    }
+
+    private function findSiteByIdentifier(string $identifier): ?Site
+    {
+        try {
+            return trim($identifier) !== '' ? $this->siteFinder->getSiteByIdentifier(trim($identifier)) : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** Settings access, then administrator rights (`canManageAdminOnlySettings`), checked on the server. */
+    private function denyAdminOnly(ServerRequestInterface $request, string $tab): ?ResponseInterface
+    {
+        $accessResponse = $this->denyIfSettingsHidden($request);
+        if ($accessResponse !== null) {
+            return $accessResponse;
+        }
+        if (!$this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser())) {
+            return $this->buildAdminOnlySettingsDeniedResponse($request, $tab);
+        }
+
+        return null;
+    }
+
+    private function historyLanguageLabel(string $siteIdentifier, int $languageUid): string
+    {
+        if ($languageUid < 0) {
+            return $this->translateWithFallback('settings.history.review.allLanguages', 'All languages');
+        }
+        try {
+            return $this->siteFinder->getSiteByIdentifier($siteIdentifier)->getLanguageById($languageUid)->getTitle()
+                . ' (' . $languageUid . ')';
+        } catch (\Throwable) {
+            return (string)$languageUid;
+        }
+    }
+
+    public function saveHistoryRetentionAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyHistoryRetention($request);
+        if ($denied !== null) {
+            return $denied;
+        }
+        $body = $this->parseRequestBody($request);
+        $saved = $this->localHistoryRetentionService?->saveSetting((string)($body['localHistoryRetention'] ?? '')) ?? false;
+        $redirectParameters = $this->getA11yModuleReturnParameters($request);
+        $redirectParameters['tab'] = 'history';
+        if (!$saved) {
+            $this->addFlashMessage($this->translate('settings.history.flash.invalid'), ContextualFeedbackSeverity::ERROR);
+            return new RedirectResponse($this->buildRouteUrl('web_a11y.settings', $redirectParameters), 303);
+        }
+
+        return $this->buildSettingsPostResponse($request, $redirectParameters, $this->translate('settings.history.flash.saved'));
+    }
+
+    /** Deletes the reviewed scans — only with the confirmation and only while the reviewed number is still current. */
+    public function pruneHistoryRetentionAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyHistoryRetention($request);
+        if ($denied !== null) {
+            return $denied;
+        }
+        $body = $this->parseRequestBody($request);
+        $redirectParameters = $this->getA11yModuleReturnParameters($request);
+        $redirectParameters['tab'] = 'history';
+        $service = $this->localHistoryRetentionService;
+        if ($service === null || (string)($body['confirmDeletion'] ?? '') !== '1') {
+            $this->addFlashMessage($this->translate('settings.history.flash.confirmRequired'), ContextualFeedbackSeverity::WARNING);
+            return new RedirectResponse($this->buildRouteUrl('web_a11y.settings', $redirectParameters), 303);
+        }
+        $deleted = $service->prune($service->getSetting(), (int)($body['reviewedCutoff'] ?? 0), (string)($body['reviewToken'] ?? ''));
+        if ($deleted === null) {
+            $this->addFlashMessage($this->translate('settings.history.flash.reviewOutdated'), ContextualFeedbackSeverity::WARNING);
+            return new RedirectResponse($this->buildRouteUrl('web_a11y.settings', $redirectParameters), 303);
+        }
+
+        return $this->buildSettingsPostResponse(
+            $request,
+            $redirectParameters,
+            sprintf($this->translate('settings.history.flash.deleted'), $deleted)
+        );
+    }
+
+    private function denyHistoryRetention(ServerRequestInterface $request): ?ResponseInterface
+    {
+        return $this->denyAdminOnly($request, 'history');
     }
 
     /**

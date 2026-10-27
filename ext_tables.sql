@@ -240,6 +240,11 @@ CREATE TABLE tx_a11y_remote_scan_page (
     remediation_summary_json mediumtext,
     page_recommendation_json mediumtext,
     screenshot_evidence_json text,
+    # Screenshot retention (AQG service, 2026-10): the crawler's state at persist time (available, expired, deleted,
+    # failed, not_captured) and when an available screenshot ends (0 = no period reported). The scan's findings, counts
+    # and history have no such period; only the image does.
+    screenshot_state varchar(20) DEFAULT '' NOT NULL,
+    screenshot_expires_at int(11) DEFAULT '0' NOT NULL,
     failure_reason text,
     is_failed tinyint(1) DEFAULT '0' NOT NULL,
 

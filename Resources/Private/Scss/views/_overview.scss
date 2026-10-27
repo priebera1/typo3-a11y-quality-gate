@@ -4814,3 +4814,23 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric--positi
     outline: 2px solid var(--aqi-focus);
     outline-offset: -2px;
 }
+
+// Frontend scan history › all stored site scans: page navigation under the table (wraps on narrow backends).
+.a11y-overview .aqg-evidence__subtitle {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.a11y-overview .aqg-history-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 0;
+}
+
+.a11y-overview .aqg-history-pager__position {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}

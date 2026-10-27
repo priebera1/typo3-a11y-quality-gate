@@ -6088,3 +6088,78 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 .a11y-settings.aqg-module .aqg-licence-domains.is-compact .aqg-licence-domains__select {
     display: none;
 }
+
+// Settings › Scan history: the native checkbox that confirms a deletion keeps the module focus ring (keyboard users must
+// see where they are before a destructive action) and sits beside its label.
+.a11y-settings.aqg-module .aqg-confirm-check {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+
+    input[type="checkbox"] {
+        flex: 0 0 auto;
+        width: 1rem;
+        height: 1rem;
+        margin-top: .15rem;
+        accent-color: var(--aqi-focus);
+    }
+
+    input[type="checkbox"]:focus-visible {
+        outline: none;
+        box-shadow: var(--aqi-focus-ring);
+    }
+}
+
+// Settings › Licence › FREE Remote Preview: activation state per site and the acceptance details.
+.a11y-settings.aqg-module .aqg-free-activation {
+    .aqg-free-activation__state {
+        display: inline-block;
+        padding: 1px 8px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .aqg-free-activation__state--ok {
+        border-color: var(--aqi-ok-border);
+        background: var(--aqi-ok-bg);
+        color: var(--aqi-ok);
+    }
+
+    .aqg-free-activation__state--warn {
+        border-color: var(--aqi-warn-border, var(--aqi-border));
+        background: var(--aqi-warn-bg, transparent);
+        color: var(--aqi-warn, var(--aqi-fg));
+    }
+
+    .aqg-free-activation__details summary {
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .aqg-free-activation__details summary:focus-visible {
+        outline: none;
+        box-shadow: var(--aqi-focus-ring);
+    }
+
+    .aqg-free-activation__details dl {
+        margin: 4px 0 0;
+        font-size: 12px;
+    }
+
+    .aqg-free-activation__details dd {
+        margin: 0 0 4px;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-history-table__actions form {
+        display: inline-block;
+        margin: 0 4px 4px 0;
+    }
+
+    .aqg-input {
+        width: 100%;
+        max-width: 32rem;
+    }
+}

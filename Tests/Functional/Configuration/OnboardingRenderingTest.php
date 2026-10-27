@@ -143,7 +143,7 @@ final class OnboardingRenderingTest extends AbstractFunctionalTestCase
 
         self::assertSame(1, $xpath->query('//button[@data-aqg-free-preview-submit="true"]')->length);
         self::assertSame(
-            'No licence key, account or email needed. The site must be reachable from the internet.',
+            'No licence key or AQG account needed: a TYPO3 administrator activates it once by accepting the FREE terms. The site must be reachable from the internet.',
             $this->text($xpath, '//*[@data-aqg-free-preview-requirements]')
         );
         self::assertSame(0, $xpath->query('//*[@data-aqg-free-preview-message]//*[@data-aqg-free-preview-unreachable]')->length);
@@ -204,7 +204,7 @@ final class OnboardingRenderingTest extends AbstractFunctionalTestCase
 
         self::assertSame('See what your visitors experience', $this->text($xpath, '//*[contains(@class, "aqg-notice__title")]'));
         self::assertSame(
-            'Run a free browser-based accessibility scan of this page. No licence key, account or email needed.',
+            'Run a free browser-based accessibility scan of this page. No licence key or AQG account needed; a TYPO3 administrator activates it once.',
             $this->text($xpath, '//*[contains(@class, "aqg-notice__text")]')
         );
         self::assertSame('Open Free Remote Preview', $this->text($xpath, '//button[@data-action="a11y-open-free-preview"]'));
