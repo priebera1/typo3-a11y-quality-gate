@@ -22,7 +22,7 @@ use TYPO3\CMS\Core\View\ViewFactoryInterface;
  */
 final class SettingsTabsRenderingTest extends AbstractFunctionalTestCase
 {
-    private const TABS = ['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'statement'];
+    private const TABS = ['licence', 'fields', 'gate', 'rules', 'remote_access', 'ai', 'history', 'statement'];
 
     protected function setUp(): void
     {

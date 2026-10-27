@@ -136,7 +136,7 @@ final class RemoteScreenshotControllerTest extends TestCase
     #[Test]
     public function failuresReturnABoundedMessageAndKeepTheirStatus(\Throwable $failure, int $expectedStatus, string $expectedMessage): void
     {
-        $this->screenshotService->method('fetchScreenshotByRemotePageUid')->willThrowException($failure);
+        $this->screenshotService->method('fetchScreenshotOrState')->willThrowException($failure);
 
         $response = $this->subject()->showAction($this->request(7));
 
@@ -149,7 +149,7 @@ final class RemoteScreenshotControllerTest extends TestCase
     public function theDiagnosticDetailIsLoggedServerSide(): void
     {
         $failure = new \RuntimeException('cURL error 28: Operation timed out for https://api.priebera.sk/crawl/page/9f1c/screenshot');
-        $this->screenshotService->method('fetchScreenshotByRemotePageUid')->willThrowException($failure);
+        $this->screenshotService->method('fetchScreenshotOrState')->willThrowException($failure);
 
         $this->subject()->showAction($this->request(7));
 
@@ -168,7 +168,7 @@ final class RemoteScreenshotControllerTest extends TestCase
             new \RuntimeException('SQLSTATE[42S02]: Base table or view not found in /var/www/html/public')
         );
         $this->accessPolicy = $policy;
-        $this->screenshotService->expects(self::never())->method('fetchScreenshotByRemotePageUid');
+        $this->screenshotService->expects(self::never())->method('fetchScreenshotOrState');
 
         $response = $this->subject()->showAction($this->request(7));
 
@@ -182,7 +182,7 @@ final class RemoteScreenshotControllerTest extends TestCase
         $policy = $this->createMock(RemoteScreenshotAccessPolicy::class);
         $policy->method('canRead')->willReturn(false);
         $this->accessPolicy = $policy;
-        $this->screenshotService->expects(self::never())->method('fetchScreenshotByRemotePageUid');
+        $this->screenshotService->expects(self::never())->method('fetchScreenshotOrState');
 
         $response = $this->subject()->showAction($this->request(7));
 
@@ -193,7 +193,7 @@ final class RemoteScreenshotControllerTest extends TestCase
     #[Test]
     public function aScreenshotIsStillServedAsAnImage(): void
     {
-        $this->screenshotService->method('fetchScreenshotByRemotePageUid')->willReturn([
+        $this->screenshotService->method('fetchScreenshotOrState')->willReturn([
             'content' => "\x89PNG\r\n\x1a\nimage-bytes",
             'contentType' => 'image/png',
             'filename' => 'aqg-screenshot-7.png',
@@ -212,18 +212,83 @@ final class RemoteScreenshotControllerTest extends TestCase
     #[Test]
     public function aMissingScreenshotIsNotFound(): void
     {
-        $this->screenshotService->method('fetchScreenshotByRemotePageUid')->willReturn(null);
+        $this->screenshotService->method('fetchScreenshotOrState')->willReturn(['state' => 'not_captured']);
 
         $response = $this->subject()->showAction($this->request(7));
 
         self::assertSame(404, $response->getStatusCode());
         self::assertFalse($this->decode($response)['success']);
+        self::assertSame('not_captured', $this->decode($response)['screenshotState']);
     }
 
-    private function subject(): RemoteScreenshotController
+    #[Test]
+    public function aScreenshotDeletedAfterItsRetentionPeriodIsGoneWithItsReason(): void
+    {
+        $this->screenshotService->method('fetchScreenshotOrState')->willReturn(['state' => 'expired']);
+
+        $response = $this->subject()->showAction($this->request(7));
+
+        self::assertSame(410, $response->getStatusCode());
+        self::assertSame('expired', $this->decode($response)['screenshotState']);
+        self::assertSame('no-store', $response->getHeaderLine('Cache-Control'));
+    }
+
+    #[Test]
+    public function aScreenshotThatCannotBeLoadedIsNeverReportedAsExpired(): void
+    {
+        $this->screenshotService->method('fetchScreenshotOrState')->willReturn(['state' => 'unavailable']);
+
+        $response = $this->subject()->showAction($this->request(7));
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertSame('unavailable', $this->decode($response)['screenshotState']);
+    }
+
+    /**
+     * The browser keeps a screenshot only for the backend user who loaded it: every view revalidates, and the ETag
+     * names that user, so after Switch User or another login no cached image of someone else is shown.
+     */
+    #[Test]
+    public function aScreenshotIsCachedPerBackendUserAndRevalidatedOnEveryView(): void
+    {
+        $this->screenshotService->expects(self::once())->method('fetchScreenshotOrState')->willReturn([
+            'content' => "\x89PNG\r\n\x1a\nimage-bytes",
+            'contentType' => 'image/png',
+            'filename' => 'aqg-screenshot-7.png',
+        ]);
+
+        $first = $this->subject(5)->showAction($this->request(7));
+        $etag = $first->getHeaderLine('ETag');
+
+        self::assertSame('private, no-cache', $first->getHeaderLine('Cache-Control'));
+        self::assertSame('Cookie', $first->getHeaderLine('Vary'));
+        self::assertNotSame('', $etag);
+
+        $revalidated = $this->subject(5)->showAction($this->request(7)->withHeader('If-None-Match', $etag));
+        self::assertSame(304, $revalidated->getStatusCode(), 'the same user revalidates without another AQG request');
+        self::assertSame('', (string)$revalidated->getBody());
+
+        $otherUser = $this->subject(6);
+        self::assertNotSame($etag, (string)(new \ReflectionMethod($otherUser, 'buildEtag'))->invoke($otherUser, 7, 'highlighted'));
+    }
+
+    #[Test]
+    public function aRevalidationIsCheckedForAccessFirst(): void
+    {
+        $policy = $this->createMock(RemoteScreenshotAccessPolicy::class);
+        $policy->method('canRead')->willReturn(false);
+        $this->accessPolicy = $policy;
+        $subject = $this->subject(5);
+        $etag = (string)(new \ReflectionMethod($subject, 'buildEtag'))->invoke($subject, 7, 'highlighted');
+
+        self::assertSame(403, $subject->showAction($this->request(7)->withHeader('If-None-Match', $etag))->getStatusCode());
+    }
+
+    private function subject(int $userUid = 5): RemoteScreenshotController
     {
         $backendUserService = $this->createMock(BackendUserService::class);
         $backendUserService->method('isLoggedIn')->willReturn(true);
+        $backendUserService->method('getBackendUserUid')->willReturn($userUid);
 
         return new RemoteScreenshotController(
             $this->screenshotService,

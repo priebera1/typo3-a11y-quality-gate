@@ -20,6 +20,12 @@ use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 final class RemoteScanErrorPresenter
 {
     public const TARGET_NOT_PUBLIC_MESSAGE = 'The AQG scanner runs outside your TYPO3 installation and only reaches sites on the public internet. This site\'s address points to a local or private network (for example DDEV, localhost, a VPN or internal DNS), so the scan was refused as a security safeguard, not because of the licence. Content scans keep working. Give the site a publicly reachable base URL in its Site Configuration (a base variant for this application context works too), or scan the site\'s public installation.';
+    /**
+     * The licence page of the AQG customer area. The website redirects every legacy `/portal/...` path permanently to
+     * the customer area (`/portal/licenses` → its Licence page, where the DPA is accepted), so this stays valid for
+     * released versions whatever the customer area's host.
+     */
+    public const DPA_ACCEPTANCE_URL = 'https://typo3.priebera.sk/portal/licenses';
     public const TARGET_NOT_FOUND_MESSAGE = 'The AQG scanner could not find this site\'s host name on the internet. A host name that only resolves inside a VPN or internal DNS cannot be scanned from outside. Check that the base URL in the site\'s Site Configuration is its public address.';
 
     /**
@@ -47,6 +53,8 @@ final class RemoteScanErrorPresenter
             // Idempotency-Key): repeating it picks that scan up instead of starting a second one.
             $apiCode === 'submit_unconfirmed' => 'submitUnconfirmed',
             $apiCode === 'trial_crawl_limit' => 'trialLimit',
+            // The licence is valid; its owner has not accepted the current DPA. Revalidating would change nothing.
+            $apiCode === 'dpa_acceptance_required' => 'dpaRequired',
             $httpStatus === 429 || in_array($apiCode, ['too_many_active_jobs', 'rate_limit_exceeded', 'crawler_rate_limited'], true) => 'limit',
             // A revoked token or a licence refusal on token refresh (removed project, expired licence) is a
             // licence state to fix in Settings, not a missing permission.
@@ -77,7 +85,7 @@ final class RemoteScanErrorPresenter
 
         $status = match ($kind) {
             'trialLimit', 'limit' => 429,
-            'auth', 'notAllowed', 'scanNotAccessible', 'domainNotActivated', 'domainNotDetected', 'domainLimit' => 403,
+            'auth', 'dpaRequired', 'notAllowed', 'scanNotAccessible', 'domainNotActivated', 'domainNotDetected', 'domainLimit' => 403,
             'invalidTarget', 'targetNotPublic', 'targetNotFound', 'redirectBlocked' => 400,
             'notFound' => 404,
             'conflict' => 409,
@@ -175,6 +183,7 @@ final class RemoteScanErrorPresenter
             'trialLimit' => ['Trial limit reached', 'The trial frontend scan limit has been reached. Choose a PRO or Agency plan to keep scanning.'],
             'limit' => ['Remote scan limit reached', 'The AQG scanner is not accepting more scans from this installation right now. Try again later.'],
             'auth' => ['Licence authentication failed', 'The AQG scanner did not accept the licence. Revalidate the licence in the AQG settings.'],
+            'dpaRequired' => ['Data processing agreement not accepted', 'The licence is valid, but scans on the AQG service need the current AQG data processing agreement (DPA). The licence owner accepts it once in the AQG customer area on the Licence page: ' . self::DPA_ACCEPTANCE_URL . ' Then start the scan again; there is nothing to change in TYPO3. If the owner account cannot sign in, contact AQG support.'],
             'notAllowed' => ['Remote scan not allowed', 'The current licence does not include this frontend scan feature.'],
             'domainNotActivated' => ['Domain not activated', 'This site\'s domain is not activated for the licence. An administrator can activate it under Licence domains in the AQG settings or in the customer portal.'],
             'domainNotDetected' => ['Domain not in this installation', 'No site of this TYPO3 installation uses this domain, so the licence does not cover it. Check the base URL in the site\'s Site Configuration.'],

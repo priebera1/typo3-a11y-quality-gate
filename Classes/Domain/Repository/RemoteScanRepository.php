@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Domain\Repository;
 
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
+use Priebera\A11yQualityGate\Service\RemoteScreenshotState;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
@@ -848,6 +849,10 @@ final class RemoteScanRepository extends AbstractRepository
             ] + ($this->pageColumnExists('screenshot_evidence_json') ? [
                 // Audit C15: the crawler's screenshot evidence summary (additive; older crawlers send none).
                 'screenshot_evidence_json' => $this->encodeJsonForColumn(self::screenshotEvidenceSummary($page['screenshotEvidence'] ?? null)),
+            ] : []) + ($this->pageColumnExists('screenshot_state') ? [
+                // Screenshot retention (additive; older crawlers send none): see RemoteScreenshotState.
+                'screenshot_state' => RemoteScreenshotState::normalizeReported($page['screenshotState'] ?? null),
+                'screenshot_expires_at' => RemoteScreenshotState::timestampOf($page['screenshotExpiresAt'] ?? null),
             ] : []));
 
             $pageUidByUrl[$url] = (int)$connection->lastInsertId();
@@ -1642,6 +1647,9 @@ final class RemoteScanRepository extends AbstractRepository
     }
 
     /**
+     * Completed scans of a site, newest first. `$offset` pages through the whole stored history (Overview › Frontend scan
+     * history › older scans); a page holds at most 100 rows, so no request loads the history at once.
+     *
      * @param list<string> $sourceTypes
      * @return list<array<string, mixed>>
      */
@@ -1649,8 +1657,37 @@ final class RemoteScanRepository extends AbstractRepository
         string $siteIdentifier,
         array $sourceTypes,
         int $limit = 10,
-        int $languageUid = -1
+        int $languageUid = -1,
+        int $offset = 0,
     ): array {
+        $queryBuilder = $this->completedHistoryQuery($siteIdentifier, $sourceTypes, $languageUid);
+        if ($queryBuilder === null) {
+            return [];
+        }
+
+        $rows = $queryBuilder
+            ->select('*')
+            ->orderBy('finished_at', 'DESC')
+            ->addOrderBy('uid', 'DESC')
+            ->setFirstResult(max(0, $offset))
+            ->setMaxResults(max(1, min(100, $limit)))
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /** @param list<string> $sourceTypes */
+    public function countCompletedHistoryScansBySiteAndSourceTypes(string $siteIdentifier, array $sourceTypes, int $languageUid = -1): int
+    {
+        $queryBuilder = $this->completedHistoryQuery($siteIdentifier, $sourceTypes, $languageUid);
+
+        return $queryBuilder === null ? 0 : (int)$queryBuilder->count('uid')->executeQuery()->fetchOne();
+    }
+
+    /** @param list<string> $sourceTypes */
+    private function completedHistoryQuery(string $siteIdentifier, array $sourceTypes, int $languageUid): ?QueryBuilder
+    {
         $siteIdentifier = trim($siteIdentifier);
         $sourceTypes = array_values(array_unique(array_filter(array_map(
             static fn (mixed $sourceType): string => strtolower(trim((string)$sourceType)),
@@ -1658,42 +1695,20 @@ final class RemoteScanRepository extends AbstractRepository
         ))));
 
         if ($siteIdentifier === '' || $sourceTypes === []) {
-            return [];
+            return null;
         }
 
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
         $queryBuilder
-            ->select('*')
             ->from(Tables::REMOTE_SCAN)
             ->where(
-                $queryBuilder->expr()->eq(
-                    'site_identifier',
-                    $queryBuilder->createNamedParameter($siteIdentifier)
-                )
-            )
-            ->andWhere(
-                $queryBuilder->expr()->eq(
-                    'status',
-                    $queryBuilder->createNamedParameter('completed')
-                )
-            )
-            ->andWhere(
-                $queryBuilder->expr()->in(
-                    'source_type',
-                    $queryBuilder->createNamedParameter($sourceTypes, Connection::PARAM_STR_ARRAY)
-                )
+                $queryBuilder->expr()->eq('site_identifier', $queryBuilder->createNamedParameter($siteIdentifier)),
+                $queryBuilder->expr()->eq('status', $queryBuilder->createNamedParameter('completed')),
+                $queryBuilder->expr()->in('source_type', $queryBuilder->createNamedParameter($sourceTypes, Connection::PARAM_STR_ARRAY))
             );
-
         $this->addLanguageConstraint($queryBuilder, $languageUid);
 
-        $rows = $queryBuilder
-            ->orderBy('finished_at', 'DESC')
-            ->addOrderBy('uid', 'DESC')
-            ->setMaxResults(max(1, min(100, $limit)))
-            ->executeQuery()
-            ->fetchAllAssociative();
-
-        return is_array($rows) ? $rows : [];
+        return $queryBuilder;
     }
 
     public function markFailed(string $jobId, string $message): void

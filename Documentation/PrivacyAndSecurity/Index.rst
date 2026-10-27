@@ -48,7 +48,8 @@ Outbound connections
         -   The scan target resolved on the server, plus the crawler access
             settings needed to reach it. The crawler then requests your public
             frontend and stores the findings and, for licensed plans,
-            screenshots of the scanned pages.
+            screenshots of the scanned pages (see
+            :ref:`privacy-security-retention`).
 
     *   -   Update notice
         -   ``https://api.priebera.sk``
@@ -119,6 +120,43 @@ Frontend exposure
     the screenshots may contain data from those areas. Restrict what the crawler
     may reach with the excluded URL patterns.
 
+..  _privacy-security-retention:
+
+Where scan data is kept, and for how long
+=========================================
+
+*   **In this TYPO3 installation** (database tables ``tx_a11y_*``): content scan
+    results and the stored results of frontend scans — pages, findings, HTML
+    snippets of failing elements, counts and comparisons. They stay until you
+    delete them. :guilabel:`Settings > Scan history` (administrators) lets you
+    choose a period (1, 3 or 5 years) for the stored frontend scans; nothing is
+    deleted when you save it. Older scans are deleted only after an
+    administrator reviews and confirms them there, or when
+    ``vendor/bin/typo3 a11y:history:prune --apply`` runs (without ``--apply``
+    the command only reports). Periods are calendar years in UTC. The newest
+    scan of each comparison, running scans, the scans of a Verify fix that is
+    still running and the scans monitoring still compares with are always kept.
+*   **On the AQG service**: its own copy of the frontend scan history (runs,
+    pages, findings, counts) and the screenshots. Screenshots are never stored in
+    TYPO3; the backend loads them through the AQG service. The service deletes a
+    screenshot automatically after the retention period of the plan the scan
+    ran under, as described in its privacy information; the period is fixed when
+    the scan runs. The scan results, counts and comparisons stay available after
+    a screenshot has been deleted: the page detail then says that the
+    screenshot was deleted after its retention period. Free Remote Preview
+    results have no screenshots and are kept on the AQG service only for a
+    limited time.
+*   **FREE Remote Preview acceptance**: the AQG service records which
+    administrator accepted the FREE terms and DPA for which installation and
+    domain (organisation, name, email address, TYPO3 user ID, document versions
+    and hashes, its own UTC timestamp). TYPO3 keeps only the confirmation
+    (acceptance ID, versions, timestamp, organisation and the administrator's
+    name) in :sql:`sys_registry`. See
+    :ref:`usage-remote-scans-free-activation`.
+*   Neither period is a statutory retention period. Scan data can contain
+    personal data (page addresses, texts and markup of the scanned pages), also
+    after its screenshot is gone.
+
 ..  _privacy-security-permissions:
 
 Backend permissions
@@ -126,8 +164,8 @@ Backend permissions
 
 *   The module and all its AJAX routes share the identifier ``web_a11y``, so
     module access is the single access control point.
-*   The :guilabel:`Licence`, :guilabel:`Remote scan access` and :guilabel:`AI`
-    tabs are restricted to administrators.
+*   The :guilabel:`Licence`, :guilabel:`Remote scan access`, :guilabel:`AI` and
+    :guilabel:`Scan history` tabs are restricted to administrators.
 *   Image remediation requires the capability from
     :confval:`options.a11y_quality_gate.allowImageRemediation` **and** TYPO3
     edit permissions on the affected records. Writes are limited to the

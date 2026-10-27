@@ -32,6 +32,7 @@ final class FreeAccessTokenService
         string $siteIdentifier,
         string $version,
         bool $forceRefresh = false,
+        string $freeTermsAcceptanceId = '',
     ): AccessTokenResult {
         $siteUrl = trim($siteUrl);
         $siteIdentifier = trim($siteIdentifier);
@@ -61,10 +62,12 @@ final class FreeAccessTokenService
                 500,
             );
         }
+        // A token is issued for one recorded FREE terms acceptance: a new or renewed acceptance gets a new token.
         $cacheKey = 'aqg_free_token_' . hash('sha256', implode('|', [
             $installationId,
             trim($siteUrl),
             trim($siteIdentifier),
+            $freeTermsAcceptanceId,
         ]));
         $cached = $this->cacheManager->getToken($cacheKey);
 
@@ -88,10 +91,11 @@ final class FreeAccessTokenService
                 $siteUrl,
                 $siteIdentifier,
                 $version,
+                $freeTermsAcceptanceId,
             );
         } catch (ApiRequestFailedException $exception) {
             $errorCode = trim($exception->apiErrorCode);
-            $state = match ($errorCode) {
+            $state = in_array($errorCode, FreePreviewException::TERMS_ACCEPTANCE_CODES, true) ? 'ACTIVATION_REQUIRED' : match ($errorCode) {
                 'missing_installation_id' => 'MISSING_INSTALLATION_ID',
                 'free_remote_preview_disabled', 'feature_not_available' => 'FEATURE_NOT_AVAILABLE',
                 'route_not_found' => 'ENDPOINT_NOT_FOUND',
@@ -104,6 +108,7 @@ final class FreeAccessTokenService
                 match ($state) {
                     'MISSING_INSTALLATION_ID' => 'Free Remote Preview installation identity is missing.',
                     'FEATURE_NOT_AVAILABLE' => 'Free Remote Preview is not enabled on the API.',
+                    'ACTIVATION_REQUIRED' => 'The AQG service requires a valid acceptance of the FREE Remote Preview terms.',
                     'ENDPOINT_NOT_FOUND' => 'The Free Remote Preview token endpoint is not available.',
                     'TOKEN_CONTRACT_ERROR' => 'The Free Remote Preview token request does not match the API contract.',
                     'API_UNAVAILABLE' => 'Free Remote Preview authentication is temporarily unavailable.',

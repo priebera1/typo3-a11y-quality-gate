@@ -71,6 +71,31 @@ return [
                 'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::saveExtConfAction',
                 'methods' => ['POST'],
             ],
+            'settingsHistoryRetentionSave' => [
+                'path' => '/settings/history-retention/save',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::saveHistoryRetentionAction',
+                'methods' => ['POST'],
+            ],
+            'settingsHistoryRetentionPrune' => [
+                'path' => '/settings/history-retention/prune',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::pruneHistoryRetentionAction',
+                'methods' => ['POST'],
+            ],
+            'settingsFreePreviewAccept' => [
+                'path' => '/settings/free-preview/accept',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::acceptFreePreviewAction',
+                'methods' => ['POST'],
+            ],
+            'settingsFreePreviewToggle' => [
+                'path' => '/settings/free-preview/toggle',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::toggleFreePreviewAction',
+                'methods' => ['POST'],
+            ],
+            'settingsFreePreviewRefresh' => [
+                'path' => '/settings/free-preview/refresh',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::refreshFreePreviewAction',
+                'methods' => ['POST'],
+            ],
             'settingsRefresh' => [
                 'path' => '/settings/refresh',
                 'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::refreshAction',

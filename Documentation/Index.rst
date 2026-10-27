@@ -47,6 +47,7 @@ accessibility and does not replace a manual accessibility audit. See
     PrivacyAndSecurity/Index
     Limitations/Index
     Upgrade/Index
+    Developer/Index
     Troubleshooting/Index
     GetHelp
 

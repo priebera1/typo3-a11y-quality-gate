@@ -58,6 +58,16 @@
                 <span class="aqg-tab__lock"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /><span class="visually-hidden"> (<f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.adminOnly" default="administrators only" />)</span></span>
             </a>
         </li>
+        <li class="aqg-tabs__item">
+            <a
+                    class="aqg-tab{f:if(condition: '{activeTab} == \'history\'', then: ' is-active active')}"
+                    href="{settingsTabUrls.history}"
+                    aria-current="{settingsTabCurrent.history}"
+            >
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tab.history" default="Scan history" /></span>
+                <span class="aqg-tab__lock"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /><span class="visually-hidden"> (<f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.tabs.adminOnly" default="administrators only" />)</span></span>
+            </a>
+        </li>
         </f:if>
         <li class="aqg-tabs__item">
             <a

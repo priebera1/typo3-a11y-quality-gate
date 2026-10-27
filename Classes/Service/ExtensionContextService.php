@@ -28,6 +28,12 @@ final class ExtensionContextService
         return $this->domainNormalizer->normalizeFromSiteBase($siteBase);
     }
 
+    /** The readable (Unicode) form of a normalised domain, for display only. */
+    public function getDisplayDomain(string $normalizedDomain): string
+    {
+        return $this->domainNormalizer->toDisplay($normalizedDomain);
+    }
+
     /**
      * @return array{domain:string, version:string}
      */

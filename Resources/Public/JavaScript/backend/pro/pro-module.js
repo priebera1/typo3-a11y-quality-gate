@@ -62,28 +62,76 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
     }
 
     /**
-     * The AQG service serves a screenshot only to the licence or Agency project that ran the scan. A result stored
-     * before the licence or project changed keeps its screenshot link, which then fails: show why instead of a
-     * broken image. An image can fail before this module runs, so images that already failed are checked as well.
+     * The AQG service serves a screenshot only to the licence or Agency project that ran the scan, and only until its
+     * retention period ends (the scan results stay). When an image fails, the proxy's JSON answer says why
+     * (`screenshotState`): `expired` / `deleted` only on the service's explicit answer, `failed` for a capture that
+     * never succeeded, `not_captured` when none was taken; anything else — another licence, storage, network — is
+     * "could not be loaded", never presented as a retention deletion. An image can fail before this module runs, so
+     * images that already failed are checked too.
+     *
+     * The reason is written once, in the frame that replaces the image (the description below the image is removed with
+     * the image it described), so screen readers do not read it twice. When the image's button had keyboard focus, focus
+     * moves to the replacement instead of falling back to the start of the page.
      */
     initScreenshotFallback() {
-        const replace = (image) => {
-            const trigger = image.closest(PRO_SELECTORS.screenshotModalTrigger);
-            if (!(trigger instanceof HTMLElement)) {
+        const labelFor = (trigger, state) => {
+            const byState = {
+                expired: trigger.dataset.expiredLabel,
+                deleted: trigger.dataset.deletedLabel,
+                failed: trigger.dataset.failedLabel,
+                not_captured: trigger.dataset.notCapturedLabel,
+            }
+            return String(byState[state] || trigger.dataset.unavailableLabel || '').trim()
+                || this.translate('notification.screenshot.missing', 'Screenshot could not be opened.');
+        };
+
+        const show = (trigger, label) => {
+            if (!trigger.isConnected) {
                 return;
             }
-
-            const label = String(trigger.dataset.unavailableLabel || '').trim()
-                || this.translate('notification.screenshot.missing', 'Screenshot could not be opened.');
+            const hadFocus = trigger === document.activeElement || trigger.contains(document.activeElement);
             const empty = document.createElement('div');
             empty.className = 'aqg-shot__frame aqg-shot__frame--empty';
+            empty.dataset.aqgScreenshotFallback = 'true';
             const text = document.createElement('span');
             text.className = 'aqg-shot__label';
             text.textContent = label;
             empty.append(text);
 
-            trigger.closest('.aqg-shot')?.querySelector('.aqg-shot__sub')?.replaceChildren(document.createTextNode(label));
+            const shot = trigger.closest('.aqg-shot');
+            shot?.querySelector('.aqg-shot__sub')?.remove();
+            shot?.querySelector('.aqg-shot__variants')?.remove();
             trigger.replaceWith(empty);
+            if (hadFocus) {
+                empty.tabIndex = -1;
+                empty.focus();
+            }
+        };
+
+        const stateOf = async (url) => {
+            if (!url || typeof fetch !== 'function') {
+                return '';
+            }
+            try {
+                const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+                if (response.ok) {
+                    return '';
+                }
+                const body = await response.json();
+                return typeof body?.screenshotState === 'string' ? body.screenshotState : '';
+            } catch {
+                return '';
+            }
+        };
+
+        const replace = (image) => {
+            const trigger = image.closest(PRO_SELECTORS.screenshotModalTrigger);
+            if (!(trigger instanceof HTMLElement) || trigger.dataset.aqgScreenshotFailed === 'true') {
+                return;
+            }
+            trigger.dataset.aqgScreenshotFailed = 'true';
+            const url = image.currentSrc || image.getAttribute('src') || '';
+            stateOf(url).then((state) => show(trigger, labelFor(trigger, state)));
         };
 
         document.addEventListener('error', (event) => {

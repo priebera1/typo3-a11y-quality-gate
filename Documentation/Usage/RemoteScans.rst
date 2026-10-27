@@ -16,9 +16,10 @@ Free Remote Preview
 ===================
 
 Installations without a licence key can run a limited number of remote
-single-page scans without a licence key, registration or email address. The tab
-shows the scans and pages used today, the remaining scans and the time of the
-next reset.
+single-page scans without a licence key or AQG account, once a TYPO3
+administrator has activated the preview for the site (see
+:ref:`usage-remote-scans-free-activation`). The tab shows the scans and pages
+used today, the remaining scans and the time of the next reset.
 
 The allowance is not defined by the extension. AQG reads the current quota,
 usage and reset time from the AQG service and displays them; treat the values
@@ -47,6 +48,72 @@ full-site frontend scans with screenshots, record mapping, scan history and
 comparison — and what PRO and Agency add on top: PDF export, acceptance
 evidence, monitoring and :guilabel:`Verify fix`. The offer follows the result
 and never covers it; :confval:`showProHints` hides it.
+
+..  _usage-remote-scans-free-activation:
+
+Activating the FREE Remote Preview
+----------------------------------
+
+FREE scans are sent to the AQG cloud crawler only after a TYPO3 administrator
+has accepted the FREE terms and the FREE data processing terms (DPA) for the
+site and the AQG service has recorded that acceptance. Until then the tab says
+that the preview is not activated, offers administrators the way to
+:guilabel:`Settings > Licence > FREE Remote Preview`, and does not contact the
+AQG service for the site at all.
+
+In :guilabel:`Settings > Licence > FREE Remote Preview` an administrator
+
+#.  reads what FREE sends to the AQG service (the address of the chosen page,
+    the site's base URL and the anonymous installation ID — no TYPO3 content,
+    passwords, editor data or screenshots),
+#.  opens the FREE terms and the DPA that the AQG service publishes (version,
+    language and document links come from the service; nothing is activated
+    while they are not published),
+#.  chooses the site, enters the organisation (legal name of the website
+    operator), their name and email address,
+#.  ticks the declaration (never preselected) that they are authorised to have
+    the site scanned and accept the FREE data processing terms, and
+#.  selects :guilabel:`Accept and activate FREE Remote Preview`.
+
+The extension sends the acceptance to the AQG service: installation ID, site
+URL and domain, terms version, the accepted documents with their versions and
+hashes, the declaration with its hash, the organisation and the administrator's
+name, email address and TYPO3 user ID. The AQG service records it with its own
+UTC timestamp and answers with an acceptance ID. Only that answer activates
+FREE: the extension keeps the acceptance ID, the accepted versions and the
+service's timestamp in :sql:`sys_registry` and shows them per domain. A
+network error, a refused request or an answer that does not confirm exactly
+what was sent activates nothing.
+
+*   The activation belongs to the domain, as the AQG service records it for
+    installation and domain. Sites with the same domain (with or without
+    ``www.``, any path or port) share one activation and are shown in one row:
+    switching it off, renewing it or a refusal by the AQG service applies to all
+    of them.
+*   Only administrators can accept or change the activation; editors see the
+    status of the sites they can read on the site root.
+*   The acceptance survives logouts, cache flushes and deployments of the same
+    database. It is not asked again before each scan.
+*   :guilabel:`Switch off` stops new FREE scans for the site and keeps the
+    acceptance; :guilabel:`Switch on` reuses it while it is valid for the same
+    installation and terms.
+*   New terms, an acceptance the AQG service revoked or that expired, another
+    installation (a different installation ID) or another domain need a new
+    acceptance. :guilabel:`Check status` asks the AQG service for the current
+    state.
+*   FREE requests carry the acceptance ID, and the AQG service checks it on
+    every token request and scan.
+
+..  note::
+
+    The acceptance endpoints and the published FREE terms are provided by the
+    AQG service. Until it offers them, activation is not possible and FREE
+    scans stay off. The contract is described in
+    :ref:`developer-free-acceptance-api`.
+
+FREE results are kept on the AQG service only for a limited time, described in
+its privacy information. This is independent of the frontend scan history kept
+in TYPO3 (:guilabel:`Settings > Scan history`).
 
 ..  _usage-remote-scans-licensed:
 

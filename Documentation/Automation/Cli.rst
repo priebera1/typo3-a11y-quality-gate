@@ -7,8 +7,9 @@ Command line usage
 ===================
 
 AQG registers the Symfony console commands ``a11y:scan``, ``a11y:monitor``
-(see :ref:`automation-monitoring`) and ``a11y:installation:identity`` (see
-:ref:`automation-cli-installation-identity`).
+(see :ref:`automation-monitoring`), ``a11y:installation:identity`` (see
+:ref:`automation-cli-installation-identity`) and ``a11y:history:prune`` (see
+:ref:`automation-cli-history-prune`).
 
 ..  code-block:: bash
 
@@ -134,3 +135,35 @@ After a new identity:
 The previous identity is not kept on the copy (it would let the copy act as its
 source). To undo the change, restore the :sql:`sys_registry` entry
 ``a11y_quality_gate`` / ``anonymous_installation_id`` from a backup of the copy.
+
+..  _automation-cli-history-prune:
+
+Deleting older stored frontend scans
+====================================
+
+``a11y:history:prune`` applies the period chosen in
+:guilabel:`Settings > Scan history` to the frontend scans stored in this TYPO3
+installation. It is a dry run unless ``--apply`` is given:
+
+..  code-block:: bash
+
+    vendor/bin/typo3 a11y:history:prune          # report only
+    vendor/bin/typo3 a11y:history:prune --apply  # delete
+
+With the default period ("keep") nothing is ever selected. Periods are
+calendar years in UTC: the command selects scans that finished before the same
+date and time 1, 3 or 5 years ago (29 February counts back to 28 February) and
+prints that boundary, the number of scans, stored pages and occurrences, the
+oldest and newest selected scan, a breakdown per site and language and how many
+older scans are kept and why.
+
+The command is not offered as a Scheduler task: run it deliberately, so that a
+shortened period never deletes scans nobody has looked at. Never deleted are
+the newest scan of each comparison, running scans, the scans of a Verify fix
+that is still running and the scans monitoring still compares with (the
+latest evaluated and the latest complete run per site and language, and while
+a run is not evaluated yet, every completed scan of its site and language). When the selection changes while the command runs — a scan
+finishes, or a Verify fix or monitoring run starts to use a scan — nothing is
+deleted and the command exits with an error; run it again. The AQG service's
+own scan history and its screenshots are not affected (see
+:ref:`privacy-security-retention`).

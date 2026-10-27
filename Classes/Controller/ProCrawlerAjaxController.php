@@ -609,7 +609,13 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         $baselineScan = $this->remoteScanRepository->findScanByUid((int)($verification['baseline_scan'] ?? 0));
-        if (!is_array($baselineScan) || !$this->scopeAccessService->canReadRemoteScan($baselineScan)) {
+        // Scan history retention keeps the scans of a pending verification only; a decided one keeps its outcome in its
+        // own row. Without its baseline scan it is shown to readers of the whole site, never more widely.
+        $readable = is_array($baselineScan)
+            ? $this->scopeAccessService->canReadRemoteScan($baselineScan)
+            : (string)($verification['outcome'] ?? '') !== FixVerificationService::OUTCOME_PENDING
+                && $this->scopeAccessService->canReadSiteIdentifier((string)($verification['site_identifier'] ?? ''));
+        if (!$readable) {
             return $this->forbiddenResponse();
         }
 

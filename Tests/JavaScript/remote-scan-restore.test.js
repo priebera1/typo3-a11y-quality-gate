@@ -81,40 +81,110 @@ describe('Restoring a frontend scan on module load', () => {
     });
 });
 
-describe('Screenshot of a result from another licence or project', () => {
+describe('Screenshot of a result from another licence or project, or past its retention period', () => {
     const renderShot = () => {
         document.body.innerHTML = `
             <section class="aqg-shot">
                 <div class="aqg-shot__sub">Captured at scan time · click to enlarge</div>
                 <button type="button" class="aqg-shot__frame" data-action="a11y-open-screenshot-modal"
                         data-image-url="/typo3/module/web/a11y/remote-screenshot?remotePageUid=1888"
-                        data-unavailable-label="Screenshot not available for this project.">
+                        data-unavailable-label="Screenshot not available for this project."
+                        data-expired-label="Deleted after its retention period. The results are kept."
+                        data-deleted-label="The screenshot was deleted."
+                        data-failed-label="The screenshot could not be captured."
+                        data-not-captured-label="No screenshot was taken during this scan.">
                     <img src="/typo3/module/web/a11y/remote-screenshot?remotePageUid=1888" alt="Screenshot preview">
                 </button>
+                <div class="aqg-shot__variants"><button type="button">Original</button></div>
             </section>`;
 
         return document.querySelector('img');
     };
+    const answer = (status, body) => {
+        globalThis.fetch = vi.fn(async () => ({ ok: status < 400, status, json: async () => body }));
+    };
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-    it('replaces a screenshot that fails to load with the reason instead of a broken image', () => {
+    it('replaces a screenshot that fails to load with the reason instead of a broken image', async () => {
+        answer(403, { success: false });
         const image = renderShot();
         Object.defineProperty(image, 'complete', {value: false});
         const module = Object.create(A11yProBackendModule.prototype);
         module.initScreenshotFallback();
 
         image.dispatchEvent(new Event('error'));
+        await settle();
 
         expect(document.querySelector('[data-action="a11y-open-screenshot-modal"]')).toBeNull();
         expect(document.querySelector('.aqg-shot__frame--empty').textContent).toBe('Screenshot not available for this project.');
-        expect(document.querySelector('.aqg-shot__sub').textContent).toBe('Screenshot not available for this project.');
+        // The reason is written once: the description of the removed image goes with it.
+        expect(document.querySelector('.aqg-shot__sub')).toBeNull();
+        expect(document.body.textContent.split('Screenshot not available for this project.').length - 1).toBe(1);
+        expect(document.querySelector('.aqg-shot__variants')).toBeNull();
     });
 
-    it('also replaces a screenshot that failed before the module ran', () => {
+    it('moves keyboard focus to the reason when the screenshot button had it', async () => {
+        answer(410, { success: false, screenshotState: 'expired' });
+        const image = renderShot();
+        Object.defineProperty(image, 'complete', {value: false});
+        document.querySelector('[data-action="a11y-open-screenshot-modal"]').focus();
+        Object.create(A11yProBackendModule.prototype).initScreenshotFallback();
+
+        image.dispatchEvent(new Event('error'));
+        await settle();
+
+        const replacement = document.querySelector('.aqg-shot__frame--empty');
+        expect(document.activeElement).toBe(replacement);
+        expect(replacement.tabIndex).toBe(-1);
+    });
+
+    it('leaves focus alone when the screenshot button did not have it', async () => {
+        answer(410, { success: false, screenshotState: 'expired' });
+        const image = renderShot();
+        Object.defineProperty(image, 'complete', {value: false});
+        Object.create(A11yProBackendModule.prototype).initScreenshotFallback();
+
+        image.dispatchEvent(new Event('error'));
+        await settle();
+
+        expect(document.activeElement).toBe(document.body);
+        expect(document.querySelector('.aqg-shot__frame--empty').hasAttribute('tabindex')).toBe(false);
+    });
+
+    it.each([
+        ['expired', 410, 'Deleted after its retention period. The results are kept.'],
+        ['deleted', 410, 'The screenshot was deleted.'],
+        ['failed', 404, 'The screenshot could not be captured.'],
+        ['not_captured', 404, 'No screenshot was taken during this scan.'],
+        ['unavailable', 404, 'Screenshot not available for this project.'],
+    ])('names the reason the proxy reports: %s', async (state, status, label) => {
+        answer(status, { success: false, screenshotState: state });
+        const image = renderShot();
+        Object.defineProperty(image, 'complete', {value: false});
+        Object.create(A11yProBackendModule.prototype).initScreenshotFallback();
+        image.dispatchEvent(new Event('error'));
+        await settle();
+        expect(document.querySelector('.aqg-shot__frame--empty').textContent).toBe(label);
+    });
+
+    it('never calls a network failure an expiry', async () => {
+        globalThis.fetch = vi.fn(async () => { throw new TypeError('network'); });
+        const image = renderShot();
+        Object.defineProperty(image, 'complete', {value: false});
+        Object.create(A11yProBackendModule.prototype).initScreenshotFallback();
+        image.dispatchEvent(new Event('error'));
+        await settle();
+        expect(document.querySelector('.aqg-shot__frame--empty').textContent).toBe('Screenshot not available for this project.');
+    });
+
+    it('also replaces a screenshot that failed before the module ran', async () => {
+        answer(410, { success: false, screenshotState: 'expired' });
         const image = renderShot();
         Object.defineProperty(image, 'complete', {value: true});
         Object.defineProperty(image, 'naturalWidth', {value: 0});
         Object.create(A11yProBackendModule.prototype).initScreenshotFallback();
+        await settle();
 
-        expect(document.querySelector('.aqg-shot__frame--empty')).not.toBeNull();
+        expect(document.querySelector('.aqg-shot__frame--empty').textContent).toBe('Deleted after its retention period. The results are kept.');
     });
 });

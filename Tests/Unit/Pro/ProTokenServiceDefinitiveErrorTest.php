@@ -34,7 +34,8 @@ final class ProTokenServiceDefinitiveErrorTest extends TestCase
         ] as $code) {
             yield $code => [$code, true];
         }
-        foreach (['licence_rate_limited', 'entitlement_unavailable', 'validation_failed', ''] as $code) {
+        // A missing DPA acceptance is no licence verdict either: the licence stays validated, only hosted scans wait.
+        foreach (['licence_rate_limited', 'entitlement_unavailable', 'validation_failed', 'dpa_acceptance_required', ''] as $code) {
             yield 'transient ' . ($code !== '' ? $code : '(no code)') => [$code, false];
         }
     }
@@ -74,6 +75,7 @@ final class ProTokenServiceDefinitiveErrorTest extends TestCase
         yield 'not activated' => ['domain_not_activated', 'domain_not_activated'];
         yield 'not detected' => ['domain_not_detected', 'domain_not_detected'];
         yield 'limit reached' => ['domain_limit_reached', 'domain_limit_reached'];
+        yield 'missing DPA acceptance' => ['dpa_acceptance_required', 'dpa_acceptance_required'];
         yield 'licence refusal stays an authentication failure' => ['licence_invalid', null];
     }
 

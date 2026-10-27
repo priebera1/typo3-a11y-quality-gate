@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.0] - 2026-10-27
+
+AQG 2.1.0 lets administrators decide how long frontend scans stay in TYPO3 and delete older ones only after a review, makes every stored site scan browsable, explains why a cloud screenshot is missing, and adds the administrator activation that FREE Remote Preview requires.
+
+> **FREE Remote Preview needs the AQG service:** FREE scans now start only after a TYPO3 administrator has accepted the FREE terms for the domain and the AQG service has recorded that acceptance. The AQG service decides when it publishes these terms and offers FREE. Until then, Settings › Licence says that the terms are not published yet and FREE scans stay off. Licensed frontend scans and local content scans are not affected. Once the AQG service offers the acceptance, it requires extension 2.1.0 or later for FREE Remote Preview.
+
+### Added
+
+* Settings › Licence › FREE Remote Preview (administrators): shows what FREE sends to the AQG service, links the FREE Terms and FREE Data Processing Terms in the version the AQG service publishes, and activates FREE per domain after an administrator ticks the declaration (unticked by default) and the AQG service confirms the acceptance. Each domain shows its status, the service's UTC acceptance time and the terms version; FREE can be switched off and on again without a new acceptance, and "Check status" asks the AQG service whether the acceptance is still valid. New terms, a revoked or expired acceptance, or a copied installation require a new acceptance. The table lists one row per domain (Site, Status, Accepted (UTC), Terms version, actions), with the acceptance details in a panel below the row.
+* Settings › Scan history (administrators): keep frontend scans stored in TYPO3 indefinitely (the default) or for 1, 3 or 5 years. Saving the setting deletes nothing. Older scans are deleted only after an administrator reviews exactly what would be deleted and confirms, or with `vendor/bin/typo3 a11y:history:prune --apply` (a dry run without `--apply`). Scans that are still needed are never offered for deletion: the newest scan of each comparison, running scans, scans of a running Verify fix, and the scans that monitoring still compares with.
+* Overview › Frontend scan history › "Browse all stored site scans": every completed site scan stored in TYPO3, newest first, with "View report" and "Compare with previous compatible scan".
+* Frontend page details and PDF exports say why a page has no screenshot: removed after the AQG service's retention period, deleted, could not be captured, not taken, or not stored by an earlier version. Findings, counts and comparisons stay available.
+
+### Changed
+
+* Before FREE is activated for a site, the Overview no longer contacts the AQG service about FREE, so nothing about the site leaves TYPO3 before the terms are accepted.
+* Screenshots in the backend are cached only for the backend user who loaded them, so after Switch User or another login no other user's screenshot is shown from the browser cache.
+
+### Fixed
+
+* FREE Remote Preview did not work for sites with an internationalised domain name (for example `müller.de`): TYPO3 keeps the domain in Unicode, the AQG service identifies it in its ASCII form (`xn--mller-kva.de`), so the installation proof never matched. AQG now uses the service's form for the domain everywhere; `müller.de`, `www.müller.de` and `xn--mller-kva.de` are one domain with one FREE activation, different domains never share one, and Settings shows the readable form.
+* A frontend scan refused because the licence owner has not yet accepted the AQG data processing agreement said that the scanner did not accept the licence and asked to revalidate it. It now says that the agreement must be accepted once in the AQG customer area, links the Licence page there, and keeps the valid licence state.
+* When a screenshot could not be loaded, screen readers announced the reason twice and keyboard focus jumped to the top of the page.
+
+### Upgrade notes
+
+* **Requirements:** unchanged — TYPO3 13.4 LTS or TYPO3 14.3–14.x, PHP 8.2+.
+* **Database:** new columns `tx_a11y_remote_scan_page.screenshot_state` and `screenshot_expires_at`. Run "Analyze Database Structure" or `vendor/bin/typo3 extension:setup -e a11y_quality_gate` after updating; existing rows keep working.
+* **FREE Remote Preview:** after updating, a TYPO3 administrator activates FREE once per domain in Settings › Licence, as soon as the AQG service offers it.
+* **Scan history:** stored frontend scans are kept as before; nothing is deleted by the update or by saving a retention period.
+
 ## [2.0.2] - 2026-10-18
 
 AQG 2.0.2 is a maintenance release: frontend scans say why they failed and no longer start twice, sites without a sitemap can be scanned, licence checks ride out service outages, and remediation guidance, editor feedback and PDF exports are more accurate.

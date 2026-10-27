@@ -116,18 +116,24 @@ final class AqgCrawlerClient
         string $siteIdentifier,
         string $startUrl,
         string $idempotencyKey,
+        string $freeTermsAcceptanceId = '',
     ): CrawlerSubmitResponseDto {
+        $request = [
+            'installationId' => $installationId,
+            'siteUrl' => $siteUrl,
+            'siteIdentifier' => $siteIdentifier,
+            'startUrl' => $startUrl,
+            'maxPages' => 1,
+        ];
+        // 2.1.0+: the server-recorded FREE terms acceptance (FreePreviewActivationService), for the AQG service to enforce.
+        if ($freeTermsAcceptanceId !== '') {
+            $request['freeTermsAcceptanceId'] = $freeTermsAcceptanceId;
+        }
         $payload = $this->requestJson(
             '/crawl/submit',
             'POST',
             $accessToken,
-            [
-                'installationId' => $installationId,
-                'siteUrl' => $siteUrl,
-                'siteIdentifier' => $siteIdentifier,
-                'startUrl' => $startUrl,
-                'maxPages' => 1,
-            ],
+            $request,
             ['Idempotency-Key' => $idempotencyKey],
         );
 
