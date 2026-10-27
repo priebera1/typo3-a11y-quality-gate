@@ -26,7 +26,7 @@ AQG 2.1.0 lets administrators decide how long frontend scans stay in TYPO3 and d
 
 ### Upgrade notes
 
-* **Requirements:** unchanged — TYPO3 13.4 LTS or 14.3+, PHP 8.2+.
+* **Requirements:** unchanged — TYPO3 13.4 LTS or TYPO3 14.3–14.x, PHP 8.2+.
 * **Database:** new columns `tx_a11y_remote_scan_page.screenshot_state` and `screenshot_expires_at`. Run "Analyze Database Structure" or `vendor/bin/typo3 extension:setup -e a11y_quality_gate` after updating; existing rows keep working.
 * **FREE Remote Preview:** after updating, a TYPO3 administrator activates FREE once per domain in Settings › Licence, as soon as the AQG service offers it.
 * **Scan history:** stored frontend scans are kept as before; nothing is deleted by the update or by saving a retention period.

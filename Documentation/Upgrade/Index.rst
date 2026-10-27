@@ -132,4 +132,3 @@ Upgrading to 2.1.0
     Until then FREE scans are off. Activation needs the acceptance endpoints and
     published FREE terms on the AQG service.
 *   Licensed installations (Trial, PRO, Agency) need no action.
-
