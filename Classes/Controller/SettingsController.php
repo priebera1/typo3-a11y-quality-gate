@@ -1762,6 +1762,7 @@ final class SettingsController extends AbstractBackendModuleController
                 'siteLabel' => implode(', ', $group['siteIdentifiers']),
                 'base' => $base,
                 'domain' => $status['domain'],
+                'domainDisplay' => $this->extensionContextService->getDisplayDomain($status['domain']),
                 'state' => $status['state'],
                 'stateLabel' => $this->translateWithFallback('settings.freePreview.state.' . $status['state'], $status['state']),
                 'stateTone' => match ($status['state']) {

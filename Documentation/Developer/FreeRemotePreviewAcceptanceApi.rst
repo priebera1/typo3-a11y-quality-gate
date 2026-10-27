@@ -174,6 +174,12 @@ Requirements for the AQG service
     installationId + "\n" + normalizedHost))}``). Bind the record to
     ``installationId`` + normalised ``domain``; another installation or domain
     never inherits it.
+*   **Domain form**: ``domain`` and ``normalizedHost`` are the host in its ASCII
+    form as WHATWG URL parsing derives it (UTS #46, non-transitional), lower
+    case, without a leading ``www.`` and trailing dots. TYPO3 keeps an
+    internationalised site base in Unicode; the extension sends ``müller.de`` as
+    ``xn--mller-kva.de`` and accepts a confirmation only for that form. A
+    Unicode host that cannot be converted has no domain and is never activated.
 *   **Versions**: accept only the ``termsVersion`` in force, the published
     document hashes for it and a published ``statement.sha256`` that equals the
     SHA-256 of ``statement.text``.

@@ -17,86 +17,109 @@
 
             <f:if condition="{freePreviewActivation.hasSites}">
                 <f:then>
-                    <div class="aqg-history-table-wrap">
-                        <table class="aqg-history-table" data-aqg-free-activation-sites="true">
-                            <caption><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.caption" default="FREE Remote Preview per domain" /></caption>
+                    <div class="aqg-history-table-wrap aqg-free-activation__table-wrap" role="region" aria-labelledby="aqg-free-activation-sites-caption" tabindex="0">
+                        <table class="aqg-history-table aqg-free-activation__table" data-aqg-free-activation-sites="true">
+                            <caption id="aqg-free-activation-sites-caption"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.caption" default="FREE Remote Preview per domain" /></caption>
                             <thead>
                                 <tr>
-                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.site" default="Sites" /></th>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.site" default="Site" /></th>
                                     <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.status" default="Status" /></th>
-                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.acceptedAt" default="Accepted (recorded by the AQG service, UTC)" /></th>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.acceptedAt" default="Accepted (UTC)" /></th>
                                     <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.termsVersion" default="Terms version" /></th>
                                     <f:if condition="{freePreviewActivation.canManage}">
-                                        <th scope="col"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions" default="Actions" /></span></th>
+                                        <th scope="col" class="aqg-free-activation__actions-head"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.table.actions" default="Actions" /></th>
                                     </f:if>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <f:for each="{freePreviewActivation.sites}" as="row">
+                            <f:for each="{freePreviewActivation.sites}" as="row">
+                                <tbody class="aqg-free-activation__group">
                                     <tr data-aqg-free-activation-site="{row.identifier}" data-aqg-free-activation-state="{row.state}">
-                                        <td>{row.siteLabel}<br /><span class="aqg-history-table__muted">{row.domain}</span></td>
+                                        <th scope="row" id="aqg-free-site-{row.identifier}" class="aqg-free-activation__site">
+                                            <span class="aqg-free-activation__site-label">{row.siteLabel}</span>
+                                            <span class="aqg-free-activation__domain" title="{row.domain}">{row.domainDisplay}</span>
+                                        </th>
                                         <td><span class="aqg-free-activation__state aqg-free-activation__state--{row.stateTone}">{row.stateLabel}</span></td>
-                                        <td>
-                                            <f:if condition="{row.acceptance}">
-                                                <f:then>
-                                                    <time datetime="{row.acceptance.acceptedAt}">{row.acceptance.acceptedAtUtc}</time>
-                                                    <f:if condition="{freePreviewActivation.canManage}">
-                                                    <details class="aqg-free-activation__details">
-                                                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details" default="Acceptance details" /></summary>
-                                                        <dl>
-                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.id" default="Acceptance ID" /></dt><dd><code>{row.acceptance.id}</code></dd>
-                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.organisation" default="Organisation" /></dt><dd>{row.acceptance.organisation}</dd>
-                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.acceptedBy" default="Accepted by" /></dt><dd>{row.acceptance.acceptedBy}</dd>
-                                                            <f:if condition="{row.acceptance.validUntilUtc}">
-                                                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.validUntil" default="Valid until (UTC)" /></dt><dd>{row.acceptance.validUntilUtc}</dd>
-                                                            </f:if>
+                                        <td class="aqg-free-activation__nowrap"><f:if condition="{row.acceptance}"><f:then><time datetime="{row.acceptance.acceptedAt}">{row.acceptance.acceptedAtUtc}</time></f:then><f:else>—</f:else></f:if></td>
+                                        <td class="aqg-free-activation__nowrap"><f:if condition="{row.acceptance}"><f:then><code>{row.acceptance.termsVersion}</code></f:then><f:else>—</f:else></f:if></td>
+                                        <f:if condition="{freePreviewActivation.canManage}">
+                                            <td class="aqg-free-activation__actions">
+                                                <div class="aqg-free-activation__buttons">
+                                                    <f:if condition="{row.acceptance}">
+                                                        <form method="post" action="{freePreviewActivation.refreshUrl}">
+                                                            <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                                            <input type="hidden" name="site" value="{row.identifier}" />
+                                                            <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.refresh" default="Check status" /><span class="visually-hidden"> ({row.domainDisplay})</span></button>
+                                                        </form>
+                                                    </f:if>
+                                                    <f:if condition="{row.canDisable}">
+                                                        <form method="post" action="{freePreviewActivation.toggleUrl}">
+                                                            <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                                            <input type="hidden" name="site" value="{row.identifier}" />
+                                                            <input type="hidden" name="enabled" value="0" />
+                                                            <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.disable" default="Switch off" /><span class="visually-hidden"> ({row.domainDisplay})</span></button>
+                                                        </form>
+                                                    </f:if>
+                                                    <f:if condition="{row.canEnable}">
+                                                        <form method="post" action="{freePreviewActivation.toggleUrl}">
+                                                            <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                                            <input type="hidden" name="site" value="{row.identifier}" />
+                                                            <input type="hidden" name="enabled" value="1" />
+                                                            <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.enable" default="Switch on" /><span class="visually-hidden"> ({row.domainDisplay})</span></button>
+                                                        </form>
+                                                    </f:if>
+                                                </div>
+                                            </td>
+                                        </f:if>
+                                    </tr>
+                                    <f:if condition="{freePreviewActivation.canManage} && {row.acceptance}">
+                                        <tr class="aqg-free-activation__details-row" data-aqg-free-activation-details="{row.identifier}">
+                                            <td colspan="5" headers="aqg-free-site-{row.identifier}">
+                                                <details class="aqg-free-activation__details">
+                                                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details" default="Acceptance details" /><span class="visually-hidden"> ({row.domainDisplay})</span></summary>
+                                                    <dl class="aqg-free-activation__facts">
+                                                        <div class="aqg-free-activation__fact aqg-free-activation__fact--wide">
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.id" default="Acceptance ID" /></dt>
+                                                            <dd><code>{row.acceptance.id}</code></dd>
+                                                        </div>
+                                                        <div class="aqg-free-activation__fact">
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.organisation" default="Organisation" /></dt>
+                                                            <dd>{row.acceptance.organisation}</dd>
+                                                        </div>
+                                                        <div class="aqg-free-activation__fact">
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.acceptedBy" default="Accepted by" /></dt>
+                                                            <dd>{row.acceptance.acceptedBy}</dd>
+                                                        </div>
+                                                        <div class="aqg-free-activation__fact">
+                                                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.acceptedAt" default="Accepted (recorded by the AQG service, UTC)" /></dt>
+                                                            <dd><time datetime="{row.acceptance.acceptedAt}">{row.acceptance.acceptedAtUtc}</time></dd>
+                                                        </div>
+                                                        <f:if condition="{row.acceptance.validUntilUtc}">
+                                                            <div class="aqg-free-activation__fact">
+                                                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.validUntil" default="Valid until (UTC)" /></dt>
+                                                                <dd>{row.acceptance.validUntilUtc}</dd>
+                                                            </div>
+                                                        </f:if>
+                                                        <div class="aqg-free-activation__fact">
                                                             <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.documents" default="Accepted documents" /></dt>
                                                             <dd>
                                                                 <f:for each="{row.acceptance.documents}" as="document" iteration="documentIteration">
                                                                     {document.type} {document.language} {document.version}<f:if condition="!{documentIteration.isLast}">, </f:if>
                                                                 </f:for>
                                                             </dd>
-                                                            <f:if condition="{row.acceptance.statusCheckedAt}">
-                                                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.checked" default="Status last checked with the AQG service" /></dt><dd>{row.acceptance.statusCheckedAt -> f:format.date(format: 'd.m.Y H:i')}</dd>
-                                                            </f:if>
-                                                        </dl>
-                                                    </details>
-                                                    </f:if>
-                                                </f:then>
-                                                <f:else>—</f:else>
-                                            </f:if>
-                                        </td>
-                                        <td><f:if condition="{row.acceptance}"><f:then>{row.acceptance.termsVersion}</f:then><f:else>—</f:else></f:if></td>
-                                        <f:if condition="{freePreviewActivation.canManage}">
-                                            <td class="aqg-history-table__actions">
-                                                <f:if condition="{row.canDisable}">
-                                                    <form method="post" action="{freePreviewActivation.toggleUrl}">
-                                                        <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
-                                                        <input type="hidden" name="site" value="{row.identifier}" />
-                                                        <input type="hidden" name="enabled" value="0" />
-                                                        <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.disable" default="Switch off" /><span class="visually-hidden"> ({row.domain})</span></button>
-                                                    </form>
-                                                </f:if>
-                                                <f:if condition="{row.canEnable}">
-                                                    <form method="post" action="{freePreviewActivation.toggleUrl}">
-                                                        <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
-                                                        <input type="hidden" name="site" value="{row.identifier}" />
-                                                        <input type="hidden" name="enabled" value="1" />
-                                                        <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.enable" default="Switch on" /><span class="visually-hidden"> ({row.domain})</span></button>
-                                                    </form>
-                                                </f:if>
-                                                <f:if condition="{row.acceptance}">
-                                                    <form method="post" action="{freePreviewActivation.refreshUrl}">
-                                                        <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
-                                                        <input type="hidden" name="site" value="{row.identifier}" />
-                                                        <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.refresh" default="Check status" /><span class="visually-hidden"> ({row.domain})</span></button>
-                                                    </form>
-                                                </f:if>
+                                                        </div>
+                                                        <f:if condition="{row.acceptance.statusCheckedAt}">
+                                                            <div class="aqg-free-activation__fact">
+                                                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.details.checked" default="Status last checked with the AQG service" /></dt>
+                                                                <dd>{row.acceptance.statusCheckedAt -> f:format.date(format: 'd.m.Y H:i')}</dd>
+                                                            </div>
+                                                        </f:if>
+                                                    </dl>
+                                                </details>
                                             </td>
-                                        </f:if>
-                                    </tr>
-                                </f:for>
-                            </tbody>
+                                        </tr>
+                                    </f:if>
+                                </tbody>
+                            </f:for>
                         </table>
                     </div>
                     <p class="aqg-field__help" data-aqg-free-activation-shared-domain="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.sites.sharedDomain" default="FREE is activated per domain. Sites with the same domain (with or without www.) share one activation: switching it off, renewing or a refusal by the AQG service applies to all of them." /></p>
@@ -129,8 +152,8 @@
                                     <select id="aqg-free-site" name="site" class="aqg-select" required="required">
                                         <f:for each="{freePreviewActivation.sites}" as="row">
                                             <f:if condition="{row.notPublic}">
-                                                <f:then><option value="{row.identifier}" disabled="disabled">{row.domain} ({row.siteLabel}) – <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.notPublic" default="not reachable from the internet" /></option></f:then>
-                                                <f:else><option value="{row.identifier}" {f:if(condition: row.selected, then: 'selected="selected"')}>{row.domain} ({row.siteLabel})</option></f:else>
+                                                <f:then><option value="{row.identifier}" disabled="disabled">{row.domainDisplay} ({row.siteLabel}) – <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.form.notPublic" default="not reachable from the internet" /></option></f:then>
+                                                <f:else><option value="{row.identifier}" {f:if(condition: row.selected, then: 'selected="selected"')}>{row.domainDisplay} ({row.siteLabel})</option></f:else>
                                             </f:if>
                                         </f:for>
                                     </select>

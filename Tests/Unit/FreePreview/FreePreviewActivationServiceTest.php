@@ -262,6 +262,63 @@ final class FreePreviewActivationServiceTest extends TestCase
         self::assertSame(FreePreviewActivationService::STATE_NOT_ACTIVATED, $service->status('https://www.other-aqg-client.de/')['state']);
     }
 
+    /**
+     * TYPO3 keeps an internationalised site base in Unicode; the AQG service identifies the domain in its ASCII form and
+     * confirms that form. Before 2.1.0's fix the confirmation was refused as another domain and FREE never activated.
+     */
+    #[Test]
+    public function anInternationalisedDomainIsActivatedUnderTheServicesAsciiForm(): void
+    {
+        $this->routes['POST /free-preview/acceptances'] = static function (?array $request): array {
+            $confirmation = self::confirmation($request);
+            $confirmation['acceptance']['domain'] = 'xn--mller-kva.de';
+
+            return [201, $confirmation];
+        };
+        $service = $this->service();
+        $result = $service->accept('https://www.müller.de/', 'main', $this->input(), '2.1.0');
+
+        self::assertSame('accepted', $result['code']);
+        $sent = $this->lastRequest('POST /free-preview/acceptances');
+        self::assertSame('xn--mller-kva.de', $sent['domain']);
+        self::assertSame('https://www.müller.de/', $sent['siteUrl'], 'the site URL is sent as TYPO3 has it; the service derives the same domain');
+        self::assertSame(['xn--mller-kva.de'], array_keys($this->registry['freePreviewActivation']));
+
+        foreach (['https://müller.de/', 'https://MÜLLER.DE/en/', 'https://xn--mller-kva.de/', 'https://m%C3%BCller.de/'] as $sameDomain) {
+            self::assertSame(FreePreviewActivationService::STATE_ACTIVE, $service->status($sameDomain)['state'], $sameDomain);
+            self::assertSame('acc_01JABCDEF', $service->activeAcceptanceId($sameDomain), $sameDomain);
+        }
+        foreach (['https://muller.de/', 'https://mueller.de/', 'https://müller.at/', 'https://shop.müller.de/'] as $otherDomain) {
+            self::assertSame(FreePreviewActivationService::STATE_NOT_ACTIVATED, $service->status($otherDomain)['state'], $otherDomain);
+            self::assertSame('', $service->activeAcceptanceId($otherDomain), $otherDomain);
+        }
+    }
+
+    #[Test]
+    public function anInternationalisedDomainIsCheckedSwitchedAndRevokedUnderTheSameAcceptance(): void
+    {
+        $service = $this->service();
+        $service->accept('https://müller.de/', 'main', $this->input(), '2.1.0');
+
+        self::assertSame('disabled', $service->setEnabled('https://xn--mller-kva.de/', false));
+        self::assertSame(FreePreviewActivationService::STATE_DISABLED, $service->status('https://www.müller.de/')['state']);
+        self::assertSame('enabled', $service->setEnabled('https://MÜLLER.de/', true));
+
+        $this->routes['POST /free-preview/acceptances/status'] = static fn (): array => [200, ['success' => true, 'acceptance' => ['id' => 'acc_01JABCDEF', 'status' => 'revoked']]];
+        self::assertSame('revoked', $service->refresh('https://www.müller.de/', 'main'));
+        self::assertSame('https://www.müller.de/', $this->lastRequest('POST /free-preview/acceptances/status')['siteUrl']);
+        self::assertSame(FreePreviewActivationService::STATE_REVOKED, $service->status('https://xn--mller-kva.de/')['state']);
+    }
+
+    #[Test]
+    public function aHostThatCannotBeConvertedIsNeverActivated(): void
+    {
+        $result = $this->service()->accept('https://-müller.de/', 'main', $this->input(), '2.1.0');
+
+        self::assertNotSame('accepted', $result['code']);
+        self::assertSame([], $this->requestsTo('POST /free-preview/acceptances'), 'nothing is sent for a host without a domain');
+    }
+
     #[Test]
     public function anExpiredAcceptanceIsNotActive(): void
     {

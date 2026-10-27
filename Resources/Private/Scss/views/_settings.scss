@@ -6119,6 +6119,7 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         border-radius: 999px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap;
     }
 
     .aqg-free-activation__state--ok {
@@ -6133,9 +6134,118 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         color: var(--aqi-warn, var(--aqi-fg));
     }
 
+    // One row per domain with its actions on the right; the acceptance details open in their own row beneath it, so
+    // the main row stays one line. Narrow modules scroll the table horizontally rather than drop its table semantics.
+    .aqg-free-activation__table-wrap {
+        container-type: inline-size;
+        overflow-x: auto;
+        border: 1px solid var(--aqi-border-soft);
+        border-radius: 6px;
+    }
+
+    .aqg-free-activation__table-wrap:focus-visible {
+        outline: none;
+        box-shadow: var(--aqi-focus-ring);
+    }
+
+    .aqg-free-activation__table {
+        width: 100%;
+        min-width: 640px;
+        border-collapse: collapse;
+        color: var(--aqi-fg);
+        font-size: 13px;
+    }
+
+    .aqg-free-activation__table caption {
+        caption-side: top;
+        padding: 10px 14px;
+        color: var(--aqi-fg);
+        font-weight: 600;
+        text-align: left;
+    }
+
+    .aqg-free-activation__table thead th {
+        padding: 8px 14px;
+        border-top: 1px solid var(--aqi-border-soft);
+        background: var(--aqi-surface-2);
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-align: left;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .aqg-free-activation__group > tr:first-child > th,
+    .aqg-free-activation__group > tr:first-child > td {
+        padding: 12px 14px;
+        border-top: 1px solid var(--aqi-border-soft);
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .aqg-free-activation__site {
+        min-width: 11rem;
+        font-weight: 400;
+    }
+
+    .aqg-free-activation__site-label {
+        display: block;
+        font-weight: 600;
+    }
+
+    .aqg-free-activation__domain {
+        display: block;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        overflow-wrap: break-word;
+    }
+
+    .aqg-free-activation__nowrap {
+        white-space: nowrap;
+    }
+
+    .aqg-free-activation__nowrap code {
+        font-size: 12px;
+    }
+
+    .aqg-free-activation__table .aqg-free-activation__actions-head,
+    .aqg-free-activation__group > tr:first-child > .aqg-free-activation__actions {
+        text-align: right;
+    }
+
+    .aqg-free-activation__buttons {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .aqg-free-activation__buttons form {
+        margin: 0;
+    }
+
+    .aqg-free-activation__details-row > td {
+        padding: 0 14px 12px;
+    }
+
+    // While a narrow table scrolls sideways, the details stay within the visible width instead of scrolling away.
+    .aqg-free-activation__details {
+        position: sticky;
+        left: 14px;
+        max-width: calc(100cqi - 28px);
+        border: 1px solid var(--aqi-border-soft);
+        border-radius: 6px;
+        background: var(--aqi-surface-2);
+    }
+
     .aqg-free-activation__details summary {
+        padding: 8px 12px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 12px;
+        font-weight: 600;
     }
 
     .aqg-free-activation__details summary:focus-visible {
@@ -6143,19 +6253,34 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         box-shadow: var(--aqi-focus-ring);
     }
 
-    .aqg-free-activation__details dl {
-        margin: 4px 0 0;
+    .aqg-free-activation__facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+        gap: 12px 24px;
+        margin: 0;
+        padding: 4px 12px 12px;
+        border-top: 1px solid var(--aqi-border-soft);
         font-size: 12px;
     }
 
-    .aqg-free-activation__details dd {
-        margin: 0 0 4px;
-        overflow-wrap: anywhere;
+    .aqg-free-activation__fact {
+        min-width: 0;
+        padding-top: 8px;
     }
 
-    .aqg-history-table__actions form {
-        display: inline-block;
-        margin: 0 4px 4px 0;
+    .aqg-free-activation__fact--wide {
+        grid-column: 1 / -1;
+    }
+
+    .aqg-free-activation__fact dt {
+        margin: 0 0 2px;
+        color: var(--aqi-fg-muted);
+        font-weight: 600;
+    }
+
+    .aqg-free-activation__fact dd {
+        margin: 0;
+        overflow-wrap: anywhere;
     }
 
     .aqg-input {

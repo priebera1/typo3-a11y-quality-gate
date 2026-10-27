@@ -1747,16 +1747,16 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>FREE wird je Domain aktiviert. Sites mit derselben Domain (mit oder ohne www.) teilen sich eine Aktivierung: Ausschalten, Erneuern oder eine Ablehnung durch den AQG-Service gilt für alle.</target>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.site">
-                <source>Sites</source>
-                <target>Sites</target>
+                <source>Site</source>
+                <target>Website</target>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.status">
                 <source>Status</source>
                 <target>Status</target>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.acceptedAt">
-                <source>Accepted (recorded by the AQG service, UTC)</source>
-                <target>Akzeptiert (vom AQG-Dienst erfasst, UTC)</target>
+                <source>Accepted (UTC)</source>
+                <target>Akzeptiert (UTC)</target>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.termsVersion">
                 <source>Terms version</source>
@@ -1765,6 +1765,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="settings.freePreview.details">
                 <source>Acceptance details</source>
                 <target>Details der Annahme</target>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.acceptedAt">
+                <source>Accepted (recorded by the AQG service, UTC)</source>
+                <target>Akzeptiert (vom AQG-Dienst erfasst, UTC)</target>
             </trans-unit>
             <trans-unit id="settings.freePreview.details.id">
                 <source>Acceptance ID</source>

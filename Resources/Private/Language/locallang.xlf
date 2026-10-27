@@ -1074,19 +1074,22 @@
                 <source>FREE is activated per domain. Sites with the same domain (with or without www.) share one activation: switching it off, renewing or a refusal by the AQG service applies to all of them.</source>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.site">
-                <source>Sites</source>
+                <source>Site</source>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.status">
                 <source>Status</source>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.acceptedAt">
-                <source>Accepted (recorded by the AQG service, UTC)</source>
+                <source>Accepted (UTC)</source>
             </trans-unit>
             <trans-unit id="settings.freePreview.sites.termsVersion">
                 <source>Terms version</source>
             </trans-unit>
             <trans-unit id="settings.freePreview.details">
                 <source>Acceptance details</source>
+            </trans-unit>
+            <trans-unit id="settings.freePreview.details.acceptedAt">
+                <source>Accepted (recorded by the AQG service, UTC)</source>
             </trans-unit>
             <trans-unit id="settings.freePreview.details.id">
                 <source>Acceptance ID</source>
