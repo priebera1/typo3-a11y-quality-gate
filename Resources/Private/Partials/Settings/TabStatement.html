@@ -1,5 +1,6 @@
 <html
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:aqg="http://typo3.org/ns/Priebera/A11yQualityGate/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
 <div
@@ -296,7 +297,7 @@
                         </details>
 
                         <div class="aqg-statement-actions">
-                            <button type="button" class="btn btn-primary js-aqg-statement-generate"><f:translate key="settings.statement.button.generate" extensionName="A11yQualityGate" /></button>
+                            <button type="button" class="btn btn-primary btn-sm js-aqg-statement-generate"><f:translate key="settings.statement.button.generate" extensionName="A11yQualityGate" /></button>
                             <span class="aqg-inline-status js-aqg-statement-status" role="status" hidden="hidden"></span>
                         </div>
                     </div>
@@ -304,8 +305,11 @@
             </section>
 
             <section class="aqg-card aqg-statement-empty js-aqg-statement-empty">
-                <div class="aqg-card__body">
-                    <p class="aqg-muted"><strong><f:translate key="settings.statement.result.empty.title" extensionName="A11yQualityGate" /></strong></p>
+                <div class="aqg-empty aqg-empty--compact">
+                    <span class="aqg-empty__icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 16 16" focusable="false" aria-hidden="true"><path d="M4 2.5 H9.5 L12 5 V13.5 H4 Z M9.5 2.5 V5 H12 M6 8.5 H10 M6 11 H9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </span>
+                    <span class="aqg-empty__title"><f:translate key="settings.statement.result.empty.title" extensionName="A11yQualityGate" /></span>
                 </div>
             </section>
 
@@ -316,13 +320,16 @@
                         <p class="aqg-card__sub js-aqg-statement-source"><f:translate key="settings.statement.generatedSourceFallback" extensionName="A11yQualityGate" /></p>
                     </div>
                     <div class="aqg-card__actions">
-                        <button type="button" class="btn btn-default js-aqg-statement-copy" disabled="disabled"><f:translate key="settings.statement.button.copyHtml" extensionName="A11yQualityGate" /></button>
-                        <button type="button" class="btn btn-default js-aqg-statement-download" disabled="disabled"><f:translate key="settings.statement.button.downloadTxt" extensionName="A11yQualityGate" /></button>
-                        <button type="button" class="btn btn-default js-aqg-statement-pdf" disabled="disabled" aria-describedby="aqg-statement-pdf-note"><f:translate key="settings.statement.button.downloadPdf" extensionName="A11yQualityGate" /></button>
+                        <button type="button" class="btn btn-default btn-sm js-aqg-statement-copy" disabled="disabled"><f:translate key="settings.statement.button.copyHtml" extensionName="A11yQualityGate" /></button>
+                        <button type="button" class="btn btn-default btn-sm js-aqg-statement-download" disabled="disabled"><f:translate key="settings.statement.button.downloadTxt" extensionName="A11yQualityGate" /></button>
+                        <aqg:pdfExportAvailable><button type="button" class="btn btn-default btn-sm js-aqg-statement-pdf" disabled="disabled" aria-describedby="aqg-statement-pdf-note"><f:translate key="settings.statement.button.downloadPdf" extensionName="A11yQualityGate" /></button></aqg:pdfExportAvailable>
                     </div>
                 </div>
                 <div class="aqg-card__body">
-                    <p class="aqg-help-text" id="aqg-statement-pdf-note"><f:translate key="settings.statement.pdfUntaggedNote" extensionName="A11yQualityGate" /></p>
+                    <aqg:pdfExportAvailable>
+                        <f:then><p class="aqg-help-text" id="aqg-statement-pdf-note"><f:translate key="settings.statement.pdfUntaggedNote" extensionName="A11yQualityGate" /></p></f:then>
+                        <f:else><p class="aqg-help-text" id="aqg-statement-pdf-note"><f:translate key="settings.statement.pdfComposerOnly" extensionName="A11yQualityGate" /></p></f:else>
+                    </aqg:pdfExportAvailable>
                     <div class="aqg-warning-banner">
                         <span class="aqg-status-badge aqg-status-badge--warning js-aqg-statement-status-badge"><f:translate key="settings.statement.status.requiresReview" extensionName="A11yQualityGate" /></span>
                         <span><f:translate key="settings.statement.result.reviewNotice" extensionName="A11yQualityGate" /></span>
@@ -350,7 +357,7 @@
                 </div>
                 <div class="aqg-card__body">
                     <p class="aqg-muted"><f:translate key="settings.statement.locked.text" extensionName="A11yQualityGate" /></p>
-                    <p><a class="btn btn-primary" href="{pricingUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="settings.statement.locked.button" extensionName="A11yQualityGate" /></a></p>
+                    <p><a class="btn btn-primary btn-sm" href="{pricingUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="settings.statement.locked.button" extensionName="A11yQualityGate" /></a></p>
                 </div>
             </section>
         </f:else>

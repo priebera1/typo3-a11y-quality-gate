@@ -17,12 +17,18 @@ use Priebera\A11yQualityGate\Ai\Service\AiIframeTitleSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiModelCompatibilityRegistry;
 use Priebera\A11yQualityGate\Ai\Service\AiLinkTextSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiPromptDefinition;
+use Priebera\A11yQualityGate\Ai\Task\AiStructuredOutputContract;
+use Priebera\A11yQualityGate\Ai\Task\AiStructuredRequest;
+use Priebera\A11yQualityGate\Ai\Task\AiStructuredResponse;
+use Priebera\A11yQualityGate\Ai\Task\AiStructuredTaskExecutorInterface;
+use Priebera\A11yQualityGate\Ai\Usage\AiUsage;
+use Priebera\A11yQualityGate\Ai\Usage\AiUsageMeter;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-final class OpenAiResponsesProvider implements AiProviderInterface
+final class OpenAiResponsesProvider implements AiProviderInterface, AiStructuredTaskExecutorInterface
 {
     private const ENDPOINT = 'https://api.openai.com/v1/responses';
     private const MAX_OUTPUT_TOKENS = 180;
@@ -34,6 +40,8 @@ final class OpenAiResponsesProvider implements AiProviderInterface
     public function __construct(
         private readonly RequestFactory $requestFactory,
         private readonly AiModelCompatibilityRegistry $modelRegistry,
+        private readonly ?AiUsageMeter $usageMeter = null,
+        private readonly ?AiStructuredOutputContract $outputContract = null,
     ) {}
 
     public function supports(string $provider): bool
@@ -46,7 +54,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         AiProviderConfiguration $configuration,
     ): AiAltSuggestionResult {
         $model = trim($configuration->model);
-        $profile = $this->modelRegistry->require($model);
+        $profile = $this->modelRegistry->require($model, 'openai');
 
         try {
             $contextJson = json_encode(
@@ -87,7 +95,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         AiProviderConfiguration $configuration,
     ): AiLinkTextSuggestionResult {
         $model = trim($configuration->model);
-        $profile = $this->modelRegistry->require($model);
+        $profile = $this->modelRegistry->require($model, 'openai');
 
         try {
             $contextJson = json_encode(
@@ -129,7 +137,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
         AiProviderConfiguration $configuration,
     ): AiIframeTitleSuggestionResult {
         $model = trim($configuration->model);
-        $profile = $this->modelRegistry->require($model);
+        $profile = $this->modelRegistry->require($model, 'openai');
 
         try {
             $contextJson = json_encode(
@@ -169,7 +177,7 @@ final class OpenAiResponsesProvider implements AiProviderInterface
     public function testConnection(AiProviderConfiguration $configuration): void
     {
         $model = trim($configuration->model);
-        $profile = $this->modelRegistry->require($model);
+        $profile = $this->modelRegistry->require($model, 'openai');
 
         $payload = $this->buildRequestPayload(
             model: $model,
@@ -192,6 +200,57 @@ final class OpenAiResponsesProvider implements AiProviderInterface
             $this->logSafeFailure('openai_connection_contract_mismatch', $model);
             throw new AiProviderException('OpenAI returned an invalid structured-output test response.', 1771002318);
         }
+    }
+
+    /**
+     * Provider-independent structured request (AQG 3.0 task foundation). The task-specific methods above keep their
+     * 2.x request shapes; this path builds the same Responses API request from an AiStructuredRequest.
+     */
+    public function execute(AiStructuredRequest $request, AiProviderConfiguration $configuration): AiStructuredResponse
+    {
+        $model = trim($configuration->model);
+        $profile = $this->modelRegistry->require($model, 'openai');
+        $format = [
+            'type' => 'json_schema',
+            'name' => $request->schemaName,
+            'strict' => true,
+            'schema' => $request->outputSchema,
+        ];
+        $metadata = [
+            'aqg_prompt_version' => $request->promptVersion,
+            'aqg_model_registry_version' => AiModelCompatibilityRegistry::VERSION,
+        ];
+        $payload = $request->image !== null
+            ? $this->buildRequestPayload($model, $profile, $request->instructions, $request->inputText, $request->image->dataUrl(), $metadata, $format)
+            : $this->buildTextOnlyRequestPayload($model, $profile, $request->instructions, $request->inputText, $metadata, $format);
+        $payload['max_output_tokens'] = $request->maxOutputTokens;
+
+        $decoded = $this->request($payload, $configuration->apiKey(), $model);
+        $this->assertCompletedWithoutRefusal($decoded, $model);
+        $raw = $this->extractOutputText($decoded);
+        if ($raw === '') {
+            $this->logSafeFailure('openai_empty_structured_output', $model);
+            throw new AiProviderException('OpenAI returned no structured output.', 1771002301);
+        }
+        try {
+            $structured = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            $this->logSafeFailure('openai_invalid_structured_output', $model);
+            throw new AiProviderException('OpenAI returned invalid structured output.', 1771002315, $exception);
+        }
+        try {
+            $data = ($this->outputContract ?? new AiStructuredOutputContract())->validate($structured, $request->outputSchema);
+        } catch (\UnexpectedValueException $exception) {
+            $this->logSafeFailure('openai_schema_mismatch', $model);
+            throw new AiProviderException('OpenAI returned an answer outside the AQG contract.', 1771002316, $exception);
+        }
+
+        return new AiStructuredResponse(
+            $data,
+            AiUsage::fromOpenAiResponses($decoded['usage'] ?? null),
+            'openai',
+            $model,
+        );
     }
 
     /**
@@ -381,6 +440,9 @@ final class OpenAiResponsesProvider implements AiProviderInterface
             $this->logSafeFailure('openai_invalid_response', $model, ['http_status' => $status]);
             throw new AiProviderException('OpenAI returned an invalid structured-output test response.', 1771002305);
         }
+
+        // Tokens are billed once OpenAI answered, even if AQG later rejects the answer.
+        $this->usageMeter?->report(AiUsage::fromOpenAiResponses($decoded['usage'] ?? null));
 
         return $decoded;
     }

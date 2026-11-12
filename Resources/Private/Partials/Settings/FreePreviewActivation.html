@@ -131,7 +131,15 @@
 
             <f:if condition="{freePreviewActivation.canManage}">
                 <f:then>
-                    <f:if condition="{freePreviewActivation.termsAvailable} && {freePreviewActivation.hasSites}">
+                    <f:if condition="{freePreviewActivation.hasSites} && !{freePreviewActivation.hasPublicSites}">
+                        <div class="aqg-notice aqg-tone-info" role="note" data-aqg-free-activation-closed="no_public_site">
+                            <span class="aqg-notice__body">
+                                <strong class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.noPublicSite.title" default="FREE Remote Preview needs a public website" /></strong>
+                                <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.freePreview.noPublicSite.text" default="The AQG cloud crawler opens pages from the internet. Every site of this installation uses a local or private address (for example *.ddev.site, localhost or a private IP), so FREE Remote Preview cannot be activated here. Activate it on the installation that serves your public domain. The content scan and the Quality Gate work here without it." /></span>
+                            </span>
+                        </div>
+                    </f:if>
+                    <f:if condition="{freePreviewActivation.termsAvailable} && {freePreviewActivation.hasPublicSites}">
                         <f:then>
                             <form method="post" action="{freePreviewActivation.acceptUrl}" class="aqg-stack" id="a11y-settings-free-preview-form" data-aqg-free-activation-form="true">
                                 <f:for each="{returnParameters}" as="value" key="name">
@@ -182,7 +190,7 @@
                             </form>
                         </f:then>
                         <f:else>
-                            <f:if condition="{freePreviewActivation.hasSites}">
+                            <f:if condition="{freePreviewActivation.hasPublicSites}">
                                 <div class="aqg-notice aqg-tone-warning" role="note" data-aqg-free-activation-closed="{freePreviewActivation.termsError}">
                                     <span class="aqg-notice__body">
                                         <span class="aqg-notice__text">

@@ -16,6 +16,9 @@
                             default="Run a frontend scan to generate automated accessibility findings."
                     />
                 </p>
+                <f:if condition="{proStatus.valid} && !{proStatus.isTrial}">
+                    <p class="aqg-status__text" data-aqg-dpa-prerequisite="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:licence.dpaPrerequisite" default="Before the first frontend scan, the licence owner accepts the AQG data processing agreement (DPA) once in the AQG customer portal (Licence page). Until then frontend scans are refused; content scans and the Quality Gate are not affected." /></p>
+                </f:if>
             </f:else>
         </f:if>
 
@@ -86,7 +89,7 @@
             >
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.remoteScanSite"
-                        default="Scan site"
+                        default="Scan published site"
                 />
             </button>
         </f:if>

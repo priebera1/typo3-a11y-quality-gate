@@ -138,8 +138,7 @@
 .a11y-overview .aqg-page-head__meta,
 .a11y-overview .aqg-meta-item__value,
 .a11y-overview .aqg-stat__delta,
-.a11y-overview .aqg-page-cell__meta,
-.a11y-overview .aqg-pagination__info {
+.a11y-overview .aqg-page-cell__meta {
     font-family: var(--aqi-font-mono);
 }
 
@@ -804,47 +803,6 @@
     font-size: 11px;
 }
 
-.a11y-overview .aqg-pagination {
-    padding: 10px 14px;
-    background: var(--aqi-surface-2);
-    border-top: 1px solid var(--aqi-border-soft);
-}
-
-.a11y-overview .aqg-pagination__nav {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.a11y-overview .pagination .page-link {
-    min-width: 28px;
-    min-height: 28px;
-    padding: 5px 8px;
-    border-color: var(--aqi-border);
-    border-radius: var(--aqi-radius-sm);
-    background: var(--aqi-surface);
-    color: var(--aqi-fg);
-    font-size: 12px;
-    line-height: 1.35;
-}
-
-.a11y-overview .pagination .page-link:hover {
-    border-color: var(--aqi-fg-subtle);
-    background: var(--aqi-surface-2);
-}
-
-.a11y-overview .pagination .active .page-link {
-    color: var(--aqi-surface);
-    background: var(--aqi-fg);
-    border-color: var(--aqi-fg);
-    font-weight: 600;
-}
-
-.a11y-overview .pagination .disabled .page-link {
-    color: var(--aqi-fg-subtle);
-    background: var(--aqi-surface);
-}
-
 /* ═══════════════════════════════════════════
    Overview — source switch (underline tabs)
 ═══════════════════════════════════════════ */
@@ -1459,38 +1417,6 @@
     font-weight: 600;
 }
 
-.a11y-overview .aqg-pagination .page-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 28px;
-    height: 28px;
-    padding: 0 8px;
-    border-color: var(--aqi-border);
-    border-radius: var(--aqi-radius-sm);
-    background: var(--aqi-surface);
-    color: var(--aqi-fg);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-}
-
-.a11y-overview .aqg-pagination .page-link:hover {
-    background: var(--aqi-surface-2);
-    border-color: var(--aqi-fg-subtle);
-}
-
-.a11y-overview .aqg-pagination .active .page-link {
-    background: var(--aqi-fg);
-    border-color: var(--aqi-fg);
-    color: var(--aqi-surface);
-    font-weight: 600;
-}
-
-.a11y-overview .aqg-pagination .disabled .page-link {
-    background: var(--aqi-surface);
-    color: var(--aqi-fg-subtle);
-}
-
 /* Overview — final AQG indicator token lock */
 .a11y-overview.aqg-module {
     font-family: var(--aqi-font);
@@ -1525,7 +1451,6 @@
 .a11y-overview .aqg-meta-item__label,
 .a11y-overview .aqg-stat__delta,
 .a11y-overview .aqg-page-cell__meta,
-.a11y-overview .aqg-pagination__info,
 .a11y-overview .aqg-count--zero {
     color: var(--aqg-indicator-fg-subtle);
 }
@@ -1541,7 +1466,6 @@
 
 .a11y-overview .aqg-section__head,
 .a11y-overview .aqg-toolbar-row,
-.a11y-overview .aqg-pagination,
 .a11y-overview .aqg-mini-tag,
 .a11y-overview .aqg-limit-pill,
 .a11y-overview .aqg-limits span {
@@ -4833,4 +4757,61 @@ body[data-bs-theme="dark"] .a11y-overview .aqg-regression-signal__metric--positi
 .a11y-overview .aqg-history-pager__position {
     color: var(--aqi-fg-muted);
     font-size: 12px;
+}
+
+/* AI fixes activity line (Package 4): three separate counts and one link to the queue. */
+.a11y-overview.aqg-module .aqg-remediation-activity {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    color: var(--aqi-fg);
+    font-size: 13px;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: var(--aqi-radius);
+}
+
+/* Frontend scan coverage against the TYPO3 page tree (Remote/TreeCoverage). */
+.aqg-coverage {
+    margin-top: 8px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+    background: var(--aqi-surface);
+}
+
+.aqg-coverage__summary {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.aqg-coverage--partial .aqg-coverage__summary { color: var(--aqi-warn); }
+.aqg-coverage--complete .aqg-coverage__summary { color: var(--aqi-ok); }
+.aqg-coverage--unknown .aqg-coverage__summary { color: var(--aqi-fg-muted); }
+
+.aqg-coverage__body {
+    display: grid;
+    gap: 8px;
+    padding: 0 12px 12px;
+    border-top: 1px solid var(--aqi-divider);
+    padding-top: 10px;
+}
+
+.aqg-coverage__label,
+.aqg-coverage__next,
+.aqg-coverage__note {
+    margin: 0;
+    max-width: 75ch;
+}
+
+.aqg-coverage__note {
+    color: var(--aqi-fg-muted);
+    font-size: .8125rem;
+}
+
+.aqg-coverage__list {
+    margin: 0;
+    padding-left: 1.2em;
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\FormEngine\FieldWizard;
 
+use Priebera\A11yQualityGate\Ai\Editor\EditorAiEditorConfiguration;
 use Priebera\A11yQualityGate\FormEngine\EditorFeedbackLabels;
+use Priebera\A11yQualityGate\Service\BackendUserService;
 use TYPO3\CMS\Backend\Form\AbstractNode;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -24,6 +26,10 @@ final class PlainHtmlA11yWizard extends AbstractNode
         if ($table !== 'tt_content' || $field !== 'bodytext' || $cType !== 'html' || $uid <= 0) {
             return $result;
         }
+        // Same rule as the CKEditor plugin: the live check inherits access from the Accessibility module.
+        if (!GeneralUtility::makeInstance(BackendUserService::class)->canAccessAccessibilityModule()) {
+            return $result;
+        }
 
         $parameterArray = is_array($this->data['parameterArray'] ?? null) ? $this->data['parameterArray'] : [];
         $inputName = (string)$this->resolveFormValue($parameterArray['itemFormElName'] ?? '');
@@ -34,6 +40,8 @@ final class PlainHtmlA11yWizard extends AbstractNode
 
         $labels = EditorFeedbackLabels::translated();
         $containerId = StringUtility::getUniqueId('aqg-plain-html-a11y-');
+        // TYPO3's code editor renders a read-only field with this wizard and still submits it: feedback only.
+        $readOnly = (bool)($parameterArray['fieldConf']['config']['readOnly'] ?? false);
         $attributes = [
             'id' => $containerId,
             'class' => 'aqg-plain-html-a11y js-aqg-plain-html-a11y',
@@ -41,7 +49,20 @@ final class PlainHtmlA11yWizard extends AbstractNode
             'data-field-name' => $field,
             'data-input-name' => $inputName,
             'data-labels' => (string)json_encode($labels, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'data-ai' => (string)json_encode(
+                $readOnly
+                    ? EditorAiEditorConfiguration::forReadOnlyField()
+                    : GeneralUtility::makeInstance(EditorAiEditorConfiguration::class)->forRecord(
+                        (int)($this->data['effectivePid'] ?? 0) > 0 ? (int)$this->data['effectivePid'] : (int)$this->resolveFormValue($record['pid'] ?? 0),
+                        (int)$this->resolveFormValue($record['sys_language_uid'] ?? 0),
+                        (int)$this->resolveFormValue($record['l18n_parent'] ?? 0),
+                    ),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+            ),
         ];
+        if ($readOnly) {
+            $attributes['data-read-only'] = '1';
+        }
 
         $result['html'] = implode(LF, [
             '<div ' . GeneralUtility::implodeAttributes($attributes, true) . '>',

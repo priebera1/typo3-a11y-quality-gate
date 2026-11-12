@@ -52,4 +52,43 @@ final class RenderedCoverageTest extends TestCase
         self::assertSame($site, RenderedCoverage::newerScan(null, $site));
         self::assertNull(RenderedCoverage::newerScan(null, null));
     }
+
+    /**
+     * U-02 (2026-11-05 company acceptance): 16 pages skipped for one reason ("private/local address") were listed as 16
+     * identical lines. Pages are grouped by their reason, the largest group first; each group keeps its pages.
+     */
+    #[Test]
+    public function identicalReasonsAreGroupedWithTheirPages(): void
+    {
+        $private = 'The frontend host resolves to a private or local address.';
+        $groups = RenderedCoverage::groupByReason([
+            ['pageUid' => 2, 'title' => 'Products', 'reason' => $private],
+            ['pageUid' => 3, 'title' => 'Draft', 'reason' => 'Hidden page'],
+            ['pageUid' => 4, 'title' => 'E-Scooters', 'reason' => $private],
+            ['pageUid' => 5, 'title' => 'Services', 'reason' => $private],
+        ]);
+
+        self::assertSame([$private, 'Hidden page'], array_column($groups, 'reason'));
+        self::assertSame([3, 1], array_column($groups, 'count'));
+        self::assertSame(['Products', 'E-Scooters', 'Services'], array_column($groups[0]['pages'], 'title'));
+    }
+
+    /**
+     * U-08 (2026-11-05 company acceptance): a scheduled subtree scan runs no rendered check, so a rendered finding stayed
+     * open after the fix and looked as current as the scan. An open rendered finding the newest covering scan did not
+     * confirm is marked as not re-checked; content findings and findings that scan confirmed are not.
+     */
+    #[Test]
+    public function anOpenRenderedFindingOlderThanTheCoveringScanIsNotRechecked(): void
+    {
+        $scheduled = ['uid' => 40, 'finished_at' => 1790000000];
+        $rendered = ['source_type' => 'rendered', 'status' => 0, 'last_seen_scan_uid' => 31];
+
+        self::assertTrue(RenderedCoverage::isNotRechecked($rendered, $scheduled));
+        self::assertFalse(RenderedCoverage::isNotRechecked(['last_seen_scan_uid' => 40] + $rendered, $scheduled), 'confirmed by that scan');
+        self::assertFalse(RenderedCoverage::isNotRechecked(['source_type' => 'rte'] + $rendered, $scheduled), 'content checks run in every scan');
+        self::assertFalse(RenderedCoverage::isNotRechecked(['status' => 1] + $rendered, $scheduled), 'resolved');
+        self::assertFalse(RenderedCoverage::isNotRechecked($rendered, null));
+        self::assertFalse(RenderedCoverage::isNotRechecked(['last_seen_scan_uid' => 0] + $rendered, $scheduled), 'no scan reference');
+    }
 }

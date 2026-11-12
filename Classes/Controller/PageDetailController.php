@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiConfigurationRepositoryInterface;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
+use Priebera\A11yQualityGate\Rendered\RenderedPageFetcher;
 use Priebera\A11yQualityGate\Scan\RenderedCoverage;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
@@ -17,7 +18,12 @@ use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\ExportUrlBuilderService;
 use Priebera\A11yQualityGate\Ai\Contract\AiFeatureAccessServiceInterface;
+use Priebera\A11yQualityGate\Ai\Editor\EditorAiAccessService;
+use Priebera\A11yQualityGate\Remediation\Workflow\RemediationAccessService;
+use Priebera\A11yQualityGate\Remediation\Workflow\RemediationPageSummaryService;
 use Priebera\A11yQualityGate\Pro\Service\ProStatusResolverService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
+use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
 use Priebera\A11yQualityGate\Remediation\ImageAltTextValidator;
 use Priebera\A11yQualityGate\Remediation\ImageFindingContext;
 use Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver;
@@ -50,6 +56,7 @@ use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
+use Priebera\A11yQualityGate\Ai\Settings\AiSiteSettingsService;
 
 #[AsController]
 final class PageDetailController extends AbstractBackendModuleController
@@ -86,6 +93,14 @@ final class PageDetailController extends AbstractBackendModuleController
         private readonly ScopeAccessService $scopeAccessService,
         private readonly ?ScanPermissionService $scanPermissionService = null,
         private readonly ?IssueLocationService $issueLocationService = null,
+        private readonly ?AiSiteSettingsService $aiSiteSettingsService = null,
+        private readonly ?RemediationPageSummaryService $remediationSummary = null,
+        private readonly ?RemediationAccessService $remediationAccess = null,
+        private readonly ?EditorAiAccessService $editorAiAccessService = null,
+        private readonly ?RemotePageScanTargetResolver $remotePageScanTargetResolver = null,
+        private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
+        private readonly ?\Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator $aiCostEstimator = null,
+        private readonly ?\Priebera\A11yQualityGate\Assignment\AssignmentService $assignmentService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -115,8 +130,13 @@ final class PageDetailController extends AbstractBackendModuleController
             $site
         );
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/image-remediation.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/assignment.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/ai-link-text-suggestion.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/ai-iframe-title-suggestion.js');
+        if ($this->remediationSummary !== null) {
+            $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/remediation/page-detail-remediation.js');
+            $this->pageRenderer->addCssFile('EXT:a11y_quality_gate/Resources/Public/Css/remediation.css');
+        }
 
         $siteIdentifier = $site?->getIdentifier() ?? '';
         $activeStatus = $this->requestParameterService->getStatus($request, 'open');
@@ -134,9 +154,20 @@ final class PageDetailController extends AbstractBackendModuleController
         $currentLanguageOption = $this->resolveCurrentLanguageOption($languageOptions);
 
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
-        $aiAltSuggestionAvailable = $this->aiFeatureAccessService->isAvailable($siteIdentifier);
-        $aiLinkTextSuggestionAvailable = $aiAltSuggestionAvailable
-            && $this->aiConfigurationRepository->isLinkTextSuggestionsEnabled($siteIdentifier);
+        // The same readiness policy as the server-side check (AiReadinessPolicy via EditorAiAccessService): AI actions
+        // appear only when a request would be accepted; otherwise the finding keeps its manual path.
+        $aiAvailable = $this->editorAiAccessService !== null
+            ? $this->editorAiAccessService->siteState($siteIdentifier) === EditorAiAccessService::STATE_READY
+            : $this->aiFeatureAccessService->isAvailable($siteIdentifier);
+        // A site that does not allow sending images offers no AI for image findings; editors keep the manual path.
+        $aiAltSuggestionAvailable = $aiAvailable
+            && ($this->aiSiteSettingsService?->get($siteIdentifier)->allowImageInput ?? true)
+            // The user's ai.images switch, which the suggestion endpoint enforces too.
+            && ($this->editorAiAccessService?->userAllows(EditorAiAccessService::FLAG_IMAGES) ?? true);
+        $aiLinkTextSuggestionAvailable = $aiAvailable
+            && $this->aiConfigurationRepository->isLinkTextSuggestionsEnabled($siteIdentifier)
+            // N-08: the user's ai.editor switch, which the suggestion services enforce too.
+            && ($this->editorAiAccessService?->userAllows(EditorAiAccessService::FLAG_EDITOR) ?? true);
         $aiIframeTitleSuggestionAvailable = $aiLinkTextSuggestionAvailable;
 
         $pageRecord = $pageUid > 0
@@ -155,24 +186,38 @@ final class PageDetailController extends AbstractBackendModuleController
             : $this->accessControlService->canShowScanNow($backendUser);
         $canShowSettings = $this->accessControlService->canShowSettings($backendUser);
         $canRemediateImages = $this->accessControlService->canRemediateImages($backendUser);
+        // N-03: Ignore/Unignore only for people the server lets ignore (options.a11y_quality_gate.editRecord).
+        $canIgnore = $this->accessControlService->canEditRecord($backendUser);
 
         if ($siteIdentifier !== '') {
             $this->issueRepository->reopenExpiredIgnoredIssues($siteIdentifier);
         }
 
         $allIssues = ($pageUid > 0 && $siteIdentifier !== '')
-            ? $this->issueRepository->findAllForPage($siteIdentifier, $pageUid, $currentLanguageUid)
+            ? $this->issueRepository->findAllForPage($siteIdentifier, $pageUid, $currentLanguageUid, true)
             : [];
 
         $openRuleCountsOnPage = ($pageUid > 0 && $siteIdentifier !== '')
-            ? $this->issueRepository->countOpenByRuleOnPage($siteIdentifier, $pageUid, $currentLanguageUid)
+            ? $this->issueRepository->countOpenByRuleOnPage($siteIdentifier, $pageUid, $currentLanguageUid, true)
             : [];
         $openRuleCountsOnSite = $siteIdentifier !== ''
-            ? $this->issueRepository->countOpenByRuleOnSite($siteIdentifier, $currentLanguageUid)
+            ? $this->issueRepository->countOpenByRuleOnSite($siteIdentifier, $currentLanguageUid, true)
             : [];
 
         $backendLanguageCode = $this->getBackendLanguageCode();
+        // The newest completed scan that covered this page (a page scan or a site/subtree scan), for "Last scan" and for
+        // rendered findings that scan did not re-check (U-08).
+        $coveringScan = RenderedCoverage::newerScan(
+            $siteIdentifier !== '' && $pageUid > 0 ? $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid) : null,
+            $siteIdentifier !== '' && $pageUid > 0 ? $this->scanRepository->findLastCompletedSubtreeScanCoveringPage($siteIdentifier, $pageUid) : null
+        );
+        $notRecheckedLabel = is_array($coveringScan) ? sprintf(
+            $this->translateWithFallback('pageDetail.rendered.notRechecked', 'Not re-checked by the last scan (%s): it did not run the rendered check. Scan this page to check it again.'),
+            BackendTimeUtility::formatDateTime((int)($coveringScan['finished_at'] ?? 0), 'd.m.Y · H:i')
+        ) : '';
         $allIssues = array_map(function (array $row) use (
+            $coveringScan,
+            $notRecheckedLabel,
             $backendLanguageCode,
             $pageUid,
             $siteIdentifier,
@@ -209,6 +254,7 @@ final class PageDetailController extends AbstractBackendModuleController
                 $sourceType = str_starts_with($ruleId, 'structured.') ? 'structured' : (str_starts_with($ruleId, 'rendered.') ? 'rendered' : 'rte');
             }
             $row['sourceType'] = $sourceType;
+            $row['renderedNotRechecked'] = RenderedCoverage::isNotRechecked(['source_type' => $sourceType] + $row, $coveringScan) ? $notRecheckedLabel : '';
             $row['sourceTypeLabel'] = match ($sourceType) {
                 'rendered' => $this->translateWithFallback('pageDetail.sourceType.rendered', 'Rendered HTML'),
                 'structured' => $this->translateWithFallback('pageDetail.sourceType.structured', 'Structured content'),
@@ -282,6 +328,7 @@ final class PageDetailController extends AbstractBackendModuleController
             $row['imagePreviewAvailable'] = false;
             $row['imagePreviewUrl'] = '';
             $row['imagePreviewPath'] = '';
+            $row['imageFileName'] = '';
             if ($this->offersImageRemediation($row, $canRemediateImages)) {
                 try {
                     $imageContext = $this->imageFindingContextResolver->resolve((int)$row['uid']);
@@ -293,6 +340,7 @@ final class PageDetailController extends AbstractBackendModuleController
                     $row['imagePreviewAvailable'] = $preview['available'];
                     $row['imagePreviewUrl'] = $preview['url'];
                     $row['imagePreviewPath'] = $preview['displayPath'];
+                    $row['imageFileName'] = $preview['fileName'];
                     $row['aiAltSuggestionAvailable'] = $aiAltSuggestionAvailable;
                 } catch (\Throwable) {
                 }
@@ -300,6 +348,33 @@ final class PageDetailController extends AbstractBackendModuleController
 
             return $row;
         }, $allIssues);
+
+        // Remediation workflow (Package 4): owner, fix path and queue state per finding, from stored data only.
+        $remediation = $this->buildRemediationContext($siteIdentifier, $pageUid, $allIssues);
+        // AQG-300-FEAT-02/03: the most one request of each AI action can cost, shown inside its button. Empty when no
+        // reliable price exists; the button then keeps its plain label.
+        $aiCost = $aiAvailable ? $this->aiCostLabels($siteIdentifier, $backendLanguageCode) : [];
+        $explainTextAllowed = $aiLinkTextSuggestionAvailable;
+        $allIssues = array_map(
+            function (array $row) use ($remediation): array {
+                // "Edit record" needs the record; an AI action changes or explains one field, which can be read-only
+                // (TCA, TSconfig, inline parent): the same field boundary the AI routes enforce decides what is offered.
+                if (($remediation['active'] ?? false) && ($row['hasEditAccess'] ?? false) && (string)($row['source_type'] ?? '') === 'rte') {
+                    $row['aiFieldEditable'] = $this->backendRecordAccessService->canEditRecordFields(
+                        (string)($row['source_table'] ?? ''),
+                        (int)($row['source_uid'] ?? 0),
+                        [(string)($row['source_field'] ?? '')],
+                    );
+                }
+
+                return $row;
+            },
+            $allIssues
+        );
+        $allIssues = array_map(
+            static fn (array $row): array => self::withAiActions($row, $remediation, $aiCost, $explainTextAllowed),
+            $allIssues
+        );
 
         $statusCounts = [
             'open' => count(array_filter(
@@ -374,6 +449,17 @@ final class PageDetailController extends AbstractBackendModuleController
 
         // One card per rule within each severity, for the issues of this list page only.
         $ruleGroups = IssueRuleGroupingUtility::group($paginatedIssues, $visibleIssues);
+        // My issues: who works on each issue type of this page, and whether this person may (re)assign it.
+        $assignmentChips = $this->assignmentService?->chipsForPage($siteIdentifier, $pageUid, $currentLanguageUid) ?? [];
+        $canAssign = $this->assignmentService?->canAssignOn($pageUid, max(0, $currentLanguageUid)) ?? false;
+        // N-01: a template card is one shared task of the site; assigning it needs edit access to the site root.
+        $canAssignTemplate = $this->assignmentService?->canAssignTemplateOn($siteIdentifier, $pageUid) ?? false;
+        foreach ($ruleGroups as $groupKey => $group) {
+            foreach (($group['rules'] ?? []) as $ruleKey => $rule) {
+                $ruleGroups[$groupKey]['rules'][$ruleKey]['assignment'] = $assignmentChips[(string)($rule['issueKey'] ?? '')] ?? null;
+                $ruleGroups[$groupKey]['rules'][$ruleKey]['canAssign'] = !empty($rule['sharedTemplate']) ? $canAssignTemplate : $canAssign;
+            }
+        }
 
         $backUrl = $this->buildOverviewUrl($pageUid, $siteIdentifier, $request);
 
@@ -387,14 +473,16 @@ final class PageDetailController extends AbstractBackendModuleController
             $siteIdentifier,
             $pageUid,
             $activeStatus,
-            $activeSeverity
+            $activeSeverity,
+            $currentLanguageUid,
         );
 
         $exportPdfUrl = $this->exportUrlBuilderService->buildLocalPagePdfUrl(
             $siteIdentifier,
             $pageUid,
             $activeStatus,
-            $activeSeverity
+            $activeSeverity,
+            $currentLanguageUid,
         );
 
         $statusFilterUrls = [
@@ -465,18 +553,14 @@ final class PageDetailController extends AbstractBackendModuleController
 
         $scanStatus = $this->scanStatusService->getStatus();
         $siteRootPid = $site !== null ? (int)$site->getRootPageId() : 0;
-        $lastPageScan = $siteIdentifier !== '' && $pageUid > 0
-            ? $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid)
-            : null;
-        $lastScan = $lastPageScan;
-        // Audit C13: when the newest scan that covered this page could not check its rendered HTML, say so and why.
-        $coveringScan = RenderedCoverage::newerScan(
-            $lastPageScan,
-            $siteIdentifier !== '' && $pageUid > 0
-                ? $this->scanRepository->findLastCompletedSubtreeScanCoveringPage($siteIdentifier, $pageUid)
-                : null
-        );
+        // "Last scan" is the newest scan that covered this page, a site scan included (2026-11-05 company acceptance:
+        // Page Detail showed the last single-page scan, or "—", while the Page module showed the later site scan).
+        // Audit C13: when that scan could not check its rendered HTML, say so and why.
+        $lastScan = $coveringScan;
         $renderedSkip = is_array($coveringScan) ? RenderedCoverage::skippedEntryFor($coveringScan, $pageUid) : null;
+        if ($renderedSkip !== null) {
+            $renderedSkip['message'] = $this->localizedRenderedSkipMessage($renderedSkip['message'], $backendLanguageCode);
+        }
         $localDetail = [
             'lastScanAt' => is_array($lastScan) ? (int)($lastScan['finished_at'] ?? 0) : 0,
             'lastScanAtFormatted' => is_array($lastScan) ? BackendTimeUtility::formatDateTime((int)($lastScan['finished_at'] ?? 0), 'd.m.Y · H:i') : '—',
@@ -507,8 +591,17 @@ final class PageDetailController extends AbstractBackendModuleController
             'activeSeverity' => $activeSeverity,
             'grouped' => $grouped,
             'ruleGroups' => $ruleGroups,
+            'canAssign' => $canAssign,
+            'assignmentUrls' => $canAssign ? [
+                'assign' => $this->buildRouteUrl('ajax_a11y_assignment_assign'),
+                'candidates' => $this->buildRouteUrl('ajax_a11y_assignment_candidates'),
+            ] : null,
             'severityCounts' => $severityCounts,
             'statusCounts' => $statusCounts,
+            // M-01: results of a language the user may not use are filtered out — the page is not "clean" for them.
+            'languageUnavailable' => !$this->scopeAccessService->canUseLanguage($currentLanguageUid),
+            // STATE-01: "This page is clean" only for a verified zero; otherwise say what is missing.
+            'localEvidence' => $this->localEvidenceView($siteIdentifier, $pageUid, $currentLanguageUid),
             'visibleIssuesCount' => count($visibleIssues),
             'hasRenderedIssues' => $hasRenderedIssues,
             'statusFilterUrls' => $statusFilterUrls,
@@ -520,7 +613,8 @@ final class PageDetailController extends AbstractBackendModuleController
             'batchIgnoreUrl' => $batchIgnoreUrl,
             'ignoreRuleOnPageUrl' => $ignoreRuleOnPageUrl,
             'ignoreRuleOnSiteUrl' => $ignoreRuleOnSiteUrl,
-            'canIgnoreRuleOnSite' => $canShowSettings,
+            'canIgnoreRuleOnSite' => $canShowSettings && $canIgnore,
+            'canIgnore' => $canIgnore,
             'unignoreUrl' => $unignoreUrl,
             'exportCsvUrl' => $exportCsvUrl,
             'exportPdfUrl' => $exportPdfUrl,
@@ -531,7 +625,7 @@ final class PageDetailController extends AbstractBackendModuleController
                 ? $this->scanPermissionService->canCancelLocalScan($scanStatus)
                 : $canScanNow,
             'canShowSettings' => $canShowSettings,
-            'scanStatus' => $scanStatus,
+            'scanStatus' => $this->scopeAccessService->restrictLocalScanStatus($scanStatus),
             'localDetail' => $localDetail,
             'settingsUrl' => $this->buildRouteUrl('web_a11y.settings', $returnParameters),
             'pageDoktype' => $pageDoktype,
@@ -549,6 +643,8 @@ final class PageDetailController extends AbstractBackendModuleController
             'imageSuggestAltUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_alt'),
             'aiSuggestLinkTextUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_link_text'),
             'aiSuggestIframeTitleUrl' => $this->buildRouteUrl('ajax_a11y_ai_suggest_iframe_title'),
+            'remediation' => $remediation,
+            'previewScan' => $this->buildPreviewScanAccess($proStatus, $siteIdentifier, $pageUid, $currentLanguageUid, $canScanNow, $canShowSettings, $returnParameters),
         ]);
 
         return $moduleTemplate->renderResponse('PageDetail/Show');
@@ -561,6 +657,270 @@ final class PageDetailController extends AbstractBackendModuleController
      *
      * @param array<string, mixed> $row
      */
+    /**
+     * The page's remediation context for the template and page-detail-remediation.js. Without the services (tests,
+     * older wiring) or without a licence the block is inactive and the page renders exactly as before.
+     *
+     * @param list<array<string,mixed>> $issues
+     * @return array<string,mixed>
+     */
+    private function buildRemediationContext(string $siteIdentifier, int $pageUid, array $issues): array
+    {
+        $inactive = ['active' => false, 'findings' => [], 'aiReady' => false, 'images' => false, 'canChangeOwner' => false];
+        if ($this->remediationSummary === null || $this->remediationAccess === null || $siteIdentifier === '' || $pageUid <= 0
+            || !$this->remediationAccess->hasLicence($siteIdentifier)) {
+            return $inactive;
+        }
+        $summary = $this->remediationSummary->summarize($siteIdentifier, $pageUid, $issues);
+        $aiState = $this->remediationAccess->aiState($siteIdentifier);
+        $aiReady = $aiState === 'ready';
+        $canBulk = $aiReady && $this->remediationAccess->mayUseBulk();
+        $config = [
+            'pageUid' => $pageUid,
+            'canBulk' => $canBulk,
+            'maxBatch' => \Priebera\A11yQualityGate\Remediation\Workflow\RemediationWorkflowService::MAX_BATCH,
+            'urls' => [
+                'prepare' => $this->buildRouteUrl('ajax_a11y_remediation_prepare'),
+                'explain' => $this->buildRouteUrl('ajax_a11y_remediation_explain'),
+                'generate' => $this->buildRouteUrl('ajax_a11y_remediation_generate'),
+                'item' => $this->buildRouteUrl('ajax_a11y_remediation_item'),
+                'owner' => $this->buildRouteUrl('ajax_a11y_remediation_owner'),
+                'plan' => $this->buildRouteUrl('ajax_a11y_remediation_plan'),
+            ],
+            'queueUrl' => $this->buildRouteUrl('web_a11y.remediation', ['id' => $pageUid, 'pageUid' => $pageUid]),
+            // The summary's queue line is updated in place after "Fix with AI" (F-32).
+            'queue' => $summary['queue'],
+            'labels' => $this->remediationLabels(),
+        ];
+
+        return [
+            'active' => true,
+            'findings' => $summary['findings'],
+            'owners' => $summary['owners'],
+            'queue' => $summary['queue'],
+            'aiReady' => $aiReady,
+            // M-04: why the AI actions are missing (budget used up, site paused) instead of buttons that just vanish.
+            'aiState' => $aiState,
+            // Image AI needs the user's ai.images right and the site's privacy switch: never offer what must fail.
+            'images' => $this->remediationAccess->mayUseImages()
+                && ($this->aiSiteSettingsService?->get($siteIdentifier)->allowImageInput ?? true),
+            'canBulk' => $canBulk,
+            'canChangeOwner' => $this->remediationAccess->canEditPage($pageUid),
+            'queueUrl' => $config['queueUrl'],
+            'config' => json_encode($config, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE),
+        ];
+    }
+
+    /**
+     * The cost hints of the AI actions on this page ("<$0.02"), keyed explain / fixText / fixImage / linkText /
+     * iframeTitle, plus 'hint' for the screen-reader description. Empty without a reliable price.
+     *
+     * @return array<string,string>
+     */
+    private function aiCostLabels(string $siteIdentifier, string $backendLanguageCode): array
+    {
+        if ($this->aiCostEstimator === null || $siteIdentifier === '') {
+            return [];
+        }
+        $separator = $backendLanguageCode === 'de' ? ',' : '.';
+        $labels = [];
+        foreach ([
+            'explain' => \Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator::ACTION_EXPLAIN,
+            'fixText' => \Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator::ACTION_FIX_TEXT,
+            'fixImage' => \Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator::ACTION_FIX_IMAGE,
+            'linkText' => \Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator::ACTION_LINK_TEXT,
+            'iframeTitle' => \Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator::ACTION_IFRAME_TITLE,
+        ] as $key => $action) {
+            $micro = $this->aiCostEstimator->maxCostMicro($siteIdentifier, $action);
+            if ($micro !== null) {
+                $labels[$key] = sprintf(
+                    $this->translateWithFallback('ai.cost.max', '<$%s'),
+                    \Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator::formatUpperBound($micro, $separator)
+                );
+            }
+        }
+        if ($labels !== []) {
+            $labels['hint'] = $this->translateWithFallback('ai.cost.hint', 'Estimated maximum for one AI request. Your AI provider bills the actual usage, which is usually lower.');
+        }
+
+        return $labels;
+    }
+
+    /** @return array<string,string> */
+    private function remediationLabels(): array
+    {
+        $labels = [];
+        foreach ([
+            'pd.preparing', 'pd.ready', 'pd.failed', 'pd.error', 'pd.bulkPrepare', 'pd.bulkPrepareConfirm', 'pd.bulkProgress', 'pd.bulkWaiting',
+            'pd.bulkDone', 'pd.bulkDoneOne', 'pd.bulkCancel', 'pd.bulkNone', 'pd.review', 'pd.queued', 'pd.copied', 'owner.saved', 'plan.title', 'plan.intro',
+            'plan.empty', 'plan.copy', 'plan.copied', 'plan.close', 'plan.occurrences', 'plan.queued', 'pd.summaryQueue',
+            'plan.occurrence', 'plan.goTo', 'plan.sendEditor', 'plan.copyTicket', 'plan.step', 'plan.steps',
+            'pd.explaining', 'pd.explanation', 'pd.explainHowToFix', 'pd.explainNote', 'pd.explainNeedsReview', 'pd.explainSent',
+            'pd.explainSentField.elementSummary', 'pd.explainSentField.surroundingText', 'pd.explainSentField.pageTitle', 'pd.explainModel',
+            'pd.result.explainTitle', 'pd.result.explains', 'pd.result.problem', 'pd.result.howToFix', 'pd.result.nothingChanged',
+            'pd.result.explainFailedTitle', 'pd.result.preparingText', 'pd.result.readyTitle', 'pd.result.readyText', 'pd.result.reviewAction',
+            'pd.result.noneTitle', 'pd.result.noneText', 'pd.result.failedTitle', 'pd.result.failedText', 'pd.result.unavailableTitle',
+            'pd.result.unavailableText', 'pd.result.queuedTitle', 'pd.result.queuedText', 'pd.result.openItem', 'pd.result.editRecord',
+            'pd.result.retry', 'pd.result.waiting', 'pd.usage.notSent', 'pd.usage.reported', 'pd.usage.bound', 'pd.usage.none',
+            'pd.usage.unknown', 'pd.usage.mayBill', 'pd.usage.unconfirmed',
+        ] as $key) {
+            $labels[$key] = $this->translate('remediation.' . $key);
+        }
+        foreach (['session_expired', 'permission_denied', 'rate_limited', 'generic', 'no_licence', 'invalid_state', 'in_progress', 'not_found',
+            'stale', 'finding_closed', 'unsupported_rule', 'provider_unavailable', 'provider_timeout', 'provider_rate_limited', 'provider_credit', 'refused',
+            'paused', 'budget_reached', 'not_configured', 'no_permission', 'link_text_disabled', 'invalid_response'] as $code) {
+            $labels['error.' . $code] = $this->translate('remediation.js.error.' . $code);
+        }
+        foreach (['editor', 'developer', 'mixed', 'unassigned'] as $owner) {
+            $labels['owner.' . $owner] = $this->translate('remediation.owner.' . $owner);
+        }
+        // Why "Fix with AI" prepared nothing for an occurrence (prepare skip reasons, Failed / No suggestion reasons).
+        foreach (['image_missing', 'image_external', 'image_not_in_storage', 'image_not_image', 'image_no_access', 'image_unreadable',
+            'image_unavailable', 'no_edit_access', 'privacy_images', 'link_text_disabled', 'manual_only', 'no_safe_action', 'rendered_output',
+            'rule_based_in_editor', 'finding_closed', 'target_changed', 'target_missing', 'budget_reached', 'ai_paused', 'provider_not_configured',
+            'provider_refused', 'provider_timeout', 'provider_rate_limited', 'provider_credit', 'provider_paused', 'provider_unavailable',
+            'invalid_response', 'needs_review', 'decorative', 'default_fits', 'duplicate', 'expired'] as $reason) {
+            $labels['reason.' . $reason] = $this->translate('remediation.reason.' . $reason);
+        }
+
+        return $labels;
+    }
+
+    /**
+     * F-18: the scan stores the fetch error as text. Known errors are shown from their label in the backend language
+     * (the stored text stays for logs and older scans); an unknown text in a non-English backend gets a generic label.
+     */
+    private function localizedRenderedSkipMessage(string $message, string $backendLanguageCode): string
+    {
+        if ($message === '') {
+            return '';
+        }
+        $key = RenderedPageFetcher::errorKeyForMessage($message);
+        if ($key !== '') {
+            $label = $this->translateWithFallback('renderedCheck.error.' . $key, $message);
+
+            return str_contains($label, '%d') && preg_match('/\d+/', $message, $status) === 1
+                ? sprintf($label, (int)$status[0])
+                : $label;
+        }
+
+        return $backendLanguageCode === 'en'
+            ? $message
+            : $this->translateWithFallback('renderedCoverage.reason.fetchFailed', 'The rendered page could not be checked.');
+    }
+
+    /**
+     * Atlas 09·A: a page visitors cannot open gets a "Page not public" card. A paid frontend scan of such a page is a
+     * preview scan (ProCrawlerAjaxController, decided server-side from the stored page), so the card starts the same
+     * single-page scan as the Overview's "Scan this page" — only when that scan can work: crawler entitlement, the scan
+     * permission, a Scanner Token for the site and a restriction the token can open (hidden, not scheduled or
+     * group-restricted). Otherwise it says why, without a button.
+     *
+     * @param array<string,mixed> $returnParameters
+     * @return array<string,mixed>|null
+     */
+    private function buildPreviewScanAccess(
+        object $proStatus,
+        string $siteIdentifier,
+        int $pageUid,
+        int $languageUid,
+        bool $canScanNow,
+        bool $canShowSettings,
+        array $returnParameters,
+    ): ?array {
+        if ($this->remotePageScanTargetResolver === null || $siteIdentifier === '' || $pageUid <= 0) {
+            return null;
+        }
+        $languageUid = max(0, $languageUid);
+        $restriction = $this->remotePageScanTargetResolver->visitorRestriction($pageUid, $languageUid);
+        if ($restriction === '') {
+            return null;
+        }
+        $hasCrawler = (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
+        $supported = $this->remotePageScanTargetResolver->unsupportedPreviewRestriction($pageUid, $languageUid) === '';
+        $hasToken = $this->remoteScanAccessSettingsService?->hasScannerTokenForSite($siteIdentifier) ?? false;
+        $state = match (true) {
+            !$hasCrawler => 'free',
+            !$supported => 'unsupported',
+            !$hasToken => 'noToken',
+            !$canScanNow => 'noPermission',
+            default => 'available',
+        };
+
+        return [
+            'state' => $state,
+            'restriction' => $restriction,
+            'languageUid' => $languageUid,
+            'settingsUrl' => $state === 'noToken' && $canShowSettings
+                ? $this->buildRouteUrl('web_a11y.settings', array_replace($returnParameters, ['tab' => 'remote_access', 'rulesetSite' => $siteIdentifier]))
+                : '',
+        ];
+    }
+
+    /**
+     * The AI actions of one occurrence: "Fix with AI" (prepares an AI fixes item), "Explain with AI" (explanation only)
+     * and their cost hints. The server checks every gate again; this only decides what Page Detail offers.
+     *
+     * @param array<string,mixed> $row
+     * @param array<string,mixed> $remediation buildRemediationContext()
+     * @param array<string,string> $aiCost aiCostLabels()
+     * @return array<string,mixed>
+     */
+    public static function withAiActions(array $row, array $remediation, array $aiCost, bool $textSuggestionsAllowed): array
+    {
+        $row['aiCost'] = $aiCost;
+        $row['remediation'] = ($remediation['findings'][(int)$row['uid']] ?? null);
+        if (is_array($row['remediation'])) {
+            $ruleId = (string)($row['rule_id'] ?? '');
+            $kind = (string)(\Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::entry($ruleId)['kind'] ?? '');
+            // AQG-300-UX-04: "Explain with AI" for the rich-text rules the editors explain, with the editors' own
+            // gates (licence, AI ready, edit access to the field; link and iframe findings need the site's text
+            // suggestion switch). The server checks every one of them again.
+            $row['remediation']['canExplain'] = $remediation['aiReady']
+                && (int)$row['status'] === IssueStatus::Open->value
+                && (string)($row['source_type'] ?? '') === 'rte'
+                && $kind !== ''
+                && (bool)($row['hasEditAccess'] ?? false)
+                && (bool)($row['aiFieldEditable'] ?? true)
+                && (!in_array($kind, [\Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_LINK_TEXT, \Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_IFRAME_TITLE], true) || $textSuggestionsAllowed);
+            $row['remediation']['explainCost'] = $aiCost['explain'] ?? '';
+            // Image alt texts send the image, also for alt texts in rich text (FIX_AI_TEXT path, image_alt kind).
+            $sendsImage = ($row['remediation']['fixPath'] ?? '') === RemediationPageSummaryService::FIX_AI_IMAGE
+                || $kind === \Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_IMAGE_ALT;
+            $row['remediation']['fixCost'] = $sendsImage ? ($aiCost['fixImage'] ?? '') : ($aiCost['fixText'] ?? '');
+            $row['remediation']['canPrepare'] = $remediation['aiReady']
+                && (int)$row['status'] === IssueStatus::Open->value
+                && in_array($row['remediation']['fixPath'], [RemediationPageSummaryService::FIX_AI_IMAGE, RemediationPageSummaryService::FIX_AI_TEXT], true)
+                && $row['remediation']['item'] === null
+                && (bool)($row['hasEditAccess'] ?? false)
+                && (bool)($row['aiFieldEditable'] ?? true)
+                && (!$sendsImage || $remediation['images'])
+                // Link text and iframe titles need the site's AI link/iframe switch (prepareRefusal checks it too).
+                && (!in_array($kind, [\Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_LINK_TEXT, \Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_IFRAME_TITLE], true) || $textSuggestionsAllowed);
+            // Atlas 07·A: one AI entry per occurrence. An occurrence whose card already has the inline suggestion
+            // (alt text, link text, iframe title) shows no per-occurrence queue button; it stays eligible for the
+            // bulk "Prepare AI suggestions" path (07·B).
+            $row['remediation']['inlineAi'] = self::hasInlineAiFlow($row);
+            $row['remediation']['canChangeOwner'] = $remediation['canChangeOwner'];
+        }
+
+        return $row;
+    }
+
+    /**
+     * Whether the occurrence card offers its own inline AI suggestion (Suggest → review → apply or copy).
+     *
+     * @param array<string,mixed> $row
+     */
+    public static function hasInlineAiFlow(array $row): bool
+    {
+        return ((bool)($row['imageRemediationAvailable'] ?? false)
+                && (bool)($row['aiAltSuggestionAvailable'] ?? false)
+                && !(bool)($row['imageIsDecorative'] ?? false))
+            || (bool)($row['aiLinkTextSuggestionAvailable'] ?? false)
+            || (bool)($row['aiIframeTitleSuggestionAvailable'] ?? false);
+    }
+
     private function offersImageRemediation(array $row, bool $canRemediateImages): bool
     {
         return $canRemediateImages
@@ -570,10 +930,17 @@ final class PageDetailController extends AbstractBackendModuleController
 
     /**
      * The field permissions the endpoints check (ImageRemediationPermissionService::assertCanModify()): an editor whose
-     * groups may not edit the content element or the image reference's alternative text gets no actions.
+     * groups may not edit the content element or the image reference's alternative text gets no actions. In a workspace
+     * the endpoints refuse every write (M-1), so the actions are not offered there either.
      */
     private function canEditImageReference(ImageFindingContext $context): bool
     {
+        $backendUser = $this->backendContextService->getBackendUser();
+        if ($backendUser instanceof \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+            && (int)($backendUser->workspace ?? 0) !== 0) {
+            return false;
+        }
+
         return $this->backendRecordAccessService->canEditRecordFields($context->sourceTable, $context->sourceUid)
             && $this->backendRecordAccessService->canEditRecordFields(
                 Tables::SYS_FILE_REFERENCE,
@@ -623,6 +990,45 @@ final class PageDetailController extends AbstractBackendModuleController
         return $row;
     }
 
+    /**
+     * STATE-01: whether the page's zero of readable findings is a verified clean result (ResultEvidenceState): a completed
+     * scan covered this page in this language (a restricted site scan does not cover the pages it left out), its rendered
+     * check could fetch the page, and the user sees every result (administrators; other users see the findings they may
+     * read, never proof that none exist).
+     *
+     * @return array{state: string, clean: bool, limited: bool, title: string, text: string}
+     */
+    private function localEvidenceView(string $siteIdentifier, int $pageUid, int $languageUid): array
+    {
+        $covering = $siteIdentifier !== '' && $pageUid > 0
+            ? RenderedCoverage::newerScan(
+                $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid, $languageUid),
+                $this->scanRepository->findLastCompletedSubtreeScanCoveringPage($siteIdentifier, $pageUid, $languageUid)
+            )
+            : null;
+        $skip = is_array($covering) ? RenderedCoverage::skippedEntryFor($covering, $pageUid) : null;
+        $backendUser = $this->backendContextService->getBackendUser();
+        $state = \Priebera\A11yQualityGate\Service\ResultEvidenceState::resolve(
+            running: false,
+            hasEvidence: true,
+            visibleOpen: 0,
+            restricted: !($backendUser instanceof \TYPO3\CMS\Core\Authentication\BackendUserAuthentication && $backendUser->isAdmin()),
+            complete: is_array($covering) && !(is_array($skip) && (string)($skip['reason'] ?? '') === ''),
+        );
+
+        return [
+            'state' => $state,
+            'clean' => $state === \Priebera\A11yQualityGate\Service\ResultEvidenceState::CLEAN,
+            'limited' => $state !== \Priebera\A11yQualityGate\Service\ResultEvidenceState::CLEAN,
+            'title' => $state === \Priebera\A11yQualityGate\Service\ResultEvidenceState::INCOMPLETE
+                ? $this->translateWithFallback('pageDetail.limited.incomplete.title', 'This page was not fully checked')
+                : $this->translateWithFallback('pageDetail.limited.restricted.title', 'No open issues in the results you can access'),
+            'text' => $state === \Priebera\A11yQualityGate\Service\ResultEvidenceState::INCOMPLETE
+                ? $this->translateWithFallback('pageDetail.limited.incomplete.text', 'The last scan in this language did not cover this page completely (it was left out, or its rendered HTML could not be fetched). Scan this page to check it.')
+                : $this->translateWithFallback('pageDetail.limited.restricted.text', 'You see the results of the records and pages you may access. This does not show that the page is free of issues.'),
+        ];
+    }
+
     private function isRelevantScanRunning(array $scanStatus, int $siteRootPid, int $pageUid): bool
     {
         if (empty($scanStatus['running'])) {
@@ -668,9 +1074,9 @@ final class PageDetailController extends AbstractBackendModuleController
         $expiry = $this->resolveIgnoreExpiry($body);
 
         if (!$expiry['valid']) {
-            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         } elseif ($issueUid > 0 && !$this->canEditIssue($issueUid)) {
-            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.accessDenied', 'Access denied.'), ContextualFeedbackSeverity::ERROR, $this->flashTitle());
         } elseif ($issueUid > 0 && $reason !== '') {
             $user = $this->getBackendUserSnapshot();
             $this->issueRepository->ignore($issueUid, $reason, $user['uid'], $user['name'], $user['username'], $expiry['ignoredUntil']);
@@ -713,9 +1119,9 @@ final class PageDetailController extends AbstractBackendModuleController
         $expiry = $this->resolveIgnoreExpiry($body);
 
         if (!$expiry['valid']) {
-            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         } elseif (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
-            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.accessDenied', 'Access denied.'), ContextualFeedbackSeverity::ERROR, $this->flashTitle());
         } elseif ($issueUids !== [] && $reason !== '') {
             $user = $this->getBackendUserSnapshot();
             $ignored = $this->issueRepository->ignoreManyOpenOnPage(
@@ -729,9 +1135,9 @@ final class PageDetailController extends AbstractBackendModuleController
                 $user['username'],
                 $expiry['ignoredUntil']
             );
-            $this->addFlashMessage($ignored . ' issues ignored.', ContextualFeedbackSeverity::OK, 'Accessibility');
+            $this->addFlashMessage($this->ignoreCount('pageDetail.flash.ignored', $ignored, '%d issue ignored.', '%d issues ignored.'), ContextualFeedbackSeverity::OK, $this->flashTitle());
         } else {
-            $this->addFlashMessage('No issues were ignored. Select issues and enter a reason.', ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.nothingIgnored', 'No issues were ignored. Select issues and enter a reason.'), ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         }
 
         return new RedirectResponse(
@@ -770,9 +1176,9 @@ final class PageDetailController extends AbstractBackendModuleController
         $expiry = $this->resolveIgnoreExpiry($body);
 
         if (!$expiry['valid']) {
-            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         } elseif (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
-            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.accessDenied', 'Access denied.'), ContextualFeedbackSeverity::ERROR, $this->flashTitle());
         } elseif ($ruleId !== '' && $reason !== '') {
             $user = $this->getBackendUserSnapshot();
             $ignored = $this->issueRepository->ignoreAllByRuleOnPage(
@@ -786,9 +1192,9 @@ final class PageDetailController extends AbstractBackendModuleController
                 $user['username'],
                 $expiry['ignoredUntil']
             );
-            $this->addFlashMessage($ignored . ' issues ignored for rule ' . $ruleId . ' on this page.', ContextualFeedbackSeverity::OK, 'Accessibility');
+            $this->addFlashMessage(sprintf($this->ignoreCount('pageDetail.flash.ignoredRulePage', $ignored, '%1$d issue of “%2$s” ignored on this page.', '%1$d issues of “%2$s” ignored on this page.', false), $ignored, $this->ruleTitle($ruleId)), ContextualFeedbackSeverity::OK, $this->flashTitle());
         } else {
-            $this->addFlashMessage('Rule ignore was not applied. Select a rule and enter a reason.', ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.ruleNotIgnored', 'Rule ignore was not applied. Select a rule and enter a reason.'), ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         }
 
         return new RedirectResponse(
@@ -841,7 +1247,7 @@ final class PageDetailController extends AbstractBackendModuleController
         }
 
         if (!$expiry['valid']) {
-            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($expiry['error'], ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         } elseif ($ruleId !== '' && $reason !== '') {
             $user = $this->getBackendUserSnapshot();
             $ignored = $this->issueRepository->ignoreAllByRuleOnSite(
@@ -852,11 +1258,12 @@ final class PageDetailController extends AbstractBackendModuleController
                 $user['uid'],
                 $user['name'],
                 $user['username'],
-                $expiry['ignoredUntil']
+                $expiry['ignoredUntil'],
+                $this->scopeAccessService->contentEditablePagesClause(),
             );
-            $this->addFlashMessage($ignored . ' issues ignored for rule ' . $ruleId . ' on this site.', ContextualFeedbackSeverity::OK, 'Accessibility');
+            $this->addFlashMessage(sprintf($this->ignoreCount('pageDetail.flash.ignoredRuleSite', $ignored, '%1$d issue of “%2$s” ignored on this site.', '%1$d issues of “%2$s” ignored on this site.', false), $ignored, $this->ruleTitle($ruleId)), ContextualFeedbackSeverity::OK, $this->flashTitle());
         } else {
-            $this->addFlashMessage('Site-wide rule ignore was not applied. Select a rule and enter a reason.', ContextualFeedbackSeverity::WARNING, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.siteRuleNotIgnored', 'Site-wide rule ignore was not applied. Select a rule and enter a reason.'), ContextualFeedbackSeverity::WARNING, $this->flashTitle());
         }
 
         return new RedirectResponse(
@@ -891,7 +1298,7 @@ final class PageDetailController extends AbstractBackendModuleController
         );
 
         if ($issueUid > 0 && !$this->canEditIssue($issueUid)) {
-            $this->addFlashMessage('Access denied.', ContextualFeedbackSeverity::ERROR, 'Accessibility');
+            $this->addFlashMessage($this->translateWithFallback('pageDetail.flash.accessDenied', 'Access denied.'), ContextualFeedbackSeverity::ERROR, $this->flashTitle());
         } elseif ($issueUid > 0) {
             $user = $this->getBackendUserSnapshot();
             $this->issueRepository->unignore($issueUid, $user['uid'], $user['name'], $user['username']);
@@ -921,6 +1328,26 @@ final class PageDetailController extends AbstractBackendModuleController
         return $pageUid > 0 && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid);
     }
 
+    /** Ignore feedback in the backend language with the right singular or plural (product acceptance: "1 issues ignored"). */
+    private function ignoreCount(string $key, int $count, string $singular, string $plural, bool $format = true): string
+    {
+        $text = $count === 1
+            ? $this->translateWithFallback($key . '.singular', $singular)
+            : $this->translateWithFallback($key . '.plural', $plural);
+
+        return $format ? sprintf($text, $count) : $text;
+    }
+
+    private function ruleTitle(string $ruleId): string
+    {
+        return $this->translateWithFallback('rule.' . $ruleId . '.title', $ruleId);
+    }
+
+    private function flashTitle(): string
+    {
+        return $this->translateWithFallback('pageDetail.flash.title', 'Accessibility');
+    }
+
     private function resolveIgnoreExpiry(array $body): array
     {
         $mode = trim((string)($body['ignoreExpiry'] ?? 'never'));
@@ -941,12 +1368,12 @@ final class PageDetailController extends AbstractBackendModuleController
         if ($mode === 'custom') {
             $date = trim((string)($body['ignoreUntilDate'] ?? ''));
             if ($date === '') {
-                return ['valid' => false, 'ignoredUntil' => 0, 'error' => 'Select a future reopen date.'];
+                return ['valid' => false, 'ignoredUntil' => 0, 'error' => $this->translateWithFallback('pageDetail.flash.expiryRequired', 'Select a future reopen date.')];
             }
 
             $timestamp = strtotime($date . ' 00:00:00');
             if ($timestamp === false || $timestamp <= $today) {
-                return ['valid' => false, 'ignoredUntil' => 0, 'error' => 'The reopen date must be at least one day in the future.'];
+                return ['valid' => false, 'ignoredUntil' => 0, 'error' => $this->translateWithFallback('pageDetail.flash.expiryTooSoon', 'The reopen date must be at least one day in the future.')];
             }
 
             return ['valid' => true, 'ignoredUntil' => $timestamp, 'error' => ''];

@@ -31,6 +31,7 @@ use TYPO3\CMS\Core\View\ViewFactoryInterface;
 final class PageModuleIndicatorServiceTest extends TestCase
 {
     private const LABELS = [
+        'pageModuleIndicator.languageUnavailable.headline' => 'NOT-AVAILABLE',
         'pageModuleIndicator.freeHint.available' => 'FREE-AVAILABLE',
         'pageModuleIndicator.freeHint.remaining' => 'FREE-LEFT %1$d/%2$d',
         'pageModuleIndicator.freeHint.limitReached' => 'FREE-LIMIT-REACHED',
@@ -187,6 +188,31 @@ final class PageModuleIndicatorServiceTest extends TestCase
     }
 
     #[Test]
+    public function aLanguageTheEditorMayNotUseIsNeverReportedAsClean(): void
+    {
+        // M-01 (2026-11-05 company acceptance): a German-only editor saw "OK · No issues found" on the English page —
+        // its findings were only filtered out of the counts.
+        $this->render($this->proLicence(), $this->createMock(FreeRemotePreviewService::class), null, null, 1789100000, false);
+
+        self::assertSame('NOT-AVAILABLE', $this->assigned['headline']);
+        self::assertSame('none', $this->assigned['overallState']);
+        self::assertSame([], $this->assigned['actions'], 'No scan of a language the editor may not use.');
+        foreach ($this->assigned['rows'] as $row) {
+            self::assertSame('NOT-AVAILABLE', $row['headline']);
+            self::assertSame([], $row['counts'] ?? []);
+            self::assertSame('', $row['meta']);
+        }
+    }
+
+    #[Test]
+    public function anAllowedLanguageWithoutFindingsIsStillClean(): void
+    {
+        $this->render($this->proLicence(), $this->createMock(FreeRemotePreviewService::class), null, null, 1789100000, true);
+
+        self::assertNotSame('NOT-AVAILABLE', $this->assigned['headline']);
+    }
+
+    #[Test]
     public function aFrontendPageThatCouldNotBeLoadedIsNeverReportedAsClean(): void
     {
         $remoteScans = $this->createMock(RemoteScanRepository::class);
@@ -262,7 +288,8 @@ final class PageModuleIndicatorServiceTest extends TestCase
 
         $this->render($this->proLicence(), $free, $remoteScans);
 
-        self::assertSame('PRO', $this->assigned['remoteHint']['tag']);
+        // F-35: entitled to frontend scans — no upsell tag.
+        self::assertSame('', $this->assigned['remoteHint']['tag']);
         self::assertSame('PAID-RUN-FRONTEND-SCAN', $this->assigned['remoteHint']['text']);
         self::assertSame('combined', $this->assigned['scanMode']);
     }
@@ -276,6 +303,7 @@ final class PageModuleIndicatorServiceTest extends TestCase
         ?RemoteScanRepository $remoteScans = null,
         ?array $localCounts = null,
         int $localScannedAt = 0,
+        ?bool $languageAllowed = null,
     ): void {
         $proStatusResolver = $this->createMock(ProStatusResolverService::class);
         $proStatusResolver->method('resolveForSite')->willReturn($licence);
@@ -314,6 +342,8 @@ final class PageModuleIndicatorServiceTest extends TestCase
             $this->createMock(ViewFactoryInterface::class),
             $urls,
             $free,
+            remoteResultAuthorizationService: (function () { $policy = $this->createMock(\Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService::class); $policy->method('isUnrestrictedUser')->willReturn(true); return $policy; })(),
+            scopeAccessService: $languageAllowed === null ? null : (function () use ($languageAllowed) { $scope = $this->createMock(\Priebera\A11yQualityGate\Service\ScopeAccessService::class); $scope->method('canUseLanguage')->willReturn($languageAllowed); return $scope; })(),
         );
 
         $variables = $service->buildViewData(42, new Site('main', 1, ['base' => 'https://example.org/']), 0);
@@ -338,7 +368,7 @@ final class PageModuleIndicatorServiceTest extends TestCase
 
     private function freeLicence(): ProStatusViewModel
     {
-        return ProStatusViewModel::notConfigured(true, 'example.org');
+        return ProStatusViewModel::notConfigured('example.org');
     }
 
     private function proLicence(): ProStatusViewModel
@@ -352,7 +382,6 @@ final class PageModuleIndicatorServiceTest extends TestCase
             reason: null,
             reasonLabel: null,
             statusLabel: 'Licence active — Pro',
-            showProHints: true,
             hasCrawler: true,
             hasExportPdf: true,
             hasMultiSite: false,

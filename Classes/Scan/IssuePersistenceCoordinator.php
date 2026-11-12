@@ -16,9 +16,32 @@ final class IssuePersistenceCoordinator
     }
 
     /**
-     * @param iterable<RuleViolation> $violations
-     * @param array<int, string> $seenFingerprintsForPage
+     * N-02 (review F-01): a rendered finding moved from the default record to its translation (RenderedTranslationRecords)
+     * keeps its stored row — status, ignore decision and history — instead of becoming a new finding. Pairs are the
+     * violations before and after the remap, in the same order.
+     *
+     * @param list<RuleViolation> $before
+     * @param list<RuleViolation> $after
      */
+    public function keepIdentityOfRemapped(array $before, array $after, CheckContext $context): int
+    {
+        $moved = 0;
+        foreach ($before as $index => $violation) {
+            $remapped = $after[$index] ?? null;
+            if (!$remapped instanceof RuleViolation || $remapped->sourceUid === $violation->sourceUid) {
+                continue;
+            }
+            $moved += $this->issueRepository->rekeyFinding(
+                $context->siteIdentifier,
+                $violation->fingerprint($context),
+                $remapped->fingerprint($context),
+                $remapped->sourceUid,
+            );
+        }
+
+        return $moved;
+    }
+
     /**
      * @param list<RuleViolation> $duplicates rendered findings of elements a rich-text rule already reported
      */

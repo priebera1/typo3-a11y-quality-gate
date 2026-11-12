@@ -22,6 +22,7 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
 
         $pool = GeneralUtility::makeInstance(ConnectionPool::class);
         $pool->getConnectionForTable('be_groups')->insert('be_groups', [
+            'explicit_allowdeny' => 'tt_content:CType:textmedia,tt_content:CType:image',
             'uid' => 10,
             'pid' => 0,
             'title' => 'AQG editors',
@@ -35,6 +36,7 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
             'hidden' => 0,
         ]);
         $pool->getConnectionForTable('be_groups')->insert('be_groups', [
+            'explicit_allowdeny' => 'tt_content:CType:textmedia,tt_content:CType:image',
             'uid' => 11,
             'pid' => 0,
             'title' => 'Restricted editors',
@@ -43,6 +45,7 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
             'tables_modify' => 'tt_content,sys_file_reference',
             'non_exclude_fields' => 'sys_file_reference:alternative,sys_file_reference:tx_a11y_is_decorative',
             'db_mountpoints' => '1',
+            'TSconfig' => 'options.a11y_quality_gate.allowImageRemediation = 0',
             'deleted' => 0,
             'hidden' => 0,
         ]);
@@ -98,11 +101,13 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
         $pool->getConnectionForTable('tt_content')->insert('tt_content', [
             'uid' => 10,
             'pid' => 1,
-            'CType' => '',
+            'CType' => 'textmedia',
             'header' => 'Fixture content',
             'deleted' => 0,
             'hidden' => 0,
         ]);
+        // A real image file: TYPO3 shows alternative text only on references to images (Sol QA-01 review, form layout).
+        $this->getConnectionPool()->getConnectionForTable('sys_file')->insert('sys_file', ['uid' => 1, 'pid' => 0, 'storage' => 1, 'type' => 2, 'name' => 'fixture.png', 'identifier' => '/fixture-1.png', 'mime_type' => 'image/png']);
         $pool->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
             'uid' => 20,
             'pid' => 1,
@@ -124,6 +129,23 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
         $this->setUpBackendUser(1);
         $this->get(ImageRemediationPermissionService::class)->assertCanModify($this->context());
         self::addToAssertionCount(1);
+    }
+
+    /**
+     * The content element's own image field counts too: when an integrator makes it an exclude field, an editor without
+     * it in "Allowed excludefields" may not change that element's image texts through AQG either.
+     */
+    #[Test]
+    public function theParentImageFieldMustBeEditableToo(): void
+    {
+        $this->setUpBackendUser(2);
+        $GLOBALS['TCA']['tt_content']['columns']['assets']['exclude'] = true;
+        try {
+            $this->expectException(ImageRemediationPermissionException::class);
+            $this->get(ImageRemediationPermissionService::class)->assertCanModify($this->context());
+        } finally {
+            unset($GLOBALS['TCA']['tt_content']['columns']['assets']['exclude']);
+        }
     }
 
     #[Test]
@@ -181,7 +203,7 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
     {
         $backendUser = $this->setUpBackendUser(3);
         self::assertSame(3, (int)($GLOBALS['BE_USER']->user['uid'] ?? 0));
-        self::assertNull($backendUser->getTSConfig()['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? null);
+        self::assertSame('0', (string)($backendUser->getTSConfig()['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? ''));
         self::assertFalse($this->get(AccessControlServiceInterface::class)->canRemediateImages($backendUser));
         self::assertTrue($GLOBALS['BE_USER']->check('tables_modify', 'tt_content'));
         self::assertTrue($GLOBALS['BE_USER']->check('tables_modify', 'sys_file_reference'));
@@ -296,6 +318,7 @@ final class ImageRemediationPermissionFunctionalTest extends AbstractFunctionalT
         GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable('be_groups')
             ->insert('be_groups', [
+                'explicit_allowdeny' => 'tt_content:CType:textmedia,tt_content:CType:image',
                 'uid' => $uid,
                 'pid' => 0,
                 'title' => $title,

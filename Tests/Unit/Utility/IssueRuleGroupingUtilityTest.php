@@ -123,6 +123,25 @@ final class IssueRuleGroupingUtilityTest extends TestCase
     }
 
     #[Test]
+    public function templateOutputIsItsOwnCardWhoseTaskIsTheSharedTemplateTask(): void
+    {
+        // N-01: the same rule inside a content element and in the site template (stored against the page itself).
+        $inContent = $this->issue(1, 1, 'rendered.empty_link') + ['source_table' => 'tt_content', 'context_snippet' => '<a href="/x.pdf"></a>'];
+        $template = $this->issue(2, 1, 'rendered.empty_link') + ['source_table' => 'pages', 'context_snippet' => '<a href="/"><img src="/logo.png"></a>'];
+        $templateDe = $this->issue(3, 1, 'rendered.empty_link') + ['source_table' => 'pages', 'context_snippet' => '<a href="/de/"><img src="/logo.png"></a>'];
+
+        $rules = IssueRuleGroupingUtility::group([$inContent, $template, $templateDe], [$inContent, $template, $templateDe])['critical']['rules'];
+
+        self::assertCount(2, $rules, 'One card for the content element, one for the template element (both languages).');
+        self::assertSame(['rte.empty_link', false, 1], [$rules[0]['issueKey'], $rules[0]['sharedTemplate'], $rules[0]['occurrencesTotal']]);
+        self::assertStringStartsWith('template:rte.empty_link:', $rules[1]['issueKey']);
+        self::assertTrue($rules[1]['sharedTemplate']);
+        self::assertSame(2, $rules[1]['occurrencesTotal']);
+        self::assertNotSame($rules[0]['anchorId'], $rules[1]['anchorId']);
+        self::assertSame(2, IssueRuleGroupingUtility::group([$inContent, $template], [$inContent, $template])['critical']['issueTypesTotal']);
+    }
+
+    #[Test]
     public function anEmptyListHasOneEmptyPage(): void
     {
         self::assertSame([[]], IssueRuleGroupingUtility::paginateByRule([], 10));

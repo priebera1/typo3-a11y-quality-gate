@@ -105,6 +105,9 @@ final class FileReferenceAltRuleTest extends TestCase
 
         self::assertCount(1, $violations);
         self::assertSame('structured.file_reference_alt', $violations[0]->ruleId);
+        // U-04: the editor reads the file name; the reference uid stays in the technical snippet (and the fingerprint).
+        self::assertSame('Image "example.jpg" has no alt text.', $violations[0]->message);
+        self::assertStringContainsString('sys_file_reference uid:10', $violations[0]->contextSnippet);
     }
 
     #[Test]

@@ -88,6 +88,12 @@ final class AccessControlService implements AccessControlServiceInterface
         return (int)$adminFlag === 1;
     }
 
+    /**
+     * The AQG capability to apply reviewed image fixes (alternative text, decorative). Without the User TSconfig option
+     * it follows TYPO3's own rights: every write is still checked against the record, the sys_file_reference fields
+     * and the workspace (ImageRemediationPermissionService) and done by DataHandler as the user. Any value an
+     * administrator set wins: 1 allows, 0 (or an empty or other value) denies.
+     */
     public function canRemediateImages(?BackendUserAuthentication $backendUser = null): bool
     {
         $backendUser ??= $GLOBALS['BE_USER'] ?? null;
@@ -101,6 +107,9 @@ final class AccessControlService implements AccessControlServiceInterface
 
         $userTsConfig = $backendUser->getTSConfig();
         $value = $userTsConfig['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? null;
+        if ($value === null) {
+            return true;
+        }
 
         return $value === 1 || $value === '1';
     }

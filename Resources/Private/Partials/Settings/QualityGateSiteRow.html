@@ -31,7 +31,7 @@
                 <label class="aqg-field__label" for="aqg-site-{siteRuleset.site_identifier}-publish-mode"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.title" default="Publishing mode" /></label>
                 <select class="aqg-select js-aqg-site-mode" id="aqg-site-{siteRuleset.site_identifier}-publish-mode" name="qualityGate[sites][{siteRuleset.site_identifier}][publish_mode]">
                     <option value="0" {f:if(condition: '{siteRuleset.publish_mode} == 0', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeDisabled" default="Disabled — do not warn or block" /></option>
-                    <option value="1" {f:if(condition: '{siteRuleset.publish_mode} == 1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeWarn" default="Warn editors before publish" /></option>
+                    <option value="1" {f:if(condition: '{siteRuleset.publish_mode} == 1', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeWarn" default="Publish, then warn editors" /></option>
                     <option value="2" {f:if(condition: '{siteRuleset.publish_mode} == 2', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.site.modeBlock" default="Block publish on failure" /></option>
                 </select>
             </div>

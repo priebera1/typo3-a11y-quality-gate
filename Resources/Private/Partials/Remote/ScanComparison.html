@@ -1,4 +1,4 @@
-<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" xmlns:aqg="http://typo3.org/ns/Priebera/A11yQualityGate/ViewHelpers" data-namespace-typo3-fluid="true">
 <f:if condition="{comparison.available}">
     <section id="scan-comparison" class="aqg-history-compare aqg-history-compare--{comparison.statusTone}" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.title', default: 'Automated scan comparison')}">
         <div class="aqg-history-compare__head">
@@ -14,9 +14,17 @@
         <f:if condition="{comparison.acceptanceEvidence.pdfUrl}">
             <div class="aqg-history-compare__actions">
                 <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.label" default="Acceptance evidence for a client or stakeholder:" /></span>
-                <a href="{comparison.acceptanceEvidence.pdfUrl}" class="btn btn-default btn-sm" aria-describedby="aqg-acceptance-pdf-note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.pdf" default="Download PDF" /></a>
-                <a href="{comparison.acceptanceEvidence.csvUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.csv" default="Download CSV" /></a>
-                <p class="aqg-history-compare__note" id="aqg-acceptance-pdf-note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.pdfUntaggedNote" default="The PDF is not tagged for screen readers; the CSV contains the same evidence." /></p>
+                <aqg:pdfExportAvailable>
+                    <f:then>
+                        <a href="{comparison.acceptanceEvidence.pdfUrl}" class="btn btn-default btn-sm" aria-describedby="aqg-acceptance-pdf-note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.pdf" default="Download PDF" /></a>
+                        <a href="{comparison.acceptanceEvidence.csvUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.csv" default="Download CSV" /></a>
+                        <p class="aqg-history-compare__note" id="aqg-acceptance-pdf-note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.pdfUntaggedNote" default="The PDF is not tagged for screen readers; the CSV contains the same evidence." /></p>
+                    </f:then>
+                    <f:else>
+                        <a href="{comparison.acceptanceEvidence.csvUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.acceptance.csv" default="Download CSV" /></a>
+                        <p class="aqg-history-compare__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.composerOnly" default="PDF export is available only in Composer installations (it needs mpdf/mpdf). This installation exports CSV." /></p>
+                    </f:else>
+                </aqg:pdfExportAvailable>
             </div>
         </f:if>
 

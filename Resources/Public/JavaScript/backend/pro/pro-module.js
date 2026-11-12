@@ -1696,7 +1696,13 @@ export class A11yProBackendModule extends A11yFreeBackendModule {
      */
     notifyRemoteScanFailure(notificationMessage, message) {
         const box = document.querySelector(PRO_SELECTORS.remoteScanProgressBox);
-        const hasVisibleStatus = box instanceof HTMLElement && !box.classList.contains('d-none');
+        // M-05: only say "the reason is shown in the scan status" when that status is on screen and holds the reason —
+        // a box in another tab or one that never received the message left the administrator with no reason at all.
+        const hasVisibleStatus = box instanceof HTMLElement
+            && !box.classList.contains('d-none')
+            && box.getClientRects().length > 0
+            && String(message || '').trim() !== ''
+            && box.textContent.includes(String(message).trim());
 
         this.showScanResult(scanFailedNotification(
             'frontend',

@@ -12,6 +12,12 @@ export default defineConfig({
             '@typo3/backend/modal.js': fileURLToPath(
                 new URL('./Tests/JavaScript/stubs/modal.js', import.meta.url),
             ),
+            '@typo3/backend/notification.js': fileURLToPath(
+                new URL('./Tests/JavaScript/stubs/notification.js', import.meta.url),
+            ),
+            '@typo3/backend/action-button/immediate-action.js': fileURLToPath(
+                new URL('./Tests/JavaScript/stubs/immediate-action.js', import.meta.url),
+            ),
             '@typo3/backend/severity.js': fileURLToPath(
                 new URL('./Tests/JavaScript/stubs/severity.js', import.meta.url),
             ),

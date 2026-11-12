@@ -7,9 +7,12 @@ use Priebera\A11yQualityGate\Controller\AiAltSuggestionAjaxController;
 use Priebera\A11yQualityGate\Controller\AiIframeTitleSuggestionAjaxController;
 use Priebera\A11yQualityGate\Controller\AiLinkTextSuggestionAjaxController;
 use Priebera\A11yQualityGate\Controller\AiSettingsAjaxController;
+use Priebera\A11yQualityGate\Controller\EditorAiAjaxController;
 use Priebera\A11yQualityGate\Controller\ImageRemediationAjaxController;
+use Priebera\A11yQualityGate\Controller\MediaAiAjaxController;
 use Priebera\A11yQualityGate\Controller\PageModuleIndicatorAjaxController;
 use Priebera\A11yQualityGate\Controller\ProCrawlerAjaxController;
+use Priebera\A11yQualityGate\Controller\RemediationAjaxController;
 use Priebera\A11yQualityGate\Controller\ScanAjaxController;
 use Priebera\A11yQualityGate\Controller\SettingsController;
 use Priebera\A11yQualityGate\Controller\ToolbarScanController;
@@ -52,6 +55,174 @@ return [
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],
+    // Editor AI (CKEditor and plain HTML): suggestions only; content changes happen in the editor and TYPO3 Save.
+    'a11y_ai_editor_fix' => [
+        'path' => '/a11y/ai/editor/fix',
+        'target' => EditorAiAjaxController::class . '::fixAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_editor_explain' => [
+        'path' => '/a11y/ai/editor/explain',
+        'target' => EditorAiAjaxController::class . '::explainAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_editor_write' => [
+        'path' => '/a11y/ai/editor/write',
+        'target' => EditorAiAjaxController::class . '::writeAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_editor_verify' => [
+        'path' => '/a11y/ai/editor/verify',
+        'target' => EditorAiAjaxController::class . '::verifyAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // Remediation workflow and queue (Package 4). Only 'approve' writes, and only image uses through the existing
+    // allow-listed DataHandler path; rich text is staged for the editor ('staged') and saved with TYPO3 Save.
+    'a11y_remediation_list' => [
+        'path' => '/a11y/remediation/list',
+        'target' => RemediationAjaxController::class . '::listAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // Read only: the module change log (Atlas 08·E), scoped like the list.
+    'a11y_remediation_changelog' => [
+        'path' => '/a11y/remediation/changelog',
+        'target' => RemediationAjaxController::class . '::changelogAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_item' => [
+        'path' => '/a11y/remediation/item',
+        'target' => RemediationAjaxController::class . '::itemAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_prepare' => [
+        'path' => '/a11y/remediation/prepare',
+        'target' => RemediationAjaxController::class . '::prepareAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_explain' => [
+        'path' => '/a11y/remediation/explain',
+        'target' => RemediationAjaxController::class . '::explainAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_generate' => [
+        'path' => '/a11y/remediation/generate',
+        'target' => RemediationAjaxController::class . '::generateAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_view' => [
+        'path' => '/a11y/remediation/view',
+        'target' => RemediationAjaxController::class . '::viewAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_edit' => [
+        'path' => '/a11y/remediation/edit',
+        'target' => RemediationAjaxController::class . '::editAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_approve' => [
+        'path' => '/a11y/remediation/approve',
+        'target' => RemediationAjaxController::class . '::approveAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_reject' => [
+        'path' => '/a11y/remediation/reject',
+        'target' => RemediationAjaxController::class . '::rejectAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_reopen' => [
+        'path' => '/a11y/remediation/reopen',
+        'target' => RemediationAjaxController::class . '::reopenAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_refresh' => [
+        'path' => '/a11y/remediation/refresh',
+        'target' => RemediationAjaxController::class . '::refreshAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_staged' => [
+        'path' => '/a11y/remediation/staged',
+        'target' => RemediationAjaxController::class . '::stagedAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_inserted' => [
+        'path' => '/a11y/remediation/inserted',
+        'target' => RemediationAjaxController::class . '::insertedAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_assignment_assign' => [
+        'path' => '/a11y/assignment/assign',
+        'target' => \Priebera\A11yQualityGate\Controller\AssignmentAjaxController::class . '::assignAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_assignment_candidates' => [
+        'path' => '/a11y/assignment/candidates',
+        'target' => \Priebera\A11yQualityGate\Controller\AssignmentAjaxController::class . '::candidatesAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_owner' => [
+        'path' => '/a11y/remediation/owner',
+        'target' => RemediationAjaxController::class . '::ownerAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_remediation_plan' => [
+        'path' => '/a11y/remediation/plan',
+        'target' => RemediationAjaxController::class . '::planAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // AI media (file metadata and image uses in content elements). All read-only: suggestions fill the TYPO3 form and
+    // TYPO3 Save stores them. There is deliberately no route that writes sys_file_metadata (UX Atlas open decision #1).
+    'a11y_ai_media_file_state' => [
+        'path' => '/a11y/ai/media/file-state',
+        'target' => MediaAiAjaxController::class . '::fileStateAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_media_suggest_metadata' => [
+        'path' => '/a11y/ai/media/suggest-metadata',
+        'target' => MediaAiAjaxController::class . '::suggestMetadataAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_media_verify_file' => [
+        'path' => '/a11y/ai/media/verify-file',
+        'target' => MediaAiAjaxController::class . '::verifyFileAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_media_suggest_reference' => [
+        'path' => '/a11y/ai/media/suggest-reference',
+        'target' => MediaAiAjaxController::class . '::suggestReferenceAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_media_verify_reference' => [
+        'path' => '/a11y/ai/media/verify-reference',
+        'target' => MediaAiAjaxController::class . '::verifyReferenceAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
     'a11y_ai_settings_save' => [
         'path' => '/a11y/settings/ai/save',
         'target' => AiSettingsAjaxController::class . '::saveAction',
@@ -79,6 +250,30 @@ return [
     'a11y_ai_settings_link_text_toggle' => [
         'path' => '/a11y/settings/ai/link-text-suggestions/toggle',
         'target' => AiSettingsAjaxController::class . '::toggleLinkTextSuggestionsAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_select_provider' => [
+        'path' => '/a11y/settings/ai/provider/select',
+        'target' => AiSettingsAjaxController::class . '::selectProviderAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_privacy' => [
+        'path' => '/a11y/settings/ai/privacy',
+        'target' => AiSettingsAjaxController::class . '::savePrivacyAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_budget' => [
+        'path' => '/a11y/settings/ai/budget',
+        'target' => AiSettingsAjaxController::class . '::saveBudgetAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_ai_settings_acknowledge' => [
+        'path' => '/a11y/settings/ai/acknowledge',
+        'target' => AiSettingsAjaxController::class . '::acknowledgeProcessingAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],
@@ -142,6 +337,28 @@ return [
         'parameters' => [
             'skipSessionUpdate' => 1,
         ],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // The toolbar assistant: context, stored findings and the actions offered there. Loaded when the dropdown opens.
+    'a11y_toolbar_assistant' => [
+        'path' => '/a11y/toolbar/assistant',
+        'target' => ToolbarScanController::class . '::assistantAction',
+        'methods' => ['GET'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // "Ask AQG": one explicit question about the stored findings of the open context or the readable website.
+    'a11y_toolbar_ask' => [
+        'path' => '/a11y/toolbar/ask',
+        'target' => ToolbarScanController::class . '::askAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // Ask AQG repair workflow: "Prepare fixes" creates AI Fixes items for findings of the resolved target (no AI request,
+    // no content write); suggestions are then generated per item through a11y_remediation_generate and reviewed in AI Fixes.
+    'a11y_toolbar_repair_prepare' => [
+        'path' => '/a11y/toolbar/repair/prepare',
+        'target' => ToolbarScanController::class . '::repairPrepareAction',
+        'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],
     'a11y_pro_crawl_submit' => [
@@ -249,6 +466,19 @@ return [
     'a11y_update_notice_dismiss' => [
         'path' => '/a11y/update-notice/dismiss',
         'target' => UpdateNoticeAjaxController::class . '::dismissAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    'a11y_mcp_pairing_status' => [
+        'path' => '/a11y/settings/mcp/pairing-status',
+        'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::pairingStatusAction',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'web_a11y',
+    ],
+    // Polled by the tab while a fresh connection waits for the connector's first heartbeat ("starting").
+    'a11y_mcp_connection_state' => [
+        'path' => '/a11y/settings/mcp/connection-state',
+        'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::connectionStateAction',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'web_a11y',
     ],

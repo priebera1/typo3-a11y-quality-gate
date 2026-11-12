@@ -69,12 +69,13 @@ final class OverviewTableLayoutTest extends TestCase
     }
 
     #[Test]
-    public function settingsTabsWrapIntoBalancedRows(): void
+    public function settingsTabsStayOnOneScrollableRow(): void
     {
-        self::assertMatchesRegularExpression(
-            '/\.a11y-settings\.aqg-module \.aqg-tabs\{display:block;[^}]*text-wrap:balance\}/',
-            $this->css()
-        );
+        // Owner UX pass 3.0.0: one row with full labels; the row scrolls instead of wrapping into two lines.
+        $css = $this->css();
+        self::assertMatchesRegularExpression('/\.a11y-settings\.aqg-module \.aqg-tabs\{[^}]*overflow-x:auto/', $css);
+        self::assertMatchesRegularExpression('/\.a11y-settings\.aqg-module \.aqg-tabs__list\{display:flex;flex-wrap:nowrap/', $css);
+        self::assertDoesNotMatchRegularExpression('/\.a11y-settings\.aqg-module \.aqg-tabs\{[^}]*text-wrap:balance/', $css);
     }
 
     private function css(): string

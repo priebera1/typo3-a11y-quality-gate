@@ -44,9 +44,10 @@ final class ScanPermissionService
         $pageUid = (int)($status['pageUid'] ?? 0);
         $scopeUid = $pageUid > 0 ? $pageUid : (int)($status['rootPid'] ?? 0);
 
+        // AUTH-02: the same rule as the cancel route (ScopeAccessService::canCancelLocalScan()): page, translation and language.
         return $scopeUid > 0
             && ($this->accessControlService->canShowScanNow() || $this->accessControlService->canShowScanAll())
-            && $this->scopeAccessService->canEditPage($scopeUid);
+            && $this->scopeAccessService->canCancelLocalScan($status);
     }
 
     /**

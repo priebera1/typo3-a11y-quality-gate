@@ -32,6 +32,49 @@ final class RemoteScanPersistenceServiceTest extends TestCase
     }
 
     #[Test]
+    public function aScanThatIsAlreadyPersistedIsNotStoredAgain(): void
+    {
+        $scans = $this->createMock(RemoteScanRepository::class);
+        $scans->method('findScanByJobId')->willReturn(['uid' => 9, 'persisted_at' => 1790000000]);
+        $scans->expects(self::never())->method('claimPersistence');
+        $scans->expects(self::never())->method('upsertScan');
+        $scans->expects(self::never())->method('saveScanPages');
+        $service = new RemoteScanPersistenceService($scans, $this->createMock(RemoteIssueRepository::class), $this->createMock(RemoteIssueNodeRepository::class), $this->createMock(DateTimeService::class));
+
+        self::assertSame(9, $service->persistResults('main', 'job-1', RemoteScanSourceType::SinglePage, 'https://example.org/', null, $this->results()));
+    }
+
+    #[Test]
+    public function aCallerThatLosesTheClaimWritesNothing(): void
+    {
+        $scans = $this->createMock(RemoteScanRepository::class);
+        $scans->method('findScanByJobId')->willReturn(['uid' => 5, 'persisted_at' => 0]);
+        $scans->method('claimPersistence')->willReturn(false);
+        $scans->expects(self::never())->method('upsertScan');
+        $scans->expects(self::never())->method('saveScanPages');
+        $scans->expects(self::never())->method('markPersisted');
+        $service = new RemoteScanPersistenceService($scans, $this->createMock(RemoteIssueRepository::class), $this->createMock(RemoteIssueNodeRepository::class), $this->createMock(DateTimeService::class));
+
+        self::assertSame(5, $service->persistResults('main', 'job-1', RemoteScanSourceType::SinglePage, 'https://example.org/', null, $this->results()));
+    }
+
+    /**
+     * Review P2-2: while another request holds a live claim, the store's transaction holds the scan row lock; a claim
+     * UPDATE would wait for it (up to innodb_lock_wait_timeout). A plain read of the live claim answers at once instead.
+     */
+    #[Test]
+    public function aLiveClaimOfAnotherRequestIsAnsweredWithoutTryingTheLockingClaim(): void
+    {
+        $scans = $this->createMock(RemoteScanRepository::class);
+        $scans->method('findScanByJobId')->willReturn(['uid' => 5, 'persisted_at' => 0, 'persist_claim_until' => time() + 200]);
+        $scans->expects(self::never())->method('claimPersistence');
+        $scans->expects(self::never())->method('saveScanPages');
+        $service = new RemoteScanPersistenceService($scans, $this->createMock(RemoteIssueRepository::class), $this->createMock(RemoteIssueNodeRepository::class), $this->createMock(DateTimeService::class));
+
+        self::assertSame(5, $service->persistResults('main', 'job-1', RemoteScanSourceType::SinglePage, 'https://example.org/', null, $this->results()));
+    }
+
+    #[Test]
     public function anInterruptedPersistNeverMarksTheScanPersisted(): void
     {
         try {
@@ -47,6 +90,12 @@ final class RemoteScanPersistenceServiceTest extends TestCase
     private function service(string $failOnRule = ''): RemoteScanPersistenceService
     {
         $scans = $this->createMock(RemoteScanRepository::class);
+        // NEW-01: the scan row exists and is not persisted; this caller wins the claim and stores in one transaction.
+        $scans->method('findScanByJobId')->willReturn(['uid' => 5, 'persisted_at' => 0]);
+        $scans->method('claimPersistence')->willReturn(true);
+        $connection = $this->createMock(\TYPO3\CMS\Core\Database\Connection::class);
+        $connection->method('transactional')->willReturnCallback(static fn (\Closure $store): mixed => $store());
+        $scans->method('remoteScanConnection')->willReturn($connection);
         $scans->method('upsertScan')->willReturnCallback(function (...$arguments): int {
             // persistedAt is the 18th parameter of upsertScan().
             $this->steps[] = (int)($arguments[17] ?? -1) === 0 ? 'upsert:unpersisted' : 'upsert:persisted';

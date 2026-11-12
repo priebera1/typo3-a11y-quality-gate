@@ -60,6 +60,9 @@ final class ProCrawlerSubmitBindingTest extends TestCase
 
     private ProCrawlerService $proCrawlerService;
     private ScopeAccessService $scopeAccessService;
+    /** @var list<int>|null */
+    private ?array $allowedLanguages = null;
+    private int $storedUrlPageUid = 55;
     private FrontendPageUrlService $frontendPageUrlService;
     private RemoteScanRepository $remoteScanRepository;
     private RemotePageScanTargetResolver $targetResolver;
@@ -80,7 +83,22 @@ final class ProCrawlerSubmitBindingTest extends TestCase
     {
         $this->proCrawlerService = $this->createMock(ProCrawlerService::class);
         $this->scopeAccessService = $this->createMock(ScopeAccessService::class);
+        // The user's languages (S-01 scan admission); null = every language.
+        $this->scopeAccessService->method('canUseLanguage')->willReturnCallback(
+            fn (int $languageUid): bool => $this->allowedLanguages === null || $languageUid < 0 || in_array($languageUid, $this->allowedLanguages, true)
+        );
+        $this->scopeAccessService->method('hasLanguageRestriction')->willReturnCallback(fn (): bool => $this->allowedLanguages !== null);
+        // The shared single-page admission rule (P1-02): edit access to the page and the language here; the live
+        // translation record is covered with real records in Tests/Functional/Security/McpScanAdmissionAuthorizationTest.
+        $this->scopeAccessService->method('canScanPageInLanguage')->willReturnCallback(
+            fn (int $pageUid, int $languageUid): bool => $languageUid >= 0
+                && $this->scopeAccessService->canEditPage($pageUid)
+                && $this->scopeAccessService->canUseLanguage($languageUid)
+        );
         $this->frontendPageUrlService = $this->createMock(FrontendPageUrlService::class);
+        // A stored URL belongs to a TYPO3 page of its site (an unmapped one is administrators-only, covered functionally).
+        $this->frontendPageUrlService->method('resolvePageUidForUrl')->willReturnCallback(fn (): int => $this->storedUrlPageUid);
+        $this->scopeAccessService->method('isPageInSite')->willReturn(true);
         $this->remoteScanRepository = $this->createMock(RemoteScanRepository::class);
         $this->targetResolver = $this->createMock(RemotePageScanTargetResolver::class);
         $this->accessControlService = $this->createMock(AccessControlService::class);
@@ -234,6 +252,42 @@ final class ProCrawlerSubmitBindingTest extends TestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    /**
+     * A stored page of an all-language crawl (-1) is scanned in its recorded owner's language, never in a language
+     * the request names for it (S-01 review): otherwise a language-1 URL could be stored as a language-0 page scan.
+     */
+    #[Test]
+    public function aStoredPageOfAnAllLanguageCrawlIsScannedInItsOwnersLanguage(): void
+    {
+        $this->allowedLanguages = [0];
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->willReturn(true);
+        $this->remoteScanRepository->method('findPageByUid')->willReturn(['uid' => 900, 'remote_scan' => 90, 'url' => 'https://a.example/de/about', 'owner_state' => 1, 'owner_language_uid' => 1]);
+        $this->remoteScanRepository->method('findScanByUid')->willReturn(['uid' => 90, 'site_identifier' => 'client-a', 'language_uid' => -1]);
+        $this->targetResolver->method('resolveScanPageUid')->willReturn(10);
+        $this->proCrawlerService->expects(self::never())->method('submit');
+
+        $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10, 'remotePageUid' => 900, 'languageUid' => 0]));
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function aStoredPageOfUnknownLanguageIsRefusedToALanguageRestrictedUser(): void
+    {
+        $this->allowedLanguages = [0, 1];
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->willReturn(true);
+        $this->remoteScanRepository->method('findPageByUid')->willReturn(['uid' => 900, 'remote_scan' => 90, 'url' => 'https://a.example/about', 'owner_state' => 2, 'owner_language_uid' => -1]);
+        $this->remoteScanRepository->method('findScanByUid')->willReturn(['uid' => 90, 'site_identifier' => 'client-a', 'language_uid' => -1]);
+        $this->targetResolver->method('resolveScanPageUid')->willReturn(10);
+        $this->proCrawlerService->expects(self::never())->method('submit');
+
+        $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10, 'remotePageUid' => 900, 'languageUid' => 0]));
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
     #[Test]
     public function singlePageScansNeedScanNowButNotScanAll(): void
     {
@@ -250,6 +304,21 @@ final class ProCrawlerSubmitBindingTest extends TestCase
     }
 
     #[Test]
+    public function aPageScanInALanguageTheUserMayNotUseIsRefusedBeforeSubmission(): void
+    {
+        // S-01: the default language 0 is a concrete language like any other.
+        $this->allowedLanguages = [1];
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->willReturn(true);
+        $this->frontendPageUrlService->method('resolveForPage')->willReturn('https://a.example/about');
+        $this->proCrawlerService->expects(self::never())->method('submit');
+
+        $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10, 'languageUid' => 0]));
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    #[Test]
     public function singlePageScansAreRefusedWithoutScanNow(): void
     {
         $this->accessControlService->method('canShowScanNow')->willReturn(false);
@@ -259,6 +328,83 @@ final class ProCrawlerSubmitBindingTest extends TestCase
         $response = $this->controller()->submitPageAction($this->request(['pageUid' => 10]));
 
         self::assertSame(403, $response->getStatusCode());
+    }
+
+    /**
+     * Atlas D9: whether a page scan is a preview scan follows from the bound page as stored in TYPO3 (visitors cannot
+     * open it), decided at submit time. No request parameter can turn a hidden page public or a visible page preview.
+     */
+    #[Test]
+    public function aHiddenPageIsStoredAsAPreviewScanWhateverTheRequestSays(): void
+    {
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->with(11)->willReturn(true);
+        $this->frontendPageUrlService->method('resolveForPage')->willReturn('https://a.example/draft');
+        $this->targetResolver->expects(self::once())->method('isPreviewTarget')->with(11, 0)->willReturn(true);
+        $this->proCrawlerService->method('submit')
+            ->willReturn(new CrawlerSubmitResult('11111111-1111-4111-8111-111111111111', 'queued', 'single_page', null));
+        $this->remoteScanRepository->expects(self::once())->method('markSubmitted')
+            ->with(self::anything(), self::anything(), self::anything(), self::anything(), self::anything(), self::anything(), 'page', 11, self::anything(), 0, false, true)
+            ->willReturn(1);
+
+        $response = $this->controller()->submitPageAction($this->request([
+            'pageUid' => 11,
+            'pagePreview' => 0,
+            'isPagePreview' => 0,
+            'is_page_preview' => 0,
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertTrue($this->decode($response)['pagePreview']);
+    }
+
+    /**
+     * The Scanner Token opens hidden pages only. A page outside its start/stop time or limited to frontend groups would
+     * give the crawler its error page, so the scan is refused before a job exists, and no restriction is loosened.
+     */
+    #[Test]
+    public function aScheduledOrGroupRestrictedPageIsRefusedBeforeAnyJobIsSubmitted(): void
+    {
+        foreach (['scheduled', 'restricted'] as $restriction) {
+            $this->setUp();
+            $this->allowScanNow();
+            $this->scopeAccessService->method('canEditPage')->with(11)->willReturn(true);
+            $this->frontendPageUrlService->method('resolveForPage')->willReturn('https://a.example/launch');
+            $this->targetResolver->method('unsupportedPreviewRestriction')->with(11, 0)->willReturn($restriction);
+            $this->proCrawlerService->expects(self::never())->method('submit');
+            $this->remoteScanRepository->expects(self::never())->method('markSubmitted');
+
+            $response = $this->controller()->submitPageAction($this->request(['pageUid' => 11]));
+            $payload = $this->decode($response);
+
+            self::assertSame(422, $response->getStatusCode());
+            self::assertSame(['preview_unsupported', $restriction], [$payload['code'], $payload['details']['restriction']]);
+            self::assertStringContainsString($restriction === 'scheduled' ? 'publication period' : 'frontend user groups', $payload['message']);
+        }
+    }
+
+    #[Test]
+    public function aVisiblePageIsStoredAsAPublicScanWhateverTheRequestSays(): void
+    {
+        $this->allowScanNow();
+        $this->scopeAccessService->method('canEditPage')->with(10)->willReturn(true);
+        $this->frontendPageUrlService->method('resolveForPage')->willReturn('https://a.example/about');
+        $this->targetResolver->method('isPreviewTarget')->with(10, 0)->willReturn(false);
+        $this->proCrawlerService->method('submit')
+            ->willReturn(new CrawlerSubmitResult('11111111-1111-4111-8111-111111111111', 'queued', 'single_page', null));
+        $this->remoteScanRepository->expects(self::once())->method('markSubmitted')
+            ->with(self::anything(), self::anything(), self::anything(), self::anything(), self::anything(), self::anything(), 'page', 10, self::anything(), 0, false, false)
+            ->willReturn(1);
+
+        $response = $this->controller()->submitPageAction($this->request([
+            'pageUid' => 10,
+            'pagePreview' => 1,
+            'isPagePreview' => 1,
+            'is_page_preview' => 1,
+        ]));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertFalse($this->decode($response)['pagePreview']);
     }
 
     #[Test]
@@ -557,7 +703,6 @@ final class ProCrawlerSubmitBindingTest extends TestCase
             reason: $this->licenceReason,
             reasonLabel: null,
             statusLabel: '',
-            showProHints: false,
             hasCrawler: true,
             hasExportPdf: true,
             hasMultiSite: false,

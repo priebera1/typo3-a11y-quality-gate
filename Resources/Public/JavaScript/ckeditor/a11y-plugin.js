@@ -1,4 +1,20 @@
 import { Plugin } from '@ckeditor/ckeditor5-core';
+import { EditorAiSession } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-session.js';
+import { StagedRemediation, reportInserted } from '@priebera/a11y-quality-gate/remediation/editor-staging.js';
+import { EditorAiOutcome } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-outcome.js';
+import { EditorAiReviewDialog } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-review-dialog.js';
+import { EditorAiWriting } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-writing.js';
+import { SHEET_BREAKPOINT, computePopoverPlacement, sheetScrollDelta } from '@priebera/a11y-quality-gate/editor-ai/popover-placement.js';
+import {
+    applyCkeditorChange,
+    canChangeHeadingLevel,
+    currentSignature,
+    isOnUndoStack,
+    isStale as isCkeditorTargetStale,
+    matchesSignature,
+    locateCkeditorTarget,
+    releaseTarget,
+} from '@priebera/a11y-quality-gate/editor-ai/ckeditor-target.js';
 
 const MAX_SNIPPET = 120;
 const MAX_LIVE_VALIDATION_HTML_SIZE = 500000;
@@ -20,6 +36,22 @@ const ELEMENT_FALLBACK_RULES = [
     'rte.empty_heading',
     'rte.heading_hierarchy_jump',
 ];
+
+
+/**
+ * TYPO3 refuses a route that inherits access from the Accessibility module with an empty 403. AQG's own 403 (record
+ * access) carries a JSON answer and stays a visible failure.
+ */
+async function isModuleAccessDenial(response) {
+    if (response.status !== 403) {
+        return false;
+    }
+    try {
+        return (await response.clone().text()).trim() === '';
+    } catch {
+        return false;
+    }
+}
 
 export default class A11yPlugin extends Plugin {
     static get pluginName() {
@@ -57,6 +89,37 @@ export default class A11yPlugin extends Plugin {
         // stored result of the last content scan.
         this._resultSource = 'live';
         this._ready = false;
+        // TYPO3 refused AQG's endpoints for this user (403, no access to the Accessibility module): the feedback
+        // stays off for this editor instance instead of showing an error and asking again after every pause.
+        this._accessDenied = false;
+        // Editor AI: one session per finding (kept while the popover closes and reopens), the outcome of applied
+        // changes, and a live region for announcements.
+        this._aiSessions = new Map();
+        // Applied, unsaved changes by finding key: the issue and the adapter that holds the locked element.
+        this._aiApplied = new Map();
+        this._aiOutcome = null;
+        this._aiLiveRegion = null;
+        this._aiLockSequence = 0;
+        // A change approved in AQG's AI fixes queue for exactly this record and field (?aqgRemediation=<item>).
+        const stagingConfig = editor.config.get('a11yQualityGate') ?? {};
+        this._staged = new StagedRemediation({
+            table: 'tt_content',
+            uid: stagingConfig.recordUid,
+            field: stagingConfig.fieldName,
+            label: (key, fallback) => this._label(key, fallback),
+            announce: (text) => this._announce(text),
+        });
+        const aiConfig = (editor.config.get('a11yQualityGate') ?? {}).ai ?? {};
+        this._aiWriting = aiConfig.state === 'ready' && aiConfig.writing === true
+            ? new EditorAiWriting({
+                editor,
+                config: aiConfig,
+                label: (key, fallback) => this._label(key, fallback),
+                announce: (text) => this._announce(text),
+                recordUid: (editor.config.get('a11yQualityGate') ?? {}).recordUid,
+                fieldName: (editor.config.get('a11yQualityGate') ?? {}).fieldName,
+            })
+            : null;
 
         editor.conversion.for('editingDowncast').markerToHighlight({
             model: 'a11yIssue',
@@ -90,17 +153,20 @@ export default class A11yPlugin extends Plugin {
         editor.model.document.on('change:data', () => {
             // CKEditor loads the initial content as a data change before the editor is ready. That is not an
             // edit: the first result is the live check started on ready.
-            if (!this._ready) {
+            if (!this._ready || this._accessDenied) {
                 return;
             }
             this._scheduleCachedHighlightRefresh();
             this._scheduleValidationRefresh();
+            this._aiSessions.forEach((session) => session.checkStale());
         });
 
         editor.on('ready', () => {
             this._installSummaryBar();
             this._installGutter();
             this._installDecorationObserver();
+            this._installAiOutcome();
+            this._installIssueKeystrokes();
             this._ready = true;
             this._fetchLiveValidation({ initial: true });
         });
@@ -113,9 +179,14 @@ export default class A11yPlugin extends Plugin {
             window.clearTimeout(this._validationRefreshTimer ?? undefined);
             window.clearTimeout(this._cachedHighlightTimer ?? undefined);
             this._liveValidationAbortController?.abort();
+            this._aiSessions.forEach((session) => session.destroy());
+            this._aiSessions.clear();
         });
 
         editor.on('a11y:refresh', () => {
+            if (this._accessDenied) {
+                return;
+            }
             this._fetchLiveValidation({ initial: true });
         });
     }
@@ -157,6 +228,11 @@ export default class A11yPlugin extends Plugin {
                 },
                 credentials: 'same-origin',
             });
+
+            if (await isModuleAccessDenial(response)) {
+                this._disableForMissingAccess();
+                return;
+            }
 
             if (!response.ok) {
                 console.warn('[A11Y] Issues fetch failed', response.status, response.url);
@@ -340,6 +416,10 @@ export default class A11yPlugin extends Plugin {
 
     _findDomTargetsForIssue(editable, issue) {
         const ruleId = String(issue.ruleId ?? '');
+        const exact = this._exactDomTarget(editable, issue);
+        if (exact) {
+            return [exact];
+        }
 
         switch (ruleId) {
             case 'rte.link_new_window_no_warning':
@@ -388,6 +468,20 @@ export default class A11yPlugin extends Plugin {
             default:
                 return [];
         }
+    }
+
+    /**
+     * The finding's own element when the live check identified it (aiTarget: tag, occurrence, total) and the editing
+     * view shows exactly that many elements of the tag; identical duplicates then get their own marker.
+     */
+    _exactDomTarget(editable, issue) {
+        const target = issue?.aiTarget;
+        if (!target || !target.tag) {
+            return null;
+        }
+        const candidates = Array.from(editable.querySelectorAll(target.tag))
+            .filter((element) => !element.closest('.ck-widget__type-around, .ck-widget__resizer, .ck-fake-selection-container'));
+        return candidates.length === target.total ? candidates[target.occurrence] ?? null : null;
     }
 
     _findTablesMissingHeaders(editable, issue) {
@@ -871,7 +965,13 @@ export default class A11yPlugin extends Plugin {
 
         const editable = this.editor.ui.getEditableElement();
         editable?.addEventListener('scroll', () => this._scheduleGutterRender(), { passive: true });
-        window.addEventListener('resize', () => this._scheduleGutterRender(), { passive: true });
+        // A resize keeps the open panel (and its suggestion) and places it again for the new window.
+        window.addEventListener('resize', () => {
+            this._scheduleGutterRender();
+            if (this._popover) {
+                window.requestAnimationFrame(() => this._positionPopover());
+            }
+        }, { passive: true });
         this.editor.ui.on('update', () => this._scheduleGutterRender());
 
         if (this.editor.plugins.has('SourceEditing')) {
@@ -944,7 +1044,8 @@ export default class A11yPlugin extends Plugin {
             return;
         }
 
-        const groups = this._isSourceEditingMode() || this._currentIssues.length === 0 ? [] : this._collectGutterGroups(editable);
+        const issueGroups = this._isSourceEditingMode() || this._currentIssues.length === 0 ? [] : this._collectGutterGroups(editable);
+        const groups = this._gutterGroupsWithApplied(editable, issueGroups);
         editorElement.classList.toggle('ck-a11y-has-gutter', groups.length > 0);
         gutter.hidden = groups.length === 0;
 
@@ -964,7 +1065,8 @@ export default class A11yPlugin extends Plugin {
         let lastTop = -Infinity;
         groups.forEach((group, index) => {
             const entries = group.entries;
-            const severity = entries
+            const open = entries.filter((entry) => !entry.applied);
+            const severity = open
                 .map((entry) => this._normalizeSeverity(entry.issue.severity))
                 .sort((a, b) => this._severityRank(b) - this._severityRank(a))[0] ?? 'warning';
             const top = Math.max(group.top - editable.scrollTop + 2, lastTop + 24);
@@ -978,14 +1080,29 @@ export default class A11yPlugin extends Plugin {
             chip.style.top = `${Math.round(top)}px`;
             chip.setAttribute('aria-haspopup', 'dialog');
             chip.setAttribute('aria-expanded', 'false');
-            const first = entries[0].issue;
+            const first = (open[0] ?? entries[0]).issue;
             chip.setAttribute('aria-label', entries.length === 1
                 ? this._label('chipOne', 'Accessibility: %s. Show how to fix it').replace('%s', `${this._severityLabel(first.severity)}, ${String(first.message || first.ruleId).replace(/[.!?]+$/, '')}`)
                 : this._label('chipMany', 'Accessibility: %d issues here. Show how to fix them').replace('%d', String(entries.length)));
             chip.title = entries.length === 1
                 ? `${this._severityLabel(first.severity)} · ${first.message || first.ruleId}`
                 : this._label('issuesOnElement', '%d issues on this element').replace('%d', String(entries.length));
-            chip.innerHTML = `<span class="ck-a11y-chip__icon" aria-hidden="true"></span>${entries.length > 1 ? `<span class="ck-a11y-chip__count" aria-hidden="true">${entries.length}</span>` : ''}`;
+            const aiEligible = open.some((entry) => EditorAiSession.offersFix(entry.issue, this._aiConfig()));
+            if (aiEligible) {
+                chip.classList.add('ck-a11y-chip--ai');
+                chip.setAttribute('aria-label', `${chip.getAttribute('aria-label')}. ${this._label('aiFixAvailable', 'AI fix available')}`);
+            }
+            chip.innerHTML = `<span class="ck-a11y-chip__icon" aria-hidden="true"></span>${entries.length > 1 ? `<span class="ck-a11y-chip__count" aria-hidden="true">${entries.length}</span>` : ''}${aiEligible ? '<span class="ck-a11y-chip__wand" aria-hidden="true"></span>' : ''}`;
+            // D2 "In text, unsaved": a dashed blue marker; with other issues in the block, a dashed border on theirs.
+            if (open.length === 0) {
+                chip.className = 'ck-a11y-chip ck-a11y-chip--inserted';
+                chip.setAttribute('aria-label', this._label('aiChipInserted', 'AI change applied, not saved. Show details.'));
+                chip.title = this._label('aiApplied', 'Applied to the text — not saved yet');
+                chip.innerHTML = '<span class="ck-a11y-chip__icon" aria-hidden="true"></span>';
+            } else if (open.length < entries.length) {
+                chip.classList.add('ck-a11y-chip--has-inserted');
+                chip.setAttribute('aria-label', `${chip.getAttribute('aria-label')}. ${this._label('aiChipInserted', 'AI change applied, not saved. Show details.')}`);
+            }
             this._chipEntries.set(chip, entries);
             this._chipBlocks.set(chip, group.block);
             gutter.append(chip);
@@ -1001,6 +1118,17 @@ export default class A11yPlugin extends Plugin {
      */
     _refreshOpenPopover(blockKey) {
         if (!this._popover) {
+            return;
+        }
+        // The gutter was rebuilt: the panel follows the new marker of its block, also while it is pinned below.
+        const renderedChip = blockKey !== '' ? this._gutter?.querySelector(`.ck-a11y-chip[data-a11y-block-key="${CSS.escape(blockKey)}"]`) : null;
+        if (renderedChip && this._popoverScope !== 'all') {
+            this._popoverAnchor = renderedChip;
+            renderedChip.setAttribute('aria-expanded', 'true');
+        }
+        // An applied AI change keeps its panel (outcome, Undo) until the editor closes it, although the live check no
+        // longer reports the finding.
+        if (this._popover.querySelector('.aqg-ai[data-state="applied"], .aqg-ai[data-state="generating"], .aqg-ai[data-state="explaining"], .aqg-ai[data-state="stale"]')) {
             return;
         }
 
@@ -1065,9 +1193,15 @@ export default class A11yPlugin extends Plugin {
                 event.preventDefault();
                 event.stopPropagation();
                 this._closePopover({ returnFocus: 'invoker' });
+            } else if (event.key === 'F8' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                // The opened panel holds the focus: F8 / Shift+F8 keep moving through the markers from here.
+                event.preventDefault();
+                event.stopPropagation();
+                this._openAdjacentIssue(event.shiftKey ? -1 : 1);
             }
         });
         popover.addEventListener('click', (event) => this._onPopoverClick(event));
+        popover.addEventListener('aqg-ai:rendered', () => this._positionPopover());
 
         this._popover = popover;
         this._popoverAnchor = anchor;
@@ -1126,31 +1260,69 @@ export default class A11yPlugin extends Plugin {
         popover.dataset.entriesKey = key;
         this._popoverEntries = entries;
         const titleId = popover.dataset.titleId ?? '';
-        const title = entries.length === 1
-            ? this._label('accessibilityIssue', 'Accessibility issue')
-            : this._label('issuesFoundOther', '%d issues found').replace('%d', String(entries.length));
+        // Atlas 02 · A: one finding opens with its severity badge, the "n of m" pager and the plain rule name as
+        // the title; a block or "Show issues" with several findings keeps the count as its title.
+        const single = entries.length === 1 && this._popoverScope !== 'all';
+        const title = single
+            ? this._issueTitle(entries[0].issue)
+            : (entries.length === 1
+                ? this._label('issuesFoundOne', '%d issue found')
+                : this._label('issuesFoundOther', '%d issues found')).replace('%d', String(entries.length));
         const severity = entries
             .map((entry) => this._normalizeSeverity(entry.issue.severity))
             .sort((a, b) => this._severityRank(b) - this._severityRank(a))[0] ?? 'warning';
+        const close = `<button type="button" class="ck-a11y-popover__close" data-a11y-popover-close="1" aria-label="${this._labelHtml('close', 'Close')}"><span aria-hidden="true">×</span></button>`;
+        const heading = `<h3 class="ck-a11y-popover__title" id="${titleId}" tabindex="-1">${this._escapeHtml(title)}</h3>`;
 
-        popover.className = `ck-a11y-popover ck-a11y-popover--${severity}${popover.classList.contains('ck-a11y-popover--narrow') ? ' ck-a11y-popover--narrow' : ''}`;
+        // The placement classes belong to _positionPopover(); a refill keeps them.
+        const placement = Array.from(popover.classList).filter((name) => /^ck-a11y-popover--(narrow|sheet|above|clamped)$/.test(name));
+        popover.className = ['ck-a11y-popover', `ck-a11y-popover--${severity}`, ...placement].join(' ');
         popover.innerHTML = `
-            <div class="ck-a11y-popover__head">
-                <h3 class="ck-a11y-popover__title" id="${titleId}" tabindex="-1">${this._escapeHtml(title)}</h3>
-                <button type="button" class="ck-a11y-popover__close" data-a11y-popover-close="1" aria-label="${this._labelHtml('close', 'Close')}">
-                    <span aria-hidden="true">×</span>
-                </button>
+            <div class="ck-a11y-popover__head${single ? ' ck-a11y-popover__head--single' : ''}">
+                ${single ? this._severityBadgeHtml(severity) : heading}
+                ${this._popoverPagerHtml()}
+                ${close}
             </div>
+            ${single ? heading : ''}
             <ol class="ck-a11y-popover__list">
-                ${entries.map((entry, index) => this._popoverItemHtml(entry, index)).join('')}
+                ${entries.map((entry, index) => this._popoverItemHtml(entry, index, single)).join('')}
             </ol>
         `;
+        this._mountAiSessions(popover, entries);
         if (focusWasInside) {
             popover.querySelector('.ck-a11y-popover__title')?.focus({ preventScroll: true });
         }
     }
 
-    _popoverItemHtml(entry, index) {
+    /** The plain rule name of a finding (`rule.<id>.title` via the live check), else its message. */
+    _issueTitle(issue) {
+        return issue.ruleTitle || issue.message || issue.ruleId || this._label('accessibilityIssue', 'Accessibility issue');
+    }
+
+    _severityBadgeHtml(severity) {
+        return `<span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}"><span class="ck-a11y-panel__severity-dot" aria-hidden="true"></span>${this._escapeHtml(this._severityLabel(severity))}</span>`;
+    }
+
+    /** "2 of 4" with previous/next: the markers of this field, in the order F8 steps through them. */
+    _popoverPagerHtml() {
+        if (this._popoverScope === 'all' || !this._gutter) {
+            return '';
+        }
+        const chips = Array.from(this._gutter.querySelectorAll('.ck-a11y-chip'));
+        const index = chips.indexOf(this._popoverAnchor);
+        if (chips.length < 2 || index < 0) {
+            return '';
+        }
+        const position = this._label('popoverPosition', '%1$d of %2$d').replace('%1$d', String(index + 1)).replace('%2$d', String(chips.length));
+
+        return `<span class="ck-a11y-popover__pager">
+                <button type="button" class="ck-a11y-popover__step ck-a11y-popover__step--prev" data-a11y-popover-step="-1" aria-label="${this._labelHtml('previousIssue', 'Previous issue')}" aria-keyshortcuts="Shift+F8"><span aria-hidden="true"></span></button>
+                <span class="ck-a11y-popover__position">${this._escapeHtml(position)}</span>
+                <button type="button" class="ck-a11y-popover__step ck-a11y-popover__step--next" data-a11y-popover-step="1" aria-label="${this._labelHtml('nextIssue', 'Next issue')}" aria-keyshortcuts="F8"><span aria-hidden="true"></span></button>
+            </span>`;
+    }
+
+    _popoverItemHtml(entry, index, single = false) {
         const issue = entry.issue;
         const severity = this._normalizeSeverity(issue.severity);
         const canIgnore = (issue.fingerprint ?? '') !== '' && !(issue.issueCount > 1);
@@ -1163,12 +1335,11 @@ export default class A11yPlugin extends Plugin {
 
         return `
             <li class="ck-a11y-popover__issue">
-                <span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}">
-                    <span class="ck-a11y-panel__severity-dot" aria-hidden="true"></span>${this._escapeHtml(this._severityLabel(severity))}
-                </span>
-                <p class="ck-a11y-popover__message">${this._escapeHtml(issue.message || issue.ruleId || this._label('accessibilityIssue', 'Accessibility issue'))}</p>
+                ${single ? '' : `${this._severityBadgeHtml(severity)}<p class="ck-a11y-popover__rule">${this._escapeHtml(this._issueTitle(issue))}</p>`}
+                ${issue.message && issue.message !== this._issueTitle(issue) ? `<p class="ck-a11y-popover__message">${this._escapeHtml(issue.message)}</p>` : ''}
                 <p class="ck-a11y-popover__fix"><strong>${this._labelHtml('howToFix', 'How to fix')}:</strong> ${this._escapeHtml(issue.hint || this._label('noGuidance', 'No editor guidance is available for this rule yet. Review the highlighted content and the rule details below.'))}</p>
                 ${details !== '' ? `<details class="ck-a11y-popover__details"><summary>${this._labelHtml('showDetails', 'Show details')}</summary><div class="ck-a11y-panel__details">${details}</div></details>` : ''}
+                ${this._aiSlotHtml(issue, index)}
                 <div class="ck-a11y-popover__actions">
                     ${canSelect ? `<button type="button" class="ck-a11y-panel__btn" data-a11y-select="${index}">${this._labelHtml('selectInText', 'Select in text')}</button>` : ''}
                     ${canIgnore ? `<button type="button" class="ck-a11y-panel__btn ck-a11y-panel__btn--ghost" data-a11y-ignore="${index}">${this._labelHtml('ignoreIssue', 'Ignore this issue')}</button>` : ''}
@@ -1185,6 +1356,13 @@ export default class A11yPlugin extends Plugin {
 
         if (target.closest('[data-a11y-popover-close]')) {
             this._closePopover({ returnFocus: 'invoker' });
+            return;
+        }
+
+        const step = target.closest('[data-a11y-popover-step]');
+        if (step) {
+            this._openAdjacentIssue(Number(step.getAttribute('data-a11y-popover-step')) < 0 ? -1 : 1);
+            this._popover?.querySelector(`[data-a11y-popover-step="${step.getAttribute('data-a11y-popover-step')}"]`)?.focus({ preventScroll: true });
             return;
         }
 
@@ -1240,6 +1418,12 @@ export default class A11yPlugin extends Plugin {
         editor.editing.view.scrollToTheSelection();
     }
 
+    /**
+     * Places the open panel so that all of it, above all its action row, is in view (Atlas 02 · A, audit F-03):
+     * below the marker, above it, or shifted into the window; a narrow editor docks it as a bottom sheet with the
+     * marked text scrolled into view above it (02 · F, F-38). Called on open, when its content changes (a
+     * suggestion is taller than the two buttons it replaces) and on window resize.
+     */
     _positionPopover() {
         const popover = this._popover;
         const host = this._gutterHost;
@@ -1248,15 +1432,101 @@ export default class A11yPlugin extends Plugin {
         }
 
         const hostRect = host.getBoundingClientRect();
-        const anchorRect = this._popoverAnchor instanceof Element ? this._popoverAnchor.getBoundingClientRect() : hostRect;
-        const narrow = hostRect.width < 460;
-        popover.classList.toggle('ck-a11y-popover--narrow', narrow);
-        const fromSummary = this._popoverScope === 'all';
-        const top = fromSummary ? 4 : Math.max(4, anchorRect.bottom - hostRect.top + 4);
-        popover.style.top = `${Math.round(top)}px`;
-        // Never taller than the space left in the window: the panel scrolls inside instead.
-        const spaceBelow = window.innerHeight - (hostRect.top + top) - 12;
-        popover.style.maxHeight = `${Math.max(180, Math.round(spaceBelow))}px`;
+        const anchor = this._popoverAnchor instanceof Element && this._popoverAnchor.isConnected ? this._popoverAnchor : null;
+        const sheet = hostRect.width < SHEET_BREAKPOINT;
+        popover.classList.toggle('ck-a11y-popover--sheet', sheet);
+        popover.classList.toggle('ck-a11y-popover--narrow', sheet);
+        popover.classList.remove('ck-a11y-popover--clamped', 'ck-a11y-popover--above');
+        popover.style.maxHeight = '';
+        if (!sheet && !anchor && this._popoverScope !== 'all' && popover.style.top !== '') {
+            // The marker went away (an applied change): the panel stays where it is.
+            return;
+        }
+
+        const placement = computePopoverPlacement({
+            anchorRect: (anchor ?? host).getBoundingClientRect(),
+            hostRect,
+            popoverHeight: popover.scrollHeight,
+            viewportHeight: window.innerHeight,
+            topLimit: this._stickyHeaderBottom(),
+            fromSummary: this._popoverScope === 'all',
+        });
+        popover.dataset.placement = placement.mode;
+        popover.style.top = placement.top === null ? '' : `${placement.top}px`;
+        if (placement.maxHeight !== null && (sheet || popover.scrollHeight > placement.maxHeight)) {
+            popover.style.maxHeight = `${placement.maxHeight}px`;
+            popover.classList.add('ck-a11y-popover--clamped');
+        }
+        popover.classList.toggle('ck-a11y-popover--above', placement.mode === 'above');
+        if (sheet) {
+            this._keepTargetAboveSheet(popover, anchor);
+        } else {
+            this._removeSheetSpacer();
+        }
+    }
+
+    /**
+     * Room below the editor while the bottom sheet is open: without it a finding near the end of the form could not
+     * be scrolled above the sheet. Removed when the sheet closes.
+     */
+    _ensureSheetSpacer(height) {
+        const editorElement = this.editor.ui.view.element;
+        if (!editorElement?.parentElement) {
+            return;
+        }
+        if (!this._sheetSpacer) {
+            this._sheetSpacer = document.createElement('div');
+            this._sheetSpacer.className = 'ck-a11y-sheet-spacer';
+            this._sheetSpacer.setAttribute('aria-hidden', 'true');
+        }
+        if (this._sheetSpacer.previousElementSibling !== editorElement) {
+            editorElement.after(this._sheetSpacer);
+        }
+        this._sheetSpacer.style.height = `${Math.round(height)}px`;
+    }
+
+    _removeSheetSpacer() {
+        this._sheetSpacer?.remove();
+    }
+
+    /**
+     * Top of the visible part of the form: below TYPO3's document header (Save, Close), whether it is sticky or the
+     * form scrolls in its own container under it. The panel never hides behind it.
+     */
+    _stickyHeaderBottom() {
+        let top = 0;
+        const header = document.querySelector('.module-docheader');
+        if (header instanceof HTMLElement && ['sticky', 'fixed'].includes(window.getComputedStyle(header).position)) {
+            top = header.getBoundingClientRect().bottom;
+        }
+        for (let element = this._gutterHost?.parentElement ?? null; element && element !== document.body; element = element.parentElement) {
+            if (/(auto|scroll)/.test(window.getComputedStyle(element).overflowY) && element.scrollHeight > element.clientHeight) {
+                top = Math.max(top, element.getBoundingClientRect().top);
+                break;
+            }
+        }
+        return Math.max(0, top);
+    }
+
+    /** The marked text stays visible above the bottom sheet: its block is scrolled into the space above it. */
+    _keepTargetAboveSheet(popover, anchor) {
+        const block = (anchor && this._chipBlocks?.get(anchor)) || null;
+        if (!(block instanceof HTMLElement)) {
+            return;
+        }
+        const sheetHeight = popover.getBoundingClientRect().height;
+        const topLimit = this._stickyHeaderBottom();
+        this._ensureSheetSpacer(sheetHeight);
+        const delta = sheetScrollDelta({ targetRect: block.getBoundingClientRect(), viewportHeight: window.innerHeight, sheetHeight, topLimit });
+        if (delta === 0) {
+            return;
+        }
+        // scroll-margin makes every scroll container (editable, FormEngine, document) leave room for the sheet.
+        block.style.scrollMarginBottom = `${Math.round(sheetHeight + 12)}px`;
+        block.style.scrollMarginTop = `${Math.round(topLimit + 12)}px`;
+        block.scrollIntoView({ block: 'nearest' });
+        block.style.scrollMarginBottom = '';
+        block.style.scrollMarginTop = '';
     }
 
     /**
@@ -1275,6 +1545,7 @@ export default class A11yPlugin extends Plugin {
         this._outsidePointer = null;
         this._escapeListener = null;
         popover.remove();
+        this._removeSheetSpacer();
         this._popover = null;
         this._popoverAnchor = null;
         this._popoverEntries = [];
@@ -1326,8 +1597,25 @@ export default class A11yPlugin extends Plugin {
             if (!(event.target instanceof Element)) {
                 return;
             }
+            if (this._aiOutcome?.handleClick(event.target)) {
+                return;
+            }
             if (event.target.closest('[data-a11y-refresh]')) {
                 this.editor.fire('a11y:refresh');
+                return;
+            }
+            if (event.target.closest('[data-a11y-next-issue]')) {
+                this._openAdjacentIssue(1);
+                return;
+            }
+            const writingButton = event.target.closest('[data-a11y-writing]');
+            if (writingButton && this._aiWriting) {
+                this._aiWriting.toggleMenu(writingButton);
+                return;
+            }
+            const reviewButton = event.target.closest('[data-a11y-review-fixes]');
+            if (reviewButton) {
+                this._openReviewDialog(reviewButton);
                 return;
             }
             const showButton = event.target.closest('[data-a11y-show-issues]');
@@ -1354,7 +1642,10 @@ export default class A11yPlugin extends Plugin {
         this._summaryElement.setAttribute('aria-busy', state === 'loading' || state === 'updating' ? 'true' : 'false');
         const summaryHadFocus = this._summaryElement.contains(document.activeElement);
         const showIssuesWasOpen = this._popover !== null && this._popoverScope === 'all';
+        this._summaryState = state;
+        this._summaryIssues = issues;
         this._renderSummaryContent(state, issues);
+        this._renderSummaryOutcome();
         const showButton = this._summaryElement.querySelector('[data-a11y-show-issues]');
         if (showIssuesWasOpen && this._popover) {
             if (showButton) {
@@ -1364,6 +1655,33 @@ export default class A11yPlugin extends Plugin {
         }
         if (summaryHadFocus) {
             (showButton ?? this._summaryElement.querySelector('button'))?.focus();
+        }
+    }
+
+    /**
+     * The outcome of applied AI changes lives inside the summary bar ("1 unsaved", "Checking the saved content…",
+     * "1 resolved"), never in a block of its own: the editor keeps its height. A settled outcome's reason replaces
+     * the bar's generic hint.
+     */
+    _renderSummaryOutcome() {
+        const html = this._aiOutcome?.barHtml() ?? '';
+        if (html === '') {
+            return;
+        }
+        // The live check's own failure notes stay readable; only the generic hints give way.
+        if (this._aiOutcome.hasHelp() && !['error', 'stored', 'storedOk'].includes(this._summaryState)) {
+            this._summaryElement.querySelectorAll('.ck-a11y-summary__help').forEach((help) => help.remove());
+        }
+        const left = this._summaryElement.querySelector('.ck-a11y-summary__left') ?? this._summaryElement;
+        const title = left.querySelector('.ck-a11y-summary__title');
+        if (title) {
+            // Atlas 02 · A: "1 unsaved" / "1 resolved" takes the title's place, so the bar keeps one line. The
+            // count stays for screen readers (the outcome label is announced through the live region).
+            title.classList.add('ck-a11y-summary__title--replaced');
+            this._summaryElement.classList.add('ck-a11y-summary--has-outcome');
+            title.insertAdjacentHTML('afterend', html);
+        } else {
+            left.insertAdjacentHTML('beforeend', html);
         }
     }
 
@@ -1426,7 +1744,7 @@ export default class A11yPlugin extends Plugin {
                     <span class="ck-a11y-summary__title">${this._labelHtml('passed', 'Accessibility check passed')}</span>
                     <span class="ck-a11y-summary__help">${this._labelHtml('passedHelp', 'No issues found in this field.')}</span>
                 </span>
-                <span class="ck-a11y-summary__right">${this._labelHtml('lastChecked', 'Last checked just now')}</span>
+                <span class="ck-a11y-summary__right">${this._labelHtml('lastChecked', 'Last checked just now')}${this._aiWriting?.buttonHtml() ?? ''}</span>
             `;
             return;
         }
@@ -1455,6 +1773,9 @@ export default class A11yPlugin extends Plugin {
                     ? this._labelHtml('storedResultsHelp', 'Live check unavailable: these results are from the last content scan and may not match the current text.')
                     : this._labelHtml('selectHighlight', 'Open a marker at the right edge of the text to see how to fix it.')}</span>
                 <button class="ck-a11y-summary__link" type="button" data-a11y-show-issues="1" aria-haspopup="dialog" aria-expanded="false">${this._labelHtml('showIssues', 'Show issues')}</button>
+                <button class="ck-a11y-summary__link ck-a11y-summary__next" type="button" data-a11y-next-issue="1" aria-keyshortcuts="F8" title="F8 / Shift+F8"><span class="ck-a11y-summary__next-label">${this._labelHtml('nextIssue', 'Next issue')}</span> <kbd>F8</kbd></button>
+                ${!stored && this._reviewableIssues(issues).length >= 2 ? `<button class="ck-a11y-summary__link" type="button" data-a11y-review-fixes="1" aria-haspopup="dialog">${this._labelHtml('aiReviewFixes', 'Review fixes (%d)').replace('%d', String(this._reviewableIssues(issues).length))}</button>` : ''}
+                ${this._aiWriting?.buttonHtml() ?? ''}
                 ${stored ? retryButton : ''}
             </span>
         `;
@@ -1465,14 +1786,7 @@ export default class A11yPlugin extends Plugin {
             return '';
         }
 
-        const label = this._escapeHtml(this._severityCountLabel(severity, count));
-
-        return `
-            <span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}">
-                <span class="ck-a11y-summary__count-dot" aria-hidden="true"></span>
-                <span class="ck-a11y-summary__count-num">${count}</span> ${label}
-            </span>
-        `;
+        return `<span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}"><span class="ck-a11y-summary__count-dot" aria-hidden="true"></span>${this._escapeHtml(this._severityCountLabel(severity, count))}</span>`;
     }
 
     _countSeverities(issues) {
@@ -1551,6 +1865,9 @@ export default class A11yPlugin extends Plugin {
      * after an edit the status says it is updating. Without a usable live result the stored findings are shown.
      */
     async _fetchLiveValidation({ initial = false } = {}) {
+        if (this._accessDenied) {
+            return;
+        }
         const cfg = this.editor.config.get('a11yQualityGate') ?? {};
         const ajaxUrls = TYPO3?.settings?.ajaxUrls ?? {};
         const endpoint = ajaxUrls.a11y_rte_validate || ajaxUrls['a11y_rte_validate'];
@@ -1608,6 +1925,11 @@ export default class A11yPlugin extends Plugin {
                 return;
             }
 
+            if (await isModuleAccessDenial(response)) {
+                this._disableForMissingAccess();
+                return;
+            }
+
             if (!response.ok) {
                 console.warn('[A11Y] Live RTE validation failed', response.status, response.url);
                 this._fetchAndHighlight();
@@ -1616,6 +1938,12 @@ export default class A11yPlugin extends Plugin {
 
             const data = await response.json();
             issues = Array.isArray(data.issues) ? data.issues : [];
+            this._serverTime = Number(data.serverTime) || this._serverTime || 0;
+            if (validationHtml !== currentData) {
+                // The check ran on the editing DOM fallback, not on editor.getData(): its element positions do not
+                // describe the editor data, so no AI target can be proven.
+                issues = issues.map((issue) => ({ ...issue, aiTarget: null }));
+            }
         } catch (error) {
             if (error?.name === 'AbortError') {
                 return;
@@ -1650,11 +1978,30 @@ export default class A11yPlugin extends Plugin {
         const visibleIssues = this._filterIssuesForCurrentEditor(sourceIssues);
 
         this._currentIssues = visibleIssues;
+        this._syncAiSessions(visibleIssues);
         this._applyHighlights(visibleIssues);
         this._applyElementDecorations(visibleIssues);
         const stored = this._resultSource === 'stored';
         this._renderSummary(visibleIssues.length > 0 ? (stored ? 'stored' : 'issues') : (stored ? 'storedOk' : 'ok'), visibleIssues);
         this._scheduleGutterRender();
+        if (!stored && this._staged?.active && !this._isSourceEditingMode()) {
+            this._adoptStagedRemediation(visibleIssues);
+        }
+    }
+
+    /** Opens the finding of a staged queue change with that change as its suggestion (applied only by Apply). */
+    _adoptStagedRemediation(visibleIssues) {
+        const issues = visibleIssues.map((issue) => this._normalizeIssueData(issue));
+        this._staged.adopt(issues, (issue) => this._aiSessionFor(issue), (issue) => {
+            this._renderGutter();
+            const key = EditorAiSession.keyFor(issue);
+            const chips = Array.from(this._gutter?.querySelectorAll('.ck-a11y-chip') ?? []);
+            const chip = chips.find((candidate) => (this._chipEntries.get(candidate) ?? []).some((entry) => EditorAiSession.keyFor(entry.issue) === key));
+            if (chip) {
+                this._chipBlocks.get(chip)?.scrollIntoView({ block: 'center' });
+                this._openPopover(this._chipEntries.get(chip) ?? [], chip);
+            }
+        });
     }
 
     _filterIssuesForCurrentEditor(issues) {
@@ -1747,6 +2094,9 @@ export default class A11yPlugin extends Plugin {
     }
 
     _scheduleValidationRefresh(delay = 1600) {
+        if (this._accessDenied) {
+            return;
+        }
         this._scheduleCachedHighlightRefresh(250);
 
         if (this._validationRefreshTimer !== null) {
@@ -1757,6 +2107,26 @@ export default class A11yPlugin extends Plugin {
             this._validationRefreshTimer = null;
             this._fetchLiveValidation();
         }, delay);
+    }
+
+    /**
+     * TYPO3 answers AQG's routes with 403 when the user lacks the Accessibility module (the routes inherit its
+     * access). That is no failure of the check: the summary bar and the gutter are removed, pending checks are
+     * cancelled, and nothing is requested again for this editor. Editing is unaffected.
+     */
+    _disableForMissingAccess() {
+        this._accessDenied = true;
+        window.clearTimeout(this._validationRefreshTimer ?? undefined);
+        window.clearTimeout(this._cachedHighlightTimer ?? undefined);
+        this._validationRefreshTimer = null;
+        this._cachedHighlightTimer = null;
+        this._liveValidationAbortController?.abort();
+        this._liveValidationAbortController = null;
+        this._closePopover({ returnFocus: false });
+        this._summaryElement?.remove();
+        this._summaryElement = null;
+        this._gutter?.remove();
+        this._gutter = null;
     }
 
     _issueDataForDomTarget(target) {
@@ -1837,6 +2207,7 @@ export default class A11yPlugin extends Plugin {
             ruleId: issue.ruleId ?? '',
             severity: this._normalizeSeverity(issue.severity),
             message: issue.message ?? '',
+            ruleTitle: issue.ruleTitle ?? '',
             hint: issue.hint ?? '',
             snippet: issue.snippet ?? issue.contextSnippet ?? '',
             contextPath: issue.contextPath ?? '',
@@ -1845,6 +2216,7 @@ export default class A11yPlugin extends Plugin {
             issueCount: 1,
             relatedSummary: '',
             isLive: issue.live === true || String(issue.fingerprint ?? '').startsWith('live:'),
+            aiTarget: issue.aiTarget && typeof issue.aiTarget === 'object' ? issue.aiTarget : null,
         };
     }
 
@@ -1866,17 +2238,17 @@ export default class A11yPlugin extends Plugin {
         return 'warning';
     }
 
-    // Unit after the number in the summary ("1 critical issue", "5 critical issues").
+    // Severity badge text of the summary bar (Atlas 02 · A: "1 Critical", "3 Warnings"), singular and plural keys.
     _severityCountLabel(severity, count) {
         const labels = {
-            critical: ['countCriticalOne', 'critical issue', 'countCriticalOther', 'critical issues'],
-            warning: ['countWarningOne', 'warning', 'countWarningOther', 'warnings'],
-            needs_review: ['countNeedsReviewOne', 'needs review', 'countNeedsReviewOther', 'need review'],
-            info: ['countInfoOne', 'info note', 'countInfoOther', 'info notes'],
+            critical: ['badgeCritical', '%d Critical', 'badgeCritical', '%d Critical'],
+            warning: ['badgeWarningOne', '%d Warning', 'badgeWarningOther', '%d Warnings'],
+            needs_review: ['badgeNeedsReview', '%d Needs review', 'badgeNeedsReview', '%d Needs review'],
+            info: ['badgeInfoOne', '%d Info', 'badgeInfoOther', '%d Info'],
         };
         const [oneKey, oneFallback, otherKey, otherFallback] = labels[this._normalizeSeverity(severity)] || labels.warning;
 
-        return count === 1 ? this._label(oneKey, oneFallback) : this._label(otherKey, otherFallback);
+        return (count === 1 ? this._label(oneKey, oneFallback) : this._label(otherKey, otherFallback)).replace('%d', String(count));
     }
 
     _severityLabel(severity) {
@@ -1891,6 +2263,389 @@ export default class A11yPlugin extends Plugin {
             default:
                 return this._label('severityWarning', 'Warning');
         }
+    }
+
+    _aiConfig() {
+        const ai = (this.editor.config.get('a11yQualityGate') ?? {}).ai;
+        return ai && typeof ai === 'object' ? ai : { state: 'not_configured', rules: [] };
+    }
+
+    _isAiEligible(issue) {
+        return EditorAiSession.isEligible(issue, this._aiConfig())
+            || this._aiSessions.get(EditorAiSession.keyFor(issue))?.hasStaged === true;
+    }
+
+    /**
+     * The AI part of a finding in the popover: a slot for its session when an AI or rule-based action exists, or one
+     * quiet line saying why AI is not offered. Unsupported findings get nothing (no wand, no disabled button).
+     */
+    _aiSlotHtml(issue, index) {
+        const config = this._aiConfig();
+        const key = EditorAiSession.keyFor(issue);
+        if (this._aiOutcome?.isApplied(key) && this._aiSessions.get(key)?.state !== 'applied') {
+            // Applied from the review dialog: no session of this popover holds it, the editor's Ctrl+Z undoes it.
+            return `<div class="aqg-ai__applied"><strong>${this._labelHtml('aiApplied', 'Applied to the text — not saved yet')}</strong><p>${this._labelHtml('aiAppliedHelp', 'Use TYPO3 Save to keep it. Ctrl+Z / ⌘Z undoes it.')}</p></div>`;
+        }
+        if (this._isAiEligible(issue)) {
+            return `<div class="aqg-ai-slot" data-aqg-ai-slot="${index}"></div>`;
+        }
+        if (!issue.aiTarget || !(config.rules ?? []).includes(issue.ruleId)) {
+            return '';
+        }
+        const quiet = EditorAiSession.quietLine(config);
+        const line = quiet ? this._label(...quiet) : '';
+        return line !== '' ? `<p class="aqg-ai-quiet">${this._escapeHtml(line)}</p>` : '';
+    }
+
+    _mountAiSessions(popover, entries) {
+        popover.querySelectorAll('[data-aqg-ai-slot]').forEach((slot) => {
+            const entry = entries[Number.parseInt(slot.getAttribute('data-aqg-ai-slot') ?? '-1', 10)];
+            if (entry) {
+                this._aiSessionFor(entry.issue).mount(slot);
+            }
+        });
+    }
+
+    _aiSessionFor(issue) {
+        const key = EditorAiSession.keyFor(issue);
+        let session = this._aiSessions.get(key);
+        if (session) {
+            session.updateIssue(issue);
+            return session;
+        }
+        session = new EditorAiSession({
+            issue,
+            adapter: this._aiAdapter(issue),
+            config: this._aiConfig(),
+            label: (labelKey, fallback) => this._label(labelKey, fallback),
+            announce: (text) => this._announce(text),
+            onApplied: (result) => this._onAiApplied(key, result),
+            onUndone: () => {
+                this._aiApplied.delete(key);
+                this._aiOutcome?.removed(key);
+            },
+        });
+        this._aiSessions.set(key, session);
+        return session;
+    }
+
+    /** Sessions of findings that disappeared are dropped, except applied ones (their Undo stays reachable). */
+    _syncAiSessions(issues) {
+        const keys = new Set(issues.map((issue) => EditorAiSession.keyFor(this._normalizeIssueData(issue))));
+        for (const [key, session] of this._aiSessions.entries()) {
+            if (!keys.has(key) && !session.isPinned) {
+                session.destroy();
+                this._aiSessions.delete(key);
+            } else if (keys.has(key)) {
+                const issue = issues.find((candidate) => EditorAiSession.keyFor(this._normalizeIssueData(candidate)) === key);
+                session.updateIssue(this._normalizeIssueData(issue));
+            }
+        }
+    }
+
+    /** Editor-specific operations of an AI session: exact model target, apply in one batch, undo that batch. */
+    _aiAdapter(issue) {
+        const editor = this.editor;
+        const cfg = editor.config.get('a11yQualityGate') ?? {};
+        let lock = null;
+        let lockedTarget = null;
+        let appliedBatch = null;
+        let appliedExpected = null;
+        const release = () => {
+            if (lock) {
+                releaseTarget(editor, lock.markerName);
+            }
+            lock = null;
+        };
+
+        return {
+            type: 'ckeditor',
+            requestPayload: (current) => ({
+                table: 'tt_content',
+                recordUid: cfg.recordUid,
+                fieldName: cfg.fieldName,
+                html: editor.getData(),
+                ruleId: current.ruleId,
+                contextPath: current.aiTarget?.contextPath ?? '',
+                occurrence: current.aiTarget?.occurrence ?? -1,
+            }),
+            lock: (current) => {
+                release();
+                if (this._isSourceEditingMode()) {
+                    return { ok: false, reason: 'not_provable' };
+                }
+                const result = locateCkeditorTarget(editor, current.aiTarget, `${++this._aiLockSequence}`);
+                if (result.ok) {
+                    lock = result;
+                    lockedTarget = current.aiTarget;
+                }
+                return result;
+            },
+            isStale: () => !lock || isCkeditorTargetStale(editor, lock.markerName, lockedTarget.tag, lock.snapshot),
+            preview: (value) => ({ kind: 'text', before: lockedTarget?.currentValue ?? issue.aiTarget?.currentValue ?? '', after: value }),
+            apply: (value) => {
+                if (!lock || this._isSourceEditingMode()) {
+                    return { ok: false, reason: 'stale' };
+                }
+                const result = applyCkeditorChange(editor, lock.markerName, lockedTarget, lock.snapshot, value);
+                if (result.ok) {
+                    appliedBatch = result.batch;
+                    appliedExpected = result.expected;
+                }
+                return result;
+            },
+            undo: () => {
+                // Only this change, only while it is still on the undo stack and its element still shows it:
+                // otherwise CKEditor's undo would revert some other change.
+                const current = lock && appliedExpected ? currentSignature(editor, lock.markerName, appliedExpected.tag) : null;
+                if (!appliedBatch || !isOnUndoStack(editor, appliedBatch) || current === null || !matchesSignature(current, appliedExpected)) {
+                    appliedBatch = null;
+                    this._announce(this._label('aiUndoUseEditorText', 'The text changed after applying. Use Ctrl+Z in the editor.'));
+                    return false;
+                }
+                editor.execute('undo', appliedBatch);
+                appliedBatch = null;
+                // The text is back to the checked state: lock the same element again for a second Apply.
+                const relocked = locateCkeditorTarget(editor, lockedTarget, `${++this._aiLockSequence}`);
+                release();
+                lock = relocked.ok ? relocked : null;
+                return true;
+            },
+            release,
+            // The editing DOM of the top-level block that holds the applied change (for its "unsaved" marker).
+            appliedElement: () => {
+                const marker = appliedExpected && lock ? editor.model.markers.get(lock.markerName) : null;
+                const root = editor.model.document.getRoot?.();
+                const block = marker && root ? root.getChild(marker.getStart().path[0]) : null;
+                const view = block ? editor.editing.mapper.toViewElement(block) : null;
+                return view ? editor.editing.view.domConverter.mapViewToDom(view) ?? null : null;
+            },
+            canRuleBasedFix: () => canChangeHeadingLevel(editor, issue.aiTarget?.targetHeadingLevel ?? 0),
+            describeTarget: (current) => this._describeAiTarget(current.aiTarget),
+            focusEditor: () => editor.editing.view.focus(),
+        };
+    }
+
+    /** Findings with an actionable AI or rule-based fix, in document order. */
+    _reviewableIssues(issues) {
+        return (issues ?? [])
+            .map((issue) => this._normalizeIssueData(issue))
+            .filter((issue) => EditorAiSession.offersFix(issue, this._aiConfig()));
+    }
+
+    _openReviewDialog(invoker) {
+        this._closePopover({ returnFocus: false });
+        const editable = this.editor.ui.getEditableElement();
+        const ordered = editable ? this._collectGutterGroups(editable).flatMap((group) => group.entries.map((entry) => entry.issue)) : [];
+        const reviewable = this._reviewableIssues(this._currentIssues);
+        const keyOf = (issue) => EditorAiSession.keyFor(issue);
+        const position = new Map(ordered.map((issue, index) => [keyOf(issue), index]));
+        reviewable.sort((a, b) => (position.get(keyOf(a)) ?? 999) - (position.get(keyOf(b)) ?? 999));
+        new EditorAiReviewDialog({
+            entries: reviewable.map((issue) => ({ issue, adapter: this._aiAdapter(issue) })),
+            config: this._aiConfig(),
+            label: (labelKey, fallback) => this._label(labelKey, fallback),
+            announce: (text) => this._announce(text),
+            editorType: 'ckeditor',
+            onApplied: (result) => this._onAiApplied(keyOf(result.issue), result),
+            returnFocus: () => (invoker.isConnected ? invoker : null)
+                // The re-rendered "Review fixes" first (a selector list matches in document order, not list order).
+                ?? this._summaryElement?.querySelector('[data-a11y-review-fixes]')
+                ?? this._summaryElement?.querySelector('[data-a11y-show-issues]')
+                ?? (this.editor.editing.view.focus(), null),
+        }).open();
+    }
+
+    _describeAiTarget(target) {
+        if (!target) {
+            return '';
+        }
+        switch (target.kind) {
+            case 'link_text':
+                return this._label('aiTargetLink', 'This link: “%s”').replace('%s', target.currentValue || target.element?.attributes?.href || '');
+            case 'image_alt':
+                return this._label('aiTargetImage', 'This image: %s').replace('%s', String(target.element?.attributes?.src ?? '').split(/[?#]/)[0].split('/').pop());
+            case 'button_label':
+                return this._label('aiTargetButton', 'This button');
+            case 'iframe_title':
+                return this._label('aiTargetIframe', 'This embedded content: %s').replace('%s', String(target.element?.attributes?.src ?? '').split(/[?#]/)[0]);
+            case 'heading_text':
+                return this._label('aiTargetHeading', 'This empty heading (H%d)').replace('%d', String(target.headingLevel));
+            default:
+                return '';
+        }
+    }
+
+    _onAiApplied(key, result) {
+        const stagedItem = Number(result.suggestion?.stagedItem ?? 0);
+        if (stagedItem > 0) {
+            reportInserted(stagedItem);
+        }
+        const adapter = result.adapter ?? this._aiSessions.get(key)?.adapter ?? null;
+        this._aiApplied.set(key, { issue: result.issue, adapter });
+        if (this._aiOutcome) {
+            this._aiOutcome.onUndoLast = () => {
+                const session = this._aiSessions.get(key);
+                if (session?.state === 'applied') {
+                    session.undo();
+                } else if (adapter?.undo()) {
+                    this._aiApplied.delete(key);
+                    this._aiOutcome?.removed(key);
+                    this._announce(this._label('aiAnnounceUndone', 'Change undone.'));
+                }
+            };
+        }
+        this._aiOutcome?.added({
+            id: key,
+            ruleId: result.issue.ruleId,
+            expected: result.expected,
+            // Rule-based changes have no suggestion: the server time of the last live check dates them.
+            suggestedAt: Number(result.suggestion?.serverTime ?? this._serverTime ?? 0),
+        });
+    }
+
+    _installAiOutcome() {
+        const cfg = this.editor.config.get('a11yQualityGate') ?? {};
+        if (!this._summaryElement || !cfg.recordUid || !cfg.fieldName) {
+            return;
+        }
+        // Visually hidden (absolutely positioned): announcements only, no layout of its own.
+        const live = document.createElement('span');
+        live.className = 'aqg-ai-live';
+        live.setAttribute('aria-live', 'polite');
+        live.setAttribute('role', 'status');
+        this._summaryElement.insertAdjacentElement('afterend', live);
+        this._aiLiveRegion = live;
+        this._aiOutcome = new EditorAiOutcome({
+            recordUid: cfg.recordUid,
+            fieldName: cfg.fieldName,
+            label: (labelKey, fallback) => this._label(labelKey, fallback),
+            announce: (text) => this._announce(text),
+            editorType: 'ckeditor',
+            onChange: () => {
+                this._renderSummary(this._summaryState ?? 'loading', this._summaryIssues ?? []);
+                this._renderGutter();
+            },
+        });
+        this._aiOutcome.bindForm(this._summaryElement.closest('form'));
+        this._aiOutcome.verifyOnLoad();
+    }
+
+    /**
+     * Markers of applied AI changes ("In text, unsaved": dashed blue). The live check no longer reports their finding,
+     * so they are placed at the block of the locked element; the popover keeps the session with its Undo.
+     *
+     * @returns {Array<{block: Element, entry: {issue: object, target: null, markerName: string, applied: true}, key: string}>}
+     */
+    _appliedGutterEntries(editable) {
+        if (!this._aiOutcome || this._isSourceEditingMode()) {
+            return [];
+        }
+        const entries = [];
+        for (const [key, applied] of this._aiApplied.entries()) {
+            if (!this._aiOutcome.isApplied(key)) {
+                continue;
+            }
+            let element = null;
+            try {
+                element = applied.adapter?.appliedElement?.() ?? null;
+            } catch {
+                element = null;
+            }
+            const block = element ? this._topLevelBlock(editable, element) : null;
+            if (block) {
+                entries.push({ block, key, entry: { issue: applied.issue, target: null, markerName: '', applied: true } });
+            }
+        }
+        return entries;
+    }
+
+    /** Issue groups plus applied changes: an applied finding replaces its own (not yet re-checked) issue entry. */
+    _gutterGroupsWithApplied(editable, groups) {
+        const applied = this._appliedGutterEntries(editable);
+        if (applied.length === 0) {
+            return groups;
+        }
+        const appliedKeys = new Set(applied.map((item) => item.key));
+        const byBlock = new Map();
+        for (const group of groups) {
+            const entries = group.entries.filter((entry) => !appliedKeys.has(EditorAiSession.keyFor(entry.issue)));
+            if (entries.length > 0) {
+                byBlock.set(group.block, { ...group, entries });
+            }
+        }
+        const editableTop = editable.getBoundingClientRect().top;
+        for (const item of applied) {
+            if (!byBlock.has(item.block)) {
+                byBlock.set(item.block, {
+                    block: item.block,
+                    target: item.block,
+                    entries: [],
+                    top: item.block.getBoundingClientRect().top - editableTop + editable.scrollTop,
+                });
+            }
+            byBlock.get(item.block).entries.push(item.entry);
+        }
+        return Array.from(byBlock.values()).sort((a, b) => a.top - b.top);
+    }
+
+    _announce(text) {
+        if (!this._aiLiveRegion || !text) {
+            return;
+        }
+        this._aiLiveRegion.textContent = '';
+        window.setTimeout(() => {
+            if (this._aiLiveRegion) {
+                this._aiLiveRegion.textContent = text;
+            }
+        }, 30);
+    }
+
+    /** F8 / Shift+F8 open the next / previous marker's popover (markers are not in the tab order). */
+    _installIssueKeystrokes() {
+        if (!this.editor.keystrokes) {
+            return;
+        }
+        this.editor.keystrokes.set('F8', (data, cancel) => {
+            this._openAdjacentIssue(1);
+            cancel();
+        });
+        this.editor.keystrokes.set('Shift+F8', (data, cancel) => {
+            this._openAdjacentIssue(-1);
+            cancel();
+        });
+    }
+
+    _openAdjacentIssue(direction) {
+        this._renderGutter();
+        const chips = Array.from(this._gutter?.querySelectorAll('.ck-a11y-chip') ?? []);
+        if (chips.length === 0) {
+            this._announce(this._label('passed', 'Accessibility check passed'));
+            return;
+        }
+        const openIndex = this._popover ? chips.indexOf(this._popoverAnchor) : -1;
+        let index;
+        if (openIndex >= 0) {
+            index = (openIndex + direction + chips.length) % chips.length;
+        } else {
+            const block = this._blockAtSelection();
+            const current = chips.findIndex((chip) => this._chipBlocks.get(chip) === block);
+            if (current >= 0) {
+                index = direction > 0 ? current : (current - 1 + chips.length) % chips.length;
+            } else {
+                const editable = this.editor.ui.getEditableElement();
+                const selectionTop = block?.getBoundingClientRect().top ?? -Infinity;
+                index = direction > 0
+                    ? Math.max(0, chips.findIndex((chip) => (this._chipBlocks.get(chip)?.getBoundingClientRect().top ?? 0) > selectionTop))
+                    : chips.length - 1;
+                if (!editable) {
+                    index = 0;
+                }
+            }
+        }
+        const chip = chips[index];
+        this._chipBlocks.get(chip)?.scrollIntoView({ block: 'nearest' });
+        this._openPopover(this._chipEntries.get(chip) ?? [], chip);
     }
 
     /**

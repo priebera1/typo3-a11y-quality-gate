@@ -13,13 +13,15 @@ final class AiRateLimiter
 {
     public const LIMIT = 10;
     public const WINDOW_SECONDS = 60;
+    public const SCOPE_SUGGESTIONS = '';
+    public const SCOPE_SETTINGS = 'settings';
 
     public function __construct(
         private readonly AiRateLimitRepositoryInterface $repository,
         private readonly BackendUserServiceInterface $backendUserService,
     ) {}
 
-    public function assertAllowed(string $siteIdentifier, ?int $now = null): void
+    public function assertAllowed(string $siteIdentifier, ?int $now = null, string $scope = self::SCOPE_SUGGESTIONS): void
     {
         $userUid = $this->backendUserService->getBackendUserUid();
         if ($siteIdentifier === '' || $userUid <= 0) {
@@ -27,7 +29,8 @@ final class AiRateLimiter
         }
 
         $state = $this->repository->consume(
-            hash('sha256', $siteIdentifier . ':' . $userUid),
+            // Suggestions keep the 2.x bucket; other scopes get their own.
+            hash('sha256', $siteIdentifier . ':' . $userUid . ($scope !== self::SCOPE_SUGGESTIONS ? ':' . $scope : '')),
             self::LIMIT,
             self::WINDOW_SECONDS,
             $now ?? time(),

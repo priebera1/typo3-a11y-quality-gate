@@ -20,6 +20,8 @@
         <f:then>
             <p class="aqr-meta">{siteLabel} · {scanScopeLabel} · Completed {scanCompletedAt}<f:if condition="{hasScore}"> · Automated signal {score.value} / {score.max}</f:if></p>
             <p class="aqr-verdict"><b>{verdict}</b></p>
+            <f:if condition="{coverageNote}"><p class="aqr-meta" data-aqg-tree-coverage="true">{coverageNote}</p></f:if>
+            <f:if condition="{restrictionNote}"><p class="aqr-meta" data-aqg-results-restricted="true">{restrictionNote}</p></f:if>
             <f:if condition="{occurrencesNote}"><p class="aqr-meta">{occurrencesNote}</p></f:if>
 
             <f:if condition="{impactRow}"><f:render partial="Export/PdfSeverityRow" arguments="{row: impactRow}" /></f:if>

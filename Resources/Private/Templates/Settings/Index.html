@@ -70,6 +70,17 @@
                     </f:if>
                 </f:case>
 
+                <f:case value="mcp">
+                    <f:if condition="{isAdmin}">
+                        <f:then>
+                            <f:render partial="Settings/TabMcp" arguments="{_all}" />
+                        </f:then>
+                        <f:else>
+                            <f:render partial="Settings/TabLicence" arguments="{_all}" />
+                        </f:else>
+                    </f:if>
+                </f:case>
+
                 <f:case value="statement">
                     <f:render partial="Settings/TabStatement" arguments="{_all}" />
                 </f:case>

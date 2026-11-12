@@ -27,6 +27,12 @@ final class ProLicenceService
             return LicenceValidationResult::invalid('not_configured');
         }
 
+        // A site whose base has no host (TYPO3 allows a relative base such as "/") has no domain the licence could
+        // cover. The API refuses an empty domain, so asking would only turn into "unexpected answer" (D-03).
+        if (trim($domain) === '') {
+            return LicenceValidationResult::invalid('site_without_domain');
+        }
+
         $licenceKey = $this->proSettings->getLicenceKey();
         $isTrialKey = $this->proSettings->isTrialKey($licenceKey);
 

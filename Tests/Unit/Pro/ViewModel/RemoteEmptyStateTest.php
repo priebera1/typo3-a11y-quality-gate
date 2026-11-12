@@ -58,4 +58,14 @@ final class RemoteEmptyStateTest extends TestCase
         self::assertSame(RemoteEmptyState::PAGES_RULE, RemoteEmptyState::affectedPages(true, $loaded, true));
         self::assertSame(RemoteEmptyState::PAGES_NOT_STORED, RemoteEmptyState::affectedPages(true, $loaded, false));
     }
+
+    #[Test]
+    public function aRestrictedViewHasItsOwnEmptyStates(): void
+    {
+        $loaded = RemoteScanCoverage::fromScanRow(['pages_scanned' => 0, 'pages_failed' => 0, 'pages_total' => 0]);
+
+        self::assertSame(RemoteEmptyState::PRIORITY_RESTRICTED, RemoteEmptyState::priorityFixes($loaded, true));
+        self::assertSame(RemoteEmptyState::PAGES_RESTRICTED, RemoteEmptyState::affectedPages(true, $loaded, false, true));
+        self::assertSame(RemoteEmptyState::PAGES_RULE, RemoteEmptyState::affectedPages(true, $loaded, true, true));
+    }
 }

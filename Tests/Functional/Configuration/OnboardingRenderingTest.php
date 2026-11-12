@@ -211,31 +211,6 @@ final class OnboardingRenderingTest extends AbstractFunctionalTestCase
         self::assertSame(0, $xpath->query('//*[@role]')->length);
     }
 
-    #[Test]
-    public function theTrialOfferNamesOnlyRealPlanCapabilities(): void
-    {
-        $xpath = $this->render('Overview/FreePreviewUpgrade', ['freePreview' => [
-            'trialUrl' => 'https://typo3.priebera.sk/trial?utm_source=typo3_backend',
-            'upgradeUrl' => 'https://typo3.priebera.sk/pricing?utm_source=typo3_backend',
-        ]]);
-
-        self::assertSame('Check the whole site, not just this page', $this->text($xpath, '//h3'));
-        $text = $this->text($xpath, '//*[contains(@class, "aqg-pro-card__text")]');
-        foreach (['5-day trial', 'full-site frontend scans', 'screenshots', 'scan history and comparison', 'PDF export needs PRO or Agency', 'acceptance evidence', 'monitoring', 'Verify fix'] as $capability) {
-            self::assertStringContainsString($capability, $text);
-        }
-        self::assertStringNotContainsString('PRO trial', $text);
-        $trial = $xpath->query('//a[contains(@class, "btn-primary")]')->item(0);
-        self::assertInstanceOf(\DOMElement::class, $trial);
-        self::assertSame('https://typo3.priebera.sk/trial?utm_source=typo3_backend', $trial->getAttribute('href'));
-        self::assertSame('Start 5-day trial (opens in a new tab)', trim((string)preg_replace('/\s+/', ' ', $trial->textContent)));
-        self::assertSame('noopener noreferrer', $trial->getAttribute('rel'));
-
-        $german = $this->render('Overview/FreePreviewUpgrade', ['freePreview' => ['trialUrl' => '#', 'upgradeUrl' => '#']], 'de');
-        self::assertStringContainsString('5-tägige Testphase', $this->text($german, '//*[contains(@class, "aqg-pro-card__text")]'));
-        self::assertSame('5-tägige Testphase starten (öffnet in einem neuen Tab)', $this->text($german, '//a[contains(@class, "btn-primary")]'));
-    }
-
     /**
      * @param array<string, mixed> $freePreview
      * @return array<string, mixed>

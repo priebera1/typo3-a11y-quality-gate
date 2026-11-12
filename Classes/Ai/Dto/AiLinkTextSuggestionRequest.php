@@ -15,6 +15,18 @@ final readonly class AiLinkTextSuggestionRequest
         public string $pageTitle = '',
     ) {}
 
+    /** The same request without the page title, for sites that do not allow sending page titles. */
+    public function withoutPageTitle(): self
+    {
+        return new self(
+            $this->targetLocale,
+            $this->ruleId,
+            $this->currentLinkText,
+            $this->href,
+            $this->surroundingText,
+        );
+    }
+
     /** @return array<string,string> */
     public function contextPayload(): array
     {

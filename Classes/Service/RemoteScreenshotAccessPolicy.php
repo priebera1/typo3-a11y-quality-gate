@@ -15,18 +15,25 @@ use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
  * saw the report but got a 403 for its image, and it did not check that the page belongs to the scan's site.
  * A Free Remote Preview result never has a screenshot, whatever today's licence is: its provenance is immutable.
  * Module access is enforced by the module route itself; the AQG service checks licence and project ownership.
+ *
+ * Sol R02/R05: a page screenshot shows every record the page renders — storage folders, tables and languages the user
+ * may not read included — so only administrators load it. Element evidence follows the element filter instead.
  */
 class RemoteScreenshotAccessPolicy
 {
     public function __construct(
         private readonly RemoteScanRepository $remoteScanRepository,
         private readonly ScopeAccessService $scopeAccessService,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
     ) {
     }
 
     public function canRead(int $remotePageUid): bool
     {
         if ($remotePageUid <= 0) {
+            return false;
+        }
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
             return false;
         }
 

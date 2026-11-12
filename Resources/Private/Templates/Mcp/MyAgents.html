@@ -1,0 +1,85 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <f:asset.css identifier="a11y-quality-gate-backend" href="EXT:a11y_quality_gate/Resources/Public/Css/backend.css" />
+    <f:comment><!-- The user's own MCP connections: AQG settings design system (cards, badges, notices), one card per
+         connection, active ones first, ended ones in a closed disclosure. Reached from the module sub-navigation. --></f:comment>
+    <div class="a11y-settings aqg-module aqg-mcp-view aqg-mcp-agents">
+        <div class="aqg-mcp aqg-stack aqg-mcp-view__body">
+        <f:render partial="Remediation/SubNav" arguments="{current: 'agents', pageId: 0, aiFixesCount: 0}" />
+        <div class="aqg-mcp-view__flash"><f:flashMessages queueIdentifier="core.template.flashMessages" /></div>
+        <div class="aqg-page-head">
+            <div>
+                <h1 class="aqg-page-head__title" id="aqg-mcp-my-agents-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.title" default="My connected agents" /></h1>
+                <p class="aqg-page-head__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.sub" default="AI agents that act as you in AQG. Each one only gets your TYPO3 permissions. Revoking stops it immediately." /></p>
+            </div>
+        </div>
+        <f:switch expression="{state}">
+            <f:case value="notAllowed">
+                <f:render section="Notice" arguments="{tone: 'warning', icon: 'warning', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAllowedText\', default: \'Your user group is not allowed to connect AI agents to AQG. Ask your administrator. Nothing was shared.\')}'}" />
+            </f:case>
+            <f:case value="notAvailable">
+                <f:render section="Notice" arguments="{tone: 'info', icon: 'info', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAvailableText\', default: \'This TYPO3 installation is not connected to the AQG MCP Gateway. Nothing was shared.\')}'}" />
+            </f:case>
+            <f:case value="gatewayError">
+                <f:render section="Notice" arguments="{tone: 'warning', icon: 'warning', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.unreachable\', default: \'The AQG MCP Gateway did not answer. Agents cannot reach this installation either. Settings and tokens are unchanged.\')}'}" />
+            </f:case>
+            <f:defaultCase>
+                <f:variable name="activeCount" value="0" />
+                <f:variable name="endedCount" value="0" />
+                <f:for each="{tokens}" as="token">
+                    <f:if condition="{token.revocable}"><f:then><f:variable name="activeCount" value="{activeCount + 1}" /></f:then><f:else><f:variable name="endedCount" value="{endedCount + 1}" /></f:else></f:if>
+                </f:for>
+                <section class="aqg-card" aria-labelledby="aqg-mcp-agents-active">
+                    <header class="aqg-card__head">
+                        <div>
+                            <h2 class="aqg-card__title" id="aqg-mcp-agents-active"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.activeTitle" default="Active connections" /></h2>
+                        </div>
+                        <span class="aqg-mcp-count"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.activeCount" arguments="{0: activeCount}" default="%d active" /></span>
+                    </header>
+                    <div class="aqg-card__body">
+                        <f:if condition="{activeCount} > 0">
+                            <f:then>
+                                <ul class="aqg-mcp-conns" role="list">
+                                    <f:for each="{tokens}" as="token"><f:if condition="{token.revocable}"><li><f:render partial="Mcp/AgentConnection" arguments="{token: token, revokeUrl: revokeUrl}" /></li></f:if></f:for>
+                                </ul>
+                            </f:then>
+                            <f:else>
+                                <div class="aqg-mcp-emptystate">
+                                    <p class="aqg-mcp-emptystate__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.noActive" default="No agent can act as you right now." /></p>
+                                    <p class="aqg-mcp-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.empty" default="No agents are connected as you. To connect one, add the server URL your administrator gives you in the agent and sign in with TYPO3." /></p>
+                                </div>
+                            </f:else>
+                        </f:if>
+                    </div>
+                </section>
+                <f:if condition="{endedCount} > 0">
+                    <details class="aqg-card aqg-mcp-ended">
+                        <summary class="aqg-card__head aqg-mcp-ended__summary">
+                            <span class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.endedTitle" arguments="{0: endedCount}" default="Ended connections (%d)" /></span>
+                        </summary>
+                        <div class="aqg-card__body aqg-stack">
+                            <p class="aqg-mcp-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.endedHelp" default="Revoked or expired connections stay listed for your overview. They can never be used again." /></p>
+                            <ul class="aqg-mcp-conns" role="list">
+                                <f:for each="{tokens}" as="token"><f:if condition="{token.revocable}"><f:else><li><f:render partial="Mcp/AgentConnection" arguments="{token: token, revokeUrl: revokeUrl}" /></li></f:else></f:if></f:for>
+                            </ul>
+                        </div>
+                    </details>
+                </f:if>
+            </f:defaultCase>
+        </f:switch>
+        </div>
+    </div>
+</f:section>
+
+<f:section name="Notice">
+    <div class="aqg-notice aqg-tone-{tone}" role="status">
+        <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: icon}" /></span>
+        <span class="aqg-notice__body"><span class="aqg-notice__text">{text}</span></span>
+    </div>
+</f:section>
+</html>

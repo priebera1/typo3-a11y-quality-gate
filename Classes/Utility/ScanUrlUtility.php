@@ -28,7 +28,9 @@ final class ScanUrlUtility
         }
 
         $scheme = strtolower((string)($parts['scheme'] ?? ''));
-        $host = strtolower((string)($parts['host'] ?? ''));
+        // COMPAT-01: the host from the locale-independent parser (parse_url() can corrupt a Unicode host's bytes).
+        $authority = UrlAuthority::parse($url);
+        $host = strtolower($authority !== null && $authority['host'] !== '' ? $authority['host'] : (string)($parts['host'] ?? ''));
         $port = isset($parts['port']) ? ':' . (int)$parts['port'] : '';
         $path = rtrim((string)($parts['path'] ?? ''), '/');
         $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . (string)$parts['query'] : '';

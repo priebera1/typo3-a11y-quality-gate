@@ -1,5 +1,5 @@
 <div
-        class="tab-pane fade{f:if(condition: '{activeTab} == ''gate''', then: ' show active')}"
+        class="tab-pane fade show active"
         id="a11y-settings-pane-gate"
 >
     <f:if condition="{proStatus.valid}">
@@ -122,8 +122,8 @@
                                     <span class="aqg-radio-card__mode-icon aqg-radio-card__mode-icon--warning" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'warning'}" /></span>
                                     <span class="aqg-radio-card__body">
                                         <span class="aqg-radio-card__head"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.warn" default="Warn editors" /></span>
-                                        <span class="aqg-radio-card__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.warnText" default="Show a warning in the publish/unhide flow when configured thresholds are exceeded. Editors can review the report before continuing." /></span>
-                                        <span class="aqg-radio-card__impact"><span class="aqg-radio-card__impact-dot"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.warnImpact" default="Editors confirm to continue" /></span>
+                                        <span class="aqg-radio-card__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.warnText" default="Publishing and unhiding go ahead. Right after that, the editor sees which issues exceed the thresholds and where to fix them." /></span>
+                                        <span class="aqg-radio-card__impact"><span class="aqg-radio-card__impact-dot"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.qualityGate.mode.warnImpact" default="Published, then warned" /></span>
                                     </span>
                                 </label>
                                 <label class="aqg-radio-card tone-critical {f:if(condition: '{qualityGateRuleset.publish_mode} == 2', then: 'is-active')}">
@@ -270,7 +270,7 @@
                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.title" default="Publishing rules" />
                             </h3>
                             <p class="aqg-card__sub">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeDescription" default="FREE warns editors before they publish a page with open critical issues." />
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeDescription" default="FREE warns editors right after they publish a page with open critical issues." />
                             </p>
                         </div>
                     </header>
@@ -283,7 +283,7 @@
                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeNoticeTitle" default="Warning gate is active on FREE" />
                             </span>
                             <span class="aqg-notice__text">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeNoticeText" default="On FREE, AQG always runs in warning mode. Editors see a warning dialog before publishing pages with critical issues, but can continue." />
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeNoticeText" default="On FREE, AQG runs in warning mode: a page with critical issues is published as requested, and the editor then sees which issues exceed the thresholds and where to fix them." />
                             </span>
                         </span>
                     </div>
@@ -301,7 +301,7 @@
                             <ol class="aqg-guidance__steps">
                                 <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeGuidance.step1" default="An editor publishes a hidden page or unhides it." /></li>
                                 <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeGuidance.step2" default="AQG counts open critical issues." /></li>
-                                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeGuidance.step3" default="If any critical issue is open, a warning dialog appears." /></li>
+                                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeGuidance.step3" default="If any critical issue is open, the editor sees a warning right after publishing." /></li>
                                 <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.publishingRules.freeGuidance.step4" default="The editor can confirm or open the report." /></li>
                             </ol>
                         </span>

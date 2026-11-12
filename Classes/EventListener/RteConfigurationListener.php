@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\EventListener;
 
+use Priebera\A11yQualityGate\Ai\Editor\EditorAiEditorConfiguration;
 use Priebera\A11yQualityGate\FormEngine\EditorFeedbackLabels;
+use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\LanguageUidResolver;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -15,6 +17,8 @@ final class RteConfigurationListener
     public function __construct(
         private readonly PageRenderer $pageRenderer,
         private readonly LanguageUidResolver $languageUidResolver,
+        private readonly BackendUserService $backendUserService,
+        private readonly ?EditorAiEditorConfiguration $editorAiConfiguration = null,
     ) {
     }
 
@@ -28,6 +32,12 @@ final class RteConfigurationListener
         $uid = (int)($data['vanillaUid'] ?? $data['uid'] ?? 0);
 
         if ($table !== 'tt_content' || $uid <= 0 || $field === '') {
+            return;
+        }
+        // The live check and the stored findings are AQG routes that inherit access from the Accessibility module.
+        // Without that access TYPO3 answers them with 403, so the plugin is not loaded at all: the editor stays a
+        // plain TYPO3 editor instead of showing an error bar and asking again after every pause.
+        if (!$this->backendUserService->canAccessAccessibilityModule()) {
             return;
         }
 
@@ -68,6 +78,13 @@ final class RteConfigurationListener
             'languageUid' => $languageUid,
             'pageUid' => $pageUid,
             'labels' => EditorFeedbackLabels::translated(),
+            'ai' => ($data['parameterArray']['fieldConf']['config']['readOnly'] ?? false)
+                ? EditorAiEditorConfiguration::forReadOnlyField()
+                : ($this->editorAiConfiguration?->forRecord(
+                    $pageUid,
+                    $languageUid,
+                    $this->normalizePageUid($data['databaseRow']['l18n_parent'] ?? 0),
+                ) ?? ['state' => 'not_configured', 'rules' => []]),
         ];
 
         $event->setConfiguration($configuration);

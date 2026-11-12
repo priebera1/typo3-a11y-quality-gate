@@ -1,0 +1,43 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers"
+        xmlns:aqg="http://typo3.org/ns/Priebera/A11yQualityGate/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:comment><!--
+    Module sub-navigation (Atlas 08 aqg-subnav): Overview · My issues · AI fixes · Connected agents. Arguments: current
+    ('overview' | 'issues' | 'queue' | 'agents') and
+    pageId (the page selected in the tree, kept across both views); aiFixesCount (Overview: open items of the site, 0
+    hides it). "Connected agents" (the user's own MCP connections) appears only for users who may connect agents on an
+    installation connected to the Gateway (aqg:connectedAgentsUrl, the toolbar link's gates). The AI fixes
+    count is filled by the queue script and stays hidden when nothing is open, no AI is set up or there is no licence.
+--></f:comment>
+<nav class="aqg-subnav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.subnav.label', default: 'Accessibility module views')}">
+    <f:if condition="{current} == 'overview'">
+        <f:then><a class="aqg-subnav__link" href="{be:moduleLink(route: 'web_a11y', arguments: {id: pageId})}" aria-current="page"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.subnav.overview" default="Overview" /></a></f:then>
+        <f:else><a class="aqg-subnav__link" href="{be:moduleLink(route: 'web_a11y', arguments: {id: pageId})}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.subnav.overview" default="Overview" /></a></f:else>
+    </f:if>
+    <f:if condition="{current} == 'issues'">
+        <f:then><a class="aqg-subnav__link" href="{be:moduleLink(route: 'web_a11y.issues', arguments: {id: pageId})}" aria-current="page"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.title" default="My issues" /></a></f:then>
+        <f:else><a class="aqg-subnav__link" href="{be:moduleLink(route: 'web_a11y.issues', arguments: {id: pageId})}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.title" default="My issues" /></a></f:else>
+    </f:if>
+    <f:if condition="{current} == 'queue'">
+        <f:then>
+            <a class="aqg-subnav__link" href="{be:moduleLink(route: 'web_a11y.remediation', arguments: {id: pageId})}" aria-current="page">
+                <span class="aqg-subnav__wand" aria-hidden="true"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.title" default="AI fixes" />
+                <span class="aqg-subnav__count" data-aqg-rq-count="nav" hidden="hidden"></span>
+            </a>
+        </f:then>
+        <f:else>
+            <a class="aqg-subnav__link" href="{be:moduleLink(route: 'web_a11y.remediation', arguments: {id: pageId})}"><span class="aqg-subnav__wand" aria-hidden="true"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.title" default="AI fixes" /><f:if condition="{aiFixesCount} > 0"> <span class="aqg-subnav__count" data-aqg-subnav-count="overview">{aiFixesCount}</span></f:if></a>
+        </f:else>
+    </f:if>
+    <f:variable name="agentsUrl"><aqg:connectedAgentsUrl /></f:variable>
+    <f:if condition="{agentsUrl}">
+        <f:if condition="{current} == 'agents'">
+            <f:then><a class="aqg-subnav__link" href="{agentsUrl}" aria-current="page"><span class="aqg-subnav__agent" aria-hidden="true"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.nav" default="Connected agents" /></a></f:then>
+            <f:else><a class="aqg-subnav__link" href="{agentsUrl}"><span class="aqg-subnav__agent" aria-hidden="true"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.nav" default="Connected agents" /></a></f:else>
+        </f:if>
+    </f:if>
+</nav>
+</html>

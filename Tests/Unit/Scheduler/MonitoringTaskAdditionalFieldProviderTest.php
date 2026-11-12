@@ -136,6 +136,17 @@ final class MonitoringTaskAdditionalFieldProviderTest extends TestCase
     }
 
     #[Test]
+    public function aBackendAddressWithTheTypo3PathIsAcceptedLikeOnTypo3Fourteen(): void
+    {
+        // N-15: TYPO3 13 refused "https://cms.example.org/typo3/", TYPO3 14 normalised it.
+        $submitted = [Provider::FIELD_SITE => 'main', Provider::FIELD_LANGUAGE => '0', Provider::FIELD_RECIPIENTS => 'qa@example.org', Provider::FIELD_MAX_PAGES => '500', Provider::FIELD_MAX_WAIT => '1200', Provider::FIELD_BACKEND_URL => 'https://cms.example.org/typo3/'];
+
+        self::assertTrue($this->provider()->validateAdditionalFields($submitted, $this->module()));
+        self::assertSame([], $this->flashMessages());
+        self::assertSame('https://cms.example.org', $submitted[Provider::FIELD_BACKEND_URL]);
+    }
+
+    #[Test]
     public function savingStoresTheChosenValuesOnTheTask(): void
     {
         $task = (new \ReflectionClass(MonitoringTask::class))->newInstanceWithoutConstructor();

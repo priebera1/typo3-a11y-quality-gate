@@ -191,16 +191,17 @@ final class InformationDensityTemplateTest extends TestCase
         }
         self::assertStringContainsString('<f:if condition="{canIgnoreRuleOnSite}">', $menu, 'Site-wide ignore keeps its permission check.');
 
-        // An occurrence reads where (content element), what (markup), then its one visible action: Edit record. Ignore
-        // is secondary and sits in the occurrence's own "More actions" menu.
+        // An occurrence reads where (content element), what (markup), then Edit record and one visible "Ignore…"
+        // (U-03, 2026-11-05 company acceptance: two "More actions" menus per row hid a single action).
         $row = $this->between($occurrence, '<div class="aqg-occ__row">', '<div class="aqg-occ__tech">');
         self::assertLessThan(strpos($row, '{issue.snippetPreview}'), strpos($row, '{issue.location.title}'));
         self::assertLessThan(strpos($row, '<div class="aqg-occ__actions">'), strpos($row, '{issue.snippetPreview}'));
         $actions = $this->between($row, '<div class="aqg-occ__actions">', '<div class="aqg-occ__tech">');
         self::assertLessThan(strpos($actions, 'a11y-ignore-trigger'), strpos($actions, 'action.editRecord'));
         self::assertStringContainsString('<a href="{issue.editLink}" class="btn btn-default btn-sm">', $actions);
-        $occurrenceMenu = $this->between($actions, '<details class="aqg-menu aqg-occ__menu" data-aqg-menu="true">', '</details>');
-        self::assertStringContainsString('a11y-ignore-trigger', $occurrenceMenu);
+        self::assertStringNotContainsString('aqg-occ__menu', $actions, 'No menu for a single action.');
+        self::assertStringContainsString('class="btn btn-default btn-sm a11y-ignore-trigger"', $actions);
+        self::assertStringContainsString('pageDetail.occurrence.ignoreShort', $actions);
         self::assertSame(1, substr_count($this->between($detail, '<header class="aqg-pagehead">', '</header>'), 'btn-primary'));
 
         // Owner, fix type and WCAG sit behind the rule's closed "Standards and rule reference"; table, uid, field,
@@ -370,7 +371,7 @@ final class InformationDensityTemplateTest extends TestCase
         self::assertStringContainsString('data-aqg-locked-feature="screenshot"', $detail);
         self::assertStringContainsString('data-aqg-locked-feature="record-mapping"', $detail);
 
-        foreach (['freePreview.screenshotsLocked', 'freePreview.recordMappingLocked', 'freePreview.upsell'] as $key) {
+        foreach (['freePreview.screenshotsLocked', 'freePreview.recordMappingLocked'] as $key) {
             $english = $this->english($key);
             foreach (['trial', 'PRO', 'Agency'] as $plan) {
                 self::assertStringContainsString($plan, $english, $key);
@@ -436,5 +437,18 @@ final class InformationDensityTemplateTest extends TestCase
         }
 
         return [$labels[0], $labels[1]];
+    }
+
+    /**
+     * U-04 (2026-11-05 company acceptance): every affected-pages row read "Page UID 4 · Frontend page UID 9 · Frontend scan
+     * UID 2" to screen readers. Storage ids are not row content; they stay data attributes for the scripts.
+     */
+    #[Test]
+    public function affectedPageRowsCarryNoStorageIds(): void
+    {
+        $panel = (string)file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/RemotePanel.html');
+
+        self::assertStringNotContainsString('overview.remote.pageIdentifiers', $panel);
+        self::assertStringContainsString('data-a11y-remote-scan-uid="{page.remote_scan_uid}"', $panel);
     }
 }

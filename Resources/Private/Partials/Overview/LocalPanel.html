@@ -20,6 +20,19 @@
         </div>
     </f:if>
 
+    <f:if condition="{fieldsAwaitingRefresh} > 0">
+        <div class="aqg-note aqg-note--info" role="status" data-aqg-fields-awaiting-refresh="{fieldsAwaitingRefresh}">
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'info'}" />
+            <div class="aqg-note__text">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scanFields.awaitingRefresh.title" default="New content fields can be scanned" /></strong>
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scanFields.awaitingRefresh.text" arguments="{0: fieldsAwaitingRefresh}" default="%d field(s) that your extensions or TCA added are not in the scan configuration yet, so content scans skip them. Choose Refresh fields to add them." />
+            </div>
+            <div class="aqg-note__actions">
+                <a href="{scanFieldsSettingsUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.notice.chooseFields" default="Choose scan fields" /></a>
+            </div>
+        </div>
+    </f:if>
+
     <f:if condition="!{hasEnabledFields}">
         <div class="aqg-note aqg-note--warning" role="status" data-aqg-first-run="fields-missing">
             <f:render partial="Shared/AqgIcon" arguments="{name: 'warn'}" />
@@ -67,6 +80,7 @@
                 lastScanScopeLabel: lastScanScopeLabel,
                 hasLocalResults: hasLocalResults,
                 totalCounts: totalCounts,
+                localEvidence: localEvidence,
                 localNewCounts: localNewCounts,
                 totalLocalPages: totalLocalPages,
                 localQuery: localQuery,

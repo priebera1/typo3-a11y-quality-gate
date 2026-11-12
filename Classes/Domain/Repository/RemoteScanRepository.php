@@ -38,6 +38,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $languageUid = -1,
         int $pid = 0,
         ?bool $isFreePreview = null,
+        ?bool $isPagePreview = null,
     ): int {
         $connection = $this->getConnection(Tables::REMOTE_SCAN);
         $now = time();
@@ -73,6 +74,11 @@ final class RemoteScanRepository extends AbstractRepository
             $data['is_free_preview'] = $isFreePreview ? 1 : 0;
         }
 
+        // Like is_free_preview: decided once at submit time, kept by every later sync (null).
+        if ($isPagePreview !== null) {
+            $data['is_page_preview'] = $isPagePreview ? 1 : 0;
+        }
+
         if (is_array($existing)) {
             $connection->update(
                 Tables::REMOTE_SCAN,
@@ -91,6 +97,18 @@ final class RemoteScanRepository extends AbstractRepository
         return (int)$connection->lastInsertId();
     }
 
+    /**
+     * The page limit the scan was submitted with (coverage: "stopped at its page limit"). Kept apart from upsertScan(),
+     * which status syncs and the persistence rewrite; 0 = unknown (older scans, other submit paths).
+     */
+    public function recordMaxPages(string $jobId, int $maxPages): void
+    {
+        if ($jobId === '' || $maxPages <= 0) {
+            return;
+        }
+        $this->getConnection(Tables::REMOTE_SCAN)->update(Tables::REMOTE_SCAN, ['max_pages' => $maxPages], ['job_id' => $jobId]);
+    }
+
     public function markSubmitted(
         string $siteIdentifier,
         string $jobId,
@@ -103,6 +121,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $languageUid = -1,
         int $pid = 0,
         bool $isFreePreview = false,
+        bool $isPagePreview = false,
     ): int {
         $now = time();
 
@@ -129,6 +148,7 @@ final class RemoteScanRepository extends AbstractRepository
             languageUid: $languageUid,
             pid: $pid,
             isFreePreview: $isFreePreview,
+            isPagePreview: $isPagePreview,
         );
     }
 
@@ -221,6 +241,44 @@ final class RemoteScanRepository extends AbstractRepository
         );
     }
 
+    /**
+     * NEW-01: claims the right to store a completed scan's results. Exactly one caller wins per scan while it is not
+     * persisted yet: an atomic UPDATE whose WHERE re-checks persisted_at and an expired claim, so concurrent status
+     * polls, Overview, toolbar and Monitoring reads in other PHP processes cannot store the same results twice. A claim
+     * of a process that died expires after $ttlSeconds and the next reader persists the scan.
+     */
+    public function claimPersistence(int $remoteScanUid, string $token, int $now, int $ttlSeconds): bool
+    {
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+
+        return $queryBuilder
+            ->update(Tables::REMOTE_SCAN)
+            ->set('persist_claim_token', $token)
+            ->set('persist_claim_until', $now + max(1, $ttlSeconds), true, Connection::PARAM_INT)
+            ->where(
+                $queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('persisted_at', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->lt('persist_claim_until', $queryBuilder->createNamedParameter($now, Connection::PARAM_INT)),
+            )
+            ->executeStatement() === 1;
+    }
+
+    /** Ends this caller's claim (only its own: a claim taken over after expiry belongs to the next caller). */
+    public function releasePersistenceClaim(int $remoteScanUid, string $token): void
+    {
+        $this->getConnection(Tables::REMOTE_SCAN)->update(
+            Tables::REMOTE_SCAN,
+            ['persist_claim_token' => '', 'persist_claim_until' => 0],
+            ['uid' => $remoteScanUid, 'persist_claim_token' => $token]
+        );
+    }
+
+    /** One connection for the scan, its pages, findings and nodes: the store runs in one transaction. */
+    public function remoteScanConnection(): Connection
+    {
+        return $this->getConnection(Tables::REMOTE_SCAN);
+    }
+
     public function isPersisted(string $jobId): bool
     {
         $existing = $this->findScanByJobId($jobId);
@@ -249,6 +307,18 @@ final class RemoteScanRepository extends AbstractRepository
     }
 
     public function findLatestActiveScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
+    {
+        return $this->findRecentActiveScansBySite($siteIdentifier, $languageUid, 1)[0] ?? null;
+    }
+
+    /**
+     * The newest active (or completed but not yet stored) scans of a site, newest first, at most $limit rows. Callers
+     * that check each row's read access pick the first readable one (F11-04: a newer unreadable scan must not hide an
+     * older readable result).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findRecentActiveScansBySite(string $siteIdentifier, int $languageUid = -1, int $limit = 1): array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
 
@@ -285,14 +355,12 @@ final class RemoteScanRepository extends AbstractRepository
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
 
-        $row = $queryBuilder
+        return array_values($queryBuilder
             ->orderBy('started_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
-            ->setMaxResults(1)
+            ->setMaxResults(max(1, $limit))
             ->executeQuery()
-            ->fetchAssociative();
-
-        return is_array($row) ? $row : null;
+            ->fetchAllAssociative());
     }
 
     public function findLatestActiveSiteScanBySite(string $siteIdentifier, int $languageUid = -1): ?array
@@ -369,6 +437,7 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
+        $this->addPublicScanConstraint($queryBuilder);
 
         $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
@@ -408,6 +477,7 @@ final class RemoteScanRepository extends AbstractRepository
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
         $this->addFreePreviewConstraint($queryBuilder, $isFreePreview);
+        $this->addPublicScanConstraint($queryBuilder);
 
         $row = $queryBuilder
             ->orderBy('finished_at', 'DESC')
@@ -421,8 +491,19 @@ final class RemoteScanRepository extends AbstractRepository
 
     public function findLastCompletedPageScanBySite(string $siteIdentifier, int $languageUid = -1, ?bool $isFreePreview = null): ?array
     {
+        return $this->findRecentCompletedPageScansBySite($siteIdentifier, $languageUid, $isFreePreview, 1)[0] ?? null;
+    }
+
+    /**
+     * The newest completed page scans of a site, newest first, at most $limit rows (same scope, language, Free/paid and
+     * public-scan constraints as findLastCompletedPageScanBySite()). See findRecentActiveScansBySite().
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findRecentCompletedPageScansBySite(string $siteIdentifier, int $languageUid = -1, ?bool $isFreePreview = null, int $limit = 1): array
+    {
         if ($siteIdentifier === '') {
-            return null;
+            return [];
         }
 
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
@@ -451,15 +532,14 @@ final class RemoteScanRepository extends AbstractRepository
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
         $this->addFreePreviewConstraint($queryBuilder, $isFreePreview);
+        $this->addPublicScanConstraint($queryBuilder);
 
-        $row = $queryBuilder
+        return array_values($queryBuilder
             ->orderBy('finished_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
-            ->setMaxResults(1)
+            ->setMaxResults(max(1, $limit))
             ->executeQuery()
-            ->fetchAssociative();
-
-        return is_array($row) ? $row : null;
+            ->fetchAllAssociative());
     }
 
 
@@ -610,6 +690,30 @@ final class RemoteScanRepository extends AbstractRepository
         }
 
         return $this->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, $isFreePreview);
+    }
+
+    /**
+     * NEW-12: the newest scan of the site that TYPO3 itself gave up on (status checks failed for too long) within
+     * $maxAgeSeconds — the crawler may have completed it since, so it is checked once more.
+     */
+    public function findLocallyFailedScanBySite(string $siteIdentifier, int $maxAgeSeconds): ?array
+    {
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+        $row = $queryBuilder
+            ->select('*')
+            ->from(Tables::REMOTE_SCAN)
+            ->where(
+                $queryBuilder->expr()->eq('site_identifier', $queryBuilder->createNamedParameter($siteIdentifier)),
+                $queryBuilder->expr()->eq('status', $queryBuilder->createNamedParameter('failed')),
+                $queryBuilder->expr()->eq('failure_origin', $queryBuilder->createNamedParameter(self::FAILURE_ORIGIN_LOCAL_STALE)),
+                $queryBuilder->expr()->gt('finished_at', $queryBuilder->createNamedParameter(time() - $maxAgeSeconds, Connection::PARAM_INT)),
+            )
+            ->orderBy('finished_at', 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? $row : null;
     }
 
     public function findUnpersistedCompletedScanBySite(string $siteIdentifier): ?array
@@ -769,6 +873,57 @@ final class RemoteScanRepository extends AbstractRepository
                 $queryBuilder->createNamedParameter($isFreePreview ? 1 : 0, Connection::PARAM_INT)
             )
         );
+    }
+
+    /**
+     * Site-level views (latest scan of the site, affected pages, stored site history) show public results only. A preview
+     * scan (Atlas D9) belongs to its page: the page detail, its own history tab and its own pairing.
+     */
+    private function addPublicScanConstraint(QueryBuilder $queryBuilder, string $alias = ''): void
+    {
+        $queryBuilder->andWhere(
+            $queryBuilder->expr()->eq(
+                $alias !== '' ? $alias . '.is_page_preview' : 'is_page_preview',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+            )
+        );
+    }
+
+    /**
+     * Which of the given job IDs are stored preview scans of this site (job ID => true). Job IDs without a stored row of
+     * the site are left out: the page history treats them as public, as it did before.
+     *
+     * @param list<string> $jobIds
+     * @return array<string, true>
+     */
+    public function findPagePreviewJobIds(string $siteIdentifier, array $jobIds): array
+    {
+        $jobIds = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $jobId): string => trim((string)$jobId),
+            $jobIds
+        ), static fn (string $jobId): bool => $jobId !== '')));
+        if ($siteIdentifier === '' || $jobIds === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+        $rows = $queryBuilder
+            ->select('job_id')
+            ->from(Tables::REMOTE_SCAN)
+            ->where(
+                $queryBuilder->expr()->eq('site_identifier', $queryBuilder->createNamedParameter($siteIdentifier)),
+                $queryBuilder->expr()->in('job_id', $queryBuilder->createNamedParameter($jobIds, Connection::PARAM_STR_ARRAY)),
+                $queryBuilder->expr()->eq('is_page_preview', $queryBuilder->createNamedParameter(1, Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        $previewJobIds = [];
+        foreach ($rows as $jobId) {
+            $previewJobIds[(string)$jobId] = true;
+        }
+
+        return $previewJobIds;
     }
 
     private function addLanguageConstraint(QueryBuilder $queryBuilder, int $languageUid, string $alias = ''): void
@@ -1134,6 +1289,8 @@ final class RemoteScanRepository extends AbstractRepository
             );
 
         $this->addLanguageConstraint($queryBuilder, $languageUid);
+        // Site-level coverage: a preview scan of a page visitors cannot open is no public result of the site.
+        $this->addPublicScanConstraint($queryBuilder, 'rs');
 
         $rows = $queryBuilder
             ->orderBy('rs.finished_at', 'DESC')
@@ -1376,15 +1533,26 @@ final class RemoteScanRepository extends AbstractRepository
 
     public function findLatestPageByUrl(string $url, string $siteIdentifier, ?bool $isFreePreview = null): ?array
     {
+        return $this->findRecentPagesByUrl($url, $siteIdentifier, $isFreePreview, 1)[0] ?? null;
+    }
+
+    /**
+     * STATE-01: the newest completed result pages of a URL, newest first (findLatestPageByUrl() is the first). A reader who
+     * may not read the newest one (a reused URL, another owner) is shown the newest one they may read.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findRecentPagesByUrl(string $url, string $siteIdentifier, ?bool $isFreePreview = null, int $limit = 10): array
+    {
         if ($url === '' || $siteIdentifier === '') {
-            return null;
+            return [];
         }
 
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
 
         $queryBuilder
             ->select('rsp.*')
-            ->addSelectLiteral('rs.finished_at AS remote_scan_finished_at')
+            ->addSelectLiteral('rs.finished_at AS remote_scan_finished_at', 'rs.is_page_preview AS remote_scan_is_page_preview')
             ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
             ->innerJoin(
                 'rsp',
@@ -1408,15 +1576,13 @@ final class RemoteScanRepository extends AbstractRepository
         $this->addUrlVariantConstraint($queryBuilder, $url);
         $this->addFreePreviewConstraint($queryBuilder, $isFreePreview, 'rs');
 
-        $row = $queryBuilder
+        return array_values($queryBuilder
             ->orderBy('rs.finished_at', 'DESC')
             ->addOrderBy('rs.uid', 'DESC')
             ->addOrderBy('rsp.uid', 'DESC')
-            ->setMaxResults(1)
+            ->setMaxResults(max(1, $limit))
             ->executeQuery()
-            ->fetchAssociative();
-
-        return is_array($row) ? $row : null;
+            ->fetchAllAssociative());
     }
 
 
@@ -1435,7 +1601,7 @@ final class RemoteScanRepository extends AbstractRepository
 
         $queryBuilder
             ->select('rsp.*')
-            ->addSelectLiteral('rs.finished_at AS remote_scan_finished_at')
+            ->addSelectLiteral('rs.finished_at AS remote_scan_finished_at', 'rs.is_page_preview AS remote_scan_is_page_preview')
             ->from(Tables::REMOTE_SCAN_PAGE, 'rsp')
             ->innerJoin(
                 'rsp',
@@ -1615,6 +1781,7 @@ final class RemoteScanRepository extends AbstractRepository
         int $finishedBefore,
         int $excludeUid,
         int $limit,
+        bool $isPagePreview = false,
     ): array {
         if ($siteIdentifier === '' || $scanScope === '') {
             return [];
@@ -1630,6 +1797,7 @@ final class RemoteScanRepository extends AbstractRepository
                 $queryBuilder->expr()->eq('source_type', $queryBuilder->createNamedParameter($sourceType)),
                 $queryBuilder->expr()->eq('language_uid', $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('is_free_preview', $queryBuilder->createNamedParameter($isFreePreview ? 1 : 0, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('is_page_preview', $queryBuilder->createNamedParameter($isPagePreview ? 1 : 0, Connection::PARAM_INT)),
                 $queryBuilder->expr()->eq('status', $queryBuilder->createNamedParameter('completed')),
                 $queryBuilder->expr()->neq('uid', $queryBuilder->createNamedParameter($excludeUid, Connection::PARAM_INT))
             )
@@ -1707,11 +1875,17 @@ final class RemoteScanRepository extends AbstractRepository
                 $queryBuilder->expr()->in('source_type', $queryBuilder->createNamedParameter($sourceTypes, Connection::PARAM_STR_ARRAY))
             );
         $this->addLanguageConstraint($queryBuilder, $languageUid);
+        $this->addPublicScanConstraint($queryBuilder);
 
         return $queryBuilder;
     }
 
-    public function markFailed(string $jobId, string $message): void
+    /** NEW-12: why a scan was marked failed. Only a failure TYPO3 decided on its own may later be revisited. */
+    public const FAILURE_ORIGIN_CRAWLER = 'crawler';
+    public const FAILURE_ORIGIN_MISSING = 'missing';
+    public const FAILURE_ORIGIN_LOCAL_STALE = 'local_stale';
+
+    public function markFailed(string $jobId, string $message, string $origin = self::FAILURE_ORIGIN_CRAWLER): void
     {
         $existing = $this->findScanByJobId($jobId);
         if (!is_array($existing)) {
@@ -1727,6 +1901,7 @@ final class RemoteScanRepository extends AbstractRepository
                 'finished_at' => $now,
                 'last_synced_at' => $now,
                 'sync_error' => $message,
+                'failure_origin' => $origin,
                 'tstamp' => $now,
             ],
             [

@@ -36,7 +36,11 @@ abstract class AbstractFunctionalTestCase extends FunctionalTestCase
         $rulesetRepository = new RulesetRepository($connectionPool);
         $ruleConfigurationService = new RuleConfigurationService($rulesetRepository);
 
-        return new IssueRepository($connectionPool, $ruleConfigurationService);
+        return new IssueRepository(
+            $connectionPool,
+            $ruleConfigurationService,
+            new \Priebera\A11yQualityGate\Service\LocalFindingSourceAccessService(new \Priebera\A11yQualityGate\Service\BackendUserService(), $connectionPool),
+        );
     }
 
     // -------------------------------------------------------------------------

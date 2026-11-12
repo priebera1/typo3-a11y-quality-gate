@@ -2,103 +2,350 @@
          data-namespace-typo3-fluid="true">
     <div class="aqg-ai-wrap aqg-settings-section aqg-ai-settings"
          data-aqg-ai-settings="true"
+         data-locale="{aiLocale}"
          data-save-url="{aiSettingsSaveUrl}"
          data-refresh-models-url="{aiSettingsRefreshModelsUrl}"
          data-select-model-url="{aiSettingsSelectModelUrl}"
          data-test-url="{aiSettingsTestUrl}"
          data-link-text-toggle-url="{aiSettingsLinkTextToggleUrl}"
+         data-select-provider-url="{aiSettingsSelectProviderUrl}"
+         data-privacy-url="{aiSettingsPrivacyUrl}"
+         data-provider-copy="{aiProviderCopyJson}"
+         data-label-config-environment="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.globalEnvironmentKey', default: 'Configured through environment')}"
+         data-label-environment-key="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.environmentKey', default: 'Environment key')}"
+         data-message-provider-switched="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerSwitched', default: '%s is now the provider for this site. AI is paused for editors until a model of this provider passes the connection test.')}"
+         data-provider="{aiConfigurationStatus.provider}"
+         data-provider-label="{aiConfigurationStatus.providerLabel}"
+         data-source="{aiConfigurationStatus.source}"
+         data-key-hint="{aiConfigurationStatus.keyHint}"
+         data-environment-override="{f:if(condition: aiConfigurationStatus.environmentOverride, then: '1', else: '0')}"
+         data-provider-chosen="{f:if(condition: aiConfigurationStatus.providerChosen, then: '1', else: '0')}"
          data-configured="{f:if(condition: aiConfigurationStatus.configured, then: '1', else: '0')}"
          data-model-selected="{f:if(condition: aiConfigurationStatus.modelSelected, then: '1', else: '0')}"
+         data-selected-model-id="{aiConfigurationStatus.selectedModelId}"
+         data-selected-model-label="{aiConfigurationStatus.selectedModelLabel}"
          data-connection-status="{aiConfigurationStatus.status}"
          data-error-code="{aiConfigurationStatus.errorCode}"
          data-last-tested-at="{aiConfigurationStatus.lastTestedAt}"
          data-last-verified-at="{aiConfigurationStatus.lastVerifiedAt}"
          data-refresh-enabled="{f:if(condition: aiConfigurationStatus.actions.refreshModelsEnabled, then: '1', else: '0')}"
          data-test-enabled="{f:if(condition: aiConfigurationStatus.actions.testConnectionEnabled, then: '1', else: '0')}"
+         data-revalidation-required="{f:if(condition: aiConfigurationStatus.revalidationRequired, then: '1', else: '0')}"
+         data-licence-allows-ai="{f:if(condition: aiConfigurationStatus.licenceAllowsAi, then: '1', else: '0')}"
+         data-ready-for-editors="{f:if(condition: aiConfigurationStatus.readyForEditors, then: '1', else: '0')}"
          data-link-text-suggestions-enabled="{f:if(condition: aiConfigurationStatus.linkTextSuggestionsEnabled, then: '1', else: '0')}"
          data-message-saved-connected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.savedConnected', default: 'Key saved and connection verified with %s.')}"
          data-message-saved-choose-model="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.savedChooseModel', default: 'Key saved. Choose one of the available models to finish the setup.')}"
          data-message-saved-not-connected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.savedNotConnected', default: 'Key saved, but the connection test failed: %s')}"
          data-label-config-site="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteSpecificEncryptedKey', default: 'Site-specific encrypted key')}"
          data-label-config-none="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.notConfigured', default: 'Not configured')}"
-         data-message-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.saved', default: 'The encrypted OpenAI project key was saved.')}"
-         data-message-models-refreshed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsRefreshed', default: 'Available OpenAI models were refreshed.')}"
+         data-message-saved="{aiCopy.saved}"
+         data-message-models-refreshed="{aiCopy.modelsRefreshed}"
          data-message-model-selected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelSelected', default: 'The selected model was saved. Test the connection to verify this configuration.')}"
          data-message-connection-successful="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionSuccessful', default: 'Connection verified for the selected model.')}"
          data-message-link-text-suggestions-enabled="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsEnabledMessage', default: 'AI link and iframe title suggestions are enabled.')}"
          data-message-link-text-suggestions-disabled="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsDisabledMessage', default: 'AI link and iframe title suggestions are disabled.')}"
          data-message-permission-denied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.permissionDenied', default: 'Administrator permissions are required.')}"
          data-message-site-not-found="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteNotFound', default: 'The selected TYPO3 site does not exist.')}"
-         data-message-invalid-configuration="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidConfiguration', default: 'The OpenAI configuration is invalid.')}"
-         data-message-save-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.saveFailed', default: 'The OpenAI project key could not be saved.')}"
+         data-message-invalid-configuration="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidConfiguration', default: 'The AI configuration is incomplete or invalid.')}"
+         data-message-save-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.saveFailed', default: 'The AI configuration could not be saved.')}"
          data-message-provider-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerUnavailable', default: 'The configured AI provider is unavailable.')}"
-         data-message-api-key-rejected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.apiKeyRejected', default: 'The API key was rejected by OpenAI.')}"
-         data-message-insufficient-quota="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.insufficientQuota', default: 'The OpenAI project has insufficient quota.')}"
-         data-message-model-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelUnavailable', default: 'The selected OpenAI model is unavailable.')}"
-         data-message-model-not-permitted="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelNotPermitted', default: 'The selected model is not permitted by this OpenAI project.')}"
-         data-message-model-not-selected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelNotSelected', default: 'Select an OpenAI model before testing the connection.')}"
-         data-message-invalid-model-selection="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidModelSelection', default: 'The selected model is not available and supported for this project.')}"
+         data-message-api-key-rejected="{aiCopy.apiKeyRejected}"
+         data-message-insufficient-quota="{aiCopy.insufficientQuota}"
+         data-message-provider-billing-error="{aiCopy.billingError}"
+         data-message-model-unavailable="{aiCopy.modelUnavailable}"
+         data-message-model-not-permitted="{aiCopy.modelNotPermitted}"
+         data-message-model-not-selected="{aiCopy.modelNotSelected}"
+         data-message-invalid-model-selection="{aiCopy.invalidModelSelection}"
          data-message-model-selection-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelSelectionFailed', default: 'The selected model could not be saved.')}"
-         data-message-models-permission-denied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsPermissionDenied', default: 'AQG could not load the models available to this OpenAI project. Allow read access to the Models endpoint or use a key with the required project permissions.')}"
-         data-message-models-rate-limited="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsRateLimited', default: 'OpenAI rate-limited model discovery. Try again later.')}"
-         data-message-models-invalid-response="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsInvalidResponse', default: 'OpenAI returned an invalid model list.')}"
-         data-message-models-request-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsRequestFailed', default: 'AQG could not load the models available to this OpenAI project.')}"
-         data-message-no-supported-models="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.noSupportedModels', default: 'No OpenAI model available to this project is currently supported by AQG.')}"
-         data-message-connection-rate-limited="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionRateLimited', default: 'OpenAI rate-limited the connection test. Try again later.')}"
-         data-message-invalid-provider-request="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidProviderRequest', default: 'OpenAI rejected the AQG request contract for the selected model.')}"
+         data-message-models-permission-denied="{aiCopy.modelsPermissionDenied}"
+         data-message-models-rate-limited="{aiCopy.modelsRateLimited}"
+         data-message-models-invalid-response="{aiCopy.modelsInvalidResponse}"
+         data-message-models-request-failed="{aiCopy.modelsRequestFailed}"
+         data-message-no-supported-models="{aiCopy.noSupportedModels}"
+         data-message-connection-rate-limited="{aiCopy.connectionRateLimited}"
+         data-message-invalid-provider-request="{aiCopy.invalidProviderRequest}"
          data-message-structured-output-test-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.structuredOutputTestFailed', default: 'The structured-output connection test failed.')}"
-         data-message-transport-failure="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.transportFailure', default: 'AQG could not reach OpenAI.')}"
-         data-message-openai-service-failure="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.openAiServiceFailure', default: 'OpenAI could not complete the request.')}"
-         data-message-connection-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailed', default: 'The OpenAI connection could not be verified.')}"
-         data-message-saving-key="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.savingKey', default: 'Saving the encrypted OpenAI project key…')}"
-         data-message-refreshing-models="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.refreshingModels', default: 'Loading models available to this OpenAI project…')}"
+         data-message-transport-failure="{aiCopy.transportFailure}"
+         data-message-openai-service-failure="{aiCopy.serviceFailure}"
+         data-message-provider-service-failure="{aiCopy.serviceFailure}"
+         data-message-connection-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailed', default: 'The AI connection could not be verified.')}"
+         data-message-saving-key="{aiCopy.savingKey}"
+         data-message-refreshing-models="{aiCopy.refreshingModels}"
          data-message-testing-connection="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testingConnection', default: 'Testing the selected model and AQG connection contract…')}"
          data-message-request-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.requestFailed', default: 'The request could not be completed.')}"
+         data-message-provider-selected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerSelected', default: 'Provider saved. AI is paused for this site until a model of this provider passes the connection test.')}"
+         data-message-provider-unchanged="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerUnchanged', default: 'This provider is already active for the site.')}"
+         data-message-provider-changed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerChanged', default: 'The site uses another AI provider now. Reload the settings and try again.')}"
+         data-message-invalid-provider="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidProvider', default: 'This AI provider is not supported.')}"
+         data-message-invalid-key-format="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.invalidKeyFormat', default: 'This is not an Anthropic API key. Anthropic keys start with sk-ant-. Nothing was stored.')}"
+         data-message-key-for-other-provider="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.keyForOtherProvider', default: 'This is an Anthropic key, but the site uses OpenAI. Choose Anthropic Claude as the provider first. Nothing was stored.')}"
+         data-message-settings-rate-limited="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.settingsRateLimited', default: 'Too many AI requests in a short time. Wait a minute and try again.')}"
+         data-message-privacy-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.privacySaved', default: 'Privacy settings saved for this site.')}"
+         data-message-switching-provider="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switchingProvider', default: 'Saving the provider for this site…')}"
+         data-message-choose-model="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.chooseFirst', default: 'Choose a model in the list first.')}"
          data-label-not-configured="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.notConfigured', default: 'Not configured')}"
          data-label-not-verified="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.configured', default: 'Not verified')}"
          data-label-connected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connected', default: 'Connected')}"
          data-label-connection-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedStatus', default: 'Connection failed')}"
          data-label-never="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.never', default: 'Never')}"
          data-label-error-code="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.errorCode', default: 'Error code')}"
+         data-label-switch-title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switch.title', default: 'Switch this site to %s?')}"
+         data-label-switch-pause="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switch.pause', default: 'AI pauses for the editors of this site until a model of %s passes the connection test.')}"
+         data-label-switch-keep="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switch.keep', default: 'The %s key and model stay stored and encrypted. Switching back later needs a new connection test.')}"
+         data-label-switch-usage="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switch.usage', default: 'Usage already recorded stays attributed to the provider that produced it. Suggestions are never applied automatically.')}"
+         data-label-switch-confirm="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switch.confirm', default: 'Switch to %s')}"
+         data-label-cancel="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.switch.cancel', default: 'Cancel')}"
+         data-label-ready-licence-ok="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.licenceOk', default: 'PRO or Agency licence')}"
+         data-label-ready-licence-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.licenceMissing', default: 'AI suggestions need a PRO or Agency licence for this site')}"
+         data-label-ready-provider-ok="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.providerOk', default: 'Provider: %s')}"
+         data-label-ready-provider-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.providerMissing', default: 'No provider chosen')}"
+         data-label-ready-key-ok="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyOk', default: 'API key stored')}"
+         data-label-ready-key-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyMissing', default: 'No API key')}"
+         data-label-ready-model-ok="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelOk', default: 'Model verified: %s')}"
+         data-label-ready-model-revalidate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelRevalidate', default: 'Model must be tested again after the provider change')}"
+         data-label-ready-model-key-rejected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyRejected', default: 'Key rejected by the provider: replace the key or test the connection again')}"
+         data-label-ready-model-rejected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelRejected', default: 'Model no longer available to this key: choose a model and test the connection')}"
+         data-label-revalidate-title-change="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.title', default: 'Connection test needed: AI is paused for editors of this site')}"
+         data-label-revalidate-title-rejected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.titleRejected', default: 'AI is paused for editors of this site: the provider rejected an editor request')}"
+         data-label-revalidate-text-change="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.text', default: 'This model was chosen for the site before the provider changed. AQG tests it again before editors can use it. Only a fixed test prompt without site content is sent.')}"
+         data-label-revalidate-text-key="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.textKey', default: 'The provider rejected the API key during an editor request. Replace the key if it was revoked, then test the connection. A passing test lifts the pause; only a fixed test prompt without site content is sent.')}"
+         data-label-revalidate-text-model="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.textModel', default: 'The provider no longer offers the selected model to this key. Choose an available model, then test the connection. A passing test lifts the pause; only a fixed test prompt without site content is sent.')}"
+         data-label-ready-model-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelMissing', default: 'No verified model')}"
+         data-label-ready-active="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.active', default: 'AI active for editors')}"
+         data-label-ready-inactive="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.inactive', default: 'AI not active for editors')}"
+         data-label-matrix-sent="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent', default: 'Sent')}"
+         data-label-matrix-not-sent="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent', default: 'Not sent')}"
+         data-label-matrix-image-off="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.imageOff', default: 'Off: no AI alt-text suggestions')}"
+         data-budget-url="{f:be.uri(route: 'ajax_a11y_ai_settings_budget')}"
+         data-acknowledge-url="{f:be.uri(route: 'ajax_a11y_ai_settings_acknowledge')}"
+         data-label-ready-ack-ok="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.acknowledgementOk', default: 'Privacy acknowledged')}"
+         data-label-ready-ack-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.acknowledgementMissing', default: 'Acknowledge privacy for %s')}"
+         data-label-ready-budget-none="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetNone', default: 'No budget set')}"
+         data-label-ready-budget-used="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetUsed', default: 'Budget: %1$s %% of %2$s')}"
+         data-label-ready-budget-no-price="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetNoPrice', default: 'Cost unknown: no automatic price for this model')}"
+         data-label-ready-budget-reached="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetReached', default: 'Monthly budget reached — AI is paused for editors')}"
+         data-label-ready-budget-unenforceable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetUnenforceable', default: 'Budget not enforceable: no complete price for %s')}"
+         data-label-ack-confirmed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.confirmed', default: 'Confirmed by %1$s on %2$s · applies to %3$s on this site only.')}"
+         data-label-ack-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.label', default: 'I confirm that a data processing agreement (DPA) with %s covers this site, or that sending this content is otherwise lawful.')}"
+         data-label-ack-help="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.help', default: 'Required before AI can be activated. Applies to %s on this site only.')}"
+         data-label-key-stored="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key.storedBadge', default: 'Key stored')}"
+         data-label-key-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyMissing', default: 'No API key')}"
+         data-label-model-current="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.current', default: 'In use')}"
+         data-label-price-unknown="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.unknown', default: 'No price')}"
+         data-label-price-pair="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.pair', default: '%1$s in / %2$s out')}"
+         data-label-price-summary="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.summary', default: '%1$s: %2$s input, %3$s output, %4$s cached input per 1M tokens · checked %5$s')}"
+         data-label-price-summary-none="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.summaryNone', default: 'AQG has no automatic price for %s: its cost is shown as unknown and a hard-stop budget pauses AI.')}"
+         data-label-price-tier="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.longContextNote', default: 'Requests with more than %1$s input tokens are billed at %2$s input and %3$s output per 1M tokens.')}"
+         data-label-price-stale="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.staleNote', default: 'This price has not been confirmed for more than a week; AQG keeps using it until the next successful check.')}"
+         data-label-model-empty="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.empty', default: 'Save the API key to load the models this key can use.')}"
          data-message-connection-verified="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionVerified', default: 'Connection verified for the current key, selected model, prompt and AQG connection contract.')}"
-         data-message-connection-failed-persistent="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedPersistent', default: 'The last verification or model-discovery request failed. The saved key was not removed.')}" >
-        <div class="aqg-card aqg-ai-card aqg-ai-settings__card">
-            <header class="aqg-card__head">
-                <div class="aqg-ai-settings__heading">
-                    <div>
-                        <h2 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.title" default="AI suggestions for alt text, link text and iframe titles" /></h2>
-                        <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.description" default="Configure your own OpenAI project key for this site. Suggestions are never applied automatically; an editor must review and confirm them." /></p>
-                    </div>
-                    <span class="aqg-ai-headtag aqg-ai-provider-badge">OpenAI</span>
+         data-message-provider-rejected-key="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerRejected.key', default: 'The provider rejected the API key during an editor\'s AI request. AI is paused for editors of this site. Replace the key or run Test connection again.')}"
+         data-message-provider-rejected-model="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerRejected.model', default: 'The provider no longer offers the selected model to this key. AI is paused for editors of this site. Choose a model and run Test connection again.')}"
+         data-message-connection-failed-persistent="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedPersistent', default: 'The last verification or model-discovery request failed. The saved key was not removed.')}"
+         data-message-limits-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.saved', default: 'Limits saved.')}"
+         data-message-budget-removed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.removed', default: 'Budget removed. AI is no longer limited by a monthly budget on this site.')}"
+         data-message-invalid-budget="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.invalidBudget', default: 'Enter an amount of at least $1, or remove the budget.')}"
+         data-message-invalid-warning-percent="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.invalidWarning', default: 'Enter a percentage from 1 to 100, or leave it empty.')}"
+         data-message-hard-stop-required="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.choiceRequired', default: 'Choose whether AI pauses for editors when the budget is reached.')}"
+         data-message-invalid-alert-email="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.invalidEmail', default: 'Enter one valid e-mail address, or leave the field empty.')}">
+        <h2 class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.title" default="AI suggestions for alt text, link text and iframe titles" /></h2>
+        <input type="hidden" data-aqg-ai-site="true" value="{aiSiteIdentifier}" />
+        <section class="aqg-card aqg-ai-panel aqg-ai-panel--site" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.site', default: 'Site')}">
+            <div class="aqg-ai-panel__body">
+                <div class="aqg-ai-siterow">
+                    <f:if condition="{aiSiteOptions}">
+                        <f:then>
+                            <label class="aqg-ai-siterow__label" for="aqg-ai-site-select"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.site" default="Site" /></label>
+                            <div class="aqg-ai-siterow__controls">
+                                <select id="aqg-ai-site-select" class="form-select" data-aqg-ai-site-select="true" aria-describedby="aqg-ai-site-select-help">
+                                    <f:for each="{aiSiteOptions}" as="siteOption">
+                                        <f:if condition="{siteOption.selected}">
+                                            <f:then><option value="{siteOption.url}" selected="selected">{siteOption.label}</option></f:then>
+                                            <f:else><option value="{siteOption.url}">{siteOption.label}</option></f:else>
+                                        </f:if>
+                                    </f:for>
+                                </select>
+                                <button type="button" class="btn btn-default btn-sm" data-action="aqg-ai-open-site"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteOpen" default="Show site" /></button>
+                            </div>
+                        </f:then>
+                        <f:else>
+                            <span class="aqg-ai-siterow__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.site" default="Site" /></span>
+                            <strong class="aqg-ai-siterow__name">{aiSiteIdentifier}</strong>
+                        </f:else>
+                    </f:if>
+                    <span class="aqg-ai-badge {f:if(condition: aiConfigurationStatus.readyForEditors, then: 'tone-ok', else: 'tone-none')}" role="status" data-aqg-ai-ready-badge="true">
+                        <span class="aqg-ai-badge__icon" aria-hidden="true">{f:if(condition: aiConfigurationStatus.readyForEditors, then: '✓', else: '–')}</span>
+                        <span data-aqg-ai-ready-badge-text="true"><f:if condition="{aiConfigurationStatus.readyForEditors}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.active" default="AI active for editors" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.inactive" default="AI not active for editors" /></f:else></f:if></span>
+                    </span>
+                </div>
+
+                <f:if condition="{aiConfigurationStatus.licenceAllowsAi}">
+                    <f:else>
+                        <div class="aqg-statusline tone-info" role="note">
+                            <span class="aqg-statusline__icon" aria-hidden="true">i</span>
+                            <div class="aqg-statusline__content">
+                                <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.licenceNotice" default="Editors see AI suggestions only with a valid PRO or Agency licence for this site. You can prepare the configuration now." /></p>
+                            </div>
+                        </div>
+                    </f:else>
+                </f:if>
+
+                <div class="aqg-ai-ready">
+                    <p id="aqg-ai-ready-title" class="aqg-ai-ready__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.inlineTitle" default="Ready for editors:" /></p>
+                    <ul class="aqg-ai-ready__list" data-aqg-ai-readiness="true" aria-labelledby="aqg-ai-ready-title">
+                        <li data-ready-item="licence" data-state="{f:if(condition: aiConfigurationStatus.licenceAllowsAi, then: 'ok', else: 'missing')}"><span class="aqg-ai-ready__icon" aria-hidden="true">{f:if(condition: aiConfigurationStatus.licenceAllowsAi, then: '✓', else: '–')}</span> <span data-ready-text="true"><f:if condition="{aiConfigurationStatus.licenceAllowsAi}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.licenceOk" default="PRO or Agency licence" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.licenceMissing" default="AI suggestions need a PRO or Agency licence for this site" /></f:else></f:if></span></li>
+                        <li data-ready-item="provider" data-state="{f:if(condition: aiConfigurationStatus.providerChosen, then: 'ok', else: 'missing')}"><span class="aqg-ai-ready__icon" aria-hidden="true">{f:if(condition: aiConfigurationStatus.providerChosen, then: '✓', else: '–')}</span> <span data-ready-text="true"><f:if condition="{aiConfigurationStatus.providerChosen}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.providerOk" default="Provider: %s" arguments="{0: aiConfigurationStatus.providerLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.providerMissing" default="No provider chosen" /></f:else></f:if></span></li>
+                        <li data-ready-item="key" data-state="{f:if(condition: aiConfigurationStatus.configured, then: 'ok', else: 'missing')}"><span class="aqg-ai-ready__icon" aria-hidden="true">{f:if(condition: aiConfigurationStatus.configured, then: '✓', else: '–')}</span> <span data-ready-text="true"><f:if condition="{aiConfigurationStatus.configured}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyOk" default="API key stored" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyMissing" default="No API key" /></f:else></f:if></span></li>
+                        <li data-ready-item="model" data-state="{f:if(condition: aiConfigurationStatus.verified, then: 'ok', else: 'missing')}"><span class="aqg-ai-ready__icon" aria-hidden="true">{f:if(condition: aiConfigurationStatus.verified, then: '✓', else: '–')}</span> <span data-ready-text="true"><f:if condition="{aiConfigurationStatus.verified}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelOk" default="Model verified: %s" arguments="{0: aiConfigurationStatus.selectedModelLabel}" /></f:then><f:else><f:if condition="{aiConfigurationStatus.revalidationRequired}"><f:then><f:if condition="{aiConfigurationStatus.errorCode} == 'provider_1771002310'"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyRejected" default="Key rejected by the provider: replace the key or test the connection again" /></f:then><f:else if="{aiConfigurationStatus.errorCode} == 'provider_1771002317' || {aiConfigurationStatus.errorCode} == 'provider_1771002321'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelRejected" default="Model no longer available to this key: choose a model and test the connection" /></f:else><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelRevalidate" default="Model must be tested again after the provider change" /></f:else></f:if></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.modelMissing" default="No verified model" /></f:else></f:if></f:else></f:if></span></li>
+                        <li data-ready-item="acknowledgement" data-state="{aiConfigurationStatus.readiness.acknowledgement}"><span class="aqg-ai-ready__icon" aria-hidden="true"><f:switch expression="{aiConfigurationStatus.readiness.acknowledgement}"><f:case value="ok">✓</f:case><f:case value="warn">!</f:case><f:defaultCase>–</f:defaultCase></f:switch></span> <span data-ready-text="true"><f:if condition="{aiConfigurationStatus.acknowledgement.confirmed}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.acknowledgementOk" default="Privacy acknowledged" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.acknowledgementMissing" default="Acknowledge privacy for %s" arguments="{0: aiConfigurationStatus.providerLabel}" /></f:else></f:if></span></li>
+                        <li data-ready-item="budget" data-state="{aiConfigurationStatus.readiness.budget}"><span class="aqg-ai-ready__icon" aria-hidden="true"><f:switch expression="{aiConfigurationStatus.readiness.budget}"><f:case value="ok">✓</f:case><f:case value="warn">!</f:case><f:defaultCase>–</f:defaultCase></f:switch></span> <span data-ready-text="true"><f:switch expression="{aiConfigurationStatus.budget.state}"><f:case value="none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetNone" default="No budget set" /></f:case><f:case value="no_price"><f:if condition="{aiConfigurationStatus.budget.blocking}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetUnenforceable" default="Budget not enforceable: no complete price for %s" arguments="{0: aiConfigurationStatus.budget.modelLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetNoPrice" default="Cost unknown: no automatic price for this model" /></f:else></f:if></f:case><f:defaultCase><f:if condition="{aiConfigurationStatus.budget.blocking}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetReached" default="Monthly budget reached — AI is paused for editors" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetUsed" default="Budget: %1$s %% of %2$s" arguments="{0: aiConfigurationStatus.budget.percent, 1: aiConfigurationStatus.budget.budgetLabel}" /></f:else></f:if></f:defaultCase></f:switch></span></li>
+                    </ul>
+                </div>
+                <p id="aqg-ai-site-select-help" class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteReadyHelp" default="Each site has its own provider, key, model, limits and privacy settings. Editors only see AI when every item is met." /></p>
+            </div>
+        </section>
+        <nav class="aqg-ai-sectionnav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.label', default: 'AI suggestions sections')}" data-aqg-ai-sectionnav="true"
+             data-label-terms-confirmed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.termsConfirmed', default: 'Terms confirmed')}"
+             data-label-terms-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.termsMissing', default: 'Confirmation required')}"
+             data-label-budget-reached="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.budgetReached', default: 'Budget reached')}"
+             data-label-budget-warning="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.budgetWarning', default: '%s %% of budget')}"
+             data-label-requests-singular="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.requests.singular', default: '%s request')}"
+             data-label-requests-plural="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.requests.plural', default: '%s requests')}"
+             data-label-prices-failing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.pricesFailing', default: 'Price update failing')}"
+             data-label-prices-automatic="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.pricesAutomatic', default: 'Automatic prices')}"
+             data-label-cost-unknown="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.costUnknown', default: 'Unknown')}">
+            <ol class="aqg-ai-sectionnav__list">
+                <li>
+                    <a class="aqg-ai-sectionnav__link" href="#aqg-ai-section-provider" data-aqg-ai-section-link="provider">
+                        <span class="aqg-ai-sectionnav__num" aria-hidden="true">1</span>
+                        <span class="aqg-ai-sectionnav__text">
+                            <span class="aqg-ai-sectionnav__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.provider" default="Provider &amp; model" /></span>
+                            <span class="aqg-ai-sectionnav__state" data-aqg-ai-status-badge="true"><f:render section="StatusBadge" arguments="{status: aiConfigurationStatus.status}" /></span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="aqg-ai-sectionnav__link" href="#aqg-ai-section-privacy" data-aqg-ai-section-link="privacy">
+                        <span class="aqg-ai-sectionnav__num" aria-hidden="true">2</span>
+                        <span class="aqg-ai-sectionnav__text">
+                            <span class="aqg-ai-sectionnav__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.privacy" default="Privacy &amp; editor features" /></span>
+                            <span class="aqg-ai-sectionnav__state" data-aqg-ai-nav-state="privacy"><f:if condition="{aiConfigurationStatus.acknowledgement.confirmed}"><f:then><span class="aqg-ai-badge tone-ok"><span class="aqg-ai-badge__icon" aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.termsConfirmed" default="Terms confirmed" /></span></f:then><f:else><span class="aqg-ai-badge tone-warning"><span class="aqg-ai-badge__icon" aria-hidden="true">!</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.termsMissing" default="Confirmation required" /></span></f:else></f:if></span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="aqg-ai-sectionnav__link" href="#aqg-ai-section-usage" data-aqg-ai-section-link="usage">
+                        <span class="aqg-ai-sectionnav__num" aria-hidden="true">3</span>
+                        <span class="aqg-ai-sectionnav__text">
+                            <span class="aqg-ai-sectionnav__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.usage" default="Usage &amp; limits" /></span>
+                            <span class="aqg-ai-sectionnav__state" data-aqg-ai-nav-state="usage"><f:switch expression="{aiConfigurationStatus.budget.state}"><f:case value="reached"><span class="aqg-ai-badge {f:if(condition: aiConfigurationStatus.budget.hardStop, then: 'tone-error', else: 'tone-warning')}"><span class="aqg-ai-badge__icon" aria-hidden="true">!</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.budgetReached" default="Budget reached" /></span></f:case><f:case value="warning"><span class="aqg-ai-badge tone-warning"><span class="aqg-ai-badge__icon" aria-hidden="true">!</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.budgetWarning" default="%s %% of budget" arguments="{0: aiConfigurationStatus.budget.percent}" /></span></f:case><f:defaultCase><span class="aqg-ai-sectionnav__figure"><f:render section="UsageAmount" arguments="{row: aiConfigurationStatus.usage.totals}" /> · <f:if condition="{aiConfigurationStatus.usage.totals.requests} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.requests.singular" default="%s request" arguments="{0: aiConfigurationStatus.usage.totals.requests}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.requests.plural" default="%s requests" arguments="{0: aiConfigurationStatus.usage.totals.requests}" /></f:else></f:if></span></f:defaultCase></f:switch></span>
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a class="aqg-ai-sectionnav__link" href="#aqg-ai-section-diagnostics" data-aqg-ai-section-link="diagnostics">
+                        <span class="aqg-ai-sectionnav__num" aria-hidden="true">4</span>
+                        <span class="aqg-ai-sectionnav__text">
+                            <span class="aqg-ai-sectionnav__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.diagnostics" default="Diagnostics &amp; model prices" /></span>
+                            <span class="aqg-ai-sectionnav__state" data-aqg-ai-nav-state="diagnostics"><f:if condition="{aiConfigurationStatus.pricing.diagnostics.anyFailed}"><f:then><span class="aqg-ai-badge tone-warning"><span class="aqg-ai-badge__icon" aria-hidden="true">!</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.pricesFailing" default="Price update failing" /></span></f:then><f:else><span class="aqg-ai-badge tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.nav.pricesAutomatic" default="Automatic prices" /></span></f:else></f:if></span>
+                        </span>
+                    </a>
+                </li>
+            </ol>
+        </nav>
+        <section class="aqg-ai-group" id="aqg-ai-section-provider" aria-labelledby="aqg-ai-group-provider-title">
+            <h3 class="aqg-ai-group__title" id="aqg-ai-group-provider-title"><span class="aqg-ai-group__num" aria-hidden="true">1</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.provider" default="Provider &amp; model" /></h3>
+        <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-providers-title">
+            <header class="aqg-ai-panel__head">
+                <div>
+                    <h4 id="aqg-ai-providers-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerLegend" default="AI provider for this site" /></h4>
+                    <p id="aqg-ai-providers-help" class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerHelp" default="Exactly one provider and one model are active per site. Switching keeps the other provider's key and model stored." /></p>
                 </div>
             </header>
-
-            <div class="aqg-card__body aqg-ai-settings__body">
-                <details class="aqg-ai-privacy" data-aqg-ai-privacy="true">
-                    <summary class="aqg-ai-privacy__summary">
-                        <f:render partial="Shared/AqgIcon" arguments="{name: 'chevr', size: 'sm'}" />
-                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.privacySummary" default="How your key and content are used" />
-                    </summary>
-                    <div class="aqg-ai-privacy__content">
-                        <p class="aqg-ai-privacy__primary"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.keySecurity" default="Your key is encrypted before it is stored and is only used to request AI suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them." /></p>
-                        <p class="aqg-ai-privacy__secondary"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.privacy" default="When an editor requests an AI suggestion, the selected image or element and limited page context are sent to the configured OpenAI API account. No content is sent automatically. Review the applicable OpenAI API data controls and confirm that this use is acceptable for your project and client data." /></p>
+            <div class="aqg-ai-panel__body">
+                <fieldset class="aqg-ai-providers" aria-labelledby="aqg-ai-providers-title" aria-describedby="aqg-ai-providers-help">
+                    <div class="aqg-ai-providers__cards">
+                        <f:for each="{aiConfigurationStatus.providers}" as="provider">
+                            <label class="aqg-ai-provider-card" for="aqg-ai-provider-{provider.id}">
+                                <f:if condition="{provider.active}">
+                                    <f:then><input type="radio" class="aqg-ai-provider-card__input" id="aqg-ai-provider-{provider.id}" name="aqg-ai-provider" value="{provider.id}" data-aqg-ai-provider-option="true" data-label="{provider.label}" checked="checked" aria-describedby="aqg-ai-provider-{provider.id}-desc aqg-ai-provider-{provider.id}-status" /></f:then>
+                                    <f:else><input type="radio" class="aqg-ai-provider-card__input" id="aqg-ai-provider-{provider.id}" name="aqg-ai-provider" value="{provider.id}" data-aqg-ai-provider-option="true" data-label="{provider.label}" aria-describedby="aqg-ai-provider-{provider.id}-desc aqg-ai-provider-{provider.id}-status" /></f:else>
+                                </f:if>
+                                <span class="aqg-ai-provider-card__body">
+                                    <span class="aqg-ai-provider-card__name">{provider.label} <span class="aqg-ai-provider-card__badge" data-aqg-ai-provider-active-badge="true" {f:if(condition: provider.active, else: 'hidden="hidden"')}><span aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerActive" default="Active" /></span></span>
+                                    <span class="aqg-ai-provider-card__desc" id="aqg-ai-provider-{provider.id}-desc">
+                                        <f:if condition="{provider.id} == 'anthropic'">
+                                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.provider.anthropicDescription" default="Claude models through the Anthropic API: alt text, link text and iframe titles from text and images." /></f:then>
+                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.provider.openaiDescription" default="OpenAI models through the Responses API: alt text, link text and iframe titles from text and images." /></f:else>
+                                        </f:if>
+                                    </span>
+                                    <span class="aqg-ai-provider-card__status" id="aqg-ai-provider-{provider.id}-status" data-aqg-ai-provider-status="{provider.id}" data-state="{f:if(condition: provider.configured, then: 'ok', else: 'missing')}">
+                                        <f:if condition="{provider.configured}">
+                                            <f:then>
+                                                <f:if condition="{provider.source} == 'environment'">
+                                                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.environmentKey" default="Environment key" /></f:then>
+                                                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyOk" default="API key stored" /></f:else>
+                                                </f:if>
+                                            </f:then>
+                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyMissing" default="No API key" /></f:else>
+                                        </f:if>
+                                        <f:if condition="{provider.selectedModelLabel}"> · {provider.selectedModelLabel}</f:if>
+                                    </span>
+                                </span>
+                            </label>
+                        </f:for>
                     </div>
-                </details>
+                </fieldset>
+                <p class="aqg-ai-panel__note" data-aqg-ai-provider-switch-help="true" {f:if(condition: aiConfigurationStatus.providerChosen, else: 'hidden="hidden"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerSwitchHelp" default="Choosing the other provider asks for confirmation before anything changes." /></p>
+                <p class="aqg-ai-panel__note" data-aqg-ai-provider-hint="true" {f:if(condition: aiConfigurationStatus.providerChosen, then: 'hidden="hidden"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerNotChosen" default="Choose and save the AI provider for this site. Then enter this provider's API key." /></p>
+            </div>
+            <footer class="aqg-ai-panel__foot" data-aqg-ai-first-provider="true" {f:if(condition: aiConfigurationStatus.providerChosen, then: 'hidden="hidden"')}>
+                <button type="button" class="btn btn-primary btn-sm" data-action="aqg-ai-select-provider"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.saveProvider" default="Save provider" /></button>
+            </footer>
+        </section>
 
-                <f:if condition="{aiConfigurationStatus.environmentOverride}">
-                    <div class="aqg-ai-envbar" role="status">
+        <div class="aqg-ai-provider-config" data-aqg-ai-provider-config="true" data-provider="{aiConfigurationStatus.provider}" {f:if(condition: aiConfigurationStatus.providerChosen, else: 'hidden="hidden"')}>
+            <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-key-title">
+                <header class="aqg-ai-panel__head">
+                    <div>
+                        <h4 id="aqg-ai-key-title" class="aqg-ai-panel__title"><span data-aqg-ai-copy="projectKey">{aiCopy.projectKey}</span></h4>
+                        <p class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key.scope" default="Used for this site only. The other provider's key is not affected." /></p>
+                    </div>
+                    <span class="aqg-ai-badge {f:if(condition: aiConfigurationStatus.configured, then: 'tone-ok', else: 'tone-none')}" data-aqg-ai-key-badge="true">
+                        <span class="aqg-ai-badge__icon" aria-hidden="true">{f:if(condition: aiConfigurationStatus.configured, then: '✓', else: '–')}</span>
+                        <span data-aqg-ai-key-badge-text="true"><f:if condition="{aiConfigurationStatus.configured}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key.storedBadge" default="Key stored" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.keyMissing" default="No API key" /></f:else></f:if></span>
+                    </span>
+                </header>
+                <div class="aqg-ai-panel__body">
+                    <div class="aqg-ai-envbar" role="status" data-aqg-ai-envbar="true" {f:if(condition: aiConfigurationStatus.environmentOverride, else: 'hidden="hidden"')}>
                         <span class="aqg-ai-envbar__icon" aria-hidden="true">△</span>
                         <div>
                             <strong class="aqg-ai-envbar__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.environmentOverrideTitle" default="Environment configuration active" /></strong>
                             <p class="aqg-ai-envbar__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.environmentOverrideDescription" default="A global OpenAI key is configured through the server environment. It overrides site-specific keys for all sites in this TYPO3 installation." /></p>
                         </div>
                     </div>
-                </f:if>
-
-                <dl class="aqg-ai-summary" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.summaryAria', default: 'OpenAI configuration summary')}">
-                    <div class="aqg-ai-summary__row">
-                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.configuration" default="Configuration" /></dt>
-                        <dd class="is-plain" data-aqg-ai-config-source="true">
+                    <div class="aqg-ai-key-panel" data-aqg-ai-key-panel="true" data-collapsed="{f:if(condition: aiConfigurationStatus.configured, then: '1', else: '0')}" {f:if(condition: '{aiConfigurationStatus.source} == \'environment\'', then: 'hidden="hidden"')}>
+                        <div class="aqg-ai-key-panel__summary" data-aqg-ai-key-summary="true" {f:if(condition: aiConfigurationStatus.configured, else: 'hidden="hidden"')}>
+                            <p class="aqg-ai-field-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key.stored" default="Stored key" /></p>
+                            <div class="aqg-ai-keybox">
+                                <span class="aqg-ai-keybox__icon" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /></span>
+                                <span class="aqg-ai-keymask" data-aqg-ai-keyhint="true"><f:if condition="{aiConfigurationStatus.keyHintDisplay}"><f:then>{aiConfigurationStatus.keyHintDisplay}</f:then><f:else>—</f:else></f:if></span>
+                                <span class="aqg-ai-keybox__tag"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key.encrypted" default="encrypted" /></span>
+                            </div>
+                            <p class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.keyStoredNotice" default="A site-specific key is stored and encrypted. For security it is never shown again." /></p>
+                        </div>
+                        <div class="aqg-ai-key-panel__field {f:if(condition: aiConfigurationStatus.configured, then: 'is-hidden')}" data-aqg-ai-key-field="true">
+                            <div class="aqg-field aqg-ai-field">
+                                <label class="aqg-field__label" for="aqg-ai-api-key" data-aqg-ai-copy="projectKey">{aiCopy.projectKey}</label>
+                                <input id="aqg-ai-api-key" class="form-control" type="password" autocomplete="new-password" spellcheck="false" placeholder="{aiCopy.keyPlaceholder}" aria-describedby="aqg-ai-api-key-help" data-aqg-ai-copy-attr="placeholder:keyPlaceholder" />
+                                <div id="aqg-ai-api-key-help" class="aqg-field__help" data-aqg-ai-copy="keyHelp">{aiCopy.keyHelp}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <dl class="aqg-ai-kv" aria-label="{aiCopy.summaryAria}" data-aqg-ai-copy-attr="aria-label:summaryAria">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key.source" default="Source" /></dt>
+                        <dd data-aqg-ai-config-source="true">
                             <f:if condition="{aiConfigurationStatus.configured}">
                                 <f:then>
                                     <f:if condition="{aiConfigurationStatus.environmentOverride}">
@@ -109,150 +356,708 @@
                                 <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.notConfigured" default="Not configured" /></f:else>
                             </f:if>
                         </dd>
-                    </div>
-                    <div class="aqg-ai-summary__row">
-                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.key" default="Key" /></dt>
-                        <dd data-aqg-ai-keyhint="true">
-                            <f:if condition="{aiConfigurationStatus.environmentOverride}">
-                                <f:then><span class="aqg-ai-keymask"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.environmentKey" default="Environment key" /></span></f:then>
-                                <f:else>
-                                    <f:if condition="{aiConfigurationStatus.keyHint}">
-                                        <f:then><span class="aqg-ai-keymask">••••••••••••{aiConfigurationStatus.keyHint}</span></f:then>
-                                        <f:else>—</f:else>
-                                    </f:if>
-                                </f:else>
-                            </f:if>
-                        </dd>
-                    </div>
-                    <div class="aqg-ai-summary__row aqg-ai-summary__row--model">
-                        <dt><label id="aqg-ai-model-label" for="aqg-ai-model"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.selectedModel" default="Selected model" /></label></dt>
-                        <dd>
-                            <select id="aqg-ai-model"
-                                    class="form-select"
-                                    data-aqg-ai-model="true"
-                                    aria-labelledby="aqg-ai-model-label"
-                                    aria-describedby="aqg-ai-model-help">
-                                <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.selectModel" default="Select an OpenAI model" /></option>
-                                <f:for each="{aiConfigurationStatus.availableModels}" as="model">
-                                    <f:if condition="{model.id} == {aiConfigurationStatus.selectedModelId}">
-                                        <f:then><option value="{model.id}" selected="selected">{model.label} — {model.id}</option></f:then>
-                                        <f:else><option value="{model.id}">{model.label} — {model.id}</option></f:else>
-                                    </f:if>
-                                </f:for>
-                            </select>
-                            <div id="aqg-ai-model-help" class="aqg-field__help">
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelHelp" default="Models are loaded from the configured OpenAI project and filtered to models supported by AQG. Choose the model whose cost and quality fit this site." />
-                            </div>
-                            <details class="aqg-ai-unsupported-models {f:if(condition: aiConfigurationStatus.unsupportedModels, else: 'is-hidden')}"
-                                     data-aqg-ai-unsupported-models="true">
-                                <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.unsupportedModels" default="Available from OpenAI, but not yet supported by AQG" /> (<span data-aqg-ai-unsupported-count="true">{aiConfigurationStatus.unsupportedModels -> f:count()}</span>)</summary>
-                                <ul data-aqg-ai-unsupported-list="true">
-                                    <f:for each="{aiConfigurationStatus.unsupportedModels}" as="modelId"><li><code>{modelId}</code></li></f:for>
-                                </ul>
-                            </details>
-                        </dd>
-                    </div>
-                    <div class="aqg-ai-summary__row">
-                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.status" default="Status" /></dt>
-                        <dd data-aqg-ai-status-badge="true">
-                            <f:switch expression="{aiConfigurationStatus.status}">
-                                <f:case value="connected"><span class="aqg-status-badge aqg-status-badge--success"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connected" default="Connected" /></span></f:case>
-                                <f:case value="connection_failed"><span class="aqg-status-badge aqg-status-badge--danger"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedStatus" default="Connection failed" /></span></f:case>
-                                <f:case value="not_verified"><span class="aqg-status-badge"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.configured" default="Not verified" /></span></f:case>
-                                <f:defaultCase><span class="aqg-status-badge aqg-status-badge--neutral"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.notConfigured" default="Not configured" /></span></f:defaultCase>
-                            </f:switch>
-                        </dd>
-                    </div>
-                    <div class="aqg-ai-summary__row">
-                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.lastTested" default="Last tested" /></dt>
-                        <dd data-aqg-ai-last-tested="true" data-timestamp="{aiConfigurationStatus.lastTestedAt}"><f:if condition="{aiConfigurationStatus.lastTestedAt}"><f:then><f:format.date format="d M Y, H:i">@{aiConfigurationStatus.lastTestedAt}</f:format.date></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.never" default="Never" /></f:else></f:if></dd>
-                    </div>
-                    <div class="aqg-ai-summary__row">
                         <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.lastVerified" default="Last verified" /></dt>
-                        <dd data-aqg-ai-last-verified="true" data-timestamp="{aiConfigurationStatus.lastVerifiedAt}"><f:if condition="{aiConfigurationStatus.lastVerifiedAt}"><f:then><f:format.date format="d M Y, H:i">@{aiConfigurationStatus.lastVerifiedAt}</f:format.date></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.never" default="Never" /></f:else></f:if></dd>
+                        <dd data-aqg-ai-last-verified="true" data-timestamp="{aiConfigurationStatus.lastVerifiedAt}"><f:if condition="{aiConfigurationStatus.lastVerifiedAt}"><f:then>{aiConfigurationStatus.lastVerifiedLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.never" default="Never" /></f:else></f:if></dd>
+                    </dl>
+                    <details class="aqg-ai-details" data-aqg-ai-privacy="true">
+                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.privacySummary" default="How your key and content are used" /></summary>
+                        <div class="aqg-ai-details__body">
+                            <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.keySecurity" default="Your key is encrypted before it is stored and is only used to request AI suggestions for this site. Suggestions are never applied automatically — an editor always reviews and confirms them." /></p>
+                            <p data-aqg-ai-copy="privacy">{aiCopy.privacy}</p>
+                            <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteScopeHelp" default="This key and selected model are used only for the selected TYPO3 site. A global environment key may be shared, while model selection and verification remain site-specific." /></p>
+                        </div>
+                    </details>
+                </div>
+                <footer class="aqg-ai-panel__foot">
+                    <button type="button" class="btn btn-default btn-sm {f:if(condition: aiConfigurationStatus.configured, else: 'is-hidden')}" data-action="aqg-ai-replace" {f:if(condition: aiConfigurationStatus.configured, else: 'hidden="hidden"')}><span aria-hidden="true">✎</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.replaceKey" default="Replace key" /></button>
+                    <button type="button" class="btn btn-primary btn-sm {f:if(condition: aiConfigurationStatus.configured, then: 'is-hidden')}" data-action="aqg-ai-save"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.save" default="Save and test key" /></button>
+                </footer>
+            </section>
+            <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-model-title">
+                <header class="aqg-ai-panel__head">
+                    <div>
+                        <h4 id="aqg-ai-model-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.title" default="Model" /></h4>
+                        <p class="aqg-ai-panel__sub" id="aqg-ai-model-help"><span data-aqg-ai-copy="modelHelp">{aiCopy.modelHelp}</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.priceHelp" default="Prices are filled in and kept current automatically." /></p>
                     </div>
-                </dl>
+                    <span data-aqg-ai-status-badge="true"><f:render section="StatusBadge" arguments="{status: aiConfigurationStatus.status}" /></span>
+                </header>
+                <div class="aqg-ai-panel__body">
+                    <div class="aqg-ai-tablewrap">
+                        <table class="aqg-ai-table aqg-ai-table--stack aqg-ai-models" aria-labelledby="aqg-ai-model-title" aria-describedby="aqg-ai-model-help">
+                            <thead>
+                                <tr>
+                                    <th scope="col"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.choose" default="Choose" /></span></th>
+                                    <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.title" default="Model" /></th>
+                                    <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.priceColumn" default="Price per 1M tokens" /></th>
+                                    <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.cachedColumn" default="Cached input" /></th>
+                                </tr>
+                            </thead>
+                            <tbody data-aqg-ai-model-list="true">
+                                <f:for each="{aiConfigurationStatus.availableModels}" as="model">
+                                    <tr class="{f:if(condition: '{model.id} == {aiConfigurationStatus.selectedModelId}', then: 'is-selected')}"
+                                        data-model-id="{model.id}" data-model-label="{model.label}"
+                                        data-price-known="{f:if(condition: model.price.known, then: '1', else: '0')}"
+                                        data-price-input="{model.price.inputLabel}" data-price-output="{model.price.outputLabel}"
+                                        data-price-cached="{model.price.cachedInputLabel}">
+                                        <td class="aqg-ai-models__pick">
+                                            <f:if condition="{model.id} == {aiConfigurationStatus.selectedModelId}">
+                                                <f:then><input type="radio" name="aqg-ai-model" id="aqg-ai-model-{model.id}" value="{model.id}" data-aqg-ai-model-option="true" checked="checked" /></f:then>
+                                                <f:else><input type="radio" name="aqg-ai-model" id="aqg-ai-model-{model.id}" value="{model.id}" data-aqg-ai-model-option="true" /></f:else>
+                                            </f:if>
+                                        </td>
+                                        <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.title', default: 'Model')}">
+                                            <span class="aqg-ai-modelname"><label for="aqg-ai-model-{model.id}">{model.label}</label><code>{model.id}</code></span>
+                                            <f:if condition="{model.id} == {aiConfigurationStatus.selectedModelId}"><span class="aqg-ai-badge tone-info aqg-ai-models__current"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.current" default="In use" /></span></f:if>
+                                        </td>
+                                        <td class="is-num" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.priceColumn', default: 'Price per 1M tokens')}"><f:if condition="{model.price.known}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.pair" default="%1$s in / %2$s out" arguments="{0: model.price.inputLabel, 1: model.price.outputLabel}" /></f:then><f:else><span class="aqg-ai-badge tone-warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.unknown" default="No price" /></span></f:else></f:if></td>
+                                        <td class="is-num" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.cachedColumn', default: 'Cached input')}"><f:if condition="{model.price.known}"><f:then>{model.price.cachedInputLabel}</f:then><f:else>—</f:else></f:if></td>
+                                    </tr>
+                                </f:for>
+                                <f:if condition="{aiConfigurationStatus.availableModels}">
+                                    <f:else><tr class="aqg-ai-models__empty"><td colspan="4" data-aqg-ai-copy="selectModel">{aiCopy.selectModel}</td></tr></f:else>
+                                </f:if>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="aqg-ai-pricenote" data-aqg-ai-price-summary="true" data-state="{aiConfigurationStatus.pricing.selected.state}" {f:if(condition: aiConfigurationStatus.modelSelected, else: 'hidden="hidden"')}>
+                        <span class="aqg-ai-pricenote__icon" aria-hidden="true">$</span>
+                        <p class="aqg-ai-pricenote__text" data-aqg-ai-price-summary-text="true"><f:if condition="{aiConfigurationStatus.pricing.selected.known}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.summary" default="%1$s: %2$s input, %3$s output, %4$s cached input per 1M tokens · checked %5$s" arguments="{0: aiConfigurationStatus.selectedModelLabel, 1: aiConfigurationStatus.pricing.selected.inputLabel, 2: aiConfigurationStatus.pricing.selected.outputLabel, 3: aiConfigurationStatus.pricing.selected.cachedInputLabel, 4: aiConfigurationStatus.pricing.selected.verifiedLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.summaryNone" default="AQG has no automatic price for %s: its cost is shown as unknown and a hard-stop budget pauses AI." arguments="{0: aiConfigurationStatus.budget.modelLabel}" /></f:else></f:if></p>
+                        <p class="aqg-ai-pricenote__text aqg-ai-pricenote__text--warn" data-aqg-ai-price-stale="true" {f:if(condition: '{aiConfigurationStatus.pricing.selected.state} == \'stale\'', else: 'hidden="hidden"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.staleNote" default="This price has not been confirmed for more than a week; AQG keeps using it until the next successful check." /></p>
+                        <p class="aqg-ai-pricenote__text" data-aqg-ai-price-tier="true" {f:if(condition: aiConfigurationStatus.pricing.selected.longContext, else: 'hidden="hidden"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.longContextNote" default="Requests with more than %1$s input tokens are billed at %2$s input and %3$s output per 1M tokens." arguments="{0: aiConfigurationStatus.pricing.selected.longContextThreshold, 1: aiConfigurationStatus.pricing.selected.longInputLabel, 2: aiConfigurationStatus.pricing.selected.longOutputLabel}" /></p>
+                    </div>
+                    <details class="aqg-ai-details aqg-ai-unsupported-models {f:if(condition: aiConfigurationStatus.unsupportedModels, else: 'is-hidden')}" data-aqg-ai-unsupported-models="true" {f:if(condition: aiConfigurationStatus.unsupportedModels, else: 'hidden="hidden"')}>
+                        <summary><span><span data-aqg-ai-copy="unsupportedModels">{aiCopy.unsupportedModels}</span> (<span data-aqg-ai-unsupported-count="true">{aiConfigurationStatus.unsupportedModels -> f:count()}</span>)</span></summary>
+                        <div class="aqg-ai-details__body">
+                            <ul data-aqg-ai-unsupported-list="true">
+                                <f:for each="{aiConfigurationStatus.unsupportedModels}" as="modelId"><li><code>{modelId}</code></li></f:for>
+                            </ul>
+                            <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelCapabilities" default="Every listed model accepts text and images and returns AQG's structured answer format. AQG selects a model on its own only when exactly one is available." /></p>
+                        </div>
+                    </details>
+                </div>
+                <footer class="aqg-ai-panel__foot">
+                    <button type="button" class="btn btn-primary btn-sm" data-action="aqg-ai-use-model"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.use" default="Use this model" /></button>
+                    <f:if condition="{aiConfigurationStatus.actions.refreshModelsEnabled}">
+                        <f:then><button type="button" class="btn btn-default btn-sm" data-action="aqg-ai-refresh-models"><span aria-hidden="true">↻</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.refreshModels" default="Refresh available models" /></button></f:then>
+                        <f:else><button type="button" class="btn btn-default btn-sm" data-action="aqg-ai-refresh-models" disabled="disabled"><span aria-hidden="true">↻</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.refreshModels" default="Refresh available models" /></button></f:else>
+                    </f:if>
+                </footer>
+            </section>
+            <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-connection-title">
+                <header class="aqg-ai-panel__head">
+                    <div>
+                        <h4 id="aqg-ai-connection-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connection.title" default="Connection" /></h4>
+                        <p class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connection.sub" default="Checks key, model, prompt and AQG connection contract together." /></p>
+                    </div>
+                </header>
+                <div class="aqg-ai-panel__body">
+                    <div class="aqg-ai-revalidate {f:if(condition: aiConfigurationStatus.revalidationRequired, else: 'is-hidden')}" data-aqg-ai-revalidate="true" {f:if(condition: aiConfigurationStatus.revalidationRequired, else: 'hidden="hidden"')}>
+                        <div class="aqg-statusline tone-warn" role="status">
+                            <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                            <div class="aqg-statusline__content">
+                                <f:if condition="{aiConfigurationStatus.errorCode} == 'provider_1771002310'">
+                                    <f:then>
+                                        <p class="aqg-statusline__message"><strong data-aqg-ai-revalidate-title="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.titleRejected" default="AI is paused for editors of this site: the provider rejected an editor request" /></strong></p>
+                                        <p class="aqg-statusline__message" data-aqg-ai-revalidate-text="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.textKey" default="The provider rejected the API key during an editor request. Replace the key if it was revoked, then test the connection. A passing test lifts the pause; only a fixed test prompt without site content is sent." /></p>
+                                    </f:then>
+                                    <f:else if="{aiConfigurationStatus.errorCode} == 'provider_1771002317' || {aiConfigurationStatus.errorCode} == 'provider_1771002321'">
+                                        <p class="aqg-statusline__message"><strong data-aqg-ai-revalidate-title="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.titleRejected" default="AI is paused for editors of this site: the provider rejected an editor request" /></strong></p>
+                                        <p class="aqg-statusline__message" data-aqg-ai-revalidate-text="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.textModel" default="The provider no longer offers the selected model to this key. Choose an available model, then test the connection. A passing test lifts the pause; only a fixed test prompt without site content is sent." /></p>
+                                    </f:else>
+                                    <f:else>
+                                        <p class="aqg-statusline__message"><strong data-aqg-ai-revalidate-title="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.title" default="Connection test needed: AI is paused for editors of this site" /></strong></p>
+                                        <p class="aqg-statusline__message" data-aqg-ai-revalidate-text="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.text" default="This model was chosen for the site before the provider changed. AQG tests it again before editors can use it. Only a fixed test prompt without site content is sent." /></p>
+                                    </f:else>
+                                </f:if>
+                                <button type="button" class="btn btn-default btn-sm" data-action="aqg-ai-revalidate"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.revalidate.action" default="Test the connection again" /></button>
+                            </div>
+                        </div>
+                    </div>
+                    <details class="aqg-ai-details aqg-ai-connection-facts" data-aqg-ai-connection-facts="true" {f:if(condition: '{aiConfigurationStatus.status} == \'connected\'', else: 'open="open"')}>
+                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connection.facts" default="Connection details" /></summary>
+                        <div class="aqg-ai-details__body">
+                            <dl class="aqg-ai-kv">
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.status" default="Status" /></dt>
+                                <dd data-aqg-ai-status-badge="true"><f:render section="StatusBadge" arguments="{status: aiConfigurationStatus.status}" /></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connection.model" default="Model" /></dt>
+                                <dd data-aqg-ai-connection-model="true"><f:if condition="{aiConfigurationStatus.selectedModelLabel}"><f:then>{aiConfigurationStatus.selectedModelLabel}</f:then><f:else>—</f:else></f:if></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connection.modelId" default="Technical model ID" /></dt>
+                                <dd data-aqg-ai-connection-model-id="true"><f:if condition="{aiConfigurationStatus.selectedModelId}"><f:then><code class="aqg-ai-code">{aiConfigurationStatus.selectedModelId}</code></f:then><f:else>—</f:else></f:if></dd>
+                                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.lastTested" default="Last tested" /></dt>
+                                <dd data-aqg-ai-last-tested="true" data-timestamp="{aiConfigurationStatus.lastTestedAt}"><f:if condition="{aiConfigurationStatus.lastTestedAt}"><f:then>{aiConfigurationStatus.lastTestedLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.never" default="Never" /></f:else></f:if></dd>
+                            </dl>
+                        </div>
+                    </details>
+                    <div class="aqg-ai-persistent-status" data-aqg-ai-persistent-status="true">
+                        <f:if condition="{aiConfigurationStatus.status} == 'connected'">
+                            <div class="aqg-statusline tone-ok" role="status">
+                                <span class="aqg-statusline__icon" aria-hidden="true">✓</span>
+                                <div class="aqg-statusline__content">
+                                    <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionVerified" default="Connection verified for the current key, selected model, prompt and AQG connection contract." /></p>
+                                </div>
+                            </div>
+                        </f:if>
+                        <f:if condition="{aiConfigurationStatus.status} == 'connection_failed'">
+                            <div class="aqg-statusline tone-error" role="alert">
+                                <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                                <div class="aqg-statusline__content">
+                                    <p class="aqg-statusline__message">
+                                        <f:if condition="{aiConfigurationStatus.errorCode} == 'models_permission_denied'">
+                                            <f:then>{aiCopy.modelsPermissionDenied}</f:then>
+                                            <f:else if="{aiConfigurationStatus.errorCode} == 'provider_1771002310'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerRejected.key" default="The provider rejected the API key during an editor's AI request. AI is paused for editors of this site. Replace the key or run Test connection again." /></f:else>
+                                            <f:else if="{aiConfigurationStatus.errorCode} == 'provider_1771002317' || {aiConfigurationStatus.errorCode} == 'provider_1771002321'"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.providerRejected.model" default="The provider no longer offers the selected model to this key. AI is paused for editors of this site. Choose a model and run Test connection again." /></f:else>
+                                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedPersistent" default="The last verification or model-discovery request failed. The saved key was not removed." /></f:else>
+                                        </f:if>
+                                    </p>
+                                    <f:if condition="{aiConfigurationStatus.errorCode}">
+                                        <p class="aqg-statusline__code"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.errorCode" default="Error code" />: <code>{aiConfigurationStatus.errorCode}</code></p>
+                                    </f:if>
+                                </div>
+                            </div>
+                        </f:if>
+                    </div>
+                    <p class="aqg-ai-panel__note aqg-ai-not-ready" data-aqg-ai-not-ready-note="true" {f:if(condition: '{aiConfigurationStatus.status} == \'connected\' && !{aiConfigurationStatus.readyForEditors}', else: 'hidden="hidden"')}><span aria-hidden="true">i</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connection.notReady" default="The connection works, but AI is not active for editors yet: every item under “Ready for editors” at the top must be met." /></p>
+                    <details class="aqg-ai-details aqg-ai-test-details">
+                        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testDetails.summary" default="What does the connection test send?" /></summary>
+                        <div class="aqg-ai-details__body"><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testDetails.text" default="One fixed prompt and a 16-pixel test image. No page content, files, URLs or user names. The answer text is not stored; the tokens the provider reports are counted as connection tests." /></p></div>
+                    </details>
+                </div>
+                <footer class="aqg-ai-panel__foot">
+                    <f:if condition="{aiConfigurationStatus.actions.testConnectionEnabled}">
+                        <f:then><button type="button" class="btn btn-primary btn-sm" data-action="aqg-ai-test"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testConnection" default="Test connection" /></button></f:then>
+                        <f:else><button type="button" class="btn btn-primary btn-sm" data-action="aqg-ai-test" disabled="disabled"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testConnection" default="Test connection" /></button></f:else>
+                    </f:if>
+                </footer>
+            </section>
+        </div>
+        </section>
 
-                <p class="aqg-ai-site-scope"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.siteScopeHelp" default="This key and selected model are used only for the selected TYPO3 site. A global environment key may be shared, while model selection and verification remain site-specific." /></p>
-
-                <div class="aqg-ai-feature-toggle aqg-ai-feature-toggle--link-text">
-                    <label class="aqg-ai-feature-toggle__label" for="aqg-ai-link-text-suggestions">
-                        <input
-                                id="aqg-ai-link-text-suggestions"
-                                type="checkbox"
-                                data-aqg-ai-link-text-toggle="true"
-                                value="1"
-                                {f:if(condition: aiConfigurationStatus.linkTextSuggestionsEnabled, then: 'checked="checked"')}
-                        />
-                        <span>
-                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsTitle" default="Enable AI link and iframe title suggestions" /></strong>
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsHelp" default="Allow editors to request AI suggestions for non-descriptive RTE links and rendered iframe titles. This sends only the minimal server-derived text context to the configured AI provider. No content is changed automatically." /></span>
+        <div class="aqg-ai-actions__status" aria-live="polite" aria-atomic="true"><div class="aqg-statusline" hidden="hidden" data-aqg-ai-status="true"></div></div>
+        <section class="aqg-ai-group" id="aqg-ai-section-privacy" aria-labelledby="aqg-ai-group-privacy-title">
+            <h3 class="aqg-ai-group__title" id="aqg-ai-group-privacy-title"><span class="aqg-ai-group__num" aria-hidden="true">2</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.privacy" default="Privacy &amp; editor features" /></h3>
+        <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-privacy-title" data-aqg-ai-privacy-form="true">
+            <header class="aqg-ai-panel__head">
+                <div>
+                    <h4 id="aqg-ai-privacy-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.privacyTitle" default="What may be sent to the AI provider" /></h4>
+                    <p class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.privacyHelp" default="Applies to every editor of this site and to both providers. Content is sent only when an editor requests a suggestion, never automatically." /></p>
+                </div>
+            </header>
+            <div class="aqg-ai-panel__body">
+                <div class="aqg-ai-switchrow">
+                    <label class="aqg-ai-switch" for="aqg-ai-allow-images">
+                        <input id="aqg-ai-allow-images" type="checkbox" role="switch" value="1" data-aqg-ai-allow-images="true" aria-describedby="aqg-ai-allow-images-help" {f:if(condition: aiConfigurationStatus.allowImageInput, then: 'checked="checked"')} />
+                        <span class="aqg-ai-switch__text">
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.allowImages" default="Allow images" /></strong>
+                            <span id="aqg-ai-allow-images-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.allowImagesHelp" default="Image files for alt-text suggestions, reduced to at most 1600 pixels. Without images AQG offers no AI for image findings; editors write the alternative text themselves." /></span>
                         </span>
                     </label>
                 </div>
+                <div class="aqg-ai-switchrow">
+                    <label class="aqg-ai-switch" for="aqg-ai-allow-page-title">
+                        <input id="aqg-ai-allow-page-title" type="checkbox" role="switch" value="1" data-aqg-ai-allow-page-title="true" aria-describedby="aqg-ai-allow-page-title-help" {f:if(condition: aiConfigurationStatus.allowPageTitle, then: 'checked="checked"')} />
+                        <span class="aqg-ai-switch__text">
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.allowPageTitle" default="Allow page titles" /></strong>
+                            <span id="aqg-ai-allow-page-title-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.allowPageTitleHelp" default="The page title gives suggestions context. Without it, suggestions get more generic." /></span>
+                        </span>
+                    </label>
+                </div>
+                <details class="aqg-ai-details" data-aqg-ai-matrix-details="true">
+                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.summary" default="What is sent per feature" /></summary>
+                    <div class="aqg-ai-details__body">
+                <div class="aqg-ai-tablewrap">
+                    <table class="aqg-ai-table aqg-ai-table--stack aqg-ai-matrix">
+                        <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.caption" default="What is sent per feature" /></caption>
+                        <thead>
+                            <tr>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.feature" default="Feature" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content" default="Content" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image" default="Image" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle" default="Page title" /></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.feature.alt_text" default="Alt text" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.altContent" default="Current alt text, caption, element title, link purpose" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}" data-aqg-ai-matrix-image="true"><f:if condition="{aiConfigurationStatus.allowImageInput}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent" default="Sent" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.imageOff" default="Off: no AI alt-text suggestions" /></f:else></f:if></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}" data-aqg-ai-matrix-title="true"><f:if condition="{aiConfigurationStatus.allowPageTitle}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent" default="Sent" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></f:else></f:if></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.feature.link_text" default="Link text" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.linkContent" default="Link text, link target, surrounding text" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}" data-aqg-ai-matrix-title="true"><f:if condition="{aiConfigurationStatus.allowPageTitle}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent" default="Sent" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></f:else></f:if></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.feature.iframe_title" default="Iframe titles" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.iframeContent" default="Iframe address, its position on the page, page address" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}" data-aqg-ai-matrix-title="true"><f:if condition="{aiConfigurationStatus.allowPageTitle}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent" default="Sent" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></f:else></f:if></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.editorFixes" default="Fixes and explanations in editors" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.editorFixesContent" default="The marked element, the text of its block, link or embed target without query string" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}" data-aqg-ai-matrix-image="true"><f:if condition="{aiConfigurationStatus.allowImageInput}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.editorImage" default="Alt-text fixes only" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.imageOff" default="Off: no AI alt-text suggestions" /></f:else></f:if></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}" data-aqg-ai-matrix-title="true"><f:if condition="{aiConfigurationStatus.allowPageTitle}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent" default="Sent" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></f:else></f:if></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.writingHelp" default="Writing help and translation drafts" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.writingContent" default="Only the selected text" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.askAqg" default="Ask AQG in the toolbar" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.askContent" default="The question, rule names, severities, counts, field names, AQG guidance and up to three earlier AI questions and answers from the editor&#039;s browser; never snippets or field content" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}" data-aqg-ai-matrix-title="true"><f:if condition="{aiConfigurationStatus.allowPageTitle}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.sent" default="Sent" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></f:else></f:if></td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.feature.connection_test" default="Connection tests" /></th>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.content', default: 'Content')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.testContent" default="Fixed AQG test prompt" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.image', default: 'Image')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.testImage" default="16-pixel test image" /></td>
+                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.pageTitle', default: 'Page title')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.notSent" default="Not sent" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                    </div>
+                </details>
+                <p class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.neverSent" default="Never sent: user names, other fields of the record, keys, or content of other pages." /></p>
+            </div>
+        </section>
 
-                <div class="aqg-ai-persistent-status" data-aqg-ai-persistent-status="true">
-                    <f:if condition="{aiConfigurationStatus.status} == 'connected'">
-                        <div class="aqg-statusline tone-ok" role="status">
-                            <span class="aqg-statusline__icon" aria-hidden="true">✓</span>
-                            <div class="aqg-statusline__content">
-                                <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionVerified" default="Connection verified for the current key, selected model, prompt and AQG connection contract." /></p>
-                            </div>
+        <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-ack-title">
+            <header class="aqg-ai-panel__head">
+                <h4 id="aqg-ai-ack-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.title" default="Data processing and provider terms" /></h4>
+            </header>
+            <div class="aqg-ai-panel__body">
+                <div class="aqg-ai-ack" data-aqg-ai-ack="true" data-confirmed="{f:if(condition: aiConfigurationStatus.acknowledgement.confirmed, then: '1', else: '0')}">
+                    <div class="aqg-statusline tone-error" role="status" data-aqg-ai-ack-blocked="true" {f:if(condition: aiConfigurationStatus.acknowledgement.confirmed, then: 'hidden="hidden"')}>
+                        <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                        <div class="aqg-statusline__content">
+                            <p class="aqg-statusline__message"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.blockedTitle" default="AI cannot be activated for this site" /></strong></p>
+                            <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.blockedText" default="Without this confirmation AI stays off for this site." /></p>
                         </div>
-                    </f:if>
-                    <f:if condition="{aiConfigurationStatus.status} == 'connection_failed'">
-                        <div class="aqg-statusline tone-error" role="alert">
+                    </div>
+                    <label class="aqg-ai-check" for="aqg-ai-ack-confirm">
+                        <input id="aqg-ai-ack-confirm" type="checkbox" value="1" data-aqg-ai-ack-checkbox="true" aria-describedby="aqg-ai-ack-help" {f:if(condition: aiConfigurationStatus.acknowledgement.confirmed, then: 'checked="checked" disabled="disabled"')} />
+                        <span><span data-aqg-ai-ack-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.label" default="I confirm that a data processing agreement (DPA) with %s covers this site, or that sending this content is otherwise lawful." arguments="{0: aiConfigurationStatus.providerLabel}" /></span><span class="aqg-required-mark" aria-hidden="true">*</span><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.required" default="(required)" /></span></span>
+                    </label>
+                    <p id="aqg-ai-ack-help" class="aqg-ai-panel__note aqg-ai-ack__status" data-aqg-ai-ack-status="true"><f:if condition="{aiConfigurationStatus.acknowledgement.confirmed}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.confirmed" default="Confirmed by %1$s on %2$s · applies to %3$s on this site only." arguments="{0: aiConfigurationStatus.acknowledgement.byName, 1: aiConfigurationStatus.acknowledgement.atDate, 2: aiConfigurationStatus.acknowledgement.providerLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ack.help" default="Required before AI can be activated. Applies to %s on this site only." arguments="{0: aiConfigurationStatus.providerLabel}" /></f:else></f:if></p>
+                    <p class="aqg-ai-panel__note" data-aqg-ai-anthropic-only="true" {f:if(condition: '{aiConfigurationStatus.provider} == \'anthropic\'', else: 'hidden="hidden"')}><a href="https://www.anthropic.com/legal/commercial-terms" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.anthropic.termsLink" default="Anthropic commercial terms (opens in a new window)" /></a></p>
+                </div>
+            </div>
+            <footer class="aqg-ai-panel__foot">
+                <button type="button" class="btn btn-primary btn-sm" data-action="aqg-ai-save-privacy"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.savePrivacy" default="Save privacy settings" /></button>
+            </footer>
+        </section>
+        <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-features-title">
+            <header class="aqg-ai-panel__head">
+                <h4 id="aqg-ai-features-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.features.title" default="Features for editors on this site" /></h4>
+            </header>
+            <div class="aqg-ai-panel__body">
+                <div class="aqg-ai-switchrow">
+                    <label class="aqg-ai-switch" for="aqg-ai-link-text-suggestions">
+                        <input id="aqg-ai-link-text-suggestions" type="checkbox" role="switch" data-aqg-ai-link-text-toggle="true" value="1" aria-describedby="aqg-ai-link-text-help" {f:if(condition: aiConfigurationStatus.linkTextSuggestionsEnabled, then: 'checked="checked"')} />
+                        <span class="aqg-ai-switch__text">
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsTitle" default="Enable AI link and iframe title suggestions" /></strong>
+                            <span id="aqg-ai-link-text-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.linkTextSuggestionsHelp" default="Allow editors to request AI suggestions for non-descriptive RTE links and rendered iframe titles. This sends only the minimal server-derived text context to the configured AI provider. No content is changed automatically." /></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </section>
+        </section>
+        <section class="aqg-ai-group" id="aqg-ai-section-usage" aria-labelledby="aqg-ai-group-usage-title">
+            <h3 class="aqg-ai-group__title" id="aqg-ai-group-usage-title"><span class="aqg-ai-group__num" aria-hidden="true">3</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.usage" default="Usage &amp; limits" /></h3>
+        <section class="aqg-card aqg-ai-panel aqg-ai-usagecard" aria-labelledby="aqg-ai-usage-title" data-aqg-ai-usage="true" data-usage-month="{aiConfigurationStatus.usage.month}" data-usage-requests="{aiConfigurationStatus.usage.totals.requests}" data-usage-current="{f:if(condition: aiConfigurationStatus.usage.isCurrentMonth, then: '1', else: '0')}">
+            <header class="aqg-ai-panel__head">
+                <div>
+                    <h4 id="aqg-ai-usage-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.titleMonth" default="AI usage in %s" arguments="{0: aiConfigurationStatus.usage.monthLabel}" /></h4>
+                    <p class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.subtitlePeriod" default="%1$s – %2$s · estimated in USD from provider-reported tokens and the automatic model prices · as of page load" arguments="{0: aiConfigurationStatus.usage.periodStartDate, 1: aiConfigurationStatus.usage.periodEndDate}" /></p>
+                </div>
+                <f:if condition="{aiUsageMonthOptions}">
+                    <div class="aqg-ai-monthpick">
+                        <label class="aqg-ai-monthpick__label" for="aqg-ai-usage-month"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.month" default="Month" /></label>
+                        <select id="aqg-ai-usage-month" class="form-select form-select-sm" data-aqg-ai-usage-month="true">
+                            <f:for each="{aiUsageMonthOptions}" as="monthOption">
+                                <f:if condition="{monthOption.selected}">
+                                    <f:then><option value="{monthOption.url}" selected="selected">{monthOption.label}</option></f:then>
+                                    <f:else><option value="{monthOption.url}">{monthOption.label}</option></f:else>
+                                </f:if>
+                            </f:for>
+                        </select>
+                        <button type="button" class="btn btn-default btn-sm" data-action="aqg-ai-open-usage-month"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.showMonth" default="Show" /></button>
+                    </div>
+                </f:if>
+            </header>
+            <div class="aqg-ai-panel__body">
+                <div class="aqg-statusline tone-info" role="status" data-aqg-ai-usage-stale="true" hidden="hidden">
+                    <span class="aqg-statusline__icon" aria-hidden="true">i</span>
+                    <div class="aqg-statusline__content">
+                        <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.staleText" default="The server has recorded AI requests since this page was loaded (for example a connection test). Reload to update the report." /></p>
+                        <button type="button" class="btn btn-default btn-sm" data-action="aqg-ai-reload-usage"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.reload" default="Reload report" /></button>
+                    </div>
+                </div>
+                <f:if condition="{aiConfigurationStatus.usage.loadFailed}">
+                    <div class="aqg-statusline tone-error" role="alert">
+                        <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                        <div class="aqg-statusline__content">
+                            <p class="aqg-statusline__message"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.loadFailedTitle" default="AI usage could not be loaded" /></strong></p>
+                            <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.loadFailedText" default="The usage records of this site could not be read, so no totals are shown. Reload the page; if this continues, check the TYPO3 log." /></p>
+                        </div>
+                    </div>
+                </f:if>
+                <dl class="aqg-ai-kpis">
+                    <div class="aqg-ai-kpi aqg-ai-kpi--lead">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.estimatedSpend" default="Estimated spend" /></dt>
+                        <dd><f:render section="UsageAmount" arguments="{row: aiConfigurationStatus.usage.totals}" /></dd>
+                        <dd class="aqg-ai-kpi__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.estimatedSpendSub" default="USD · settled requests" /></dd>
+                    </div>
+                    <div class="aqg-ai-kpi">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.requests" default="Requests" /></dt>
+                        <dd><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.requests}</f:format.number></dd>
+                        <dd class="aqg-ai-kpi__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.outcomeLine" default="%1$s succeeded · %2$s failed · %3$s pending" arguments="{0: aiConfigurationStatus.usage.totals.succeeded, 1: aiConfigurationStatus.usage.totals.failed, 2: aiConfigurationStatus.usage.totals.pending}" /></dd>
+                    </div>
+                    <div class="aqg-ai-kpi">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.tokens" default="Tokens in / out" /></dt>
+                        <dd><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.inputTokens}</f:format.number> / <f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.outputTokens}</f:format.number></dd>
+                        <dd class="aqg-ai-kpi__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.cachedLine" default="%s input tokens from cache" arguments="{0: '{aiConfigurationStatus.usage.totals.cachedInputTokens -> f:format.number(decimals: 0, thousandsSeparator: aiConfigurationStatus.thousandsSeparator)}'}" /></dd>
+                    </div>
+                    <div class="aqg-ai-kpi">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.reservedPending" default="Reserved for pending" /></dt>
+                        <dd>{aiConfigurationStatus.usage.totals.reservedLabel}</dd>
+                        <dd class="aqg-ai-kpi__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.reservedSub" default="Worst case, not spend" /></dd>
+                    </div>
+                </dl>
+                <f:if condition="{aiConfigurationStatus.usage.totals.boundRequests} || {aiConfigurationStatus.usage.totals.noCharge} || {aiConfigurationStatus.usage.totals.unknown} || {aiConfigurationStatus.usage.totals.pending}">
+                    <ul class="aqg-ai-costnotes" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.costNotes', default: 'How the estimate was made')}">
+                        <f:if condition="{aiConfigurationStatus.usage.totals.boundRequests}">
+                            <li data-cost-note="bound"><span class="aqg-ai-costnotes__tag tone-warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.tag.worstCase" default="Worst case" /></span> <f:if condition="{aiConfigurationStatus.usage.totals.boundRequests} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.bound.singular" default="%1$s of the estimate is the worst case of %2$s requests without usage data (failed or interrupted after sending). The provider may have billed them; AQG cannot tell." arguments="{0: aiConfigurationStatus.usage.totals.boundLabel, 1: aiConfigurationStatus.usage.totals.boundRequests}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.bound" default="%1$s of the estimate is the worst case of %2$s requests without usage data (failed or interrupted after sending). The provider may have billed them; AQG cannot tell." arguments="{0: aiConfigurationStatus.usage.totals.boundLabel, 1: aiConfigurationStatus.usage.totals.boundRequests}" /></f:else></f:if></li>
+                        </f:if>
+                        <f:if condition="{aiConfigurationStatus.usage.totals.noCharge}">
+                            <li data-cost-note="none"><span class="aqg-ai-costnotes__tag tone-ok"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.tag.noCharge" default="$0 by rule" /></span> <f:if condition="{aiConfigurationStatus.usage.totals.noCharge} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.noCharge.singular" default="%s requests were rejected before processing (key, quota, rate limit or model refused). Providers do not bill these, so they count as $0." arguments="{0: aiConfigurationStatus.usage.totals.noCharge}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.noCharge" default="%s requests were rejected before processing (key, quota, rate limit or model refused). Providers do not bill these, so they count as $0." arguments="{0: aiConfigurationStatus.usage.totals.noCharge}" /></f:else></f:if></li>
+                        </f:if>
+                        <f:if condition="{aiConfigurationStatus.usage.totals.unknown}">
+                            <li data-cost-note="unknown"><span class="aqg-ai-costnotes__tag tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.tag.unknown" default="Unknown" /></span> <f:if condition="{aiConfigurationStatus.usage.totals.unknown} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.unknown.singular" default="%s requests used a model without an automatic price. Their cost is unknown and not included in any amount." arguments="{0: aiConfigurationStatus.usage.totals.unknown}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.unknown" default="%s requests used a model without an automatic price. Their cost is unknown and not included in any amount." arguments="{0: aiConfigurationStatus.usage.totals.unknown}" /></f:else></f:if></li>
+                        </f:if>
+                        <f:if condition="{aiConfigurationStatus.usage.totals.pending}">
+                            <li data-cost-note="pending"><span class="aqg-ai-costnotes__tag tone-info"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.tag.pending" default="Pending" /></span> <f:if condition="{aiConfigurationStatus.usage.totals.pending} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.pending.singular" default="%1$s requests were sent but are not settled yet. %2$s is reserved at their worst case and counts towards the budget until they settle; it is not part of the estimated spend." arguments="{0: aiConfigurationStatus.usage.totals.pending, 1: aiConfigurationStatus.usage.totals.reservedLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.note.pending" default="%1$s requests were sent but are not settled yet. %2$s is reserved at their worst case and counts towards the budget until they settle; it is not part of the estimated spend." arguments="{0: aiConfigurationStatus.usage.totals.pending, 1: aiConfigurationStatus.usage.totals.reservedLabel}" /></f:else></f:if></li>
+                        </f:if>
+                    </ul>
+                </f:if>
+                <div class="aqg-ai-budget" data-aqg-ai-budget-status="true" data-state="{aiConfigurationStatus.budget.state}">
+                    <f:if condition="{aiConfigurationStatus.budget.state} == 'no_price'">
+                        <div class="aqg-statusline {f:if(condition: aiConfigurationStatus.budget.blocking, then: 'tone-error', else: 'tone-warn')}" role="status">
                             <span class="aqg-statusline__icon" aria-hidden="true">!</span>
                             <div class="aqg-statusline__content">
-                                <p class="aqg-statusline__message">
-                                    <f:if condition="{aiConfigurationStatus.errorCode} == 'models_permission_denied'">
-                                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.modelsPermissionDenied" default="AQG could not load the models available to this OpenAI project. Allow read access to the Models endpoint or use a key with the required project permissions." /></f:then>
-                                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedPersistent" default="The last verification or model-discovery request failed. The saved key was not removed." /></f:else>
-                                    </f:if>
-                                </p>
-                                <f:if condition="{aiConfigurationStatus.errorCode}">
-                                    <p class="aqg-statusline__code"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.errorCode" default="Error code" />: <code>{aiConfigurationStatus.errorCode}</code></p>
+                                <p class="aqg-statusline__message"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.noPriceTitle" default="No complete automatic price for %s" arguments="{0: aiConfigurationStatus.budget.modelLabel}" /></strong></p>
+                                <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.noPriceText" default="Requests and tokens are still counted. AQG prices every supported model automatically; this model has no complete price, so its cost cannot be bounded." /><f:if condition="{aiConfigurationStatus.budget.hardStop}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.noPriceHardStop" default="The hard stop keeps AI paused for editors until a supported model is selected." /></f:if></p>
+                            </div>
+                        </div>
+                    </f:if>
+                    <f:if condition="{aiConfigurationStatus.budget.state} == 'reached' && {aiConfigurationStatus.budget.hardStop}">
+                        <div class="aqg-statusline tone-error" role="status">
+                            <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                            <div class="aqg-statusline__content">
+                                <p class="aqg-statusline__message"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.ready.budgetReached" default="Monthly budget reached — AI is paused for editors" /></strong></p>
+                                <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.reachedText" default="This site used its estimated %1$s for this month. Editors see “Monthly budget reached”. AI is available again from %2$s." arguments="{0: aiConfigurationStatus.budget.budgetLabel, 1: aiConfigurationStatus.budget.resumeDate}" /></p>
+                            </div>
+                        </div>
+                    </f:if>
+                    <f:if condition="{aiConfigurationStatus.budget.state} == 'warning' || ({aiConfigurationStatus.budget.state} == 'reached' && !{aiConfigurationStatus.budget.hardStop})">
+                        <div class="aqg-statusline tone-warn" role="status">
+                            <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                            <div class="aqg-statusline__content">
+                                <p class="aqg-statusline__message"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.warningTitle" default="%s %% of the monthly budget used" arguments="{0: aiConfigurationStatus.budget.percent}" /></strong></p>
+                                <p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.estimated" default="Estimated %1$s of %2$s." arguments="{0: aiConfigurationStatus.budget.committedLabel, 1: aiConfigurationStatus.budget.budgetLabel}" /><f:if condition="{aiConfigurationStatus.budget.hardStop}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.pausesAt" default="At 100 %% AI pauses for editors until %s." arguments="{0: aiConfigurationStatus.budget.resumeDate}" /></f:if></p>
+                            </div>
+                        </div>
+                    </f:if>
+                    <f:if condition="{aiConfigurationStatus.budget.hasBudget} && {aiConfigurationStatus.budget.priceKnown}">
+                        <div class="aqg-ai-budgetbar">
+                            <div class="aqg-ai-budgetbar__row">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.budget" default="Monthly budget" /></span>
+                                <b><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.barValue" default="%1$s of %2$s · %3$s %%" arguments="{0: aiConfigurationStatus.budget.committedLabel, 1: aiConfigurationStatus.budget.budgetLabel, 2: aiConfigurationStatus.budget.percent}" /></b>
+                            </div>
+                            <div class="aqg-ai-budgetbar__track aqg-ai-budgetbar__track--marker-{aiConfigurationStatus.budget.markerStep}">
+                                <progress class="aqg-ai-budgetbar__bar" max="100" value="{aiConfigurationStatus.budget.barPercent}" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.barLabel', arguments: {0: aiConfigurationStatus.budget.percent}, default: '%s %% of budget used')}"></progress>
+                            </div>
+                            <p class="aqg-ai-budgetbar__row aqg-ai-budgetbar__row--subtle">
+                                <span><f:if condition="{aiConfigurationStatus.budget.warningPercent}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.marker" default="Marker: warning at %s %%" arguments="{0: aiConfigurationStatus.budget.warningPercent}" /></f:if></span>
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budget.resets" default="Starts again on %s" arguments="{0: aiConfigurationStatus.budget.resumeDate}" /></span>
+                            </p>
+                        </div>
+                    </f:if>
+                </div>
+                <f:if condition="{aiConfigurationStatus.usage.hasUsage}">
+                    <f:then>
+                        <div class="aqg-ai-people" data-aqg-ai-usage-people="true">
+                            <div class="aqg-ai-people__head">
+                                <h5 id="aqg-ai-usage-people-title" class="aqg-ai-people__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.byPerson" default="By person" /></h5>
+                                <span class="aqg-ai-people__count"><f:if condition="{aiConfigurationStatus.usage.peopleCount} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.peopleCount.singular" default="%s person" arguments="{0: aiConfigurationStatus.usage.peopleCount}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.peopleCount.plural" default="%s people" arguments="{0: aiConfigurationStatus.usage.peopleCount}" /></f:else></f:if></span>
+                                <f:if condition="{aiUsageExportUrl}">
+                                    <a class="btn btn-default btn-sm aqg-ai-people__export" href="{aiUsageExportUrl}" download="" data-aqg-ai-usage-export="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.exportCsv" default="Export CSV" /><span class="visually-hidden"> – <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.exportCsvHint" default="AI usage by person in %s" arguments="{0: aiConfigurationStatus.usage.monthLabel}" /></span></a>
                                 </f:if>
                             </div>
-                        </div>
-                    </f:if>
-                </div>
-
-                <div class="aqg-ai-settings__form">
-                    <f:if condition="{aiConfigurationStatus.source} != 'environment'">
-                        <div class="aqg-ai-key-panel" data-aqg-ai-key-panel="true" data-collapsed="{f:if(condition: aiConfigurationStatus.configured, then: '1', else: '0')}">
-                            <div class="aqg-ai-key-panel__summary" data-aqg-ai-key-summary="true" {f:if(condition: aiConfigurationStatus.configured, else: 'hidden="hidden"')}>
-                                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.projectKey" default="OpenAI project key" /></strong>
-                                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.keyStoredNotice" default="A site-specific key is stored and encrypted. For security it is never shown again." /></p>
+                            <div class="aqg-ai-tablewrap aqg-ai-tablewrap--scroll" role="region" tabindex="0" aria-labelledby="aqg-ai-usage-people-title">
+                                <table class="aqg-ai-table aqg-ai-table--stack aqg-ai-usage aqg-ai-usage--people">
+                                    <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.byPersonCaption" default="AI usage by person in %s" arguments="{0: aiConfigurationStatus.usage.monthLabel}" /></caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.person" default="Person" /></th>
+                                            <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.requests" default="Requests" /></th>
+                                            <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.failed" default="Failed" /></th>
+                                            <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.pending" default="Pending" /></th>
+                                            <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.inputTokens" default="Input tokens" /></th>
+                                            <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.outputTokens" default="Output tokens" /></th>
+                                            <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.cost" default="Cost (estimated)" /></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <f:for each="{aiConfigurationStatus.usage.people}" as="person">
+                                            <tr data-be-user="{person.beUser}">
+                                                <th scope="row">
+                                                    <span class="aqg-ai-person">
+                                                        <span class="aqg-ai-person__name"><f:if condition="{person.beUser}"><f:then>{person.name}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.personUnknown" default="No backend user" /></f:else></f:if></span>
+                                                        <f:switch expression="{person.accountState}">
+                                                            <f:case value="deleted"><span class="aqg-ai-badge tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.account.deleted" default="Deleted user" /></span></f:case>
+                                                            <f:case value="missing"><span class="aqg-ai-badge tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.account.missing" default="Removed user" /></span></f:case>
+                                                            <f:case value="disabled"><span class="aqg-ai-badge tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.account.disabled" default="Disabled" /></span></f:case>
+                                                            <f:defaultCase></f:defaultCase>
+                                                        </f:switch>
+                                                    </span>
+                                                    <span class="aqg-ai-person__meta"><f:if condition="{person.beUser}"><f:if condition="{person.username}">{person.username} · </f:if><f:if condition="{person.showId}">#{person.beUser}<f:if condition="{person.featuresShown}"> · </f:if></f:if></f:if><f:for each="{person.featuresShown}" as="personFeature" iteration="featureIteration"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.feature.{personFeature.feature}" default="{personFeature.feature}" /> {personFeature.requests}<f:if condition="{featureIteration.isLast}"><f:else>, </f:else></f:if></f:for><f:if condition="{person.featuresMore}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.featuresMore" default="+%s more" arguments="{0: person.featuresMore}" /></f:if></span>
+                                                </th>
+                                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.requests', default: 'Requests')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{person.requests}</f:format.number></td>
+                                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.failed', default: 'Failed')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{person.failed}</f:format.number></td>
+                                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.pending', default: 'Pending')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{person.pending}</f:format.number></td>
+                                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.inputTokens', default: 'Input tokens')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{person.inputTokens}</f:format.number></td>
+                                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.outputTokens', default: 'Output tokens')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{person.outputTokens}</f:format.number></td>
+                                                <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.cost', default: 'Cost (estimated)')}" class="is-num"><f:render section="UsageCostCell" arguments="{row: person}" /></td>
+                                            </tr>
+                                        </f:for>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.siteTotal" default="Site total" /></th>
+                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.requests', default: 'Requests')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.requests}</f:format.number></td>
+                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.failed', default: 'Failed')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.failed}</f:format.number></td>
+                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.pending', default: 'Pending')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.pending}</f:format.number></td>
+                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.inputTokens', default: 'Input tokens')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.inputTokens}</f:format.number></td>
+                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.outputTokens', default: 'Output tokens')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{aiConfigurationStatus.usage.totals.outputTokens}</f:format.number></td>
+                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.cost', default: 'Cost (estimated)')}" class="is-num"><f:render section="UsageCostCell" arguments="{row: aiConfigurationStatus.usage.totals}" /></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
-                            <div class="aqg-ai-key-panel__field {f:if(condition: aiConfigurationStatus.configured, then: 'is-hidden')}" data-aqg-ai-key-field="true">
-                                <div class="aqg-field aqg-ai-field">
-                                    <label class="aqg-field__label" for="aqg-ai-api-key"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.projectKey" default="OpenAI project key" /></label>
-                                    <input id="aqg-ai-api-key" class="form-control" type="password" autocomplete="new-password" placeholder="sk-proj-…" aria-describedby="aqg-ai-api-key-help" />
-                                    <div id="aqg-ai-api-key-help" class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.keyHelp" default="A site-specific OpenAI project key is stored encrypted and is never displayed again after saving. The key needs read access to Models and use access to Responses." /></div>
+                        </div>
+                        <f:for each="{aiConfigurationStatus.usage.rounding}" as="roundingNote">
+                            <p class="aqg-ai-panel__note" data-aqg-ai-usage-rounding="{roundingNote.amount}"><f:if condition="{roundingNote.amount} == 'reserved'"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.roundingReserved" default="Each reserved amount is rounded to the cent: the rows add up to %1$s, the site total %2$s is rounded once from the exact amounts. Nothing is missing; the CSV export lists the exact amounts." arguments="{0: roundingNote.rowsLabel, 1: roundingNote.totalLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.roundingEstimated" default="Each cost is rounded to the cent: the rows add up to %1$s, the site total %2$s is rounded once from the exact amounts. Nothing is missing; the CSV export lists the exact amounts." arguments="{0: roundingNote.rowsLabel, 1: roundingNote.totalLabel}" /></f:else></f:if></p>
+                        </f:for>
+                        <details class="aqg-ai-details" data-aqg-ai-usage-features="true">
+                            <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.byFeatureModel" default="By feature and model" /></summary>
+                            <div class="aqg-ai-details__body">
+                                <div class="aqg-ai-tablewrap">
+                                    <table class="aqg-ai-table aqg-ai-table--stack aqg-ai-usage">
+                                        <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.byFeatureModel" default="By feature and model" /></caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.matrix.feature" default="Feature" /></th>
+                                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.model" default="Provider and model" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.requests" default="Requests" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.failed" default="Failed" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.pending" default="Pending" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.inputTokens" default="Input tokens" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.outputTokens" default="Output tokens" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.cost" default="Cost (estimated)" /></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <f:for each="{aiConfigurationStatus.usage.rows}" as="usageRow">
+                                                <tr>
+                                                    <th scope="row"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.feature.{usageRow.feature}" default="{usageRow.feature}" /></th>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.model', default: 'Provider and model')}">{usageRow.providerLabel} · {usageRow.modelLabel}</td>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.requests', default: 'Requests')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{usageRow.requests}</f:format.number></td>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.failed', default: 'Failed')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{usageRow.failed}</f:format.number></td>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.pending', default: 'Pending')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{usageRow.pending}</f:format.number></td>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.inputTokens', default: 'Input tokens')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{usageRow.inputTokens}</f:format.number></td>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.outputTokens', default: 'Output tokens')}" class="is-num"><f:format.number decimals="0" thousandsSeparator="{aiConfigurationStatus.thousandsSeparator}">{usageRow.outputTokens}</f:format.number></td>
+                                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.cost', default: 'Cost (estimated)')}" class="is-num"><f:render section="UsageCostCell" arguments="{row: usageRow}" /></td>
+                                                </tr>
+                                            </f:for>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                        </div>
-                    </f:if>
-                </div>
-
-                <input type="hidden" data-aqg-ai-site="true" value="{aiSiteIdentifier}" />
-                <div class="aqg-ai-actions">
-                    <f:if condition="{aiConfigurationStatus.source} != 'environment'">
-                        <button type="button" class="btn btn-primary {f:if(condition: aiConfigurationStatus.configured, else: 'is-hidden')}" data-action="aqg-ai-replace" {f:if(condition: aiConfigurationStatus.configured, else: 'hidden="hidden"')}><span aria-hidden="true">↻</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.replaceKey" default="Replace key" /></button>
-                        <button type="button" class="btn btn-primary {f:if(condition: aiConfigurationStatus.configured, then: 'is-hidden')}" data-action="aqg-ai-save"><span aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.save" default="Save and test key" /></button>
-                    </f:if>
-                    <f:if condition="{aiConfigurationStatus.actions.refreshModelsEnabled}">
-                        <f:then><button type="button" class="btn btn-default" data-action="aqg-ai-refresh-models"><span aria-hidden="true">↻</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.refreshModels" default="Refresh available models" /></button></f:then>
-                        <f:else><button type="button" class="btn btn-default" data-action="aqg-ai-refresh-models" disabled="disabled"><span aria-hidden="true">↻</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.refreshModels" default="Refresh available models" /></button></f:else>
-                    </f:if>
-                    <f:if condition="{aiConfigurationStatus.actions.testConnectionEnabled}">
-                        <f:then><button type="button" class="btn btn-default" data-action="aqg-ai-test"><span aria-hidden="true">↗</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testConnection" default="Test connection" /></button></f:then>
-                        <f:else><button type="button" class="btn btn-default" data-action="aqg-ai-test" disabled="disabled"><span aria-hidden="true">↗</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.testConnection" default="Test connection" /></button></f:else>
-                    </f:if>
-                </div>
-                <div class="aqg-ai-actions__status" aria-live="polite" aria-atomic="true"><div class="aqg-statusline" hidden="hidden" data-aqg-ai-status="true"></div></div>
+                        </details>
+                    </f:then>
+                    <f:else>
+                        <f:if condition="{aiConfigurationStatus.usage.loadFailed}">
+                            <f:else><p class="aqg-ai-usage-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.emptyMonth" default="No AI requests from this site in %s." arguments="{0: aiConfigurationStatus.usage.monthLabel}" /></p></f:else>
+                        </f:if>
+                    </f:else>
+                </f:if>
+                <p class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.invoiceNote" default="Provider invoices can differ (caching, discounts, taxes). AQG always shows cost as an estimate." /> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.currencyNote" default="Amounts are in US dollars, the currency of the provider price lists; AQG does not convert them." /></p>
             </div>
-        </div>
+        </section>
+
+        <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-limits-title" data-aqg-ai-limits="true">
+            <header class="aqg-ai-panel__head">
+                <div>
+                    <h4 id="aqg-ai-limits-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.title" default="Limits" /></h4>
+                    <p class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.help" default="Apply to this site and to its editors." /></p>
+                </div>
+            </header>
+            <div class="aqg-ai-panel__body">
+                <div class="aqg-ai-limits">
+                    <div class="aqg-field aqg-ai-field">
+                        <label class="aqg-field__label" for="aqg-ai-budget"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.budget" default="Monthly budget" /></label>
+                        <div class="aqg-ai-affix">
+                            <span class="aqg-ai-affix__text" aria-hidden="true">$</span>
+                            <input id="aqg-ai-budget" class="form-control" type="text" inputmode="decimal" autocomplete="off" maxlength="12" value="{aiConfigurationStatus.budget.budgetInput}" data-aqg-ai-budget-input="true" aria-describedby="aqg-ai-budget-help" />
+                        </div>
+                        <p id="aqg-ai-budget-help" class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.budgetHelp" default="USD, estimated from the automatic model prices. Starts again on the 1st of each month (server time). Leave empty for no budget." /></p>
+                    </div>
+                    <div class="aqg-field aqg-ai-field">
+                        <label class="aqg-field__label" for="aqg-ai-budget-warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.warnAt" default="Warn at" /></label>
+                        <div class="aqg-ai-affix aqg-ai-affix--end">
+                            <input id="aqg-ai-budget-warning" class="form-control" type="text" inputmode="numeric" autocomplete="off" maxlength="3" value="{aiConfigurationStatus.budget.warningInput}" data-aqg-ai-budget-warning="true" aria-describedby="aqg-ai-budget-warning-help" />
+                            <span class="aqg-ai-affix__text" aria-hidden="true">%</span>
+                        </div>
+                        <p id="aqg-ai-budget-warning-help" class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.warnHelp" default="Optional. From this share of the budget the usage section warns and the alert e-mail is sent. Keep it below 100%: the hard stop can pause AI before 100% is recorded." /></p>
+                    </div>
+                    <div class="aqg-field aqg-ai-field">
+                        <span class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.rateLimit" default="Rate limit (fixed)" /></span>
+                        <p class="aqg-ai-fixedbox"><span aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /></span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.rateLimitValue" default="10 requests per 60 seconds, per site and person" /></p>
+                        <p class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.rateLimitHelp" default="Set by AQG; cannot be changed." /></p>
+                    </div>
+                    <fieldset class="aqg-ai-limits__choice" aria-describedby="aqg-ai-hard-stop-help">
+                        <legend class="aqg-field__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.reachedLegend" default="When the budget is reached" /><span class="aqg-required-mark" aria-hidden="true">*</span><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.required" default="(required)" /></span></legend>
+                        <p id="aqg-ai-hard-stop-help" class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.reachedHelp" default="Required when a budget is set. AQG does not choose for you." /></p>
+                        <label class="aqg-ai-check" for="aqg-ai-hard-stop-on">
+                            <input id="aqg-ai-hard-stop-on" type="radio" name="aqg-ai-hard-stop" value="1" data-aqg-ai-hard-stop="true" {f:if(condition: '{aiConfigurationStatus.budget.hasBudget} && {aiConfigurationStatus.budget.hardStop}', then: 'checked="checked"')} />
+                            <span><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.hardStop" default="Pause AI for editors when the budget is reached" /></strong> <span class="aqg-ai-check__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.hardStopHelp" default="Hard stop. Requests in progress finish; connection tests stay possible." /></span></span>
+                        </label>
+                        <label class="aqg-ai-check" for="aqg-ai-hard-stop-off">
+                            <input id="aqg-ai-hard-stop-off" type="radio" name="aqg-ai-hard-stop" value="0" data-aqg-ai-hard-stop="true" {f:if(condition: '{aiConfigurationStatus.budget.hasBudget} && !{aiConfigurationStatus.budget.hardStop}', then: 'checked="checked"')} />
+                            <span><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.warnOnly" default="Warn only" /></strong> <span class="aqg-ai-check__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.warnOnlyHelp" default="AI stays available for editors; the usage section shows how much of the budget is used." /></span></span>
+                        </label>
+                    </fieldset>
+                    <div class="aqg-field aqg-ai-field">
+                        <label class="aqg-field__label" for="aqg-ai-budget-alert-email"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.emailLabel" default="Budget alert e-mail" /></label>
+                        <input id="aqg-ai-budget-alert-email" class="form-control" type="email" autocomplete="off" maxlength="255" value="{aiConfigurationStatus.budget.alertEmailInput}" data-aqg-ai-budget-alert-email="true" aria-describedby="aqg-ai-budget-alert-email-help aqg-ai-budget-alert-recipient" />
+                        <p id="aqg-ai-budget-alert-email-help" class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.emailHelp" default="Optional. One e-mail when the recorded estimated usage reaches the warning threshold: once per month, threshold and budget. Empty: TYPO3's warning e-mail address, if one is configured." /></p>
+                        <p id="aqg-ai-budget-alert-recipient" class="aqg-field__help" data-aqg-ai-budget-alert-recipient="true" data-source="{aiConfigurationStatus.budget.alertRecipientSource}"><f:switch expression="{aiConfigurationStatus.budget.alertRecipientSource}"><f:case value="site"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.recipientSite" default="Alerts go to %s." arguments="{0: aiConfigurationStatus.budget.alertRecipient}" /></f:case><f:case value="typo3"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.recipientTypo3" default="Alerts go to %s (TYPO3 warning e-mail address, [BE][warning_email_addr])." arguments="{0: aiConfigurationStatus.budget.alertRecipient}" /></f:case><f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.recipientNone" default="No recipient: no budget alert e-mail is sent." /></f:defaultCase></f:switch><f:if condition="!{aiConfigurationStatus.budget.alertActive}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.budgetAlert.inactive" default="An alert needs a monthly budget and a warning threshold." /></f:if></p>
+                    </div>
+                </div>
+            </div>
+            <footer class="aqg-ai-panel__foot">
+                <button type="button" class="btn btn-primary btn-sm" data-action="aqg-ai-save-limits"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.limits.save" default="Save limits" /></button>
+            </footer>
+        </section>
+        </section>
+        <section class="aqg-ai-group" id="aqg-ai-section-diagnostics" aria-labelledby="aqg-ai-group-diagnostics-title">
+            <h3 class="aqg-ai-group__title" id="aqg-ai-group-diagnostics-title"><span class="aqg-ai-group__num" aria-hidden="true">4</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.group.diagnostics" default="Diagnostics &amp; model prices" /></h3>
+        <section class="aqg-card aqg-ai-panel" aria-labelledby="aqg-ai-pricing-title" data-aqg-ai-pricing="true">
+            <header class="aqg-ai-panel__head">
+                <div>
+                    <h4 id="aqg-ai-pricing-title" class="aqg-ai-panel__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.title" default="Model prices" /></h4>
+                    <p class="aqg-ai-panel__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.help" default="Automatic. The AQG service checks the official OpenAI and Anthropic pricing pages every day and AQG updates its prices from there. There is nothing to enter or schedule." /></p>
+                </div>
+                <f:if condition="{aiConfigurationStatus.pricing.diagnostics.anyFailed}">
+                    <f:then><span class="aqg-ai-badge tone-none"><span class="aqg-ai-badge__icon" aria-hidden="true">–</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.badgeOffline" default="Last prices kept" /></span></f:then>
+                    <f:else><span class="aqg-ai-badge tone-ok"><span class="aqg-ai-badge__icon" aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.badgeAutomatic" default="Automatic" /></span></f:else>
+                </f:if>
+            </header>
+            <div class="aqg-ai-panel__body">
+                <p class="aqg-ai-pricing-status" data-state="{aiConfigurationStatus.pricing.diagnostics.catalogue.source}">
+                    <f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.source} == 'central'">
+                        <f:then><span aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.sourceCentral" default="Prices from the AQG service, updated %s." arguments="{0: aiConfigurationStatus.pricing.diagnostics.catalogue.refreshedLabel}" /></f:then>
+                        <f:else><span aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.sourceBundled" default="Prices from the list shipped with AQG (%s) until the AQG service is reached." arguments="{0: aiConfigurationStatus.pricing.diagnostics.bundledLabel}" /></f:else>
+                    </f:if>
+                    <f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.failing}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.keptNote" default="The last verified prices stay in use; AQG tries again automatically." /></f:if>
+                </p>
+                <details class="aqg-ai-details" data-aqg-ai-pricing-details="true">
+                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.details" default="Pricing details" /></summary>
+                    <div class="aqg-ai-details__body">
+                        <dl class="aqg-ai-kv">
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.source" default="Source" /></dt>
+                            <dd><f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.source} == 'central'"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.catalogueVersion" default="AQG service, catalogue version %1$s (published %2$s)" arguments="{0: aiConfigurationStatus.pricing.diagnostics.catalogue.version, 1: aiConfigurationStatus.pricing.diagnostics.catalogue.publishedLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.bundledSource" default="Price list shipped with AQG, verified %s" arguments="{0: aiConfigurationStatus.pricing.diagnostics.bundledLabel}" /></f:else></f:if></dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.lastRefresh" default="Last successful update" /></dt>
+                            <dd><f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.refreshedLabel}"><f:then>{aiConfigurationStatus.pricing.diagnostics.catalogue.refreshedLabel}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.never" default="Never" /></f:else></f:if></dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.availability" default="AQG service" /></dt>
+                            <dd><f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.failing}"><f:then><f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.endpointMissing}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.endpointMissing" default="Does not offer the price catalogue yet (checked %s); AQG asks again daily." arguments="{0: aiConfigurationStatus.pricing.diagnostics.catalogue.lastAttemptLabel}" /></f:then><f:else if="{aiConfigurationStatus.pricing.diagnostics.catalogue.answerRefused}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.answerRefused" default="Reached at %1$s, but its answer was not used (%2$s); AQG tries again within the hour." arguments="{0: aiConfigurationStatus.pricing.diagnostics.catalogue.lastAttemptLabel, 1: aiConfigurationStatus.pricing.diagnostics.catalogue.errorReason}" /></f:else><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.unreachable" default="Not reached at %1$s (%2$s); AQG tries again within the hour." arguments="{0: aiConfigurationStatus.pricing.diagnostics.catalogue.lastAttemptLabel, 1: aiConfigurationStatus.pricing.diagnostics.catalogue.errorReason}" /></f:else></f:if></f:then><f:else><f:if condition="{aiConfigurationStatus.pricing.diagnostics.catalogue.lastAttemptLabel}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.reachable" default="Reached at %s" arguments="{0: aiConfigurationStatus.pricing.diagnostics.catalogue.lastAttemptLabel}" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.notAskedYet" default="Not asked yet; AQG asks it automatically when prices are needed." /></f:else></f:if></f:else></f:if></dd>
+                        </dl>
+                        <f:for each="{aiConfigurationStatus.pricing.diagnostics.providers}" as="pricingProvider">
+                            <div class="aqg-ai-pricing-provider">
+                                <h5 class="aqg-ai-pricing-provider__title">{pricingProvider.label}</h5>
+                                <p class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.providerSource" default="Official pricing page: %s" arguments="{0: pricingProvider.sourceUrl}" /></p>
+                                <div class="aqg-ai-tablewrap">
+                                    <table class="aqg-ai-table aqg-ai-table--stack aqg-ai-pricing-table">
+                                        <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.tableCaption" default="Automatic prices of %s, USD per 1M tokens" arguments="{0: pricingProvider.label}" /></caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.title" default="Model" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.input" default="Input" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.cachedColumn" default="Cached input" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.cacheWrite" default="Cache write" /></th>
+                                                <th scope="col" class="is-num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.output" default="Output" /></th>
+                                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.verified" default="Verified" /></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <f:for each="{pricingProvider.catalogue}" as="priceRow">
+                                                <tr>
+                                                    <th scope="row"><code class="aqg-ai-code">{priceRow.priceId}</code><f:if condition="{priceRow.longContext}"> <span class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.longContextShort" default="above %1$s input tokens: %2$s / %3$s" arguments="{0: priceRow.longContextThreshold, 1: priceRow.longInputLabel, 2: priceRow.longOutputLabel}" /></span></f:if></th>
+                                                    <f:if condition="{priceRow.known}">
+                                                        <f:then>
+                                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.input', default: 'Input')}" class="is-num">{priceRow.inputLabel}</td>
+                                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.model.cachedColumn', default: 'Cached input')}" class="is-num">{priceRow.cachedInputLabel}</td>
+                                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.cacheWrite', default: 'Cache write')}" class="is-num">{priceRow.cacheWriteLabel}</td>
+                                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.output', default: 'Output')}" class="is-num">{priceRow.outputLabel}</td>
+                                                            <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.verified', default: 'Verified')}"><f:switch expression="{priceRow.origin}"><f:case value="central"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.originCentral" default="%s, AQG service" arguments="{0: priceRow.verifiedLabel}" /></f:case><f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.originBundled" default="%s, shipped with AQG" arguments="{0: priceRow.verifiedLabel}" /></f:defaultCase></f:switch><f:if condition="!{priceRow.listed}"> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.notListed" default="not listed any more" /></f:if></td>
+                                                        </f:then>
+                                                        <f:else><td colspan="5"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.unknown" default="No price" /></td></f:else>
+                                                    </f:if>
+                                                </tr>
+                                            </f:for>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </f:for>
+                        <f:if condition="{aiConfigurationStatus.pricing.diagnostics.legacy}">
+                            <div class="aqg-ai-pricing-provider">
+                                <h5 class="aqg-ai-pricing-provider__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.legacyTitle" default="Prices entered before AQG 3.0" /></h5>
+                                <p class="aqg-ai-panel__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.legacyHelp" default="Kept unchanged for reference. An automatic price always replaces them; they are only used for a model without an automatic price, and never to enforce a hard-stop budget." /></p>
+                                <ul class="aqg-ai-legacy">
+                                    <f:for each="{aiConfigurationStatus.pricing.diagnostics.legacy}" as="legacyRow">
+                                        <li>{legacyRow.providerLabel} · <code class="aqg-ai-code">{legacyRow.model}</code>: {legacyRow.inputLabel} / {legacyRow.outputLabel}<f:if condition="{legacyRow.asOfLabel}"> ({legacyRow.asOfLabel})</f:if> — <f:if condition="{legacyRow.superseded}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.legacySuperseded" default="replaced by the automatic price" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.pricing.legacyInUse" default="in use: no automatic price for this model" /></f:else></f:if></li>
+                                    </f:for>
+                                </ul>
+                            </div>
+                        </f:if>
+                    </div>
+                </details>
+            </div>
+        </section>
+        </section>
     </div>
 </section>
+
+<f:section name="StatusBadge">
+    <f:switch expression="{status}">
+        <f:case value="connected"><span class="aqg-ai-badge tone-ok"><span class="aqg-ai-badge__icon" aria-hidden="true">✓</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connected" default="Connected" /></span></f:case>
+        <f:case value="connection_failed"><span class="aqg-ai-badge tone-error"><span class="aqg-ai-badge__icon" aria-hidden="true">!</span> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.connectionFailedStatus" default="Connection failed" /></span></f:case>
+        <f:case value="not_verified"><span class="aqg-ai-badge tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.configured" default="Not verified" /></span></f:case>
+        <f:defaultCase><span class="aqg-ai-badge tone-none"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.notConfigured" default="Not configured" /></span></f:defaultCase>
+    </f:switch>
+</f:section>
+
+<f:section name="UsageAmount"><f:if condition="{row.costState} == 'unknown'"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.costUnknown" default="Unknown" /></f:then><f:else><f:if condition="{row.estimatedIsBound} || !{row.estimatedMicroUsd}"><f:then>{row.estimatedLabel}</f:then><f:else>≈ {row.estimatedLabel}</f:else></f:if></f:else></f:if></f:section>
+
+<f:section name="UsageCostCell">
+    <span class="aqg-ai-cost"><span class="aqg-ai-cost__value"><f:render section="UsageAmount" arguments="{row: row}" /></span><f:if condition="{row.reservedMicroUsd}"> <span class="aqg-ai-usage__aside"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.plusReserved" default="+ %s reserved" arguments="{0: row.reservedLabel}" /></span></f:if><f:if condition="{row.unknown} && {row.priced}"> <span class="aqg-ai-usage__aside"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.unpriced" default="%s without price" arguments="{0: row.unknown}" /></span></f:if><f:if condition="{row.costState} == 'zero' && {row.noCharge}"> <span class="aqg-ai-usage__aside"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.ai.usage.rejectedBeforeProcessing" default="rejected before processing" /></span></f:if></span>
+</f:section>

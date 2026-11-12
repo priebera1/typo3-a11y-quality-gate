@@ -1,5 +1,5 @@
 <div
-        class="tab-pane fade{f:if(condition: '{activeTab} == ''remote_access''', then: ' show active')}"
+        class="tab-pane fade show active"
         id="a11y-settings-pane-remote-access"
 >
     <f:if condition="{isAdmin}">
@@ -19,6 +19,9 @@
                         data-label-generate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generate', default: 'Generate token')}"
                         data-label-regenerate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerate', default: 'Regenerate token')}"
                         data-label-regenerating="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerating', default: 'Regenerating…')}"
+                        data-label-generating="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generating', default: 'Generating…')}"
+                        data-label-token-generated="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generated', default: '✓ Scanner token generated')}"
+                        data-label-token-regenerated="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerated', default: '✓ Scanner token regenerated')}"
                         data-label-token-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.error', default: 'Scanner token could not be regenerated.')}"
                         data-label-copy="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copy', default: 'Copy')}"
                         data-label-copied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.copied', default: 'Copied')}"
@@ -37,7 +40,7 @@
                     <input type="hidden" name="rulesetSite" value="{selectedRulesetSite}" />
                     <input type="hidden" name="remoteScanAccessFormSubmitted" value="1" />
 
-                    <div class="aqg-actionbar js-aqg-remote-actionbar">
+                    <div class="aqg-actionbar aqg-actionbar--sticky js-aqg-remote-actionbar">
                         <div class="aqg-actionbar__left">
                             <span class="aqg-actionbar__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.title" default="Remote scan access" /></span>
                             <span class="aqg-actionbar__meta js-aqg-remote-action-meta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.saved" default="All changes saved" /></span>
@@ -57,13 +60,15 @@
                         </span>
                     </p>
 
-                    <section class="aqg-card aqg-card--secret js-aqg-scanner-token-card">
+                    <h3 class="aqg-remote-group" id="aqg-remote-group-access"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.group.access" default="How the crawler gets in" /></h3>
+
+                    <section class="aqg-card aqg-card--secret js-aqg-scanner-token-card" aria-labelledby="aqg-remote-token-title">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title">
+                                <h4 class="aqg-card__title" id="aqg-remote-token-title">
                                     <span class="aqg-card__title-prefix" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'key'}" /></span>
                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.title" default="Scanner preview token" />
-                                </h3>
+                                </h4>
                                 <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.text" default="Generate a private token so the AQG crawler can open hidden pages and hidden content during Frontend scans. Keep this token secret." /></p>
                             </div>
                             <span class="aqg-toast js-aqg-token-success" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerated" default="✓ Scanner token regenerated" /></span>
@@ -94,7 +99,7 @@
                                 </p>
                             </div>
 
-                            <div class="aqg-remote-inline-actions">
+                            <div class="aqg-remote-inline-actions aqg-remote-inline-actions--stacked">
                                 <button type="button" class="btn btn-default btn-sm js-aqg-regenerate-token">
                                     <span class="js-aqg-regenerate-token-label"><f:if condition="{remoteAccessHasScannerToken}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.regenerate" default="Regenerate token" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.token.generate" default="Generate token" /></f:else></f:if></span>
                                 </button>
@@ -106,10 +111,10 @@
                         </div>
                     </section>
 
-                    <section class="aqg-card">
+                    <section class="aqg-card" aria-labelledby="aqg-remote-httpauth-title">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.title" default="HTTP Basic Authentication" /></h3>
+                                <h4 class="aqg-card__title" id="aqg-remote-httpauth-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.title" default="HTTP Basic Authentication" /></h4>
                                 <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.httpAuth.text" default="For password-protected staging environments. The remote crawler will use these credentials when scanning. Credentials are stored encrypted and never shown again." /></p>
                             </div>
                         </header>
@@ -145,16 +150,18 @@
                         </div>
                     </section>
 
-                    <section class="aqg-card aqg-card--advanced aqg-cookie-selectors-card">
+                    <h3 class="aqg-remote-group" id="aqg-remote-group-rules"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.group.rules" default="What the crawler scans" /></h3>
+
+                    <section class="aqg-card aqg-cookie-selectors-card" aria-labelledby="aqg-remote-cookie-title">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.title" default="Cookie accept selectors" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.optional" default="optional" /></span></h3>
+                                <h4 class="aqg-card__title" id="aqg-remote-cookie-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.title" default="Cookie accept selectors" /> <span class="aqg-remote-optional"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.optional" default="optional" /></span></h4>
                                 <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.text" default="Use custom selectors only when the crawler cannot dismiss your cookie banner automatically. Leave this field empty if remote scans work correctly." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label" for="aqg-cookie-accept-selectors"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.title" default="Cookie accept selectors" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.hint" default="one CSS selector per line" /></span></label>
+                                <label class="aqg-field__label" for="aqg-cookie-accept-selectors"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.label" default="Selectors" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.hint" default="one CSS selector per line" /></span></label>
                                 <textarea id="aqg-cookie-accept-selectors" name="remoteScanAccess[cookie_accept_selectors]" class="aqg-textarea aqg-input--mono aqg-remote-textarea aqg-remote-textarea--compact js-aqg-cookie-selectors" rows="4" placeholder="#cookie-accept-btn&#10;.cookie-consent__accept&#10;button[data-cookie-accept]">{remoteAccessCookieAcceptSelectorsText}</textarea>
                                 <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.cookie.help" default="Selectors are tried before AQG’s automatic cookie detection. Leave empty if the cookie banner does not block scan results." /></div>
                             </div>
@@ -167,16 +174,16 @@
                         </div>
                     </section>
 
-                    <section class="aqg-card">
+                    <section class="aqg-card" aria-labelledby="aqg-remote-excluded-title">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.title" default="Excluded URL patterns" /></h3>
+                                <h4 class="aqg-card__title" id="aqg-remote-excluded-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.title" default="Excluded URL patterns" /></h4>
                                 <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.text" default="URLs the remote crawler should skip. Use this for admin areas, file folders, internal tools and other paths that should never be scanned." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label" for="aqg-excluded-patterns"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.label" default="Patterns" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.hint" default="(one per line · supports the * wildcard)" /></span></label>
+                                <label class="aqg-field__label" for="aqg-excluded-patterns"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.label" default="Patterns" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.hint" default="one per line · supports the * wildcard" /></span></label>
                                 <textarea id="aqg-excluded-patterns" name="remoteScanAccess[excluded_patterns]" class="aqg-textarea aqg-input--mono aqg-remote-textarea js-aqg-recommended-target" rows="6" placeholder="/typo3/*&#10;/fileadmin/*&#10;/typo3temp/*&#10;/typo3temp/assets/*&#10;/_assets/*">{remoteAccessExcludedPatternsText}</textarea>
                                 <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.excluded.help" default="Matching URLs will not be crawled. Examples: /fileadmin/* skips every file path; /preview?token=* skips preview URLs." /></div>
                             </div>
@@ -191,16 +198,16 @@
                         </div>
                     </section>
 
-                    <section class="aqg-card">
+                    <section class="aqg-card" aria-labelledby="aqg-remote-priority-title">
                         <header class="aqg-card__head aqg-card__head--quiet">
                             <div>
-                                <h3 class="aqg-card__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.title" default="Priority URLs" /></h3>
+                                <h4 class="aqg-card__title" id="aqg-remote-priority-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.title" default="Priority URLs" /></h4>
                                 <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.text" default="Pages the remote crawler scans first. Use this for the homepage, contact page and other high-traffic pages — so issues appear in the report early." /></p>
                             </div>
                         </header>
                         <div class="aqg-card__body">
                             <div class="aqg-field">
-                                <label class="aqg-field__label" for="aqg-priority-urls"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.label" default="URL paths" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.hint" default="(one per line · paths relative to the site root)" /></span></label>
+                                <label class="aqg-field__label" for="aqg-priority-urls"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.label" default="URL paths" /> <span class="aqg-field__label-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.hint" default="one per line · paths relative to the site root" /></span></label>
                                 <textarea id="aqg-priority-urls" name="remoteScanAccess[crawl_priority_urls]" class="aqg-textarea aqg-input--mono aqg-remote-textarea" rows="6" placeholder="/&#10;/contact&#10;/products">{remoteAccessPriorityUrlsText}</textarea>
                                 <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.remoteAccess.priority.help" default="Other URLs are still crawled in their normal order — this list only affects ordering, not visibility." /></div>
                             </div>

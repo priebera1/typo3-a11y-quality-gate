@@ -7,8 +7,10 @@ namespace Priebera\A11yQualityGate\Scan;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\FieldScanType;
 use Priebera\A11yQualityGate\Domain\Repository\FieldConfigRepository;
+use Priebera\A11yQualityGate\Workspace\PublishPreviewContext;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 
 final class ContentCollector
 {
@@ -36,6 +38,7 @@ final class ContentCollector
     public function __construct(
         private readonly ConnectionPool $connectionPool,
         private readonly FieldConfigRepository $fieldConfigRepository,
+        private readonly ?PublishPreviewContext $publishPreview = null,
     ) {
     }
 
@@ -168,7 +171,17 @@ final class ContentCollector
         )));
 
         $qb = $this->connectionPool->getQueryBuilderForTable($tableName);
-        $qb->getRestrictions()->removeAll();
+        // Hidden and scheduled records are scanned too, but only live ones: drafts of any workspace keep their
+        // positive pid and would otherwise be stored as live findings (Content Scan does not scan workspaces).
+        // The Quality Gate's look at a workspace publish reads the records as that publish will leave them.
+        $publishSet = $this->publishPreview?->active();
+        $versioned = $publishSet !== null && (bool)($ctrl['versioningWS'] ?? false);
+        if ($versioned) {
+            $this->publishPreview->restrictForPreview($qb);
+            $selectFields = array_values(array_unique([...$selectFields, 't3ver_oid', 't3ver_wsid', 't3ver_state']));
+        } else {
+            $qb->getRestrictions()->removeAll()->add(new WorkspaceRestriction(0));
+        }
 
         $qb->select(...$selectFields)
             ->from($tableName)
@@ -192,6 +205,14 @@ final class ContentCollector
         $qb->orderBy($sortField !== '' ? $sortField : 'uid', 'ASC');
 
         $rows = $qb->executeQuery()->fetchAllAssociative();
+        if ($versioned) {
+            $rows = $publishSet->overlay(
+                $tableName,
+                $rows,
+                static fn (array $row): bool => (int)$row['pid'] === $pageUid
+                    && ($languageUid < 0 || $languageField === '' || (int)($row[$languageField] ?? 0) === $languageUid),
+            );
+        }
         $result = [];
 
         foreach ($rows as $row) {

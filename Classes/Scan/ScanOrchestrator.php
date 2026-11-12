@@ -16,6 +16,7 @@ use Priebera\A11yQualityGate\Service\FieldConfigurationBootstrapService;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
 use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 use Psr\Log\LoggerInterface;
+use TYPO3\CMS\Core\Site\SiteFinder;
 
 final class ScanOrchestrator
 {
@@ -36,6 +37,8 @@ final class ScanOrchestrator
         'rendered.html_lang_missing',
         'rendered.iframe_missing_title',
         'rendered.img_missing_alt',
+        // Missing until 3.0.0 (company acceptance verification): its findings were never resolved by a rescan.
+        'rendered.landmark_unique',
         'rendered.main_landmark_missing',
         'rendered.page_title_missing',
         'rendered.svg_missing_accessible_name',
@@ -64,11 +67,28 @@ final class ScanOrchestrator
         private readonly SourceStateRepository $sourceStateRepository,
         private readonly LoggerInterface $logger,
         private readonly FieldConfigurationBootstrapService $fieldConfigurationBootstrapService,
+        private readonly ?SiteFinder $siteFinder = null,
+        private readonly ?RenderedTranslationRecords $renderedTranslationRecords = null,
     ) {
     }
 
     /**
+     * @return list<string>
+     */
+    private function configuredSiteIdentifiers(): array
+    {
+        try {
+            return array_values(array_map(static fn ($site): string => (string)$site->getIdentifier(), $this->siteFinder?->getAllSites() ?? []));
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
      * @param array{uid:int,name:string,username:string}|null $resolvedBy
+     * @param (\Closure(int): bool)|null $pageFilter Keeps only the pages it accepts. A scan a backend user starts
+     *        passes their page permission, so pages they may not scan are neither read, fetched nor resolved; their
+     *        stored findings stay as they are. CLI and Scheduler scans pass none.
      */
     public function scanSubtree(
         string $siteIdentifier,
@@ -80,12 +100,13 @@ final class ScanOrchestrator
         ?\Closure $shouldCancel = null,
         ?\Closure $onRunStarted = null,
         bool $includeRenderedPageCheck = false,
+        ?\Closure $pageFilter = null,
     ): ScanResult {
-        $pageUids = $this->pageCollector->collectSubtree($rootPid, $depth);
+        $plan = $this->planSubtree($rootPid, $depth, $languageUid, $pageFilter);
 
         return $this->runScan(
             siteIdentifier: $siteIdentifier,
-            pageUids: $pageUids,
+            pageUids: $plan['pageUids'],
             rootPid: $rootPid,
             languageUid: $languageUid,
             scope: 'subtree',
@@ -94,7 +115,44 @@ final class ScanOrchestrator
             shouldCancel: $shouldCancel,
             onRunStarted: $onRunStarted,
             includeRenderedPageCheck: $includeRenderedPageCheck,
+            pagesWithoutTranslation: $plan['pagesWithoutTranslation'],
+            notPermittedPageUids: $plan['notPermittedPageUids'],
+            restricted: $pageFilter !== null,
         );
+    }
+
+    /**
+     * Which pages of a subtree a scan checks. AUTH-01: pages the filter refuses (a backend user's Content scan admission
+     * per page and language) are neither read, rendered nor resolved, and are reported as not permitted — the scan never
+     * counts them as checked. N-18: a scan of one translation checks the pages that exist in it; the rest is reported as
+     * without translation.
+     *
+     * @param (\Closure(int): bool)|null $pageFilter
+     * @return array{pageUids: list<int>, permittedPages: int, notPermittedPageUids: list<int>, pagesWithoutTranslation: int}
+     */
+    public function planSubtree(int $rootPid, int $depth, int $languageUid, ?\Closure $pageFilter): array
+    {
+        $pageUids = array_values(array_map('intval', $this->pageCollector->collectSubtree($rootPid, $depth)));
+        $notPermitted = [];
+        if ($pageFilter !== null) {
+            $permitted = [];
+            foreach ($pageUids as $pageUid) {
+                if ($pageFilter($pageUid)) {
+                    $permitted[] = $pageUid;
+                } else {
+                    $notPermitted[] = $pageUid;
+                }
+            }
+            $pageUids = $permitted;
+        }
+        $translated = array_values(array_map('intval', $this->pageCollector->withTranslationIn($pageUids, $languageUid)));
+
+        return [
+            'pageUids' => $translated,
+            'permittedPages' => count($pageUids),
+            'notPermittedPageUids' => $notPermitted,
+            'pagesWithoutTranslation' => count($pageUids) - count($translated),
+        ];
     }
 
     /**
@@ -140,6 +198,9 @@ final class ScanOrchestrator
         ?\Closure $shouldCancel,
         ?\Closure $onRunStarted,
         bool $includeRenderedPageCheck,
+        int $pagesWithoutTranslation = 0,
+        array $notPermittedPageUids = [],
+        bool $restricted = false,
     ): ScanResult {
         // A first scan on a fresh installation (module, Page module, CLI or Scheduler) must check content.
         $this->fieldConfigurationBootstrapService->initializeIfUnconfigured();
@@ -149,6 +210,7 @@ final class ScanOrchestrator
             rootPid: $rootPid,
             languageUid: $languageUid,
             scope: $scope,
+            notPermittedPageUids: $notPermittedPageUids,
         );
 
         if ($onRunStarted !== null) {
@@ -156,6 +218,12 @@ final class ScanOrchestrator
         }
 
         $result = new ScanResult(scanUid: $scanUid);
+        // F-05: with every content field switched off the scan checks no content. Said so — never a clean result.
+        if (!$this->fieldConfigurationBootstrapService->hasEnabledFields()) {
+            $result->addWarning(ScanResult::WARNING_NO_SCAN_FIELDS, 'No content fields are enabled for scanning, so no content was checked. Enable fields in Settings › Scan fields.');
+        }
+        $result->pagesWithoutTranslation = max(0, $pagesWithoutTranslation);
+        $result->notPermittedPageUids = array_values(array_map('intval', $notPermittedPageUids));
 
         try {
             foreach ($pageUids as $pageUid) {
@@ -174,6 +242,13 @@ final class ScanOrchestrator
             }
 
             $this->throwIfCancellationRequested($shouldCancel, $scanUid);
+
+            // U-09: a full site/subtree scan retires open findings whose page or record no longer exists.
+            // AUTH-01: only a scan without a page restriction (administrator, CLI, Scheduler) does this site-wide sweep; an
+            // editor's scan changes no finding outside the pages it was admitted to.
+            if (!$changedOnly && $scope !== 'page' && !$restricted) {
+                $result->issuesResolved += $this->issueResolutionService->resolveOpenOfDeletedSources($siteIdentifier, $this->configuredSiteIdentifiers(), $scanUid);
+            }
 
             $this->scanRepository->finishScanRun(
                 scanUid: $scanUid,
@@ -457,117 +532,146 @@ final class ScanOrchestrator
                     'scanUid' => $scanUid,
                 ]);
             } else {
-                $renderedLanguageUid = $languageUid >= 0 ? $languageUid : 0;
-                $pageDoktype = $this->renderedPageTypeGuard->getDoktypeForPage($pageUid);
+                // D-02: an "all languages" scan renders every existing translation of the page in its own language (the
+                // page collector no longer returns translation rows as pages). The rendered rules count as evaluated only
+                // when every language was checked, so a failed translation never resolves its rendered findings.
+                $renderedLanguageUids = $languageUid >= 0
+                    ? [$languageUid]
+                    : [0, ...array_values(array_unique($this->pageCollector->translationsOf($pageUid)))];
+                $renderedAllCompleted = true;
+                $renderedFailure = null;
+                foreach ($renderedLanguageUids as $renderedLanguageUid) {
+                    $languageCheckCompleted = false;
+                    $pageDoktype = $this->renderedPageTypeGuard->getDoktypeForPage($pageUid);
 
-                if (!$this->renderedPageTypeGuard->supportsDoktype($pageDoktype)) {
-                    $renderedCheckCompleted = true;
-                    $result->addWarning(
-                        code: 'rendered_check_skipped_unsupported_doktype',
-                        message: BackendLabelUtility::translate(
-                            'renderedCheck.warning.unsupportedDoktype',
-                            'Rendered page check was skipped because this page type does not render a standard frontend page. Local content checks were still completed.'
-                        ),
-                        context: [
-                            'pageUid' => $pageUid,
-                            'languageUid' => $renderedLanguageUid,
-                            'doktype' => $pageDoktype ?? 0,
-                            'source' => 'rendered_check',
-                        ]
-                    );
-                    $this->logger->info('Rendered page check skipped for unsupported page doktype.', [
-                        'siteIdentifier' => $siteIdentifier,
-                        'pageUid' => $pageUid,
-                        'languageUid' => $renderedLanguageUid,
-                        'doktype' => $pageDoktype,
-                        'scanUid' => $scanUid,
-                    ]);
-                } else {
-                    $this->throwIfCancellationRequested($shouldCancel, $scanUid);
-                    $renderedContext = new CheckContext(
-                        siteIdentifier: $siteIdentifier,
-                        pageUid: $pageUid,
-                        sourceLangUid: $renderedLanguageUid,
-                        sourceTable: Tables::PAGES,
-                        sourceUid: $pageUid,
-                        sourceField: '__rendered_html',
-                        content: '',
-                        cType: '',
-                        contextPath: sprintf('Page:%d > rendered HTML', $pageUid),
-                        sourceType: 'rendered',
-                    );
-
-                    $renderedResult = $this->renderedPageScanner->scanPageWithResult(
-                        $siteIdentifier,
-                        $pageUid,
-                        $renderedLanguageUid,
-                        $renderedSettings['allowPrivateHosts']
-                    );
-                    $renderedCheckCompleted = $renderedResult->completed;
-                    // A hidden, scheduled or group-restricted page is not shown to the visitor the check requests it as.
-                    $visitorRestriction = $renderedCheckCompleted
-                        ? ''
-                        : $this->renderedPageTypeGuard->visitorRestriction($pageUid, $renderedLanguageUid);
-                    $result->recordRenderedCheck($pageUid, $renderedCheckCompleted, $renderedResult->statusCode, $renderedResult->warning, $visitorRestriction);
-                    if ($renderedCheckCompleted) {
-                        array_push($evaluatedRuleIdsForPage, ...self::RENDERED_RULE_IDS);
-                    }
-                    $suppressStructuredHeaderLevelIsH1 = $renderedCheckCompleted && $renderedResult->h1Count === 1;
-                    $this->logger->debug('Rendered H1 suppression evaluation finished.', [
-                        'siteIdentifier' => $siteIdentifier,
-                        'pageUid' => $pageUid,
-                        'languageUid' => $renderedLanguageUid,
-                        'scanUid' => $scanUid,
-                        'renderedCheckCompleted' => $renderedCheckCompleted,
-                        'h1Count' => $renderedResult->h1Count,
-                        'suppressedStructuredH1' => $suppressStructuredHeaderLevelIsH1,
-                        'failureReason' => $renderedResult->failureReason,
-                    ]);
-                    if (!$renderedCheckCompleted && $renderedResult->warning !== '') {
+                    if (!$this->renderedPageTypeGuard->supportsDoktype($pageDoktype)) {
+                        $languageCheckCompleted = true;
                         $result->addWarning(
-                            code: 'rendered_check_skipped',
-                            message: $renderedResult->warning,
+                            code: 'rendered_check_skipped_unsupported_doktype',
+                            message: BackendLabelUtility::translate(
+                                'renderedCheck.warning.unsupportedDoktype',
+                                'Rendered page check was skipped because this page type does not render a standard frontend page. Local content checks were still completed.'
+                            ),
                             context: [
                                 'pageUid' => $pageUid,
                                 'languageUid' => $renderedLanguageUid,
+                                'doktype' => $pageDoktype ?? 0,
                                 'source' => 'rendered_check',
-                                'statusCode' => $renderedResult->statusCode,
-                                'reason' => $visitorRestriction,
                             ]
                         );
-                    }
-
-                    if ($renderedResult->failureReason === 'error_page') {
-                        $resolvedTechnicalErrorIssues = $this->issueResolutionService->resolveRenderedTechnicalErrorSnippetIssues(
-                            pageUid: $pageUid,
-                            siteIdentifier: $siteIdentifier,
-                            sourceLangUid: $renderedLanguageUid,
-                            scanUid: $scanUid,
-                        );
-                        $result->issuesResolved += $resolvedTechnicalErrorIssues;
-                    }
-
-                    // Audit C6: an element both scopes report is one finding, kept under its rich-text rule.
-                    [$renderedViolations, $renderedDuplicates] = RenderedRichTextDuplicates::split(
-                        $renderedResult->violations,
-                        $this->richTextFindingsForPage
-                    );
-                    if ($renderedDuplicates !== []) {
-                        $this->issuePersistenceCoordinator->retireRenderedDuplicates($renderedDuplicates, $renderedContext);
-                        $this->logger->debug('Rendered findings already reported by a rich-text rule were not stored twice.', [
+                        $this->logger->info('Rendered page check skipped for unsupported page doktype.', [
                             'siteIdentifier' => $siteIdentifier,
                             'pageUid' => $pageUid,
+                            'languageUid' => $renderedLanguageUid,
+                            'doktype' => $pageDoktype,
                             'scanUid' => $scanUid,
-                            'duplicates' => count($renderedDuplicates),
                         ]);
-                    }
+                    } else {
+                        $this->throwIfCancellationRequested($shouldCancel, $scanUid);
+                        $renderedContext = new CheckContext(
+                            siteIdentifier: $siteIdentifier,
+                            pageUid: $pageUid,
+                            sourceLangUid: $renderedLanguageUid,
+                            sourceTable: Tables::PAGES,
+                            sourceUid: $pageUid,
+                            sourceField: '__rendered_html',
+                            content: '',
+                            cType: '',
+                            contextPath: sprintf('Page:%d > rendered HTML', $pageUid),
+                            sourceType: 'rendered',
+                        );
 
-                    $this->issuePersistenceCoordinator->persistViolations(
-                        violations: $renderedViolations,
-                        context: $renderedContext,
+                        $renderedResult = $this->renderedPageScanner->scanPageWithResult(
+                            $siteIdentifier,
+                            $pageUid,
+                            $renderedLanguageUid,
+                            $renderedSettings['allowPrivateHosts']
+                        );
+                        $languageCheckCompleted = $renderedResult->completed;
+                        // A hidden, scheduled or group-restricted page is not shown to the visitor the check requests it as.
+                        $visitorRestriction = $languageCheckCompleted
+                            ? ''
+                            : $this->renderedPageTypeGuard->visitorRestriction($pageUid, $renderedLanguageUid);
+                        if (!$languageCheckCompleted && $renderedFailure === null) {
+                            $renderedFailure = [$renderedResult->statusCode, $renderedResult->warning, $visitorRestriction];
+                        }
+                        if ($renderedLanguageUid === $suppressStructuredHeaderLevelIsH1LanguageUid) {
+                            $suppressStructuredHeaderLevelIsH1 = $languageCheckCompleted && $renderedResult->h1Count === 1;
+                        }
+                        $this->logger->debug('Rendered H1 suppression evaluation finished.', [
+                            'siteIdentifier' => $siteIdentifier,
+                            'pageUid' => $pageUid,
+                            'languageUid' => $renderedLanguageUid,
+                            'scanUid' => $scanUid,
+                            'renderedCheckCompleted' => $languageCheckCompleted,
+                            'h1Count' => $renderedResult->h1Count,
+                            'suppressedStructuredH1' => $suppressStructuredHeaderLevelIsH1,
+                            'failureReason' => $renderedResult->failureReason,
+                        ]);
+                        if (!$languageCheckCompleted && $renderedResult->warning !== '') {
+                            $result->addWarning(
+                                code: 'rendered_check_skipped',
+                                message: $renderedResult->warning,
+                                context: [
+                                    'pageUid' => $pageUid,
+                                    'languageUid' => $renderedLanguageUid,
+                                    'source' => 'rendered_check',
+                                    'statusCode' => $renderedResult->statusCode,
+                                    'reason' => $visitorRestriction,
+                                ]
+                            );
+                        }
+
+                        if ($renderedResult->failureReason === 'error_page') {
+                            $resolvedTechnicalErrorIssues = $this->issueResolutionService->resolveRenderedTechnicalErrorSnippetIssues(
+                                pageUid: $pageUid,
+                                siteIdentifier: $siteIdentifier,
+                                sourceLangUid: $renderedLanguageUid,
+                                scanUid: $scanUid,
+                            );
+                            $result->issuesResolved += $resolvedTechnicalErrorIssues;
+                        }
+
+                        // Audit C6: an element both scopes report is one finding, kept under its rich-text rule.
+                        // N-02: a translated page's content markers name the default record; its own translation
+                        // is the record the finding belongs to (and the one its rich-text twin was stored for).
+                        $renderedLanguageViolations = $this->renderedTranslationRecords?->forLanguage($renderedResult->violations, $renderedLanguageUid)
+                            ?? $renderedResult->violations;
+                        $this->issuePersistenceCoordinator->keepIdentityOfRemapped($renderedResult->violations, $renderedLanguageViolations, $renderedContext);
+                        [$renderedViolations, $renderedDuplicates] = RenderedRichTextDuplicates::split(
+                            $renderedLanguageViolations,
+                            $this->richTextFindingsForPage
+                        );
+                        if ($renderedDuplicates !== []) {
+                            $this->issuePersistenceCoordinator->retireRenderedDuplicates($renderedDuplicates, $renderedContext);
+                            $this->logger->debug('Rendered findings already reported by a rich-text rule were not stored twice.', [
+                                'siteIdentifier' => $siteIdentifier,
+                                'pageUid' => $pageUid,
+                                'scanUid' => $scanUid,
+                                'duplicates' => count($renderedDuplicates),
+                            ]);
+                        }
+
+                        $this->issuePersistenceCoordinator->persistViolations(
+                            violations: $renderedViolations,
+                            context: $renderedContext,
+                            scanUid: $scanUid,
+                            result: $result,
+                            seenFingerprintsForPage: $seenFingerprintsForPage,
+                        );
+                    }
+                    $renderedAllCompleted = $renderedAllCompleted && $languageCheckCompleted;
+                }
+                $renderedCheckCompleted = $renderedAllCompleted;
+                [$failureStatus, $failureWarning, $failureRestriction] = $renderedFailure ?? [0, '', ''];
+                $result->recordRenderedCheck($pageUid, $renderedCheckCompleted, $failureStatus, $failureWarning, $failureRestriction);
+                if ($renderedCheckCompleted) {
+                    array_push($evaluatedRuleIdsForPage, ...self::RENDERED_RULE_IDS);
+                    // Rendered findings that older releases stored on a translation row (as "page <uid>, language 0").
+                    $result->issuesResolved += $this->issueResolutionService->resolveRenderedOnTranslationRows(
+                        pageUids: array_keys($this->pageCollector->translationsOf($pageUid)),
+                        siteIdentifier: $siteIdentifier,
                         scanUid: $scanUid,
-                        result: $result,
-                        seenFingerprintsForPage: $seenFingerprintsForPage,
                     );
                 }
             }
@@ -604,6 +708,26 @@ final class ScanOrchestrator
                     seenFingerprintsForPage: $seenFingerprintsForPage,
                 );
             }
+        }
+
+        if (!$changedOnly && $siteIdentifier !== '') {
+            // D-03: findings of this page under a site identifier that no longer exists (renamed or removed site).
+            $result->issuesResolved += $this->issueResolutionService->resolveOpenOfUnconfiguredSitesForPage(
+                $pageUid,
+                $this->configuredSiteIdentifiers(),
+                $scanUid,
+            );
+        }
+
+        if (!$changedOnly && $siteIdentifier !== '') {
+            // ML-02: a record deleted from this page (in the scanned language) no longer has findings, even when no
+            // record of that language is left to evaluate a rule on.
+            $result->issuesResolved += $this->issueResolutionService->resolveOpenOfDeletedRecordsOnPage(
+                $siteIdentifier,
+                $pageUid,
+                $languageUid,
+                $scanUid,
+            );
         }
 
         if (!$changedOnly) {

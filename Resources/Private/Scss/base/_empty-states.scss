@@ -1,4 +1,6 @@
-.a11y-page-detail .aqg-empty {
+// Shared empty state (Atlas .aqg-empty): Page detail, AI fixes (same module root) and Settings.
+.a11y-page-detail .aqg-empty,
+.a11y-settings .aqg-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -8,7 +10,8 @@
     text-align: center;
 }
 
-.a11y-page-detail .aqg-empty--compact {
+.a11y-page-detail .aqg-empty--compact,
+.a11y-settings .aqg-empty--compact {
     align-items: flex-start;
     flex-direction: row;
     justify-content: flex-start;
@@ -17,7 +20,8 @@
     text-align: left;
 }
 
-.a11y-page-detail .aqg-empty__icon {
+.a11y-page-detail .aqg-empty__icon,
+.a11y-settings .aqg-empty__icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -28,26 +32,30 @@
     color: var(--aqi-fg-subtle);
 }
 
-.a11y-page-detail .aqg-empty--ok .aqg-empty__icon {
+.a11y-page-detail .aqg-empty--ok .aqg-empty__icon,
+.a11y-settings .aqg-empty--ok .aqg-empty__icon {
     color: var(--aqi-ok);
     border-style: solid;
     border-color: var(--aqi-ok-border);
 }
 
-.a11y-page-detail .aqg-empty__title {
+.a11y-page-detail .aqg-empty__title,
+.a11y-settings .aqg-empty__title {
     color: var(--aqi-fg);
     font-size: 14px;
     font-weight: 600;
 }
 
-.a11y-page-detail .aqg-empty__body {
+.a11y-page-detail .aqg-empty__body,
+.a11y-settings .aqg-empty__body {
     max-width: 42ch;
     color: var(--aqi-fg-muted);
     font-size: 13px;
     line-height: 1.45;
 }
 
-.a11y-page-detail .aqg-empty__actions {
+.a11y-page-detail .aqg-empty__actions,
+.a11y-settings .aqg-empty__actions {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,13 +145,15 @@
     }
 }
 
-.a11y-page-detail .aqg-empty--warning .aqg-empty__icon {
+.a11y-page-detail .aqg-empty--warning .aqg-empty__icon,
+.a11y-settings .aqg-empty--warning .aqg-empty__icon {
     color: var(--aqi-warn);
     border-style: solid;
     border-color: var(--aqi-warn-border);
     background: var(--aqi-warn-bg);
 }
 
-.a11y-page-detail .aqg-empty--warning .aqg-empty__title {
+.a11y-page-detail .aqg-empty--warning .aqg-empty__title,
+.a11y-settings .aqg-empty--warning .aqg-empty__title {
     color: var(--aqi-warn-fg);
 }

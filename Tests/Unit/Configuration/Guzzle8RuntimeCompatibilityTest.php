@@ -126,7 +126,9 @@ final class Guzzle8RuntimeCompatibilityTest extends TestCase
     private function loadGuzzle8Utils(): void
     {
         self::assertFalse(class_exists('GuzzleHttp\\Utils', false), 'Guzzle\'s own Utils class is already loaded.');
-        require_once __DIR__ . '/../../Fixtures/Guzzle8Utils.php';
+        // A stand-in for Guzzle 8's `GuzzleHttp\\Utils` without jsonEncode()/jsonDecode(), declared in memory: as a file under
+        // Tests/ it would be indexed by class-map scanners (TYPO3 14 functional instances) and shadow the real class.
+        eval('namespace GuzzleHttp; final class Utils {}');
     }
 
     private function response(string $body): ResponseInterface

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Unit\Export;
 
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Controller\ExportController;
@@ -83,6 +84,15 @@ final class AcceptanceEvidenceTest extends TestCase
         self::assertSame(403, $response->getStatusCode());
     }
 
+    /** Sol R05: the evidence compares every page of both scans; an editor with edit access to the root is refused. */
+    #[Test]
+    public function onlyAdministratorsExportEvidenceBecauseItCoversEveryPage(): void
+    {
+        $response = $this->controller(administrator: false)->acceptanceAction($this->request());
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
     #[Test]
     public function aTrialCannotExportEvidence(): void
     {
@@ -146,8 +156,10 @@ final class AcceptanceEvidenceTest extends TestCase
         return new AcceptanceEvidenceBuilder($comparison, $renderer, $pdf);
     }
 
-    private function controller(?array $pair = ['from' => self::FROM, 'to' => self::TO], bool $canEdit = true, bool $trial = false): ExportController
+    private function controller(?array $pair = ['from' => self::FROM, 'to' => self::TO], bool $canEdit = true, bool $trial = false, bool $administrator = true): ExportController
     {
+        $resultAccess = $this->createMock(RemoteResultAuthorizationService::class);
+        $resultAccess->method('isUnrestrictedUser')->willReturn($administrator);
         $pairing = $this->createMock(RemoteScanPairingService::class);
         $pairing->method('resolveComparePair')->willReturn($pair);
         $scope = $this->createMock(ScopeAccessService::class);
@@ -157,7 +169,7 @@ final class AcceptanceEvidenceTest extends TestCase
         $status = $this->createMock(ProStatusResolverService::class);
         $status->method('resolveForSite')->willReturn(new ProStatusViewModel(
             configured: true, valid: true, proAvailable: true, plan: $trial ? 'trial' : 'pro', features: [], reason: null,
-            reasonLabel: null, statusLabel: '', showProHints: false, hasCrawler: true, hasExportPdf: !$trial,
+            reasonLabel: null, statusLabel: '', hasCrawler: true, hasExportPdf: !$trial,
             hasMultiSite: false, hasProRules: true, isTrial: $trial,
         ));
 
@@ -168,6 +180,7 @@ final class AcceptanceEvidenceTest extends TestCase
             'siteResolutionService' => $sites,
             'proStatusResolverService' => $status,
             'acceptanceEvidenceBuilder' => $this->builder(),
+            'remoteResultAuthorizationService' => $resultAccess,
             'responseFactory' => new ResponseFactory(),
             'streamFactory' => new StreamFactory(),
         ] as $property => $value) {

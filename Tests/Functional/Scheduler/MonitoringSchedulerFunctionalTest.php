@@ -108,7 +108,8 @@ final class MonitoringSchedulerFunctionalTest extends AbstractFunctionalTestCase
             $taskTypes[MonitoringTask::class]['additionalFields']
         );
         self::assertSame('selectSingle', $GLOBALS['TCA']['tx_scheduler_task']['columns'][MonitoringTask::PARAM_SITE]['config']['renderType']);
-        self::assertSame('reload', $GLOBALS['TCA']['tx_scheduler_task']['columns'][MonitoringTask::PARAM_SITE]['onChange']);
+        // D-04: no form reload on site change (the language list covers every site; saving validates the pair).
+        self::assertArrayNotHasKey('onChange', $GLOBALS['TCA']['tx_scheduler_task']['columns'][MonitoringTask::PARAM_SITE]);
         self::assertSame('selectSingle', $GLOBALS['TCA']['tx_scheduler_task']['columns'][MonitoringTask::PARAM_LANGUAGE]['config']['renderType']);
         self::assertArrayNotHasKey('a11y:monitor', $taskTypes, 'No raw command task with a typed language number.');
     }

@@ -63,13 +63,14 @@ describe('Licence key actions', () => {
         const {input, revalidate, submit} = renderLicenceForm();
 
         expect(revalidate).toBeNull();
-        expect(submit.textContent).toBe('Save changes');
+        // F-03: the instruction says "…then choose Save and validate"; without a saved key that is the button's only label.
+        expect(submit.textContent).toBe('Save and validate');
 
         type(input, 'aqg_live_new_key');
         expect(submit.textContent).toBe('Save and validate');
 
         type(input, '');
-        expect(submit.textContent).toBe('Save changes');
+        expect(submit.textContent).toBe('Save and validate');
     });
 
     it('never puts the saved key into the page', () => {
@@ -140,6 +141,21 @@ describe('Licence key actions', () => {
 
         expect(result.textContent).not.toContain('domain_mismatch');
         expect(module.reloadPage).not.toHaveBeenCalled();
+    });
+
+    it('never calls a key "not valid" when the licence service did not check it (N-04)', async () => {
+        globalThis.TYPO3 = {settings: {ajaxUrls: {a11y_validate_licence: '/typo3/ajax/licence/validate'}}};
+        setAjaxPostHandler(vi.fn().mockReturnValue({
+            resolve: vi.fn().mockResolvedValue({valid: false, transient: true, reason: 'rate_limited', reasonLabel: 'The licence service is limiting requests right now. The key was not checked; try again later.'}),
+        }));
+        const {revalidate, result} = renderLicenceForm({saved: true});
+
+        revalidate.click();
+        await vi.waitFor(() => expect(result.textContent).toContain('The key was not checked'));
+
+        expect(result.textContent).toContain('Licence not checked.');
+        expect(result.textContent).not.toContain('Licence is not valid.');
+        expect(result.querySelector('.aqg-validation').classList.contains('tone-warn')).toBe(true);
     });
 
     it('turns the status card retry link into an in-place revalidation', async () => {

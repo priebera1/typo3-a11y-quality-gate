@@ -15,14 +15,19 @@ final class RemoteEmptyState
     public const PRIORITY_CLEAR = 'clear';
     public const PRIORITY_INCOMPLETE = 'incomplete';
     public const PRIORITY_NO_COVERAGE = 'no-coverage';
+    public const PRIORITY_RESTRICTED = 'restricted';
 
     public const PAGES_NO_SCAN = 'no-scan';
     public const PAGES_RULE = 'rule';
     public const PAGES_NO_COVERAGE = 'no-coverage';
     public const PAGES_NOT_STORED = 'not-stored';
+    public const PAGES_RESTRICTED = 'restricted';
 
-    public static function priorityFixes(?RemoteScanCoverage $coverage): string
+    public static function priorityFixes(?RemoteScanCoverage $coverage, bool $restrictedView = false): string
     {
+        if ($restrictedView) {
+            return self::PRIORITY_RESTRICTED;
+        }
         if ($coverage === null || $coverage->hasNoLoadedPage()) {
             return self::PRIORITY_NO_COVERAGE;
         }
@@ -34,13 +39,16 @@ final class RemoteEmptyState
      * For an empty affected-pages list: the list holds every page the scan loaded, so it is empty either because no
      * scan is stored, a rule filter matched nothing, no page could be loaded, or the loaded pages were not stored.
      */
-    public static function affectedPages(bool $hasScan, ?RemoteScanCoverage $coverage, bool $hasRuleFilter): string
+    public static function affectedPages(bool $hasScan, ?RemoteScanCoverage $coverage, bool $hasRuleFilter, bool $restrictedView = false): string
     {
         if (!$hasScan) {
             return self::PAGES_NO_SCAN;
         }
         if ($hasRuleFilter) {
             return self::PAGES_RULE;
+        }
+        if ($restrictedView) {
+            return self::PAGES_RESTRICTED;
         }
         if ($coverage === null || $coverage->hasNoLoadedPage()) {
             return self::PAGES_NO_COVERAGE;

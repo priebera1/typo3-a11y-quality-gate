@@ -44,12 +44,14 @@ final class ExportUrlBuilderService
         int $pageUid,
         string $status,
         string $severity,
+        int $languageUid = -1,
     ): string {
         return $this->buildRouteUrl('web_a11y.exportCsv', [
             'site' => $siteIdentifier,
             'pageUid' => $pageUid,
             'status' => $status,
             'severity' => $severity,
+            'language' => $languageUid,
         ]);
     }
 
@@ -58,6 +60,7 @@ final class ExportUrlBuilderService
         int $pageUid,
         string $status,
         string $severity,
+        int $languageUid = -1,
     ): string {
         return $this->buildRouteUrl('web_a11y.exportPdf', [
             'site' => $siteIdentifier,
@@ -65,6 +68,7 @@ final class ExportUrlBuilderService
             'id' => $pageUid,
             'status' => $status,
             'severity' => $severity,
+            'language' => $languageUid,
         ]);
     }
 

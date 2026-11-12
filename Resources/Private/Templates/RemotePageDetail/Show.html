@@ -39,6 +39,17 @@
                             <f:render partial="Shared/AqgIcon" arguments="{name: 'globe', size: 'sm'}" />
                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.source.remote" default="Frontend scan" />
                         </li>
+                        <f:if condition="{pagePreview.isPreview}">
+                            <li>
+                                <span class="aqg-preview-badge" data-aqg-page-preview="header">
+                                    <f:render partial="Shared/AqgIcon" arguments="{name: 'eye', size: 'sm'}" />
+                                    <f:if condition="{pagePreview.wasNotPublic}">
+                                        <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.pagePreview.badgeWasNotPublic" default="Preview scan · page was not public" /></f:then>
+                                        <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.pagePreview.badge" default="Preview scan · page not public" /></f:else>
+                                    </f:if>
+                                </span>
+                            </li>
+                        </f:if>
                         <li class="aqg-pagehead__url">
                             <a href="{remotePage.url}" target="_blank" rel="noopener noreferrer" title="{remotePage.url}">{remotePage.url}<f:render partial="Shared/AqgIcon" arguments="{name: 'ext', size: 'sm'}" /><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.opensInNewTab" default="(opens in a new tab)" /></span></a>
                         </li>
@@ -60,6 +71,7 @@
                             </li>
                         </f:if>
                     </ul>
+                    <f:render partial="Remote/TreeCoverage" arguments="{coverage: treeCoverage}" />
 
                     <f:if condition="!{remoteDetail.isFailed} && {impactGroups}">
                         <ul class="aqg-pagehead__counts" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.countsAria', default: 'Issue types by impact')}">
@@ -148,7 +160,7 @@
                     </div>
                     <f:if condition="{usesSiteRootContext}">
                         <p class="aqg-pagehead__hint" id="aqg-scan-root-hint">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanUsesSiteRootText" default="This URL is not mapped to a specific TYPO3 page. The scan can still run from the site root context." />
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.scanUsesSiteRootText" default="The scan linked no TYPO3 record on this URL to a page, so scanning it again needs edit access to the site root." />
                         </p>
                     </f:if>
                 </div>
@@ -330,6 +342,28 @@
                         </f:then>
 
                         <f:else>
+                            <f:if condition="{resultsRestricted}">
+                            <f:then>
+                            <section class="aqg-status aqg-status--restricted" aria-labelledby="aqg-remote-page-status-title" data-aqg-results-restricted="true">
+                                <div class="aqg-status__main">
+                                    <div class="aqg-status__head">
+                                        <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'eye'}" /></span>
+                                        <h2 class="aqg-status__title" id="aqg-remote-page-status-title">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.restricted.title" default="No results available to you for this page" />
+                                        </h2>
+                                    </div>
+                                    <p class="aqg-status__text">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.restricted.note" default="This view shows only the results your TYPO3 permissions allow. Results without a page or record you may read, including results stored before AQG recorded page ownership, are shown to administrators only." />
+                                    </p>
+                                </div>
+                                <div class="aqg-status__actions">
+                                    <a href="{remotePage.url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-default">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.openUrl" default="Open URL" /><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.opensInNewTab" default="(opens in a new tab)" /></span>
+                                    </a>
+                                </div>
+                            </section>
+                            </f:then>
+                            <f:else>
                             <section class="aqg-status aqg-status--{f:if(condition: issueDetailsUnavailable, then: 'attention', else: 'good')}" aria-labelledby="aqg-remote-page-status-title">
                                 <div class="aqg-status__main">
                                     <div class="aqg-status__head">
@@ -359,6 +393,8 @@
                                     </a>
                                 </div>
                             </section>
+                            </f:else>
+                            </f:if>
                         </f:else>
                     </f:if>
                 </f:else>
@@ -397,6 +433,9 @@
                     </f:if>
                     <f:if condition="{issue.isPrimaryRecommendation}">
                         <span class="aqg-rulecard__start"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.recommendation.kicker" default="Start here" /></span>
+                    </f:if>
+                    <f:if condition="{pagePreview.isPreview}">
+                        <span class="aqg-preview-badge aqg-preview-badge--sm" data-aqg-page-preview="card"><f:render partial="Shared/AqgIcon" arguments="{name: 'eye', size: 'sm'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:module.remotePageDetail.pagePreview.chip" default="Preview" /></span>
                     </f:if>
                 </span>
                 </span>
@@ -930,10 +969,13 @@
                         <f:render partial="Shared/AqgIcon" arguments="{name: 'chev', size: 'sm'}" />
                     </summary>
                     <div class="aqg-evidence__body">
-                        <f:if condition="{remotePageHistory.items}">
+                        <f:if condition="{remotePageHistory.hasPreviewItems}">
                             <f:then>
-                                <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.items, compactPageHistory: 1, viewedJobId: remoteScan.job_id}" />
+                                <f:render section="PreviewPublicHistory" arguments="{remotePageHistory: remotePageHistory, remoteScan: remoteScan, pagePreview: pagePreview}" />
                             </f:then>
+                            <f:else if="{remotePageHistory.items}">
+                                <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.items, compactPageHistory: 1, viewedJobId: remoteScan.job_id}" />
+                            </f:else>
                             <f:else>
                                 <p class="aqg-history-notice">
                                     <f:if condition="{remotePageHistory.message}">
@@ -950,6 +992,36 @@
             <f:render section="RemoteMetadata" arguments="{remotePage: remotePage, remoteScan: remoteScan, remoteDetail: remoteDetail}" />
         </div>
     </section>
+</f:section>
+
+<f:section name="PreviewPublicHistory">
+    <div class="aqg-sourcetabs aqg-history-tabs" role="tablist" data-aqg-history-tabs="true" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.tablist', default: 'Scan history')}">
+        <button type="button" role="tab" class="aqg-sourcetab" id="aqg-history-tab-preview" aria-controls="aqg-history-panel-preview" aria-selected="{f:if(condition: pagePreview.isPreview, then: 'true', else: 'false')}" tabindex="{f:if(condition: pagePreview.isPreview, then: '0', else: '-1')}">
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'eye', size: 'sm'}" />
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.previewTab" default="Preview scans (%d)" arguments="{0: remotePageHistory.previewCount}" />
+        </button>
+        <button type="button" role="tab" class="aqg-sourcetab" id="aqg-history-tab-public" aria-controls="aqg-history-panel-public" aria-selected="{f:if(condition: pagePreview.isPreview, then: 'false', else: 'true')}" tabindex="{f:if(condition: pagePreview.isPreview, then: '-1', else: '0')}">
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'globe', size: 'sm'}" />
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.publicTab" default="Public scans (%d)" arguments="{0: remotePageHistory.publicCount}" />
+        </button>
+    </div>
+    <div class="aqg-history-tabpanel" role="tabpanel" id="aqg-history-panel-preview" aria-labelledby="aqg-history-tab-preview" tabindex="0" data-aqg-history-panel="preview" {f:if(condition: pagePreview.isPreview, else: 'hidden="hidden"')}>
+        <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.previewItems, compactPageHistory: 1, viewedJobId: remoteScan.job_id}" />
+        <p class="aqg-history-notice"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.previewCompareNote" default="Only preview scans of the same page, language and scope are compared." /></p>
+    </div>
+    <div class="aqg-history-tabpanel" role="tabpanel" id="aqg-history-panel-public" aria-labelledby="aqg-history-tab-public" tabindex="0" data-aqg-history-panel="public" {f:if(condition: pagePreview.isPreview, then: 'hidden="hidden"')}>
+        <f:if condition="{remotePageHistory.publicItems}">
+            <f:then>
+                <f:render partial="Remote/ScanHistoryTable" arguments="{items: remotePageHistory.publicItems, compactPageHistory: 1, viewedJobId: remoteScan.job_id}" />
+            </f:then>
+            <f:else>
+                <div class="aqg-history-empty" data-aqg-history-empty="public">
+                    <p class="aqg-history-empty__title"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.publicEmpty.title" default="No public scan yet" /></strong></p>
+                    <p class="aqg-history-notice"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.history.publicEmpty.text" default="Public scans start once the page is visible. Preview results are not copied into this history and do not count for monitoring, reports or statements." /></p>
+                </div>
+            </f:else>
+        </f:if>
+    </div>
 </f:section>
 
 <f:section name="KeyboardStructureReview">

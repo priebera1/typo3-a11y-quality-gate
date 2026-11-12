@@ -23,8 +23,9 @@ ExtensionManagementUtility::addTCAcolumns(
         MonitoringTask::PARAM_SITE => [
             'label' => $ll . 'scheduler.monitoring.field.site',
             'description' => $ll . 'scheduler.monitoring.field.site.help',
-            // The language list belongs to the selected site.
-            'onChange' => 'reload',
+            // D-04: no `onChange: reload`. Its "Save and refresh" stored the task with only a site (the lax reload-time
+            // validation accepted it); a rejected final save then left that half-configured task running. The
+            // language list offers every site's languages and the save validates the pair.
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
@@ -41,7 +42,8 @@ ExtensionManagementUtility::addTCAcolumns(
         ],
         MonitoringTask::PARAM_LANGUAGE => [
             'label' => $ll . 'scheduler.monitoring.field.language',
-            'description' => $ll . 'scheduler.monitoring.field.language.help',
+            // N-15: TYPO3 14 offers every site's languages until the task is saved (no reload, D-04): the help says so.
+            'description' => $ll . 'scheduler.monitoring.field.language.helpAllSites',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',

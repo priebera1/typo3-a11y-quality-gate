@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Utility\ExternalLinkUtility;
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorization;
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
+use Priebera\A11yQualityGate\Service\RemoteResultsTooLargeException;
 use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
 use Priebera\A11yQualityGate\Domain\Repository\FixVerificationRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
@@ -76,6 +80,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
         private readonly ?ScanPermissionService $scanPermissionService = null,
         private readonly ?IssueLocationService $issueLocationService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
+        private readonly ?\Priebera\A11yQualityGate\Pro\Service\RemoteScanTreeCoverageService $treeCoverageService = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -187,11 +193,31 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
             return $moduleTemplate->renderResponse('RemotePageDetail/Show');
         }
-
         // The stored scan decides the site and the scope; the request's site and page are only navigation.
         $remoteScan = $this->scopeAccessService->resolveReadableScanForRemotePage($remotePage);
         if (!is_array($remoteScan)) {
             return $this->resourceAccessDeniedResponse();
+        }
+        // Sol R05: the result page itself must be readable for this user (its owner page, language, translation), and
+        // only findings and elements of readable records are shown. A refused page answers like an unreadable scan.
+        $remoteRestriction = null;
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            try {
+                $remoteRestriction = $this->remoteResultAuthorizationService?->authorize($remoteScan) ?? new RemoteResultAuthorization(false, [], [], []);
+            } catch (RemoteResultsTooLargeException) {
+                $remoteRestriction = new RemoteResultAuthorization(false, [], [], []);
+            }
+            if (!$remoteRestriction->isResultPageVisible($remotePageUid)) {
+                return $this->resourceAccessDeniedResponse();
+            }
+            // The crawler's page summaries (keyboard, structure, remediation, recommendation) cover every element of
+            // the page, also those of records this user may not read.
+            foreach (['keyboard_summary_json', 'remediation_summary_json', 'page_recommendation_json'] as $field) {
+                $remotePage[$field] = '';
+            }
+            // Counts of what the user may read only, also for the "page summary reports N findings" fallback.
+            $remotePage['issues_count'] = $remoteRestriction->countsByResultPage()[$remotePageUid]['issueTypes'] ?? 0;
+            $remoteScan = self::withoutCrawlerCounters($remoteScan);
         }
 
         $resolvedSiteIdentifier = (string)($remoteScan['site_identifier'] ?? '');
@@ -211,6 +237,16 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         // result never gains screenshots or record mapping because the licence was upgraded later.
         $isFreePreview = !(bool)($proStatus->valid ?? false) || !(bool)($proStatus->hasCrawler ?? false);
         $scanIsFreePreview = (int)($remoteScan['is_free_preview'] ?? 0) === 1;
+        // Atlas D9: a preview scan of a page visitors could not open is labelled on the header and every finding card;
+        // once the page is public the header says the page *was* not public (the result stays a preview scan).
+        $scanIsPagePreview = RemoteScanPairingService::isPagePreview($remoteScan);
+        $pagePreview = [
+            'isPreview' => $scanIsPagePreview,
+            'wasNotPublic' => $scanIsPagePreview && $this->remotePageScanTargetResolver->isPublicNow(
+                (int)($remoteScan['page_uid'] ?? 0),
+                (int)($remoteScan['language_uid'] ?? 0)
+            ),
+        ];
 
         $remotePageDebugUrl = $this->buildRemotePageDebugUrl((string)($remotePage['url'] ?? ''));
 
@@ -218,7 +254,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         // past its reported end is shown as deleted after retention without asking the service (RemoteScreenshotState).
         $screenshotState = RemoteScreenshotState::resolve($remotePage, time());
         $remoteScreenshotProxyUrl = '';
-        if (!$isFreePreview && !$scanIsFreePreview && $screenshotState === RemoteScreenshotState::AVAILABLE && $remotePageUid > 0) {
+        // A page screenshot shows every record the page renders: administrators only (RemoteScreenshotAccessPolicy).
+        if ($remoteRestriction === null && !$isFreePreview && !$scanIsFreePreview && $screenshotState === RemoteScreenshotState::AVAILABLE && $remotePageUid > 0) {
             $remoteScreenshotProxyUrl = $this->buildRemoteScreenshotProxyUrl(
                 $resolvedSiteIdentifier,
                 $remotePageUid
@@ -226,12 +263,27 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         $issues = $this->remoteIssueRepository->findByRemoteScanPage($remotePageUid);
+        if ($remoteRestriction !== null) {
+            $visibleOccurrences = [];
+            foreach ($remoteRestriction->findings as $finding) {
+                $visibleOccurrences[$finding['uid']] = $finding['occurrences'];
+            }
+            $issues = array_values(array_filter(
+                array_map(static fn (array $issue): array => isset($visibleOccurrences[(int)($issue['uid'] ?? 0)])
+                    ? ['nodes_count' => $visibleOccurrences[(int)$issue['uid']]] + $issue
+                    : [], $issues),
+                static fn (array $issue): bool => $issue !== []
+            ));
+        }
 
-        $issuesWithNodes = array_map(function (array $issue) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview, $scanIsFreePreview): array {
+        $issuesWithNodes = array_map(function (array $issue) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview, $scanIsFreePreview, $remoteRestriction): array {
             $issueUid = (int)($issue['uid'] ?? 0);
             $nodes = $issueUid > 0
                 ? $this->remoteIssueNodeRepository->findByRemoteIssue($issueUid)
                 : [];
+            if ($remoteRestriction !== null) {
+                $nodes = array_values(array_filter($nodes, static fn (array $node): bool => $remoteRestriction->isElementVisible((int)($node['uid'] ?? 0))));
+            }
 
             $nodes = array_map(function (array $node) use ($resolvedSiteIdentifier, $remotePageUid, $isFreePreview, $scanIsFreePreview): array {
                 $mappedTable = trim((string)($node['mapped_table'] ?? ''));
@@ -382,6 +434,14 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             (int)($remoteScan['page_uid'] ?? 0) ?: $scanPageUid,
             (int)($remoteScan['language_uid'] ?? 0)
         );
+        if ($remoteRestriction !== null) {
+            // The AQG service's per-scan numbers count every element of the page, also those of records this user may
+            // not read; a restricted user sees the scans, not those numbers.
+            $remotePageHistory = self::withoutHistoryCounters($remotePageHistory);
+        }
+        if ($remotePageHistory['hasPreviewItems'] ?? false) {
+            $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/core/history-tabs.js');
+        }
         $newerScan = $this->resolveNewerScan(
             $remotePageHistory,
             is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
@@ -396,7 +456,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         $remoteScanCompare = $isFreePreview
             ? ['available' => false, 'message' => '']
             : $this->buildRemotePageCompare($request, $resolvedSite !== null ? (string)$resolvedSite->getBase() : '', $resolvedSiteIdentifier, $remotePageHistory);
-        $regressionAlert = $isFreePreview ? ['available' => false, 'message' => ''] : $this->buildRemotePageRegressionAlert(
+        // Sol post-review R05: the regression alert and the job-wide remediation plan count every page of the scan.
+        $regressionAlert = $isFreePreview || $remoteRestriction !== null ? ['available' => false, 'message' => ''] : $this->buildRemotePageRegressionAlert(
             $remotePageUid,
             $scanPageUid,
             (int)($remoteScan['language_uid'] ?? 0),
@@ -404,7 +465,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $resolvedSiteIdentifier,
             (string)($remotePage['url'] ?? '')
         );
-        $remediationPlan = $isFreePreview || $scanIsFreePreview ? ['available' => false, 'hasTasks' => false] : $this->remoteScanHistoryService->loadRemediationPlanByJobId(
+        $remediationPlan = $isFreePreview || $scanIsFreePreview || $remoteRestriction !== null ? ['available' => false, 'hasTasks' => false] : $this->remoteScanHistoryService->loadRemediationPlanByJobId(
             $resolvedSite !== null ? (string)$resolvedSite->getBase() : '',
             is_array($remoteScan) ? (string)($remoteScan['job_id'] ?? '') : '',
             5
@@ -414,7 +475,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
         $moduleTemplate->assignMultiple([
             'errorMessage' => null,
-            'remotePage' => $remotePage + [
+            // E-14: the page URL is linked in the view, so the view gets it only as http(s); the stored value stays the
+            // lookup key for history, verify-fix and the debug URL above.
+            'remotePage' => ['url' => ExternalLinkUtility::httpOrEmpty($remotePage['url'] ?? '')] + $remotePage + [
                     'screenshot_proxy_url' => $remoteScreenshotProxyUrl,
                     'screenshot_original_url' => $remoteScreenshotProxyUrl !== '' ? $remoteScreenshotProxyUrl . '&variant=original' : '',
                 ],
@@ -422,8 +485,12 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'screenshotState' => $screenshotState,
             'screenshotEvidence' => is_array($decodedEvidence = json_decode((string)($remotePage['screenshot_evidence_json'] ?? ''), true)) ? $decodedEvidence : [],
             'remoteScan' => $remoteScan,
+            // The same page-tree coverage block as the Overview (C-01), for unrestricted users only.
+            'treeCoverage' => is_array($remoteScan) && $this->remoteResultAuthorizationService?->isUnrestrictedUser()
+                ? $this->treeCoverageService?->forScan($remoteScan, $this->siteResolutionService->resolveSiteByIdentifier((string)($remoteScan['site_identifier'] ?? '')))
+                : null,
             'remoteDetail' => $remoteDetail,
-            'activeRemoteScan' => $activeRemoteScan,
+            'activeRemoteScan' => $remoteRestriction !== null && is_array($activeRemoteScan) ? self::withoutCrawlerCounters($activeRemoteScan) : $activeRemoteScan,
             'canCancelRemoteScan' => is_array($activeRemoteScan) && $this->scanPermissionService instanceof ScanPermissionService
                 ? $this->scanPermissionService->canCancelRemoteScan($activeRemoteScan)
                 : $canScanRemotePage,
@@ -434,6 +501,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 (string)($pageRecommendation['primaryRuleId'] ?? $pageRecommendation['primaryRule'] ?? '')
             ),
             'issueDetailsUnavailable' => $issueDetailsUnavailable,
+            // Sol QA-06: a restricted user with no visible finding gets a neutral "limited to your access" state,
+            // never the clean "No issues found" (findings of records they may not read are withheld).
+            'resultsRestricted' => $remoteRestriction !== null,
             'pageSummaryIssuesCount' => $pageSummaryIssuesCount,
             'pageFindingsCount' => $pageFindingsCount,
             'pageRemediationSummary' => $pageRemediationSummary,
@@ -455,6 +525,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'proStatus' => $proStatus,
             'isFreePreview' => $isFreePreview,
             'scanIsFreePreview' => $scanIsFreePreview,
+            'pagePreview' => $pagePreview,
             'canVerifyFix' => $canVerifyFix,
             'lastVerifications' => $lastVerifications,
             'freePreviewTrialUrl' => $isFreePreview ? $this->publicLinkProvider->getBackendUrl(PublicLinkProvider::TRIAL) : '',
@@ -682,7 +753,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         $normalizedCurrentUrl = $this->normalizeComparableHistoryUrl($pageUrl);
-        $items = [];
+        $urlItems = [];
         foreach (($history['pageScans'] ?? []) as $item) {
             if (!is_array($item)) {
                 continue;
@@ -690,6 +761,20 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             if ((string)($item['normalizedStartUrl'] ?? '') === '' || (string)($item['normalizedStartUrl'] ?? '') !== $normalizedCurrentUrl) {
                 continue;
             }
+            $urlItems[] = $item;
+        }
+        // Atlas D9: preview scans (page not public) and public scans of this URL are two histories, each compared
+        // only within itself; which job is which comes from the stored scans.
+        $urlItems = $this->remoteScanHistoryService->separatePagePreviewHistory(
+            $urlItems,
+            $this->remoteScanRepository->findPagePreviewJobIds(
+                $siteIdentifier,
+                array_map(static fn (array $item): string => (string)($item['jobId'] ?? ''), $urlItems)
+            )
+        );
+
+        $items = [];
+        foreach ($urlItems as $item) {
             $item = $this->enrichRemotePageHistoryItemUrls($request, $item, $siteIdentifier, $remotePageUid, $pageUid, $languageUid);
             if ($currentJobId !== '' && (string)($item['jobId'] ?? '') !== $currentJobId) {
                 $item['compareUrl'] = '';
@@ -707,12 +792,22 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             ];
         }
 
+        $items = array_slice($items, 0, 10);
+        $previewItems = array_values(array_filter($items, static fn (array $item): bool => (bool)($item['isPagePreview'] ?? false)));
+        $publicItems = array_values(array_filter($items, static fn (array $item): bool => !($item['isPagePreview'] ?? false)));
+
         return [
             'available' => true,
             'hasItems' => true,
             'message' => '',
-            'items' => array_slice($items, 0, 10),
+            'items' => $items,
             'currentJobId' => $currentJobId,
+            // Separate Preview / Public tabs only once this URL has a preview scan; a public-only page keeps one list.
+            'hasPreviewItems' => $previewItems !== [],
+            'previewItems' => $previewItems,
+            'publicItems' => $publicItems,
+            'previewCount' => count($previewItems),
+            'publicCount' => count($publicItems),
         ];
     }
 
@@ -779,6 +874,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         }
 
         // Job IDs come from the URL: only two readable, compatible scans of this site are compared.
+        // Sol R05: the AQG service compares every page of both scans; only administrators read all of them.
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            return [
+                'available' => false,
+                'message' => $this->translateWithFallback('remote.comparison.restricted', 'The comparison covers every page of both scans, including pages and records you cannot open. Only administrators can open it.'),
+            ];
+        }
         $pair = $this->remoteScanPairingService->resolveComparePair($siteIdentifier, $fromJobId, $toJobId);
         if ($pair === null) {
             return [
@@ -905,7 +1007,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         foreach ($issues as $issue) {
             $ruleId = (string)($issue['rule_id'] ?? 'unknown');
             $metadata = $this->ruleMetadataPresentationService->present($issue, $language);
-            $helpUrl = trim((string)($issue['help_url'] ?? ''));
+            $helpUrl = ExternalLinkUtility::httpOrEmpty($issue['help_url'] ?? '');
             $documentationLinkCandidates = is_array($metadata['documentationLinks'] ?? null)
                 ? $metadata['documentationLinks']
                 : [];
@@ -947,8 +1049,13 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                     'documentationLinks' => $documentationLinks,
                     'technicalTags' => $metadata['technicalTags'] ?? [],
                     'hasStandardsAndImpact' => false,
-                    'guidanceWhyItMatters' => $this->normalizeNullableString($issue['guidance_why_it_matters'] ?? null) ?? $this->normalizeNullableString($metadata['whyItMatters'] ?? null),
-                    'guidanceHowToFix' => $this->normalizeNullableString($issue['guidance_how_to_fix'] ?? null) ?? $this->normalizeNullableString($metadata['howToFix'] ?? null),
+                    // Stored crawler guidance is English; a translation of the rule wins for other languages.
+                    'guidanceWhyItMatters' => ($language !== 'en' ? $this->normalizeNullableString($metadata['localizedWhyItMatters'] ?? null) : null)
+                        ?? $this->normalizeNullableString($issue['guidance_why_it_matters'] ?? null)
+                        ?? $this->normalizeNullableString($metadata['whyItMatters'] ?? null),
+                    'guidanceHowToFix' => ($language !== 'en' ? $this->normalizeNullableString($metadata['localizedHowToFix'] ?? null) : null)
+                        ?? $this->normalizeNullableString($issue['guidance_how_to_fix'] ?? null)
+                        ?? $this->normalizeNullableString($metadata['howToFix'] ?? null),
                     'guidanceHasApiText' => false,
                     'guidanceIsFallback' => false,
                     'whoShouldFix' => $whoShouldFix,
@@ -1028,7 +1135,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             $group['highlightUids'] = $uids !== [] ? implode(',', $uids) : '';
             $group['guidanceHasApiText'] = $group['guidanceWhyItMatters'] !== null || $group['guidanceHowToFix'] !== null;
             $group['guidanceIsFallback'] = $group['guidanceHowToFix'] === null;
-            $group['guidanceHowToFix'] = $group['guidanceHowToFix'] ?? 'Review this finding in context.';
+            $group['guidanceHowToFix'] = $group['guidanceHowToFix'] ?? $this->translateWithFallback('reporting.guidanceFallback', 'Review this finding in context.');
             $group['primaryFixSummary'] = $this->buildPrimaryFixSummary($group['guidanceHowToFix']);
             $group['isPrimaryRecommendation'] = $primaryRuleId !== '' && strtolower((string)$group['rule_id']) === $primaryRuleId;
             $group['anchorId'] = RuleAnchorUtility::anchorId((string)$group['rule_id']);
@@ -1149,7 +1256,7 @@ final class RemotePageDetailController extends AbstractBackendModuleController
                 continue;
             }
 
-            $url = trim((string)($documentationLink['url'] ?? ''));
+            $url = ExternalLinkUtility::httpOrEmpty($documentationLink['url'] ?? '');
             if ($url === '' || $url === $helpUrl || isset($seenUrls[$url])) {
                 continue;
             }
@@ -2283,5 +2390,42 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             'pdfUrl' => $this->buildRouteUrl('web_a11y.exportAcceptance', $parameters + ['format' => 'pdf']),
             'csvUrl' => $this->buildRouteUrl('web_a11y.exportAcceptance', $parameters + ['format' => 'csv']),
         ];
+    }
+
+    /**
+     * A stored scan row without the crawler's own counters (occurrences, new/resolved, a site crawl's page counts):
+     * they count pages and records a restricted user may not read.
+     *
+     * @param array<string, mixed> $scan
+     * @return array<string, mixed>
+     */
+    private static function withoutCrawlerCounters(array $scan): array
+    {
+        foreach (['issues_total', 'issues_new', 'issues_resolved'] as $counter) {
+            $scan[$counter] = 0;
+        }
+        if ((string)($scan['scan_scope'] ?? '') !== 'page') {
+            foreach (['pages_scanned', 'pages_total', 'pages_failed'] as $counter) {
+                $scan[$counter] = 0;
+            }
+        }
+        unset($scan['sync_error']);
+
+        return $scan;
+    }
+
+    /**
+     * @param array<string, mixed> $history
+     * @return array<string, mixed>
+     */
+    private static function withoutHistoryCounters(array $history): array
+    {
+        array_walk_recursive($history, static function (mixed &$value, int|string $key): void {
+            if (in_array($key, ['issuesTotal', 'issues_total', 'pagesScanned', 'pages_scanned', 'critical', 'serious', 'moderate', 'minor', 'issuesNew', 'issuesResolved', 'score'], true) && (is_int($value) || is_float($value))) {
+                $value = '—';
+            }
+        });
+
+        return $history;
     }
 }

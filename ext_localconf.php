@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Priebera\A11yQualityGate\FormEngine\FieldControl\MediaAiFieldControl;
+use Priebera\A11yQualityGate\FormEngine\FieldWizard\MediaAltStatusWizard;
 use Priebera\A11yQualityGate\FormEngine\FieldWizard\PlainHtmlA11yWizard;
 use Priebera\A11yQualityGate\Scheduler\A11yScanTaskAdditionalFieldProvider;
 use TYPO3\CMS\Core\Information\Typo3Version;
@@ -16,6 +18,18 @@ defined('TYPO3') || die();
         'nodeName' => 'a11yPlainHtmlWizard',
         'priority' => 40,
         'class' => PlainHtmlA11yWizard::class,
+    ];
+
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1778769100] = [
+        'nodeName' => 'a11yMediaAiControl',
+        'priority' => 40,
+        'class' => MediaAiFieldControl::class,
+    ];
+
+    $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1778769200] = [
+        'nodeName' => 'a11yMediaAltStatus',
+        'priority' => 40,
+        'class' => MediaAltStatusWizard::class,
     ];
 
     if ((new Typo3Version())->getMajorVersion() < 14) {
@@ -44,6 +58,9 @@ defined('TYPO3') || die();
 
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\PublishHook::class;
+    // The Quality Gate for workspace publishing (kept after EXT:workspaces by WorkspacePublishGateHookOrder).
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][\Priebera\A11yQualityGate\EventListener\WorkspacePublishGateHookOrder::HOOK_KEY]
+        = \Priebera\A11yQualityGate\Hook\WorkspacePublishGateHook::class;
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][]
         = \Priebera\A11yQualityGate\Hook\FileReferenceDecorativeHook::class;
 

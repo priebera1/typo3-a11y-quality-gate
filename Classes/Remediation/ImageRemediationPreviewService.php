@@ -16,18 +16,26 @@ final class ImageRemediationPreviewService
         private readonly ImageService $imageService,
     ) {}
 
-    /** @return array{available:bool,url:string,displayPath:string} */
+    /**
+     * `fileName` is the original file's name, the one the editor knows (U-04: never the preview URL — TYPO3 14 answers
+     * "typo3/image/process?token=…" for deferred processing, 13 a "_processed_/csm_…" path). `displayPath` is the
+     * original's public path, for the tooltip only.
+     *
+     * @return array{available:bool,url:string,displayPath:string,fileName:string}
+     */
     public function build(ImageFindingContext $context): array
     {
         $fallbackPath = '';
+        $fileName = '';
 
         try {
             $fileReference = $this->resourceFactory->getFileReferenceObject($context->fileReferenceUid);
             $file = $fileReference->getOriginalFile();
+            $fileName = trim($file->getName());
             $fallbackPath = $this->safePublicPath($this->imageService->getImageUri($file, false));
 
             if (!in_array(strtolower(trim($file->getMimeType())), self::ALLOWED_MIME_TYPES, true)) {
-                return $this->fallback($fallbackPath);
+                return $this->fallback($fallbackPath, $fileName);
             }
 
             $processedFile = $this->imageService->applyProcessingInstructions($fileReference, [
@@ -36,28 +44,28 @@ final class ImageRemediationPreviewService
             ]);
             $previewUri = trim($this->imageService->getImageUri($processedFile, false));
             if ($previewUri === '') {
-                return $this->fallback($fallbackPath);
+                return $this->fallback($fallbackPath, $fileName);
             }
-
-            $displayPath = $this->safePublicPath($previewUri);
 
             return [
                 'available' => true,
                 'url' => $previewUri,
-                'displayPath' => $displayPath !== '' ? $displayPath : $fallbackPath,
+                'displayPath' => $fallbackPath,
+                'fileName' => $fileName,
             ];
         } catch (\Throwable) {
-            return $this->fallback($fallbackPath);
+            return $this->fallback($fallbackPath, $fileName);
         }
     }
 
-    /** @return array{available:bool,url:string,displayPath:string} */
-    private function fallback(string $displayPath): array
+    /** @return array{available:bool,url:string,displayPath:string,fileName:string} */
+    private function fallback(string $displayPath, string $fileName = ''): array
     {
         return [
             'available' => false,
             'url' => '',
             'displayPath' => $displayPath,
+            'fileName' => $fileName !== '' ? $fileName : basename($displayPath),
         ];
     }
 

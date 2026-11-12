@@ -1,0 +1,63 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment>
+    The AI part of one occurrence: one action row (state of an existing AI fixes item, "Fix with AI", "Explain with AI")
+    and one result region under it. What each action does and what the amounts mean is said once per page (PageSummary),
+    the owner once per rule card (RuleOwner). page-detail-remediation.js fills the result region; its blocks always name
+    the action, what AQG did, whether anything changed and the next step.
+</f:comment>
+<div class="aqg-remediation-occ" data-aqg-remediation-occ="{issue.uid}" data-rule-id="{issue.rule_id}" data-aqg-remediation-eligible="{f:if(condition: remediation.canPrepare, then: '1', else: '0')}" data-aqg-rule-title="{ruleTitle}" data-aqg-edit-url="{f:if(condition: issue.hasEditAccess, then: issue.editLink)}">
+    <div class="aqg-remediation-occ__actions" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.aiActions', default: 'AI actions')}">
+        <f:if condition="{remediation.item}">
+            <f:then>
+                <span class="aqg-remediation__status aqg-remediation__status--{remediation.item.status}" data-aqg-remediation-item-state="{issue.uid}"><span class="aqg-remediation__status-glyph" aria-hidden="true"></span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.queued" default="In AI fixes:" /> {remediation.item.statusLabel}</span>
+                <a class="btn btn-default btn-sm" href="{queueUrl}&item={remediation.item.uid}" data-aqg-remediation-item-link="{remediation.item.uid}"><f:if condition="{remediation.item.isReview}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.result.reviewAction" default="Review suggestion" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.result.openItem" default="Open in AI fixes" /></f:else></f:if></a>
+                <f:if condition="{remediation.item.reasonLabel}">
+                    <span class="aqg-remediation-occ__reason">{remediation.item.reasonLabel}</span>
+                </f:if>
+            </f:then>
+            <f:else>
+                <f:if condition="{issue.statusEnum.value} == 0">
+                    <f:switch expression="{remediation.fixPath}">
+                        <f:case value="rule_editor">
+                            <span class="aqg-remediation__muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.ruleBased" default="Rule-based fix in the editor · No AI" /></span>
+                        </f:case>
+                        <f:case value="developer">
+                            <details class="aqg-remediation-occ__dev">
+                                <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.developer" default="Developer guidance" /></summary>
+                                <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.developerText" /></p>
+                                <f:if condition="{issue.guidance.howToFix}"><p data-aqg-dev-guidance="true">{issue.guidance.howToFix}</p></f:if>
+                                <f:if condition="{remediation.owner} == 'mixed'"><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.mixedNote" /></p></f:if>
+                                <button type="button" class="btn btn-default btn-sm" data-aqg-copy-guidance="{issue.uid}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.copyGuidance" default="Copy guidance" /></button>
+                            </details>
+                        </f:case>
+                        <f:defaultCase>
+                            <f:comment>Atlas 07·A: a card with its own inline AI suggestion shows no second, queue-only entry.</f:comment>
+                            <f:if condition="{remediation.canPrepare} && !{remediation.inlineAi}">
+                                <f:comment>The name stays "Fix with AI"; the amount is part of the description, not of the name.</f:comment>
+                                <button type="button" class="btn btn-default btn-sm aqg-remediation-occ__fix" data-aqg-remediation-prepare="{issue.uid}" aria-describedby="{f:if(condition: remediation.fixCost, then: 'aqg-rem-fix-cost-{issue.uid} ')}aqg-rem-fix-hint aqg-rem-cost-hint" aria-controls="aqg-rem-fix-{issue.uid}">
+                                    <span class="aqg-media-wand-icon" aria-hidden="true"></span><span data-aqg-remediation-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.prepare" default="Fix with AI" /></span><f:if condition="{remediation.fixCost}"><span class="aqg-ai-cost" aria-hidden="true">{remediation.fixCost}</span></f:if>
+                                </button>
+                                <f:if condition="{remediation.fixCost}"><span class="visually-hidden" id="aqg-rem-fix-cost-{issue.uid}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.costDescription" arguments="{0: remediation.fixCost}" /></span></f:if>
+                            </f:if>
+                        </f:defaultCase>
+                    </f:switch>
+                </f:if>
+            </f:else>
+        </f:if>
+        <f:comment>AQG-300-UX-04: one explanation per occurrence; it never changes content and never creates a queue item.</f:comment>
+        <f:if condition="{remediation.canExplain}">
+            <button type="button" class="btn btn-default btn-sm aqg-remediation-occ__explain-btn" data-aqg-remediation-explain="{issue.uid}" aria-controls="aqg-rem-explain-{issue.uid}" aria-expanded="false" aria-describedby="{f:if(condition: remediation.explainCost, then: 'aqg-rem-explain-cost-{issue.uid} ')}aqg-rem-explain-hint aqg-rem-cost-hint">
+                <span data-aqg-remediation-label="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.explain" default="Explain with AI" /></span><f:if condition="{remediation.explainCost}"><span class="aqg-ai-cost" aria-hidden="true">{remediation.explainCost}</span></f:if>
+            </button>
+            <f:if condition="{remediation.explainCost}"><span class="visually-hidden" id="aqg-rem-explain-cost-{issue.uid}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.costDescription" arguments="{0: remediation.explainCost}" /></span></f:if>
+        </f:if>
+    </div>
+    <div class="aqg-remediation-occ__results">
+        <f:if condition="{remediation.canExplain}">
+            <section class="aqg-ai-result aqg-ai-result--explain" id="aqg-rem-explain-{issue.uid}" data-aqg-remediation-explanation="{issue.uid}" aria-labelledby="aqg-rem-explain-{issue.uid}-h" hidden="hidden"></section>
+        </f:if>
+        <section class="aqg-ai-result aqg-ai-result--fix" id="aqg-rem-fix-{issue.uid}" data-aqg-remediation-fixresult="{issue.uid}" aria-labelledby="aqg-rem-fix-{issue.uid}-h" hidden="hidden"></section>
+    </div>
+    <span class="visually-hidden" role="status" aria-live="polite" data-aqg-remediation-status="{issue.uid}"></span>
+</div>
+</html>

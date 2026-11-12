@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Backend\ToolbarItems;
 
+use Priebera\A11yQualityGate\Service\ResultEvidenceState;
+
 /**
  * The toolbar dropdown's Content scan and Frontend scan summaries and the state of the toolbar icon.
  *
@@ -15,6 +17,8 @@ namespace Priebera\A11yQualityGate\Backend\ToolbarItems;
 final class ToolbarSummaryBuilder
 {
     private const REMOTE_QUEUED_STATUSES = ['waiting', 'queued'];
+    /** A completed scan older than this is shown as "Out of date". */
+    public const STALE_AFTER_SECONDS = 14 * 86400;
     private const REMOTE_RUNNING_STATUSES = ['running', 'active', 'processing', 'in_progress', 'in-progress', 'started'];
 
     /**
@@ -33,9 +37,72 @@ final class ToolbarSummaryBuilder
      * @param array<string, mixed> $status local scan status (ScanStatusService / persisted scan row shape)
      * @param array{critical:int,warning:int,info:int,needs_review:int,total:int}|null $openTotals open issues of the
      *        site and language, null when no readable site is known
+     * @param array{critical:int,warning:int,info:int,needs_review?:int}|null $pageCounts open issues of the page open in
+     *        the backend (the Page module's counts: PageModuleIndicatorService), null without a readable open page
      * @return array{key: string, title: string, state: string, tagTone: string, tagIcon: string, tagLabel: string, running: bool, delta: string, meta: string, progress: ?int}
      */
-    public function contentCard(array $status, ?array $openTotals): array
+    public function contentCard(array $status, ?array $openTotals, ?string $evidence = null, ?array $pageCounts = null): array
+    {
+        $summary = is_array($status['summary'] ?? null) ? $status['summary'] : [];
+        $new = array_key_exists('issuesNew', $summary) && $summary['issuesNew'] !== null && empty($summary['countsWithheld'])
+            ? max(0, (int)$summary['issuesNew'])
+            : null;
+        $card = $this->withDisclosure($this->contentCardState($status, $openTotals, $evidence), $new, (int)($status['finishedAt'] ?? 0));
+        // The site total and the open page's own counts are different scopes: the page line says which part of the total
+        // is on the page the editor sees, by severity class like the Page module ("1 warning · 1 needs review").
+        $card['pageLine'] = $openTotals !== null && !in_array($card['state'], ['running', 'failed'], true) ? $this->pageLine($pageCounts) : '';
+        $card['scopeNote'] = in_array($card['state'], ['open', 'clear'], true)
+            ? $this->t('toolbar.content.scopeNote', 'Saved TYPO3 content. Open counts all pages you can access, in this language.')
+            : '';
+
+        return $card;
+    }
+
+    /**
+     * "This page: 2 open · 1 warning · 1 needs review" for an open page with open Content issues; '' otherwise (a zero is
+     * not shown as "no issues": the page may never have been scanned).
+     *
+     * @param array{critical:int,warning:int,info:int,needs_review?:int}|null $counts
+     */
+    private function pageLine(?array $counts): string
+    {
+        if ($counts === null) {
+            return '';
+        }
+        $critical = max(0, (int)($counts['critical'] ?? 0));
+        $warning = max(0, (int)($counts['warning'] ?? 0));
+        $info = max(0, (int)($counts['info'] ?? 0));
+        $needsReview = max(0, (int)($counts['needs_review'] ?? 0));
+        $total = $critical + $warning + $info + $needsReview;
+        if ($total === 0) {
+            return '';
+        }
+        $parts = [sprintf($this->t('toolbar.content.pageOpen', 'This page: %d open'), $total)];
+        // The Page module's own labels (PageModuleIndicatorService::buildHeadline()), so both name the counts alike.
+        if ($critical > 0) {
+            $parts[] = sprintf($this->t('pageModuleIndicator.metric.critical', '%d critical'), $critical);
+        }
+        if ($warning > 0) {
+            $parts[] = $warning === 1
+                ? sprintf($this->t('pageModuleIndicator.metric.warning.singular', '%d warning'), $warning)
+                : sprintf($this->t('pageModuleIndicator.metric.warning.plural', '%d warnings'), $warning);
+        }
+        if ($info > 0) {
+            $parts[] = sprintf($this->t('pageModuleIndicator.metric.info', '%d info'), $info);
+        }
+        if ($needsReview > 0) {
+            $parts[] = sprintf($this->t('pageModuleIndicator.metric.needsReview', '%d needs review'), $needsReview);
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    /**
+     * @param array<string, mixed> $status
+     * @param array{critical:int,warning:int,info:int,needs_review:int,total:int}|null $openTotals
+     * @return array<string, mixed>
+     */
+    private function contentCardState(array $status, ?array $openTotals, ?string $evidence = null): array
     {
         $card = [
             'key' => 'content',
@@ -57,7 +124,7 @@ final class ToolbarSummaryBuilder
         $summary = is_array($status['summary'] ?? null) ? $status['summary'] : [];
         $finishedAt = (int)($status['finishedAt'] ?? 0);
         $meta = $this->contentMeta($status, $summary, $finishedAt);
-        $delta = $summary !== [] ? $this->delta((int)($summary['issuesNew'] ?? 0), (int)($summary['issuesResolved'] ?? 0)) : '';
+        $delta = $summary !== [] ? $this->contentDelta($summary) : '';
 
         if (!empty($status['error'])) {
             return array_replace($card, $this->tag('failed', 'error', 'x', $this->t('toolbar.tag.failed', 'Failed')), [
@@ -95,6 +162,20 @@ final class ToolbarSummaryBuilder
             ]);
         }
 
+        // STATE-01: a zero of the readable findings is "No open issues" only as a verified result (ResultEvidenceState).
+        if ($evidence === ResultEvidenceState::INCOMPLETE) {
+            return array_replace($card, $this->tag('incomplete', 'info', 'warn', $this->t('toolbar.tag.notFullyChecked', 'Not fully checked')), [
+                'delta' => $this->t('toolbar.delta.contentIncomplete', 'No open issues found, but the last scan did not check the whole site.'),
+                'meta' => $meta,
+            ]);
+        }
+        if ($evidence !== null && $evidence !== ResultEvidenceState::CLEAN) {
+            return array_replace($card, $this->tag('restricted', 'info', 'eye', $this->t('toolbar.tag.restricted', 'Limited to your access')), [
+                'delta' => $this->t('toolbar.delta.contentRestricted', 'No open issues in the pages and records you can access.'),
+                'meta' => $meta,
+            ]);
+        }
+
         return array_replace($card, $this->tag('clear', 'ok', 'ok', $this->t('toolbar.tag.noOpen', 'No open issues')), [
             'delta' => $delta,
             'meta' => $meta,
@@ -112,6 +193,44 @@ final class ToolbarSummaryBuilder
      * @return array<string, mixed>
      */
     public function frontendCard(array $scan, ?array $comparison = null): array
+    {
+        $new = ($comparison['available'] ?? false) === true ? max(0, (int)($comparison['new'] ?? 0)) : null;
+        $card = $this->withDisclosure($this->frontendCardState($scan, $comparison), $new, (int)($scan['finished_at'] ?? 0));
+        $card['scopeNote'] = in_array($card['state'], ['open', 'clear', 'incomplete'], true)
+            ? $this->t('toolbar.frontend.scopeNote', 'Live pages as visitors see them, counted per affected element.')
+            : '';
+
+        return $card;
+    }
+
+    /**
+     * The Frontend section for an installation or user without frontend scan results here (no crawler access or no
+     * readable site): collapsed, neutral, and pointing to the Accessibility module instead of claiming a result.
+     *
+     * @return array<string, mixed>
+     */
+    public function frontendUnavailableCard(): array
+    {
+        return $this->withDisclosure([
+            'key' => 'frontend',
+            'title' => $this->t('toolbar.frontend.title', 'Frontend scan'),
+            'state' => 'unavailable',
+            'tagTone' => 'none',
+            'tagIcon' => 'clock',
+            'tagLabel' => $this->t('toolbar.status.unavailable', 'Not available here'),
+            'running' => false,
+            'delta' => $this->t('toolbar.delta.frontendUnavailable', 'Frontend scan results of this site are not available here. The Accessibility module shows the options for this installation.'),
+            'meta' => '',
+            'progress' => null,
+        ], null, 0);
+    }
+
+    /**
+     * @param array<string, mixed> $scan
+     * @param array{available: bool, new?: int, resolved?: int}|null $comparison
+     * @return array<string, mixed>
+     */
+    private function frontendCardState(array $scan, ?array $comparison = null): array
     {
         $card = [
             'key' => 'frontend',
@@ -157,7 +276,40 @@ final class ToolbarSummaryBuilder
         $meta = $this->frontendMeta($scan, $pagesScanned, $pagesTotal);
         if ($status === 'failed' || trim((string)($scan['sync_error'] ?? '')) !== '') {
             return array_replace($card, $this->tag('failed', 'error', 'x', $this->t('toolbar.tag.failed', 'Failed')), [
-                'delta' => $this->t('toolbar.delta.frontendFailed', 'The last frontend scan did not finish.'),
+                // F11 (acceptance §25 D3): a crawl that finished but whose results could not be stored did finish.
+                'delta' => $status === 'failed'
+                    ? $this->t('toolbar.delta.frontendFailed', 'The last frontend scan did not finish.')
+                    : $this->t('toolbar.delta.frontendNotStored', 'The last frontend scan finished, but its results could not be saved.'),
+                'meta' => $meta,
+            ]);
+        }
+
+        // STATE-01: the crawler finished, but its results are not stored yet (RemoteScanRecoveryService writes the
+        // completion first): nothing is known about the findings until they are.
+        if ($status === 'completed' && array_key_exists('persisted_at', $scan) && (int)$scan['persisted_at'] <= 0) {
+            return array_replace($card, $this->tag('pending', 'info', 'clock', $this->t('toolbar.tag.pending', 'Saving results')), [
+                'delta' => $this->t('toolbar.delta.pending', 'The results of the last frontend scan are being saved.'),
+                'meta' => $meta,
+            ]);
+        }
+
+        $restricted = (bool)($scan['aqg_results_restricted'] ?? false);
+        if ($restricted && $status === 'completed' && (bool)($scan['aqg_scan_loaded_pages'] ?? false)) {
+            $occurrences = max(0, (int)($scan['issues_total'] ?? 0));
+            $restrictedDelta = $this->t('toolbar.delta.restricted', 'Only results your permissions allow are shown.');
+            if ($occurrences > 0) {
+                return array_replace($card, $this->tag(
+                    'open',
+                    'warning',
+                    'warn',
+                    $occurrences === 1
+                        ? $this->t('toolbar.tag.occurrence', '1 occurrence')
+                        : sprintf($this->t('toolbar.tag.occurrences', '%d occurrences'), $occurrences)
+                ), ['delta' => $restrictedDelta, 'meta' => $meta, 'openTotal' => $occurrences]);
+            }
+
+            return array_replace($card, $this->tag('restricted', 'info', 'eye', $this->t('toolbar.tag.restricted', 'Limited to your access')), [
+                'delta' => $this->t('toolbar.delta.restrictedNone', 'No results of this scan are available to you.'),
                 'meta' => $meta,
             ]);
         }
@@ -192,6 +344,65 @@ final class ToolbarSummaryBuilder
             'delta' => $complete ? $delta : $this->t('toolbar.delta.incomplete', 'Some pages could not be checked.'),
             'meta' => $meta,
         ]);
+    }
+
+    /**
+     * The collapsed header of a section: a short summary ("2 new · 300 open") and a textual status with a neutral,
+     * informational or problem tone. A completed scan that found issues is "Complete", not an error: issues are
+     * counted in the summary, the tone is reserved for the scan itself (running, failed, out of date).
+     *
+     * @param array<string, mixed> $card
+     * @return array<string, mixed>
+     */
+    private function withDisclosure(array $card, ?int $new, int $finishedAt): array
+    {
+        $state = (string)($card['state'] ?? '');
+        $open = (int)($card['openTotal'] ?? 0);
+        $stale = $finishedAt > 0 && $finishedAt < time() - self::STALE_AFTER_SECONDS
+            && in_array($state, ['open', 'clear', 'finished', 'incomplete'], true);
+        [$statusLabel, $statusTone] = match (true) {
+            $state === 'running' => [$this->t('toolbar.status.running', 'Running'), 'info'],
+            $state === 'queued' => [$this->t('toolbar.tag.queued', 'Queued'), 'info'],
+            $state === 'failed' => [$this->t('toolbar.tag.failed', 'Failed'), 'error'],
+            $state === 'no-coverage' => [$this->t('toolbar.tag.noPageChecked', 'No page checked'), 'error'],
+            $state === 'none' => [$this->t('toolbar.status.notScanned', 'Not scanned'), 'none'],
+            $state === 'unavailable' => [$this->t('toolbar.status.unavailable', 'Not available here'), 'none'],
+            // Sol QA-06: a scan whose results this user may not read is neither "Complete" nor "No issues found".
+            $state === 'restricted' => [$this->t('toolbar.tag.restricted', 'Limited to your access'), 'info'],
+            $state === 'pending' => [$this->t('toolbar.tag.pending', 'Saving results'), 'info'],
+            $stale => [$this->t('toolbar.status.stale', 'Out of date'), 'warning'],
+            $state === 'incomplete' => [$this->t('toolbar.tag.incomplete', 'Incomplete'), 'warning'],
+            default => [$this->t('toolbar.status.complete', 'Complete'), 'ok'],
+        };
+
+        // What is open comes first and names its scope (Content: the website; Frontend: the last scan's occurrences);
+        // "new" belongs to the last scan, which may have checked a single page, so it follows and only when it is not 0
+        // ("0 new · 14 open" read as if the 14 were on the open page and nothing had changed there).
+        $parts = [];
+        if (in_array($state, ['running', 'queued'], true)) {
+            $parts[] = (string)($card['meta'] ?? '');
+        } elseif (in_array($state, ['open', 'clear', 'incomplete', 'finished'], true)) {
+            if ($card['key'] === 'content' && $state !== 'finished') {
+                $parts[] = sprintf($this->t('toolbar.summary.openSite', '%d open on the website'), $open);
+            } elseif ($card['key'] === 'frontend') {
+                $parts[] = $open === 1
+                    ? $this->t('toolbar.tag.occurrence', '1 occurrence')
+                    : sprintf($this->t('toolbar.tag.occurrences', '%d occurrences'), $open);
+            }
+            if ($new !== null && $new > 0) {
+                $parts[] = sprintf($this->t('toolbar.summary.new', '%d new'), $new);
+            }
+        }
+
+        return $card + [
+            'summary' => implode(' · ', array_filter($parts, static fn (string $part): bool => $part !== '')),
+            'statusLabel' => $statusLabel,
+            'statusTone' => $statusTone,
+            'stale' => $stale,
+            'staleNote' => $stale
+                ? sprintf($this->t('toolbar.staleNote', 'Older than %d days. Later changes are not included.'), intdiv(self::STALE_AFTER_SECONDS, 86400))
+                : '',
+        ];
     }
 
     /**
@@ -230,7 +441,12 @@ final class ToolbarSummaryBuilder
         if (is_array($frontendCard) && in_array($frontendCard['state'] ?? '', ['open', 'incomplete'], true)) {
             return $this->iconState('issues', 'warning', 0, $this->t('toolbar.aria.frontendOpen', 'Accessibility: frontend issues to review'));
         }
-        if (array_intersect($states, ['clear', 'finished']) !== []) {
+        // STATE-01: the green icon only when no shown card is short of a verified result; a restricted, incomplete,
+        // pending or unconfirmed card ("Scan finished" without a count) keeps it neutral.
+        if (array_intersect($states, ['restricted', 'incomplete', 'pending', 'finished']) !== []) {
+            return $this->iconState('limited', 'none', 0, $this->t('toolbar.aria.limited', 'Accessibility: no open issues in the results you can see'));
+        }
+        if (in_array('clear', $states, true)) {
             return $this->iconState('ok', 'ok', 0, $this->t('toolbar.aria.noOpen', 'Accessibility: no open issues'));
         }
 
@@ -243,9 +459,12 @@ final class ToolbarSummaryBuilder
      */
     private function contentMeta(array $status, array $summary, int $finishedAt): string
     {
+        $pageTitle = trim((string)($status['pageTitle'] ?? ''));
         $parts = [
             (int)($status['pageUid'] ?? 0) > 0
-                ? $this->t('remote.history.pageScan', 'Page scan')
+                ? ($pageTitle !== ''
+                    ? sprintf($this->t('toolbar.meta.pageScanOf', 'Page scan: “%s”'), $pageTitle)
+                    : $this->t('remote.history.pageScan', 'Page scan'))
                 : $this->t('remote.history.siteScan', 'Site scan'),
         ];
         if ($finishedAt > 0) {
@@ -287,6 +506,26 @@ final class ToolbarSummaryBuilder
         return $total === 1
             ? sprintf($this->t('toolbar.meta.pagesOfOne', '%d of 1 page'), $scanned)
             : sprintf($this->t('toolbar.meta.pagesOf', '%1$d of %2$d pages'), $scanned, $total);
+    }
+
+    /**
+     * A summary key set to null makes no claim (A11yScanToolbarItem leaves out what spans pages the user may not
+     * show): without "resolved" only the new count is reported, without "new" nothing.
+     *
+     * @param array<string, mixed> $summary
+     */
+    private function contentDelta(array $summary): string
+    {
+        $new = array_key_exists('issuesNew', $summary) ? $summary['issuesNew'] : 0;
+        $resolved = array_key_exists('issuesResolved', $summary) ? $summary['issuesResolved'] : 0;
+        if ($new === null) {
+            return '';
+        }
+        if ($resolved === null) {
+            return sprintf($this->t('toolbar.delta.lastScanNew', '%d new in the last scan'), max(0, (int)$new));
+        }
+
+        return $this->delta((int)$new, (int)$resolved);
     }
 
     private function delta(int $new, int $resolved): string

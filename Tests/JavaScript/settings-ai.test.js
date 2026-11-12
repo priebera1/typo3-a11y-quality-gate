@@ -3,6 +3,24 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {initializeAiSettings} from '../../Resources/Public/JavaScript/backend/settings-ai.js';
 
+// The model chooser is a radio table (UX Atlas 01 C). This reads it like the former select: value = checked model,
+// options = an empty "no model" entry plus one per offered model.
+const modelPicker = (root) => ({
+    get value() {
+        return root.querySelector('[data-aqg-ai-model-option="true"]:checked')?.value || '';
+    },
+    get options() {
+        return [{value: ''}, ...root.querySelectorAll('[data-aqg-ai-model-option="true"]')];
+    },
+    querySelector(selector) {
+        const match = /^option\[value="([^"]+)"\]$/.exec(selector);
+        return match ? root.querySelector(`[data-aqg-ai-model-option="true"][value="${match[1]}"]`) : null;
+    },
+    focus() {
+        root.querySelector('[data-aqg-ai-model-option="true"]')?.focus();
+    },
+});
+
 const createRoot = () => {
     document.documentElement.lang = 'en';
     document.body.innerHTML = `
@@ -35,10 +53,7 @@ const createRoot = () => {
              data-label-connection-failed="Connection failed"
              data-label-never="Never"
              data-label-error-code="Error code">
-            <select data-aqg-ai-model="true">
-                <option value="">Select an OpenAI model</option>
-                <option value="gpt-4.1-mini" selected>GPT-4.1 mini — gpt-4.1-mini</option>
-            </select>
+            <table><tbody data-aqg-ai-model-list="true"><tr data-model-id="gpt-4.1-mini" data-model-label="GPT-4.1 mini" data-price-known="0"><td><input type="radio" name="aqg-ai-model" value="gpt-4.1-mini" data-aqg-ai-model-option="true" checked></td><td>GPT-4.1 mini</td><td></td><td></td></tr></tbody></table><button type="button" data-action="aqg-ai-use-model">Use this model</button>
             <details class="aqg-ai-unsupported-models is-hidden"
                      data-aqg-ai-unsupported-models="true"
                      hidden>
@@ -133,7 +148,7 @@ const unsupportedIds = (root) => [
 ].map((code) => code.textContent);
 
 const modelOptionValues = (root) => [
-    ...root.querySelector('[data-aqg-ai-model="true"]').options,
+    ...modelPicker(root).options,
 ].map((option) => option.value);
 
 const modelState = ({
@@ -365,7 +380,7 @@ describe('AI settings unsupported model renderer', () => {
 
         await clickRefresh(root);
 
-        const optionValues = [...root.querySelector('[data-aqg-ai-model="true"]').options]
+        const optionValues = [...modelPicker(root).options]
             .map((option) => option.value);
         expect(optionValues).toEqual(['', 'gpt-5.4-mini']);
         expect(optionValues).not.toContain('gpt-4o-mini');
@@ -383,12 +398,12 @@ describe('AI settings model select renderer', () => {
         const root = createRoot();
 
         expect(modelOptionValues(root)).toEqual(['', 'gpt-4.1-mini']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('gpt-4.1-mini');
+        expect(modelPicker(root).value).toBe('gpt-4.1-mini');
     });
 
     it('rebuilds one selected model into an empty list using only the placeholder', async () => {
         const root = createRoot();
-        const select = root.querySelector('[data-aqg-ai-model="true"]');
+        const select = modelPicker(root);
         mockRefreshPayloads(
             {
                 success: true,
@@ -437,7 +452,7 @@ describe('AI settings model select renderer', () => {
         await clickRefresh(root);
 
         expect(modelOptionValues(root)).toEqual(['', 'gpt-4.1-mini']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('');
+        expect(modelPicker(root).value).toBe('');
     });
 
     it('ignores an old DOM selection when modelSelected is false', async () => {
@@ -453,7 +468,7 @@ describe('AI settings model select renderer', () => {
         await clickRefresh(root);
 
         expect(modelOptionValues(root)).toEqual(['', 'gpt-4.1-mini']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('');
+        expect(modelPicker(root).value).toBe('');
         expect(root.querySelector('[data-action="aqg-ai-test"]').disabled).toBe(true);
     });
 
@@ -469,7 +484,7 @@ describe('AI settings model select renderer', () => {
 
         await clickRefresh(root);
 
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('');
+        expect(modelPicker(root).value).toBe('');
         expect(root.querySelector('[data-action="aqg-ai-test"]').disabled).toBe(true);
     });
 
@@ -494,8 +509,8 @@ describe('AI settings model select renderer', () => {
         await clickRefresh(root);
 
         expect(modelOptionValues(root)).toEqual(['', 'gpt-5.4-mini', 'gpt-4.1-mini']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('gpt-5.4-mini');
-        expect(root.querySelectorAll('option[value="gpt-5.4-mini"]')).toHaveLength(1);
+        expect(modelPicker(root).value).toBe('gpt-5.4-mini');
+        expect(root.querySelectorAll('[data-aqg-ai-model-option="true"][value="gpt-5.4-mini"]')).toHaveLength(1);
     });
 
     it('replaces two old models with one current model', async () => {
@@ -525,8 +540,8 @@ describe('AI settings model select renderer', () => {
 
         await clickRefresh(root, 2);
         expect(modelOptionValues(root)).toEqual(['', 'gpt-4.1-mini']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('gpt-4.1-mini');
-        expect(root.querySelector('option[value="gpt-5.4-mini"]')).toBeNull();
+        expect(modelPicker(root).value).toBe('gpt-4.1-mini');
+        expect(modelPicker(root).querySelector('option[value="gpt-5.4-mini"]')).toBeNull();
     });
 
     it('replaces one model with a completely different model without carrying selection', async () => {
@@ -552,13 +567,13 @@ describe('AI settings model select renderer', () => {
         await clickRefresh(root, 2);
 
         expect(modelOptionValues(root)).toEqual(['', 'gpt-4.1-mini']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('');
-        expect(root.querySelector('option[value="gpt-5.4-mini"]')).toBeNull();
+        expect(modelPicker(root).value).toBe('');
+        expect(modelPicker(root).querySelector('option[value="gpt-5.4-mini"]')).toBeNull();
     });
 
     it('does not restore CONNECTED when a disappeared model reappears', async () => {
         const root = createRoot();
-        const select = root.querySelector('[data-aqg-ai-model="true"]');
+        const select = modelPicker(root);
         const testButton = root.querySelector('[data-action="aqg-ai-test"]');
         mockRefreshPayloads(
             {
@@ -646,7 +661,7 @@ describe('AI settings model select renderer', () => {
         await clickRefresh(root, 2);
         expect(testButton.disabled).toBe(false);
         expect(modelOptionValues(root)).toEqual(['']);
-        expect(root.querySelector('[data-aqg-ai-model="true"]').value).toBe('');
+        expect(modelPicker(root).value).toBe('');
     });
 });
 

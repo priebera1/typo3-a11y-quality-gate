@@ -73,11 +73,14 @@
     }
     .aqg-settings-grid--single { grid-template-columns: minmax(0, 1fr); }
 
-    /* ---------- Settings card (slightly softer than aqg-section, but compatible) ---------- */
+    /* ---------- Settings card ----------
+       One section contract for every Settings tab, taken from the Atlas section (and the AI tab built from it):
+       --aqi-radius-lg, a surface-2 head of 11px 14px, a 13.5px/600 title and a 14px 16px body. Tab partials must
+       not re-pad, re-colour or re-size these per pane (consistency pass 2026-11-03). */
     .aqg-card {
       background: var(--aqi-surface);
       border: 1px solid var(--aqi-border);
-      border-radius: var(--aqi-radius);
+      border-radius: var(--aqi-radius-lg);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -86,15 +89,15 @@
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 14px;
-      padding: 14px 18px;
+      padding: 11px 14px;
       align-items: start;
       border-bottom: 1px solid var(--aqi-border-soft);
-      background: var(--aqi-surface);
+      background: var(--aqi-surface-2);
     }
     .aqg-card__head--quiet { background: var(--aqi-surface-2); }
     .aqg-card__title {
       margin: 0;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
       color: var(--aqi-fg);
       letter-spacing: 0.005em;
@@ -116,7 +119,7 @@
       align-items: center;
     }
     .aqg-card__body {
-      padding: 16px 18px 18px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -127,7 +130,7 @@
       align-items: center;
       justify-content: flex-end;
       gap: 8px;
-      padding: 10px 14px;
+      padding: 10px 16px;
       background: var(--aqi-surface-2);
       border-top: 1px solid var(--aqi-border-soft);
     }
@@ -337,6 +340,8 @@
     .aqg-validation.tone-ok      { color: var(--aqi-ok);   background: var(--aqi-ok-bg);   border-color: var(--aqi-ok-border); }
     .aqg-validation.tone-error   { color: var(--aqi-err);  background: var(--aqi-err-bg);  border-color: var(--aqi-err-border); }
     .aqg-validation.tone-running { color: var(--aqi-run);  background: var(--aqi-run-bg);  border-color: var(--aqi-run-border); }
+    // N-04: the licence service did not answer (rate limited, unreachable): not an error of the key.
+    .aqg-validation.tone-warn    { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
 
     .aqg-validation--stacked {
       display: flex;
@@ -569,7 +574,7 @@
       position: relative;
       background: var(--aqi-surface);
       border: 1px solid var(--aqi-border);
-      border-radius: var(--aqi-radius);
+      border-radius: var(--aqi-radius-lg);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -794,6 +799,7 @@
     .aqg-fgroup + .aqg-fgroup { margin-top: 10px; }
 
     .aqg-fgroup__head {
+      position: relative;
       list-style: none;
       display: grid;
       grid-template-columns: auto 1fr auto auto;
@@ -806,15 +812,14 @@
       transition: background 80ms ease;
     }
     .aqg-fgroup__head:hover { background: color-mix(in oklch, var(--aqi-fg) 4%, var(--aqi-surface-2)); }
-    .aqg-fgroup__head::-webkit-details-marker { display: none; }
-    .aqg-fgroup[open] .aqg-fgroup__head { border-bottom-color: var(--aqi-border-soft); }
+    .aqg-fgroup.is-open .aqg-fgroup__head { border-bottom-color: var(--aqi-border-soft); }
     .aqg-fgroup__chev {
       display: inline-flex;
       width: 16px; height: 16px;
       color: var(--aqi-fg-muted);
       transition: transform 160ms ease;
     }
-    .aqg-fgroup[open] .aqg-fgroup__chev { transform: rotate(90deg); }
+    .aqg-fgroup.is-open .aqg-fgroup__chev { transform: rotate(90deg); }
 
     .aqg-fgroup__title-block {
       display: flex;
@@ -1034,7 +1039,7 @@
       padding: 10px 14px;
       background: var(--aqi-surface);
       border: 1px solid var(--aqi-border);
-      border-radius: var(--aqi-radius);
+      border-radius: var(--aqi-radius-lg);
       flex-wrap: wrap;
     }
     .aqg-actionbar__left {
@@ -1238,11 +1243,12 @@
         border-bottom: 1px solid var(--aqi-border-soft);
     }
 
+    // The page title of every AQG module (scan views type scale: 20 page title).
     .aqg-page-head__title {
         margin: 0 0 4px;
         color: var(--aqi-fg);
-        font-size: 22px;
-        font-weight: 600;
+        font-size: 20px;
+        font-weight: 650;
         letter-spacing: -.01em;
         line-height: 1.25;
     }
@@ -1268,29 +1274,48 @@
         min-width: 0;
     }
 
-    // Wraps at every width: the module frame is narrower than the viewport whenever the page tree is open,
-    // so a viewport media query alone lets the tabs (with their plan badges) run past the module. The tabs are
-    // inline boxes so `text-wrap: balance` spreads them evenly over the rows (4 + 3 instead of 6 + 1, where a
-    // last tab alone reads as a separate group); without balance support they wrap as before. The zero font
-    // size removes the white space between the inline tabs.
+    // One row, never two (owner UX pass 3.0.0): the tabs keep their full labels on a single line and the row
+    // scrolls horizontally inside the module when the real content width (page tree open, narrow frame) cannot
+    // hold them. settings-tabs.js scrolls the active tab into view and sets data-aqg-overflow-start/-end, which
+    // fade the clipped edge so the overflow reads as deliberate. The bottom rule is drawn by the list, so the
+    // active underline sits on it at every scroll position.
     .aqg-tabs {
+        position: relative;
         display: block;
         margin: 0 0 2px;
         padding: 0;
         border: 0;
-        border-bottom: 1px solid var(--aqi-border);
-        font-size: 0;
-        text-wrap: balance;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .aqg-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .aqg-tabs[data-aqg-overflow-end="true"] {
+        mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+    }
+
+    .aqg-tabs[data-aqg-overflow-start="true"] {
+        mask-image: linear-gradient(to left, #000 calc(100% - 40px), transparent);
+    }
+
+    .aqg-tabs[data-aqg-overflow-start="true"][data-aqg-overflow-end="true"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
     }
 
     .aqg-tab {
         display: inline-flex;
-        vertical-align: bottom;
+        flex: none;
         white-space: nowrap;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         margin: 0 0 -1px;
-        padding: 10px 14px 11px;
+        padding: 10px 11px 11px;
         background: transparent;
         border: 0;
         border-bottom: 2px solid transparent;
@@ -1318,9 +1343,10 @@
         font-weight: 600;
     }
 
+    // Inset ring: the scrolling row clips anything drawn outside a tab.
     .aqg-tab:focus-visible {
         outline: none;
-        box-shadow: var(--aqi-focus-ring);
+        box-shadow: var(--aqi-focus-ring-inset, var(--aqi-focus-ring));
     }
 
     .btn {
@@ -1430,7 +1456,7 @@
         line-height: 1;
     }
 
-    .aqg-fgroup[open] .aqg-fgroup__chev .a11y-field-group-header__toggle::before {
+    .aqg-fgroup.is-open .aqg-fgroup__chev .a11y-field-group-header__toggle::before {
         transform: none;
     }
 
@@ -1447,15 +1473,32 @@
         gap: 2px;
     }
 
+    // The AQG notice used by the Overview, Page detail and Atlas: a 3px tone accent on the start edge, icon aligned
+    // with the first line. Without it Settings notices read as one more card.
     .aqg-notice {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 12px;
+        align-items: start;
+        gap: 10px;
         padding: 12px 14px;
         background: var(--aqi-surface);
         border: 1px solid var(--aqi-border);
-        border-radius: var(--aqi-radius);
+        border-left-width: 3px;
+        border-radius: var(--aqi-radius-lg);
+    }
+
+    .aqg-notice__icon {
+        display: inline-flex;
+        padding-top: 1px;
+    }
+
+    .aqg-tone-info {
+        border-left-color: var(--aqi-run);
+        background: color-mix(in srgb, var(--aqi-run-bg) 45%, var(--aqi-surface));
+    }
+
+    .aqg-tone-info .aqg-notice__icon {
+        color: var(--aqi-run);
     }
 
     .aqg-notice__body {
@@ -1479,6 +1522,7 @@
 
     .aqg-tone-warning {
         border-color: var(--aqi-warn-border);
+        border-left-color: var(--aqi-warn);
         background: color-mix(in oklch, var(--aqi-warn-bg) 60%, var(--aqi-surface));
     }
 
@@ -1599,6 +1643,34 @@
 .a11y-settings.aqg-module .aqg-radio-card__glyph.tone-critical { color: var(--aqi-err); }
 .a11y-settings.aqg-module .aqg-fgroup__action { display: inline-flex; justify-content: flex-end; }
 
+// Scan fields / Rules group header = plain row, not a <summary>: the title is the disclosure button and stretches over
+// the whole row (same click target as before), the bulk button sits above it. No control is nested in another
+// (axe nested-interactive). Font size/weight stay with .aqg-fgroup__title / .aqg-rgroup__title.
+.a11y-settings.aqg-module .aqg-group-toggle {
+    appearance: none;
+    align-self: flex-start;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--aqi-fg);
+    font-family: inherit;
+    line-height: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+.a11y-settings.aqg-module .aqg-group-toggle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+.a11y-settings.aqg-module .aqg-group-toggle:focus-visible { outline: none; border-radius: var(--aqi-radius-sm, 4px); box-shadow: var(--aqi-focus-ring); }
+.a11y-settings.aqg-module .aqg-fgroup__action,
+.a11y-settings.aqg-module .aqg-rgroup__bulk { position: relative; z-index: 1; }
+.a11y-settings.aqg-module .aqg-fgroup__body[hidden],
+.a11y-settings.aqg-module .aqg-rgroup__body[hidden] { display: none; }
+
 /* --------------------------------------------------------------------------
    Scan fields tab — design-aligned refinement
    -------------------------------------------------------------------------- */
@@ -1671,16 +1743,6 @@
 
     .aqg-actionbar__dirty[hidden] {
         display: none !important;
-    }
-
-    .aqg-card {
-        border-radius: var(--aqi-radius);
-    }
-
-    .aqg-card__head--quiet {
-        min-height: 62px;
-        align-items: center;
-        background: var(--aqi-surface);
     }
 
     .aqg-field-groups {
@@ -1966,11 +2028,6 @@
         white-space: nowrap;
     }
 
-    .aqg-card__head--quiet,
-    #a11y-settings-pane-fields .aqg-card__head--quiet {
-        background: var(--aqi-surface-2);
-    }
-
     .aqg-actionbar {
         margin-bottom: 0;
     }
@@ -2062,16 +2119,6 @@
     .aqg-card + .aqg-guidance,
     .aqg-guidance + .aqg-card {
         margin-top: 0;
-    }
-
-    .aqg-card__head--quiet {
-        min-height: 62px;
-        align-items: center;
-        background: var(--aqi-surface-2);
-    }
-
-    .aqg-card__body {
-        padding: 16px 18px 18px;
     }
 
     .aqg-radio-cards {
@@ -2290,16 +2337,12 @@
         line-height: 1.2;
     }
 
+    // Same save-state line as the Scan fields, Quality Gate and Remote scan access bars (sans, muted, 12px).
     .aqg-actionbar__meta {
         display: inline-flex;
         align-items: center;
         margin-left: 2px;
-        font-family: var(--aqi-font-mono);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: .04em;
         line-height: 1.2;
-        color: var(--aqi-fg-subtle);
     }
 
     .aqg-text-action {
@@ -2332,31 +2375,6 @@
         display: none;
     }
 
-    .aqg-rule-card .aqg-card__head,
-    .aqg-rule-card .aqg-card__head--quiet {
-        min-height: 72px;
-        align-items: center;
-        background: var(--aqi-surface-2);
-    }
-
-    .aqg-rule-card .aqg-card__title {
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 1.25;
-    }
-
-    .aqg-rule-card .aqg-card__sub {
-        margin-top: 2px;
-        color: var(--aqi-fg-muted);
-        font-size: 12px;
-        line-height: 1.35;
-    }
-
-    .aqg-rule-card .aqg-card__body {
-        padding: 16px 18px 18px;
-        gap: 16px;
-    }
-
     .aqg-field__label {
         display: inline-flex;
         align-items: baseline;
@@ -2366,7 +2384,7 @@
     .aqg-field__label-hint {
         color: var(--aqi-fg-subtle);
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 400;
     }
 
     .aqg-rule-card .aqg-textarea {
@@ -3131,12 +3149,18 @@
         box-shadow: 0 0 0 1px var(--aqi-border);
     }
 
-    .aqg-rules-toolbar__chip-num,
-    .aqg-rules-toolbar__counts {
+    // Count chips keep the Atlas mono count face; the "34/34 on" summary is text, like the Scan fields count.
+    .aqg-rules-toolbar__chip-num {
         font-family: var(--aqi-font-mono);
-        font-size: 10.5px;
+        font-size: 11px;
         font-weight: 700;
         color: var(--aqi-fg-subtle);
+    }
+
+    .aqg-rules-toolbar__counts {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--aqi-fg-muted);
     }
 
     .aqg-rules-toolbar__chip-num {
@@ -3258,6 +3282,7 @@
     }
 
     .aqg-rgroup__head {
+        position: relative;
         display: grid;
         grid-template-columns: auto 1fr auto auto;
         align-items: center;
@@ -3267,10 +3292,6 @@
         border-bottom: 1px solid var(--aqi-border-soft);
         cursor: pointer;
         list-style: none;
-    }
-
-    .aqg-rgroup__head::-webkit-details-marker {
-        display: none;
     }
 
     .aqg-rgroup__head:hover {
@@ -3285,7 +3306,7 @@
         transition: transform 160ms ease;
     }
 
-    .aqg-rgroup[open] .aqg-rgroup__chev {
+    .aqg-rgroup.is-open .aqg-rgroup__chev {
         transform: rotate(90deg);
     }
 
@@ -3299,7 +3320,7 @@
     .aqg-rgroup__title {
         color: var(--aqi-fg);
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 600;
     }
 
     .aqg-rgroup__sub {
@@ -3316,8 +3337,7 @@
         border-radius: 3px;
         background: var(--aqi-surface);
         color: var(--aqi-fg-muted);
-        font-family: var(--aqi-font-mono);
-        font-size: 11.5px;
+        font-size: 12px;
     }
 
     .aqg-rgroup__count strong {
@@ -3601,7 +3621,9 @@
     }
 }
 
-@media (max-width: 900px) {
+// The module renders in an iframe that is ~900px wide on a 1440px screen with the page tree open, so a 900px
+// viewport query stacked the toolbar and group headers on desktop. 760px matches the AI tab's narrow layout.
+@media (max-width: 760px) {
     .a11y-settings.aqg-module #a11y-settings-pane-rules {
         .aqg-rules-toolbar {
             grid-template-columns: 1fr;
@@ -3618,7 +3640,17 @@
             flex-wrap: wrap;
         }
 
-        .aqg-rgroup__head,
+        // Like the Scan fields group header: the chevron stays beside the title, count and bulk action wrap below it.
+        .aqg-rgroup__head {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .aqg-rgroup__count,
+        .aqg-rgroup__bulk {
+            grid-column: 2;
+            justify-self: start;
+        }
+
         .aqg-rule-row,
         .aqg-rules-reset {
             grid-template-columns: 1fr;
@@ -4122,6 +4154,23 @@
         margin: 0;
     }
 
+    // Native radios and checkboxes in the ink accent of the AI tab and Rules options, not the browser/TYPO3 blue.
+    // Scoped to the Statement's own option lines; TYPO3 core controls keep their styling.
+    .aqg-radio-line,
+    .aqg-check-line {
+        > input[type="radio"],
+        > input[type="checkbox"] {
+            flex: 0 0 auto;
+            margin: 0;
+            accent-color: var(--aqi-fg);
+
+            &:focus-visible {
+                outline: 0;
+                box-shadow: var(--aqi-focus-ring);
+            }
+        }
+    }
+
     .aqg-statement-dependent {
         margin: -2px 0 4px 26px;
         max-width: 680px;
@@ -4244,12 +4293,9 @@
         color: var(--aqi-fg-muted);
     }
 
-    .aqg-statement-empty .aqg-card__body p {
-        margin: 0 0 4px;
-    }
-
-    .aqg-statement-empty .aqg-card__body p:last-child {
-        margin-bottom: 0;
+    // "No statement generated yet": the shared compact empty state; one line, so the ring centres on it.
+    .aqg-statement-empty .aqg-empty--compact {
+        align-items: center;
     }
     .aqg-warning-banner {
         border: 1px solid var(--aqi-warn-border, #facc15);
@@ -4361,85 +4407,8 @@
     }
 }
 
-html[data-theme="fresh"][data-color-scheme="auto"] .a11y-settings.aqg-module,
-html[data-theme="fresh"][data-color-scheme="dark"] .a11y-settings.aqg-module,
-body[data-bs-theme="dark"] .a11y-settings.aqg-module {
-    .aqg-warning-banner {
-        background: #422006;
-        border-color: #92400e;
-        color: #fef3c7;
-    }
-
-    .aqg-statement-summary dl > div,
-    .aqg-statement-section,
-    .aqg-statement .aqg-fieldset,
-    .aqg-statement-empty {
-        background: #111827;
-        border-color: #334155;
-    }
-
-    .aqg-statement-top-findings ul,
-    .aqg-statement-source dl > div {
-        background: #111827;
-        border-color: #334155;
-    }
-
-    .aqg-statement-summary dt,
-    .aqg-statement .aqg-field__label,
-    .aqg-statement .aqg-fieldset legend,
-    .aqg-statement-section p,
-    .aqg-statement-audit p,
-    .aqg-statement-audit li {
-        color: #cbd5e1;
-    }
-
-    .aqg-statement-top-findings li,
-    .aqg-statement-source h4,
-    .aqg-statement-top-findings h4,
-    .aqg-statement-summary dd,
-    .aqg-statement-section h4,
-    .aqg-statement-audit h4,
-    .aqg-radio-line,
-    .aqg-check-line {
-        color: #f8fafc;
-    }
-
-    .aqg-status-badge--warning {
-        background: #422006;
-        border-color: #f59e0b;
-        color: #fef3c7;
-    }
-
-    .aqg-status-badge--neutral {
-        background: #1f2937;
-        border-color: #475569;
-        color: #f8fafc;
-    }
-
-    .aqg-status-badge--muted {
-        background: #111827;
-        border-color: #334155;
-        color: #cbd5e1;
-    }
-
-    .aqg-statement .aqg-fieldset input,
-    .aqg-statement .aqg-fieldset select,
-    .aqg-statement .aqg-fieldset textarea {
-        background-color: #0f172a;
-        border-color: #475569;
-        color: #f8fafc;
-    }
-
-    .aqg-statement .aqg-fieldset input::placeholder,
-    .aqg-statement .aqg-fieldset textarea::placeholder {
-        color: #94a3b8;
-    }
-
-    .aqg-statement-note,
-    .aqg-warning-text {
-        color: #fef3c7;
-    }
-}
+/* Dark mode: the Statement form needs no literal colours. Every rule above uses the --aqi-* tokens, which the shared
+   theme-token block resolves for Light, Dark and auto, so the form matches the other Settings tabs in each scheme. */
 
 .a11y-settings.aqg-module {
     /* Backend-only preview skin. The exported statement/PDF keeps its own styling. */
@@ -4449,11 +4418,11 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         --aqg-statement-muted: var(--aqi-fg-muted, #5c636a);
         --aqg-statement-border: var(--aqi-border, #d7dce1);
         --aqg-statement-surface: var(--aqi-surface-2, #f5f6f7);
-        --aqg-statement-link: var(--bs-link-color, #0d6efd);
-        --aqg-warning-bg: #fff7ed;
-        --aqg-warning-border: #f59e0b;
-        --aqg-warning-color: #7c2d12;
-        --aqg-warning-badge-bg: #ffedd5;
+        --aqg-statement-link: var(--aqi-run);
+        --aqg-warning-bg: var(--aqi-warn-bg);
+        --aqg-warning-border: var(--aqi-warn-border);
+        --aqg-warning-color: var(--aqi-warn);
+        --aqg-warning-badge-bg: var(--aqi-warn-bg);
         background: var(--aqg-statement-bg);
         color: var(--aqg-statement-color);
         display: block;
@@ -4536,9 +4505,9 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
     .aqg-statement-result > .aqg-card__body > .aqg-warning-banner,
     .aqg-statement-preview .aqg-warning-banner,
     .aqg-statement-preview .aqg-statement-contact-warning {
-        background: var(--aqg-warning-bg, #fff7ed);
-        border: 1px solid var(--aqg-warning-border, #f59e0b);
-        color: var(--aqg-warning-color, #7c2d12);
+        background: var(--aqg-warning-bg, var(--aqi-warn-bg));
+        border: 1px solid var(--aqg-warning-border, var(--aqi-warn-border));
+        color: var(--aqg-warning-color, var(--aqi-warn));
         margin: 0 0 14px;
         padding: 14px;
     }
@@ -4557,9 +4526,9 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 
     .aqg-status-badge--warning,
     .aqg-statement-preview .aqg-statement-status-badge {
-        background: var(--aqg-warning-badge-bg, #ffedd5);
-        border: 1px solid var(--aqg-warning-border, #f59e0b);
-        color: var(--aqg-warning-color, #7c2d12);
+        background: var(--aqg-warning-badge-bg, var(--aqi-warn-bg));
+        border: 1px solid var(--aqg-warning-border, var(--aqi-warn-border));
+        color: var(--aqg-warning-color, var(--aqi-warn));
     }
 
     .aqg-statement-preview .aqg-statement-status-badge {
@@ -4572,51 +4541,8 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 
     .aqg-statement-preview .aqg-statement-note,
     .aqg-statement-preview .aqg-warning-text {
-        color: var(--aqg-warning-color, #92400e);
+        color: var(--aqg-warning-color, var(--aqi-warn));
         font-weight: 600;
-    }
-}
-
-/* Explicit dark themes. Auto mode gets body/surface colors from Bootstrap variables. */
-html[data-theme="fresh"][data-color-scheme="dark"] .a11y-settings.aqg-module,
-html[data-bs-theme="dark"] .a11y-settings.aqg-module,
-body[data-bs-theme="dark"] .a11y-settings.aqg-module {
-    .aqg-statement-preview,
-    .aqg-statement-result {
-        --aqg-warning-bg: #3a2608;
-        --aqg-warning-border: #d97706;
-        --aqg-warning-color: #fde68a;
-        --aqg-warning-badge-bg: #78350f;
-    }
-}
-
-@media (prefers-color-scheme: dark) {
-    /* TYPO3 14 fresh can reload the module iframe without data-color-scheme.
-       Treat missing/auto as dark when the OS preference is dark, while an
-       explicit light selection remains authoritative. */
-    html:not([data-color-scheme="light"]) .a11y-settings.aqg-module {
-        --aqi-bg: #14181d;
-        --aqi-surface: #1c2128;
-        --aqi-surface-2: #232931;
-        --aqi-border: #2d343d;
-        --aqi-border-soft: #262c34;
-        --aqi-fg: #e7ebf0;
-        --aqi-fg-muted: #aeb6c2;
-        --aqi-fg-subtle: #8a94a2;
-
-        .aqg-statement-preview,
-        .aqg-statement-result {
-            --aqg-statement-bg: #1c2128;
-            --aqg-statement-color: #e7ebf0;
-            --aqg-statement-muted: #aeb6c2;
-            --aqg-statement-border: #2d343d;
-            --aqg-statement-surface: #232931;
-            --aqg-statement-link: #7cc4ff;
-            --aqg-warning-bg: #3a2608;
-            --aqg-warning-border: #d97706;
-            --aqg-warning-color: #fde68a;
-            --aqg-warning-badge-bg: #78350f;
-        }
     }
 }
 
@@ -4914,23 +4840,11 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 .aqg-narrow .aqg-rem__head { flex-direction: column; }
 .aqg-narrow .aqg-rem__thumb { width: 72px; height: 72px; }
 
-/* Settings navigation wraps inside a narrow TYPO3 module instead of widening the document. */
+/* Settings navigation stays one scrolling row in a narrow TYPO3 module too; it never widens the document. */
 .aqg-narrow .a11y-settings.aqg-module .aqg-tabs,
 .a11y-settings.aqg-module.aqg-narrow .aqg-tabs {
   width: 100%;
   max-width: 100%;
-  flex-wrap: wrap;
-  align-items: stretch;
-  row-gap: 2px;
-}
-
-.aqg-narrow .a11y-settings.aqg-module .aqg-tab,
-.a11y-settings.aqg-module.aqg-narrow .aqg-tab {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
 }
 
 /* summary collapses to stacked rows */
@@ -5033,23 +4947,6 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
   gap: 6px;
 }
 
-@media (max-width: 575.98px) {
-  .a11y-settings.aqg-module .aqg-tabs {
-    width: 100%;
-    max-width: 100%;
-    flex-wrap: wrap;
-    align-items: stretch;
-    row-gap: 2px;
-  }
-
-  .a11y-settings.aqg-module .aqg-tab {
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-}
 
 @media (max-width: 760px) {
   .a11y-settings.aqg-module .aqg-ai-settings__heading {
@@ -5466,13 +5363,6 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 
 .a11y-settings.aqg-module .aqg-licence-domains__bulk,
 .a11y-settings.aqg-module .aqg-licence-domains__confirm-actions,
-.a11y-settings.aqg-module .aqg-licence-domains__pager {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
 .a11y-settings.aqg-module .aqg-licence-domains__selected,
 .a11y-settings.aqg-module .aqg-licence-domains__range {
   font-size: 12px;
@@ -5709,6 +5599,16 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         font-weight: 600;
     }
 
+    // Statement field labels were the one set of small-capital, muted labels left in Settings; they now read like
+    // .aqg-field__label on every other tab (12px/600, base text colour, sentence case).
+    .aqg-statement .aqg-field__label {
+        color: var(--aqi-fg);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.005em;
+        text-transform: none;
+    }
+
     .aqg-page-head__meta,
     .aqg-actionbar__meta,
     .aqg-scope__meta,
@@ -5750,17 +5650,23 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
     }
 }
 
-// Settings navigation is a list of page links (audit A2/S2); list and items keep the tabs' balanced inline flow.
+// Settings navigation is a list of page links (audit A2/S2) laid out as one non-wrapping row; the list draws the
+// baseline rule and grows with its tabs so the row can scroll.
 .a11y-settings.aqg-module {
     .aqg-tabs__list {
-        display: inline;
+        display: flex;
+        flex-wrap: nowrap;
+        min-width: 100%;
+        width: max-content;
         margin: 0;
         padding: 0;
         list-style: none;
+        border-bottom: 1px solid var(--aqi-border);
     }
 
     .aqg-tabs__item {
-        display: inline;
+        display: flex;
+        flex: none;
     }
 
     .aqg-tab__lock {
@@ -5772,14 +5678,60 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
 
 // Remote scan access: one-line administrator note and explicit Scanner Token states (audit S5, S10).
 .a11y-settings.aqg-module {
+    // The form is a block flow spaced by the cards' 15px bottom margin; a zero margin left the note flush on the
+    // Scanner Token card.
     .aqg-admin-note {
         display: flex;
         align-items: flex-start;
         gap: 8px;
-        margin: 0;
+        margin: 0 0 15px;
         color: var(--aqi-fg-muted);
         font-size: 13px;
         line-height: 1.45;
+    }
+
+    // Qualifier after a label or card title ("optional", "one CSS selector per line"), on every tab.
+    .aqg-field__label-hint {
+        margin-left: 4px;
+        color: var(--aqi-fg-subtle);
+        font-size: 12px;
+        font-weight: 400;
+    }
+
+    // Checkbox option with a title and an explanation (Rules › Rendered page check), same anatomy as .aqg-ai-check.
+    .aqg-check-option {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        max-width: 760px;
+        margin: 0;
+        cursor: pointer;
+
+        input {
+            margin: 2px 0 0;
+            accent-color: var(--aqi-fg);
+
+            &:focus-visible {
+                outline: 0;
+                box-shadow: var(--aqi-focus-ring);
+            }
+        }
+    }
+
+    .aqg-check-option__title {
+        display: block;
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-check-option__copy {
+        display: block;
+        margin-top: 2px;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        line-height: 1.5;
     }
 
     .aqg-admin-note strong {
@@ -6101,7 +6053,7 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         width: 1rem;
         height: 1rem;
         margin-top: .15rem;
-        accent-color: var(--aqi-focus);
+        accent-color: var(--aqi-fg);
     }
 
     input[type="checkbox"]:focus-visible {
@@ -6164,16 +6116,15 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
         text-align: left;
     }
 
+    // Same column header as the AI tab tables and the Overview: sentence case, not small capitals.
     .aqg-free-activation__table thead th {
         padding: 8px 14px;
         border-top: 1px solid var(--aqi-border-soft);
         background: var(--aqi-surface-2);
         color: var(--aqi-fg-muted);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 600;
-        letter-spacing: .04em;
         text-align: left;
-        text-transform: uppercase;
         white-space: nowrap;
     }
 
@@ -6286,5 +6237,2639 @@ body[data-bs-theme="dark"] .a11y-settings.aqg-module {
     .aqg-input {
         width: 100%;
         max-width: 32rem;
+    }
+}
+
+// AI settings (AQG 3.0): site choice, readiness, provider cards, privacy matrix and usage. Built from AQG tokens only;
+// state is always carried by text and an icon, never by colour alone.
+.a11y-settings.aqg-module .aqg-ai-settings {
+    .aqg-statusline.tone-warn {
+        color: var(--aqi-warn);
+        background: var(--aqi-warn-bg);
+        border-color: var(--aqi-warn-border);
+    }
+
+    .aqg-ai-sitebar {
+        display: grid;
+        gap: 6px;
+        max-width: 660px;
+    }
+
+    .aqg-ai-sitebar__controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+
+        .form-select {
+            flex: 1 1 260px;
+            min-width: 0;
+        }
+    }
+
+    .aqg-ai-ready {
+        padding: 10px 12px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 6px;
+        background: var(--aqi-surface);
+    }
+
+    .aqg-ai-ready__title {
+        margin: 0 0 6px;
+        color: var(--aqi-fg);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-ready__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 12px;
+
+        li {
+            display: inline-flex;
+            gap: 6px;
+            align-items: baseline;
+            color: var(--aqi-fg-muted);
+        }
+
+        li[data-state='ok'] {
+            color: var(--aqi-fg);
+        }
+
+        li[data-state='ok'] .aqg-ai-ready__icon {
+            color: var(--aqi-ok);
+            font-weight: 700;
+        }
+    }
+
+    .aqg-ai-section__title {
+        margin: 0 0 4px;
+        padding: 0;
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-providers {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .aqg-ai-providers__cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 10px;
+    }
+
+    .aqg-ai-provider-card {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin: 0;
+        padding: 12px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 6px;
+        background: var(--aqi-surface);
+        cursor: pointer;
+
+        &:has(.aqg-ai-provider-card__input:checked) {
+            border-color: var(--aqi-focus);
+            box-shadow: inset 0 0 0 1px var(--aqi-focus);
+        }
+
+        &:has(.aqg-ai-provider-card__input:focus-visible) {
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-ai-provider-card__input {
+        flex: 0 0 auto;
+        margin-top: 3px;
+    }
+
+    .aqg-ai-provider-card__body {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .aqg-ai-provider-card__name {
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-provider-card__badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 0 6px;
+        border: 1px solid var(--aqi-ok-border);
+        border-radius: 999px;
+        color: var(--aqi-ok);
+        background: var(--aqi-ok-bg);
+        font-size: 11px;
+        font-weight: 600;
+        vertical-align: 1px;
+    }
+
+    .aqg-ai-provider-card__desc,
+    .aqg-ai-provider-card__status {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .aqg-ai-provider-card__status {
+        color: var(--aqi-fg);
+    }
+
+    .aqg-ai-providers__actions,
+    .aqg-ai-section__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-self: start;
+
+        .btn {
+            width: auto;
+        }
+    }
+
+    .aqg-ai-provider-hint {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    .aqg-ai-revalidate.is-hidden {
+        display: none;
+    }
+
+    .aqg-ai-revalidate .btn {
+        margin-top: 6px;
+    }
+
+    .aqg-ai-section {
+        display: grid;
+        gap: 8px;
+        padding-top: 14px;
+        border-top: 1px solid var(--aqi-divider);
+    }
+
+    .aqg-ai-test-details {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+
+        summary {
+            cursor: pointer;
+        }
+
+        summary:focus-visible {
+            border-radius: 4px;
+            outline: 0;
+            box-shadow: var(--aqi-focus-ring);
+        }
+
+        p {
+            max-width: 660px;
+            margin: 6px 0 0;
+        }
+    }
+
+    .aqg-ai-matrix-wrap,
+    .aqg-ai-usage-wrap {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .aqg-ai-matrix,
+    .aqg-ai-usage {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+
+        caption {
+            caption-side: top;
+            padding: 0 0 6px;
+            color: var(--aqi-fg);
+            font-weight: 600;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--aqi-divider);
+            color: var(--aqi-fg);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        thead th {
+            color: var(--aqi-fg-muted);
+            font-weight: 600;
+        }
+
+        tbody th {
+            font-weight: 600;
+        }
+
+        .is-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        tfoot th,
+        tfoot td {
+            border-bottom: 0;
+            font-weight: 600;
+        }
+    }
+
+    .aqg-ai-usage-empty {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    // Readiness: a warning informs (cost unknown, budget warning) but never blocks; the icon carries it, not colour alone.
+    .aqg-ai-ready__list li[data-state='warn'] {
+        color: var(--aqi-fg);
+    }
+
+    .aqg-ai-ready__list li[data-state='warn'] .aqg-ai-ready__icon {
+        color: var(--aqi-warn);
+        font-weight: 700;
+    }
+
+    .aqg-ai-ack {
+        display: grid;
+        gap: 8px;
+        max-width: 760px;
+    }
+
+    .aqg-ai-ack__title {
+        margin: 6px 0 0;
+        color: var(--aqi-fg);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    // Atlas 01·E / aqg-meter: the budget meter spans the usage card (audit F-27: it stopped at 560 px).
+    .aqg-ai-budget {
+        display: grid;
+        gap: 8px;
+    }
+
+    .aqg-ai-budgetbar {
+        display: grid;
+        gap: 4px;
+    }
+
+    .aqg-ai-budgetbar__bar {
+        width: 100%;
+        height: 8px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 4px;
+        background: var(--aqi-surface);
+        appearance: none;
+        overflow: hidden;
+
+        &::-webkit-progress-bar {
+            background: var(--aqi-surface);
+        }
+
+        &::-webkit-progress-value {
+            background: var(--aqi-run);
+        }
+
+        &::-moz-progress-bar {
+            background: var(--aqi-run);
+        }
+    }
+
+    .aqg-ai-budget[data-state='warning'] .aqg-ai-budgetbar__bar,
+    .aqg-ai-budget[data-state='reached'] .aqg-ai-budgetbar__bar {
+        &::-webkit-progress-value {
+            background: var(--aqi-warn);
+        }
+
+        &::-moz-progress-bar {
+            background: var(--aqi-warn);
+        }
+    }
+
+    .aqg-ai-budgetbar__text {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .aqg-ai-limits {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px 18px;
+        align-items: start;
+        max-width: 760px;
+    }
+
+    .aqg-ai-limits__choice,
+    .aqg-ai-limits__fixed {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+
+        legend {
+            float: none;
+            width: auto;
+            margin: 0;
+            padding: 0;
+        }
+    }
+
+    .aqg-ai-limits__fixed {
+        font-size: 12px;
+
+        dt {
+            color: var(--aqi-fg);
+            font-weight: 600;
+        }
+
+        dd {
+            margin: 0;
+            color: var(--aqi-fg);
+        }
+    }
+
+    .aqg-ai-affix {
+        display: flex;
+        align-items: stretch;
+        max-width: 220px;
+
+        .form-control {
+            min-width: 0;
+        }
+    }
+
+    .aqg-ai-affix__text {
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid var(--aqi-border);
+        border-right: 0;
+        border-radius: 4px 0 0 4px;
+        background: var(--aqi-surface);
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    .aqg-ai-affix .aqg-ai-affix__text + .form-control {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    .aqg-ai-affix--end .form-control {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .aqg-ai-affix--end .aqg-ai-affix__text {
+        border-right: 1px solid var(--aqi-border);
+        border-left: 0;
+        border-radius: 0 4px 4px 0;
+    }
+
+}
+
+// AI settings layout (UX Atlas 01): one card per step — site and readiness, provider, key, model, connection,
+// privacy, terms, features, usage, limits, model prices. Section cards follow the Atlas "aqg-section" pattern (quiet
+// head on surface-2, body, footer with the actions); prices are read only. Tokens only, so light and dark follow the
+// AQG theme tokens; state is always carried by text and an icon as well as colour.
+.a11y-settings.aqg-module .aqg-ai-settings {
+    display: grid;
+    gap: 14px;
+    max-width: 1080px;
+
+    .aqg-ai-panel {
+        display: block;
+        overflow: hidden;
+        margin: 0;
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-lg, 10px);
+        background: var(--aqi-surface);
+        box-shadow: none;
+    }
+
+    .aqg-ai-panel__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 12px;
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--aqi-border-soft);
+        background: var(--aqi-surface-2);
+
+        > div {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+            flex: 1 1 320px;
+        }
+    }
+
+    .aqg-ai-panel__title {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 13.5px;
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .aqg-ai-panel__sub {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .aqg-ai-panel__body {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+        padding: 14px 16px;
+    }
+
+    .aqg-ai-panel__foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--aqi-border-soft);
+        background: var(--aqi-surface-2);
+
+        &[hidden] {
+            display: none;
+        }
+
+        .btn {
+            width: auto;
+        }
+
+        .aqg-ai-panel__note {
+            flex: 1 1 260px;
+        }
+    }
+
+    .aqg-ai-panel__note {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        line-height: 1.45;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    .aqg-ai-provider-config {
+        display: grid;
+        gap: 14px;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    // Badges (Atlas aqg-badge): text + icon, tone as an extra cue.
+    .aqg-ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 20px;
+        padding: 1px 7px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 4px;
+        background: var(--aqi-surface);
+        color: var(--aqi-fg);
+        font-size: 11.5px;
+        font-weight: 600;
+        line-height: 1.3;
+        white-space: nowrap;
+
+        &.tone-ok { color: var(--aqi-ok); background: var(--aqi-ok-bg); border-color: var(--aqi-ok-border); }
+        &.tone-warning { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+        &.tone-error { color: var(--aqi-err); background: var(--aqi-err-bg); border-color: var(--aqi-err-border); }
+        &.tone-info { color: var(--aqi-run); background: var(--aqi-run-bg); border-color: var(--aqi-run-border); }
+        &.tone-none { color: var(--aqi-none); background: var(--aqi-none-bg); border-color: var(--aqi-none-border); }
+    }
+
+    .aqg-ai-badge__icon {
+        font-weight: 700;
+    }
+
+    // A · site row and readiness
+    .aqg-ai-siterow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+
+        [data-aqg-ai-ready-badge] {
+            margin-left: auto;
+        }
+    }
+
+    .aqg-ai-siterow__label {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-siterow__controls {
+        display: flex;
+        flex: 1 1 360px;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        max-width: 560px;
+
+        .form-select {
+            flex: 1 1 260px;
+            min-width: 0;
+        }
+    }
+
+    .aqg-ai-ready {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 12px;
+        padding: 10px 0 0;
+        border: 0;
+        border-top: 1px solid var(--aqi-divider);
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .aqg-ai-ready__title {
+        margin: 0;
+        font-size: 12.5px;
+    }
+
+    .aqg-ai-ready__list {
+        gap: 4px 16px;
+        font-size: 12.5px;
+    }
+
+    // A · provider cards (Atlas aqg-radiocard: the chosen card carries an ink border)
+    .aqg-ai-providers {
+        gap: 0;
+    }
+
+    .aqg-ai-provider-card {
+        padding: 12px 14px;
+        border-radius: var(--aqi-radius, 6px);
+
+        &:has(.aqg-ai-provider-card__input:checked) {
+            border-color: var(--aqi-fg);
+            box-shadow: inset 0 0 0 1px var(--aqi-fg);
+        }
+
+        &:has(.aqg-ai-provider-card__input:focus-visible) {
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-ai-provider-card__input {
+        accent-color: var(--aqi-fg);
+    }
+
+    .aqg-ai-provider-card__status {
+        padding-top: 6px;
+        border-top: 1px solid var(--aqi-divider);
+
+        &::before {
+            content: '✓ ';
+            color: var(--aqi-ok);
+            font-weight: 700;
+        }
+
+        &[data-state='missing']::before {
+            content: '– ';
+            color: var(--aqi-fg-subtle);
+        }
+    }
+
+    // B · key
+    .aqg-ai-field-label {
+        margin: 0 0 4px;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-keybox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 1px dashed var(--aqi-border);
+        border-radius: var(--aqi-radius, 6px);
+        background: var(--aqi-surface-2);
+        color: var(--aqi-fg);
+    }
+
+    .aqg-ai-keybox__icon {
+        display: inline-flex;
+        color: var(--aqi-fg-subtle);
+    }
+
+    .aqg-ai-keybox .aqg-ai-keymask {
+        flex: 1 1 auto;
+        font-family: var(--aqi-font-mono, ui-monospace, Menlo, Consolas, monospace);
+        font-size: 12.5px;
+    }
+
+    .aqg-ai-keybox__tag {
+        color: var(--aqi-fg-subtle);
+        font-family: var(--aqi-font-mono, ui-monospace, Menlo, Consolas, monospace);
+        font-size: 11.5px;
+    }
+
+    .aqg-ai-key-panel__summary {
+        display: grid;
+        gap: 4px;
+        max-width: 720px;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    // Key/value lists (Atlas aqg-kv)
+    .aqg-ai-kv {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 4px 14px;
+        align-items: baseline;
+        margin: 0;
+        font-size: 12.5px;
+
+        dt {
+            color: var(--aqi-fg-subtle);
+            font: 600 11px/1.6 var(--aqi-font-mono, ui-monospace, Menlo, Consolas, monospace);
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        dd {
+            min-width: 0;
+            margin: 0;
+            color: var(--aqi-fg);
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .aqg-ai-code {
+        display: inline-block;
+        max-width: 100%;
+        padding: 0 6px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 4px;
+        background: var(--aqi-surface-2);
+        color: var(--aqi-fg);
+        font: 11.5px/1.6 var(--aqi-font-mono, ui-monospace, Menlo, Consolas, monospace);
+        overflow-wrap: anywhere;
+    }
+
+    // Disclosures (Atlas aqg-details)
+    .aqg-ai-details {
+        border: 1px solid var(--aqi-border-soft);
+        border-radius: var(--aqi-radius, 6px);
+        background: var(--aqi-surface-2);
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+
+        &[hidden],
+        &.is-hidden {
+            display: none;
+        }
+
+        > summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            color: var(--aqi-fg-muted);
+            cursor: pointer;
+            list-style: none;
+
+            &::-webkit-details-marker {
+                display: none;
+            }
+
+            &::before {
+                content: '';
+                width: 6px;
+                height: 6px;
+                border-right: 1.5px solid currentColor;
+                border-bottom: 1.5px solid currentColor;
+                transform: rotate(-45deg);
+                transition: transform .15s;
+            }
+
+            &:focus-visible {
+                border-radius: var(--aqi-radius, 6px);
+                outline: 0;
+                box-shadow: var(--aqi-focus-ring-inset);
+            }
+        }
+
+        &[open] > summary::before {
+            transform: rotate(45deg);
+        }
+    }
+
+    .aqg-ai-details__body {
+        display: grid;
+        gap: 10px;
+        padding: 4px 12px 12px;
+
+        p {
+            margin: 0;
+            max-width: 760px;
+        }
+
+        ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+    }
+
+    // Tables (Atlas aqg-table / aqg-tablewrap); they stack into labelled rows on narrow screens
+    .aqg-ai-tablewrap {
+        max-width: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-lg, 10px);
+        background: var(--aqi-surface);
+    }
+
+    .aqg-ai-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+
+        th,
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--aqi-border-soft);
+            color: var(--aqi-fg);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        thead th {
+            padding: 7px 10px;
+            border-bottom-color: var(--aqi-border);
+            background: var(--aqi-surface-2);
+            color: var(--aqi-fg-muted);
+            font-size: 11.5px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        tbody th {
+            font-weight: 600;
+        }
+
+        tbody tr:last-child th,
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .is-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+    }
+
+    .aqg-ai-matrix,
+    .aqg-ai-usage {
+        caption {
+            padding: 0;
+        }
+    }
+
+    // C · model table
+    .aqg-ai-models {
+        tbody tr {
+            cursor: pointer;
+        }
+
+        tbody tr:hover td {
+            background: color-mix(in srgb, var(--aqi-fg) 3%, transparent);
+        }
+
+        tbody tr.is-selected td {
+            background: color-mix(in srgb, var(--aqi-run-bg) 70%, transparent);
+        }
+
+        input[type='radio'] {
+            margin: 0;
+            accent-color: var(--aqi-fg);
+
+            &:focus-visible {
+                outline: 0;
+                box-shadow: var(--aqi-focus-ring);
+            }
+        }
+    }
+
+    .aqg-ai-models__pick {
+        width: 36px;
+    }
+
+    .aqg-ai-models__empty td {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        cursor: default;
+    }
+
+    .aqg-ai-models__current {
+        margin-left: 6px;
+        vertical-align: 1px;
+    }
+
+    .aqg-ai-modelname {
+        display: inline-grid;
+        gap: 1px;
+
+        label {
+            margin: 0;
+            color: var(--aqi-fg);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        code {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: var(--aqi-fg-subtle);
+            font: 11.5px/1.4 var(--aqi-font-mono, ui-monospace, Menlo, Consolas, monospace);
+        }
+    }
+
+    .aqg-ai-pricenote {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 2px 8px;
+        align-items: baseline;
+
+        &[hidden] {
+            display: none;
+        }
+
+        > p {
+            grid-column: 2;
+        }
+    }
+
+    .aqg-ai-pricenote__icon {
+        grid-row: 1;
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 50%;
+        color: var(--aqi-fg-subtle);
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .aqg-ai-pricenote__text {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    .aqg-ai-pricenote__text--warn {
+        color: var(--aqi-warn);
+    }
+
+    // D · connection
+    .aqg-ai-not-ready span {
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+        border: 1px solid var(--aqi-run-border);
+        border-radius: 50%;
+        color: var(--aqi-run);
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .aqg-ai-test-details {
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+    }
+
+    .aqg-ai-actions__status:has(.aqg-statusline[hidden]) {
+        display: none;
+    }
+
+    // F · switches (Atlas aqg-switch) and checkbox rows
+    .aqg-ai-switchrow {
+        padding: 0 0 12px;
+        border-bottom: 1px solid var(--aqi-divider);
+    }
+
+    .aqg-ai-switch,
+    .aqg-ai-check {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        margin: 0;
+        font-size: 12.5px;
+        cursor: pointer;
+    }
+
+    .aqg-ai-switch input {
+        position: relative;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 18px;
+        margin: 1px 0 0;
+        border-radius: 9px;
+        background: var(--aqi-border);
+        cursor: pointer;
+        appearance: none;
+        transition: background .15s;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgb(0 0 0 / .3);
+            transition: transform .15s;
+        }
+
+        &:checked {
+            background: var(--aqi-ok);
+        }
+
+        &:checked::after {
+            transform: translateX(14px);
+        }
+
+        &:focus-visible {
+            outline: 0;
+            box-shadow: var(--aqi-focus-ring);
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: .5;
+        }
+    }
+
+    .aqg-ai-switch__text {
+        display: grid;
+        gap: 2px;
+
+        strong {
+            color: var(--aqi-fg);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        > span {
+            color: var(--aqi-fg-muted);
+            font-size: 12px;
+        }
+    }
+
+    .aqg-ai-check {
+        max-width: 760px;
+
+        input {
+            margin: 2px 0 0;
+            accent-color: var(--aqi-fg);
+
+            &:focus-visible {
+                outline: 0;
+                box-shadow: var(--aqi-focus-ring);
+            }
+        }
+
+        strong {
+            font-weight: 600;
+        }
+    }
+
+    .aqg-ai-check__help {
+        display: block;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    .aqg-ai-ack {
+        gap: 10px;
+    }
+
+    // E · usage stats (Atlas aqg-stats) and budget meter
+    .aqg-ai-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 26px;
+        margin: 0;
+    }
+
+    .aqg-ai-stat {
+        display: grid;
+        gap: 1px;
+
+        dt {
+            color: var(--aqi-fg-subtle);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        dd {
+            margin: 0;
+            color: var(--aqi-fg);
+            font-size: 17px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    .aqg-ai-budgetbar__row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 2px 8px;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+
+        b {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+    }
+
+    .aqg-ai-budgetbar__row--subtle {
+        margin: 0;
+        color: var(--aqi-fg-subtle);
+    }
+
+    .aqg-ai-budgetbar__track {
+        position: relative;
+
+        .aqg-ai-budgetbar__bar {
+            display: block;
+            height: 10px;
+            border-radius: 5px;
+        }
+
+        &::after {
+            content: none;
+            position: absolute;
+            top: -3px;
+            bottom: -3px;
+            width: 2px;
+            margin-left: -1px;
+            background: var(--aqi-fg);
+        }
+    }
+
+    @for $step from 1 through 20 {
+        .aqg-ai-budgetbar__track--marker-#{$step * 5}::after {
+            content: '';
+            left: $step * 5%;
+        }
+    }
+
+    .aqg-ai-usage-empty {
+        font-size: 12.5px;
+    }
+
+    // "By person": a person whose requests are all connection tests (Atlas 01·E "· connection tests").
+    .aqg-ai-usage__aside {
+        color: var(--aqi-fg-subtle);
+        font-weight: 400;
+    }
+
+    // E · limits
+    .aqg-ai-limits {
+        max-width: none;
+    }
+
+    .aqg-ai-fixedbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 7px 10px;
+        border: 1px dashed var(--aqi-border);
+        border-radius: var(--aqi-radius, 6px);
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+
+        span {
+            display: inline-flex;
+            color: var(--aqi-fg-subtle);
+        }
+    }
+
+    .aqg-ai-limits__choice {
+        gap: 8px;
+    }
+
+    // E · model prices (read only)
+    .aqg-ai-pricing-status {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+
+        > span[aria-hidden] {
+            color: var(--aqi-ok);
+            font-weight: 700;
+        }
+    }
+
+    .aqg-ai-pricing-provider {
+        display: grid;
+        gap: 8px;
+
+        & + .aqg-ai-pricing-provider {
+            padding-top: 10px;
+            border-top: 1px solid var(--aqi-divider);
+        }
+    }
+
+    .aqg-ai-pricing-provider__title {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-pricing-table th .aqg-ai-panel__note {
+        display: block;
+        font-weight: 400;
+    }
+
+    // A model id never breaks; long column headings (German "Zwischengespeicherte Eingabe") wrap instead.
+    .aqg-ai-pricing-table th[scope="row"] .aqg-ai-code {
+        white-space: nowrap;
+    }
+
+    .aqg-ai-pricing-table thead th.is-num {
+        white-space: normal;
+    }
+
+    .aqg-ai-legacy {
+        font-size: 12.5px;
+    }
+}
+
+@media (max-width: 640px) {
+    .a11y-settings.aqg-module .aqg-ai-settings {
+        .aqg-ai-panel__body {
+            padding: 12px;
+        }
+
+        .aqg-ai-panel__head,
+        .aqg-ai-panel__foot {
+            padding-right: 12px;
+            padding-left: 12px;
+        }
+
+        .aqg-ai-siterow [data-aqg-ai-ready-badge] {
+            margin-left: 0;
+        }
+
+        // UX Atlas 01: tables stack below 640 px; each cell carries its column name.
+        .aqg-ai-tablewrap:has(.aqg-ai-table--stack) {
+            overflow-x: visible;
+        }
+
+        .aqg-ai-table--stack {
+            thead {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+            }
+
+            tbody tr,
+            tfoot tr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 2px;
+                padding: 10px 12px;
+                border-bottom: 1px solid var(--aqi-border-soft);
+            }
+
+            tbody tr:last-child {
+                border-bottom: 0;
+            }
+
+            th,
+            td,
+            .is-num {
+                padding: 0;
+                border: 0;
+                background: none;
+                text-align: left;
+                white-space: normal;
+            }
+
+            td[data-label]::before {
+                content: attr(data-label) ': ';
+                color: var(--aqi-fg-subtle);
+                font-size: 11.5px;
+            }
+        }
+
+        .aqg-ai-models {
+            tbody tr {
+                grid-template-columns: auto minmax(0, 1fr);
+                column-gap: 10px;
+            }
+
+            tbody tr.is-selected {
+                background: color-mix(in srgb, var(--aqi-run-bg) 70%, transparent);
+            }
+
+            tbody tr.is-selected td {
+                background: none;
+            }
+
+            td {
+                grid-column: 2;
+            }
+
+            td.aqg-ai-models__pick {
+                grid-column: 1;
+                grid-row: 1 / span 3;
+                width: auto;
+            }
+
+            td.aqg-ai-models__pick + td::before {
+                content: none;
+            }
+        }
+
+        .aqg-ai-kv {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0 0;
+
+            dd {
+                margin-bottom: 6px;
+            }
+        }
+    }
+}
+
+// Settings › Agent access: a table row becomes a labelled block (each cell carries its column name in data-label).
+@mixin mcp-table-stack {
+    thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+    }
+
+    tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 3px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--aqi-divider);
+    }
+
+    tbody tr:first-child {
+        border-top: 0;
+    }
+
+    tbody th,
+    tbody td {
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    td[data-label]::before {
+        content: attr(data-label) ": ";
+        color: var(--aqi-fg-muted);
+        font-size: 11.5px;
+    }
+
+    .aqg-mcp-table__action {
+        text-align: start;
+        padding-top: 4px;
+    }
+
+    .aqg-mcp-table__action:empty {
+        display: none;
+    }
+}
+
+// Settings › Agent access (MCP) and My connected agents (owner UX pass 3.0.0). One hierarchy: Gateway connection,
+// site access with aligned capability rows, agents, authorization boundaries, audit trail, emergency disconnect.
+// Built only from the Atlas tokens and the shared switch / check / badge vocabulary; no Bootstrap badges or bullets.
+.a11y-settings.aqg-module .aqg-mcp {
+    container-type: inline-size;
+
+    .aqg-mcp-label {
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .aqg-mcp-muted {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    .aqg-mcp-empty {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 13px;
+        max-width: 72ch;
+    }
+
+    .aqg-mcp-num {
+        font-variant-numeric: tabular-nums;
+    }
+
+    // State and token badges: the framed Atlas pill (another tab's flat override would otherwise win here).
+    .aqg-status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 600;
+        line-height: 1.25;
+        letter-spacing: 0;
+        text-transform: none;
+        white-space: nowrap;
+    }
+
+    .aqg-status-badge--success { color: var(--aqi-ok); background: var(--aqi-ok-bg); border-color: var(--aqi-ok-border); }
+    .aqg-status-badge--warning { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+    .aqg-status-badge--danger { color: var(--aqi-err); background: var(--aqi-err-bg); border-color: var(--aqi-err-border); }
+    .aqg-status-badge--muted { color: var(--aqi-fg-muted); background: var(--aqi-surface); border-color: var(--aqi-border); }
+
+    .aqg-mcp-count {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    // Callouts inside a card body: a quiet framed note, tone only for a warning (no side stripe).
+    .aqg-mcp-callout {
+        padding: 10px 12px;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border-soft);
+        border-radius: var(--aqi-radius);
+
+        p { margin: 0; }
+    }
+
+    .aqg-mcp-callout--warning {
+        background: var(--aqi-warn-bg);
+        border-color: var(--aqi-warn-border);
+    }
+
+    .aqg-mcp-callout__title {
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-callout__text {
+        margin-top: 2px !important;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+        line-height: 1.5;
+        text-wrap: pretty;
+    }
+
+    .aqg-mcp-connect {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px 24px;
+    }
+
+    .aqg-mcp-connect__text {
+        flex: 1 1 320px;
+        max-width: 72ch;
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .aqg-mcp-connect__action {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        flex: 0 1 260px;
+
+        .aqg-field__help { margin: 0; }
+    }
+
+    .aqg-mcp-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+
+        form { margin: 0; }
+    }
+
+    .aqg-mcp-pairing {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px 24px;
+        align-items: flex-start;
+    }
+
+    .aqg-mcp-pairing__code {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px 16px;
+        background: var(--aqi-surface-2);
+        border: 1px dashed var(--aqi-border);
+        border-radius: var(--aqi-radius);
+    }
+
+    .aqg-mcp-code {
+        margin: 0;
+        font-family: var(--aqi-font-mono);
+        font-size: 22px;
+        letter-spacing: .14em;
+    }
+
+    .aqg-mcp-pairing__body {
+        display: flex;
+        flex: 1 1 320px;
+        flex-direction: column;
+        gap: 10px;
+
+        p { margin: 0; max-width: 72ch; }
+    }
+
+    // A copyable value: the code and its Copy button in one framed field (settings-mcp.js adds the button).
+    .aqg-mcp-copyfield {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 100%;
+        padding: 3px 3px 3px 10px;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-sm);
+    }
+
+    .aqg-mcp-copyline {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        padding: 3px 0;
+        color: var(--aqi-fg);
+        background: none;
+        font-family: var(--aqi-font-mono);
+        font-size: 12px;
+        white-space: nowrap;
+        scrollbar-width: thin;
+    }
+
+    .aqg-mcp-copy {
+        flex: none;
+    }
+
+    .aqg-mcp-kv {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 14px 24px;
+        margin: 0;
+    }
+
+    .aqg-mcp-kv__row {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+
+        dt {
+            color: var(--aqi-fg-muted);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        dd {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 0;
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .aqg-mcp-kv__row--wide {
+        grid-column: 1 / -1;
+    }
+
+    .aqg-mcp-connector {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-top: 14px;
+        border-top: 1px solid var(--aqi-divider);
+
+        .aqg-field__help { margin: 0; }
+    }
+
+    .aqg-mcp-details > summary {
+        width: fit-content;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: none;
+            border-radius: var(--aqi-radius-sm);
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-mcp-pre {
+        margin: 8px 0 0;
+        padding: 10px 12px;
+        overflow-x: auto;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border-soft);
+        border-radius: var(--aqi-radius-sm);
+        color: var(--aqi-fg);
+        font-family: var(--aqi-font-mono);
+        font-size: 12px;
+    }
+
+    // ---- Site access: one row per site, columns aligned across rows -------------------------------------------
+    .aqg-mcp-sites__form {
+        margin: 0;
+    }
+
+    .aqg-mcp-sitelist {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .aqg-mcp-site {
+        display: grid;
+        grid-template-columns: minmax(150px, 1fr) minmax(200px, 1fr) minmax(280px, 2fr);
+        gap: 12px 24px;
+        align-items: start;
+        padding: 14px 16px;
+        border-top: 1px solid var(--aqi-divider);
+
+        &:first-child { border-top: 0; }
+    }
+
+    .aqg-mcp-site__id {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        padding-top: 2px;
+    }
+
+    .aqg-mcp-site__name {
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-site__base {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-site__access .aqg-switch {
+        align-items: flex-start;
+    }
+
+    .aqg-mcp-site__access .aqg-switch__track {
+        margin-top: 1px;
+    }
+
+    .aqg-mcp-site:has(.aqg-mcp-site__access .aqg-switch__input:checked) .aqg-mcp-site__offhint {
+        display: none;
+    }
+
+    .aqg-mcp-caps {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .aqg-mcp-cap {
+        position: relative;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        margin: 0;
+        padding: 7px 10px;
+        background: var(--aqi-surface);
+        border: 1px solid var(--aqi-border-soft);
+        border-radius: var(--aqi-radius-sm);
+        cursor: pointer;
+        transition: border-color 80ms ease, background-color 80ms ease;
+
+        &:hover { border-color: var(--aqi-border); }
+
+        &:focus-within {
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    // While the site is off, the capabilities stay editable (they are saved) but read as dormant.
+    .aqg-mcp-site:has(.aqg-mcp-site__access .aqg-switch__input:not(:checked)) .aqg-mcp-cap {
+        background: var(--aqi-surface-2);
+        border-style: dashed;
+    }
+
+    .aqg-mcp-cap__input {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .aqg-mcp-cap__input:checked + .aqg-check {
+        background: var(--aqi-fg);
+        border-color: var(--aqi-fg);
+        color: var(--aqi-surface);
+    }
+
+    .aqg-mcp-cap__input:checked + .aqg-check svg {
+        opacity: 1;
+    }
+
+    .aqg-mcp-cap__body {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 8px;
+        min-width: 0;
+    }
+
+    .aqg-mcp-cap__title {
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .aqg-mcp-cap__scope {
+        padding: 0;
+        color: var(--aqi-fg-muted);
+        background: none;
+        font-family: var(--aqi-font-mono);
+        font-size: 11.5px;
+    }
+
+    .aqg-mcp-risk {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.3;
+        white-space: nowrap;
+
+        .aqg-icon { width: 11px; height: 11px; }
+    }
+
+    .aqg-mcp-risk--read { color: var(--aqi-run); background: var(--aqi-run-bg); border-color: var(--aqi-run-border); }
+    .aqg-mcp-risk--act { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+    .aqg-mcp-risk--locked { color: var(--aqi-fg-muted); background: var(--aqi-surface-2); }
+
+    .aqg-mcp-sites__foot {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        justify-content: flex-end;
+        transition: background-color 120ms ease, border-color 120ms ease;
+    }
+
+    .aqg-mcp-sites__foot.is-dirty {
+        background: color-mix(in oklch, var(--aqi-warn-bg) 60%, var(--aqi-surface));
+        border-top-color: var(--aqi-warn-border);
+    }
+
+    .aqg-mcp-dirty {
+        margin-inline-end: auto;
+        color: var(--aqi-warn);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    // ---- Authorization boundaries -----------------------------------------------------------------------------
+    .aqg-mcp-rules {
+        margin: 0;
+        padding: 0 16px;
+    }
+
+    .aqg-mcp-rule {
+        display: grid;
+        grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+        gap: 6px 24px;
+        padding: 12px 0;
+        border-top: 1px solid var(--aqi-divider);
+
+        &:first-child { border-top: 0; }
+
+        dt {
+            color: var(--aqi-fg);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        dd {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 0;
+            min-width: 0;
+        }
+
+        p {
+            margin: 0;
+            max-width: 80ch;
+            color: var(--aqi-fg-muted);
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+    }
+
+    .aqg-mcp-catalogue {
+        padding: 11px 16px;
+        background: var(--aqi-surface-2);
+        border-top: 1px solid var(--aqi-border-soft);
+    }
+
+    .aqg-mcp-catalogue__list {
+        display: grid;
+        gap: 10px;
+        margin: 10px 0 2px;
+    }
+
+    .aqg-mcp-catalogue__entry {
+        dt {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            font-weight: 400;
+        }
+
+        dd {
+            margin: 2px 0 0;
+            color: var(--aqi-fg-muted);
+            font-size: 12.5px;
+        }
+    }
+
+    // ---- Audit filter (segmented, like Page Detail's status filter) and tables -------------------------------
+    .aqg-mcp-seg {
+        display: inline-flex;
+        gap: 2px;
+        padding: 3px;
+        background: var(--aqi-surface);
+        border: 1px solid var(--aqi-border);
+        border-radius: 8px;
+    }
+
+    .aqg-mcp-seg__btn {
+        padding: 4px 10px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: var(--aqi-fg-muted);
+        font-size: 12.5px;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+
+        &:hover { color: var(--aqi-fg); text-decoration: none; }
+
+        &[aria-current="true"] {
+            color: var(--aqi-fg);
+            font-weight: 600;
+            background: var(--aqi-surface-2);
+            border-color: var(--aqi-border);
+        }
+
+        &:focus-visible {
+            outline: none;
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-mcp-tablewrap {
+        overflow-x: auto;
+    }
+
+    .aqg-mcp-tablewrap--framed {
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius);
+    }
+
+    .aqg-mcp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+
+        th,
+        td {
+            padding: 9px 14px;
+            text-align: start;
+            vertical-align: top;
+            border-top: 1px solid var(--aqi-divider);
+        }
+
+        thead th {
+            padding-block: 7px;
+            color: var(--aqi-fg-muted);
+            background: var(--aqi-surface-2);
+            border-top: 0;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        tbody th {
+            font-weight: 400;
+        }
+
+        code {
+            padding: 0;
+            background: none;
+            color: var(--aqi-fg);
+            font-family: var(--aqi-font-mono);
+            font-size: 11.5px;
+        }
+    }
+
+    .aqg-mcp-table__primary {
+        display: block;
+        color: var(--aqi-fg);
+        font-weight: 600;
+    }
+
+    .aqg-mcp-table__secondary {
+        display: block;
+        color: var(--aqi-fg-muted) !important;
+        font-size: 12px;
+    }
+
+    .aqg-mcp-table__time {
+        color: var(--aqi-fg-muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    // Connected agents: "Last used" / "Expires" may break between date and time, so the six columns fit a 1600 px
+    // window with the page tree open instead of scrolling Status and Revoke out of view.
+    .aqg-mcp-table--stack-wide .aqg-mcp-table__time {
+        min-width: 6.5rem;
+        white-space: normal;
+    }
+
+    // Audit trail: the agent and user keep a readable width; a long call target (URL) breaks instead of widening.
+    .aqg-mcp-table__who {
+        min-width: 11rem;
+    }
+
+    .aqg-mcp-table__call {
+        min-width: 14rem;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-table__action {
+        text-align: end;
+        white-space: nowrap;
+
+        form { margin: 0; }
+    }
+
+    .aqg-mcp-scopes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+    }
+
+    // ---- Emergency disconnect -------------------------------------------------------------------------------
+    .aqg-mcp-danger {
+        border-color: var(--aqi-err-border);
+    }
+
+    .aqg-mcp-danger .aqg-card__head {
+        background: var(--aqi-err-bg);
+        border-bottom-color: var(--aqi-err-border);
+    }
+
+    .aqg-mcp-danger .aqg-card__title {
+        color: var(--aqi-err);
+    }
+
+    // The confirm word and its button sit on one line (the button aligned with the input, not with the help text
+    // under it); the label above and the consequence below span both columns. One column when the module is narrow.
+    .aqg-mcp-danger__form {
+        display: grid;
+        grid-template-columns: minmax(0, 340px) auto;
+        justify-content: start;
+        align-items: center;
+        gap: 6px 12px;
+        margin: 0;
+
+        .aqg-field { display: contents; }
+        .aqg-field__label { grid-column: 1 / -1; grid-row: 1; margin: 0; }
+        .aqg-input { grid-column: 1; grid-row: 2; }
+        .aqg-field__help { grid-column: 1 / -1; grid-row: 3; max-width: 72ch; margin: 0; }
+        > div:not(.aqg-field) { grid-column: 2; grid-row: 2; }
+    }
+
+    // Narrow module: the site row stacks (name and switch, then the capabilities), the boundary rows stack too.
+    @container (max-width: 820px) {
+        .aqg-mcp-site {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        .aqg-mcp-caps {
+            grid-column: 1 / -1;
+        }
+    }
+
+    // UX Atlas 01/13: the agent and audit tables stack into labelled blocks instead of scrolling the columns that matter
+    // (Status and Revoke, Call) out of view: the six-column agent table below 820 px of module width (a 1440 px window
+    // with the page tree open), the five-column audit trail below 640 px.
+    @container (max-width: 820px) {
+        .aqg-mcp-tablewrap:has(.aqg-mcp-table--stack-wide) {
+            overflow-x: visible;
+        }
+
+        .aqg-mcp-table--stack-wide {
+            @include mcp-table-stack;
+        }
+    }
+
+    @container (max-width: 640px) {
+        .aqg-mcp-tablewrap:has(.aqg-mcp-table--stack) {
+            overflow-x: visible;
+        }
+
+        .aqg-mcp-table--stack {
+            @include mcp-table-stack;
+        }
+    }
+
+    @container (max-width: 560px) {
+        .aqg-mcp-site,
+        .aqg-mcp-rule {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .aqg-mcp-cap {
+            grid-template-columns: 18px minmax(0, 1fr);
+        }
+
+        .aqg-mcp-cap .aqg-mcp-risk {
+            grid-column: 2;
+            justify-self: start;
+        }
+    }
+}
+
+// Remote scan access (owner UX pass 3.0.0): the save bar stays in reach while the five cards scroll, the cards fall
+// into two labelled groups (how the crawler gets in / what it scans), and each card follows one rhythm: title, one
+// description, labelled field with its hint, help line, then the card's own action with its consequence below it.
+.a11y-settings.aqg-module .aqg-remote-access {
+    // Below TYPO3's own sticky docheader (TYPO3 13/14 publish its height; 0 where they do not).
+    .aqg-actionbar--sticky {
+        position: sticky;
+        top: var(--module-docheader-sticky-height, 0px);
+        z-index: 3;
+        box-shadow: 0 6px 12px -10px rgb(0 0 0 / 28%);
+    }
+
+    .aqg-remote-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 22px 0 10px;
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+
+        &::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--aqi-divider);
+        }
+    }
+
+    .aqg-remote-optional {
+        padding: 1px 7px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 999px;
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .aqg-token-state {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 0;
+        font-size: 12.5px;
+        line-height: 1.5;
+
+        .aqg-status-badge { flex: none; margin-top: 1px; }
+    }
+
+    .aqg-token-empty {
+        align-items: center;
+    }
+
+    .aqg-token-empty .aqg-status-badge {
+        flex: none;
+    }
+
+    .aqg-remote-inline-actions--stacked {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .aqg-remote-inline-actions--stacked .btn,
+    .aqg-remote-inline-actions--stacked .aqg-remote-warning {
+        align-self: flex-start;
+    }
+
+    .aqg-remote-inline-actions--stacked .aqg-remote-warning {
+        flex: none;
+        align-items: flex-start;
+        min-height: 0;
+    }
+
+    .aqg-remote-inline-actions--stacked .aqg-remote-warning svg {
+        margin-top: 2px;
+    }
+
+    .aqg-field__label-hint {
+        color: var(--aqi-fg-muted);
+        font-weight: 400;
+    }
+}
+
+@media (max-width: 760px) {
+    .a11y-settings.aqg-module .aqg-remote-access .aqg-remote-grid-2 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@mixin aqg-settings-sticky-dark {
+    .a11y-settings.aqg-module .aqg-remote-access .aqg-actionbar--sticky {
+        box-shadow: 0 6px 14px -10px rgb(0 0 0 / 70%);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-color-scheme="light"]) {
+        @include aqg-settings-sticky-dark;
+    }
+}
+
+html[data-color-scheme="dark"] {
+    @include aqg-settings-sticky-dark;
+}
+
+// Settings › AI suggestions (3.0.0 usage & length pass): one page in four labelled groups — Provider & model, Privacy &
+// editor features, Usage & limits, Diagnostics & model prices — reached through a compact in-page section navigation
+// (anchor links, no nested tabs). Group titles are h3, card titles h4. The usage card answers "who used AI, how often,
+// at what estimated cost": KPIs, cost notes, then the per-person table with the site total in its footer.
+.a11y-settings.aqg-module .aqg-ai-settings {
+    container-type: inline-size;
+    container-name: aqg-ai;
+
+    // In-page section navigation: sticky below TYPO3's docheader while the groups scroll.
+    .aqg-ai-sectionnav {
+        position: sticky;
+        top: var(--module-docheader-sticky-height, 0px);
+        z-index: 3;
+        margin: 0 -2px;
+        padding: 6px 2px;
+        background: var(--aqi-bg, var(--aqi-surface));
+    }
+
+    .aqg-ai-sectionnav__list {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .aqg-ai-sectionnav__link {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        height: 100%;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius, 6px);
+        background: var(--aqi-surface);
+        color: var(--aqi-fg);
+        text-decoration: none;
+
+        &:hover {
+            border-color: var(--aqi-fg-subtle);
+            color: var(--aqi-fg);
+            text-decoration: none;
+        }
+
+        &:focus-visible {
+            outline: none;
+            box-shadow: var(--aqi-focus-ring);
+        }
+
+        &[aria-current="location"] {
+            border-color: var(--aqi-focus);
+            background: var(--aqi-surface-2);
+
+            .aqg-ai-sectionnav__num {
+                border-color: var(--aqi-focus);
+                background: var(--aqi-focus);
+                color: var(--aqi-surface);
+            }
+        }
+    }
+
+    .aqg-ai-sectionnav__num,
+    .aqg-ai-group__num {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 50%;
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0;
+    }
+
+    .aqg-ai-sectionnav__text {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .aqg-ai-sectionnav__title {
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .aqg-ai-sectionnav__state {
+        display: flex;
+        min-width: 0;
+
+        .aqg-ai-badge {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .aqg-ai-sectionnav__figure {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    // Groups: a quiet labelled divider (same voice as Remote scan access), then the group's cards.
+    .aqg-ai-group {
+        display: grid;
+        gap: 14px;
+        scroll-margin-top: calc(var(--module-docheader-sticky-height, 0px) + 84px);
+    }
+
+    .aqg-ai-group__title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 12px 0 0;
+        color: var(--aqi-fg-muted);
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+
+        &::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--aqi-border);
+        }
+    }
+
+    .aqg-ai-provider-config {
+        display: grid;
+        gap: 14px;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    // Usage: month picker in the card head (beats the head's "> div" title column rule).
+    .aqg-ai-panel__head > .aqg-ai-monthpick {
+        display: flex;
+        flex: 0 1 auto;
+        align-items: center;
+    }
+
+    .aqg-ai-monthpick {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+
+        .form-select {
+            width: auto;
+            min-width: 150px;
+        }
+    }
+
+    .aqg-ai-monthpick__label {
+        margin: 0;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    // Usage KPIs: estimated spend leads; reserved exposure stays visibly separate from spend.
+    .aqg-ai-kpis {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr));
+        gap: 0;
+        margin: 0;
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-lg, 10px);
+        background: var(--aqi-surface);
+    }
+
+    .aqg-ai-kpi {
+        display: grid;
+        align-content: start;
+        gap: 2px;
+        min-width: 0;
+        padding: 10px 14px;
+        border-left: 1px solid var(--aqi-border-soft);
+
+        &:first-child {
+            border-left: 0;
+        }
+
+        dt {
+            color: var(--aqi-fg-subtle);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        dd {
+            margin: 0;
+            color: var(--aqi-fg);
+            font-size: 17px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            overflow-wrap: anywhere;
+        }
+
+        .aqg-ai-kpi__sub {
+            color: var(--aqi-fg-muted);
+            font-size: 11.5px;
+            font-weight: 400;
+        }
+    }
+
+    .aqg-ai-kpi--lead dd:not(.aqg-ai-kpi__sub) {
+        font-size: 22px;
+        line-height: 1.2;
+    }
+
+    .aqg-ai-costnotes {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        color: var(--aqi-fg);
+        font-size: 12.5px;
+        line-height: 1.5;
+        list-style: none;
+    }
+
+    .aqg-ai-costnotes li {
+        display: grid;
+        grid-template-columns: 84px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+    }
+
+    .aqg-ai-costnotes__tag {
+        display: block;
+        margin-top: 1px;
+        padding: 0 6px;
+        border: 1px solid var(--aqi-border);
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
+
+        &.tone-ok { color: var(--aqi-ok); background: var(--aqi-ok-bg); border-color: var(--aqi-ok-border); }
+        &.tone-warning { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+        &.tone-info { color: var(--aqi-run); background: var(--aqi-run-bg); border-color: var(--aqi-run-border); }
+        &.tone-none { color: var(--aqi-none); background: var(--aqi-none-bg); border-color: var(--aqi-none-border); }
+    }
+
+    // By person: the primary breakdown, always open; long lists scroll inside the region with sticky head and total.
+    .aqg-ai-people {
+        display: grid;
+        gap: 6px;
+    }
+
+    .aqg-ai-people__head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .aqg-ai-people__title {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-ai-people__count {
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+    }
+
+    .aqg-ai-people__head {
+        flex-wrap: wrap;
+    }
+
+    .aqg-ai-people__export {
+        margin-left: auto;
+    }
+
+    [data-aqg-ai-usage-stale] .aqg-statusline__content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 12px;
+    }
+
+    [data-aqg-ai-usage-stale][hidden] {
+        display: none;
+    }
+
+    .aqg-ai-tablewrap--scroll {
+        max-height: 30rem;
+        overflow: auto;
+
+        &:focus-visible {
+            outline: none;
+            box-shadow: var(--aqi-focus-ring);
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tfoot th,
+        tfoot td {
+            position: sticky;
+            bottom: 0;
+            border-top: 1px solid var(--aqi-border);
+            border-bottom: 0;
+            background: var(--aqi-surface-2);
+            font-weight: 600;
+        }
+    }
+
+    .aqg-ai-person {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 6px;
+    }
+
+    .aqg-ai-person__meta {
+        display: block;
+        margin-top: 1px;
+        color: var(--aqi-fg-muted);
+        font-size: 11.5px;
+        font-weight: 400;
+    }
+
+    .aqg-ai-cost {
+        display: inline-grid;
+        justify-items: end;
+        gap: 1px;
+    }
+
+    .aqg-ai-cost .aqg-ai-usage__aside {
+        font-size: 11.5px;
+    }
+
+    // Limits: the alert address gets a full row, so its two help lines no longer stack in a 220 px column.
+    .aqg-ai-limits > .aqg-ai-field:last-child {
+        grid-column: 1 / -1;
+
+        .form-control {
+            max-width: 380px;
+        }
+    }
+}
+
+// Connection facts (status, model, technical id, last tested) as two pairs per row where the card is wide enough.
+@container aqg-ai (min-width: 700px) {
+    .a11y-settings.aqg-module .aqg-ai-settings [aria-labelledby="aqg-ai-connection-title"] .aqg-ai-kv {
+        grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+    }
+}
+
+@container aqg-ai (max-width: 680px) {
+    .a11y-settings.aqg-module .aqg-ai-settings {
+        .aqg-ai-sectionnav__list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .aqg-ai-kpis {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .aqg-ai-kpi:nth-child(3) {
+            border-left: 0;
+        }
+
+        .aqg-ai-kpi:nth-child(n + 3) {
+            border-top: 1px solid var(--aqi-border-soft);
+        }
+    }
+}
+
+@container aqg-ai (max-width: 360px) {
+    .a11y-settings.aqg-module .aqg-ai-settings {
+        // Narrow modules: the navigation stays a plain list at the top instead of covering content while sticky.
+        .aqg-ai-sectionnav {
+            position: static;
+        }
+
+        .aqg-ai-sectionnav__list,
+        .aqg-ai-kpis {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .aqg-ai-kpi {
+            border-left: 0;
+        }
+
+        .aqg-ai-kpi + .aqg-ai-kpi {
+            border-top: 1px solid var(--aqi-border-soft);
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .a11y-settings.aqg-module .aqg-ai-settings {
+        .aqg-ai-tablewrap.aqg-ai-tablewrap--scroll:has(.aqg-ai-table--stack) {
+            overflow-y: auto;
+        }
+
+        .aqg-ai-tablewrap--scroll tfoot th,
+        .aqg-ai-tablewrap--scroll tfoot td {
+            position: static;
+        }
+
+        .aqg-ai-cost {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0 6px;
+        }
+
+        // Stacked person rows: name across, the six figures in two columns, cost across.
+        .aqg-ai-usage--people tbody tr,
+        .aqg-ai-usage--people tfoot tr {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 12px;
+
+            th,
+            td:last-child {
+                grid-column: 1 / -1;
+            }
+        }
     }
 }

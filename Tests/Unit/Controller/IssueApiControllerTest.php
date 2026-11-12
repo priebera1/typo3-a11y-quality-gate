@@ -71,6 +71,7 @@ final class IssueApiControllerTest extends TestCase
             $responseFactory,
             $streamFactory,
             $this->backendUserService,
+            sourceAccessService: self::readableSources(),
         );
 
         $this->request = $this->createMock(ServerRequestInterface::class);
@@ -310,6 +311,7 @@ final class IssueApiControllerTest extends TestCase
             new ResponseFactory(),
             new StreamFactory(),
             $this->backendUserService,
+            sourceAccessService: self::readableSources(),
         );
     }
 
@@ -357,5 +359,31 @@ final class IssueApiControllerTest extends TestCase
         $stream->method('getContents')->willReturn($content);
 
         return $stream;
+    }
+
+    /** Every source readable: the source policy itself is covered by functional tests. */
+    private static function readableSources(): \Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface
+    {
+        return new class () implements \Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface {
+            public function constraint(\TYPO3\CMS\Core\Database\Query\QueryBuilder $qb, string $issueAlias, string $siteIdentifier): string
+            {
+                return '';
+            }
+
+            public function canReadFinding(array $issue): bool
+            {
+                return true;
+            }
+
+            public function filter(array $issues): array
+            {
+                return array_values($issues);
+            }
+
+            public function canReadRecord(string $table, int $uid): bool
+            {
+                return true;
+            }
+        };
     }
 }

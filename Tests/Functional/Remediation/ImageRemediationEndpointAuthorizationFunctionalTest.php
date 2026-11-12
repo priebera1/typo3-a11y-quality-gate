@@ -35,6 +35,7 @@ final class ImageRemediationEndpointAuthorizationFunctionalTest extends Abstract
         $this->insertEditorGroup($pool, 10, 'Allowed image editors', true);
         $this->insertEditorGroup($pool, 11, 'Restricted image editors', false);
         $this->insertEditorGroup($pool, 12, 'Capability editor without file-reference modify', true, 'tt_content');
+        $this->insertEditorGroup($pool, 13, 'Editors without the AQG option', null);
 
         $pool->getConnectionForTable('be_users')->insert('be_users', [
             'uid' => 1,
@@ -46,6 +47,7 @@ final class ImageRemediationEndpointAuthorizationFunctionalTest extends Abstract
         $this->insertEditorUser($pool, 2, 'allowed-image-editor', 10);
         $this->insertEditorUser($pool, 3, 'restricted-image-editor', 11);
         $this->insertEditorUser($pool, 4, 'record-restricted-image-editor', 12);
+        $this->insertEditorUser($pool, 5, 'default-image-editor', 13);
 
         $pool->getConnectionForTable('pages')->insert('pages', [
             'uid' => 1,
@@ -64,12 +66,14 @@ final class ImageRemediationEndpointAuthorizationFunctionalTest extends Abstract
         $pool->getConnectionForTable('tt_content')->insert('tt_content', [
             'uid' => 10,
             'pid' => 1,
-            'CType' => '',
+            'CType' => 'textmedia',
             'header' => 'Image fixture',
             'sys_language_uid' => 0,
             'deleted' => 0,
             'hidden' => 0,
         ]);
+        // A real image file: TYPO3 shows alternative text only on references to images (Sol QA-01 review, form layout).
+        $this->getConnectionPool()->getConnectionForTable('sys_file')->insert('sys_file', ['uid' => 1, 'pid' => 0, 'storage' => 1, 'type' => 2, 'name' => 'fixture.png', 'identifier' => '/fixture-1.png', 'mime_type' => 'image/png']);
         $pool->getConnectionForTable('sys_file_reference')->insert('sys_file_reference', [
             'uid' => 20,
             'pid' => 1,
@@ -150,13 +154,33 @@ final class ImageRemediationEndpointAuthorizationFunctionalTest extends Abstract
         $this->assertSuccessfulState($operation, 2, 'allowed-image-editor');
     }
 
+    /**
+     * Owner decision 3.0: without the TSconfig option an editor who may edit the reference's alternative text (and
+     * the decorative flag) applies reviewed image fixes; AQG adds no extra switch on top of the TYPO3 rights.
+     */
+    #[Test]
+    #[DataProvider('operationProvider')]
+    public function anEditorWithoutTheOptionUsesTheEndpointsWithTheirTypo3Rights(string $action, string $operation): void
+    {
+        $backendUser = $this->setUpBackendUser(5);
+        self::assertNull($backendUser->getTSConfig()['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? null);
+        $this->prepareOperationState($operation);
+
+        $response = $this->controller()->{$action}($this->validRequest($operation));
+        $payload = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(200, $response->getStatusCode(), (string)$response->getBody());
+        self::assertTrue($payload['success']);
+        $this->assertSuccessfulState($operation, 5, 'default-image-editor');
+    }
+
     #[Test]
     #[DataProvider('operationProvider')]
     public function restrictedEditorReceivesForbiddenWithoutDatabaseMutation(string $action, string $operation): void
     {
         $backendUser = $this->setUpBackendUser(3);
         self::assertSame(3, (int)($GLOBALS['BE_USER']->user['uid'] ?? 0));
-        self::assertNull($backendUser->getTSConfig()['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? null);
+        self::assertSame('0', (string)($backendUser->getTSConfig()['options.']['a11y_quality_gate.']['allowImageRemediation'] ?? ''), 'an administrator denied image fixes explicitly');
         self::assertFalse($this->get(AccessControlServiceInterface::class)->canRemediateImages($backendUser));
         $this->assertPlaywrightEquivalentRecordPermissions();
         $this->prepareOperationState($operation);
@@ -271,10 +295,11 @@ final class ImageRemediationEndpointAuthorizationFunctionalTest extends Abstract
         ConnectionPool $pool,
         int $uid,
         string $title,
-        bool $allowImageRemediation,
+        ?bool $allowImageRemediation,
         string $tablesModify = 'tt_content,sys_file_reference',
     ): void {
         $pool->getConnectionForTable('be_groups')->insert('be_groups', [
+            'explicit_allowdeny' => 'tt_content:CType:textmedia,tt_content:CType:image',
             'uid' => $uid,
             'pid' => 0,
             'title' => $title,
@@ -283,9 +308,12 @@ final class ImageRemediationEndpointAuthorizationFunctionalTest extends Abstract
             'tables_modify' => $tablesModify,
             'non_exclude_fields' => 'sys_file_reference:alternative,sys_file_reference:tx_a11y_is_decorative',
             'db_mountpoints' => '1',
-            'TSconfig' => $allowImageRemediation
-                ? 'options.a11y_quality_gate.allowImageRemediation = 1'
-                : '',
+            // null = the option is not set: the capability then follows the TYPO3 rights alone.
+            'TSconfig' => match ($allowImageRemediation) {
+                true => 'options.a11y_quality_gate.allowImageRemediation = 1',
+                false => 'options.a11y_quality_gate.allowImageRemediation = 0',
+                null => '',
+            },
             'deleted' => 0,
             'hidden' => 0,
         ]);

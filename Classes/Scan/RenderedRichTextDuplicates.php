@@ -33,6 +33,32 @@ final class RenderedRichTextDuplicates
     ];
 
     /**
+     * The rich-text rule a rendered rule reports the same defect as, or the rule itself (team assignment: one task per
+     * defect on a page, whichever engine found it).
+     */
+    public static function canonicalRuleId(string $ruleId): string
+    {
+        return self::EQUIVALENT_RULES[$ruleId][0] ?? $ruleId;
+    }
+
+    /**
+     * Every rule id that reports the defect of $canonicalRuleId (itself and its rendered equivalents).
+     *
+     * @return list<string>
+     */
+    public static function ruleIdsFor(string $canonicalRuleId): array
+    {
+        $ids = [$canonicalRuleId];
+        foreach (self::EQUIVALENT_RULES as $rendered => $richText) {
+            if (($richText[0] ?? '') === $canonicalRuleId) {
+                $ids[] = $rendered;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * @return array{ruleId: string, table: string, uid: int, snippet: string, path: string}
      */
     public static function richTextFinding(RuleViolation $violation, string $sourceTable, int $sourceUid): array

@@ -93,18 +93,49 @@ function openIssuesOf(data) {
  * @returns {ScanNotification}
  */
 export function contentScanNotification(data, { scope = 'page' } = {}, translate) {
+    // F-05: with every content field switched off nothing was checked. Never a clean result.
+    if ((Array.isArray(data?.warnings) ? data.warnings : []).some((warning) => String(warning?.code || '') === 'no_scan_fields')) {
+        return {
+            title: translate('notification.scanResult.content.noFields.title', 'Content scan checked no content'),
+            message: translate('notification.scanResult.content.noFields', 'No content fields are enabled for scanning, so no content was checked. Enable fields in Settings › Scan fields.'),
+            severity: 'warning',
+            details: false,
+            reportUrl: '',
+        };
+    }
     const issuesNew = count(data?.issuesNew);
     const issuesResolved = count(data?.issuesResolved);
     const pagesScanned = count(data?.pagesScanned);
     const coverage = renderedCoverageOf(data);
     const open = openIssuesOf(data);
 
+    const languageLabel = String(data?.languageLabel || '').trim();
+    const pagesWithoutTranslation = count(data?.pagesWithoutTranslation);
+    // STATE-01: a zero of the findings this user may read is not "No open issues" for users who do not see every result
+    // (the server sets the flag from the user's rights, never from hidden findings), nor for a site scan that left pages
+    // out because the user may not scan them (AUTH-01).
+    const restricted = data?.openIssuesRestricted === true;
+    const pagesNotPermitted = count(data?.pagesNotPermitted);
     const parts = [];
     if (scope === 'site') {
         parts.push(plural(translate, 'notification.scanResult.content.pagesChecked', 'Content checks ran on %d page.', 'Content checks ran on %d pages.', pagesScanned));
+        // N-18: pages that do not exist in the scanned language are named, not counted as checked.
+        if (pagesWithoutTranslation > 0 && languageLabel !== '') {
+            parts.push(plural(translate, 'notification.scanResult.content.notTranslated', '%d page has no %s version and was not checked.', '%d pages have no %s version and were not checked.', pagesWithoutTranslation, languageLabel));
+        }
+        if (pagesNotPermitted > 0) {
+            parts.push(plural(translate, 'notification.scanResult.content.notPermitted', '%d page was not checked: you may not scan it in this language.', '%d pages were not checked: you may not scan them in this language.', pagesNotPermitted));
+        }
     }
     if (open === null) {
         parts.push(translate('notification.scanResult.changeOnly', 'Since the previous scan: %d new, %d resolved. The report lists every open issue.', issuesNew, issuesResolved));
+    } else if (open.total === 0 && restricted) {
+        parts.push(translate('notification.scanResult.content.noneOpenRestricted', 'No open issues in the pages and records you can access.'));
+    } else if (open.total === 0 && coverage.skipped > 0) {
+        // F11 (acceptance §25 D2) / F11-03: a page's rendered HTML was not checked — unexpectedly (fetch failed: warning)
+        // or as expected (a page visitors cannot open: hidden, scheduled, access-restricted: info). Either way the zero
+        // covers only the content that was checked; the coverage sentence below names the pages and the reason.
+        parts.push(translate('notification.scanResult.content.noneOpenChecked', 'No open issues in the content that was checked.'));
     } else if (open.total === 0) {
         parts.push(issuesResolved > 0
             ? plural(translate, 'notification.scanResult.content.noneOpenResolved', 'No open issues: %d issue was resolved.', 'No open issues: %d issues were resolved.', issuesResolved)
@@ -130,16 +161,24 @@ export function contentScanNotification(data, { scope = 'page' } = {}, translate
     }
 
     let severity = 'success';
-    if (coverage.failed > 0) {
+    if (coverage.failed > 0 || pagesNotPermitted > 0) {
         severity = 'warning';
-    } else if (coverage.notPublic > 0 || open === null || open.total > 0) {
+    } else if (coverage.notPublic > 0 || open === null || open.total > 0 || restricted) {
         severity = 'info';
     }
 
+    let title = severity === 'warning'
+        ? translate('notification.scanResult.content.warnings', 'Content scan completed with warnings')
+        : translate('notification.scanResult.content.completed', 'Content scan completed');
+    if (languageLabel !== '') {
+        // N-18: a scan of one language says which ("Content scan (Deutsch) completed").
+        title = severity === 'warning'
+            ? translate('notification.scanResult.content.warningsInLanguage', 'Content scan (%s) completed with warnings', languageLabel)
+            : translate('notification.scanResult.content.completedInLanguage', 'Content scan (%s) completed', languageLabel);
+    }
+
     return {
-        title: severity === 'warning'
-            ? translate('notification.scanResult.content.warnings', 'Content scan completed with warnings')
-            : translate('notification.scanResult.content.completed', 'Content scan completed'),
+        title,
         message: parts.join(' '),
         severity,
         details: coverage.skipped > 0,
@@ -150,7 +189,8 @@ export function contentScanNotification(data, { scope = 'page' } = {}, translate
 /**
  * @param {object} summary the frontend scan summary: pagesScanned / pagesFailed / pagesTotal, and from AQG 1.9.9 the
  *   stored `occurrencesTotal` / `issueTypesTotal`, `comparison` ({available, new, resolved}), `pagesExpected` /
- *   `pagesLoaded` / `pagesNotChecked` and `reportUrl`
+ *   `pagesLoaded` / `pagesNotChecked` and `reportUrl`; from AQG 3.0 `pagePreview` (a preview scan of a page that was
+ *   not public, Atlas D9 — the message says so first)
  * @param {{scope?: 'page'|'site'}} context
  * @param {Translate} translate
  * @returns {ScanNotification}
@@ -170,13 +210,42 @@ export function frontendScanNotification(summary, { scope = 'site' } = {}, trans
     const hasTotals = summary?.occurrencesTotal !== undefined && summary?.occurrencesTotal !== null;
     const occurrences = count(summary?.occurrencesTotal);
     const issueTypes = count(summary?.issueTypesTotal);
+    const previewNote = summary?.pagePreview === true
+        ? translate('notification.scanResult.frontend.pagePreview', 'Preview scan · page not public.')
+        : '';
 
-    if (expected > 0 && loaded === 0) {
+    // Sol QA-06: a user restricted by the result policy sees part of the scan. The message never calls that a clean
+    // result or "no page checked"; it is the same whatever was withheld.
+    if (summary?.resultsRestricted === true && summary?.scanLoadedPages !== false) {
+        return {
+            title: translate('notification.scanResult.frontend.restrictedTitle', 'Frontend scan completed · results limited to your access'),
+            message: [
+                previewNote,
+                hasTotals && occurrences > 0
+                    ? [
+                        plural(translate, 'notification.scanResult.frontend.occurrences', '%d occurrence', '%d occurrences', occurrences),
+                        plural(translate, 'notification.scanResult.frontend.issueTypes', 'of %d issue type', 'of %d issue types', issueTypes),
+                    ].join(' ') + '.'
+                    : translate('notification.scanResult.frontend.restrictedNone', 'No results of this scan are available to you.'),
+                translate('notification.scanResult.frontend.restrictedNote', 'Only results your permissions allow are shown.'),
+            ].filter(Boolean).join(' '),
+            severity: 'info',
+            details: true,
+            reportUrl,
+        };
+    }
+
+    if ((expected > 0 && loaded === 0) || (summary?.resultsRestricted === true && summary?.scanLoadedPages === false)) {
         return {
             title: translate('notification.scanResult.frontend.noPage', 'Frontend scan checked no page'),
-            message: expected === 1
-                ? translate('notification.scanResult.frontend.noPage.single', 'The page could not be loaded. The Overview shows the reason.')
-                : translate('notification.scanResult.frontend.noPage.text', 'None of the %d pages could be loaded. The Overview lists the reasons.', expected),
+            message: [
+                previewNote,
+                expected === 0
+                    ? translate('notification.scanResult.frontend.noPage.generic', 'No page could be loaded. The Overview lists the reasons.')
+                    : (expected === 1
+                        ? translate('notification.scanResult.frontend.noPage.single', 'The page could not be loaded. The Overview shows the reason.')
+                        : translate('notification.scanResult.frontend.noPage.text', 'None of the %d pages could be loaded. The Overview lists the reasons.', expected)),
+            ].filter(Boolean).join(' '),
             severity: 'error',
             details: true,
             reportUrl,
@@ -206,10 +275,11 @@ export function frontendScanNotification(summary, { scope = 'site' } = {}, trans
         return {
             title: translate('notification.scanResult.frontend.warnings', 'Frontend scan completed with warnings'),
             message: [
+                previewNote,
                 translate('notification.scanResult.frontend.partial', 'Checked %d of %d pages.', loaded, expected),
                 result,
                 ...missing,
-            ].join(' '),
+            ].filter(Boolean).join(' '),
             severity: 'warning',
             details: true,
             reportUrl,
@@ -219,6 +289,7 @@ export function frontendScanNotification(summary, { scope = 'site' } = {}, trans
     return {
         title: translate('notification.scanResult.frontend.completed', 'Frontend scan completed'),
         message: [
+            previewNote,
             scope === 'site' ? plural(translate, 'notification.scanResult.frontend.pagesChecked', '%d page checked.', '%d pages checked.', loaded) : '',
             result,
         ].filter(Boolean).join(' '),

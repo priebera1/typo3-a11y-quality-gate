@@ -161,6 +161,36 @@ final class AiLinkTextSuggestionAjaxControllerTest extends TestCase
         self::assertSame('ai_link_text_disabled', $payload['code']);
     }
     #[Test]
+    public function aUserWithoutAiPermissionGetsNoPermissionNotADisabledFeature(): void
+    {
+        // N-08: ai.editor = 0 for this user; the service refused before any provider request.
+        $service = $this->createMock(AiLinkTextSuggestionServiceInterface::class);
+        $service->method('suggest')->willThrowException(new AiConfigurationException('not enabled for this user', 1771002842));
+
+        $response = (new AiLinkTextSuggestionAjaxController($service))->suggestAction((new ServerRequest('https://example.test/', 'POST'))->withParsedBody(['findingId' => 12]));
+        $payload = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('no_permission', $payload['code']);
+    }
+
+    #[Test]
+    public function readinessAndBudgetRefusalsKeepTheirOwnSafeCode(): void
+    {
+        foreach ([1771002008 => 'budget_reached', 1771002007 => 'paused', 1771002006 => 'paused', 1771002001 => 'ai_not_configured'] as $code => $expected) {
+            $service = $this->createMock(AiLinkTextSuggestionServiceInterface::class);
+            $service->method('suggest')->willThrowException(new AiConfigurationException('refused', $code));
+
+            $response = (new AiLinkTextSuggestionAjaxController($service))->suggestAction((new ServerRequest('https://example.test/', 'POST'))->withParsedBody(['findingId' => 12]));
+            $payload = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+            self::assertSame(422, $response->getStatusCode());
+            self::assertSame($expected, $payload['code'], (string)$code);
+            self::assertStringNotContainsString('refused', (string)$response->getBody());
+        }
+    }
+
+    #[Test]
     public function providerErrorReturnsJsonWithoutHttp502(): void
     {
         $service = $this->createMock(AiLinkTextSuggestionServiceInterface::class);

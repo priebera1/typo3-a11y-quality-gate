@@ -76,7 +76,12 @@ class AqgRemoteAccessSettings {
       return;
     }
 
-    this.setButtonLoading(this.regenerateButton, this.regenerateLabel, this.label('labelRegenerating', 'Regenerating…'));
+    const hadToken = this.hasToken;
+    this.setButtonLoading(
+      this.regenerateButton,
+      this.regenerateLabel,
+      hadToken ? this.label('labelRegenerating', 'Regenerating…') : this.label('labelGenerating', 'Generating…')
+    );
     this.tokenSuccess?.setAttribute('hidden', 'hidden');
 
     try {
@@ -99,6 +104,14 @@ class AqgRemoteAccessSettings {
       }
 
       this.updateToken(payload.maskedToken || '', payload.token || '');
+      if (this.tokenSuccess) {
+        // U-10: the first token is generated; only replacing a stored one is a regeneration.
+        this.tokenSuccess.textContent = hadToken
+          ? this.label('labelTokenRegenerated', '✓ Scanner token regenerated')
+          : this.label('labelTokenGenerated', '✓ Scanner token generated');
+        this.tokenSuccess.classList.add('aqg-toast');
+        this.tokenSuccess.classList.remove('aqg-test-result', 'tone-error');
+      }
       this.tokenSuccess?.removeAttribute('hidden');
       window.setTimeout(() => this.tokenSuccess?.setAttribute('hidden', 'hidden'), 4500);
     } catch (error) {

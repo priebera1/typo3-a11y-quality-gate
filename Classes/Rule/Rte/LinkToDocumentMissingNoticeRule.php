@@ -55,7 +55,9 @@ final class LinkToDocumentMissingNoticeRule extends AbstractRteRule
                 continue;
             }
 
-            if ($this->mentionsFileType($link, $extension, $xpath)) {
+            // A link without any accessible name is reported by the empty-link rule; its file type cannot be mentioned
+            // in text that does not exist yet (company acceptance: three cards for one empty PDF link).
+            if ($this->hasNoAccessibleName($link, $xpath) || $this->mentionsFileType($link, $extension, $xpath)) {
                 continue;
             }
 
@@ -70,6 +72,24 @@ final class LinkToDocumentMissingNoticeRule extends AbstractRteRule
         }
 
         return $violations;
+    }
+
+    private function hasNoAccessibleName(\DOMElement $link, \DOMXPath $xpath): bool
+    {
+        $alts = [];
+        foreach ($link->getElementsByTagName('img') as $image) {
+            if ($image instanceof \DOMElement) {
+                $alts[] = $image->getAttribute('alt');
+            }
+        }
+
+        return PhraseMatcher::normalize(implode(' ', array_filter([
+            $link->textContent,
+            $link->getAttribute('aria-label'),
+            $this->resolveAriaLabelledByText($link, $xpath),
+            $link->getAttribute('title'),
+            ...$alts,
+        ]))) === '';
     }
 
     private function mentionsFileType(\DOMElement $link, string $extension, \DOMXPath $xpath): bool

@@ -1,0 +1,1420 @@
+// AQG remediation queue (Accessibility › AI fixes, Atlas 08) and the remediation parts of Page Detail.
+// Source of Resources/Public/Css/remediation.css (npm run build:remediation-css). Built on AQG's --aqi-* tokens of the
+// .aqg-module container, so light and dark mode follow the backend; muted text uses the literal --aqi-fg-muted token.
+// Status words always carry the meaning; colour and glyph only repeat it. Focus: box-shadow var(--aqi-focus-ring).
+// The honest-outcome ladder and the outcome chips are the shared component (components/_ladder.scss, Atlas F-22).
+@use "components/ladder";
+
+.aqg-remediation__intro,
+.aqg-remediation__note,
+.aqg-remediation__muted {
+    color: var(--aqi-fg-muted);
+}
+
+// AQG-300-UX-02: the intro uses the header width up to a readable line length (it wrapped at 72ch in a 1000px module).
+.aqg-remediation__intro {
+    max-width: 92ch;
+    margin: 0 0 0.5rem;
+}
+
+.aqg-remediation__howto {
+    max-width: 92ch;
+    margin: 0 0 1rem;
+    color: var(--aqi-fg-muted);
+    font-size: 13px;
+
+    > summary {
+        width: fit-content;
+        color: var(--aqi-fg);
+        font-weight: 600;
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: none;
+            border-radius: var(--aqi-radius-sm);
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    > ul {
+        margin: 6px 0 0;
+        padding-left: 20px;
+    }
+
+    li + li {
+        margin-top: 3px;
+    }
+}
+
+.aqg-remediation-occ__sent > summary {
+    width: fit-content;
+    cursor: pointer;
+    color: var(--aqi-fg-muted);
+
+    &:focus-visible {
+        outline: none;
+        border-radius: var(--aqi-radius-sm);
+        box-shadow: var(--aqi-focus-ring);
+    }
+}
+
+.aqg-remediation__note {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    flex-basis: 100%;
+}
+
+.aqg-remediation__notice {
+    padding: 0.6rem 0.8rem;
+    margin: 0 0 1rem;
+    color: var(--aqi-fg);
+    background: var(--aqi-run-bg);
+    border: 1px solid var(--aqi-run-border);
+    border-radius: var(--aqi-radius);
+}
+
+.aqg-remediation__state {
+    padding: 1.5rem;
+    text-align: start;
+    background: var(--aqi-surface);
+    border: 1px dashed var(--aqi-border);
+    border-radius: var(--aqi-radius);
+}
+
+// Section headings follow the scan views type scale (15px/650), not the TYPO3 heading weight.
+.aqg-remediation__state-title {
+    margin: 0 0 0.35rem;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+// Empty states (nothing to review, no match, empty log, Free plan) use the shared .aqg-empty anatomy of Page Detail
+// (base/_empty-states.scss: centred, dashed icon ring, 14/600 title, muted text, centred action) in a solid section
+// frame like the panels around them. Error states keep the plain left-aligned box with their retry button.
+.aqg-remediation__state.aqg-empty {
+    border-style: solid;
+    border-radius: var(--aqi-radius-lg);
+
+    .aqg-remediation__state-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .aqg-empty__body {
+        margin: 0;
+    }
+
+    .aqg-empty__actions {
+        margin: 4px 0 0;
+    }
+}
+
+// Header meta: site · provider and model · (budget, when available).
+.aqg-remediation__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    padding: 0;
+    margin: 0.25rem 0 0;
+    color: var(--aqi-fg-muted);
+    list-style: none;
+}
+
+// Queue views as a segmented control (Atlas aqg-tabs), with the live result count on the right.
+.aqg-remediation__viewbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 0.75rem;
+}
+
+.aqg-remediation__tabs .aqg-tabs__list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 3px;
+    margin: 0;
+    list-style: none;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+}
+
+// The tabs and the chip button are shared AQG buttons (btn btn-default) restyled as a segmented control.
+.aqg-module .btn.aqg-remediation__tab {
+    gap: 0.4rem;
+    color: var(--aqi-fg-muted);
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid transparent;
+
+    &:hover {
+        color: var(--aqi-fg);
+        background: transparent;
+        border-color: transparent;
+    }
+
+    &[aria-current="page"] {
+        color: var(--aqi-fg);
+        font-weight: 600;
+        background: var(--aqi-surface);
+        border-color: var(--aqi-border);
+    }
+}
+
+.aqg-remediation__count {
+    display: inline-block;
+    min-width: 1.5em;
+    padding: 0 0.35em;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: 999px;
+}
+
+// Filter toolbar (Atlas aqg-filterbar frame). Deliberate rows instead of ragged wrapping: in a wide module the search
+// and the five selects share one row; otherwise the search takes the first row and the selects share the second
+// (measured on the queue's own container, so an open page tree counts). Labels stay visible.
+.aqg-remediation__filters {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px 12px;
+    align-items: end;
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-lg);
+}
+
+.aqg-remediation__filters--log {
+    grid-template-columns: repeat(4, minmax(0, 12rem));
+}
+
+.aqg-remediation__filter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.aqg-remediation__filter--search {
+    grid-column: 1 / -1;
+}
+
+@container (min-width: 1080px) {
+    .aqg-remediation__filters:not(.aqg-remediation__filters--log) {
+        grid-template-columns: minmax(14rem, 2.2fr) repeat(5, minmax(6.5rem, 1fr));
+    }
+
+    .aqg-remediation__filter--search {
+        grid-column: auto;
+    }
+}
+
+.aqg-remediation__filter label {
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.aqg-remediation__resultcount {
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+// Focus lands here when the drawer closes after its item left this view (F-33).
+.aqg-remediation__resultcount:focus-visible {
+    outline: none;
+    border-radius: var(--aqi-radius-sm);
+    box-shadow: var(--aqi-focus-ring);
+}
+
+// The page filter of a deep link, as a removable chip.
+.aqg-remediation__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0;
+    margin: 0 0 0.75rem;
+    list-style: none;
+}
+
+.aqg-remediation__chip {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    padding: 0.1rem 0.25rem 0.1rem 0.6rem;
+    font-size: 0.85rem;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: 999px;
+}
+
+.aqg-module .btn.aqg-remediation__chip-remove {
+    width: 1.6rem;
+    min-height: 1.6rem;
+    padding: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 1rem;
+    line-height: 1;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 50%;
+
+    &:hover {
+        color: var(--aqi-fg);
+        background: var(--aqi-surface-2);
+    }
+}
+
+.aqg-remediation__queueview,
+.aqg-remediation__logview {
+    container-type: inline-size;
+}
+
+.aqg-remediation__bulkbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0 0.5rem;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+}
+
+.aqg-remediation__bulkactions {
+    display: flex;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+}
+
+.aqg-remediation__tablewrap {
+    overflow: hidden;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-lg);
+}
+
+.aqg-remediation__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.aqg-remediation__table th,
+.aqg-remediation__table td {
+    padding: 10px 12px;
+    text-align: start;
+    vertical-align: top;
+    border-top: 1px solid var(--aqi-divider);
+}
+
+.aqg-remediation__table thead th {
+    padding-block: 8px;
+    color: var(--aqi-fg-muted);
+    background: var(--aqi-surface-2);
+    border-top: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.aqg-remediation__row:hover > td {
+    background: color-mix(in oklch, var(--aqi-surface-2) 60%, var(--aqi-surface));
+}
+
+.aqg-remediation__col-select { width: 2.25rem; }
+.aqg-remediation__col-where { width: 22%; }
+.aqg-remediation__col-issue { width: 24%; }
+.aqg-remediation__col-status { width: 17%; }
+.aqg-remediation__col-action { width: 1%; text-align: end !important; white-space: nowrap; }
+
+.aqg-remediation__page {
+    display: block;
+    color: var(--aqi-fg);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.aqg-remediation__issue {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+}
+
+.aqg-remediation__issue .aqg-remediation__sev {
+    order: 2;
+}
+
+.aqg-remediation__title {
+    padding: 0;
+    color: inherit;
+    font-weight: 600;
+    text-align: start;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+    text-underline-offset: 0.2em;
+    background: none;
+    border: 0;
+    cursor: pointer;
+
+    &:hover { text-decoration-color: currentColor; }
+}
+
+// Without a proposal the change cell holds the one reason (two lines; the drawer shows it in full).
+.aqg-remediation__nochange {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.aqg-remediation__nochange.is-prepFailed {
+    color: var(--aqi-err);
+}
+
+.aqg-remediation__rowmeta {
+    display: block;
+    margin-top: 4px;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-remediation__owner-text--unassigned {
+    font-style: italic;
+}
+
+.aqg-module .btn.aqg-remediation__next {
+    min-width: 4.5rem;
+}
+
+.aqg-module .btn.aqg-remediation__next.is-review {
+    color: var(--aqi-surface);
+    background: var(--aqi-fg);
+    border-color: var(--aqi-fg);
+}
+
+.aqg-remediation__title,
+.aqg-remediation__drawer-title,
+.aqg-remediation__sent summary,
+.aqg-remediation__provenance summary,
+.aqg-remediation__bulkitem summary,
+.aqg-remediation__state[tabindex],
+.aqg-remediation__summary[tabindex] {
+    &:focus-visible {
+        outline: none;
+        border-radius: var(--aqi-radius-sm);
+        box-shadow: var(--aqi-focus-ring);
+    }
+}
+
+.aqg-remediation__uid,
+.aqg-remediation__target,
+.aqg-remediation__hash,
+.aqg-remediation__by,
+.aqg-remediation__reason {
+    display: block;
+    color: var(--aqi-fg-muted);
+    font-size: 0.8rem;
+}
+
+.aqg-remediation__uid {
+    display: inline;
+}
+
+.aqg-remediation__diffline,
+.aqg-remediation__diff dd {
+    overflow-wrap: anywhere;
+}
+
+.aqg-remediation__before {
+    color: var(--aqi-fg-muted);
+    text-decoration: line-through;
+}
+
+.aqg-remediation__after {
+    font-weight: 600;
+}
+
+.aqg-remediation__sev,
+.aqg-remediation__owner,
+.aqg-remediation__status,
+.aqg-remediation__badge {
+    display: inline-flex;
+    gap: 0.3em;
+    align-items: center;
+    padding: 0.05em 0.5em;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    white-space: nowrap;
+    border: 1px solid var(--aqi-border);
+    border-radius: 999px;
+}
+
+.aqg-remediation__sev--critical { color: var(--aqi-err); background: var(--aqi-err-bg); border-color: var(--aqi-err-border); }
+.aqg-remediation__sev--warning { color: var(--aqi-warn); background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+.aqg-remediation__sev--info,
+.aqg-remediation__sev--needs_review { color: var(--aqi-fg-muted); background: var(--aqi-surface-2); }
+
+/* Owner is a role, not a severity: neutral chips; Unassigned is dashed (Atlas, not the rejected violet chip). */
+.aqg-remediation__owner { color: var(--aqi-fg); background: var(--aqi-surface); }
+.aqg-remediation__owner--unassigned { border-style: dashed; color: var(--aqi-fg-muted); }
+
+.aqg-remediation__status-glyph {
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--aqi-fg-muted);
+}
+
+.aqg-remediation__status--pending_review .aqg-remediation__status-glyph,
+.aqg-remediation__status--preparing .aqg-remediation__status-glyph,
+.aqg-remediation__status--approved .aqg-remediation__status-glyph { background: var(--aqi-run); }
+.aqg-remediation__status--in_editor { border-style: dashed; border-color: var(--aqi-run-border); }
+.aqg-remediation__status--saved .aqg-remediation__status-glyph { background: var(--aqi-run); border-radius: 2px; }
+.aqg-remediation__status--verified { color: var(--aqi-ok); background: var(--aqi-ok-bg); border-color: var(--aqi-ok-border); }
+.aqg-remediation__status--verified .aqg-remediation__status-glyph { background: var(--aqi-ok); }
+.aqg-remediation__status--not_verified { border-style: dashed; color: var(--aqi-warn); border-color: var(--aqi-warn-border); }
+.aqg-remediation__status--not_verified .aqg-remediation__status-glyph { background: var(--aqi-warn); }
+.aqg-remediation__status--conflict,
+.aqg-remediation__status--failed { color: var(--aqi-err); background: var(--aqi-err-bg); border-color: var(--aqi-err-border); }
+.aqg-remediation__status--conflict .aqg-remediation__status-glyph,
+.aqg-remediation__status--failed .aqg-remediation__status-glyph { background: var(--aqi-err); }
+
+/* Review drawer: modal from the table (focus trapped, Esc returns to the row title). */
+.aqg-remediation__drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    display: flex;
+    justify-content: flex-end;
+    background: rgb(0 0 0 / 35%);
+}
+
+.aqg-remediation__drawer[hidden] {
+    display: none;
+}
+
+.aqg-remediation__drawer-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100vw);
+    height: 100%;
+    color: var(--aqi-fg);
+    background: var(--aqi-surface);
+    border-inline-start: 1px solid var(--aqi-border);
+    box-shadow: -8px 0 32px rgb(0 0 0 / 20%);
+}
+
+.aqg-remediation__drawer-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+}
+
+.aqg-remediation__drawer-head,
+.aqg-remediation__dialog-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--aqi-border);
+}
+
+.aqg-remediation__drawer-head {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 8px;
+    padding: 14px 16px 12px;
+    background: var(--aqi-surface-2);
+}
+
+.aqg-remediation__drawer-titlerow,
+.aqg-remediation__drawer-subrow {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.aqg-remediation__drawer-subrow {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.aqg-remediation__drawer-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 650;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+.aqg-module .btn.aqg-remediation__drawer-close {
+    flex: none;
+    width: 31px;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.aqg-remediation__drawer-nav {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.aqg-remediation__position {
+    margin-inline-end: 4px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-remediation__drawer-scroll {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+// Drawer sections share one rhythm: a small heading, then content; dividers instead of nested boxes.
+.aqg-remediation__section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+}
+
+.aqg-remediation__section + .aqg-remediation__section {
+    padding-top: 14px;
+    border-top: 1px solid var(--aqi-divider);
+}
+
+.aqg-remediation__status-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+}
+
+.aqg-remediation__ownerline {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    margin-inline-start: auto;
+    font-size: 12px;
+}
+
+.aqg-remediation__facts {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 0.75rem;
+    margin: 0;
+}
+
+.aqg-remediation__facts dt {
+    color: var(--aqi-fg-muted);
+    font-weight: 600;
+}
+
+.aqg-remediation__facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.aqg-remediation__permission {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    background: var(--aqi-surface-2);
+    border-radius: var(--aqi-radius-sm);
+}
+
+.aqg-remediation__permission.is-can_apply { color: var(--aqi-ok); }
+
+.aqg-remediation__suggestion {
+    padding: 0;
+}
+
+.aqg-remediation__suggestion .aqg-remediation__diff {
+    margin: 0;
+}
+
+// State panels: the single place a failure, a missing suggestion or a waiting state is explained (no side stripe).
+.aqg-remediation__panel {
+    padding: 10px 12px;
+    color: var(--aqi-fg);
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+
+    p { margin: 0; }
+}
+
+.aqg-remediation__panel.is-error { background: var(--aqi-err-bg); border-color: var(--aqi-err-border); }
+.aqg-remediation__panel.is-notice { background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+.aqg-remediation__panel.is-pending { background: var(--aqi-run-bg); border-color: var(--aqi-run-border); }
+
+.aqg-remediation__panel-title {
+    font-weight: 600;
+}
+
+.aqg-remediation__panel.is-error .aqg-remediation__panel-title { color: var(--aqi-err); }
+
+.aqg-remediation__panel-text {
+    margin-top: 3px !important;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.aqg-remediation__suggestion-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+// Box and drawer section titles (page summary, Suggestion, History, Reject): the card title of the scale.
+.aqg-remediation__h3 {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.aqg-remediation__diff {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.35rem 0.75rem;
+    margin: 0.6rem 0;
+}
+
+.aqg-remediation__diff dt {
+    font-weight: 600;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-remediation__diff dd {
+    margin: 0;
+    padding: 0.3rem 0.5rem;
+    white-space: pre-wrap;
+    border-radius: var(--aqi-radius-sm);
+}
+
+.aqg-remediation__diff-before { background: var(--aqi-err-bg); }
+.aqg-remediation__diff-after { background: var(--aqi-ok-bg); }
+
+.aqg-remediation__why,
+.aqg-remediation__usage {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+}
+
+.aqg-remediation__sent summary,
+.aqg-remediation__provenance summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.aqg-remediation__edit,
+.aqg-remediation__reject {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+}
+
+.aqg-remediation__edit-actions,
+.aqg-remediation__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.6rem 0;
+}
+
+.aqg-remediation__fielderror,
+.aqg-remediation__error {
+    margin: 0;
+    color: var(--aqi-err);
+    flex-basis: 100%;
+}
+
+.aqg-remediation__outcome-text {
+    margin: 0;
+}
+
+// Atlas 08·B "Saved and verified": the outcome as a callout with a status edge; the words carry the state.
+.aqg-remediation__outcome-text.is-verified,
+.aqg-remediation__outcome-text.is-not_verified,
+.aqg-remediation__outcome-text.is-saved,
+.aqg-remediation__outcome-text.is-conflict,
+.aqg-remediation__outcome-text.is-failed {
+    padding: 0.6rem 0.75rem;
+    color: var(--aqi-fg);
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+}
+
+.aqg-remediation__outcome-text.is-verified { background: var(--aqi-ok-bg); border-color: var(--aqi-ok-border); }
+.aqg-remediation__outcome-text.is-not_verified { background: var(--aqi-warn-bg); border-color: var(--aqi-warn-border); }
+.aqg-remediation__outcome-text.is-conflict,
+.aqg-remediation__outcome-text.is-failed { background: var(--aqi-err-bg); border-color: var(--aqi-err-border); }
+
+// Queue-only outcome tones (Atlas 08 screen styles): approved is decided but not yet in the record; conflict blocks.
+
+.aqg-remediation__drawer .aqg-ladder {
+    margin: 0;
+}
+
+// Sticky drawer foot (Atlas .aqg-drawer__foot): the decision stays in reach while the change scrolls.
+.aqg-remediation__drawer-foot {
+    flex: none;
+    padding: 12px 16px;
+    background: var(--aqi-surface);
+    border-top: 1px solid var(--aqi-border);
+    box-shadow: 0 -6px 12px -10px rgb(0 0 0 / 25%);
+
+    .aqg-remediation__actions {
+        margin: 0;
+        gap: 8px;
+    }
+
+    .aqg-remediation__note {
+        margin: 2px 0 0;
+        font-size: 12px;
+    }
+}
+
+.aqg-remediation__drawer-foot:not(:has(.btn, .aqg-remediation__reject)) {
+    display: none;
+}
+
+.aqg-remediation__links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0 2px;
+    margin-inline-start: auto;
+}
+
+.aqg-remediation__links .btn-link {
+    padding-inline: 6px;
+}
+
+.aqg-remediation__statussection .aqg-remediation__permission {
+    margin: 0;
+}
+
+.aqg-remediation__diffwrap {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+
+    .aqg-remediation__diff {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.aqg-remediation__preview {
+    flex: none;
+    width: 96px;
+    height: 96px;
+    margin-top: 0.6rem;
+    object-fit: contain;
+    background: var(--aqi-surface-2);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-sm);
+}
+
+.aqg-remediation__diff dd.is-editable {
+    padding: 0;
+    background: transparent;
+}
+
+.aqg-remediation__diff dt label {
+    margin: 0;
+    font-weight: inherit;
+}
+
+.aqg-remediation__aftervalue {
+    min-height: 4.5em;
+    white-space: pre-wrap;
+    resize: vertical;
+}
+
+.aqg-remediation__aftervalue:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-remediation__edit {
+    margin-top: 0;
+}
+
+.aqg-remediation__history {
+    padding-inline-start: 1.2rem;
+    font-size: 0.85rem;
+}
+
+// Conflict (Atlas 08·B): base / saved now / suggested; "saved now" carries the warning edge.
+.aqg-remediation__drawer-scroll {
+    container-type: inline-size;
+}
+
+.aqg-remediation__conflict {
+    margin: 0.75rem 0;
+}
+
+.aqg-remediation__conflict-notice {
+    padding: 0.6rem 0.75rem;
+    margin: 0 0 0.6rem;
+    background: var(--aqi-warn-bg);
+    border: 1px solid var(--aqi-warn-border);
+    border-radius: var(--aqi-radius);
+
+    p {
+        margin: 0.25rem 0 0;
+    }
+}
+
+.aqg-remediation__threeway {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.aqg-remediation__threeway-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-sm);
+
+    &.is-current {
+        border-color: var(--aqi-warn-border);
+        box-shadow: inset 3px 0 0 var(--aqi-warn);
+    }
+}
+
+.aqg-remediation__threeway-title {
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+@container (max-width: 420px) {
+    .aqg-remediation__threeway {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// Change log (Atlas 08·E).
+.aqg-remediation__logchange strong {
+    display: block;
+}
+
+.aqg-remediation__logstatus {
+    display: block;
+    font-size: 0.85rem;
+}
+
+.aqg-remediation__logdetails summary {
+    cursor: pointer;
+    color: var(--aqi-fg-muted);
+    font-size: 0.78rem;
+}
+
+.aqg-remediation__hash {
+    font-family: var(--aqi-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.75rem;
+}
+
+.aqg-remediation__age {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Bulk review dialog (native modal dialog). */
+.aqg-remediation__dialog {
+    width: min(720px, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    padding: 0;
+    color: var(--aqi-fg);
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+}
+
+.aqg-remediation__dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.aqg-remediation__dialog::backdrop {
+    background: rgb(0 0 0 / 40%);
+}
+
+.aqg-remediation__dialog-body {
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.aqg-remediation__dialog-foot {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--aqi-border);
+}
+
+.aqg-remediation__bulklist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-inline-start: 1.25rem;
+}
+
+.aqg-remediation__bulkitem summary {
+    cursor: pointer;
+}
+
+.aqg-remediation__bulkdecision {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    margin-top: 0.35rem;
+}
+
+.aqg-remediation__bulkdecision input[aria-disabled="true"] {
+    opacity: 0.5;
+}
+
+.aqg-remediation__results .is-verified strong { color: var(--aqi-ok); }
+.aqg-remediation__results .is-conflict strong,
+.aqg-remediation__results .is-failed strong { color: var(--aqi-err); }
+.aqg-remediation__results .is-not_verified strong { color: var(--aqi-warn); }
+
+/* Queue and change-log pagination use the shared `.aqg-pagination` footer (backend.css, components/_pagination). */
+.aqg-remediation__pagination {
+    margin-bottom: 0.75rem;
+}
+
+/*
+ * Page Detail: the AI part of an occurrence. One action row aligned with the occurrence text (after the selection
+ * column), then the result blocks of "Explain with AI" and "Fix with AI". Atlas "Reviewed Margin": AI owns no colour;
+ * an explanation is a Raised Grey panel, a Fix outcome a notice in its state tone (text + tint + edge, plus a glyph and
+ * a heading, so colour is never the only signal).
+ */
+.aqg-remediation-occ {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    // Aligned with the occurrence text, like the inline image / link suggestions (after the selection column).
+    margin: 0 0 0 28px;
+    font-size: 12.5px;
+}
+
+.aqg-remediation-occ__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.aqg-remediation-occ__reason {
+    flex-basis: 100%;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-remediation-occ__results:not(:has(> :not([hidden]))) {
+    display: none;
+}
+
+.aqg-remediation-occ__results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.aqg-remediation-occ .btn[aria-disabled="true"] {
+    opacity: 0.65;
+    cursor: progress;
+}
+
+.aqg-ai-cost {
+    margin-inline-start: 6px;
+    color: var(--aqi-fg-muted);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-ai-result {
+    --aqg-ai-result-tone: var(--aqi-fg-muted);
+    max-width: 92ch;
+    padding: 10px 12px;
+    border: 1px solid var(--aqi-border-soft);
+    border-radius: 8px;
+    background: var(--aqi-surface-2, var(--aqi-surface));
+    color: var(--aqi-fg);
+    font-size: 13px;
+    line-height: 1.45;
+
+    &[hidden] {
+        display: none;
+    }
+
+    p {
+        margin: 0;
+    }
+
+    > * + * {
+        margin-top: 6px;
+    }
+}
+
+.aqg-ai-result--fix {
+    border-inline-start-width: 3px;
+}
+
+.aqg-ai-result--ok { --aqg-ai-result-tone: var(--aqi-ok); border-color: var(--aqi-ok-border); background: color-mix(in srgb, var(--aqi-ok-bg) 55%, var(--aqi-surface)); }
+.aqg-ai-result--info { --aqg-ai-result-tone: var(--aqi-run); border-color: var(--aqi-run-border); background: color-mix(in srgb, var(--aqi-run-bg) 55%, var(--aqi-surface)); }
+.aqg-ai-result--warn { --aqg-ai-result-tone: var(--aqi-warn); border-color: var(--aqi-warn-border); background: color-mix(in srgb, var(--aqi-warn-bg) 55%, var(--aqi-surface)); }
+.aqg-ai-result--err { --aqg-ai-result-tone: var(--aqi-err); border-color: var(--aqi-err-border); background: color-mix(in srgb, var(--aqi-err-bg) 55%, var(--aqi-surface)); }
+.aqg-ai-result--explain.aqg-ai-result--neutral { border-color: var(--aqi-border-soft); }
+
+.aqg-ai-result__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+}
+
+.aqg-ai-result__glyph {
+    flex: none;
+    align-self: center;
+    width: 14px;
+    height: 14px;
+    background: var(--aqg-ai-result-tone);
+    -webkit-mask: var(--aqg-ai-result-icon, none) center / contain no-repeat;
+    mask: var(--aqg-ai-result-icon, none) center / contain no-repeat;
+}
+
+// Glyphs repeat the heading; the words carry the meaning.
+.aqg-ai-result--ok .aqg-ai-result__glyph { --aqg-ai-result-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.7 5.7-4.5 5a1 1 0 0 1-1.5 0L4.3 9.2a1 1 0 0 1 1.4-1.4l.8.8 3.8-4.2a1 1 0 1 1 1.4 1.3Z'/%3E%3C/svg%3E"); }
+.aqg-ai-result--warn .aqg-ai-result__glyph,
+.aqg-ai-result--err .aqg-ai-result__glyph { --aqg-ai-result-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm0 12a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V4a1 1 0 0 1 2 0Z'/%3E%3C/svg%3E"); }
+.aqg-ai-result--info .aqg-ai-result__glyph { --aqg-ai-result-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm1 12a1 1 0 0 1-2 0V7a1 1 0 0 1 2 0Zm-1-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/%3E%3C/svg%3E"); }
+.aqg-ai-result--explain .aqg-ai-result__glyph { display: none; }
+
+.aqg-ai-result[aria-busy="true"] .aqg-ai-result__glyph {
+    --aqg-ai-result-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 2a6 6 0 1 0 6 6h-2a4 4 0 1 1-4-4Z'/%3E%3C/svg%3E");
+    display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .aqg-ai-result[aria-busy="true"] .aqg-ai-result__glyph { animation: aqg-ai-spin 0.9s linear infinite; }
+}
+
+@keyframes aqg-ai-spin {
+    to { transform: rotate(360deg); }
+}
+
+.aqg-ai-result__title {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.35;
+
+    &:focus {
+        outline: none;
+    }
+
+    &:focus-visible {
+        border-radius: var(--aqi-radius-sm);
+        box-shadow: var(--aqi-focus-ring);
+    }
+}
+
+.aqg-ai-result__meta,
+.aqg-ai-result__subject,
+.aqg-ai-result__usage {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-ai-result__body {
+    display: grid;
+    gap: 2px;
+    margin: 6px 0 0;
+
+    dt {
+        margin-top: 4px;
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    dt:first-child {
+        margin-top: 0;
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.aqg-ai-result__changed {
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+
+    strong {
+        color: var(--aqi-fg);
+        font-weight: 600;
+    }
+}
+
+.aqg-ai-result__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 2px;
+}
+
+.aqg-ai-result__sent > summary {
+    font-size: 12px;
+}
+
+.aqg-rulecard__owner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-remediation-summary__about {
+    margin: 0.5rem 0 0;
+    color: var(--aqi-fg-muted);
+    font-size: 12.5px;
+
+    > summary {
+        width: fit-content;
+        color: var(--aqi-fg);
+        cursor: pointer;
+
+        &:focus-visible {
+            outline: none;
+            border-radius: var(--aqi-radius-sm);
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    > ul {
+        max-width: 92ch;
+        margin: 6px 0 0;
+        padding-left: 20px;
+    }
+
+    li + li {
+        margin-top: 3px;
+    }
+}
+
+// Narrow module column: result actions grow to comfortable full-width targets.
+@container (max-width: 560px) {
+    .aqg-ai-result__actions .btn { flex: 1 1 auto; }
+}
+
+.aqg-remediation-occ .aqg-remediation__nocode {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-remediation-plan ol {
+    padding-inline-start: 1.25rem;
+}
+
+.aqg-remediation-plan__group {
+    margin: 0 0 0.75rem;
+}
+
+// Narrow module column (Atlas 08·F): measured on the list's own container, so a wide page tree counts too. Rows
+// become stacked blocks with their translated column labels; no horizontal scroll.
+@container (max-width: 660px) {
+    .aqg-remediation__filters,
+    .aqg-remediation__filters--log { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .aqg-remediation__filter--search { grid-column: 1 / -1; }
+    .aqg-remediation__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .aqg-remediation__table,
+    .aqg-remediation__table tbody,
+    .aqg-remediation__table tr,
+    .aqg-remediation__table td { display: block; width: 100%; }
+    .aqg-remediation__table tr { padding: 0.5rem 0; border-bottom: 1px solid var(--aqi-border); }
+    .aqg-remediation__table td { padding: 0.15rem 0.75rem; border: 0; }
+    .aqg-remediation__table td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--aqi-fg-muted);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+    .aqg-remediation__table tr { position: relative; padding: 10px 0; border-top: 1px solid var(--aqi-divider); border-bottom: 0; }
+    .aqg-remediation__table tbody tr:first-child { border-top: 0; }
+    .aqg-remediation__table td { padding: 4px 14px; width: auto !important; }
+    .aqg-remediation__table td.aqg-remediation__col-select { position: absolute; top: 12px; right: 4px; width: auto; }
+    .aqg-remediation__table td.aqg-remediation__col-action { text-align: start !important; padding-top: 8px; }
+    .aqg-remediation__row:hover > td { background: none; }
+}
+
+@media (max-width: 660px) {
+    .aqg-remediation__drawer-panel { width: 100vw; }
+    .aqg-remediation__drawer-head { position: sticky; top: 0; background: var(--aqi-surface); }
+    .aqg-remediation__actions .btn-primary { flex: 1 1 100%; }
+    .aqg-remediation__diffwrap { flex-direction: column; }
+}
+
+// Dark preference: a deeper backdrop and shadow (colours themselves come from the tokens).
+@mixin aqg-remediation-dark {
+    .aqg-remediation__drawer { background: rgb(0 0 0 / 55%); }
+    .aqg-remediation__drawer-panel { box-shadow: -8px 0 32px rgb(0 0 0 / 50%); }
+    .aqg-remediation__dialog::backdrop { background: rgb(0 0 0 / 60%); }
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-color-scheme="light"]) {
+        @include aqg-remediation-dark;
+    }
+}
+
+html[data-color-scheme="dark"] {
+    @include aqg-remediation-dark;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .aqg-remediation__drawer-panel { animation: aqg-remediation-slide 0.15s ease-out; }
+}
+
+@keyframes aqg-remediation-slide {
+    from { transform: translateX(24px); opacity: 0.6; }
+    to { transform: none; opacity: 1; }
+}
+
+// A top-level Page detail panel, framed like the rule cards and the filter bar beside it.
+.aqg-remediation-summary {
+    padding: 12px 14px;
+    margin: 0 0 1rem;
+    background: var(--aqi-surface);
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius-lg);
+}
+
+.aqg-remediation-summary__line {
+    margin: 0.25rem 0 0;
+}
+
+.aqg-remediation-summary__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.aqg-remediation-summary__live:empty,
+.aqg-remediation-occ__live:empty {
+    display: none;
+}
+
+.aqg-remediation-occ .aqg-media-wand-icon {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    margin-inline-end: 0.35rem;
+    vertical-align: -1px;
+    background: currentColor;
+    -webkit-mask: url("../Icons/ai-wand.svg") center / contain no-repeat;
+    mask: url("../Icons/ai-wand.svg") center / contain no-repeat;
+}
+
+.aqg-remediation-occ__owner summary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.aqg-remediation-occ__owner summary::-webkit-details-marker {
+    display: none;
+}
+
+.aqg-remediation-occ__owner[open] .aqg-menu__panel {
+    z-index: 5;
+}
+
+.aqg-remediation-occ__owner [aria-pressed="true"] {
+    font-weight: 600;
+}
+
+.aqg-remediation-occ__dev summary {
+    cursor: pointer;
+}
+
+/* Native checkboxes: AQG's module reset leaves unclassed form-check inputs without a size. */
+.aqg-remediation input[type="checkbox"] {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    appearance: auto;
+    accent-color: var(--aqi-fg);
+    cursor: pointer;
+}
+
+// Provenance closes the drawer's reading order with the same divider as the sections above it.
+.aqg-remediation__drawer-scroll > .aqg-remediation__provenance {
+    padding-top: 14px;
+    border-top: 1px solid var(--aqi-divider);
+
+    > p { margin: 0 0 6px; font-size: 12.5px; }
+}

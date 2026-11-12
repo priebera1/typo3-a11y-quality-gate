@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
+use Priebera\A11yQualityGate\Service\RemoteResultsTooLargeException;
 use Priebera\A11yQualityGate\Export\AcceptanceEvidenceBuilder;
 use Priebera\A11yQualityGate\Export\ExportFilename;
 use Priebera\A11yQualityGate\Export\IssueExporter;
@@ -46,6 +48,7 @@ final class ExportController
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly StreamFactoryInterface $streamFactory,
         private readonly ?FrontendPageUrlService $frontendPageUrlService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
     ) {
     }
 
@@ -60,9 +63,13 @@ final class ExportController
                 $context['remoteScanUid']
             );
 
+            $target = $ownerSiteIdentifier !== '' && $context['remotePageUid'] <= 0
+                ? $this->authorizedOverviewTarget($ownerSiteIdentifier, $context['remoteScanUid'], $context['pageUid'], (int)$context['languageUid'])
+                : null;
             if (
                 $ownerSiteIdentifier === ''
-                || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
+                || ($context['remotePageUid'] <= 0 && $target === null)
+                || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'], (int)($context['pageUid'] ?? 0), (int)$context['languageUid'])
                 || !$this->hasPaidRemoteAccess($ownerSiteIdentifier)
             ) {
                 return $this->downloadResponse(
@@ -74,11 +81,9 @@ final class ExportController
             }
 
             return $this->buildRemoteCsvResponse(
-                siteIdentifier: $context['siteIdentifier'],
+                siteIdentifier: $ownerSiteIdentifier,
                 remotePageUid: $context['remotePageUid'],
-                remoteScanUid: $context['remoteScanUid'],
-                pageUid: $context['pageUid'],
-                languageUid: $context['languageUid'],
+                target: $target['scan'] ?? null,
             );
         }
 
@@ -96,6 +101,9 @@ final class ExportController
             pageUid: $context['pageUid'],
             status: $context['status'],
             severity: $context['severity'],
+            languageUid: $context['localLanguageUid'],
+            // A site export lists only pages the user may show, like the Overview it is started from.
+            readablePagesClause: $this->scopeAccessService->readablePagesClause(),
         );
 
         return $this->downloadResponse(
@@ -116,9 +124,13 @@ final class ExportController
                 $context['remoteScanUid']
             );
 
+            $target = $ownerSiteIdentifier !== '' && $context['remotePageUid'] <= 0
+                ? $this->authorizedOverviewTarget($ownerSiteIdentifier, $context['remoteScanUid'], $context['pageUid'], (int)$context['languageUid'])
+                : null;
             if (
                 $ownerSiteIdentifier === ''
-                || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'])
+                || ($context['remotePageUid'] <= 0 && $target === null)
+                || !$this->canAccessRemoteExport($context['siteIdentifier'], $context['remotePageUid'], $context['remoteScanUid'], (int)($context['pageUid'] ?? 0), (int)$context['languageUid'])
             ) {
                 return $this->downloadResponse(
                     content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
@@ -146,11 +158,9 @@ final class ExportController
 
             return $this->buildRemotePdfResponse(
                 request: $request,
-                siteIdentifier: $context['siteIdentifier'],
+                siteIdentifier: $ownerSiteIdentifier,
                 remotePageUid: $context['remotePageUid'],
-                remoteScanUid: $context['remoteScanUid'],
-                pageUid: $context['pageUid'],
-                languageUid: $context['languageUid'],
+                target: $target['scan'] ?? null,
             );
         }
 
@@ -189,12 +199,16 @@ final class ExportController
                 status: $context['status'],
                 severity: $context['severity'],
                 request: $request,
+                languageUid: $context['localLanguageUid'],
+                readablePagesClause: $this->scopeAccessService->readablePagesClause(),
             )
             : $this->pdfReportBuilder->buildOverviewPdf(
                 siteIdentifier: $context['siteIdentifier'],
                 status: $context['status'],
                 severity: $context['severity'],
                 request: $request,
+                languageUid: $context['localLanguageUid'],
+                readablePagesClause: $this->scopeAccessService->readablePagesClause(),
             );
 
         return $this->downloadResponse(
@@ -213,7 +227,8 @@ final class ExportController
      *   scope:string,
      *   remotePageUid:int,
      *   remoteScanUid:int,
-     *   languageUid:int
+     *   languageUid:int,
+     *   localLanguageUid:int
      * }
      */
     private function parseExportContext(ServerRequestInterface $request): array
@@ -245,6 +260,11 @@ final class ExportController
         $remotePageUid = (int)($request->getQueryParams()['remotePageUid'] ?? 0);
         $remoteScanUid = (int)($request->getQueryParams()['remoteScanUid'] ?? 0);
         $languageUid = $this->requestParameterService->getLanguageUid($request, 0);
+        // Content scan exports cover the language the view shows (its links always name it); -1 ("all") exports every
+        // language explicitly, and so does a link without a language (exports made before the parameter existed).
+        $localLanguageUid = $this->requestParameterService->hasLanguageParameter($request->getQueryParams())
+            ? $this->requestParameterService->getLanguageUid($request, -1)
+            : -1;
 
         return [
             'siteIdentifier' => $siteIdentifier,
@@ -255,19 +275,19 @@ final class ExportController
             'remotePageUid' => $remotePageUid,
             'remoteScanUid' => $remoteScanUid,
             'languageUid' => $languageUid,
+            'localLanguageUid' => $localLanguageUid,
         ];
     }
 
+    /** @param array<string, mixed>|null $target the authorized scan (authorizedOverviewTarget()), null for none */
     private function buildRemoteCsvResponse(
         string $siteIdentifier,
         int $remotePageUid,
-        int $remoteScanUid,
-        ?int $pageUid,
-        int $languageUid,
+        ?array $target,
     ): ResponseInterface {
         $csv = $remotePageUid > 0
             ? $this->remoteExportBuilder->buildPageCsv($remotePageUid)
-            : $this->remoteExportBuilder->buildOverviewCsv($siteIdentifier, $remoteScanUid, $pageUid, $languageUid);
+            : $this->remoteExportBuilder->buildOverviewCsvForTarget($target);
 
         return $this->downloadResponse(
             content: "\xEF\xBB\xBF" . $csv,
@@ -282,13 +302,11 @@ final class ExportController
         ServerRequestInterface $request,
         string $siteIdentifier,
         int $remotePageUid,
-        int $remoteScanUid,
-        ?int $pageUid,
-        int $languageUid,
+        ?array $target,
     ): ResponseInterface {
         $pdf = $remotePageUid > 0
             ? $this->remoteExportBuilder->buildPagePdf($remotePageUid, $request)
-            : $this->remoteExportBuilder->buildOverviewPdf($siteIdentifier, $request, $remoteScanUid, $pageUid, $languageUid);
+            : $this->remoteExportBuilder->buildOverviewPdfForTarget($siteIdentifier, $target, $request);
 
         return $this->downloadResponse(
             content: $pdf,
@@ -318,7 +336,9 @@ final class ExportController
         );
         $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
 
-        if ($pair === null || !$site instanceof Site || !$this->scopeAccessService->canEditRemoteScan($pair['to'])) {
+        // Sol R05: acceptance evidence compares every page of both scans; only administrators read all of them.
+        $restricted = $this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser();
+        if ($restricted || $pair === null || !$site instanceof Site || !$this->scopeAccessService->canEditRemoteScan($pair['to'])) {
             return $this->downloadResponse(
                 content: BackendLabelUtility::translate('module.accessDenied', 'Access denied.'),
                 filename: 'aqg-acceptance-evidence-access-denied.txt',
@@ -364,7 +384,7 @@ final class ExportController
             && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
     }
 
-    private function canAccessRemoteExport(string $siteIdentifier, int $remotePageUid, int $remoteScanUid = 0): bool
+    private function canAccessRemoteExport(string $siteIdentifier, int $remotePageUid, int $remoteScanUid = 0, int $pageUid = 0, int $languageUid = 0): bool
     {
         if ($remotePageUid > 0) {
             $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
@@ -377,7 +397,17 @@ final class ExportController
                 ? $this->remoteScanRepository->findScanByUid($remoteScanUid)
                 : null;
 
-            return is_array($remoteScan) && $this->canAccessRemoteScan($remoteScan);
+            return is_array($remoteScan) && $this->canAccessRemoteScan($remoteScan)
+                // Sol R05: a result page of a readable scan is still refused when its own page or record rights fail,
+                // answered like a page that does not exist.
+                && $this->isRemotePageVisible($remoteScan, $remotePageUid);
+        }
+
+        // F4 final review: without a result page the export may pick the latest scan of the requested page and language
+        // itself (also when the named scan is not completed, RemoteExportBuilder::resolveOverviewExportScan()). A
+        // translation record's uid (I-01 legacy rows stored it as language 0) is no export context in any case.
+        if ($pageUid > 0 && $this->scopeAccessService->isTranslationPageRecord($pageUid)) {
+            return false;
         }
 
         if ($remoteScanUid > 0) {
@@ -386,6 +416,11 @@ final class ExportController
         }
 
         if ($siteIdentifier === '') {
+            return false;
+        }
+        // Without a scan, a language the user may not use would name a scan the user may not read; its dates and scope
+        // would reach the export.
+        if ($languageUid >= 0 && !$this->scopeAccessService->canUseLanguage($languageUid)) {
             return false;
         }
 
@@ -446,23 +481,70 @@ final class ExportController
         return trim($requestedSiteIdentifier);
     }
 
-    private function canAccessRemoteScan(array $remoteScan): bool
+    /**
+     * @param array<string, mixed> $remoteScan
+     */
+    private function isRemotePageVisible(array $remoteScan, int $remotePageUid): bool
     {
-        $pageUid = (int)($remoteScan['page_uid'] ?? 0);
-        if ($pageUid > 0) {
-            return $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid);
-        }
-
-        $siteIdentifier = trim((string)($remoteScan['site_identifier'] ?? ''));
-        if ($siteIdentifier === '') {
+        if ($this->remoteResultAuthorizationService === null) {
             return false;
         }
+        if ($this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            return true;
+        }
+        try {
+            return $this->remoteResultAuthorizationService->authorize($remoteScan)->isResultPageVisible($remotePageUid);
+        } catch (RemoteResultsTooLargeException) {
+            return false;
+        }
+    }
 
-        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+    private function canAccessRemoteScan(array $remoteScan): bool
+    {
+        // Sol R03: a page scan needs the page itself, in the scan's site and language; never the site root for a page scan
+        // whose page was deleted or moved away. AUTH-03: a site scan needs edit access to the site root AND the scan's
+        // language (canEditRemoteScan()), the same rule as reading it — root rights alone never open a site scan of a
+        // language the user may not use.
+        return $this->scopeAccessService->canEditRemoteScan($remoteScan);
+    }
+
+    /**
+     * AUTH-03: resolve the one report target of a frontend overview export and authorize exactly that row.
+     *
+     * - A named scan that does not fit (other site, not completed, Free Remote Preview, other page, wrong scope) is
+     *   refused; no other scan replaces it.
+     * - A named or fallback scan the user may not export (canEditRemoteScan(): page/translation/language or root/language
+     *   rights) is refused; a fallback never moves on to another scan, so no metadata of a refused scan is rendered.
+     * - No stored scan at all: the "no completed scan" report, for users with edit access to the site root and the
+     *   requested language.
+     *
+     * @return array{scan: array<string, mixed>|null}|null null when the export is refused
+     */
+    private function authorizedOverviewTarget(string $ownerSiteIdentifier, int $remoteScanUid, ?int $pageUid, int $languageUid): ?array
+    {
+        if ($pageUid !== null && $pageUid > 0 && $this->scopeAccessService->isTranslationPageRecord($pageUid)) {
+            return null;
+        }
+        $target = $this->remoteExportBuilder->resolveOverviewExportTarget($ownerSiteIdentifier, $remoteScanUid, $pageUid, $languageUid);
+        if ($target['explicitInvalid'] || ($target['resultsUnsaved'] ?? false)) {
+            // F12-R1: an unsaved scan has no report to export (RemoteExportBuilder::resolveOverviewExportTarget()).
+            return null;
+        }
+        $scan = $target['scan'];
+        if (is_array($scan)) {
+            return (string)($scan['site_identifier'] ?? '') === $ownerSiteIdentifier && $this->canAccessRemoteScan($scan)
+                ? ['scan' => $scan]
+                : null;
+        }
+        if (!$this->scopeAccessService->canUseScanLanguage($languageUid)) {
+            return null;
+        }
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($ownerSiteIdentifier);
         $rootPageId = $site !== null ? (int)$site->getRootPageId() : 0;
 
-        return $rootPageId > 0
-            && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId);
+        return $rootPageId > 0 && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPageId)
+            ? ['scan' => null]
+            : null;
     }
 
     private function canExportPdf(?Site $site, string $siteIdentifier): bool

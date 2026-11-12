@@ -13,7 +13,8 @@ use Priebera\A11yQualityGate\Utility\ScanUrlUtility;
  * A comparison, a regression signal, a fix verification and acceptance evidence all claim that something
  * changed between two scans. That only holds when both scans looked at the same thing: the same site,
  * scope and scan type, the same language, the same start URL, and the same kind of scan (a Free Remote
- * Preview covers less than a paid scan). Anything else is a different measurement, never a baseline.
+ * Preview covers less than a paid scan; a preview scan of a page visitors could not open (Atlas D9) is never
+ * paired with a public scan of it, in either direction). Anything else is a different measurement, never a baseline.
  */
 final class RemoteScanPairingService
 {
@@ -39,6 +40,7 @@ final class RemoteScanPairingService
             && strtolower((string)($a['source_type'] ?? '')) === strtolower((string)($b['source_type'] ?? ''))
             && (int)($a['language_uid'] ?? -1) === (int)($b['language_uid'] ?? -1)
             && (int)($a['is_free_preview'] ?? 0) === (int)($b['is_free_preview'] ?? 0)
+            && self::isPagePreview($a) === self::isPagePreview($b)
             && ScanUrlUtility::comparable((string)($a['start_url'] ?? '')) === ScanUrlUtility::comparable((string)($b['start_url'] ?? ''));
     }
 
@@ -82,6 +84,7 @@ final class RemoteScanPairingService
             finishedBefore: $this->finishedAt($scan),
             excludeUid: (int)($scan['uid'] ?? 0),
             limit: self::PAIRING_CANDIDATE_LIMIT,
+            isPagePreview: self::isPagePreview($scan),
         );
 
         foreach ($candidates as $candidate) {
@@ -93,6 +96,16 @@ final class RemoteScanPairingService
         }
 
         return null;
+    }
+
+    /**
+     * Whether a stored scan is a preview scan of a page that was not public when it was submitted (legacy rows: public).
+     *
+     * @param array<string, mixed> $scan
+     */
+    public static function isPagePreview(array $scan): bool
+    {
+        return (int)($scan['is_page_preview'] ?? 0) === 1;
     }
 
     /**

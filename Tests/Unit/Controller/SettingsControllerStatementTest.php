@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Tests\Unit\Controller;
 
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -87,6 +88,19 @@ final class SettingsControllerStatementTest extends TestCase
         yield 'scan without checked pages' => ['scan_without_pages', 422, 422];
         yield 'unexpected failure' => ['statement_failed', 500, 500];
         yield 'failure without a status' => ['statement_unavailable', null, 503];
+    }
+
+    /** Sol post-review R05: a statement summarises every page of a scan; an editor who may read the root is refused. */
+    #[Test]
+    public function onlyAdministratorsGenerateAStatement(): void
+    {
+        $this->resultAccess = $this->administratorResultAccess(false);
+        $this->statementService->expects(self::never())->method('loadLatestSiteScan');
+        $this->statementService->expects(self::never())->method('loadByJobId');
+
+        $response = $this->subject()->generateAccessibilityStatementAction($this->request());
+
+        self::assertSame(403, $response->getStatusCode());
     }
 
     #[DataProvider('failureStatusProvider')]
@@ -388,10 +402,21 @@ final class SettingsControllerStatementTest extends TestCase
             [SettingsController::class, 'responseFactory', new ResponseFactory()],
             [SettingsController::class, 'streamFactory', new StreamFactory()],
             [SettingsController::class, 'scopeAccessService', $this->scopeAccess ??= $this->allowingScopeAccess()],
+            [SettingsController::class, 'remoteResultAuthorizationService', $this->resultAccess ??= $this->administratorResultAccess()],
         ] as [$class, $property, $value]) {
             (new ReflectionProperty($class, $property))->setValue($subject, $value);
         }
 
         return $subject;
+    }
+
+    private ?RemoteResultAuthorizationService $resultAccess = null;
+
+    private function administratorResultAccess(bool $administrator = true): RemoteResultAuthorizationService
+    {
+        $resultAccess = $this->createMock(RemoteResultAuthorizationService::class);
+        $resultAccess->method('isUnrestrictedUser')->willReturn($administrator);
+
+        return $resultAccess;
     }
 }

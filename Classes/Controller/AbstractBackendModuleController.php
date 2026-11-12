@@ -233,6 +233,7 @@ abstract class AbstractBackendModuleController
         string $siteIdentifier,
         array $availableLanguages,
         int $currentLanguageUid,
+        string $readablePagesClause = '',
     ): array {
         $baseParameters = $this->buildLanguageUrlParameters($request, [
             'localPage',
@@ -250,7 +251,7 @@ abstract class AbstractBackendModuleController
             $parameters['language'] = $languageUid;
 
             $pages = $siteIdentifier !== ''
-                ? $issueRepository->countOpenPageStatsForSite($siteIdentifier, '', $languageUid)
+                ? $issueRepository->countOpenPageStatsForSite($siteIdentifier, '', $languageUid, $readablePagesClause)
                 : 0;
 
             $options[] = $language + [
@@ -288,7 +289,7 @@ abstract class AbstractBackendModuleController
 
             $issueCount = 0;
             if ($siteIdentifier !== '' && $pageUid > 0) {
-                $counts = $issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid);
+                $counts = $issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid, '', true);
                 $issueCount = array_sum($counts);
             }
 

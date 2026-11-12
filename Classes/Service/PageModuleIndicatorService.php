@@ -42,6 +42,12 @@ final class PageModuleIndicatorService
         private readonly ?RemoteScanSubmissionTracker $remoteScanSubmissionTracker = null,
         private readonly ?ScanPermissionService $scanPermissionService = null,
         private readonly ?FreePreviewActivationService $freePreviewActivationService = null,
+        private readonly ?\Priebera\A11yQualityGate\Remediation\Workflow\RemediationPageSummaryService $remediationSummary = null,
+        private readonly ?\Priebera\A11yQualityGate\Remediation\Workflow\RemediationAccessService $remediationAccess = null,
+        private readonly ?RemotePageScanTargetResolver $remotePageScanTargetResolver = null,
+        private readonly ?\Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
+        private readonly ?ScopeAccessService $scopeAccessService = null,
     ) {
     }
 
@@ -81,6 +87,14 @@ final class PageModuleIndicatorService
         if ($pageUid <= 0 || !$site instanceof Site) {
             return null;
         }
+        // I-01: the panel is for a default-language page plus a language (that is how the Page module calls it). A
+        // translation record's uid read as language 0 filtered the translation's findings out and showed "No issues found"
+        // with the translation's scan time to editors without its language.
+        if ($this->scopeAccessService instanceof ScopeAccessService && $this->scopeAccessService->isTranslationPageRecord($pageUid)) {
+            return null;
+        }
+        $this->currentPageUidForCount = $pageUid;
+        $this->currentRemoteCountPage = null;
         // Web > Page access alone opens no AQG result: the panel follows the Accessibility module like its route.
         if ($this->accessControlService instanceof AccessControlService
             && !$this->accessControlService->canAccessModule($this->backendContextService->getBackendUser())
@@ -96,7 +110,7 @@ final class PageModuleIndicatorService
         $proStatus = $this->proStatusResolverService->resolveForSite($site);
         $hasRemoteScanCapability = (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
         $currentPageUrl = $hasRemoteScanCapability ? $this->frontendPageUrlService->resolveForPage($site, $pageUid, $languageUid) : '';
-        $counts = $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid);
+        $counts = $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid, '', true);
         $latestPageScan = $this->scanRepository->findLastCompletedPageScan($siteIdentifier, $pageUid, $languageUid);
         $latestLocalSourceScanAt = $this->sourceStateRepository->findLatestScanTimestampForPage($siteIdentifier, $pageUid, $languageUid);
         // A site scan checks this page too: a page without content records has no source state to show it.
@@ -125,12 +139,25 @@ final class PageModuleIndicatorService
         // only, a Free one reads its Free Remote Preview results for this page only.
         if ($hasRemoteScanCapability) {
             $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedRelevantScan($siteIdentifier, $pageUid, $languageUid, false);
-            $remotePage = $currentPageUrl !== ''
-                ? $this->newestRemotePage(
-                    $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl, false),
-                    $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier, false),
-                )
+            $pageScanPage = $currentPageUrl !== ''
+                ? $this->remoteScanRepository->findLatestPageForCompletedPageScan($siteIdentifier, $pageUid, $languageUid, $currentPageUrl, false)
                 : null;
+            $urlPage = $currentPageUrl !== '' ? $this->remoteScanRepository->findLatestPageByUrl($currentPageUrl, $siteIdentifier, false) : null;
+            $remotePage = $currentPageUrl !== '' ? $this->newestRemotePage($pageScanPage, $urlPage) : null;
+            // STATE-01: for a user who sees only the results they may read, a newer result they may not read (a reused URL,
+            // a crawl of another owner) does not hide an older one of this page they may read.
+            if (is_array($remotePage) && !$this->isRemoteResultUnrestricted() && $this->visibleRemoteIssueTypes($remotePage) === null) {
+                $candidates = [$pageScanPage, ...$this->remoteScanRepository->findRecentPagesByUrl($currentPageUrl, $siteIdentifier, false, 10)];
+                $readable = null;
+                foreach ($candidates as $candidate) {
+                    if (is_array($candidate) && $this->visibleRemoteIssueTypes($candidate) !== null) {
+                        $readable = $candidate;
+                        break;
+                    }
+                }
+                // Review F10-7: a result this user may not read is no result for them (its existence is not shown).
+                $remotePage = $readable;
+            }
         } else {
             $remoteCompletedScan = $this->remoteScanRepository->findLastCompletedPageScanByPageOrUrl(
                 $siteIdentifier,
@@ -175,9 +202,26 @@ final class PageModuleIndicatorService
             'language' => $languageUid,
         ]);
 
-        $localState = $this->resolveState($counts, $hasLocalScanState, $isLocalScanRunning);
-        $remoteState = $this->resolveRemoteState($remoteCompletedScan, $remotePage, $isRemoteScanRunning);
+        // STATE-01: a zero of the findings the user may read is clean only with a completed scan that covered this page in
+        // this language (a restricted site scan does not cover pages it left out, ScanRepository::excludesPage()), whose
+        // rendered check could fetch the page, read by a user who sees every result.
+        $coveringLocalScan = $this->newestLocalScan($latestPageScan, $latestSubtreeScan);
+        $renderedSkip = is_array($coveringLocalScan) ? \Priebera\A11yQualityGate\Scan\RenderedCoverage::skippedEntryFor($coveringLocalScan, $pageUid) : null;
+        $localEvidence = ResultEvidenceState::resolve(
+            running: $isLocalScanRunning,
+            hasEvidence: $hasLocalScanState,
+            visibleOpen: $this->hasOpenFindings($counts) ? 1 : 0,
+            restricted: !$this->isLocalResultUnrestricted(),
+            complete: is_array($coveringLocalScan) && !(is_array($renderedSkip) && (string)($renderedSkip['reason'] ?? '') === ''),
+        );
+        $localState = $this->stateForEvidence($localEvidence, $this->resolveState($counts, $hasLocalScanState, $isLocalScanRunning));
         $hasRemoteScanRun = $this->hasRemoteScanRun($remoteCompletedScan, $remotePage);
+        // The Free Remote Preview stores no page row link here; its result page (owner = this page) carries the readable
+        // findings for users who see only what they may read.
+        $remoteCountPage = $remotePage ?? (!$hasRemoteScanCapability ? $this->freeResultPage($remoteCompletedScan, $pageUid) : null);
+        $this->currentRemoteCountPage = $remoteCountPage;
+        $remoteEvidence = $this->remoteEvidence($remoteCompletedScan, $remotePage, $remoteCountPage, $isRemoteScanRunning, $hasRemoteScanRun);
+        $remoteState = $this->resolveRemoteState($remoteCompletedScan, $remotePage, $isRemoteScanRunning, $remoteEvidence);
         $overallState = $this->resolveOverallState($localState, $remoteState, $hasRemoteScanRun);
         $meta = $this->buildMeta($overallState, $scanStatus, $remoteActiveScan, $isRemoteScanStarting);
         // A site content scan also checks this page: say so instead of "Checking this page" for a whole-site scan.
@@ -191,11 +235,51 @@ final class PageModuleIndicatorService
         if (!$canScanPage) {
             $actions = array_values(array_filter($actions, static fn (array $action): bool => !$action['isScan']));
         }
+        // Atlas 06·A: "Frontend report" opens the frontend page report when this page has a stored frontend result.
+        $remotePageUid = (int)($remotePage['uid'] ?? 0);
+        // STATE-01 metadata boundary: the link (it carries the result's uid) only for a result the user may read; the
+        // detail route checks the scan and owner again.
+        if ($remotePageUid > 0 && !$this->isRemoteResultUnrestricted() && $this->visibleRemoteIssueTypes($remotePage) === null) {
+            $remotePageUid = 0;
+        }
+        if ($hasRemoteScanCapability && $remotePageUid > 0 && $overallState !== 'running') {
+            $actions[] = [
+                'label' => $this->translate('pageModuleIndicator.action.frontendReport', 'Frontend report'),
+                'url' => (string)$this->uriBuilder->buildUriFromRoute('web_a11y.remotePageDetail', [
+                    'remotePageUid' => $remotePageUid,
+                    'site' => $siteIdentifier,
+                    'id' => $pageUid,
+                ]),
+                'variant' => 'default',
+                'type' => 'link',
+                'isScan' => false,
+            ];
+        }
         $progress = $this->buildProgress($overallState, $remoteActiveScan);
         $headline = $this->buildPanelHeadline($overallState);
         $body = $this->buildBody($overallState, $isRemoteScanRunning, $isLocalSiteScanRunning);
+        if ($overallState === 'limited') {
+            $headline = $this->limitedHeadline($localState === 'limited' ? $localEvidence : $remoteEvidence);
+        }
         $remoteScanEnabled = $hasRemoteScanCapability && $currentPageUrl !== '';
+        // Atlas 09·E: a page visitors cannot open says so. "Scan again" here also starts the paid frontend scan, which the
+        // server stores as a preview scan of this page; "preview scan available" only when that scan can load it (crawler,
+        // a Scanner Token, and a restriction the token opens). Read from TYPO3 and local settings, never from the API.
+        $notPublic = $this->buildNotPublicState($pageUid, $languageUid, $siteIdentifier, $remoteScanEnabled && $canScanPage);
+        if ($notPublic !== null && !$hasRemoteScanRun && $overallState !== 'running') {
+            $headline = $notPublic['headline'];
+            if ($notPublic['previewAvailable']) {
+                $body = $this->translate('pageModuleIndicator.notPublic.body', 'This page is hidden. A preview scan checks how it renders before you make it visible.');
+            }
+        }
         $scanMode = $remoteScanEnabled ? 'combined' : 'local';
+        // Atlas D9 / 09·E (label only): the frontend row shows a preview scan of this page (it was not public) as
+        // "Preview scan … · page not public". Nothing else changes; the Quality Gate keeps deciding on the content scan.
+        $remoteIsPagePreview = $remoteState !== 'running' && $this->remoteResultIsPagePreview($remoteCompletedScan, $remotePage);
+        $remoteRowMeta = $this->buildRowMeta($remoteState, $this->resolveRemoteScanTimestamp($remoteCompletedScan, $remotePage));
+        if ($remoteIsPagePreview && $remoteRowMeta !== '') {
+            $remoteRowMeta .= ' · ' . $this->translate('pageModuleIndicator.row.pageNotPublic', 'page not public');
+        }
         // Content (TYPO3 records) and frontend (rendered page) results are separate sources: each row names
         // its own source, count unit and scan time, and neither is presented as the other.
         $rows = [
@@ -203,22 +287,31 @@ final class PageModuleIndicatorService
                 'source' => 'content',
                 'label' => $this->translate('pageModuleIndicator.row.local', 'Content scan'),
                 'state' => $localState,
-                'headline' => $this->buildHeadline($localState, $counts),
+                'headline' => $localState === 'limited' ? $this->limitedHeadline($localEvidence) : $this->buildHeadline($localState, $counts),
                 'counts' => $this->buildCountItems($localState, $counts),
                 'meta' => $this->buildRowMeta($localState, $latestLocalScanAt),
             ],
             [
                 'source' => 'frontend',
-                'label' => $this->translate('pageModuleIndicator.row.remote', 'Frontend scan'),
+                'label' => $remoteIsPagePreview || ($notPublic !== null && $notPublic['previewAvailable'] && $remoteState === 'none')
+                    ? $this->translate('pageModuleIndicator.row.preview', 'Preview scan')
+                    : $this->translate('pageModuleIndicator.row.remote', 'Frontend scan'),
                 'state' => $remoteState,
-                'headline' => $this->buildRemoteHeadline($remoteState, $remoteCompletedScan, $remotePage),
-                'meta' => $this->buildRowMeta($remoteState, $this->resolveRemoteScanTimestamp($remoteCompletedScan, $remotePage)),
+                'headline' => $notPublic !== null && $notPublic['previewAvailable'] && $remoteState === 'none'
+                    ? $this->translate('pageModuleIndicator.row.noPreviewScan', 'No preview scan yet')
+                    : ($remoteState === 'limited'
+                        ? $this->limitedHeadline($remoteEvidence)
+                        : $this->buildRemoteHeadline($remoteState, $remoteCompletedScan, $remotePage)),
+                'meta' => $remoteRowMeta,
+                'isPagePreview' => $remoteIsPagePreview,
             ],
         ];
 
         if ($hasRemoteScanCapability) {
-            $remoteHint = $hasRemoteScanRun ? null : [
-                'tag' => 'PRO',
+            // F-35: the installation is entitled to frontend scans (Trial, PRO, Agency) — a plain hint, no upsell tag. On a
+            // page that is not public the headline already says whether a (preview) frontend scan can check it.
+            $remoteHint = $hasRemoteScanRun || $notPublic !== null ? null : [
+                'tag' => '',
                 'text' => $this->translate('pageModuleIndicator.proHint.remoteScanAvailable', 'Frontend scan available — run a frontend scan'),
                 'linkLabel' => '',
                 'linkUrl' => '',
@@ -227,7 +320,7 @@ final class PageModuleIndicatorService
             $remoteHint = $this->buildFreeRemoteHint($site, $siteIdentifier, $pageUid, $languageUid);
         }
 
-        return [
+        $view = [
             'title' => $this->translate('pageModuleIndicator.title', 'Accessibility'),
             'overallState' => $overallState,
             'localState' => $localState,
@@ -255,6 +348,106 @@ final class PageModuleIndicatorService
             'runningMeta' => $this->translate('pageModuleIndicator.meta.startedAt', 'Started %s'),
             'runningStatus' => $this->translate('pageModuleIndicator.status.running', 'Scanning'),
             'loadingText' => $this->translate('action.scanning', 'Scanning...'),
+            'remediation' => $this->buildRemediationLines($pageUid, $siteIdentifier, $languageUid),
+            'notPublic' => $notPublic,
+        ];
+
+        // M-01: a language the user may not use is not "clean" — its findings are filtered out of every count above.
+        // Say so instead of "No issues found", and show no counts, scan time or scan action for it.
+        if ($this->scopeAccessService instanceof ScopeAccessService && !$this->scopeAccessService->canUseLanguage($languageUid)) {
+            $unavailable = $this->translate('pageModuleIndicator.languageUnavailable.headline', 'Not available for your languages');
+            $view['overallState'] = 'none';
+            $view['localState'] = 'none';
+            $view['remoteState'] = 'none';
+            $view['statusLabel'] = $unavailable;
+            $view['headline'] = $unavailable;
+            $view['body'] = $this->translate('pageModuleIndicator.languageUnavailable.body', 'Accessibility results of this language are shown only to editors who may work in it. Switch to a language you edit.');
+            $view['meta'] = '';
+            $view['actions'] = [];
+            $view['progress'] = null;
+            $view['remoteHint'] = null;
+            $view['remediation'] = null;
+            foreach ($view['rows'] as $index => $row) {
+                $view['rows'][$index]['state'] = 'none';
+                $view['rows'][$index]['headline'] = $unavailable;
+                $view['rows'][$index]['counts'] = [];
+                $view['rows'][$index]['meta'] = '';
+            }
+        }
+
+        return $view;
+    }
+
+    /**
+     * @return array{badge:string,headline:string,previewAvailable:bool}|null null when visitors can open the page
+     */
+    private function buildNotPublicState(int $pageUid, int $languageUid, string $siteIdentifier, bool $canStartFrontendScan): ?array
+    {
+        if ($this->remotePageScanTargetResolver === null) {
+            return null;
+        }
+        $languageUid = max(0, $languageUid);
+        if ($this->remotePageScanTargetResolver->visitorRestriction($pageUid, $languageUid) === '') {
+            return null;
+        }
+        $previewAvailable = $canStartFrontendScan
+            && $this->remotePageScanTargetResolver->unsupportedPreviewRestriction($pageUid, $languageUid) === ''
+            && ($this->remoteScanAccessSettingsService?->hasScannerTokenForSite($siteIdentifier) ?? false);
+
+        return [
+            'badge' => $this->translate('pageModuleIndicator.notPublic.badge', 'Not public'),
+            'headline' => $previewAvailable
+                ? $this->translate('pageModuleIndicator.notPublic.headlineAvailable', 'Not public · preview scan available')
+                : $this->translate('pageModuleIndicator.notPublic.headlineContentOnly', 'Not public · content checks only'),
+            'previewAvailable' => $previewAvailable,
+        ];
+    }
+
+    /**
+     * The Page module's remediation facts (Atlas 06·A, minimal variant): who should fix the open content-scan issues,
+     * how many have AI help, and how many prepared suggestions wait. Content-scan counts only — the frontend row keeps
+     * its own. Computed from stored findings; rendering never calls an AI provider.
+     *
+     * @return array<string,mixed>|null
+     */
+    private function buildRemediationLines(int $pageUid, string $siteIdentifier, int $languageUid): ?array
+    {
+        if ($this->remediationSummary === null || $this->remediationAccess === null || $siteIdentifier === ''
+            || !$this->remediationAccess->hasLicence($siteIdentifier)) {
+            return null;
+        }
+        $issues = $this->issueRepository->findOpenForPage($pageUid, $siteIdentifier, $languageUid, true);
+        if ($issues === []) {
+            return null;
+        }
+        $summary = $this->remediationSummary->summarize($siteIdentifier, $pageUid, $issues);
+        $aiHelp = 0;
+        if ($this->remediationAccess->aiState($siteIdentifier) === 'ready') {
+            foreach ($summary['findings'] as $finding) {
+                $aiHelp += in_array($finding['fixPath'], ['ai_image', 'ai_text'], true) ? 1 : 0;
+            }
+        }
+        $pending = (int)$summary['queue']['pending'];
+        // Atlas 06·A: owner chips, zero owners left out.
+        $owners = [];
+        foreach (['editor', 'developer', 'mixed', 'unassigned'] as $owner) {
+            $count = (int)($summary['owners'][$owner] ?? 0);
+            if ($count > 0) {
+                $owners[] = [
+                    'owner' => $owner,
+                    'count' => $count,
+                    'label' => $this->translate('remediation.owner.' . $owner, ucfirst($owner)),
+                ];
+            }
+        }
+
+        return [
+            'ownerLabel' => $this->translate('remediation.pm.ownerLabel', 'Owner'),
+            'owners' => $owners,
+            'ai' => $aiHelp > 0 ? $this->countLabelFor($aiHelp, 'remediation.pm.aiFixable', '%d can be fixed with AI', '%d can be fixed with AI') : '',
+            'pending' => $pending > 0 ? $this->countLabelFor($pending, 'remediation.pm.pendingAi', '%d AI suggestion waiting for review', '%d AI suggestions waiting for review') : '',
+            'queueUrl' => $pending > 0 ? (string)$this->uriBuilder->buildUriFromRoute('web_a11y.remediation', ['id' => $pageUid, 'pageUid' => $pageUid]) : '',
+            'source' => $this->translate('remediation.pm.source', 'Counts from the last content scan of this page; the frontend scan is reported in its own row.'),
         ];
     }
 
@@ -370,6 +563,24 @@ final class PageModuleIndicatorService
             : $pageScanPage;
     }
 
+    /**
+     * Whether the frontend result the row shows is a preview scan: the page row's scan when there is one, else a
+     * single-page scan of this page.
+     *
+     * @param array<string,mixed>|null $remoteCompletedScan
+     * @param array<string,mixed>|null $remotePage
+     */
+    private function remoteResultIsPagePreview(?array $remoteCompletedScan, ?array $remotePage): bool
+    {
+        if (is_array($remotePage)) {
+            return (int)($remotePage['remote_scan_is_page_preview'] ?? 0) === 1;
+        }
+
+        return is_array($remoteCompletedScan)
+            && (string)($remoteCompletedScan['scan_scope'] ?? '') === 'page'
+            && RemoteScanPairingService::isPagePreview($remoteCompletedScan);
+    }
+
     private function matchesLanguage(int $runningLanguageUid, int $currentLanguageUid): bool
     {
         if ($currentLanguageUid < 0 || $runningLanguageUid < 0) {
@@ -415,7 +626,7 @@ final class PageModuleIndicatorService
      * @param array<string,mixed>|null $remoteCompletedScan
      * @param array<string,mixed>|null $remotePage
      */
-    private function resolveRemoteState(?array $remoteCompletedScan, ?array $remotePage, bool $isRunning): string
+    private function resolveRemoteState(?array $remoteCompletedScan, ?array $remotePage, bool $isRunning, string $evidence = ''): string
     {
         if ($isRunning) {
             return 'running';
@@ -430,8 +641,111 @@ final class PageModuleIndicatorService
             return 'warning';
         }
 
+        if ($evidence !== '') {
+            return $this->stateForEvidence($evidence, 'error');
+        }
         $issuesTotal = $this->getRemoteIssueCount($remoteCompletedScan, $remotePage);
         return $issuesTotal > 0 ? 'error' : 'ok';
+    }
+
+    /**
+     * STATE-01: the frontend row's evidence. Restricted users count the findings they may read on this page's own result
+     * page (paid page row, or the Free Remote Preview result page); a scan whose results are not stored yet is pending,
+     * one whose storing failed is failed.
+     *
+     * @param array<string,mixed>|null $remoteCompletedScan
+     * @param array<string,mixed>|null $remotePage
+     * @param array<string,mixed>|null $remoteCountPage
+     */
+    private function remoteEvidence(?array $remoteCompletedScan, ?array $remotePage, ?array $remoteCountPage, bool $isRunning, bool $hasRun): string
+    {
+        $unrestricted = $this->isRemoteResultUnrestricted();
+        $visible = $unrestricted
+            ? $this->getRemoteIssueCount($remoteCompletedScan, $remotePage)
+            : (int)($this->visibleRemoteIssueTypes($remoteCountPage) ?? 0);
+        $scanRow = !is_array($remotePage) && is_array($remoteCompletedScan) ? $remoteCompletedScan : null;
+        $notStored = is_array($scanRow) && array_key_exists('persisted_at', $scanRow) && (int)$scanRow['persisted_at'] <= 0;
+
+        return ResultEvidenceState::resolve(
+            running: $isRunning,
+            hasEvidence: $hasRun,
+            visibleOpen: $visible,
+            restricted: !$unrestricted,
+            pending: $notStored && trim((string)($scanRow['sync_error'] ?? '')) === '',
+            failed: $notStored && trim((string)($scanRow['sync_error'] ?? '')) !== '',
+        );
+    }
+
+    /** STATE-01: the row/panel state of an evidence state ($findingsState for findings: error or warning by severity). */
+    private function stateForEvidence(string $evidence, string $findingsState): string
+    {
+        return match ($evidence) {
+            ResultEvidenceState::RUNNING => 'running',
+            ResultEvidenceState::UNSCANNED => 'none',
+            ResultEvidenceState::FINDINGS => in_array($findingsState, ['error', 'warning'], true) ? $findingsState : 'error',
+            ResultEvidenceState::CLEAN => 'ok',
+            default => 'limited',
+        };
+    }
+
+    private function limitedHeadline(string $evidence): string
+    {
+        return match ($evidence) {
+            ResultEvidenceState::PENDING => $this->translate('pageModuleIndicator.headline.pending', 'Results are being saved'),
+            ResultEvidenceState::FAILED => $this->translate('pageModuleIndicator.headline.notStored', 'Results could not be saved'),
+            ResultEvidenceState::CANCELLED => $this->translate('pageModuleIndicator.headline.cancelled', 'Last scan was cancelled'),
+            ResultEvidenceState::INCOMPLETE => $this->translate('pageModuleIndicator.headline.incomplete', 'Not fully checked'),
+            default => $this->translate('pageModuleIndicator.headline.restricted', 'No open issues in the results you can access'),
+        };
+    }
+
+    /**
+     * @param array<string,mixed>|null $pageScan
+     * @param array<string,mixed>|null $subtreeScan
+     * @return array<string,mixed>|null
+     */
+    private function newestLocalScan(?array $pageScan, ?array $subtreeScan): ?array
+    {
+        if (!is_array($pageScan)) {
+            return $subtreeScan;
+        }
+        if (!is_array($subtreeScan)) {
+            return $pageScan;
+        }
+
+        return (int)($subtreeScan['finished_at'] ?? 0) > (int)($pageScan['finished_at'] ?? 0) ? $subtreeScan : $pageScan;
+    }
+
+    /** Content findings: only administrators read every source record (LocalFindingSourceAccessService::isUnrestricted()). */
+    private function isLocalResultUnrestricted(): bool
+    {
+        return $this->backendContextService->getBackendUser()?->isAdmin() === true;
+    }
+
+    private function isRemoteResultUnrestricted(): bool
+    {
+        return $this->remoteResultAuthorizationService !== null && $this->remoteResultAuthorizationService->isUnrestrictedUser();
+    }
+
+    /**
+     * The Free Remote Preview result page of this page in a stored Free scan (owner = this page), null without one.
+     *
+     * @param array<string,mixed>|null $scan
+     * @return array<string,mixed>|null
+     */
+    private function freeResultPage(?array $scan, int $pageUid): ?array
+    {
+        $scanUid = is_array($scan) ? (int)($scan['uid'] ?? 0) : 0;
+        if ($scanUid <= 0) {
+            return null;
+        }
+        foreach ($this->remoteScanRepository->findPagesForScanPaginated($scanUid, 20, 0) as $page) {
+            if (is_array($page) && (int)($page['owner_page_uid'] ?? 0) === $pageUid) {
+                return $page;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -467,6 +781,11 @@ final class PageModuleIndicatorService
 
         if (in_array('warning', $states, true)) {
             return 'warning';
+        }
+
+        // STATE-01: one source that is not verified clean keeps the whole panel from saying "No issues found".
+        if (in_array('limited', $states, true)) {
+            return 'limited';
         }
 
         if (in_array('ok', $states, true)) {
@@ -648,6 +967,12 @@ final class PageModuleIndicatorService
      */
     private function getRemoteIssueCount(?array $remoteCompletedScan, ?array $remotePage): int
     {
+        // Sol post-review R01/R05: for users other than administrators the frontend count is that of a result page whose
+        // recorded owner is this page and only of the findings they may read; a URL now carrying this page's slug does
+        // not bring an earlier owner's results with it.
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            return $this->visibleRemoteIssueCount($remotePage ?? $this->currentRemoteCountPage);
+        }
         if (is_array($remotePage)) {
             return max(0, (int)($remotePage['issues_count'] ?? 0));
         }
@@ -682,6 +1007,10 @@ final class PageModuleIndicatorService
 
         if ($state === 'ok') {
             return $this->translate('pageModuleIndicator.body.noOpenIssues', 'Automated checks found no open issues. Manual review may still be required.');
+        }
+
+        if ($state === 'limited') {
+            return $this->translate('pageModuleIndicator.body.limited', 'AQG cannot confirm this page is free of issues: some results are not available to you, not stored yet, or not every check ran. Open the report for details.');
         }
 
         if ($state === 'warning') {
@@ -720,7 +1049,7 @@ final class PageModuleIndicatorService
             return [$scanAction];
         }
 
-        if ($state === 'ok') {
+        if ($state === 'ok' || $state === 'limited') {
             return [
                 $scanAction,
                 [
@@ -822,6 +1151,7 @@ final class PageModuleIndicatorService
     {
         return match ($state) {
             'ok' => $this->translate('pageModuleIndicator.status.ok', 'OK'),
+            'limited' => $this->translate('pageModuleIndicator.status.limited', 'Not confirmed'),
             'warning' => $this->translate('pageModuleIndicator.status.warning', 'Warnings'),
             'error' => $this->translate('pageModuleIndicator.status.error', 'Issues'),
             'running' => $this->translate('pageModuleIndicator.status.running', 'Scanning'),
@@ -858,4 +1188,46 @@ final class PageModuleIndicatorService
 
         return $view->render('Backend/PageModuleIndicator');
     }
+
+    /**
+     * @param array<string,mixed>|null $remotePage
+     */
+    private function visibleRemoteIssueCount(?array $remotePage): int
+    {
+        return (int)($this->visibleRemoteIssueTypes($remotePage) ?? 0);
+    }
+
+    /**
+     * The issue types of a result page the user may read (its scan readable, its owner this page, the page visible), null
+     * when the user may not read it at all.
+     *
+     * @param array<string,mixed>|null $remotePage
+     */
+    private function visibleRemoteIssueTypes(?array $remotePage): ?int
+    {
+        if (!is_array($remotePage) || $this->remoteResultAuthorizationService === null || $this->scopeAccessService === null) {
+            return null;
+        }
+        $remotePageUid = (int)($remotePage['uid'] ?? 0);
+        $scan = $this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0));
+        if ($remotePageUid <= 0 || !is_array($scan) || !$this->scopeAccessService->canReadRemoteScan($scan)) {
+            return null;
+        }
+        try {
+            $visible = $this->remoteResultAuthorizationService->authorize($scan);
+        } catch (RemoteResultsTooLargeException) {
+            return null;
+        }
+        if (!$visible->isResultPageVisible($remotePageUid) || (int)($remotePage['owner_page_uid'] ?? 0) !== $this->currentPageUidForCount) {
+            return null;
+        }
+
+        return (int)($visible->countsByResultPage()[$remotePageUid]['issueTypes'] ?? 0);
+    }
+
+    /** The page whose indicator is being built (visibleRemoteIssueCount() compares the recorded owner with it). */
+    private int $currentPageUidForCount = 0;
+
+    /** @var array<string,mixed>|null the result page restricted counts are read from (paid page row or Free result page) */
+    private ?array $currentRemoteCountPage = null;
 }

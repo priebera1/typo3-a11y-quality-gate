@@ -96,8 +96,8 @@ final class FrontendPageUrlService
         foreach ($languageIds as $candidateLanguageUid) {
             foreach ($slugVariants as $candidateSlug) {
                 $pageUid = $candidateLanguageUid > 0
-                    ? $this->resolveDefaultPageUidForTranslatedSlug($candidateSlug, $candidateLanguageUid)
-                    : $this->resolveDefaultPageUidForSlug($candidateSlug);
+                    ? $this->resolveDefaultPageUidForTranslatedSlug($site, $candidateSlug, $candidateLanguageUid)
+                    : $this->resolveDefaultPageUidForSlug($site, $candidateSlug);
 
                 if ($pageUid > 0) {
                     return $pageUid;
@@ -176,8 +176,15 @@ final class FrontendPageUrlService
                     $queryBuilder->expr()->eq(
                         'deleted',
                         $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                    ),
+                    // The live translation, in the order ScopeAccessService::liveTranslationUid() uses for scan admission
+                    // (P1-02): a workspace version is not what visitors (or the crawler) see, and must not become the URL.
+                    $queryBuilder->expr()->eq(
+                        't3ver_wsid',
+                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                     )
                 )
+                ->orderBy('uid')
                 ->setMaxResults(1)
                 ->executeQuery()
                 ->fetchAssociative();
@@ -230,70 +237,74 @@ final class FrontendPageUrlService
         return $path === '' ? '/' : $path;
     }
 
-    private function resolveDefaultPageUidForSlug(string $slug): int
+    /**
+     * The default-language page of the given site with this slug. Slugs are unique per site only, so a page of another
+     * site with the same slug never matches. Hidden and scheduled live pages count (scans of them exist); workspace
+     * versions do not.
+     */
+    private function resolveDefaultPageUidForSlug(Site $site, string $slug): int
     {
-        try {
-            $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
-            $row = $queryBuilder
-                ->select('uid')
-                ->from('pages')
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        'slug',
-                        $queryBuilder->createNamedParameter($slug)
-                    ),
-                    $queryBuilder->expr()->eq(
-                        'sys_language_uid',
-                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                    ),
-                    $queryBuilder->expr()->eq(
-                        'deleted',
-                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                    )
-                )
-                ->setMaxResults(1)
-                ->executeQuery()
-                ->fetchAssociative();
-
-            return is_array($row) ? (int)($row['uid'] ?? 0) : 0;
-        } catch (\Throwable) {
-            return 0;
+        foreach ($this->findLivePagesBySlug($slug, 0) as $row) {
+            if ($this->isPageOfSite($site, (int)$row['uid'])) {
+                return (int)$row['uid'];
+            }
         }
+
+        return 0;
     }
 
-    private function resolveDefaultPageUidForTranslatedSlug(string $slug, int $languageUid): int
+    private function resolveDefaultPageUidForTranslatedSlug(Site $site, string $slug, int $languageUid): int
+    {
+        foreach ($this->findLivePagesBySlug($slug, $languageUid) as $row) {
+            $parent = (int)($row['l10n_parent'] ?? 0);
+            $pageUid = $parent > 0 ? $parent : (int)$row['uid'];
+            if ($this->isPageOfSite($site, $pageUid)) {
+                return $pageUid;
+            }
+        }
+
+        return 0;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function findLivePagesBySlug(string $slug, int $languageUid): array
     {
         try {
             $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
-            $row = $queryBuilder
+            $queryBuilder->getRestrictions()->removeAll();
+
+            return $queryBuilder
                 ->select('uid', 'l10n_parent')
                 ->from('pages')
                 ->where(
-                    $queryBuilder->expr()->eq(
-                        'slug',
-                        $queryBuilder->createNamedParameter($slug)
-                    ),
-                    $queryBuilder->expr()->eq(
-                        'sys_language_uid',
-                        $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)
-                    ),
-                    $queryBuilder->expr()->eq(
-                        'deleted',
-                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                    )
+                    $queryBuilder->expr()->eq('slug', $queryBuilder->createNamedParameter($slug)),
+                    $queryBuilder->expr()->eq('sys_language_uid', $queryBuilder->createNamedParameter($languageUid, Connection::PARAM_INT)),
+                    $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                    $queryBuilder->expr()->eq('t3ver_wsid', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
                 )
-                ->setMaxResults(1)
+                ->orderBy('uid', 'ASC')
                 ->executeQuery()
-                ->fetchAssociative();
-
-            if (!is_array($row)) {
-                return 0;
-            }
-
-            $parent = (int)($row['l10n_parent'] ?? 0);
-            return $parent > 0 ? $parent : (int)($row['uid'] ?? 0);
+                ->fetchAllAssociative();
         } catch (\Throwable) {
-            return 0;
+            return [];
         }
+    }
+
+    private function isPageOfSite(Site $site, int $pageUid): bool
+    {
+        if ($pageUid <= 0) {
+            return false;
+        }
+        try {
+            $rootPageId = (int)$site->getRootPageId();
+            foreach (BackendUtility::BEgetRootLine($pageUid, '', true) as $page) {
+                if ((int)($page['uid'] ?? 0) === $rootPageId) {
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return false;
     }
 }

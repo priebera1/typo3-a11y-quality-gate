@@ -197,28 +197,17 @@ final class FreeRemotePreviewUiTest extends TestCase
     }
 
     #[Test]
-    public function theTrialOfferFollowsAFreeResultAndKeepsItVisible(): void
+    public function aFreeResultShowsNoPromotionalUpgradeCard(): void
     {
+        // 3.0.0: the "Show PRO upgrade offers" option and its card are gone. Editors see the Free result and honest
+        // notes on locked features; plans and the trial are offered in Settings › Licence only.
         $panel = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/RemotePanel.html');
-        $upgrade = file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Overview/FreePreviewUpgrade.html');
-
         self::assertIsString($panel);
-        self::assertIsString($upgrade);
-        self::assertStringContainsString('aqg-pro-card aqg-free-upgrade', $upgrade);
-        self::assertStringContainsString('data-aqg-upgrade-offer="true"', $upgrade);
-        self::assertStringContainsString('{freePreview.trialUrl}', $upgrade);
-        self::assertStringContainsString('freePreview.startTrial', $upgrade);
-
-        // Only with a Free result, only when upgrade offers are on, and after the result's findings and pages.
-        $render = strpos($panel, 'partial="Overview/FreePreviewUpgrade"');
-        self::assertIsInt($render);
-        self::assertStringContainsString(
-            '<f:if condition="{freePreview.isFree} && {remoteScan} && {freePreview.showUpgradeOffer}">',
-            $panel,
-        );
-        self::assertGreaterThan(strpos($panel, 'aqg-priority-section'), $render);
-        self::assertGreaterThan(strpos($panel, 'id="a11y-remote-top-pages"'), $render);
-        self::assertLessThan(strpos($panel, 'partial="Overview/RemoteEvidence"'), $render, 'The offer comes before the collapsed reports.');
-        self::assertSame(1, substr_count($panel, 'Overview/FreePreviewUpgrade'));
+        self::assertStringNotContainsString('FreePreviewUpgrade', $panel);
+        self::assertStringNotContainsString('showUpgradeOffer', $panel);
+        self::assertFileDoesNotExist(__DIR__ . '/../../../Resources/Private/Partials/Overview/FreePreviewUpgrade.html');
+        $licence = (string)file_get_contents(__DIR__ . '/../../../Resources/Private/Partials/Settings/TabLicence.html');
+        self::assertStringNotContainsString('showProHints', $licence);
+        self::assertStringNotContainsString('showProHints', (string)file_get_contents(__DIR__ . '/../../../ext_conf_template.txt'));
     }
 }

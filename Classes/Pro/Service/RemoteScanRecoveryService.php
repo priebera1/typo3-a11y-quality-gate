@@ -17,6 +17,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final class RemoteScanRecoveryService
 {
     private const STALE_SCAN_TIMEOUT = 900;
+    /** NEW-12: how long a failure TYPO3 decided on its own (status unreadable) is checked against the crawler again. */
+    public const LOCAL_FAILURE_RECHECK_WINDOW = 172800;
 
     public function __construct(
         private readonly RemoteScanRepository $remoteScanRepository,
@@ -46,7 +48,7 @@ final class RemoteScanRecoveryService
         }
 
         $this->logRecoveryFailure('AQG remote scan is no longer available', $jobId, $exception);
-        $this->remoteScanRepository->markFailed($jobId, $this->resolveMissingRemoteJobFailureMessage($exception));
+        $this->remoteScanRepository->markFailed($jobId, $this->resolveMissingRemoteJobFailureMessage($exception), RemoteScanRepository::FAILURE_ORIGIN_MISSING);
 
         return true;
     }
@@ -63,7 +65,13 @@ final class RemoteScanRecoveryService
         }
 
         $status = trim((string)($remoteScan['status'] ?? ''));
-        if (!in_array($status, ['waiting', 'queued', 'active', 'running', 'completed'], true)) {
+        // NEW-12: a scan TYPO3 marked failed only because its status could not be read for too long may have been
+        // completed by the crawler meanwhile; it is checked again for a bounded time. A failure the crawler reported, a
+        // missing job and a cancellation stay final.
+        $revisitLocalFailure = $status === 'failed'
+            && (string)($remoteScan['failure_origin'] ?? '') === RemoteScanRepository::FAILURE_ORIGIN_LOCAL_STALE
+            && (int)($remoteScan['finished_at'] ?? 0) > time() - self::LOCAL_FAILURE_RECHECK_WINDOW;
+        if (!$revisitLocalFailure && !in_array($status, ['waiting', 'queued', 'active', 'running', 'completed'], true)) {
             return $remoteScan;
         }
 
@@ -97,7 +105,18 @@ final class RemoteScanRecoveryService
                     jobId: $jobId,
                 );
         } catch (\Throwable $exception) {
+            if ($revisitLocalFailure) {
+                // Still unreadable: the scan stays failed; nothing is overwritten.
+                $this->logRecoveryFailure('AQG remote scan recheck failed', $jobId, $exception);
+
+                return $remoteScan;
+            }
+
             return $this->handleRecoveryFailure($remoteScan, $jobId, $exception);
+        }
+        if ($revisitLocalFailure && $statusResult->status !== CrawlerJobStatus::Completed && $statusResult->status !== CrawlerJobStatus::Failed) {
+            // Running again (or still): leave the local failure until the crawler reaches a final state.
+            return $remoteScan;
         }
 
         $this->remoteScanRepository->syncStatus(
@@ -125,6 +144,7 @@ final class RemoteScanRecoveryService
             $this->remoteScanRepository->markFailed(
                 $jobId,
                 'Remote crawler job failed.',
+                RemoteScanRepository::FAILURE_ORIGIN_CRAWLER,
             );
 
             return $this->remoteScanRepository->findScanByJobId($jobId);
@@ -238,6 +258,7 @@ final class RemoteScanRecoveryService
             $this->remoteScanRepository->markFailed(
                 $jobId,
                 $this->resolveMissingRemoteJobFailureMessage($exception),
+                RemoteScanRepository::FAILURE_ORIGIN_MISSING,
             );
 
             return $this->remoteScanRepository->findScanByJobId($jobId);
@@ -247,6 +268,7 @@ final class RemoteScanRecoveryService
             $this->remoteScanRepository->markFailed(
                 $jobId,
                 $this->remoteScanErrorPresenter->storedMessage($exception, 'Recovered stale remote scan'),
+                RemoteScanRepository::FAILURE_ORIGIN_LOCAL_STALE,
             );
 
             return $this->remoteScanRepository->findScanByJobId($jobId);

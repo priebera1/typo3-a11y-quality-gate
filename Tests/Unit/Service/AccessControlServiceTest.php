@@ -95,9 +95,22 @@ final class AccessControlServiceTest extends TestCase
         ));
     }
 
+    /**
+     * Without the option the capability follows TYPO3's own rights (the write path checks record, fields and workspace),
+     * so an ordinary editor who may edit the alternative text can apply a reviewed fix without extra TSconfig.
+     */
+    #[Test]
+    public function nonAdminWithoutTheOptionMayRemediateImages(): void
+    {
+        self::assertTrue($this->accessControlServiceWithAdminFlag(0)->canRemediateImages($this->backendUser(false, [])));
+        self::assertTrue($this->accessControlServiceWithAdminFlag(0)->canRemediateImages(
+            $this->backendUser(false, ['options.' => ['a11y_quality_gate.' => ['showScanAll' => '0']]]),
+        ));
+    }
+
     #[Test]
     #[DataProvider('disabledValueProvider')]
-    public function missingDisabledOrInvalidValueDeniesImageRemediation(mixed $value, bool $includeValue): void
+    public function anExplicitDisabledOrInvalidValueDeniesImageRemediation(mixed $value, bool $includeValue): void
     {
         $tsConfig = $includeValue ? $this->tsConfig($value) : [];
 
@@ -114,8 +127,6 @@ final class AccessControlServiceTest extends TestCase
 
     public static function disabledValueProvider(): iterable
     {
-        yield 'missing' => [null, false];
-        yield 'null' => [null, true];
         yield 'empty string' => ['', true];
         yield 'zero integer' => [0, true];
         yield 'zero string' => ['0', true];

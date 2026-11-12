@@ -1,6 +1,7 @@
 import AjaxRequest from '@typo3/core/ajax/ajax-request.js';
 import { A11yBaseModule } from '@priebera/a11y-quality-gate/backend/core/base-module.js';
 import { FREE_SELECTORS, PRO_SELECTORS } from '@priebera/a11y-quality-gate/backend/core/constants.js';
+import { SearchRequestSequencer, syncPreservingForm } from '@priebera/a11y-quality-gate/backend/core/overview-search.js';
 import {
     contentScanNotification,
     scanCancelledNotification,
@@ -631,8 +632,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
     }
 
     initOverviewSearch() {
-        this.overviewSearchTimers ??= new WeakMap();
-        this.overviewSearchAbortControllers ??= new WeakMap();
+        this.overviewSearchTimers ??= new Map();
+        this.overviewSearchSequencer ??= new SearchRequestSequencer();
 
         const inputs = Array.from(document.querySelectorAll(FREE_SELECTORS.overviewSearch));
         if (inputs.length === 0) {
@@ -644,9 +645,11 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
             if (searchMode === 'server') {
                 const form = input.closest('form');
-                if (!form) {
+                // The field survives a search update (only the rest of the module is re-rendered), so it is bound once.
+                if (!form || input.dataset.aqgSearchBound === '1') {
                     return;
                 }
+                input.dataset.aqgSearchBound = '1';
 
                 form.addEventListener('submit', (event) => {
                     event.preventDefault();
@@ -659,16 +662,11 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                 });
 
                 input.addEventListener('input', () => {
-                    const existingTimer = this.overviewSearchTimers.get(input);
-                    if (existingTimer) {
-                        window.clearTimeout(existingTimer);
-                    }
-
-                    const timer = window.setTimeout(() => {
+                    const key = input.name || input.id;
+                    window.clearTimeout(this.overviewSearchTimers.get(key));
+                    this.overviewSearchTimers.set(key, window.setTimeout(() => {
                         this.runServerOverviewSearch(form, input);
-                    }, 350);
-
-                    this.overviewSearchTimers.set(input, timer);
+                    }, 250));
                 });
 
                 return;
@@ -709,22 +707,44 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             url.searchParams.delete('remoteFailedPage');
         }
 
-        const previousController = this.overviewSearchAbortControllers.get(input);
-        if (previousController) {
-            previousController.abort();
+        // Every search field's live value goes into the request, and one sequence covers them all: typing in the
+        // Content and the Frontend field in quick succession never lets an older answer bring back old results.
+        const pageParameters = {localQuery: 'localPage', remoteQuery: 'remotePage', remoteFailedQuery: 'remoteFailedPage'};
+        document.querySelectorAll(FREE_SELECTORS.overviewSearch).forEach((field) => {
+            const name = String(field.name || '').trim();
+            if (name === '' || field === input) {
+                return;
+            }
+            const value = String(field.value || '').trim();
+            if (value === (url.searchParams.get(name) ?? '')) {
+                return;
+            }
+            if (value === '') {
+                url.searchParams.delete(name);
+            } else {
+                url.searchParams.set(name, value);
+            }
+            if (pageParameters[name]) {
+                url.searchParams.delete(pageParameters[name]);
+            }
+        });
+        const key = 'overview';
+        const target = url.toString();
+        // Typing a character and deleting it again, or a trailing space, asks for what is already shown.
+        this.overviewSearchSequencer.markShownOnce(key, window.location.href);
+        const request = this.overviewSearchSequencer.begin(key, target);
+        if (request === null) {
+            return;
         }
 
-        const controller = new AbortController();
-        this.overviewSearchAbortControllers.set(input, controller);
-
         try {
-            const response = await fetch(url.toString(), {
+            const response = await fetch(target, {
                 method: 'GET',
                 credentials: 'same-origin',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                signal: controller.signal,
+                signal: request.signal,
             });
 
             if (!response.ok) {
@@ -732,25 +752,42 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             }
 
             const html = await response.text();
-            const parser = new DOMParser();
-            const documentFragment = parser.parseFromString(html, 'text/html');
+            if (!request.isCurrent()) {
+                return;
+            }
+            const documentFragment = new DOMParser().parseFromString(html, 'text/html');
 
             const currentOverview = document.querySelector(PRO_SELECTORS.overviewRoot);
             const nextOverview = documentFragment.querySelector(PRO_SELECTORS.overviewRoot);
 
             if (!currentOverview || !nextOverview) {
-                window.location.assign(url.toString());
+                window.location.assign(target);
                 return;
             }
 
-            currentOverview.replaceWith(nextOverview);
-            window.history.replaceState({}, '', url.toString());
+            // Keep the form the person types in (focus, caret, IME state); everything else is the new render.
+            const form = input.closest('form');
+            const hadFocus = document.activeElement === input;
+            const caret = input.selectionStart;
+            const synced = syncPreservingForm(currentOverview, nextOverview, form);
+            if (!synced) {
+                currentOverview.replaceWith(nextOverview);
+            }
+            window.history.replaceState({}, '', target);
+            request.done(target);
 
             this.reinitializeOverviewAfterSearch();
+            const field = synced ? input : (input.id ? document.getElementById(input.id) : null);
+            document.querySelector(PRO_SELECTORS.overviewRoot)?.setAttribute('data-aqg-search-update', synced ? 'sync' : 'replace');
+            if (hadFocus && field && document.activeElement !== field) {
+                field.focus();
+                field.setSelectionRange?.(caret, caret);
+            }
         } catch (error) {
             if (error?.name === 'AbortError') {
                 return;
             }
+            request.done(null);
 
             console.error('[AQG] Overview search failed', error);
         }
@@ -815,6 +852,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             const fields = Array.from(form.querySelectorAll('[data-a11y-rules-input="true"]'));
             // Translated labels rendered by Settings/TabRules.html; English fallbacks keep the UI usable.
             const labels = form.dataset;
+            // The saved/unsaved texts sit on the actionbar's meta container, not on the actionbar itself.
+            const metaTexts = metaLabel?.closest('[data-a11y-rules-saved-meta]')?.dataset || actionbar?.dataset || {};
 
             if (fields.length === 0) {
                 return;
@@ -867,8 +906,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                         ? (labels.labelChangeOne || '%d change')
                         : (labels.labelChangeOther || '%d changes');
                     metaLabel.textContent = isDirty
-                        ? `${actionbar.dataset.a11yRulesDirtyMeta || 'Unsaved changes'} — ${changesLabel.replace('%d', String(dirtyFields.length))}`
-                        : (actionbar.dataset.a11yRulesSavedMeta || 'All changes saved');
+                        ? `${metaTexts.a11yRulesDirtyMeta || 'Unsaved changes'} — ${changesLabel.replace('%d', String(dirtyFields.length))}`
+                        : (metaTexts.a11yRulesSavedMeta || 'All changes saved');
                 }
             };
 
@@ -951,6 +990,12 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                     const hasVisibleRow = Array.from(group.querySelectorAll('[data-a11y-rule-row="true"]'))
                         .some((row) => !row.hidden);
                     group.hidden = !hasVisibleRow;
+                    // A search or filter result must be visible: open a collapsed group that holds matching rules
+                    // (through its own toggle, so its state stays consistent). Clearing the search keeps it open.
+                    if (hasVisibleRow && (query !== '' || activeFilter !== 'all')) {
+                        const toggle = group.querySelector('[data-aqg-group-toggle="true"][aria-expanded="false"]');
+                        toggle?.click();
+                    }
                 });
 
                 if (visibleCount) {
@@ -1123,7 +1168,8 @@ export class A11yFreeBackendModule extends A11yBaseModule {
             }
 
             if (submitButton) {
-                submitButton.textContent = typedKey !== ''
+                // F-03: without a saved key the form only saves and validates a new one — never "Save changes".
+                submitButton.textContent = typedKey !== '' || !hasSavedKey
                     ? (submitButton.dataset.labelSaveValidate || 'Save and validate')
                     : (submitButton.dataset.labelSave || 'Save changes');
             }
@@ -1184,8 +1230,13 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
         try {
             // The server validates the key it has stored; the page does not hold it.
+            // D-01: validate for the site the card shows, not a server-side default site.
+            const siteIdentifier = validateButton?.dataset?.aqgLicenceSite
+                || document.querySelector('[data-aqg-licence-site]')?.dataset?.aqgLicenceSite
+                || '';
             const response = await new AjaxRequest(endpoint).post({
                 useSavedKey: '1',
+                ...(siteIdentifier !== '' ? { siteIdentifier } : {}),
             });
 
             const data = await response.resolve();
@@ -1229,13 +1280,17 @@ export class A11yFreeBackendModule extends A11yBaseModule {
                     || this.translate('settings.licence.validation.invalidFallback', 'The licence could not be validated.')
                 );
 
+                // N-04: a rate-limited or unreachable licence service did not check the key: never "not valid".
+                const transient = data.transient === true;
                 const invalidTitle = String(
                     data.title
-                    || this.translate('settings.licence.validation.invalid', 'Licence is not valid.')
+                    || (transient
+                        ? this.translate('settings.licence.validation.notChecked', 'Licence not checked.')
+                        : this.translate('settings.licence.validation.invalid', 'Licence is not valid.'))
                 );
 
                 resultBox.innerHTML = `
-                    <span class="aqg-validation tone-error">
+                    <span class="aqg-validation ${transient ? 'tone-warn' : 'tone-error'}">
                         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
                             <circle cx="6" cy="6" r="4.7" fill="none" stroke="currentColor" stroke-width="1.4"></circle>
                             <path d="M4.2 4.2 L7.8 7.8 M7.8 4.2 L4.2 7.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
@@ -1694,10 +1749,15 @@ export class A11yFreeBackendModule extends A11yBaseModule {
 
         this.updateLocalScanProgress(true, message, null, 'failed');
         this.setLastCompletedLabel('local', true);
-        // The scan status shows the reason; the toast says where to find it, the announcement reads it.
+        // The scan status shows the reason; the toast says where to find it, the announcement reads it. M-05: only when
+        // that status is on screen — otherwise the toast carries the reason itself.
+        const statusShowsReason = String(message || '').trim() !== '' && Array.from(document.querySelectorAll(PRO_SELECTORS.localScanProgressBox))
+            .some((box) => box instanceof HTMLElement && box.getClientRects().length > 0 && box.textContent.includes(String(message).trim()));
         this.showScanResult(scanFailedNotification(
             'content',
-            this.translate('notification.scanResult.failedReason', 'The reason is shown in the scan status.'),
+            statusShowsReason
+                ? this.translate('notification.scanResult.failedReason', 'The reason is shown in the scan status.')
+                : message,
             this.scanLabel()
         ), { announce: false });
         this.announce(`${title}: ${message}`);

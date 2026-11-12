@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Export;
 
+use Priebera\A11yQualityGate\Pro\ViewModel\RemoteScanSignal;
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorization;
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
+use Priebera\A11yQualityGate\Service\RemoteResultsTooLargeException;
 use Priebera\A11yQualityGate\Service\RemoteScreenshotState;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanTreeCoverageService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteOccurrenceTotalsService;
 use Priebera\A11yQualityGate\Pro\ViewModel\RemoteOccurrenceTotals;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScreenshotService;
@@ -16,10 +21,12 @@ use Priebera\A11yQualityGate\Pro\ViewModel\RecordMappingNotice;
 use Priebera\A11yQualityGate\Service\ExtensionContextService;
 use Priebera\A11yQualityGate\Service\IssueLocationService;
 use Priebera\A11yQualityGate\Service\RemoteReportingSummaryService;
+use Priebera\A11yQualityGate\Service\RemoteScanPairingService;
 use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Priebera\A11yQualityGate\Utility\OccurrencePresentationUtility;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class RemoteExportBuilder
@@ -40,6 +47,12 @@ final class RemoteExportBuilder
     private const PDF_MAX_GUIDANCE_CHARS = 420;
     private const PDF_MAX_NODE_REMEDIATION_SUMMARY_CHARS = 260;
     private const PDF_MAX_NODE_REMEDIATION_STEP_CHARS = 180;
+    /** Atlas D9: a page export of a preview scan says so (PDF and CSV stay English by design). */
+    public const PAGE_PREVIEW_LABEL = 'Preview scan · page not public';
+
+    /** Same wording as `remote.restricted.note` (PDF exports stay English). Constant, so it reveals nothing about withheld results. */
+    public const PDF_RESTRICTED_NOTE = 'This report shows only the results your TYPO3 permissions allow. Results without a page or record you may read, including results stored before AQG recorded page ownership, are shown to administrators only.';
+
     private const PDF_REPORT_DISCLAIMER = 'Automated checks do not replace a manual WCAG audit. AQG guidance is based on the rule type and scan context. Review affected elements before applying changes.';
 
     public function __construct(
@@ -55,7 +68,190 @@ final class RemoteExportBuilder
         private readonly RuleMetadataPresentationService $ruleMetadataPresentationService,
         private readonly ?IssueLocationService $issueLocationService = null,
         private readonly ?RemoteOccurrenceTotalsService $remoteOccurrenceTotalsService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
+        private readonly ?RemoteScanTreeCoverageService $treeCoverageService = null,
     ) {
+    }
+
+    /**
+     * N-16: the page-tree coverage of a site scan (C-01, RemoteScanTreeCoverageService) as one English sentence for
+     * the overview PDF, so "5 of 5 checked pages" never reads as the whole site. Empty when there is nothing to say
+     * (page scans, Free Remote Preview, restricted reports).
+     *
+     * @param array<string, mixed>|null $coverage
+     */
+    public static function coverageNote(?array $coverage): string
+    {
+        if (!is_array($coverage)) {
+            return '';
+        }
+        $inventory = (int)($coverage['inventory'] ?? 0);
+        $checked = (int)($coverage['checked'] ?? 0);
+        $failed = (int)($coverage['failed'] ?? 0);
+        $notReached = (int)($coverage['notReached'] ?? 0);
+
+        return match ((string)($coverage['state'] ?? '')) {
+            RemoteScanTreeCoverageService::STATE_COMPLETE => sprintf('Complete coverage: all %d public pages of the page tree were checked.', $inventory),
+            RemoteScanTreeCoverageService::STATE_PARTIAL => sprintf('Partial coverage: %d of %d public pages of the page tree were checked', $checked, $inventory)
+                . ($notReached > 0 ? sprintf('; %d %s not reached', $notReached, $notReached === 1 ? 'was' : 'were') : '')
+                . ($failed > 0 ? sprintf('; %d could not be loaded', $failed) : '')
+                . '. Pages that were not checked can still have issues.',
+            RemoteScanTreeCoverageService::STATE_UNKNOWN => 'Coverage unknown: this scan did not record which TYPO3 pages it checked.',
+            default => '',
+        };
+    }
+
+    /**
+     * The tree coverage of the exported scan, for unrestricted readers only (like the Overview: a restricted view
+     * never learns how many pages exist).
+     *
+     * @param array<string, mixed> $scan
+     * @return array<string, mixed>|null
+     */
+    private function treeCoverageFor(array $scan): ?array
+    {
+        if ($this->restriction !== null || $this->treeCoverageService === null) {
+            return null;
+        }
+        try {
+            $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByIdentifier((string)($scan['site_identifier'] ?? ''));
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $this->treeCoverageService->forScan($scan, $site);
+    }
+
+    /**
+     * What the current user may see of the scan being exported (Sol R05); null = everything (administrator). Set at
+     * every entry point; every page list, finding, element and count below reads through it.
+     */
+    private ?RemoteResultAuthorization $restriction = null;
+
+    /**
+     * The overview PDF's one-line verdict. A restricted report (Sol QA-06) speaks of the results available to the
+     * user and never says "no page could be checked" for a scan that loaded pages; that sentence is kept for scans
+     * whose own counter shows no loaded page.
+     */
+    public static function overviewVerdict(
+        bool $restrictedView,
+        int $visiblePages,
+        int $issuesTotal,
+        int $affectedPages,
+        int $pagesScanned,
+        int $pagesFailed,
+    ): string {
+        $plural = static fn (string $word, int $count): string => $count === 1 ? $word : $word . 's';
+        if ($restrictedView) {
+            return $visiblePages === 0
+                ? 'No results of this scan are available to you.'
+                : sprintf(
+                    '%d %s on %d of %d %s available to you.',
+                    $issuesTotal,
+                    $plural('occurrence', $issuesTotal),
+                    $affectedPages,
+                    $visiblePages,
+                    $plural('page', $visiblePages)
+                );
+        }
+        if ($pagesScanned === 0) {
+            return 'No page could be checked in this scan.';
+        }
+
+        return sprintf(
+            '%d %s on %d of %d checked %s.',
+            $issuesTotal,
+            $plural('occurrence', $issuesTotal),
+            $affectedPages,
+            $pagesScanned,
+            $plural('page', $pagesScanned)
+        ) . ($pagesFailed > 0 ? sprintf(' %d %s could not be loaded.', $pagesFailed, $pagesFailed === 1 ? 'page' : 'pages') : '');
+    }
+
+    /**
+     * @param array<string, mixed>|null $scan
+     */
+    private function restrictTo(?array $scan): void
+    {
+        $this->restriction = null;
+        if (!is_array($scan)) {
+            return;
+        }
+        if ($this->remoteResultAuthorizationService === null) {
+            // Without the policy nothing is shown, never everything.
+            $this->restriction = new RemoteResultAuthorization(false, [], [], []);
+            return;
+        }
+        if ($this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            return;
+        }
+        try {
+            $this->restriction = $this->remoteResultAuthorizationService->authorize($scan);
+        } catch (RemoteResultsTooLargeException) {
+            // Too large to check: nothing, never everything.
+            $this->restriction = new RemoteResultAuthorization(false, [], [], []);
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $pages
+     * @return array<int, array<string, mixed>>
+     */
+    private function visiblePages(array $pages): array
+    {
+        if ($this->restriction === null) {
+            return $pages;
+        }
+        $counts = $this->restriction->countsByResultPage();
+        $visible = [];
+        foreach ($pages as $page) {
+            $uid = (int)($page['uid'] ?? 0);
+            if ($this->restriction->isResultPageVisible($uid)) {
+                $page['issues_count'] = $counts[$uid]['issueTypes'] ?? 0;
+                $page['issues_total'] = $counts[$uid]['occurrences'] ?? 0;
+                $visible[] = $page;
+            }
+        }
+
+        return $visible;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function issuesOfPage(int $remotePageUid): array
+    {
+        $issues = $this->remoteIssueRepository->findByRemoteScanPage($remotePageUid);
+        if ($this->restriction === null) {
+            return $issues;
+        }
+        $occurrences = [];
+        foreach ($this->restriction->findings as $finding) {
+            $occurrences[$finding['uid']] = $finding['occurrences'];
+        }
+        $visible = [];
+        foreach ($issues as $issue) {
+            $uid = (int)($issue['uid'] ?? 0);
+            if (isset($occurrences[$uid])) {
+                $issue['nodes_count'] = $occurrences[$uid];
+                $visible[] = $issue;
+            }
+        }
+
+        return $visible;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function nodesOfIssue(int $issueUid): array
+    {
+        $nodes = $this->remoteIssueNodeRepository->findByRemoteIssue($issueUid);
+        if ($this->restriction === null) {
+            return $nodes;
+        }
+
+        return array_values(array_filter($nodes, fn (array $node): bool => $this->restriction->isElementVisible((int)($node['uid'] ?? 0))));
     }
 
     public function buildOverviewCsv(
@@ -64,10 +260,21 @@ final class RemoteExportBuilder
         ?int $pageUid = null,
         int $languageUid = -1,
     ): string {
-        $scan = $this->resolveOverviewExportScan($siteIdentifier, $remoteScanUid, $pageUid, $languageUid);
+        return $this->buildOverviewCsvForTarget($this->resolveOverviewExportTarget($siteIdentifier, $remoteScanUid, $pageUid, $languageUid)['scan']);
+    }
+
+    /**
+     * AUTH-03: the CSV of exactly the scan the caller resolved and authorized (resolveOverviewExportTarget()); null gives
+     * the header-only file.
+     *
+     * @param array<string, mixed>|null $scan
+     */
+    public function buildOverviewCsvForTarget(?array $scan): string
+    {
         if (!is_array($scan) || !isset($scan['uid'])) {
             return $this->buildRemoteIssueCsvHeaderOnly();
         }
+        $this->restrictTo($scan);
 
         return $this->buildRemoteScanIssueCsv($scan);
     }
@@ -97,7 +304,7 @@ final class RemoteExportBuilder
             return $this->buildRemoteIssueCsvHeaderOnly();
         }
 
-        $pages = $this->remoteScanRepository->findPagesForScan($remoteScanUid);
+        $pages = $this->visiblePages($this->remoteScanRepository->findPagesForScan($remoteScanUid));
         $output = fopen('php://memory', 'r+b');
         if ($output === false) {
             return '';
@@ -119,7 +326,7 @@ final class RemoteExportBuilder
     /**
      * @param resource $output
      */
-    private function writeRemoteIssueCsvHeader($output): void
+    private function writeRemoteIssueCsvHeader($output, bool $withScanKind = false): void
     {
         fputcsv($output, CsvValueSanitizer::sanitizeRow([
             'URL',
@@ -143,6 +350,7 @@ final class RemoteExportBuilder
             'Suggested foreground candidates',
             'Suggested background candidates',
             'Candidate note',
+            ...($withScanKind ? ['Scan kind'] : []),
         ]), ';');
     }
 
@@ -226,6 +434,11 @@ final class RemoteExportBuilder
         if (!is_array($remotePage)) {
             return '';
         }
+        $this->restrictTo($this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0)));
+        if ($this->restriction !== null && !$this->restriction->isResultPageVisible($remotePageUid)) {
+            // Indistinguishable from a page that does not exist.
+            return '';
+        }
 
         $issueRows = $this->preparePageIssueRows(
             $remotePageUid,
@@ -233,12 +446,16 @@ final class RemoteExportBuilder
             (string)($remotePage['url'] ?? '')
         );
 
+        // A preview scan's rows carry a last "Scan kind" column; public page exports keep their columns unchanged.
+        $scanKind = $this->pagePreviewLabel((int)($remotePage['remote_scan'] ?? 0));
+        $scanKindColumn = $scanKind !== '' ? [$scanKind] : [];
+
         $output = fopen('php://memory', 'r+b');
         if ($output === false) {
             return '';
         }
 
-        $this->writeRemoteIssueCsvHeader($output);
+        $this->writeRemoteIssueCsvHeader($output, $scanKind !== '');
 
         foreach ($issueRows as $row) {
             if ($row['nodes'] === []) {
@@ -264,6 +481,7 @@ final class RemoteExportBuilder
                     '',
                     '',
                     '',
+                    ...$scanKindColumn,
                 ]), ';');
 
                 continue;
@@ -293,6 +511,7 @@ final class RemoteExportBuilder
                     $contrastCsv['suggestedForegroundCandidates'],
                     $contrastCsv['suggestedBackgroundCandidates'],
                     $contrastCsv['candidateNote'],
+                    ...$scanKindColumn,
                 ]), ';');
             }
         }
@@ -307,36 +526,68 @@ final class RemoteExportBuilder
     /**
      * @return array<string, mixed>|null
      */
-    private function resolveOverviewExportScan(
+    /** "Preview scan · page not public" for a stored preview scan, '' for a public one. */
+    private function pagePreviewLabel(int $remoteScanUid): string
+    {
+        $scan = $remoteScanUid > 0 ? $this->remoteScanRepository->findScanByUid($remoteScanUid) : null;
+
+        return is_array($scan) && RemoteScanPairingService::isPagePreview($scan) ? self::PAGE_PREVIEW_LABEL : '';
+    }
+
+    /**
+     * AUTH-03: the one stored scan an overview export reports on, resolved before authorization so that the caller checks
+     * and the builder renders the same row.
+     *
+     * - An explicitly named scan is the target or nothing: it must belong to the site, be completed, be a paid (not Free
+     *   Remote Preview) scan and fit the context — a site scan for a site export, a site scan or the scan of that very page
+     *   for a page export. Otherwise `explicitInvalid` is set and `scan` is null: no other scan is put in its place.
+     * - Without a named scan: the latest completed paid scan of the page (page context) else of the site, in the language.
+     *   The caller still authorizes the row it gets.
+     * - F12-R1 (F11-02): a completed scan whose results are not stored (`persisted_at` 0: pending or failed) has no saved
+     *   report. It is refused (`resultsUnsaved`, `scan` null), named or not; no older scan is put in its place, and the
+     *   crawler's summary and counters are never exported as its report.
+     *
+     * @return array{scan: array<string, mixed>|null, explicit: bool, explicitInvalid: bool, resultsUnsaved: bool}
+     */
+    public function resolveOverviewExportTarget(
         string $siteIdentifier,
         int $remoteScanUid = 0,
         ?int $pageUid = null,
         int $languageUid = -1,
-    ): ?array {
+    ): array {
+        $isPageContext = $pageUid !== null && $pageUid > 0;
         if ($remoteScanUid > 0) {
             $scan = $this->remoteScanRepository->findScanByUid($remoteScanUid);
             $scanScope = is_array($scan) ? (string)($scan['scan_scope'] ?? '') : '';
-            $isPageContext = $pageUid !== null && $pageUid > 0;
-            $scopeMatchesContext = $isPageContext || $scanScope === 'site';
-
-            if (
-                is_array($scan)
+            $scopeMatchesContext = $scanScope === 'site'
+                || ($isPageContext && $scanScope === 'page' && (int)($scan['page_uid'] ?? 0) === (int)$pageUid);
+            $valid = is_array($scan)
+                && $siteIdentifier !== ''
                 && (string)($scan['site_identifier'] ?? '') === $siteIdentifier
                 && (string)($scan['status'] ?? '') === 'completed'
-                && $scopeMatchesContext
-            ) {
-                return $scan;
+                && (int)($scan['is_free_preview'] ?? 0) === 0
+                && $scopeMatchesContext;
+
+            if ($valid && RemoteScanSignal::unsavedResultState($scan) !== null) {
+                return ['scan' => null, 'explicit' => true, 'explicitInvalid' => true, 'resultsUnsaved' => true];
             }
+
+            return ['scan' => $valid ? $scan : null, 'explicit' => true, 'explicitInvalid' => !$valid, 'resultsUnsaved' => false];
         }
 
-        if ($pageUid !== null && $pageUid > 0) {
-            $pageScan = $this->remoteScanRepository->findLastCompletedPageScanByPage($siteIdentifier, $pageUid, $languageUid);
-            if (is_array($pageScan)) {
-                return $pageScan;
-            }
+        $scan = null;
+        if ($isPageContext) {
+            $scan = $this->remoteScanRepository->findLastCompletedPageScanByPage($siteIdentifier, (int)$pageUid, $languageUid, false);
+        }
+        if (!is_array($scan)) {
+            $scan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, false);
         }
 
-        return $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid);
+        if (is_array($scan) && RemoteScanSignal::unsavedResultState($scan) !== null) {
+            return ['scan' => null, 'explicit' => false, 'explicitInvalid' => false, 'resultsUnsaved' => true];
+        }
+
+        return ['scan' => is_array($scan) ? $scan : null, 'explicit' => false, 'explicitInvalid' => false, 'resultsUnsaved' => false];
     }
 
     public function buildOverviewPdf(
@@ -346,7 +597,20 @@ final class RemoteExportBuilder
         ?int $pageUid = null,
         int $languageUid = -1,
     ): string {
-        $scan = $this->resolveOverviewExportScan($siteIdentifier, $remoteScanUid, $pageUid, $languageUid);
+        return $this->buildOverviewPdfForTarget(
+            $siteIdentifier,
+            $this->resolveOverviewExportTarget($siteIdentifier, $remoteScanUid, $pageUid, $languageUid)['scan'],
+            $request,
+        );
+    }
+
+    /**
+     * AUTH-03: the PDF of exactly the scan the caller resolved and authorized (resolveOverviewExportTarget()).
+     *
+     * @param array<string, mixed>|null $scan
+     */
+    public function buildOverviewPdfForTarget(string $siteIdentifier, ?array $scan, ?ServerRequestInterface $request = null): string
+    {
         $generatedAt = $this->formatPdfDate();
         $logoPath = $this->resolvePdfLogoPath();
         $siteLabel = $this->formatPdfSiteLabel($siteIdentifier);
@@ -424,22 +688,27 @@ final class RemoteExportBuilder
         }
 
         $siteLabel = $this->formatPdfSiteLabel((string)($scan['site_identifier'] ?? $siteIdentifier));
-        $pages = $this->remoteScanRepository->findPagesForScan((int)$scan['uid']);
-        $failedPages = $this->remoteScanRepository->findFailedPagesForScan((int)$scan['uid']);
+        $this->restrictTo($scan);
+        $pages = $this->visiblePages($this->remoteScanRepository->findPagesForScan((int)$scan['uid']));
+        $failedPages = $this->visiblePages($this->remoteScanRepository->findFailedPagesForScan((int)$scan['uid']));
         $topRules = $this->buildOverviewTopRules($pages);
         $preparedPages = $this->prepareOverviewPages($pages);
         $preparedFailedPages = $this->prepareFailedPages($failedPages);
-        $pagesScanned = (int)($scan['pages_scanned'] ?? count($pages));
-        $pagesFailed = (int)($scan['pages_failed'] ?? count($failedPages));
+        // The crawler's own counters cover pages the user may be refused: a restricted report counts what it shows.
+        $pagesScanned = $this->restriction !== null ? count($pages) : (int)($scan['pages_scanned'] ?? count($pages));
+        $pagesFailed = $this->restriction !== null ? count($failedPages) : (int)($scan['pages_failed'] ?? count($failedPages));
         // Totals and the severity row come from the stored findings, like the CSV: the row adds up to the total. The ten
         // priority fixes are a ranking, not the breakdown; every issue type is listed under "All issue types".
-        $occurrences = isset($this->remoteOccurrenceTotalsService)
-            ? $this->remoteOccurrenceTotalsService->forScan($scan)
-            : RemoteOccurrenceTotals::reportedOnly((int)($scan['issues_total'] ?? 0));
+        $occurrences = $this->restriction !== null
+            ? $this->restriction->totals()
+            : (isset($this->remoteOccurrenceTotalsService)
+                ? $this->remoteOccurrenceTotalsService->forScan($scan)
+                : RemoteOccurrenceTotals::reportedOnly((int)($scan['issues_total'] ?? 0)));
         $issuesTotal = $occurrences->total;
-        $issuesNew = (int)($scan['issues_new'] ?? 0);
-        $issuesResolved = (int)($scan['issues_resolved'] ?? 0);
-        $reporting = $this->preparePdfReportingSummary($scan);
+        $issuesNew = $this->restriction !== null ? 0 : (int)($scan['issues_new'] ?? 0);
+        $issuesResolved = $this->restriction !== null ? 0 : (int)($scan['issues_resolved'] ?? 0);
+        // The crawler's site-wide reporting summary is built over every page: not for a restricted report.
+        $reporting = $this->preparePdfReportingSummary($this->restriction !== null ? null : $scan);
         $impactRow = $occurrences->hasBreakdown ? $occurrences->severityRow() : [];
         $allIssueTypes = $this->prepareAllIssueTypesForPdf((int)$scan['uid']);
         $fixes = [];
@@ -454,16 +723,19 @@ final class RemoteExportBuilder
             ];
         }
         $affectedPages = count(array_filter($preparedPages, static fn (array $page): bool => (int)$page['issuesCount'] > 0));
-        $verdict = $pagesScanned === 0
-            ? 'No page could be checked in this scan.'
-            : sprintf(
-                '%d %s on %d of %d checked %s.',
-                $issuesTotal,
-                $this->pluralize('occurrence', $issuesTotal),
-                $affectedPages,
-                $pagesScanned,
-                $this->pluralize('page', $pagesScanned)
-            ) . ($pagesFailed > 0 ? sprintf(' %d %s could not be loaded.', $pagesFailed, $pagesFailed === 1 ? 'page' : 'pages') : '');
+        // Sol QA-06: a restricted report describes the results available to this user. Whether the scan itself loaded a
+        // page comes from the stored scan's own counter; a scan that did is never reported as "no page checked" or
+        // clean, and the wording is the same whatever was withheld (no hidden counts).
+        $scanLoadedPages = (int)($scan['pages_scanned'] ?? 0) > 0 || $pages !== [];
+        $restrictionNote = $this->restriction !== null && $scanLoadedPages ? self::PDF_RESTRICTED_NOTE : '';
+        $verdict = self::overviewVerdict(
+            $restrictionNote !== '',
+            count($pages),
+            $issuesTotal,
+            $affectedPages,
+            $pagesScanned,
+            $pagesFailed,
+        );
         $occurrencesNote = $occurrences->notStored > 0
             ? sprintf(
                 'The scan summary counted %d; %d %s not in the stored results because an element with the same signature was already recorded.',
@@ -477,6 +749,8 @@ final class RemoteExportBuilder
             templateName: 'Export/RemoteOverviewPdf',
             variables: [
                 'verdict' => $verdict,
+                'coverageNote' => self::coverageNote($this->treeCoverageFor($scan)),
+                'restrictionNote' => $restrictionNote,
                 'occurrencesNote' => $occurrencesNote,
                 'impactRow' => $impactRow,
                 'fixes' => $fixes,
@@ -488,7 +762,8 @@ final class RemoteExportBuilder
                 'pagesAll' => $preparedPages,
                 'pagesAllCount' => count($preparedPages),
                 'failedPagesAll' => $preparedFailedPages,
-                'scanScopeLabel' => (string)($scan['scan_scope'] ?? '') === 'page' ? 'Page scan' : 'Site scan',
+                'scanScopeLabel' => ((string)($scan['scan_scope'] ?? '') === 'page' ? 'Page scan' : 'Site scan')
+                    . (RemoteScanPairingService::isPagePreview($scan) ? ' · ' . self::PAGE_PREVIEW_LABEL : ''),
                 'title' => 'Frontend accessibility overview report',
                 'subtitle' => $siteLabel . ' · last completed scan',
                 'generatedAt' => $generatedAt,
@@ -508,7 +783,9 @@ final class RemoteExportBuilder
                 'pagesShown' => min(count($preparedPages), 10),
                 'pagesScanned' => $pagesScanned,
                 'pagesFailed' => $pagesFailed,
-                'pagesScannedFoot' => $pagesScanned . ' ' . $this->pluralize('URL', $pagesScanned) . ' in last scan',
+                'pagesScannedFoot' => $restrictionNote !== ''
+                    ? $pagesScanned . ' ' . $this->pluralize('URL', $pagesScanned) . ' available to you'
+                    : $pagesScanned . ' ' . $this->pluralize('URL', $pagesScanned) . ' in last scan',
                 'pagesFailedFoot' => $pagesFailed > 0 ? $pagesFailed . ' skipped or timed out' : 'no failed pages',
                 'issuesTotal' => $issuesTotal,
                 'runtimeLabel' => $this->buildRuntimeLabel($scan),
@@ -562,6 +839,21 @@ final class RemoteExportBuilder
         $generatedAt = $this->formatPdfDate();
         $logoPath = $this->resolvePdfLogoPath();
         $remotePage = $this->remoteScanRepository->findPageByUid($remotePageUid);
+        if (is_array($remotePage)) {
+            $this->restrictTo($this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0)));
+            if ($this->restriction !== null && !$this->restriction->isResultPageVisible($remotePageUid)) {
+                // Indistinguishable from a page that does not exist.
+                $remotePage = null;
+            }
+            if (is_array($remotePage) && $this->restriction !== null) {
+                // The crawler's page summaries and count cover every element of the page, also those of records this
+                // user may not read: a restricted report counts its visible findings and leaves the summaries out.
+                foreach (['keyboard_summary_json', 'remediation_summary_json', 'page_recommendation_json'] as $field) {
+                    $remotePage[$field] = '';
+                }
+                $remotePage['issues_count'] = $this->restriction->countsByResultPage()[$remotePageUid]['issueTypes'] ?? 0;
+            }
+        }
 
         if (!is_array($remotePage)) {
             $html = $this->pdfTemplateRenderer->render(
@@ -657,9 +949,10 @@ final class RemoteExportBuilder
             (string)($remotePage['site_identifier'] ?? $remotePage['site'] ?? 'Frontend scan')
         );
         $relativeUrl = $this->relativePathFromUrl($pageUrl);
-        $screenshot = $this->buildScreenshotBlock($remotePageUid, $remotePage);
+        // A page screenshot shows every record the page renders: administrators only (RemoteScreenshotAccessPolicy).
+        $screenshot = $this->restriction !== null ? $this->buildScreenshotNotIncludedBlock() : $this->buildScreenshotBlock($remotePageUid, $remotePage);
         $remoteScan = $this->remoteScanRepository->findScanByUid((int)($remotePage['remote_scan'] ?? 0));
-        $reporting = $this->preparePdfPageReportingSummary($remotePage, $allIssues, $remoteScan);
+        $reporting = $this->preparePdfPageReportingSummary($remotePage, $allIssues, $this->restriction !== null ? null : $remoteScan);
 
         $issuesShownLabel = '0 matching issues';
         if ($issueGroupCount > 0) {
@@ -684,7 +977,7 @@ final class RemoteExportBuilder
                 'pageUrl' => $pageUrl,
                 'impactRow' => $impactRow,
                 'startHere' => $startHere,
-                'issuesSummaryLabel' => self::pageVerdict($issueGroupCount, $occurrencesCount, $failureReason !== '' || $httpStatus >= 400),
+                'issuesSummaryLabel' => self::pageVerdict($issueGroupCount, $occurrencesCount, $failureReason !== '' || $httpStatus >= 400, $this->restriction !== null),
                 'pageNotChecked' => ($failureReason !== '' || $httpStatus >= 400) && $issueGroupCount === 0,
                 'moreIssueGroups' => max(0, $issueGroupCount - $issueGroupsShown),
                 'showFullScreenshot' => ($screenshot['imageVars'] ?? []) !== [] && $occurrencesCount >= self::PDF_FULL_SCREENSHOT_MIN_OCCURRENCES,
@@ -702,6 +995,7 @@ final class RemoteExportBuilder
                 'issues' => $issues,
                 'hasIssues' => $issues !== [],
                 'issueDetailsUnavailable' => $issueDetailsUnavailable,
+                'restrictionNote' => $this->restriction !== null ? self::PDF_RESTRICTED_NOTE : '',
                 'pageSummaryIssuesCount' => $pageSummaryIssuesCount,
                 'pageIssueGroupCount' => $issueGroupCount,
                 'pageOccurrencesCount' => $occurrencesCount,
@@ -745,6 +1039,7 @@ final class RemoteExportBuilder
                 'reportingGroupsShown' => is_array($reporting['reportingGroups']['groups'] ?? null) ? count($reporting['reportingGroups']['groups']) : 0,
                 'reportingGroupsShownLabel' => $this->countLabel(is_array($reporting['reportingGroups']['groups'] ?? null) ? count($reporting['reportingGroups']['groups']) : 0, 'reporting group', 'reporting groups'),
                 'disclaimerText' => self::PDF_REPORT_DISCLAIMER,
+                'scanKindLabel' => is_array($remoteScan) && RemoteScanPairingService::isPagePreview($remoteScan) ? self::PAGE_PREVIEW_LABEL : '',
             ],
             request: $request,
         );
@@ -894,7 +1189,7 @@ final class RemoteExportBuilder
                 continue;
             }
 
-            foreach ($this->remoteIssueRepository->findByRemoteScanPage($pageUid) as $issue) {
+            foreach ($this->issuesOfPage($pageUid) as $issue) {
                 $ruleId = trim((string)($issue['rule_id'] ?? ''));
                 if ($ruleId === '') {
                     continue;
@@ -1016,17 +1311,19 @@ final class RemoteExportBuilder
      */
     private function preparePageIssueRows(int $remotePageUid, int $remoteScanUid = 0, string $pageUrl = ''): array
     {
-        $issues = $this->remoteIssueRepository->findByRemoteScanPage($remotePageUid);
+        $issues = $this->issuesOfPage($remotePageUid);
         $groups = [];
 
         foreach ($issues as $issue) {
             $issueUid = (int)($issue['uid'] ?? 0);
             $nodes = $issueUid > 0
-                ? $this->remoteIssueNodeRepository->findByRemoteIssue($issueUid)
+                ? $this->nodesOfIssue($issueUid)
                 : [];
             $impact = strtolower(trim((string)($issue['impact'] ?? '')));
             $impactWeight = $this->impactWeightFromImpact($impact);
-            $nodesCount = max((int)($issue['nodes_count'] ?? 0), count($nodes), 1);
+            $nodesCount = $this->restriction !== null
+                ? max((int)($issue['nodes_count'] ?? 0), count($nodes))
+                : max((int)($issue['nodes_count'] ?? 0), count($nodes), 1);
             $ruleId = trim((string)($issue['rule_id'] ?? ''));
             $groupKey = $ruleId !== '' ? $ruleId : 'issue-' . $issueUid;
             $title = trim((string)($issue['help'] ?? ''));
@@ -1599,9 +1896,11 @@ final class RemoteExportBuilder
      */
     private function preparePdfReportingSummary(?array $remoteScan): array
     {
+        // Exports stay English by design, whatever the backend language.
         $fallbackSummary = $this->remoteReportingSummaryService->buildForRemoteScan(
             $remoteScan,
-            $this->remoteIssueRepository
+            $this->remoteIssueRepository,
+            'en'
         );
 
         $summary = $this->resolveApiReportingSummary($remoteScan, $fallbackSummary) ?? $fallbackSummary;
@@ -2459,7 +2758,8 @@ final class RemoteExportBuilder
             $summaryResult->structureSummary,
             $summaryResult->contrastDetails,
             $summaryResult->remediationSummary,
-            $summaryResult->componentSummary
+            $summaryResult->componentSummary,
+            'en'
         );
     }
 
@@ -2962,10 +3262,15 @@ final class RemoteExportBuilder
     /**
      * The headline of a Frontend page PDF. A page that did not load was never checked, so it gets no "0 issues" verdict.
      */
-    public static function pageVerdict(int $issueTypes, int $occurrences, bool $pageFailed): string
+    public static function pageVerdict(int $issueTypes, int $occurrences, bool $pageFailed, bool $restrictedView = false): string
     {
         if ($issueTypes === 0 && $occurrences === 0) {
-            return $pageFailed ? 'Page not checked: it did not load during the scan' : 'No automated findings';
+            if ($pageFailed) {
+                return 'Page not checked: it did not load during the scan';
+            }
+
+            // Sol QA-06 review: a restricted report never opens with a clean verdict.
+            return $restrictedView ? 'No results available to you for this page' : 'No automated findings';
         }
 
         return $issueTypes . ' ' . ($issueTypes === 1 ? 'issue type' : 'issue types')
@@ -2981,7 +3286,7 @@ final class RemoteExportBuilder
     private function prepareAllIssueTypesForPdf(int $remoteScanUid): array
     {
         $types = [];
-        foreach ($this->remoteIssueRepository->summarizeIssueTypesForScan($remoteScanUid) as $position => $type) {
+        foreach ($this->restrictedIssueTypes($remoteScanUid) as $position => $type) {
             $impact = in_array($type['impact'], RemoteOccurrenceTotals::IMPACTS, true) ? $type['impact'] : '';
             $plainTitle = $type['plainTitle'] !== ''
                 ? $type['plainTitle']
@@ -2995,6 +3300,40 @@ final class RemoteExportBuilder
         }
 
         return $types;
+    }
+
+    /**
+     * The stored issue types of the scan, or for a restricted user only those of the visible findings.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function restrictedIssueTypes(int $remoteScanUid): array
+    {
+        $types = $this->remoteIssueRepository->summarizeIssueTypesForScan($remoteScanUid);
+        if ($this->restriction === null) {
+            return $types;
+        }
+        $visible = [];
+        foreach ($this->restriction->findings as $finding) {
+            $key = $finding['ruleId'];
+            $visible[$key] ??= ['occurrences' => 0, 'pages' => []];
+            $visible[$key]['occurrences'] += $finding['nodesCount'] > 0 ? $finding['occurrences'] : 1;
+            $visible[$key]['pages'][$finding['resultPage']] = true;
+        }
+        $restricted = [];
+        foreach ($types as $type) {
+            $ruleId = (string)($type['ruleId'] ?? '');
+            if (!isset($visible[$ruleId])) {
+                continue;
+            }
+            $type['occurrences'] = $visible[$ruleId]['occurrences'];
+            if (array_key_exists('pages', $type)) {
+                $type['pages'] = count($visible[$ruleId]['pages']);
+            }
+            $restricted[] = $type;
+        }
+
+        return $restricted;
     }
 
     /**

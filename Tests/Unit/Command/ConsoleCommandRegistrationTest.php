@@ -60,6 +60,7 @@ final class ConsoleCommandRegistrationTest extends TestCase
             $registrations['a11y:scan'][0]['schedulable'],
             '"Execute console commands" has offered a11y:scan on TYPO3 13 since 1.0.0; existing tasks must keep working.'
         );
+        self::assertArrayNotHasKey('a11y:ai:prices', $registrations, 'AI prices come from the AQG service: customer installations run no pricing job.');
     }
 
     #[Test]

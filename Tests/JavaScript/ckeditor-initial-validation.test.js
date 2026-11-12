@@ -129,7 +129,7 @@ describe('CKEditor accessibility feedback on open', () => {
         await settle();
 
         expect(summaryText()).toContain('2 issues found');
-        expect(summaryText().replace(/\s+/g, ' ')).toContain('2 critical issues');
+        expect(summaryText().replace(/\s+/g, ' ')).toContain('2 Critical');
         expect(summaryText()).not.toContain('Criticals');
         expect(summary().classList.contains('ck-a11y-summary--critical')).toBe(true);
         expect(summary().classList.contains('ck-a11y-summary--stored')).toBe(false);
@@ -278,5 +278,50 @@ describe('CKEditor accessibility feedback on open', () => {
         await vi.advanceTimersByTimeAsync(3000);
 
         expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    // Regression (3.0 editor-first audit): an editor without the Accessibility module got the plugin, TYPO3 answered
+    // both AQG routes with 403, and every field showed "could not be loaded" and asked twice again after each pause.
+    it('stays quiet and stops asking when TYPO3 refuses the routes (no module access)', async () => {
+        globalThis.fetch.mockImplementation(() => Promise.resolve(new Response(null, {status: 403})));
+        const {editor, changeData} = createPlugin();
+        editor.fire('ready');
+        await settle();
+
+        expect(calls()).toEqual([`POST ${VALIDATE}`]);
+        expect(summary()).toBeNull();
+
+        changeData('<p>Edited</p>');
+        await vi.advanceTimersByTimeAsync(5000);
+        editor.fire('a11y:refresh');
+        await vi.advanceTimersByTimeAsync(5000);
+
+        expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+        expect(document.body.textContent).not.toContain('could not be loaded');
+    });
+
+    it('keeps AQG\'s own refusal (record access, JSON answer) a visible failure', async () => {
+        globalThis.fetch.mockImplementation(() => json({success: false, error: 'Access denied'}, 403));
+        const {editor} = createPlugin();
+        editor.fire('ready');
+        await settle();
+
+        expect(calls()).toEqual([`POST ${VALIDATE}`, `GET ${ISSUES}`]);
+        expect(summaryText()).toContain('could not be loaded');
+    });
+
+    it('keeps the fallback quiet too when only the stored findings are refused', async () => {
+        globalThis.fetch.mockImplementation((url) => (String(url).includes(VALIDATE)
+            ? json({success: false}, 500)
+            : Promise.resolve(new Response(null, {status: 403}))));
+        const {editor, changeData} = createPlugin();
+        editor.fire('ready');
+        await settle();
+
+        expect(calls()).toEqual([`POST ${VALIDATE}`, `GET ${ISSUES}`]);
+        expect(summary()).toBeNull();
+        changeData('<p>Edited</p>');
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(2);
     });
 });

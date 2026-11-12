@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Pro\Service;
 
+use Priebera\A11yQualityGate\Service\RemoteResultProvenanceService;
+
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
@@ -14,11 +16,15 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class RemoteScanPersistenceService
 {
+    /** Seconds a persistence claim protects a scan; a process that died mid-store frees it after this. */
+    public const PERSIST_CLAIM_TTL = 300;
+
     public function __construct(
         private readonly RemoteScanRepository $remoteScanRepository,
         private readonly RemoteIssueRepository $remoteIssueRepository,
         private readonly RemoteIssueNodeRepository $remoteIssueNodeRepository,
         private readonly DateTimeService $dateTimeService,
+        private readonly ?RemoteResultProvenanceService $remoteResultProvenanceService = null,
     ) {
     }
 
@@ -32,6 +38,68 @@ final class RemoteScanPersistenceService
     ): int {
         $logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
 
+        // NEW-01: the results of a completed crawler job never change, so a scan is stored exactly once. Status polls,
+        // the summary call, Overview, toolbar, Page Detail, Page Module and Monitoring may all reach this point for the
+        // same job at the same time in different PHP processes: only the caller that wins the database claim writes,
+        // the others return the scan as it is. The store runs in one transaction, so a failure leaves nothing partial
+        // and readers never see a half-written scan.
+        $existing = $this->remoteScanRepository->findScanByJobId($jobId);
+        if (is_array($existing) && (int)($existing['persisted_at'] ?? 0) > 0) {
+            return (int)$existing['uid'];
+        }
+        // Another request stores this scan right now. Its transaction holds the scan row lock, so the claim UPDATE below
+        // would wait for the whole store; this plain read answers at once (the claim UPDATE stays the authority).
+        if (is_array($existing) && (int)($existing['persist_claim_until'] ?? 0) >= time()) {
+            $logger->info('AQG remote persist: skipped, another request is storing this scan', ['jobId' => $jobId, 'remoteScanUid' => (int)$existing['uid']]);
+
+            return (int)$existing['uid'];
+        }
+        $claimUid = is_array($existing) ? (int)$existing['uid'] : $this->remoteScanRepository->upsertScan(
+            siteIdentifier: $siteIdentifier,
+            jobId: $jobId,
+            sourceType: $sourceType,
+            startUrl: $startUrl,
+            sitemapUrl: $sitemapUrl,
+            status: (string)($resultsData['status'] ?? 'unknown'),
+            pagesScanned: 0,
+            pagesFailed: 0,
+            issuesTotal: 0,
+            issuesNew: 0,
+            issuesResolved: 0,
+            startedAt: 0,
+            finishedAt: 0,
+            scanScope: $sourceType === RemoteScanSourceType::SinglePage ? 'page' : 'site',
+            pageUid: (int)($resultsData['pageUid'] ?? 0),
+            languageUid: (int)($resultsData['languageUid'] ?? $resultsData['languageId'] ?? -1),
+        );
+        $claimToken = bin2hex(random_bytes(16));
+        if (!$this->remoteScanRepository->claimPersistence($claimUid, $claimToken, time(), self::PERSIST_CLAIM_TTL)) {
+            $logger->info('AQG remote persist: skipped, another request stores or stored this scan', ['jobId' => $jobId, 'remoteScanUid' => $claimUid]);
+
+            return $claimUid;
+        }
+
+        try {
+            return $this->remoteScanRepository->remoteScanConnection()->transactional(
+                fn (): int => $this->storeClaimedResults($logger, $siteIdentifier, $jobId, $sourceType, $startUrl, $sitemapUrl, $resultsData)
+            );
+        } finally {
+            $this->remoteScanRepository->releasePersistenceClaim($claimUid, $claimToken);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $resultsData
+     */
+    private function storeClaimedResults(
+        \Psr\Log\LoggerInterface $logger,
+        string $siteIdentifier,
+        string $jobId,
+        RemoteScanSourceType $sourceType,
+        string $startUrl,
+        ?string $sitemapUrl,
+        array $resultsData,
+    ): int {
         $remoteScanUid = $this->remoteScanRepository->upsertScan(
             siteIdentifier: $siteIdentifier,
             jobId: $jobId,
@@ -130,6 +198,10 @@ final class RemoteScanPersistenceService
                 }
             }
         }
+
+        // Sol R01: record which TYPO3 page each result URL belongs to now, while the results are stored; reads check
+        // rights on that owner later, not on whatever page carries the slug then.
+        $this->remoteResultProvenanceService?->stampScan($remoteScanUid, $siteIdentifier);
 
         $this->remoteScanRepository->markPersisted($remoteScanUid, time());
 

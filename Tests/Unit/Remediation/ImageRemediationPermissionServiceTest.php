@@ -23,7 +23,8 @@ final class ImageRemediationPermissionServiceTest extends TestCase
         $context = $this->context();
         $recordAccess = $this->recordAccess(
             static fn(string $table, int $uid, array $fields): bool => match ($table) {
-                'tt_content' => $uid === 42 && $fields === [],
+                // The content element's own image field is checked too (an exclude field in some installations).
+                'tt_content' => $uid === 42 && $fields === ['assets'],
                 'sys_file_reference' => $uid === 10 && $fields === ['alternative', 'tx_a11y_is_decorative'],
                 default => false,
             },
@@ -154,6 +155,29 @@ final class ImageRemediationPermissionServiceTest extends TestCase
         $this->expectException(ImageRemediationPermissionException::class);
         $this->subject($this->recordAccess(), workspace: 2)
             ->assertCanModify($this->context(workspace: 1));
+    }
+
+    /** M-1: a write from a workspace would change a version row but resolve the shared live finding. */
+    #[Test]
+    #[DataProvider('operationFieldProvider')]
+    public function aWriteFromAWorkspaceIsRejected(array $fields): void
+    {
+        foreach ([0, 1] as $referenceWorkspace) {
+            try {
+                $this->subject($this->recordAccess(), workspace: 1)
+                    ->assertCanModify($this->context(workspace: $referenceWorkspace), $fields);
+                self::fail('A workspace write must be refused (reference workspace ' . $referenceWorkspace . ').');
+            } catch (ImageRemediationPermissionException $exception) {
+                self::assertSame('workspace_not_live', $exception->getMessage());
+            }
+        }
+    }
+
+    #[Test]
+    public function aReadOnlyCheckFromAWorkspaceStaysAllowed(): void
+    {
+        $this->subject($this->recordAccess(), workspace: 1)->assertCanModify($this->context(), []);
+        self::addToAssertionCount(1);
     }
 
     #[Test]

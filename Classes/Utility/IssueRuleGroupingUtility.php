@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Utility;
 
+use Priebera\A11yQualityGate\Assignment\TemplateScope;
+
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 
 /**
@@ -69,7 +71,7 @@ final class IssueRuleGroupingUtility
         foreach ($filteredIssues as $issue) {
             $severity = self::severityKey($issue);
             $severityTotals[$severity] = ($severityTotals[$severity] ?? 0) + 1;
-            $ruleKey = $severity . '|' . self::ruleId($issue);
+            $ruleKey = $severity . '|' . self::cardKey($issue);
             $ruleTotals[$ruleKey] = ($ruleTotals[$ruleKey] ?? 0) + 1;
         }
 
@@ -83,6 +85,8 @@ final class IssueRuleGroupingUtility
         foreach ($listPageIssues as $issue) {
             $severity = self::severityKey($issue);
             $ruleId = self::ruleId($issue);
+            $cardKey = self::cardKey($issue);
+            $sharedTemplate = $cardKey !== $ruleId;
 
             $groups[$severity] ??= [
                 'key' => $severity,
@@ -94,26 +98,35 @@ final class IssueRuleGroupingUtility
             ];
             $groups[$severity]['issuesOnListPage']++;
 
-            if (!isset($groups[$severity]['rules'][$ruleId])) {
+            if (!isset($groups[$severity]['rules'][$cardKey])) {
                 $guidance = is_array($issue['guidance'] ?? null) ? $issue['guidance'] : [];
-                $groups[$severity]['rules'][$ruleId] = [
+                $groups[$severity]['rules'][$cardKey] = [
                     'ruleId' => $ruleId,
-                    'anchorId' => RuleAnchorUtility::anchorId($ruleId) . '-' . $severity,
+                    // N-01: template output of one element is its own card (shared task of the site), next to the card of
+                    // the same rule inside content elements.
+                    'anchorId' => RuleAnchorUtility::anchorId($ruleId) . '-' . $severity . ($sharedTemplate ? '-' . substr(md5($cardKey), 0, 8) : ''),
+                    'sharedTemplate' => $sharedTemplate,
                     'title' => (string)($issue['ruleTitle'] ?? $issue['displayTitle'] ?? $issue['message'] ?? $ruleId),
                     'guidance' => $guidance,
                     'howToFix' => trim((string)($guidance['howToFix'] ?? '')),
                     'issues' => [],
                     'occurrencesOnListPage' => 0,
-                    'occurrencesTotal' => (int)($ruleTotals[$severity . '|' . $ruleId] ?? 0),
+                    'occurrencesTotal' => (int)($ruleTotals[$severity . '|' . $cardKey] ?? 0),
                     'continues' => false,
                     'hasOpenIssue' => false,
                     'openRuleCountOnPage' => 0,
                     'openRuleCountOnSite' => 0,
                     'hasRenderedSource' => false,
+                    // My issues: the task is the issue type on the page (rendered rules fold into their rich-text rule);
+                    // an open occurrence names it for the assign request (the server derives everything else from it).
+                    'issueKey' => $sharedTemplate
+                        ? TemplateScope::key($ruleId, (string)($issue['context_snippet'] ?? ''))
+                        : \Priebera\A11yQualityGate\Scan\RenderedRichTextDuplicates::canonicalRuleId($ruleId),
+                    'firstOpenIssueUid' => 0,
                 ];
             }
 
-            $rule = &$groups[$severity]['rules'][$ruleId];
+            $rule = &$groups[$severity]['rules'][$cardKey];
             $rule['issues'][] = $issue;
             $rule['occurrencesOnListPage']++;
             if ((string)($issue['sourceType'] ?? '') === 'rendered') {
@@ -121,6 +134,7 @@ final class IssueRuleGroupingUtility
             }
             if ((int)($issue['status'] ?? -1) === 0 && !$rule['hasOpenIssue']) {
                 $rule['hasOpenIssue'] = true;
+                $rule['firstOpenIssueUid'] = (int)($issue['uid'] ?? 0);
                 $rule['openRuleCountOnPage'] = (int)($issue['openRuleCountOnPage'] ?? 0);
                 $rule['openRuleCountOnSite'] = (int)($issue['openRuleCountOnSite'] ?? 0);
             }
@@ -151,6 +165,18 @@ final class IssueRuleGroupingUtility
     private static function severityKey(array $issue): string
     {
         return Severity::fromInt((int)($issue['severity'] ?? 0))->key();
+    }
+
+    /**
+     * @param array<string, mixed> $issue
+     */
+    private static function cardKey(array $issue): string
+    {
+        $ruleId = self::ruleId($issue);
+
+        return TemplateScope::isTemplateFinding($issue)
+            ? $ruleId . '#' . TemplateScope::key($ruleId, (string)($issue['context_snippet'] ?? ''))
+            : $ruleId;
     }
 
     /**

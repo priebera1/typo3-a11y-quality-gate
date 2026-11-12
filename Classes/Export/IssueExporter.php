@@ -22,8 +22,10 @@ final class IssueExporter
         ?int $pageUid = null,
         string $status = 'open',
         string $severity = 'all',
+        int $languageUid = -1,
+        string $readablePagesClause = '',
     ): string {
-        $issues = $this->getFilteredIssues($siteIdentifier, $pageUid, $status, $severity);
+        $issues = $this->getFilteredIssues($siteIdentifier, $pageUid, $status, $severity, $languageUid, $readablePagesClause);
 
         $output = fopen('php://memory', 'r+b');
         if ($output === false) {
@@ -67,8 +69,7 @@ final class IssueExporter
                 $issue['context_snippet'] ?? '',
                 !empty($issue['crdate']) ? date('Y-m-d H:i:s', (int)$issue['crdate']) : '',
                 !empty($issue['tstamp']) ? date('Y-m-d H:i:s', (int)$issue['tstamp']) : '',
-                $issue['ignored_by'] ?: '',
-                $issue['ignored_reason'] ?? '',
+                ...self::ignoreColumns($issue),
             ]), ';');
         }
 
@@ -80,6 +81,7 @@ final class IssueExporter
     }
 
     /**
+     * @param int $languageUid the content language of the findings; -1 exports every language
      * @return array<int, array<string, mixed>>
      */
     public function getFilteredIssues(
@@ -87,6 +89,8 @@ final class IssueExporter
         ?int $pageUid,
         string $status,
         string $severity,
+        int $languageUid = -1,
+        string $readablePagesClause = '',
     ): array {
         $normalizedStatus = FilterValueUtility::normalizeStatus($status);
         $normalizedSeverity = FilterValueUtility::normalizeSeverity($severity);
@@ -94,12 +98,38 @@ final class IssueExporter
         $issues = $this->issueRepository->findForExport(
             siteIdentifier: $siteIdentifier,
             pageUid: $pageUid,
-            onlyOpen: $normalizedStatus === 'open'
+            onlyOpen: $normalizedStatus === 'open',
+            languageUid: $languageUid,
+            readablePagesClause: $readablePagesClause,
         );
 
         $issues = IssueFilterUtility::filterByStatus($issues, $normalizedStatus);
         $issues = IssueFilterUtility::filterBySeverity($issues, $normalizedSeverity);
 
         return $issues;
+    }
+
+    /**
+     * Who ignored a finding and why, only while it is ignored: a finding whose ignore expired or was lifted is open
+     * again, and its old ignore data would read as current. The person is named (display name, else user name) — a bare
+     * backend user uid means nothing to the reader of a report (product acceptance).
+     *
+     * @param array<string, mixed> $issue
+     * @return array{0:string, 1:string}
+     */
+    private static function ignoreColumns(array $issue): array
+    {
+        if ((int)($issue['status'] ?? 0) !== IssueStatus::Ignored->value) {
+            return ['', ''];
+        }
+        $by = trim((string)($issue['ignored_by_name'] ?? ''));
+        if ($by === '') {
+            $by = trim((string)($issue['ignored_by_username'] ?? ''));
+        }
+        if ($by === '' && (int)($issue['ignored_by'] ?? 0) > 0) {
+            $by = 'Backend user #' . (int)$issue['ignored_by'];
+        }
+
+        return [$by, (string)($issue['ignored_reason'] ?? '')];
     }
 }

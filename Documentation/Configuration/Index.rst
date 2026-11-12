@@ -27,4 +27,5 @@ below. Two settings live outside the module: the extension configuration
     RemoteAccess
     AiSuggestions
     AccessibilityStatement
+    Permissions
     Tsconfig

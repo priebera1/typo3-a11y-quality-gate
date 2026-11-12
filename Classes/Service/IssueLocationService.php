@@ -92,6 +92,26 @@ final class IssueLocationService
         ];
     }
 
+    /**
+     * Content type and column of a content element in the editor's words (agent access, aqg_get_finding_context).
+     * Empty strings when the record is no content element, is gone, or has no label.
+     *
+     * @return array{contentType: string, contentTypeLabel: string, column: string}
+     */
+    public function contentElementLabels(string $table, int $uid): array
+    {
+        $record = $table === 'tt_content' && $uid > 0 ? $this->record($table, $uid) : null;
+        if ($record === null) {
+            return ['contentType' => '', 'contentTypeLabel' => '', 'column' => ''];
+        }
+
+        return [
+            'contentType' => (string)($record['CType'] ?? ''),
+            'contentTypeLabel' => $this->contentTypeLabel($record),
+            'column' => $this->columnLabel($record),
+        ];
+    }
+
     private function fieldLabel(string $table, string $field): string
     {
         if ($field === self::RENDERED_HTML_FIELD) {

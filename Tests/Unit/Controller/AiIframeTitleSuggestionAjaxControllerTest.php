@@ -102,6 +102,20 @@ final class AiIframeTitleSuggestionAjaxControllerTest extends TestCase
     }
 
     #[Test]
+    public function aUserWithoutAiPermissionGetsNoPermissionNotADisabledFeature(): void
+    {
+        // N-08: ai.editor = 0 for this user; the service refused before any provider request.
+        $service = $this->createMock(AiIframeTitleSuggestionServiceInterface::class);
+        $service->method('suggest')->willThrowException(new AiConfigurationException('not enabled for this user', 1771002942));
+
+        $response = (new AiIframeTitleSuggestionAjaxController($service))->suggestAction((new ServerRequest('https://example.test/', 'POST'))->withParsedBody(['findingId' => 12]));
+        $payload = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('no_permission', $payload['code']);
+    }
+
+    #[Test]
     public function disabledFeatureReturnsSafeError(): void
     {
         $service = $this->createMock(AiIframeTitleSuggestionServiceInterface::class);

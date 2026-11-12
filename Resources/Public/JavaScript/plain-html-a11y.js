@@ -1,3 +1,19 @@
+import { EditorAiSession } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-session.js';
+import { StagedRemediation, reportInserted } from '@priebera/a11y-quality-gate/remediation/editor-staging.js';
+import { EditorAiOutcome } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-outcome.js';
+import { EditorAiReviewDialog } from '@priebera/a11y-quality-gate/editor-ai/editor-ai-review-dialog.js';
+import { computePopoverPlacement, sheetScrollDelta } from '@priebera/a11y-quality-gate/editor-ai/popover-placement.js';
+import {
+    attributeMap,
+    buildChange,
+    locateTarget,
+    locateTargetAt,
+    plainContentRange,
+    sourceDiff,
+    tokenizeHtml,
+    verifyChange,
+} from '@priebera/a11y-quality-gate/editor-ai/html-source.js';
+
 const MAX_LIVE_VALIDATION_HTML_SIZE = 500000;
 const VALIDATION_DEBOUNCE_MS = 1600;
 const VALIDATION_FAST_DEBOUNCE_MS = 450;
@@ -23,6 +39,9 @@ const normalizeSeverity = (severity) => {
         : 'info';
 };
 
+// The stroked AQG wand (as on the CKEditor markers): the line badge says "AI can help here" with it (Atlas 03 · A).
+const WAND_MASK = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M2.3 12.6 10 4.9l1.1 1.1-7.7 7.7a.8.8 0 0 1-1.1-1.1Z\'/%3E%3Cpath d=\'M11.6 1.2 12 2.6l1.4.4-1.4.4-.4 1.4-.4-1.4-1.4-.4 1.4-.4ZM14 5.4l.3.8.8.3-.8.3-.3.8-.3-.8-.8-.3.8-.3ZM7.2 1.6l.3.8.8.3-.8.3-.3.8-.3-.8-.8-.3.8-.3Z\'/%3E%3C/svg%3E") center / contain no-repeat';
+
 const severityRank = (severity) => ({ critical: 3, warning: 2, needs_review: 1.5, info: 1 }[normalizeSeverity(severity)] ?? 0);
 
 // Translated labels from the wizard markup (PlainHtmlA11yWizard, data-labels); English fallbacks otherwise.
@@ -34,6 +53,21 @@ const editorLabel = (key, fallback) => {
 };
 
 const editorLabelHtml = (key, fallback) => escapeHtml(editorLabel(key, fallback));
+
+/**
+ * TYPO3 refuses a route that inherits access from the Accessibility module with an empty 403. AQG's own 403 (record
+ * access) carries a JSON answer and stays a visible failure.
+ */
+const isModuleAccessDenial = async (response) => {
+    if (response.status !== 403) {
+        return false;
+    }
+    try {
+        return (await response.clone().text()).trim() === '';
+    } catch {
+        return false;
+    }
+};
 
 const readEditorLabels = (raw) => {
     try {
@@ -57,18 +91,21 @@ const severityLabel = (severity) => {
     }
 };
 
-// Unit after the number in the summary ("1 critical issue", "5 critical issues").
+// Severity badge text of the summary bar (Atlas 03 · A: "3 Critical", "2 Warnings"), singular and plural keys.
 const SEVERITY_COUNT_LABELS = {
-    critical: ['countCriticalOne', 'critical issue', 'countCriticalOther', 'critical issues'],
-    warning: ['countWarningOne', 'warning', 'countWarningOther', 'warnings'],
-    needs_review: ['countNeedsReviewOne', 'needs review', 'countNeedsReviewOther', 'need review'],
-    info: ['countInfoOne', 'info note', 'countInfoOther', 'info notes'],
+    critical: ['badgeCritical', '%d Critical', 'badgeCritical', '%d Critical'],
+    warning: ['badgeWarningOne', '%d Warning', 'badgeWarningOther', '%d Warnings'],
+    needs_review: ['badgeNeedsReview', '%d Needs review', 'badgeNeedsReview', '%d Needs review'],
+    info: ['badgeInfoOne', '%d Info', 'badgeInfoOther', '%d Info'],
 };
 
 const severityCountLabel = (severity, count) => {
     const [oneKey, oneFallback, otherKey, otherFallback] = SEVERITY_COUNT_LABELS[normalizeSeverity(severity)] || SEVERITY_COUNT_LABELS.info;
-    return count === 1 ? editorLabel(oneKey, oneFallback) : editorLabel(otherKey, otherFallback);
+    return (count === 1 ? editorLabel(oneKey, oneFallback) : editorLabel(otherKey, otherFallback)).replace('%d', String(count));
 };
+
+// A finding is titled with its plain rule name (rule.<id>.title, sent by the live check), else its message.
+const issueTitle = (issue) => issue?.ruleTitle || issue?.message || issue?.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue');
 
 class PlainHtmlA11yValidator {
     constructor(container) {
@@ -77,6 +114,29 @@ class PlainHtmlA11yValidator {
         this.fieldName = container.dataset.fieldName || 'bodytext';
         this.inputName = container.dataset.inputName || '';
         editorLabels = { ...editorLabels, ...readEditorLabels(container.dataset.labels) };
+        this.aiConfig = readEditorLabels(container.dataset.ai);
+        this.aiSessions = new Map();
+        this.aiTrackers = new Set();
+        this.aiTrackingInstalled = false;
+        this.aiLockSequence = 0;
+        // A change approved in AQG's AI fixes queue for exactly this record and field (?aqgRemediation=<item>).
+        this.staged = new StagedRemediation({
+            table: 'tt_content',
+            uid: this.recordUid,
+            field: this.fieldName,
+            label: editorLabel,
+            announce: (text) => this.announce(text),
+        });
+        this.aiOutcome = null;
+        this.aiLiveRegion = null;
+        // Applied, unsaved changes by finding key: the issue and the adapter that knows where the change is.
+        this.aiApplied = new Map();
+        this.summaryMode = null;
+        // Without CodeMirror positions cannot be tracked. A source reached from a lock's source only through AQG's own
+        // verified changes still allows exact relocation (those changes never add, remove or alter other elements):
+        // each applied result remembers the source it was made from.
+        this.aiAppliedFrom = new Map();
+        this.exactIssueIndexes = new Set();
         this.summary = container.querySelector('.ck-a11y-summary');
         this.issuesContainer = container.querySelector('.aqg-plain-html-a11y__issues');
         this.textarea = this.findTextarea();
@@ -95,6 +155,10 @@ class PlainHtmlA11yValidator {
         this.observer = null;
         this.lastKnownHtml = '';
         this.lastValidatedHtml = '';
+        // The HTML of the request in flight: a repeated trigger for the same source waits for that answer.
+        this.inFlightHtml = null;
+        // TYPO3 refused the live check (403, no access to the Accessibility module): no feedback, no further requests.
+        this.accessDenied = false;
         this.lastEditorInteractionAt = 0;
         this.destroyed = false;
         this.decorationFrame = null;
@@ -109,8 +173,9 @@ class PlainHtmlA11yValidator {
 
         this.moveSummaryNearEditor();
         this.createEditorPanel();
+        this.installAiOutcome();
         this.bindEvents();
-        this.scheduleValidation(0);
+        this.scheduleValidation(0, { force: true });
     }
 
     findTextarea() {
@@ -171,6 +236,17 @@ class PlainHtmlA11yValidator {
         document.body.appendChild(this.editorPanel);
 
         this.editorPanel.addEventListener('click', (event) => this.handleEditorPanelClick(event));
+        // A suggestion is taller than the buttons it replaces: the panel is placed again so all of it stays in view.
+        this.editorPanel.addEventListener('aqg-ai:rendered', () => {
+            if (!this.editorPanel.hidden) {
+                this.placeEditorPanel(this.editorPanelAnchor);
+            }
+        });
+        window.addEventListener('resize', () => {
+            if (!this.editorPanel.hidden) {
+                this.placeEditorPanel(this.editorPanelAnchor);
+            }
+        }, { passive: true });
         this.editorPanel.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
@@ -196,10 +272,39 @@ class PlainHtmlA11yValidator {
         this.textarea.addEventListener('change', () => this.scheduleValidation(VALIDATION_FAST_DEBOUNCE_MS));
         this.issuesContainer.addEventListener('click', (event) => this.handleIssueClick(event));
         this.summary?.addEventListener('click', (event) => {
+            if (this.aiOutcome?.handleClick(event.target)) {
+                return;
+            }
             if (event.target.closest('.js-aqg-plain-html-retry')) {
-                this.scheduleValidation(0);
+                this.scheduleValidation(0, { force: true });
+            }
+            if (event.target.closest('.js-aqg-plain-html-next')) {
+                this.openAdjacentIssue(1);
+            }
+            const reviewButton = event.target.closest('.js-aqg-plain-html-review');
+            if (reviewButton) {
+                this.openReviewDialog(reviewButton);
             }
         });
+        // F8 / Shift+F8: next / previous issue from the cursor line. Inside the code editor Tab indents, so the
+        // line badges are not a Tab stop; this is their keyboard route.
+        this.boundIssueKeys = (event) => {
+            if (event.key !== 'F8' || event.altKey || event.ctrlKey || event.metaKey) {
+                return;
+            }
+            const root = this.getCodeMirrorRoot();
+            const target = event.composedPath?.()[0] ?? event.target;
+            const inside = target === this.textarea || (root && target instanceof Node && root.contains(target))
+                || (this.editorHost && target instanceof Node && this.editorHost.contains(target))
+                || (this.editorPanel && target instanceof Node && this.editorPanel.contains(target));
+            if (!inside) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            this.openAdjacentIssue(event.shiftKey ? -1 : 1);
+        };
+        document.addEventListener('keydown', this.boundIssueKeys, true);
 
         document.addEventListener('paste', this.boundDocumentPaste, true);
         document.addEventListener('input', this.boundDocumentInput, true);
@@ -366,25 +471,25 @@ class PlainHtmlA11yValidator {
         return null;
     }
 
-    scheduleValidation(delay = VALIDATION_DEBOUNCE_MS) {
+    scheduleValidation(delay = VALIDATION_DEBOUNCE_MS, { force = false } = {}) {
+        if (this.accessDenied) {
+            return;
+        }
         window.clearTimeout(this.validationTimer);
+        this.aiSessions?.forEach((session) => session.checkStale());
 
         // Do not call the live endpoint on every keystroke. The timer is reset
         // while the editor is still changing and validation starts only after
-        // the editor has been quiet for the configured debounce time.
-        if (delay <= 0) {
-            this.renderLoading();
-            this.validationTimer = window.setTimeout(() => this.validate(), 0);
-            return;
-        }
-
-        this.validationTimer = window.setTimeout(() => {
-            this.renderLoading();
-            this.validate();
-        }, delay);
+        // the editor has been quiet for the configured debounce time. Key and
+        // pointer events also arrive for caret moves and selections: validate()
+        // asks the server only when the source differs from the checked one.
+        this.validationTimer = window.setTimeout(() => this.validate({ force }), Math.max(0, delay));
     }
 
-    async validate() {
+    async validate({ force = false } = {}) {
+        if (this.accessDenied) {
+            return;
+        }
         const endpoint = TYPO3?.settings?.ajaxUrls?.a11y_rte_validate || TYPO3?.settings?.ajaxUrls?.['a11y_rte_validate'];
 
         if (!endpoint) {
@@ -394,6 +499,11 @@ class PlainHtmlA11yValidator {
 
         const html = this.getHtmlValue();
         this.lastKnownHtml = html;
+        // Unchanged source (a caret move, a selection, a focus change): the shown result still describes it. Back at
+        // the checked source while another one is in flight (undo), the request below replaces that older answer.
+        if (!force && (html === this.inFlightHtml || (this.inFlightHtml === null && html === this.lastValidatedHtml))) {
+            return;
+        }
         if (html.length > MAX_LIVE_VALIDATION_HTML_SIZE) {
             this.renderError(editorLabel('htmlTooLarge', 'HTML is too large for live validation. Save the record and run a page scan instead.'));
             return;
@@ -405,6 +515,8 @@ class PlainHtmlA11yValidator {
 
         const sequence = ++this.sequence;
         this.abortController = new AbortController();
+        this.inFlightHtml = html;
+        this.renderLoading();
 
         try {
             const response = await fetch(endpoint, {
@@ -426,6 +538,12 @@ class PlainHtmlA11yValidator {
             if (sequence !== this.sequence) {
                 return;
             }
+            this.inFlightHtml = null;
+
+            if (await isModuleAccessDenial(response)) {
+                this.disableForMissingAccess();
+                return;
+            }
 
             if (!response.ok) {
                 this.renderError(editorLabel('liveFailedStatus', 'Live validation failed (%s).').replace('%s', String(response.status)));
@@ -439,17 +557,46 @@ class PlainHtmlA11yValidator {
             }
 
             this.lastValidatedHtml = html;
+            this.serverTime = Number(data.serverTime) || this.serverTime || 0;
             this.currentIssues = Array.isArray(data.issues) ? data.issues : [];
             this.displayedIssues = this.sortIssues(this.currentIssues);
+            this.syncAiSessions(this.displayedIssues);
+            if (this.aiConfig.state === 'ready') {
+                this.installAiTracking(this.getEditorView());
+            }
             this.renderSummary(this.displayedIssues);
             this.renderIssues(this.displayedIssues);
             this.applyEditorDecorations(this.displayedIssues);
+            if (this.staged.active) {
+                this.staged.adopt(this.displayedIssues, (issue) => this.aiSessionFor(issue), (issue) => this.openIssuePanel(issue));
+            }
         } catch (error) {
             if (error?.name === 'AbortError') {
                 return;
             }
+            if (sequence === this.sequence) {
+                this.inFlightHtml = null;
+            }
             this.renderError(editorLabel('liveFailedRetry', 'Live validation failed. You can keep editing and try again after saving.'));
         }
+    }
+
+    /**
+     * TYPO3 answers AQG's routes with 403 when the user lacks the Accessibility module (the routes inherit its
+     * access). That is no failure of the check: the AQG bar and markers are removed and nothing is requested again.
+     */
+    disableForMissingAccess() {
+        this.accessDenied = true;
+        window.clearTimeout(this.validationTimer);
+        this.validationTimer = null;
+        this.abortController?.abort();
+        this.abortController = null;
+        this.currentIssues = [];
+        this.displayedIssues = [];
+        this.applyEditorDecorations([]);
+        this.hideEditorPanel();
+        this.container.hidden = true;
+        this.summary?.remove();
     }
 
     getHtmlValue() {
@@ -470,6 +617,7 @@ class PlainHtmlA11yValidator {
             return;
         }
 
+        this.summaryMode = { kind: 'loading' };
         this.summary.className = 'ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--loading';
         this.summary.innerHTML = `
             <span class="ck-a11y-summary__left">
@@ -478,13 +626,15 @@ class PlainHtmlA11yValidator {
                 <span class="ck-a11y-summary__help">${editorLabelHtml('plainUpdatingHelp', 'Refreshing live issues for this HTML field.')}</span>
             </span>
         `;
+        this.renderSummaryOutcome();
     }
 
-    renderError(message) {
+    renderError(message, { barOnly = false } = {}) {
         if (!this.summary) {
             return;
         }
 
+        this.summaryMode = { kind: 'error', message };
         this.summary.className = 'ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--error';
         this.summary.innerHTML = `
             <span class="ck-a11y-summary__left">
@@ -497,10 +647,14 @@ class PlainHtmlA11yValidator {
             </span>
         `;
 
+        this.renderSummaryOutcome();
+        this.summary.querySelector('.js-aqg-plain-html-retry')?.addEventListener('click', () => this.scheduleValidation(0, { force: true }));
+        if (barOnly) {
+            return;
+        }
         this.issuesContainer.innerHTML = '';
         this.clearEditorDecorations();
         this.hideEditorPanel();
-        this.summary.querySelector('.js-aqg-plain-html-retry')?.addEventListener('click', () => this.scheduleValidation(0));
     }
 
     renderSummary(issues) {
@@ -511,6 +665,7 @@ class PlainHtmlA11yValidator {
         const total = counts.critical + counts.warning + counts.needs_review + counts.info;
         const state = total === 0 ? 'ok' : counts.critical > 0 ? 'critical' : 'issues';
 
+        this.summaryMode = { kind: 'issues', issues };
         this.summary.className = `ck-a11y-summary ck-a11y-summary--outside ck-a11y-summary--${state}`;
 
         if (total === 0) {
@@ -521,6 +676,7 @@ class PlainHtmlA11yValidator {
                     <span class="ck-a11y-summary__help">${editorLabelHtml('plainPassedHelp', 'No issues found in this HTML field.')}</span>
                 </span>
             `;
+            this.renderSummaryOutcome();
             return;
         }
 
@@ -539,8 +695,54 @@ class PlainHtmlA11yValidator {
             </span>
             <span class="ck-a11y-summary__right">
                 <span class="ck-a11y-summary__help">${editorLabelHtml('plainLinesMarked', 'Lines with issues are marked directly in the HTML editor.')}</span>
+                <button class="ck-a11y-summary__link ck-a11y-summary__next js-aqg-plain-html-next" type="button" aria-keyshortcuts="F8" title="F8 / Shift+F8"><span class="ck-a11y-summary__next-label">${editorLabelHtml('nextIssue', 'Next issue')}</span> <kbd>F8</kbd></button>
+                ${this.reviewableIssues(issues).length >= 2 ? `<button class="ck-a11y-summary__link js-aqg-plain-html-review" type="button" aria-haspopup="dialog">${editorLabelHtml('aiReviewFixes', 'Review fixes (%d)').replace('%d', String(this.reviewableIssues(issues).length))}</button>` : ''}
             </span>
         `;
+        this.renderSummaryOutcome();
+    }
+
+    /**
+     * The outcome of applied AI changes lives inside the summary bar ("1 unsaved", "Checking the saved record…"),
+     * never in a block of its own: the field keeps its height. A settled outcome's reason replaces the bar's hint.
+     */
+    renderSummaryOutcome() {
+        const html = this.aiOutcome?.barHtml() ?? '';
+        if (!this.summary || html === '') {
+            return;
+        }
+        // The live check's own error stays readable; only the generic hints give way.
+        if (this.aiOutcome.hasHelp() && this.summaryMode?.kind !== 'error') {
+            this.summary.querySelectorAll('.ck-a11y-summary__help').forEach((help) => help.remove());
+        }
+        const left = this.summary.querySelector('.ck-a11y-summary__left') ?? this.summary;
+        const title = left.querySelector('.ck-a11y-summary__title');
+        if (title) {
+            // "1 unsaved" takes the title's place (Atlas 03 · A): the bar keeps one line.
+            title.classList.add('ck-a11y-summary__title--replaced');
+            this.summary.classList.add('ck-a11y-summary--has-outcome');
+            title.insertAdjacentHTML('afterend', html);
+        } else {
+            left.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    /** Re-renders the summary bar as it is (after an outcome change), keeping keyboard focus inside it. */
+    rerenderSummary() {
+        if (!this.summary || !this.summaryMode) {
+            return;
+        }
+        const hadFocus = this.summary.contains(document.activeElement);
+        if (this.summaryMode.kind === 'loading') {
+            this.renderLoading();
+        } else if (this.summaryMode.kind === 'error') {
+            this.renderError(this.summaryMode.message, { barOnly: true });
+        } else {
+            this.renderSummary(this.summaryMode.issues);
+        }
+        if (hadFocus) {
+            (this.summary.querySelector('.js-aqg-plain-html-next') ?? this.summary.querySelector('button'))?.focus();
+        }
     }
 
     renderCount(severity, count) {
@@ -548,14 +750,7 @@ class PlainHtmlA11yValidator {
             return '';
         }
 
-        const label = escapeHtml(severityCountLabel(severity, count));
-
-        return `
-            <span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}">
-                <span class="ck-a11y-summary__count-dot" aria-hidden="true"></span>
-                <span class="ck-a11y-summary__count-num">${count}</span> ${label}
-            </span>
-        `;
+        return `<span class="ck-a11y-summary__count ck-a11y-summary__count--${severity}"><span class="ck-a11y-summary__count-dot" aria-hidden="true"></span>${escapeHtml(severityCountLabel(severity, count))}</span>`;
     }
 
     renderIssues(issues) {
@@ -584,7 +779,7 @@ class PlainHtmlA11yValidator {
         const severity = normalizeSeverity(issue.severity);
         const hint = issue.hint ? `
             <div class="aqg-plain-html-a11y__fix">
-                <span class="aqg-plain-html-a11y__fix-label">How to fix</span>
+                <span class="aqg-plain-html-a11y__fix-label">${editorLabelHtml('howToFix', 'How to fix')}</span>
                 <p>${escapeHtml(issue.hint)}</p>
             </div>
         ` : '';
@@ -597,7 +792,7 @@ class PlainHtmlA11yValidator {
                 <summary class="aqg-plain-html-a11y__issue-head">
                     <span class="aqg-plain-html-a11y__issue-num">#${String(index + 1).padStart(2, '0')}</span>
                     <span class="aqg-plain-html-a11y__issue-title-wrap">
-                        <span class="aqg-plain-html-a11y__issue-title">${escapeHtml(issue.message || issue.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue'))}</span>
+                        <span class="aqg-plain-html-a11y__issue-title">${escapeHtml(issueTitle(issue))}</span>
                         <span class="aqg-plain-html-a11y__issue-rule">${escapeHtml(issue.ruleId || '')}</span>
                     </span>
                     <span class="ck-a11y-panel__severity ck-a11y-panel__severity--${severity}">
@@ -641,6 +836,13 @@ class PlainHtmlA11yValidator {
             return;
         }
 
+        const stepButton = event.target.closest('.js-aqg-code-panel-step');
+        if (stepButton && this.editorPanelAnchor) {
+            const step = parseInt(stepButton.dataset.step || '0', 10);
+            this.showEditorPanel(this.editorPanelIndexes ?? [], this.editorPanelAnchor, (this.editorPanelPosition ?? 0) + step, step);
+            return;
+        }
+
         const locateButton = event.target.closest('.js-aqg-code-panel-locate');
         if (locateButton) {
             const issue = this.displayedIssues[parseInt(locateButton.dataset.index || '-1', 10)];
@@ -657,6 +859,16 @@ class PlainHtmlA11yValidator {
     }
 
     handleEditorLineEvent(event) {
+        const appliedBadge = event.target instanceof Element ? event.target.closest('.aqg-cm-side-badge[data-aqg-applied-key]') : null;
+        if (appliedBadge) {
+            const key = appliedBadge.dataset.aqgAppliedKey || '';
+            if (!this.editorPanel.hidden && this.editorPanelAnchorKey === `applied:${key}`) {
+                this.hideEditorPanel({ returnFocus: true });
+                return;
+            }
+            this.showAppliedPanel(key, appliedBadge);
+            return;
+        }
         const badge = event.target instanceof Element ? event.target.closest('.aqg-cm-side-badge[data-aqg-issue-indexes]') : null;
         if (!badge) {
             return;
@@ -676,31 +888,34 @@ class PlainHtmlA11yValidator {
             return;
         }
 
+        this.panelLine = Array.from(this.issueLines.entries()).find(([, lineIndexes]) => lineIndexes.join(',') === indexes.join(','))?.[0] ?? null;
         this.showEditorPanel(indexes, badge);
     }
 
-    showEditorPanel(indexes, line) {
+    showEditorPanel(indexes, line, position = 0, focusStep = 0) {
         const issues = indexes.map((index) => ({ issue: this.displayedIssues[index], index })).filter((entry) => entry.issue);
         if (!issues.length || !this.editorPanel) {
             return;
         }
 
-        const primary = issues[0].issue;
+        // Atlas 03 · A: one finding at a time; several findings on the line get "N issues on this line" and a pager
+        // instead of a list of every finding with its AI block (audit F-30: that list outgrew the form).
+        const current = Math.min(Math.max(0, position), issues.length - 1);
+        this.editorPanelIndexes = indexes;
+        this.editorPanelPosition = current;
+        const primary = issues[current].issue;
         const severity = normalizeSeverity(primary.severity);
-        const multiple = issues.length > 1;
-        const body = multiple
-            ? `<div class="aqg-code-html-panel__siblings">
-                    <strong>${editorLabelHtml('issuesOnLine', '%d issues on this line').replace('%d', String(issues.length))}</strong>
-                    ${issues.map((entry) => `
-                        <div class="aqg-code-html-panel__sibling-row">
-                            <button type="button" class="aqg-code-html-panel__sibling js-aqg-code-panel-locate" data-index="${entry.index}">
-                                <span>${escapeHtml(severityLabel(entry.issue.severity))} ·</span> ${escapeHtml(entry.issue.message || entry.issue.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue'))}
-                            </button>
-                            <button type="button" class="btn btn-default btn-sm aqg-code-html-panel__sibling-ignore js-aqg-code-panel-ignore" data-index="${entry.index}">${editorLabelHtml('ignoreIssue', 'Ignore this issue')}</button>
-                        </div>
-                    `).join('')}
+        const switcher = issues.length > 1
+            ? `<div class="aqg-code-html-panel__switcher">
+                    <span>${editorLabelHtml('issuesOnLine', '%d issues on this line').replace('%d', String(issues.length))}</span>
+                    <span class="ck-a11y-popover__pager">
+                        <button type="button" class="ck-a11y-popover__step ck-a11y-popover__step--prev js-aqg-code-panel-step" data-step="-1" aria-label="${editorLabelHtml('previousIssue', 'Previous issue')}"${current === 0 ? ' disabled' : ''}><span aria-hidden="true"></span></button>
+                        <span class="ck-a11y-popover__position">${escapeHtml(editorLabel('popoverPosition', '%1$d of %2$d').replace('%1$d', String(current + 1)).replace('%2$d', String(issues.length)))}</span>
+                        <button type="button" class="ck-a11y-popover__step ck-a11y-popover__step--next js-aqg-code-panel-step" data-step="1" aria-label="${editorLabelHtml('nextIssue', 'Next issue')}"${current === issues.length - 1 ? ' disabled' : ''}><span aria-hidden="true"></span></button>
+                    </span>
                 </div>`
-            : this.renderPanelIssue(primary, indexes[0]);
+            : '';
+        const body = switcher + this.renderPanelIssue(primary, issues[current].index);
 
         const titleId = 'aqg-code-html-panel-title';
         this.editorPanel.className = `aqg-code-html-panel aqg-code-html-panel--${severity} is-pinned`;
@@ -716,21 +931,136 @@ class PlainHtmlA11yValidator {
             ${body}
         `;
 
-        // Below the badge, right-aligned to it, within the window: a restrained panel, never wider than 380 px.
-        const rect = line.getBoundingClientRect();
-        const width = Math.min(380, window.innerWidth - 24);
-        const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
-        const top = Math.min(rect.bottom + 6, Math.max(12, window.innerHeight - 220));
-
-        this.editorPanel.style.width = `${width}px`;
-        this.editorPanel.style.left = `${left}px`;
-        this.editorPanel.style.top = `${top}px`;
-        this.editorPanel.style.maxHeight = `${Math.max(180, window.innerHeight - top - 12)}px`;
+        this.mountAiSessions();
         this.editorPanel.hidden = false;
         this.editorPanelAnchorKey = line.dataset.aqgIssueIndexes || '';
         this.editorPanelAnchor = line;
+        this.placeEditorPanel(line);
         line.setAttribute('aria-expanded', 'true');
+        const stepFocus = focusStep !== 0
+            ? this.editorPanel.querySelector(`.js-aqg-code-panel-step[data-step="${focusStep}"]:not([disabled])`)
+                ?? this.editorPanel.querySelector('.js-aqg-code-panel-step:not([disabled])')
+            : null;
+        (stepFocus ?? this.editorPanel.querySelector(`#${titleId}`))?.focus({ preventScroll: true });
+    }
+
+    /**
+     * The line panel of an applied, unsaved change: its finding, the outcome ladder and Undo (the session that
+     * applied it), or, when the review dialog applied it, the honest "not saved yet" note with the editor's Ctrl+Z.
+     */
+    showAppliedPanel(key, badge) {
+        const applied = this.aiApplied.get(key);
+        if (!applied || !this.editorPanel) {
+            return;
+        }
+        const session = this.aiSessions.get(key);
+        const titleId = 'aqg-code-html-panel-title';
+        this.editorPanel.className = 'aqg-code-html-panel aqg-code-html-panel--info is-pinned';
+        this.editorPanel.setAttribute('aria-labelledby', titleId);
+        this.editorPanel.innerHTML = `
+            <div class="aqg-code-html-panel__header">
+                <span class="aqg-code-html-panel__kicker" id="${titleId}" tabindex="-1">${editorLabelHtml('aiAppliedSource', 'Applied to the source — not saved yet')}</span>
+                <button type="button" class="aqg-code-html-panel__close js-aqg-code-panel-close" aria-label="${editorLabelHtml('close', 'Close')}"><span aria-hidden="true">×</span></button>
+            </div>
+            <h4 class="ck-a11y-panel__title">${escapeHtml(issueTitle(applied.issue))}</h4>
+            ${session?.state === 'applied'
+                ? '<div class="aqg-ai-slot" data-aqg-ai-applied-slot="1"></div>'
+                : `<p class="aqg-ai-quiet">${editorLabelHtml('aiAppliedSourceHelp', 'Use TYPO3 Save to keep it. Ctrl+Z undoes it in one step.')}</p>`}
+        `;
+        const slot = this.editorPanel.querySelector('[data-aqg-ai-applied-slot]');
+        if (slot && session) {
+            session.mount(slot);
+        }
+        this.editorPanel.hidden = false;
+        this.editorPanelAnchorKey = `applied:${key}`;
+        this.editorPanelAnchor = badge;
+        this.placeEditorPanel(badge);
+        badge.setAttribute('aria-expanded', 'true');
         this.editorPanel.querySelector(`#${titleId}`)?.focus({ preventScroll: true });
+    }
+
+    placeEditorPanel(line) {
+        // Right-aligned to the badge, never wider than 380 px, and all of it in the window (shared placement with the
+        // CKEditor popover, audit F-03): below the badge, above it, or shifted into view; only a panel taller than
+        // the window scrolls inside, with its action row sticky at the bottom.
+        if (!line?.isConnected && this.editorPanel.style.top !== '') {
+            line = null;
+        }
+        const panel = this.editorPanel;
+        const rect = (line ?? panel).getBoundingClientRect();
+        const width = Math.min(380, window.innerWidth - 24);
+        const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
+        const sheet = (this.editorHost?.getBoundingClientRect().width ?? window.innerWidth) < 560;
+
+        panel.classList.toggle('aqg-code-html-panel--sheet', sheet);
+        panel.style.width = `${width}px`;
+        panel.style.left = `${left}px`;
+        panel.style.maxHeight = '';
+        if (!line) {
+            return;
+        }
+        if (!sheet) {
+            this.sheetSpacer?.remove();
+        }
+        if (sheet) {
+            panel.style.top = '';
+            panel.dataset.placement = 'sheet';
+            this.keepLineAboveSheet(line);
+            return;
+        }
+        const placement = computePopoverPlacement({
+            anchorRect: rect,
+            // The panel is fixed: viewport coordinates, and the sheet rule follows the editor width (above).
+            hostRect: { top: 0, bottom: window.innerHeight, width: Math.max(560, window.innerWidth) },
+            popoverHeight: panel.hidden ? 0 : panel.scrollHeight,
+            viewportHeight: window.innerHeight,
+            topLimit: this.visibleFormTop(),
+            gap: 6,
+        });
+        panel.dataset.placement = placement.mode;
+        panel.style.top = `${placement.top}px`;
+        panel.classList.toggle('aqg-code-html-panel--clamped', placement.maxHeight !== null);
+        if (placement.maxHeight !== null) {
+            panel.style.maxHeight = `${placement.maxHeight}px`;
+        }
+    }
+
+    /** The marked line stays visible above the bottom sheet: the form (not the code editor) scrolls it up. */
+    keepLineAboveSheet(line) {
+        if (this.editorPanel.hidden) {
+            return;
+        }
+        const sheetHeight = this.editorPanel.getBoundingClientRect().height;
+        // Room below the field, so that a line near the end of the form can still scroll above the sheet.
+        if (!this.sheetSpacer) {
+            this.sheetSpacer = document.createElement('div');
+            this.sheetSpacer.setAttribute('aria-hidden', 'true');
+        }
+        (this.editorHost ?? this.container).after(this.sheetSpacer);
+        this.sheetSpacer.style.height = `${Math.round(sheetHeight)}px`;
+        const delta = sheetScrollDelta({
+            targetRect: line.getBoundingClientRect(),
+            viewportHeight: window.innerHeight,
+            sheetHeight,
+            topLimit: this.visibleFormTop(),
+        });
+        if (delta !== 0) {
+            (this.formScrollContainer() ?? document.scrollingElement)?.scrollBy({ top: delta });
+        }
+    }
+
+    formScrollContainer() {
+        for (let element = this.editorHost?.parentElement ?? null; element && element !== document.body; element = element.parentElement) {
+            if (/(auto|scroll)/.test(window.getComputedStyle(element).overflowY) && element.scrollHeight > element.clientHeight) {
+                return element;
+            }
+        }
+        return null;
+    }
+
+    /** Top of the visible form below TYPO3's document header (the form scrolls in its own container). */
+    visibleFormTop() {
+        return Math.max(0, this.formScrollContainer()?.getBoundingClientRect().top ?? 0);
     }
 
     renderPanelIssue(issue, index) {
@@ -743,7 +1073,8 @@ class PlainHtmlA11yValidator {
         const snippet = issue.snippet ? `<code class="ck-a11y-panel__snippet">${escapeHtml(issue.snippet)}</code>` : '';
 
         return `
-            <h4 class="ck-a11y-panel__title">${escapeHtml(issue.message || issue.ruleId || editorLabel('accessibilityIssue', 'Accessibility issue'))}</h4>
+            <h4 class="ck-a11y-panel__title">${escapeHtml(issueTitle(issue))}</h4>
+            ${issue.message && issue.message !== issueTitle(issue) ? `<p class="ck-a11y-panel__message">${escapeHtml(issue.message)}</p>` : ''}
             ${hint}
             <div class="ck-a11y-panel__details">
                 <div class="ck-a11y-panel__details-row">
@@ -756,9 +1087,10 @@ class PlainHtmlA11yValidator {
                 </div>
                 ${snippet}
             </div>
+            ${this.aiSlotHtml(issue, index)}
             <div class="aqg-code-html-panel__actions">
-                <button type="button" class="btn btn-default btn-sm js-aqg-code-panel-locate" data-index="${index}">${editorLabelHtml('locate', 'Locate')}</button>
-                <button type="button" class="btn btn-default btn-sm js-aqg-code-panel-ignore" data-index="${index}">${editorLabelHtml('ignoreIssue', 'Ignore this issue')}</button>
+                <button type="button" class="aqg-code-html-panel__action js-aqg-code-panel-locate" data-index="${index}">${editorLabelHtml('locate', 'Locate')}</button>
+                <button type="button" class="aqg-code-html-panel__action js-aqg-code-panel-ignore" data-index="${index}">${editorLabelHtml('ignoreIssue', 'Ignore this issue')}</button>
             </div>
         `;
     }
@@ -770,6 +1102,7 @@ class PlainHtmlA11yValidator {
 
         const focusWasInside = this.editorPanel.contains(document.activeElement);
         this.editorPanel.hidden = true;
+        this.sheetSpacer?.remove();
         this.editorPanelAnchor?.setAttribute('aria-expanded', 'false');
         this.editorPanelAnchor = null;
         this.editorPanelAnchorKey = '';
@@ -785,6 +1118,9 @@ class PlainHtmlA11yValidator {
 
         const html = this.getHtmlValue();
         if (!html || !issues.length) {
+            if (this.aiApplied.size > 0) {
+                this.scheduleEditorDecorationRefresh(0);
+            }
             return;
         }
 
@@ -805,13 +1141,37 @@ class PlainHtmlA11yValidator {
     }
 
     getIssuesWithLineNumbers(issues, html) {
+        this.exactIssueIndexes = new Set();
         return issues
-            .map((issue, index) => ({
-                ...issue,
-                index,
-                lineNumber: this.findLineNumberForIssue(issue, html),
-            }))
+            .map((issue, index) => {
+                const exactLine = this.exactLineForIssue(issue, html);
+                if (exactLine > 0) {
+                    this.exactIssueIndexes.add(index);
+                }
+                return { ...issue, index, lineNumber: exactLine || this.findLineNumberForIssue(issue, html) };
+            })
             .filter((issue) => issue.lineNumber > 0);
+    }
+
+    /** The document line of a rendered CodeMirror line, read from the editor itself. */
+    exactVisibleLineNumber(view, lineElement) {
+        if (!view || typeof view.posAtDOM !== 'function') {
+            return 0;
+        }
+        try {
+            return view.state.doc.lineAt(view.posAtDOM(lineElement, 0)).number;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    /** The line of the finding's exact element when the live check identified it (see html-source.js). */
+    exactLineForIssue(issue, html) {
+        if (!issue?.aiTarget) {
+            return 0;
+        }
+        const located = locateTarget(html, issue.aiTarget);
+        return located.ok ? located.line : 0;
     }
 
     notifyCodeMirrorAddon(issuesWithLines) {
@@ -842,12 +1202,15 @@ class PlainHtmlA11yValidator {
             return;
         }
 
+        // Literal colours on purpose: these rules live in TYPO3's T3editor shadow root, where the AQG --aqi-* tokens
+        // (declared on AQG roots only) do not exist. Badges carry their own fill, so they keep contrast in both schemes;
+        // the focus ring is the AQG ring shape (#2563eb stays >= 3:1 on the light and the dark editor ground).
         const css = `
             .cm-line.aqg-cm-line {
                 position: relative;
                 padding-right: 76px !important;
-                box-shadow: inset 3px 0 0 #7c828d;
-                background: rgba(124, 130, 141, 0.08);
+                box-shadow: inset 3px 0 0 #5b6472;
+                background: rgba(91, 100, 114, 0.08);
             }
             .cm-line.aqg-cm-line::after {
                 content: attr(data-aqg-label);
@@ -859,7 +1222,7 @@ class PlainHtmlA11yValidator {
                 font: 700 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
                 letter-spacing: .04em;
                 color: #fff;
-                background: #7c828d;
+                background: #5b6472;
                 pointer-events: none;
             }
             .cm-line.aqg-cm-line--critical { box-shadow: inset 3px 0 0 #c2410c; background: rgba(194, 65, 12, .09); }
@@ -869,10 +1232,18 @@ class PlainHtmlA11yValidator {
             .cm-line.aqg-cm-line--info { box-shadow: inset 3px 0 0 #2563eb; background: rgba(37, 99, 235, .08); }
             .cm-line.aqg-cm-line--info::after { background: #2563eb; }
             .aqg-cm-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
-            .aqg-cm-side-badge { position: absolute; right: 8px; min-width: 36px; box-sizing: border-box; padding: 1px 7px 2px; border-radius: 999px; font: 700 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; color: #fff; background: #7c828d; pointer-events: auto; cursor: pointer; border: 0; }
+            .aqg-cm-side-badge { position: absolute; right: 8px; display: inline-flex; align-items: center; gap: 4px; min-width: 36px; box-sizing: border-box; padding: 1px 7px 2px; border-radius: 999px; font: 700 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; color: #fff; background: #5b6472; pointer-events: auto; cursor: pointer; border: 0; }
+            .aqg-cm-side-badge:focus-visible { outline: none; box-shadow: 0 0 0 1px #fff, 0 0 0 3px #2563eb; }
+            .aqg-cm-side-badge--ai { padding-right: 3px; }
+            .aqg-cm-side-badge__wand { display: inline-grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: #1f2937; box-shadow: 0 0 0 1.5px #fff; }
+            .aqg-cm-side-badge__wand::after { content: ""; width: 9px; height: 9px; background: #fff; -webkit-mask: ${WAND_MASK}; mask: ${WAND_MASK}; }
             .aqg-cm-side-badge--critical { background: #c2410c; }
             .aqg-cm-side-badge--warning { color: #1e232a; background: #f3c66f; }
             .aqg-cm-side-badge--info { background: #2563eb; }
+            .cm-line.aqg-cm-line--inserted { box-shadow: inset 3px 0 0 #2563eb; background: rgba(37, 99, 235, .06); }
+            .cm-line.aqg-cm-line--inserted::after { color: #2563eb; background: #fff; outline: 1px dashed #2563eb; }
+            .aqg-cm-side-badge--inserted { color: #2563eb; background: #fff; border: 1px dashed #2563eb; }
+            .aqg-cm-side-badge--has-inserted { outline: 1px dashed #2563eb; outline-offset: 1px; }
         `;
 
         try {
@@ -905,14 +1276,43 @@ class PlainHtmlA11yValidator {
         const lineElements = Array.from(content.querySelectorAll('.cm-line'));
         const visibleLineNumbers = this.resolveVisibleLineNumbers(lineElements);
 
+        const view = this.getEditorView();
+        const appliedLines = this.appliedLines();
+        const appliedKeys = new Set(Array.from(appliedLines.values()).flat());
         lineElements.forEach((lineElement, visibleIndex) => {
-            const lineNumber = visibleLineNumbers.get(lineElement) || this.resolveLineNumberForVisibleLine(lineElement, visibleIndex);
-            // Prefer the actual visible source line text. Line-number mapping can be
-            // wrong in virtualized CodeMirror views with repeated paragraphs, which
-            // would otherwise show issues on unrelated lines with similar structure.
-            const indexesByVisibleText = this.findIssueIndexesForVisibleLine(lineElement);
-            const indexes = indexesByVisibleText.length ? indexesByVisibleText : (this.issueLines.get(lineNumber) || []);
-            if (!indexes?.length) {
+            const lineNumber = this.exactVisibleLineNumber(view, lineElement)
+                || visibleLineNumbers.get(lineElement)
+                || this.resolveLineNumberForVisibleLine(lineElement, visibleIndex);
+            // Issues the live check identified exactly (aiTarget) belong to their own line only, so identical
+            // duplicate lines keep their own marker. The others keep the visible-text matching: line-number mapping
+            // can be wrong in virtualized CodeMirror views with repeated paragraphs.
+            const exactIndexes = (this.issueLines.get(lineNumber) || []).filter((index) => this.exactIssueIndexes.has(index));
+            const indexesByVisibleText = this.findIssueIndexesForVisibleLine(lineElement).filter((index) => !this.exactIssueIndexes.has(index));
+            const fallback = (this.issueLines.get(lineNumber) || []).filter((index) => !this.exactIssueIndexes.has(index));
+            // An applied finding's own (not yet re-checked) issue gives way to its "unsaved" marker.
+            const indexes = [...exactIndexes, ...(indexesByVisibleText.length ? indexesByVisibleText : fallback)]
+                .filter((index) => !appliedKeys.has(EditorAiSession.keyFor(this.displayedIssues[index] ?? {})));
+            const appliedHere = appliedLines.get(lineNumber) ?? [];
+            if (!indexes.length && appliedHere.length === 0) {
+                return;
+            }
+            if (!indexes.length) {
+                // D2 "In source, unsaved": a dashed blue line badge that opens the applied change (with its Undo).
+                lineElement.classList.add('aqg-cm-line', 'aqg-cm-line--inserted');
+                lineElement.dataset.aqgLabel = 'AQG';
+                if (overlay && rootRect) {
+                    const badge = document.createElement('button');
+                    badge.type = 'button';
+                    badge.tabIndex = -1;
+                    badge.className = 'aqg-cm-side-badge aqg-cm-side-badge--inserted';
+                    badge.dataset.aqgAppliedKey = appliedHere[0];
+                    badge.textContent = 'AQG';
+                    badge.setAttribute('aria-haspopup', 'dialog');
+                    badge.setAttribute('aria-expanded', this.editorPanelAnchorKey === `applied:${appliedHere[0]}` && !this.editorPanel?.hidden ? 'true' : 'false');
+                    badge.setAttribute('aria-label', editorLabel('aiChipInserted', 'AI change applied, not saved. Show details.'));
+                    badge.style.top = `${Math.max(0, lineElement.getBoundingClientRect().top - rootRect.top + 2)}px`;
+                    overlay.appendChild(badge);
+                }
                 return;
             }
 
@@ -937,6 +1337,15 @@ class PlainHtmlA11yValidator {
                 badge.setAttribute('aria-label', indexes.length === 1
                     ? editorLabel('plainBadgeOne', 'Show the accessibility issue on this line')
                     : editorLabel('plainBadgeMany', 'Show the %d accessibility issues on this line').replace('%d', String(indexes.length)));
+                if (indexes.some((index) => EditorAiSession.offersFix(this.displayedIssues[index], this.aiConfig))) {
+                    badge.classList.add('aqg-cm-side-badge--ai');
+                    badge.setAttribute('aria-label', `${badge.textContent}, ${badge.getAttribute('aria-label')}. ${editorLabel('aiFixAvailable', 'AI fix available')}`);
+                    badge.insertAdjacentHTML('beforeend', '<span class="aqg-cm-side-badge__wand" aria-hidden="true"></span>');
+                }
+                if (appliedHere.length > 0) {
+                    badge.classList.add('aqg-cm-side-badge--has-inserted');
+                    badge.setAttribute('aria-label', `${badge.getAttribute('aria-label')}. ${editorLabel('aiChipInserted', 'AI change applied, not saved. Show details.')}`);
+                }
                 badge.style.top = `${Math.max(0, lineRect.top - rootRect.top + 2)}px`;
                 overlay.appendChild(badge);
             }
@@ -979,6 +1388,7 @@ class PlainHtmlA11yValidator {
                 'aqg-cm-line--critical',
                 'aqg-cm-line--warning',
                 'aqg-cm-line--info',
+                'aqg-cm-line--inserted',
                 'aqg-cm-line-reveal'
             );
             delete lineElement.dataset.aqgIssueIndexes;
@@ -1446,6 +1856,457 @@ class PlainHtmlA11yValidator {
         window.setTimeout(() => target.classList.remove('aqg-cm-line-reveal'), 1800);
     }
 
+    isAiEligible(issue) {
+        return EditorAiSession.isEligible(issue, this.aiConfig)
+            || this.aiSessions.get(EditorAiSession.keyFor(issue))?.hasStaged === true;
+    }
+
+    /** AI slot of one issue in the line panel, or one quiet line saying why AI is not offered. */
+    aiSlotHtml(issue, index) {
+        if (!issue) {
+            return '';
+        }
+        if (this.isAiEligible(issue)) {
+            return `<div class="aqg-ai-slot" data-aqg-ai-slot="${index}"></div>`;
+        }
+        if (!issue.aiTarget || !(this.aiConfig.rules ?? []).includes(issue.ruleId)) {
+            return '';
+        }
+        const quiet = EditorAiSession.quietLine(this.aiConfig);
+        const line = quiet ? editorLabel(...quiet) : '';
+        return line !== '' ? `<p class="aqg-ai-quiet">${escapeHtml(line)}</p>` : '';
+    }
+
+    mountAiSessions() {
+        this.editorPanel?.querySelectorAll('[data-aqg-ai-slot]').forEach((slot) => {
+            const issue = this.displayedIssues[parseInt(slot.getAttribute('data-aqg-ai-slot') || '-1', 10)];
+            if (issue) {
+                this.aiSessionFor(issue).mount(slot);
+            }
+        });
+    }
+
+    aiSessionFor(issue) {
+        const key = EditorAiSession.keyFor(issue);
+        let session = this.aiSessions.get(key);
+        if (session) {
+            session.updateIssue(issue);
+            return session;
+        }
+        session = new EditorAiSession({
+            issue,
+            adapter: this.aiAdapter(issue),
+            config: this.aiConfig,
+            label: editorLabel,
+            announce: (text) => this.announce(text),
+            onApplied: (result) => {
+                reportInserted(Number(result.suggestion?.stagedItem ?? 0));
+                this.onAiApplied(key, result);
+            },
+            onUndone: () => {
+                this.aiApplied.delete(key);
+                this.aiOutcome?.removed(key);
+            },
+        });
+        this.aiSessions.set(key, session);
+        return session;
+    }
+
+    /** An applied change (popover or review dialog): its outcome, its marker and the bar's Undo of the last one. */
+    onAiApplied(key, result) {
+        const adapter = result.adapter ?? this.aiSessions.get(key)?.adapter ?? null;
+        this.aiApplied.set(key, { issue: result.issue, adapter });
+        if (this.aiOutcome) {
+            this.aiOutcome.onUndoLast = () => {
+                const session = this.aiSessions.get(key);
+                if (session?.state === 'applied') {
+                    session.undo();
+                } else if (adapter?.undo()) {
+                    this.aiApplied.delete(key);
+                    this.aiOutcome?.removed(key);
+                    this.announce(editorLabel('aiAnnounceUndone', 'Change undone.'));
+                }
+            };
+        }
+        this.aiOutcome?.added({
+            id: key,
+            ruleId: result.issue.ruleId,
+            expected: result.expected,
+            suggestedAt: Number(result.suggestion?.serverTime ?? this.serverTime ?? 0),
+        });
+    }
+
+    /** Document lines of applied, unsaved changes: line → finding keys. */
+    appliedLines() {
+        const lines = new Map();
+        for (const [key, applied] of this.aiApplied.entries()) {
+            const line = this.aiOutcome?.isApplied(key) ? Number(applied.adapter?.appliedLine?.() ?? 0) : 0;
+            if (line > 0) {
+                lines.set(line, [...(lines.get(line) ?? []), key]);
+            }
+        }
+        return lines;
+    }
+
+    syncAiSessions(issues) {
+        const keys = new Set(issues.map((issue) => EditorAiSession.keyFor(issue)));
+        for (const [key, session] of this.aiSessions.entries()) {
+            if (!keys.has(key) && !session.isPinned) {
+                session.destroy();
+                this.aiSessions.delete(key);
+            } else if (keys.has(key)) {
+                session.updateIssue(issues.find((candidate) => EditorAiSession.keyFor(candidate) === key));
+            }
+        }
+    }
+
+    /** CodeMirror 6 EditorView of TYPO3's code editor element (property `editorView`, TYPO3 13 and 14). */
+    getEditorView() {
+        const view = this.editorHost?.editorView ?? null;
+        return view && view.state && typeof view.dispatch === 'function' ? view : null;
+    }
+
+    /**
+     * Tracks source ranges through CodeMirror transactions: a locked suggestion follows edits elsewhere and becomes
+     * outdated when an edit touches its range. Without CodeMirror (plain textarea) any change outdates it.
+     */
+    async installAiTracking(view) {
+        if (this.aiTrackingInstalled || !view) {
+            return this.aiTrackingInstalled;
+        }
+        try {
+            // TYPO3's import map provides CodeMirror 6 to every code editor; the specifiers stay runtime-resolved.
+            const load = (specifier) => import(/* @vite-ignore */ specifier);
+            const [{ StateEffect }, { EditorView }] = await Promise.all([load('@codemirror/state'), load('@codemirror/view')]);
+            view.dispatch({
+                effects: StateEffect.appendConfig.of(EditorView.updateListener.of((update) => {
+                    if (!update.docChanged) {
+                        return;
+                    }
+                    this.aiTrackers.forEach((tracker) => {
+                        if (update.changes.touchesRange(tracker.from, tracker.to)) {
+                            tracker.touched = true;
+                        }
+                        tracker.from = update.changes.mapPos(tracker.from, 1);
+                        tracker.to = update.changes.mapPos(tracker.to, -1);
+                    });
+                })),
+            });
+            this.aiTrackingInstalled = true;
+        } catch (error) {
+            this.aiTrackingInstalled = false;
+        }
+        return this.aiTrackingInstalled;
+    }
+
+    setSourceValue(change) {
+        // A read-only field is still submitted by TYPO3: AQG never writes into it (an approved queue change included).
+        if (this.container.dataset.readOnly === '1') {
+            return false;
+        }
+        const view = this.getEditorView();
+        if (view) {
+            view.dispatch({
+                changes: { from: change.from, to: change.to, insert: change.insert },
+                userEvent: 'input.aqg',
+                scrollIntoView: true,
+            });
+            return true;
+        }
+        if (!this.textarea) {
+            return false;
+        }
+        this.textarea.focus({ preventScroll: true });
+        this.textarea.setSelectionRange(change.from, change.to);
+        // execCommand keeps the change in the browser's own undo history of the textarea.
+        let inserted = false;
+        try {
+            inserted = document.execCommand('insertText', false, change.insert);
+        } catch (error) {
+            inserted = false;
+        }
+        if (!inserted) {
+            this.textarea.setRangeText(change.insert, change.from, change.to, 'end');
+            this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        this.textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+    }
+
+    /** Editor-specific operations of an AI session in the plain HTML editor. */
+    aiAdapter(issue) {
+        let lock = null;
+        let applied = null;
+        const release = () => {
+            if (lock?.tracker) {
+                this.aiTrackers.delete(lock.tracker);
+            }
+            lock = null;
+        };
+        const currentLocation = () => {
+            if (!lock) {
+                return { ok: false, reason: 'stale' };
+            }
+            const source = this.getHtmlValue();
+            if (lock.tracker) {
+                if (lock.tracker.touched) {
+                    return { ok: false, reason: 'stale' };
+                }
+                return locateTargetAt(source, lock.tracker.from, lock.target);
+            }
+            let reached = source;
+            for (let step = 0; reached !== lock.source && this.aiAppliedFrom.has(reached) && step < 50; step++) {
+                reached = this.aiAppliedFrom.get(reached);
+            }
+            return reached === lock.source ? locateTarget(source, lock.target) : { ok: false, reason: 'stale' };
+        };
+
+        return {
+            type: 'html',
+            requestPayload: (current) => ({
+                table: 'tt_content',
+                recordUid: this.recordUid,
+                fieldName: this.fieldName,
+                html: this.getHtmlValue(),
+                ruleId: current.ruleId,
+                contextPath: current.aiTarget?.contextPath ?? '',
+                occurrence: current.aiTarget?.occurrence ?? -1,
+            }),
+            lock: (current) => {
+                release();
+                const source = this.getHtmlValue();
+                const located = locateTarget(source, current.aiTarget);
+                if (!located.ok) {
+                    return located;
+                }
+                const view = this.getEditorView();
+                const end = located.content ? located.content.closeEnd : located.element.end;
+                // Positions are tracked only once the CodeMirror listener runs; until then any change outdates the lock.
+                const tracker = view && this.aiTrackingInstalled ? { from: located.element.start, to: end, touched: false } : null;
+                if (tracker) {
+                    this.aiTrackers.add(tracker);
+                } else if (view) {
+                    this.installAiTracking(view);
+                }
+                lock = { target: current.aiTarget, source, tracker, line: located.line };
+                return { ok: true, line: located.line };
+            },
+            isStale: () => !currentLocation().ok,
+            preview: (value) => {
+                const located = currentLocation();
+                if (!located.ok) {
+                    return { kind: 'source', ok: false, reason: located.reason, checks: [] };
+                }
+                const source = this.getHtmlValue();
+                const change = buildChange(source, located, lock.target, value);
+                const check = verifyChange(source, change, located, lock.target, value);
+                return { kind: 'source', ok: check.ok, checks: check.checks, diff: sourceDiff(source, change, located) };
+            },
+            apply: (value) => {
+                const located = currentLocation();
+                if (!located.ok) {
+                    return { ok: false, reason: located.reason === 'stale' ? 'stale' : located.reason };
+                }
+                const source = this.getHtmlValue();
+                const change = buildChange(source, located, lock.target, value);
+                const check = verifyChange(source, change, located, lock.target, value);
+                if (!check.ok || !this.setSourceValue(change)) {
+                    return { ok: false, reason: 'apply_rejected' };
+                }
+                if (this.getHtmlValue() !== check.result) {
+                    // The editor did not take the change exactly: take back what was inserted, report nothing applied.
+                    const now = this.getHtmlValue();
+                    if (now.slice(change.from, change.from + change.insert.length) === change.insert) {
+                        this.setSourceValue({ from: change.from, to: change.from + change.insert.length, insert: source.slice(change.from, change.to) });
+                    }
+                    return { ok: false, reason: 'apply_rejected' };
+                }
+                const elements = tokenizeHtml(check.result).elements;
+                const after = elements.find((element) => element.start === located.element.start);
+                const content = after ? plainContentRange(check.result, after) : null;
+                const sameTag = elements.filter((element) => element.tag === lock.target.tag);
+                applied = { change, before: source, after: check.result, removed: source.slice(change.from, change.to) };
+                this.aiAppliedFrom.set(check.result, source);
+                this.scheduleValidation(VALIDATION_FAST_DEBOUNCE_MS);
+                return {
+                    ok: true,
+                    expected: {
+                        tag: lock.target.tag,
+                        attributes: after ? attributeMap(after) : {},
+                        text: content ? content.text : (lock.target.operation === 'text' ? value : lock.target.element?.text ?? ''),
+                        occurrence: sameTag.indexOf(after),
+                        total: sameTag.length,
+                    },
+                };
+            },
+            undo: () => {
+                if (!applied || this.getHtmlValue() !== applied.after) {
+                    // Something else changed after Apply: the editor's own Ctrl+Z is the safe way back.
+                    this.announce(editorLabel('aiUndoUseEditor', 'The source changed after applying. Use Ctrl+Z in the editor.'));
+                    return false;
+                }
+                const inverse = { from: applied.change.from, to: applied.change.from + applied.change.insert.length, insert: applied.removed };
+                this.setSourceValue(inverse);
+                applied = null;
+                const relocated = locateTarget(this.getHtmlValue(), issue.aiTarget);
+                release();
+                if (relocated.ok) {
+                    const view = this.getEditorView();
+                    const tracker = view && this.aiTrackingInstalled ? { from: relocated.element.start, to: relocated.content ? relocated.content.closeEnd : relocated.element.end, touched: false } : null;
+                    if (tracker) {
+                        this.aiTrackers.add(tracker);
+                    }
+                    lock = { target: issue.aiTarget, source: this.getHtmlValue(), tracker, line: relocated.line };
+                }
+                this.scheduleValidation(VALIDATION_FAST_DEBOUNCE_MS);
+                return true;
+            },
+            release,
+            // The document line of the applied change (for its "unsaved" marker), 0 when nothing is applied.
+            appliedLine: () => (applied ? this.getHtmlValue().slice(0, applied.change.from).split('\n').length : 0),
+            // Rule-based level changes are a CKEditor feature (its heading list); in the source the editor changes the tag.
+            canRuleBasedFix: () => false,
+            ruleBasedFixSupported: false,
+            describeTarget: (current) => {
+                const located = lock ? currentLocation() : null;
+                const line = located?.ok ? located.line : (lock?.line ?? this.exactLineForIssue(current, this.getHtmlValue()));
+                const what = current.aiTarget?.operation === 'attribute'
+                    ? editorLabel('aiRangeAttribute', 'L%1$d · <%2$s> · %3$s only').replace('%3$s', current.aiTarget.attribute)
+                    : editorLabel('aiRangeText', 'L%1$d · <%2$s> · text only');
+                return `${what.replace('%1$d', String(line)).replace('%2$s', current.aiTarget?.tag ?? '')} · ${editorLabel('aiOnlyThisRange', 'Only this range changes')}`;
+            },
+        };
+    }
+
+    /** Issues with an actionable AI fix, in source order. */
+    reviewableIssues(issues) {
+        const html = this.getHtmlValue();
+        return (issues ?? [])
+            .filter((issue) => EditorAiSession.offersFix(issue, this.aiConfig) && issue.aiTarget?.operation !== 'heading_level')
+            .map((issue) => ({ issue, line: this.exactLineForIssue(issue, html) }))
+            .filter((entry) => entry.line > 0)
+            .sort((a, b) => a.line - b.line)
+            .map((entry) => entry.issue);
+    }
+
+    openReviewDialog(invoker) {
+        this.hideEditorPanel();
+        new EditorAiReviewDialog({
+            entries: this.reviewableIssues(this.displayedIssues).map((issue) => ({ issue, adapter: this.aiAdapter(issue) })),
+            config: this.aiConfig,
+            label: editorLabel,
+            announce: (text) => this.announce(text),
+            editorType: 'html',
+            onApplied: (result) => this.onAiApplied(EditorAiSession.keyFor(result.issue), result),
+            returnFocus: () => (invoker.isConnected ? invoker : null)
+                // The re-rendered "Review fixes" first (a selector list matches in document order, not list order).
+                ?? this.summary?.querySelector('.js-aqg-plain-html-review')
+                ?? this.summary?.querySelector('.js-aqg-plain-html-next')
+                ?? this.getCodeMirrorContent(),
+        }).open();
+    }
+
+    installAiOutcome() {
+        if (!this.summary) {
+            return;
+        }
+        // Visually hidden (absolutely positioned): announcements only, no layout of its own.
+        const live = document.createElement('span');
+        live.className = 'aqg-ai-live';
+        live.setAttribute('aria-live', 'polite');
+        live.setAttribute('role', 'status');
+        this.summary.insertAdjacentElement('afterend', live);
+        this.aiLiveRegion = live;
+        this.aiOutcome = new EditorAiOutcome({
+            recordUid: this.recordUid,
+            fieldName: this.fieldName,
+            label: editorLabel,
+            announce: (text) => this.announce(text),
+            editorType: 'html',
+            onChange: () => {
+                this.rerenderSummary();
+                this.scheduleEditorDecorationRefresh(0);
+            },
+        });
+        this.aiOutcome.bindForm(this.container.closest('form') ?? this.textarea?.form ?? null);
+        this.aiOutcome.verifyOnLoad();
+    }
+
+    announce(text) {
+        if (!this.aiLiveRegion || !text) {
+            return;
+        }
+        this.aiLiveRegion.textContent = '';
+        window.setTimeout(() => {
+            if (this.aiLiveRegion) {
+                this.aiLiveRegion.textContent = text;
+            }
+        }, 30);
+    }
+
+    cursorLine() {
+        const view = this.getEditorView();
+        if (view) {
+            return view.state.doc.lineAt(view.state.selection.main.head).number;
+        }
+        const position = this.textarea?.selectionStart ?? 0;
+        return this.getHtmlValue().slice(0, position).split('\n').length;
+    }
+
+    /** Opens the line panel of the next (or previous) line with issues, counted from the cursor or open panel. */
+    openAdjacentIssue(direction) {
+        const lines = Array.from(this.issueLines.keys()).sort((a, b) => a - b);
+        if (lines.length === 0) {
+            this.announce(editorLabel('passed', 'Accessibility check passed'));
+            return;
+        }
+        const openLine = !this.editorPanel.hidden ? this.panelLine ?? null : null;
+        const from = openLine ?? this.cursorLine();
+        let line;
+        if (direction > 0) {
+            line = lines.find((candidate) => openLine !== null ? candidate > from : candidate >= from) ?? lines[0];
+        } else {
+            line = [...lines].reverse().find((candidate) => candidate < from) ?? lines[lines.length - 1];
+        }
+        const indexes = this.issueLines.get(line) ?? [];
+        const view = this.getEditorView();
+        if (view) {
+            const position = view.state.doc.line(Math.min(line, view.state.doc.lines)).from;
+            view.dispatch({ selection: { anchor: position }, scrollIntoView: true });
+        }
+        this.scrollCodeMirrorLineIntoView(line);
+        window.setTimeout(() => {
+            this.refreshVisibleEditorDecorations();
+            const badge = Array.from(this.getCodeMirrorRoot()?.querySelectorAll('.aqg-cm-side-badge') ?? [])
+                .find((candidate) => candidate.dataset.aqgIssueIndexes === indexes.join(','));
+            this.panelLine = line;
+            this.showEditorPanel(indexes, badge ?? this.editorHost ?? this.container);
+        }, 160);
+    }
+
+    /** Opens the line panel of one finding (the staged queue change), like the issue keys do. */
+    openIssuePanel(issue) {
+        // issueLines maps a document line to the indexes (in displayedIssues) of the findings on it.
+        const index = this.displayedIssues.indexOf(issue);
+        const [line, indexes] = Array.from(this.issueLines.entries()).find(([, lineIndexes]) => lineIndexes.includes(index)) ?? [0, []];
+        if (index < 0 || line <= 0 || indexes.length === 0) {
+            return;
+        }
+        const view = this.getEditorView();
+        if (view) {
+            const position = view.state.doc.line(Math.min(line, view.state.doc.lines)).from;
+            view.dispatch({ selection: { anchor: position }, scrollIntoView: true });
+        }
+        this.scrollCodeMirrorLineIntoView(line);
+        window.setTimeout(() => {
+            this.refreshVisibleEditorDecorations();
+            const badge = Array.from(this.getCodeMirrorRoot()?.querySelectorAll('.aqg-cm-side-badge') ?? [])
+                .find((candidate) => candidate.dataset.aqgIssueIndexes === indexes.join(','));
+            this.panelLine = line;
+            this.showEditorPanel(indexes, badge ?? this.editorHost ?? this.container);
+        }, 160);
+    }
+
     destroy() {
         if (this.destroyed) {
             return;
@@ -1461,6 +2322,9 @@ class PlainHtmlA11yValidator {
         document.removeEventListener('paste', this.boundDocumentPaste, true);
         document.removeEventListener('input', this.boundDocumentInput, true);
         document.removeEventListener('keyup', this.boundDocumentKeyup, true);
+        document.removeEventListener('keydown', this.boundIssueKeys, true);
+        this.aiSessions.forEach((session) => session.destroy());
+        this.aiSessions.clear();
         this.clearDomEditorDecorations();
         document.removeEventListener('mousedown', this.boundOutsidePointer, true);
         this.editorPanel?.remove();
@@ -1474,7 +2338,7 @@ class PlainHtmlA11yValidator {
         }
 
         button.disabled = true;
-        button.textContent = 'Ignoring…';
+        button.textContent = editorLabel('ignoring', 'Ignoring…');
 
         try {
             const response = await fetch(endpoint, {

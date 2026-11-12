@@ -754,47 +754,65 @@ details[open] .a11y-details-summary__toggle {
     gap: 12px;
 }
 
+/* F-34: the selection target is 24 × 24 px (WCAG 2.2 2.5.8); the visible box stays 16 px, drawn by ::before. */
 .a11y-page-detail .aqg-issue__select {
-    appearance: none;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    margin: 2px 4px 0 0;
-    padding: 0;
-    background: var(--aqi-surface);
-    border: 1.5px solid var(--aqi-border);
-    border-radius: 3px;
-    color: var(--aqi-surface);
-    cursor: pointer;
-    transition: border-color 80ms ease, background 80ms ease, box-shadow 80ms ease;
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px 0 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--aqi-surface);
+  cursor: pointer;
+}
+
+.a11y-page-detail .aqg-issue__select::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: var(--aqi-surface);
+  border: 1.5px solid var(--aqi-border);
+  border-radius: 3px;
+  transition: border-color 80ms ease, background 80ms ease, box-shadow 80ms ease;
 }
 
 .a11y-page-detail .aqg-issue__select svg {
-    opacity: 0;
-    transition: opacity 80ms ease;
+  position: relative;
+  opacity: 0;
+  transition: opacity 80ms ease;
 }
 
-.a11y-page-detail .aqg-issue__select:hover {
-    border-color: var(--aqi-fg-subtle);
+.a11y-page-detail .aqg-issue__select:hover::before {
+  border-color: var(--aqi-fg-subtle);
 }
 
 .a11y-page-detail .aqg-issue__select:focus-visible {
-    outline: none;
-    border-color: var(--aqi-focus);
-    box-shadow: var(--aqi-focus-ring);
+  outline: none;
+  box-shadow: var(--aqi-focus-ring);
 }
 
-.a11y-page-detail .aqg-issue__select.is-checked {
-    background: var(--aqi-fg);
-    border-color: var(--aqi-fg);
-    color: var(--aqi-surface);
+.a11y-page-detail .aqg-issue__select:focus-visible::before {
+  border-color: var(--aqi-focus);
+}
+
+.a11y-page-detail .aqg-issue__select.is-checked::before {
+  background: var(--aqi-fg);
+  border-color: var(--aqi-fg);
 }
 
 .a11y-page-detail .aqg-issue__select.is-checked svg {
-    opacity: 1;
+  opacity: 1;
+}
+
+.a11y-page-detail .aqg-occ__spacer {
+  width: 20px;
 }
 
 .a11y-page-detail .aqg-issue.is-selected {
@@ -1676,29 +1694,31 @@ details[open] .a11y-details-summary__toggle {
 }
 
 /* ---------------------------------------------------------
-   PRO affordance on the "Suggest with AI" button
-   — recognisable as PRO, but visually quieter than the primary
+   Inline AI suggestion entry (Atlas 07·A): the wand icon, no plan tag —
+   the button only renders for users the site's AI setup accepts (decision 7)
    --------------------------------------------------------- */
 .a11y-page-detail .aqi-btn--ai {
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
-.a11y-page-detail .aqi-btn--ai .aqg-btn-pro {
-  font-family: var(--aqi-font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  color: var(--aqi-ok);
-  background: var(--aqi-ok-bg);
-  border: 1px solid var(--aqi-ok-border);
-  border-radius: 3px;
-  padding: 1px 4px;
-  line-height: 1.4;
+.a11y-page-detail .aqg-media-wand-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  vertical-align: -1px;
+  background: currentColor;
+  -webkit-mask: url("../Icons/ai-wand.svg") center / contain no-repeat;
+  mask: url("../Icons/ai-wand.svg") center / contain no-repeat;
 }
-.a11y-page-detail .aqi-btn--ai .aqg-btn-ai-glyph { display: inline-flex; color: var(--aqi-fg-muted); }
-.a11y-page-detail .aqi-btn--ai:disabled .aqg-btn-ai-glyph,
-.a11y-page-detail .aqi-btn--ai.is-disabled .aqg-btn-ai-glyph { color: var(--aqi-fg-subtle); }
+.a11y-page-detail .aqg-ai-link-text__title .aqg-media-wand-icon,
+.a11y-page-detail .aqg-rem__ai-note .aqg-media-wand-icon {
+  margin-inline-end: 0.35rem;
+  color: var(--aqi-fg-muted);
+}
+.a11y-page-detail .aqi-btn--ai:disabled .aqg-media-wand-icon,
+.a11y-page-detail .aqi-btn--ai.is-disabled .aqg-media-wand-icon { opacity: 0.6; }
 
 /* a button that is mid-request: spinner + label, kept same width feel */
 .a11y-page-detail .aqi-btn__spin { display: inline-flex; margin-right: 6px; color: currentColor; }
@@ -1889,5 +1909,180 @@ details[open] .a11y-details-summary__toggle {
 
   .a11y-page-detail .aqg-ai-link-text__input {
     flex-basis: 100%;
+  }
+}
+
+/* Atlas 09·A: page not public — preview scan access (PageDetail/Show.html, Partials/Remote/PreviewScanAccess.html). */
+.a11y-page-detail .aqg-preview-access {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--aqi-surface);
+  border: 1px solid var(--aqi-border);
+  border-radius: var(--aqi-radius);
+}
+
+.a11y-page-detail .aqg-preview-access__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin: 0 0 6px;
+}
+
+.a11y-page-detail .aqg-preview-access__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.a11y-page-detail .aqg-preview-access__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  color: var(--aqi-review, var(--aqi-fg-muted));
+  border: 1px dashed currentColor;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.a11y-page-detail .aqg-preview-access__text {
+  max-width: 80ch;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.a11y-page-detail .aqg-preview-access a {
+  color: var(--aqi-info);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.a11y-page-detail .aqg-preview-access__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.a11y-page-detail .aqg-preview-access__note {
+  color: var(--aqi-fg-muted);
+  font-size: 12px;
+}
+
+/* Remediation summary owners as chips, zero owners left out (Atlas 07·A). */
+.a11y-page-detail .aqg-remediation-summary__owners {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.a11y-page-detail .aqg-remediation-summary__label {
+  color: var(--aqi-fg-muted);
+}
+
+/* Atlas 07·D: the page remediation plan as a side drawer (native modal <dialog>: focus kept inside, Esc closes). */
+.a11y-page-detail .aqg-remediation__dialog--drawer[open] {
+  inset: 0 0 0 auto;
+  width: min(560px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  box-shadow: -8px 0 32px rgb(0 0 0 / 20%);
+}
+
+.a11y-page-detail .aqg-remediation__dialog--drawer .aqg-remediation__dialog-head {
+  flex-wrap: nowrap;
+}
+
+.a11y-page-detail .aqg-remediation__dialog--drawer .aqg-remediation__dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.a11y-page-detail .aqg-remediation__dialog--drawer .aqg-remediation__dialog-foot {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  background: var(--aqi-surface);
+}
+
+.a11y-page-detail .aqg-remediation-plan__close {
+  flex: 0 0 auto;
+  min-width: 32px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.a11y-page-detail .aqg-remediation-plan__grouphead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.a11y-page-detail .aqg-remediation-plan__groupcount {
+  color: var(--aqi-fg-muted);
+  font-weight: 400;
+}
+
+.a11y-page-detail .aqg-remediation-plan__steps {
+  margin: 0;
+  padding-inline-start: 1.4rem;
+}
+
+.a11y-page-detail .aqg-remediation-plan__step {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--aqi-border);
+}
+
+.a11y-page-detail .aqg-remediation-plan__stephead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.a11y-page-detail .aqg-remediation-plan__goto {
+  color: var(--aqi-info);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  white-space: nowrap;
+}
+
+.a11y-page-detail .aqg-remediation-plan__goto:focus-visible,
+.a11y-page-detail .aqg-remediation-plan__close:focus-visible {
+  outline: none;
+  border-radius: var(--aqi-radius-sm);
+  box-shadow: var(--aqi-focus-ring);
+}
+
+.a11y-page-detail .aqg-remediation-plan__meta {
+  margin: 2px 0 4px;
+  color: var(--aqi-fg-muted);
+  font-size: 12.5px;
+}
+
+.a11y-page-detail .aqg-remediation-plan__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-color-scheme="light"]) .a11y-page-detail .aqg-remediation__dialog--drawer[open] {
+    box-shadow: -8px 0 32px rgb(0 0 0 / 50%);
   }
 }

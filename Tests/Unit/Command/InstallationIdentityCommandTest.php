@@ -7,6 +7,7 @@ namespace Priebera\A11yQualityGate\Tests\Unit\Command;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Command\InstallationIdentityCommand;
+use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Service\InstallationIdentityService;
 use Psr\Log\LoggerInterface;
@@ -27,6 +28,9 @@ final class InstallationIdentityCommandTest extends TestCase
     /** @var array<string, mixed> */
     private array $rows = [];
     private int $cacheFlushes = 0;
+
+    /** @var list<string> */
+    private array $mcpResets = [];
     /** @var list<array{string, array<string, mixed>}> */
     private array $warnings = [];
 
@@ -75,6 +79,7 @@ final class InstallationIdentityCommandTest extends TestCase
         self::assertNotSame(self::SOURCE_ID, $newId);
         self::assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $newId);
         self::assertSame(1, $this->cacheFlushes, 'licence answers and scanner tokens of the source identity are dropped');
+        self::assertSame(['identity-change'], $this->mcpResets, 'the copied agent access connection is forgotten locally (no Gateway call)');
         self::assertCount(1, $this->warnings);
         self::assertSame($fingerprint, $this->warnings[0][1]['previousFingerprint']);
 
@@ -126,10 +131,17 @@ final class InstallationIdentityCommandTest extends TestCase
             $this->warnings[] = [(string)$message, $context];
         });
 
+        $mcpConnectionStore = $this->createMock(McpConnectionStore::class);
+        $mcpConnectionStore->method('resetLocal')->willReturnCallback(function (string $by): string {
+            $this->mcpResets[] = $by;
+            return 'connected';
+        });
+
         return new CommandTester(new InstallationIdentityCommand(
             new InstallationIdentityService($registry),
             new ProCacheManager($cacheManager),
             $logger,
+            $mcpConnectionStore,
         ));
     }
 }

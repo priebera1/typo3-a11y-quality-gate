@@ -2324,3 +2324,54 @@ body[data-color-scheme="dark"] .aqg-module .aqg-rule-metadata__tag,
         box-shadow: var(--aqi-focus-ring);
     }
 }
+
+/* ── Preview scan (Atlas D9): a page that was not public, scanned with the Scanner Token. Also used by the
+   Overview status head (page context). ── */
+.aqg-module .aqg-preview-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 22px;
+    padding: 1px 8px;
+    border: 1px dashed var(--aqi-review-border);
+    border-radius: var(--aqi-radius-sm, 4px);
+    background: var(--aqi-review-bg);
+    color: var(--aqi-review);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+
+    .aqg-icon {
+        flex: none;
+        width: 13px;
+        height: 13px;
+    }
+}
+
+.aqg-module .aqg-preview-badge--sm {
+    min-height: 18px;
+    margin-left: 6px;
+    padding: 0 6px;
+    font-size: 11px;
+    vertical-align: middle;
+}
+
+/* Preview / Public page history: the shared tablist, one panel per history. */
+.a11y-page-detail .aqg-history-tabs {
+    margin-bottom: 12px;
+}
+
+.a11y-page-detail .aqg-history-tabs .aqg-sourcetab .aqg-icon {
+    flex: none;
+}
+
+.a11y-page-detail .aqg-history-tabpanel:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+    border-radius: 4px;
+}
+
+.a11y-page-detail .aqg-history-empty__title {
+    margin: 0 0 4px;
+}

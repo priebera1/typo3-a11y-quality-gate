@@ -20,7 +20,9 @@ use Priebera\A11yQualityGate\Utility\ScanUrlUtility;
  * - still_present: the rule is still reported on that URL;
  * - not_verified: the scan failed or was cancelled, it scanned another language, the page failed to load,
  *   the URL is missing from the result, or its findings were not stored completely (the crawler reported
- *   more issue types for the page than were stored). Never "resolved" for lack of evidence.
+ *   more issue types for the page than were stored). Never "resolved" for lack of evidence. A preview scan
+ *   (page not public, Atlas D9) and a public scan are never compared: a finding of one is not verified by the
+ *   other, e.g. after the page was published.
  */
 final class FixVerificationService
 {
@@ -35,6 +37,7 @@ final class FixVerificationService
         private readonly RemoteScanRepository $remoteScanRepository,
         private readonly RemoteScanFindingIndex $remoteScanFindingIndex,
         private readonly ScopeAccessService $scopeAccessService,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
     ) {
     }
 
@@ -61,11 +64,39 @@ final class FixVerificationService
             return null;
         }
 
+        // Sol post-review R05: only a finding the user may see (its result page's owner and at least one readable
+        // element, RemoteResultAuthorizationService) can be verified, so withheld findings cannot be probed by id.
+        $visibleOccurrences = null;
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            try {
+                $visible = $this->remoteResultAuthorizationService?->authorize($scan);
+            } catch (RemoteResultsTooLargeException) {
+                $visible = null;
+            }
+            if ($visible === null) {
+                return null;
+            }
+            $visibleOccurrences = [];
+            foreach ($visible->findings as $finding) {
+                if ($finding['resultPage'] === (int)$page['uid']) {
+                    $visibleOccurrences[$finding['uid']] = $finding['nodesCount'] > 0 ? $finding['occurrences'] : 1;
+                }
+            }
+            if (!isset($visibleOccurrences[(int)($issue['uid'] ?? 0)])) {
+                return null;
+            }
+        }
+
         $occurrences = 0;
         foreach ($this->remoteIssueRepository->findByRemoteScanPage((int)$page['uid']) as $row) {
-            if ((string)($row['rule_id'] ?? '') === (string)($issue['rule_id'] ?? '')) {
-                $occurrences += max(1, (int)($row['nodes_count'] ?? 0));
+            if ((string)($row['rule_id'] ?? '') !== (string)($issue['rule_id'] ?? '')) {
+                continue;
             }
+            if ($visibleOccurrences !== null) {
+                $occurrences += $visibleOccurrences[(int)($row['uid'] ?? 0)] ?? 0;
+                continue;
+            }
+            $occurrences += max(1, (int)($row['nodes_count'] ?? 0));
         }
 
         return ['issue' => $issue, 'page' => $page, 'scan' => $scan, 'occurrences' => $occurrences];
@@ -129,6 +160,18 @@ final class FixVerificationService
         $scannedLanguage = (int)($scan['language_uid'] ?? -1);
         if ($expectedLanguage >= 0 && $scannedLanguage >= 0 && $expectedLanguage !== $scannedLanguage) {
             return $this->decide($verification, self::OUTCOME_NOT_VERIFIED, 'scope_mismatch', $scan, 0);
+        }
+
+        $baselineScan = $this->remoteScanRepository->findScanByUid((int)($verification['baseline_scan'] ?? 0));
+        if (is_array($baselineScan)
+            && RemoteScanPairingService::isPagePreview($baselineScan) !== RemoteScanPairingService::isPagePreview($scan)) {
+            return $this->decide(
+                $verification,
+                self::OUTCOME_NOT_VERIFIED,
+                RemoteScanPairingService::isPagePreview($baselineScan) ? 'preview_now_public' : 'preview_not_public',
+                $scan,
+                0
+            );
         }
 
         $index = $this->remoteScanFindingIndex->build($scan);
@@ -207,6 +250,8 @@ final class FixVerificationService
                 'page_missing' => BackendLabelUtility::translate('verifyFix.reason.pageMissing', 'The verification scan has no result for this URL, so the fix could not be checked.'),
                 'evidence_incomplete' => BackendLabelUtility::translate('verifyFix.reason.evidenceIncomplete', 'The fresh scan reported more issue types for this page than AQG stored, so the fix could not be confirmed.'),
                 'scope_mismatch' => BackendLabelUtility::translate('verifyFix.reason.scopeMismatch', 'The verification scan checked another language version of the page, so the fix could not be confirmed.'),
+                'preview_now_public' => BackendLabelUtility::translate('verifyFix.reason.previewNowPublic', 'The page is public now; the verification scan is a public scan. Preview and public scans are not compared, so the fix could not be confirmed.'),
+                'preview_not_public' => BackendLabelUtility::translate('verifyFix.reason.previewNotPublic', 'The page is not public now; the verification scan is a preview scan. Preview and public scans are not compared, so the fix could not be confirmed.'),
                 default => BackendLabelUtility::translate('verifyFix.reason.scanFailed', 'The verification scan failed. Nothing was verified; try again later.'),
             },
             default => BackendLabelUtility::translate('verifyFix.message.pending', 'A fresh scan of this page is running.'),

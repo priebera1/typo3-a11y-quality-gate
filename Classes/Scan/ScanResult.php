@@ -9,11 +9,23 @@ final class ScanResult
     public const RENDERED_SKIPPED_LIST_LIMIT = 50;
 
     public int $pagesScanned = 0;
+    public const WARNING_NO_SCAN_FIELDS = 'no_scan_fields';
+
     public int $recordsScanned = 0;
     public int $recordsSkipped = 0;
     public int $issuesNew = 0;
     public int $issuesResolved = 0;
     public int $issuesIgnored = 0;
+    /** N-18: pages of a language scan's subtree that do not exist in that language and were not checked. */
+    public int $pagesWithoutTranslation = 0;
+
+    /**
+     * AUTH-01: pages of the subtree the user who started the scan may not scan (in its language): not checked, never
+     * counted as checked. Stored on the scan run so coverage never claims them.
+     *
+     * @var list<int>
+     */
+    public array $notPermittedPageUids = [];
 
     /**
      * @var list<array{code:string,message:string,context:array<string, int|string|bool>}>

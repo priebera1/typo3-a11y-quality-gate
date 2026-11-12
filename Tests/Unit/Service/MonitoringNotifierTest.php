@@ -7,6 +7,7 @@ namespace Priebera\A11yQualityGate\Tests\Unit\Service;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Service\MonitoringNotifier;
+use Priebera\A11yQualityGate\Service\RuleMetadataPresentationService;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Http\Uri;
 use TYPO3\CMS\Core\Mail\MailerInterface;
@@ -28,11 +29,43 @@ final class MonitoringNotifierTest extends TestCase
         self::assertStringContainsString('Site: main (https://example.org)', $text);
         self::assertStringContainsString('Scan finished:', $text);
         self::assertStringContainsString('1 new and 1 worse issue types', $text);
-        self::assertStringContainsString('[critical] image-alt on https://example.org/b (1 → 4 occurrences)', $text);
+        // U-05: the rule's title, not only its id, and the link opens the Frontend scan report.
+        self::assertStringContainsString('[critical] Image alt text missing (image-alt) on https://example.org/b (1 → 4 occurrences)', $text);
         self::assertStringContainsString('Some pages were not checked, so this list may be incomplete', $text);
         self::assertStringContainsString('https://example.org/c (page failed to load)', $text);
-        self::assertStringContainsString('Investigate in AQG: https://cms.example.org/typo3/module/web/a11y?id=1', $text);
+        self::assertMatchesRegularExpression('#Open the frontend scan report in AQG: https://cms\.example\.org/typo3/module/(web|content)/a11y\?id=1&site=main&language=0&aqgSource=remote\n#', $text);
         self::assertStringContainsString('do not confirm WCAG conformance', $text);
+    }
+
+    #[Test]
+    public function theLinkIsBuiltWithoutABackendRequestAsInTheSchedulerAndHasNoRouteToken(): void
+    {
+        // N-12: in a Scheduler/CLI run the backend UriBuilder throws; the mail still carries the link.
+        $uris = $this->createMock(UriBuilder::class);
+        $uris->method('buildUriFromRoute')->willThrowException(new \RuntimeException('No request in CLI'));
+        $notifier = new MonitoringNotifier($this->createMock(MailerInterface::class), $uris, $this->createMock(RuleMetadataPresentationService::class));
+
+        [, $text] = $notifier->compose($this->report('regression', ['new' => [], 'regressed' => [], 'fixed' => []]));
+
+        self::assertMatchesRegularExpression('#Open the frontend scan report in AQG: https://cms\.example\.org/typo3/module/(web|content)/a11y\?id=1&site=main&language=0&aqgSource=remote#', $text);
+        self::assertStringNotContainsString('token=', $text);
+    }
+
+    #[Test]
+    public function aScanThatCouldNotStartNamesTheReasonAndIsNoAllClear(): void
+    {
+        $report = $this->report('failed', null);
+        $report['failure'] = ['code' => 'monitoring_submit_failed', 'title' => 'Remote scanner unavailable', 'message' => 'The AQG scanner could not be reached. Try again later.'];
+
+        [$subject, $text] = $this->notifier()->compose($report);
+
+        self::assertSame('[AQG] Monitoring scan could not run: main', $subject);
+        self::assertStringContainsString('Checked at:', $text);
+        self::assertStringNotContainsString('Scan finished:', $text);
+        self::assertStringContainsString('Reason: Remote scanner unavailable — The AQG scanner could not be reached.', $text);
+        self::assertStringContainsString('This is not an all-clear', $text);
+        self::assertStringContainsString('The baseline stays the last complete scan', $text);
+        self::assertStringContainsString('Open the frontend scan report in AQG:', $text);
     }
 
     #[Test]
@@ -94,8 +127,15 @@ final class MonitoringNotifierTest extends TestCase
     private function notifier(): MonitoringNotifier
     {
         $uris = $this->createMock(UriBuilder::class);
-        $uris->method('buildUriFromRoute')->willReturn(new Uri('/typo3/module/web/a11y?id=1&site=main&language=0'));
+        $uris->method('buildUriFromRoute')->willReturn(new Uri('/typo3/module/web/a11y?id=1&site=main&language=0&aqgSource=remote'));
 
-        return new MonitoringNotifier($this->createMock(MailerInterface::class), $uris);
+        $titles = $this->createMock(RuleMetadataPresentationService::class);
+        $titles->method('friendlyTitleForRule')->willReturnCallback(static fn (string $ruleId): string => match ($ruleId) {
+            'image-alt' => 'Image alt text missing',
+            'color-contrast' => 'Text contrast too low',
+            default => $ruleId,
+        });
+
+        return new MonitoringNotifier($this->createMock(MailerInterface::class), $uris, $titles);
     }
 }

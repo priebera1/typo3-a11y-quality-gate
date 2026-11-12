@@ -32,6 +32,7 @@ final class LicenceGuidance
         'domain_not_activated' => ['domainNotActivated', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_PRICING, 'settings.licence.cta.comparePlans']],
         // No site of this installation uses the domain: fix the Site Configuration, then validate again.
         'domain_not_detected' => ['domainNotDetected', [self::ACTION_RETRY, 'settings.licence.cta.validateAgain'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
+        'site_without_domain' => ['siteWithoutDomain', [self::ACTION_SUPPORT, 'settings.licence.contactSupport'], null],
         'domain_mismatch' => ['domainMismatch', [self::ACTION_PORTAL, 'settings.licence.manageDomains'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],
         // PRO and trials cover one TYPO3 installation; Agency covers several client installations.
         'project_mismatch' => ['projectMismatch', [self::ACTION_PRICING, 'settings.licence.cta.comparePlans'], [self::ACTION_SUPPORT, 'settings.licence.contactSupport']],

@@ -1,0 +1,426 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment><!--
+    Settings › Agent access (MCP). Hierarchy (owner UX pass 3.0.0): Gateway connection with its state badge →
+    site access with each site's capabilities in one aligned row → connected agents → authorization boundaries →
+    audit trail → emergency disconnect. Forms, field names and routes are unchanged; every action is still checked
+    on the server (McpSettingsController). Nothing here enables public MCP: the badge only reports the stored state.
+--></f:comment>
+<div
+        class="tab-pane fade show active"
+        id="a11y-settings-pane-mcp"
+        data-aqg-mcp="true"
+        data-label-copy="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.copy', default: 'Copy')}"
+        data-label-copied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.copied', default: 'Copied')}"
+        data-label-revoke-title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.revoke.confirmTitle', default: 'Revoke access?')}"
+        data-label-revoke-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.revoke.confirmText', default: 'The token stops working immediately. The user can reconnect later by consenting again.')}"
+        data-label-revoke-confirm="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.revoke.confirmButton', default: 'Revoke access')}"
+        data-label-cancel="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.cancel', default: 'Cancel')}"
+        data-label-pairing-expired="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.pairing.expired', default: 'The code expired before it was confirmed. Nothing was connected.')}"
+>
+<f:if condition="{mcp}">
+<div class="aqg-stack aqg-mcp">
+    <section class="aqg-card aqg-mcp-gateway" aria-labelledby="aqg-mcp-connection-title">
+        <header class="aqg-card__head aqg-card__head--quiet">
+            <div>
+                <h3 class="aqg-card__title" id="aqg-mcp-connection-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.gateway.title" default="Gateway connection" /></h3>
+                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.connection.sub" default="Connect AI agents such as Claude to AQG through the hosted AQG MCP Gateway. Agents sign in as one TYPO3 user and only get that user's permissions. Nothing an agent does changes content." /></p>
+            </div>
+            <div class="aqg-card__actions"><f:render section="StateBadge" arguments="{state: mcp.state}" /></div>
+        </header>
+        <div class="aqg-card__body">
+            <f:switch expression="{mcp.state}">
+                <f:case value="locked">
+                    <div class="aqg-mcp-callout" role="status">
+                        <p class="aqg-mcp-callout__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.locked.title" default="Agent access is part of AQG PRO and Agency" /></p>
+                        <p class="aqg-mcp-callout__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.locked.text" default="Trial licences do not include agent access. With PRO or Agency, agents can read open issues and scan history of pages the user may see, and start a frontend scan of a single page." /></p>
+                    </div>
+                </f:case>
+                <f:case value="pairing">
+                    <div class="aqg-mcp-pairing" data-aqg-mcp-pairing="true" data-status-url="{mcp.urls.pairingStatus}" data-expires-at="{mcp.pairingExpiresAt}">
+                        <div class="aqg-mcp-pairing__code">
+                            <span class="aqg-mcp-label" id="aqg-mcp-pairing-code-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.pairing.codeLabel" default="Pairing code" /></span>
+                            <p class="aqg-mcp-code" aria-labelledby="aqg-mcp-pairing-code-label"><strong>{mcp.connection.code}</strong></p>
+                        </div>
+                        <div class="aqg-mcp-pairing__body">
+                            <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.pairing.intro" default="Open your AQG account, enter this code and confirm the connection. This page continues automatically. If the code is not confirmed within 10 minutes, nothing is connected." /></p>
+                            <div class="aqg-mcp-actions">
+                                <f:if condition="{mcp.connection.confirmUrl}">
+                                    <a class="btn btn-primary btn-sm" href="{mcp.connection.confirmUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.pairing.openAccount" default="Open AQG account" /></a>
+                                </f:if>
+                                <form method="post" action="{mcp.urls.cancelPairing}">
+                                    <f:render section="ReturnFields" arguments="{returnParameters: mcp.returnParameters}" />
+                                    <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.cancel" default="Cancel" /></button>
+                                </form>
+                            </div>
+                            <p class="aqg-mcp-muted" role="status" aria-live="polite" data-aqg-mcp-pairing-status="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.pairing.waiting" default="Waiting for confirmation…" /></p>
+                        </div>
+                    </div>
+                </f:case>
+                <f:case value="not_connected">
+                    <f:render section="ConnectIntro" arguments="{mcp: mcp}" />
+                </f:case>
+                <f:case value="unusable">
+                    <div class="aqg-mcp-callout aqg-mcp-callout--warning" role="alert">
+                        <p class="aqg-mcp-callout__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.unusable.title" default="The stored connection cannot be used on this host" /></p>
+                        <p class="aqg-mcp-callout__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.unusable.text" arguments="{0: mcp.connection.unusableReason}" default="Reason: %s. This happens on a copy of another installation, on a host without the same MCP connector key, or after a new installation identity. Nothing is sent to the Gateway from here. On a copy, run a11y:mcp:reset-local --confirm and pair it separately; never disconnect a copy, it would end the original's connection. Otherwise provide the same AQG_MCP_CONNECTOR_KEY on every host, or connect again." /></p>
+                    </div>
+                    <div class="aqg-mcp-copyfield"><code class="aqg-mcp-copyline" data-aqg-mcp-copy="true">{mcp.resetLocalCommand}</code></div>
+                </f:case>
+                <f:case value="disconnected">
+                    <div class="aqg-mcp-callout aqg-mcp-callout--warning" role="status">
+                        <p class="aqg-mcp-callout__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnected.title" default="Disconnected" /></p>
+                        <p class="aqg-mcp-callout__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnected.text" default="All agent tokens were revoked and this installation was unpaired at the Gateway. Site settings and the audit trail are kept. After reconnecting, every user must consent again for their agent." /></p>
+                    </div>
+                    <f:render section="ConnectIntro" arguments="{mcp: mcp}" />
+                </f:case>
+                <f:defaultCase>
+                    <f:render section="ConnectedStatus" arguments="{mcp: mcp}" />
+                </f:defaultCase>
+            </f:switch>
+        </div>
+    </section>
+
+    <f:if condition="{mcp.state} != 'locked'">
+        <section class="aqg-card aqg-mcp-sites" aria-labelledby="aqg-mcp-sites-title">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title" id="aqg-mcp-sites-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.title" default="Sites and capabilities" /></h3>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.sub" default="Agents only see sites with agent access on. A capability is a ceiling: a call also needs the user's consent and the user's own TYPO3 permissions. Changes apply from the next agent call." /></p>
+                </div>
+                <div class="aqg-card__actions"><span class="aqg-mcp-count"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.enabledCount" arguments="{0: mcp.enabledSiteCount, 1: mcp.siteCount}" default="%1$s of %2$s sites open to agents" /></span></div>
+            </header>
+            <form method="post" action="{mcp.urls.saveSites}" class="aqg-mcp-sites__form" data-aqg-mcp-sites="true">
+                <f:render section="ReturnFields" arguments="{returnParameters: mcp.returnParameters}" />
+                <ul class="aqg-mcp-sitelist" role="list">
+                    <f:for each="{mcp.sites}" as="site">
+                        <li class="aqg-mcp-site">
+                            <div class="aqg-mcp-site__id">
+                                <span class="aqg-mcp-site__name" id="{site.fieldId}-name">{site.identifier}</span>
+                                <span class="aqg-mcp-site__base">{site.base}</span>
+                            </div>
+                            <div class="aqg-mcp-site__access">
+                                <input type="hidden" name="enabled[{site.identifier}]" value="0" />
+                                <input type="checkbox" role="switch" class="aqg-switch__input" id="{site.fieldId}" name="enabled[{site.identifier}]" value="1" aria-describedby="{site.fieldId}-name" {f:if(condition: site.enabled, then: 'checked="checked"')} />
+                                <label class="aqg-switch" for="{site.fieldId}">
+                                    <span class="aqg-switch__track" aria-hidden="true"><span class="aqg-switch__thumb"></span></span>
+                                    <span class="aqg-switch__body">
+                                        <span class="aqg-switch__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.accessOn" default="Agents may use this site" /></span>
+                                        <span class="aqg-switch__hint aqg-mcp-site__offhint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.offHint" default="Off: agents do not see this site. The capabilities below apply once it is on." /></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <fieldset class="aqg-mcp-caps">
+                                <legend class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.capabilitiesFor" arguments="{0: site.identifier}" default="Capabilities for %s" /></legend>
+                                <f:for each="{site.capabilities}" as="capability">
+                                    <label class="aqg-mcp-cap" for="{capability.fieldId}">
+                                        <input type="checkbox" class="aqg-mcp-cap__input" id="{capability.fieldId}" name="capabilities[{site.identifier}][]" value="{capability.scope}" {f:if(condition: capability.checked, then: 'checked="checked"')} />
+                                        <span class="aqg-check" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 L5 8.4 L9.5 3.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+                                        <span class="aqg-mcp-cap__body">
+                                            <span class="aqg-mcp-cap__title">{capability.title}</span>
+                                            <code class="aqg-mcp-cap__scope">{capability.scope}</code>
+                                        </span>
+                                        <f:render partial="Settings/McpRisk" arguments="{risk: capability.risk}" />
+                                    </label>
+                                </f:for>
+                            </fieldset>
+                        </li>
+                    </f:for>
+                </ul>
+                <div class="aqg-card__foot aqg-mcp-sites__foot" data-aqg-mcp-sites-foot="true">
+                    <span class="aqg-mcp-dirty" data-aqg-mcp-sites-dirty="true" role="status" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.unsaved" default="Unsaved changes" /></span>
+                    <button type="reset" class="aqg-text-action" data-aqg-mcp-sites-reset="true" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.discard" default="Discard" /></button>
+                    <button type="submit" class="btn btn-primary btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.sites.save" default="Save capabilities" /></button>
+                </div>
+            </form>
+        </section>
+    </f:if>
+
+    <f:if condition="{mcp.state} == 'connected' || {mcp.state} == 'offline' || {mcp.state} == 'suspended' || {mcp.state} == 'starting'">
+        <section class="aqg-card" aria-labelledby="aqg-mcp-agents-title">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title" id="aqg-mcp-agents-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.title" default="Connected agents" /></h3>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.sub" default="Every token acts as exactly one TYPO3 user and is capped by that user's page and site permissions. There is no installation-wide token. Token values are never shown." /></p>
+                </div>
+            </header>
+            <div class="aqg-card__body">
+                <f:if condition="{mcp.tokens}">
+                    <f:then>
+                        <f:render partial="Settings/McpTokenTable" arguments="{tokens: mcp.tokens, revokeUrl: mcp.urls.revoke, returnParameters: mcp.returnParameters, showUser: 1}" />
+                    </f:then>
+                    <f:else>
+                        <p class="aqg-mcp-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.empty" default="No agents connected yet. Users with permission add the server URL in their agent, sign in with TYPO3 and confirm the capabilities." /></p>
+                    </f:else>
+                </f:if>
+            </div>
+        </section>
+    </f:if>
+
+    <f:if condition="{mcp.state} != 'locked'">
+        <section class="aqg-card aqg-mcp-boundaries" aria-labelledby="aqg-mcp-boundaries-title">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title" id="aqg-mcp-boundaries-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.boundaries.title" default="Authorization boundaries" /></h3>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.boundaries.sub" default="Who may connect an agent, which credentials it uses and what passes through the Gateway." /></p>
+                </div>
+            </header>
+            <dl class="aqg-mcp-rules">
+                <div class="aqg-mcp-rule">
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.who.title" default="Who may connect agents?" /></dt>
+                    <dd>
+                        <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.who.text" default="Controlled by the User TSconfig of backend groups. Default: nobody. Administrators need the option explicitly too; an agent on an administrator account sees everything that administrator sees, so a dedicated editor account is safer." /></p>
+                        <div class="aqg-mcp-copyfield"><code class="aqg-mcp-copyline" data-aqg-mcp-copy="true">{mcp.tsconfigLine}</code></div>
+                    </dd>
+                </div>
+                <div class="aqg-mcp-rule">
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.separateTitle" default="Separate from your AI keys" /></dt>
+                    <dd><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.separateText" default="MCP access uses its own credentials. Agents never receive your licence key or AI provider keys, and an MCP token cannot be used as an AI key." /></p></dd>
+                </div>
+                <div class="aqg-mcp-rule">
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.gatewayTitle" default="What does the Gateway process?" /></dt>
+                    <dd><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.gatewayText" default="Relayed, not stored: tool calls and their results (for example the issues of a page). Stored: installation, agent client, token identifiers, TYPO3 user ID and name, timestamps and quota counters. Not stored: page content, passwords, licence keys, AI provider keys." /></p></dd>
+                </div>
+            </dl>
+            <details class="aqg-mcp-details aqg-mcp-catalogue">
+                <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.catalogue.title" default="What each capability allows" /></summary>
+                <dl class="aqg-mcp-catalogue__list">
+                    <f:for each="{mcp.scopeCatalogue}" as="entry">
+                        <div class="aqg-mcp-catalogue__entry{f:if(condition: '!{entry.available}', then: ' is-unavailable')}">
+                            <dt>
+                                <span class="aqg-mcp-cap__title">{entry.title}</span>
+                                <code class="aqg-mcp-cap__scope">{entry.scope}</code>
+                                <f:render partial="Settings/McpRisk" arguments="{risk: entry.risk}" />
+                                <f:if condition="!{entry.available}"><span class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.catalogue.notInVersion" default="Not in this version" /></span></f:if>
+                            </dt>
+                            <dd>{entry.description}</dd>
+                        </div>
+                    </f:for>
+                </dl>
+            </details>
+        </section>
+    </f:if>
+
+    <section class="aqg-card" aria-labelledby="aqg-mcp-audit-title" id="aqg-mcp-audit">
+        <header class="aqg-card__head aqg-card__head--quiet">
+            <div>
+                <h3 class="aqg-card__title" id="aqg-mcp-audit-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.title" default="Audit trail" /></h3>
+                <f:if condition="{mcp.auditRetentionDays}">
+                    <f:then>
+                        <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.sub" arguments="{0: mcp.auditRetentionDays}" default="Agent calls, consents, revocations and administrator changes of the last %s days. Identifiers and outcomes only, never prompts, page content or tokens." /></p>
+                    </f:then>
+                    <f:else>
+                        <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.subRetentionInvalid" default="Agent calls, consents, revocations and administrator changes. Identifiers and outcomes only, never prompts, page content or tokens. The retention in the extension configuration (mcpAuditRetentionDays) is not a whole number of days between 1 and 3650, so no entries are deleted until it is corrected." /></p>
+                    </f:else>
+                </f:if>
+            </div>
+            <nav class="aqg-card__actions" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.filter', default: 'Filter audit trail')}">
+                <span class="aqg-mcp-seg">
+                    <a class="aqg-mcp-seg__btn" href="{mcp.urls.auditAll}" aria-current="{f:if(condition: '{mcp.auditFilter} == \'\'', then: 'true', else: 'false')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.all" default="All entries" /></a>
+                    <a class="aqg-mcp-seg__btn" href="{mcp.urls.auditRefused}" aria-current="{f:if(condition: '{mcp.auditFilter} == \'refused\'', then: 'true', else: 'false')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.refused" default="Refused (all)" /></a>
+                </span>
+            </nav>
+        </header>
+        <f:if condition="{mcp.audit}">
+            <f:then>
+                <div class="aqg-mcp-tablewrap">
+                    <table class="aqg-mcp-table aqg-mcp-table--stack">
+                        <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.title" default="Audit trail" /></caption>
+                        <thead>
+                            <tr>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.time" default="Time" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.who" default="Agent · user" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.site" default="Site" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.call" default="Call" /></th>
+                                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.result" default="Result" /></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <f:for each="{mcp.audit}" as="entry">
+                                <tr>
+                                    <td class="aqg-mcp-table__time" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.time', default: 'Time')}">{entry.time}</td>
+                                    <td class="aqg-mcp-table__who" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.who', default: 'Agent · user')}">{entry.clientName}<f:if condition="{entry.clientName} && {entry.beUserName}"> · </f:if>{entry.beUserName}</td>
+                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.site', default: 'Site')}">{entry.site}</td>
+                                    <td class="aqg-mcp-table__call" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.call', default: 'Call')}"><code>{entry.action}</code> <span class="aqg-mcp-muted">{entry.target}</span></td>
+                                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.result', default: 'Result')}">{entry.result}<f:if condition="{entry.reason}"> · <code>{entry.reason}</code></f:if></td>
+                                </tr>
+                            </f:for>
+                        </tbody>
+                    </table>
+                </div>
+                <f:comment><!-- Paginated in the database (McpAuditRepository::findPage), newest first; links keep the filter. --></f:comment>
+                <div class="aqg-pagination aqg-mcp-audit__pagination">
+                    <p class="aqg-pagination__info" aria-live="polite"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.range" arguments="{0: mcp.auditPagination.firstItem, 1: mcp.auditPagination.lastItem, 2: mcp.auditPagination.totalItems}" default="Entries %1$s–%2$s of %3$s" /></p>
+                    <f:if condition="{mcp.auditPagination.totalPages} > 1">
+                        <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.paginationAria', default: 'Audit trail pages')}">
+                            <ul class="aqg-pagination__list">
+                                <li>
+                                    <f:if condition="{mcp.auditPagination.hasPrevious}">
+                                        <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" href="{mcp.auditPagination.previousUrl}" rel="prev"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.previous" default="Newer entries" /></span></a></f:then>
+                                        <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.previous" default="Newer entries" /></span></span></f:else>
+                                    </f:if>
+                                </li>
+                                <f:for each="{mcp.auditPagination.items}" as="item">
+                                    <li>
+                                        <f:if condition="{item.type} == 'ellipsis'">
+                                            <f:then><span class="aqg-pagination__gap" aria-hidden="true">…</span></f:then>
+                                            <f:else if="{item.active}"><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}" aria-current="page"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                            <f:else><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                        </f:if>
+                                    </li>
+                                </f:for>
+                                <li>
+                                    <f:if condition="{mcp.auditPagination.hasNext}">
+                                        <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" href="{mcp.auditPagination.nextUrl}" rel="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.next" default="Older entries" /></span></a></f:then>
+                                        <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.next" default="Older entries" /></span></span></f:else>
+                                    </f:if>
+                                </li>
+                            </ul>
+                        </nav>
+                    </f:if>
+                </div>
+            </f:then>
+            <f:else>
+                <div class="aqg-card__body"><p class="aqg-mcp-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.audit.empty" default="No entries for this filter." /></p></div>
+            </f:else>
+        </f:if>
+    </section>
+
+    <f:if condition="{mcp.state} == 'connected' || {mcp.state} == 'offline' || {mcp.state} == 'suspended' || {mcp.state} == 'unreachable' || {mcp.state} == 'starting'">
+        <section class="aqg-card aqg-mcp-danger" aria-labelledby="aqg-mcp-disconnect-title">
+            <header class="aqg-card__head aqg-card__head--quiet">
+                <div>
+                    <h3 class="aqg-card__title" id="aqg-mcp-disconnect-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.title" default="Emergency disconnect" /></h3>
+                    <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.sub" default="Revokes every agent token immediately and unpairs this installation from the Gateway. For when an agent behaves unexpectedly or an account is compromised. Site settings and the audit trail are kept." /></p>
+                </div>
+            </header>
+            <div class="aqg-card__body">
+                <form method="post" action="{mcp.urls.disconnect}" class="aqg-mcp-danger__form" data-aqg-mcp-disconnect="true">
+                    <f:render section="ReturnFields" arguments="{returnParameters: mcp.returnParameters}" />
+                    <div class="aqg-field">
+                        <label class="aqg-field__label" for="aqg-mcp-disconnect-word"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.typeLabel" default="To confirm, type this word" />: <code>{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.word', default: 'DISCONNECT')}</code></label>
+                        <input type="text" class="aqg-input" id="aqg-mcp-disconnect-word" name="confirmWord" autocomplete="off" data-expected="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.word', default: 'DISCONNECT')}" aria-describedby="aqg-mcp-disconnect-help" />
+                        <p class="aqg-field__help" id="aqg-mcp-disconnect-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.help" default="Cannot be undone. Reconnecting is possible; old tokens never come back and users consent again." /></p>
+                    </div>
+                    <div><button type="submit" class="btn btn-danger btn-sm" data-aqg-mcp-disconnect-submit="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.disconnect.button" default="Disconnect all agents" /></button></div>
+                </form>
+            </div>
+        </section>
+    </f:if>
+</div>
+</f:if>
+</div>
+
+<f:section name="ReturnFields">
+    <f:for each="{returnParameters}" as="value" key="name">
+        <input type="hidden" name="{name}" value="{value}" />
+    </f:for>
+</f:section>
+
+<f:section name="StateBadge">
+    <f:switch expression="{state}">
+        <f:case value="connected"><span class="aqg-status-badge aqg-status-badge--success"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.connected" default="Connected" /></span></f:case>
+        <f:case value="pairing"><span class="aqg-status-badge aqg-status-badge--warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.pairing" default="Waiting for confirmation" /></span></f:case>
+        <f:case value="starting"><span class="aqg-status-badge aqg-status-badge--warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.starting" default="Waiting for the connector" /></span></f:case>
+        <f:case value="offline"><span class="aqg-status-badge aqg-status-badge--danger"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.offline" default="Connector offline" /></span></f:case>
+        <f:case value="suspended"><span class="aqg-status-badge aqg-status-badge--danger"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.suspended" default="Suspended" /></span></f:case>
+        <f:case value="unreachable"><span class="aqg-status-badge aqg-status-badge--danger"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.unreachable" default="Gateway not answering" /></span></f:case>
+        <f:case value="revoked"><span class="aqg-status-badge aqg-status-badge--danger"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.revoked" default="No longer accepted" /></span></f:case>
+        <f:case value="unusable"><span class="aqg-status-badge aqg-status-badge--warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.unusable" default="Not usable on this host" /></span></f:case>
+        <f:case value="disconnected"><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.disconnected" default="Disconnected" /></span></f:case>
+        <f:case value="locked"><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.locked" default="Not in this plan" /></span></f:case>
+        <f:defaultCase><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.state.notConnected" default="Not connected" /></span></f:defaultCase>
+    </f:switch>
+</f:section>
+
+<f:section name="ConnectIntro">
+    <div class="aqg-mcp-connect">
+        <p class="aqg-mcp-connect__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.mode" default="This installation connects out to the Gateway through a connector (a long-running TYPO3 command). Nothing inbound is needed, so staging and intranet installations work. Agents always act as one TYPO3 user." /></p>
+        <div class="aqg-mcp-callout" role="note">
+            <p class="aqg-mcp-callout__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.requirementTitle" default="Before you connect: a permanently running process" /></p>
+            <p class="aqg-mcp-callout__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.requirement" default="Agents reach this installation only while the connector command runs. It must run all the time as a supervised service (systemd, Supervisor or a container) on a host that can reach the database. The TYPO3 Scheduler and cron jobs cannot keep it running, so hosting without permanent processes cannot offer agent access." /></p>
+        </div>
+        <form method="post" action="{mcp.urls.connect}" class="aqg-mcp-connect__action">
+            <f:render section="ReturnFields" arguments="{returnParameters: mcp.returnParameters}" />
+            <button type="submit" class="btn btn-primary btn-sm" aria-describedby="aqg-mcp-connect-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.connect" default="Connect to AQG Gateway" /></button>
+            <p class="aqg-field__help" id="aqg-mcp-connect-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.intro.connectHelp" default="You confirm the connection in your AQG account with a code shown here." /></p>
+        </form>
+    </div>
+</f:section>
+
+<f:section name="ConnectedStatus">
+    <f:switch expression="{mcp.state}">
+        <f:case value="connected">
+            <div class="aqg-statusline tone-ok" role="status">
+                <span class="aqg-statusline__icon" aria-hidden="true">✓</span>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.connected" arguments="{0: mcp.gateway.lastHeartbeat}" default="Connected through the outbound connector. Last heartbeat: %s." /></p></div>
+            </div>
+        </f:case>
+        <f:case value="starting">
+            <f:comment><!-- Paired, the connector has not reported yet: a wait, not a failure. settings-mcp.js asks for the state and reloads once it changes. --></f:comment>
+            <div class="aqg-statusline tone-info" role="status" aria-live="polite" data-aqg-mcp-starting="true" data-state-url="{mcp.urls.connectionState}" data-poll-seconds="{mcp.urls.startingPollSeconds}">
+                <span class="aqg-statusline__icon" aria-hidden="true">…</span>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.starting" default="Connected to the AQG Gateway. Waiting for the connector's first heartbeat; this page updates by itself. If it stays here for more than a few minutes, start the connector command below." /></p></div>
+            </div>
+        </f:case>
+        <f:case value="offline">
+            <div class="aqg-statusline tone-error" role="alert">
+                <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.offline" default="Connector offline. Agents get “installation offline” for every request; nothing is queued or replayed later. Start the connector command below." /></p></div>
+            </div>
+        </f:case>
+        <f:case value="suspended">
+            <div class="aqg-statusline tone-error" role="alert">
+                <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.suspended" default="Agent access is suspended: the licence does not allow it now. Tokens are kept; they work again until their own end date once the licence is valid." /></p></div>
+            </div>
+        </f:case>
+        <f:case value="revoked">
+            <div class="aqg-statusline tone-error" role="alert">
+                <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.revoked" default="The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Connect it again." /></p></div>
+            </div>
+            <f:render section="ConnectIntro" arguments="{mcp: mcp}" />
+        </f:case>
+        <f:defaultCase>
+            <div class="aqg-statusline tone-error" role="alert">
+                <span class="aqg-statusline__icon" aria-hidden="true">!</span>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.unreachable" default="The AQG MCP Gateway did not answer. Agents cannot reach this installation either. Settings and tokens are unchanged." /></p></div>
+            </div>
+        </f:defaultCase>
+    </f:switch>
+
+    <f:if condition="{mcp.state} != 'revoked'">
+        <dl class="aqg-mcp-kv">
+            <div class="aqg-mcp-kv__row aqg-mcp-kv__row--wide">
+                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.serverUrl" default="Server URL for agents" /></dt>
+                <dd>
+                    <div class="aqg-mcp-copyfield"><code class="aqg-mcp-copyline" data-aqg-mcp-copy="true">{mcp.connection.serverUrl}</code></div>
+                    <span class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.serverUrlHelp" default="Users add this URL to their agent and then sign in with TYPO3. The URL itself grants no access." /></span>
+                </dd>
+            </div>
+            <div class="aqg-mcp-kv__row"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.mode" default="Mode" /></dt><dd><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.modeOutbound" default="Outbound connector" /></dd></div>
+            <div class="aqg-mcp-kv__row"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.pairedBy" default="Connected by" /></dt><dd>{mcp.connection.pairedBy}</dd></div>
+            <f:if condition="{mcp.gateway}">
+                <div class="aqg-mcp-kv__row"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.connector" default="Connector" /></dt><dd>{mcp.gateway.connectorVersion} {mcp.gateway.connectorHost}</dd></div>
+                <div class="aqg-mcp-kv__row"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.activeAgents" default="Active agents" /></dt><dd class="aqg-mcp-num">{mcp.activeTokenCount}</dd></div>
+                <div class="aqg-mcp-kv__row"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.requestsToday" default="Agent requests today (UTC)" /></dt><dd class="aqg-mcp-num">{mcp.gateway.quotas.requestsToday} / {mcp.gateway.quotas.requestsPerDay}</dd></div>
+                <div class="aqg-mcp-kv__row"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.pageScans" default="Page scans per agent and day" /></dt><dd><span class="aqg-mcp-num">{mcp.gateway.quotas.pageScansPerTokenPerDay}</span> <span class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.kv.pageScansHelp" default="Agent scans also count against the frontend-scan allowance of “Scan now”." /></span></dd></div>
+            </f:if>
+        </dl>
+        <div class="aqg-mcp-connector">
+            <span class="aqg-mcp-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.connector.title" default="Start command" /></span>
+            <div class="aqg-mcp-copyfield"><code class="aqg-mcp-copyline" data-aqg-mcp-copy="true">{mcp.connectorCommand}</code></div>
+            <p class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.connector.help" default="Run it as a supervised service (systemd, Supervisor or a container) so it restarts after crashes and deployments. The TYPO3 Scheduler cannot keep it running. After a deployment, restart the service so it runs the new code." /></p>
+            <details class="aqg-mcp-details">
+                <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.connector.systemd" default="Example: systemd unit" /></summary>
+                <pre class="aqg-mcp-pre">[Service]
+User=www-data
+WorkingDirectory=/var/www/html
+ExecStart=/usr/bin/php {mcp.connectorCommand}
+Restart=always
+RestartSec=5</pre>
+            </details>
+        </div>
+    </f:if>
+</f:section>
+</html>

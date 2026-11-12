@@ -280,10 +280,11 @@ function setPanelStateRunning(panel, scanMode = 'local') {
 }
 
 function setPanelStateCompleted(panel, scanMode = 'local') {
-    ['warning', 'error', 'none', 'running'].forEach((state) => {
+    // STATE-01: "completed" is not "clean" — the panel stays neutral until the reloaded results say what was found.
+    ['warning', 'error', 'ok', 'limited', 'running'].forEach((state) => {
         panel.classList.remove(`aqg-page-module-indicator--${state}`);
     });
-    panel.classList.add('aqg-page-module-indicator--ok', 'aqg-page-module-indicator--completed');
+    panel.classList.add('aqg-page-module-indicator--none', 'aqg-page-module-indicator--completed');
     panel.setAttribute('aria-busy', 'false');
 
     const headline = panel.querySelector('.aqg-page-module-indicator__headline');
@@ -311,7 +312,7 @@ function setPanelStateCompleted(panel, scanMode = 'local') {
     const rows = Array.from(panel.querySelectorAll('.aqg-page-module-indicator__status-row'));
     const rowsToMark = scanMode === 'combined' ? rows : rows.slice(0, 1);
     rowsToMark.forEach((row) => {
-        row.className = 'aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--ok aqg-page-module-indicator__status-row--completed';
+        row.className = 'aqg-page-module-indicator__status-row aqg-page-module-indicator__status-row--none aqg-page-module-indicator__status-row--completed';
         const value = row.querySelector('.aqg-page-module-indicator__status-value');
         if (value) {
             setIconLabel(value, COMPLETED_ICON, translate('pageModuleIndicator.completedStatus', 'Completed'));

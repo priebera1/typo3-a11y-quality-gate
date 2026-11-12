@@ -11,9 +11,13 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
 final class BackendRecordAccessService implements BackendRecordAccessServiceInterface
 {
+    private readonly EffectiveFieldConfigurationService $fieldConfigurationService;
+
     public function __construct(
         private readonly BackendUserService $backendUserService,
+        ?EffectiveFieldConfigurationService $fieldConfigurationService = null,
     ) {
+        $this->fieldConfigurationService = $fieldConfigurationService ?? new EffectiveFieldConfigurationService();
     }
 
     public function canEditRecord(string $table, int $uid): bool
@@ -57,6 +61,13 @@ final class BackendRecordAccessService implements BackendRecordAccessServiceInte
         if (!is_array($record)
             || (int)($record['uid'] ?? 0) <= 0
             || (int)($record['deleted'] ?? 0) === 1) {
+            return false;
+        }
+
+        // Read-only, hidden and workspace-locked fields bind administrators as well: FormEngine renders them
+        // read-only for everybody and DataHandler would store whatever AQG submits.
+        if (!$this->areFieldsWritable($backendUser, $table, $record, $fields)
+            || !$this->isWritableInCurrentWorkspace($backendUser, $table, $record)) {
             return false;
         }
 
@@ -156,6 +167,59 @@ final class BackendRecordAccessService implements BackendRecordAccessServiceInte
                 && !$backendUser->check('non_exclude_fields', $table . ':' . $field)) {
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     * @param list<string> $fields
+     */
+    private function areFieldsWritable(
+        BackendUserAuthentication $backendUser,
+        string $table,
+        array $record,
+        array $fields,
+    ): bool {
+        foreach (array_values(array_unique($fields)) as $field) {
+            if (!$this->fieldConfigurationService->isFieldWritable($backendUser, $table, $record, (string)$field)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * A record of another workspace, a workspace version edited from live, a table the current workspace may not
+     * change, or a version in a stage the user may not edit is refused before DataHandler sees the write.
+     *
+     * @param array<string, mixed> $record
+     */
+    private function isWritableInCurrentWorkspace(
+        BackendUserAuthentication $backendUser,
+        string $table,
+        array $record,
+    ): bool {
+        $currentWorkspace = (int)($backendUser->workspace ?? 0);
+        $recordWorkspace = (int)($record['t3ver_wsid'] ?? 0);
+        if ($recordWorkspace > 0 && $recordWorkspace !== $currentWorkspace) {
+            return false;
+        }
+
+        if ($currentWorkspace === 0) {
+            return true;
+        }
+
+        // TCA ctrl.versioningWS is what BackendUtility::isTableWorkspaceEnabled() read; that helper is deprecated in TYPO3 14.
+        if (empty($GLOBALS['TCA'][$table]['ctrl']['versioningWS']) && !$backendUser->workspaceAllowsLiveEditingInTable($table)) {
+            return false;
+        }
+
+        if ($recordWorkspace === $currentWorkspace
+            && !$backendUser->workspaceCheckStageForCurrent((int)($record['t3ver_stage'] ?? 0))) {
+            return false;
         }
 
         return true;

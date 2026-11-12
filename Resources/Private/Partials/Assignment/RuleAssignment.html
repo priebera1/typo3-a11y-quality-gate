@@ -1,0 +1,55 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment>My issues (company acceptance follow-up): who works on this issue type on this page, shown once per card; the
+assign control only for people who may assign here (AssignmentService::canAssignOn). The request carries the finding id
+only; the server derives site, page, language and rule from the stored finding.</f:comment>
+<div class="aqg-assign" data-aqg-assign="true" data-finding-id="{rule.firstOpenIssueUid}" data-rule-key="{rule.issueKey}" data-current-assignee="{rule.assignment.assignee}"
+     data-label-choose="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.field.choose', default: 'Choose a person')}"
+     data-label-none="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.field.none', default: 'Nobody else can open this page in this language.')}"
+     data-label-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.error.failed', default: 'The assignment could not be saved. Try again.')}"
+     data-label-assigned="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.chip.assigned', default: 'Assigned to %s')}"
+     data-label-nobody="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.chip.nobody', default: 'Not assigned')}">
+    <f:if condition="{rule.sharedTemplate}">
+        <span class="aqg-assign__shared"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.shared.badge" default="Shared template task" /></span>
+    </f:if>
+    <span class="aqg-assign__chip" data-aqg-assign-chip="true">
+        <f:if condition="{rule.assignment}">
+            <f:then>
+                <f:render partial="Shared/AqgIcon" arguments="{name: 'user', size: 'sm'}" />
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.chip.assigned" default="Assigned to %s" arguments="{0: rule.assignment.label}" /></span>
+                <f:if condition="{rule.assignment.flag}">
+                    <span class="aqg-issues__flag"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.flag.{rule.assignment.flag}" default="Cannot work on this any more — reassign" /></span>
+                </f:if>
+            </f:then>
+            <f:else>
+                <f:if condition="{canAssign}"><span class="aqg-issues__muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.chip.nobody" default="Not assigned" /></span></f:if>
+            </f:else>
+        </f:if>
+    </span>
+    <f:if condition="{canAssign} && {rule.firstOpenIssueUid} > 0">
+        <details class="aqg-menu aqg-assign__menu" data-aqg-menu="true" data-aqg-assign-menu="true">
+            <summary class="btn btn-default btn-sm aqg-menu__toggle">
+                <f:if condition="{rule.assignment}">
+                    <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.action.reassign" default="Reassign…" /></f:then>
+                    <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.action.assign" default="Assign…" /></f:else>
+                </f:if>
+            </summary>
+            <div class="aqg-menu__panel aqg-assign__panel">
+                <label class="aqg-field__label" for="aqg-assign-{rule.anchorId}"><f:if condition="{rule.sharedTemplate}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.shared.assignee" default="Who fixes the template" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.field.assignee" default="Editor who fixes it" /></f:else></f:if></label>
+                <select class="form-select form-select-sm" id="aqg-assign-{rule.anchorId}" data-aqg-assign-select="true" disabled="disabled">
+                    <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.field.loading" default="Loading the people who can open this page…" /></option>
+                </select>
+                <label class="aqg-field__label" for="aqg-assign-note-{rule.anchorId}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.field.note" default="Note (optional)" /></label>
+                <input type="text" class="form-control form-control-sm" id="aqg-assign-note-{rule.anchorId}" maxlength="280" data-aqg-assign-note="true" value="{rule.assignment.note}" />
+                <div class="aqg-assign__actions">
+                    <button type="button" class="btn btn-primary btn-sm" data-aqg-assign-submit="true" disabled="disabled"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.action.confirm" default="Assign" /></button>
+                    <f:if condition="{rule.assignment}">
+                        <button type="button" class="btn btn-default btn-sm" data-aqg-assign-clear="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.action.unassign" default="Unassign" /></button>
+                    </f:if>
+                </div>
+                <p class="aqg-assign__hint"><f:if condition="{rule.sharedTemplate}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.shared.hint" default="This element comes from the site template, not from the content of this page. It is one task for every page and language where it appears, done when the template is fixed. Only people who can open the site root are listed." /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.field.hint" default="Only people who can open this page in this language are listed. The task covers every occurrence of this issue type on the page and is done when none is left." /></f:else></f:if></p>
+                <p class="aqg-assign__status" role="status" aria-live="polite" data-aqg-assign-status="true"></p>
+            </div>
+        </details>
+    </f:if>
+</div>
+</html>

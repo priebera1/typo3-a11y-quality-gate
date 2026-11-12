@@ -70,24 +70,6 @@ final class RuleConfigurationServiceTest extends TestCase
         self::assertSame(['click here'], $decoded['dictionary']['nonDescriptiveDisabled']);
     }
 
-    #[Test]
-    public function showProHintsCanBeStoredInRulesJson(): void
-    {
-        $service = $this->createSubject();
-
-        $rulesJson = $service->encodeRulesJsonWithShowProHints('{}', false);
-
-        self::assertFalse($service->getShowProHintsFromRuleset(['rules_json' => $rulesJson]));
-    }
-
-    #[Test]
-    public function missingShowProHintsReturnsNullForExtensionConfigurationFallback(): void
-    {
-        $service = $this->createSubject();
-
-        self::assertNull($service->getShowProHintsFromRuleset(['rules_json' => '{}']));
-    }
-
     private function createSubject(): RuleConfigurationService
     {
         return new RuleConfigurationService($this->createStub(RulesetRepository::class));

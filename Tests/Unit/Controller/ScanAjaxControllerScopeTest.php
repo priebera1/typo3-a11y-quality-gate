@@ -38,11 +38,19 @@ final class ScanAjaxControllerScopeTest extends TestCase
     protected function setUp(): void
     {
         $this->scanStatusService = $this->createMock(ScanStatusService::class);
-        // Real status redaction, mocked page and site permissions.
+        // Real status redaction and admission rules, mocked page and site permissions, an editor (not an administrator).
+        $editor = $this->getMockBuilder(BackendUserAuthentication::class)->disableOriginalConstructor()->getMock();
+        $editor->user = ['uid' => 3, 'username' => 'editor'];
+        $editor->method('isAdmin')->willReturn(false);
+        $users = $this->createMock(BackendUserService::class);
+        $users->method('getBackendUser')->willReturn($editor);
         $this->scopeAccessService = $this->getMockBuilder(ScopeAccessService::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['canReadPage', 'canEditPage', 'canReadSiteIdentifier'])
+            ->setConstructorArgs([$users, $this->createMock(BackendRecordAccessService::class), $this->createMock(SiteResolutionService::class), $this->createMock(RemoteScanRepository::class)])
+            ->onlyMethods(['canReadPage', 'canEditPage', 'canReadSiteIdentifier', 'canUseLanguage', 'hasLanguageRestriction', 'isDefaultLanguagePageRecord'])
             ->getMock();
+        $this->scopeAccessService->method('isDefaultLanguagePageRecord')->willReturn(true);
+        $this->scopeAccessService->method('canUseLanguage')->willReturn(true);
+        $this->scopeAccessService->method('hasLanguageRestriction')->willReturn(false);
         $this->remoteScanRepository = $this->createMock(RemoteScanRepository::class);
         $this->scanRepository = $this->createMock(ScanRepository::class);
         $this->orchestrator = $this->createMock(ScanOrchestrator::class);
@@ -114,9 +122,10 @@ final class ScanAjaxControllerScopeTest extends TestCase
     {
         $accessControl = $this->createMock(AccessControlService::class);
         $accessControl->method('canShowScanNow')->willReturn(true);
-        $this->scanStatusService->method('isRunning')->willReturn(false);
+        $this->scanStatusService->method('acquireScanLock')->willReturn('lock-token');
         $this->scanStatusService->method('getStatus')->willReturn(['running' => false]);
         $this->scopeAccessService->method('canReadPage')->willReturn(true);
+        $this->scopeAccessService->method('canEditPage')->willReturn(true);
         $this->orchestrator->method('scanPage')->willThrowException(
             new \RuntimeException('SQLSTATE[HY000] [2002] Connection refused (db.internal:3306) in /var/www/html/vendor/x.php')
         );
@@ -179,6 +188,8 @@ final class ScanAjaxControllerScopeTest extends TestCase
             'triggeredBy' => 'alice',
             'pageUid' => 77,
             'rootPid' => null,
+            // ScanStatusService::markRunning() always records the language (here the default language).
+            'languageUid' => 0,
             'scanUid' => 501,
             'summary' => null,
             'error' => null,

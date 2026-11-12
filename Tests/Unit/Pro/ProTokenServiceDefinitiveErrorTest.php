@@ -67,6 +67,65 @@ final class ProTokenServiceDefinitiveErrorTest extends TestCase
         (new ProTokenService($client, $cache, $settings, $sites))->getValidToken('client.example', '1.9.7');
     }
 
+    #[Test]
+    public function aRateLimitedTokenRequestIsPresentedAsALimitNotAsALicenceFailure(): void
+    {
+        // M-06 (2026-11-05 company acceptance): the API's rate limiter answers without an error object; the scan then
+        // failed with "Licence authentication failed — Revalidate the licence", hiding the real (DPA) reason as well.
+        $cache = $this->createMock(ProCacheManager::class);
+        $cache->method('getToken')->willReturn(null);
+        $cache->expects(self::never())->method('flushAll');
+        $client = $this->createMock(AqgApiClient::class);
+        $client->method('issueToken')->willReturn(AccessTokenResponseDto::fromArray([
+            'statusCode' => 429,
+            'error' => 'Too Many Requests',
+            'message' => 'Rate limit exceeded, retry in 1 minute',
+        ]));
+        $settings = $this->createMock(ProSettings::class);
+        $settings->method('isConfigured')->willReturn(true);
+        $settings->method('getLicenceKey')->willReturn('aqg_live_key');
+        $sites = $this->createMock(ProSiteFingerprintService::class);
+        $sites->method('collectValidationSites')->willReturn(['client.example']);
+        $sites->method('buildFingerprint')->willReturn('fingerprint');
+
+        try {
+            (new ProTokenService($client, $cache, $settings, $sites))->getValidToken('client.example', '3.0.0');
+            self::fail('A rate-limited token request must not yield a token.');
+        } catch (TokenRefreshException $exception) {
+            $presented = (new \Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter())->present($exception);
+            self::assertSame('Remote scan limit reached', $presented['title']);
+            self::assertStringNotContainsString('Revalidate', $presented['message']);
+        }
+    }
+
+    #[Test]
+    public function aMissingDpaAcceptanceNamesTheCustomerAccountStep(): void
+    {
+        $cache = $this->createMock(ProCacheManager::class);
+        $cache->method('getToken')->willReturn(null);
+        $client = $this->createMock(AqgApiClient::class);
+        $client->method('issueToken')->willReturn(AccessTokenResponseDto::fromArray([
+            'success' => false,
+            'error' => ['code' => 'dpa_acceptance_required', 'message' => 'Hosted scans need the AQG data processing agreement.', 'status' => 403],
+        ]));
+        $settings = $this->createMock(ProSettings::class);
+        $settings->method('isConfigured')->willReturn(true);
+        $settings->method('getLicenceKey')->willReturn('aqg_live_key');
+        $sites = $this->createMock(ProSiteFingerprintService::class);
+        $sites->method('collectValidationSites')->willReturn(['client.example']);
+        $sites->method('buildFingerprint')->willReturn('fingerprint');
+
+        try {
+            (new ProTokenService($client, $cache, $settings, $sites))->getValidToken('client.example', '3.0.0');
+            self::fail('No token without the DPA.');
+        } catch (TokenRefreshException $exception) {
+            $presented = (new \Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter())->present($exception);
+            self::assertSame('Data processing agreement not accepted', $presented['title']);
+            self::assertStringContainsString('customer area', $presented['message']);
+            self::assertStringNotContainsString('Revalidate', $presented['message']);
+        }
+    }
+
     /**
      * @return iterable<string, array{0:string, 1:string|null}>
      */

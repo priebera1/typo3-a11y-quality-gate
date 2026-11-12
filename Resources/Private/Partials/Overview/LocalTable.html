@@ -127,37 +127,35 @@
 
         <f:if condition="{localPagination.totalPages} > 1">
             <div class="aqg-pagination">
-                <div class="aqg-pagination__info">
+                <p class="aqg-pagination__info">
                     {totalLocalPages}
                     <f:if condition="{totalLocalPages} == 1">
                         <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.page" default="page" /></f:then>
                         <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.localTable.pages" default="pages" /></f:else>
                     </f:if>
-                </div>
-
-                <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.paginationAria', default: 'Content scan pages pagination')}">
-                    <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
-                        <li class="page-item {f:if(condition: localPagination.hasPrevious, then: '', else: 'disabled')}">
-                            <a class="page-link" href="{f:if(condition: localPagination.hasPrevious, then: localPagination.previousUrl, else: '#')}">‹</a>
-                        </li>
-
-                        <f:for each="{localPaginationItems}" as="item">
-                            <f:if condition="{item.type} == 'ellipsis'">
-                                <f:then>
-                                    <li class="page-item disabled">
-                                        <span class="page-link">{item.label}</span>
-                                    </li>
-                                </f:then>
-                                <f:else>
-                                    <li class="page-item {f:if(condition: item.active, then: 'active', else: '')}">
-                                        <a class="page-link" href="{item.url}">{item.label}</a>
-                                    </li>
-                                </f:else>
+                </p>
+                <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.paginationAria', default: 'Content scan pages pagination')}">
+                    <ul class="aqg-pagination__list">
+                        <li>
+                            <f:if condition="{localPagination.hasPrevious}">
+                                <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" href="{localPagination.previousUrl}" rel="prev"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></a></f:then>
+                                <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></span></f:else>
                             </f:if>
+                        </li>
+                        <f:for each="{localPaginationItems}" as="item">
+                            <li>
+                                <f:if condition="{item.type} == 'ellipsis'">
+                                    <f:then><span class="aqg-pagination__gap" aria-hidden="true">…</span></f:then>
+                                    <f:else if="{item.active}"><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}" aria-current="page"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                    <f:else><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                </f:if>
+                            </li>
                         </f:for>
-
-                        <li class="page-item {f:if(condition: localPagination.hasNext, then: '', else: 'disabled')}">
-                            <a class="page-link" href="{f:if(condition: localPagination.hasNext, then: localPagination.nextUrl, else: '#')}">›</a>
+                        <li>
+                            <f:if condition="{localPagination.hasNext}">
+                                <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" href="{localPagination.nextUrl}" rel="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></a></f:then>
+                                <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></span></f:else>
+                            </f:if>
                         </li>
                     </ul>
                 </nav>

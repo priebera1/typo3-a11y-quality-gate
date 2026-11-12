@@ -16,6 +16,13 @@ final class RulesetRepository extends AbstractRepository
     public const PUBLISH_MODE_INHERIT = -1;
 
     /**
+     * The Quality Gate an installation has before an administrator saves one: warn on publish when a page has any open
+     * critical finding, warnings off. findOrCreateDefault() writes exactly these values, and QualityGateChecker applies
+     * them while no default row exists yet, so the gate does not depend on whether someone has opened Settings (D-01).
+     */
+    public const DEFAULT_GATE = ['publish_mode' => 1, 'threshold_critical' => 0, 'threshold_warning' => -1];
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findBySiteIdentifier(string $siteIdentifier): ?array
@@ -303,9 +310,9 @@ final class RulesetRepository extends AbstractRepository
             'pid' => 0,
             'title' => 'Default Quality Gate',
             'site_identifier' => '',
-            'threshold_critical' => 0,
-            'threshold_warning' => -1,
-            'publish_mode' => 1,
+            'threshold_critical' => self::DEFAULT_GATE['threshold_critical'],
+            'threshold_warning' => self::DEFAULT_GATE['threshold_warning'],
+            'publish_mode' => self::DEFAULT_GATE['publish_mode'],
             'rules_json' => '',
             'scanner_token' => '',
             'http_auth_user' => '',
@@ -316,7 +323,8 @@ final class RulesetRepository extends AbstractRepository
             'crawl_priority_urls' => '[]',
             'is_default' => 1,
             'crdate' => $now,
-            'tstamp' => $now,
+            // Created so Settings has defaults to show: not a save (U-10, "Last saved" reads tstamp).
+            'tstamp' => 0,
         ]);
 
         $insertedUid = (int)$connection->lastInsertId();

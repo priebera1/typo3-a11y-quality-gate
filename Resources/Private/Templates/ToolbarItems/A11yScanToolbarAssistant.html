@@ -1,0 +1,170 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<section class="aqt-assistant" aria-labelledby="aqt-assistant-title" data-aqt-assistant-root="true"
+         data-context-type="{assistant.context.type}"
+         data-content-scan-page="{assistant.contentScan.pageUid}"
+         data-content-scan-language="{assistant.contentScan.languageUid}"
+         data-label-busy="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.busy', default: 'Working…')}"
+         data-label-explaining="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.explaining', default: 'Asking AI for an explanation…')}"
+         data-label-explanation="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.explanation', default: 'AI explanation')}"
+         data-label-explain-note="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.explainNote', default: 'It changes nothing and can be incomplete; the rule guidance stays authoritative.')}"
+         data-label-explain-none="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.explainNone', default: 'No reliable explanation for this element. Use the guidance above.')}"
+         data-label-sent="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.sent', default: 'What was sent')}"
+         data-label-preparing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.preparing', default: 'Preparing an AI suggestion…')}"
+         data-label-prepared="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.prepared', default: 'Suggestion ready. Review it in AI fixes before anything changes.')}"
+         data-label-queued="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.queued', default: 'Queued in AI fixes. Review it there before anything changes.')}"
+         data-label-prepare-none="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.prepareNone', default: 'AI did not produce a usable suggestion. Fix it manually with the guidance above.')}"
+         data-label-prepare-manual="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.prepareManual', default: 'AQG cannot prepare a safe AI change for this occurrence. Fix it in the editor with the guidance above.')}"
+         data-label-review="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.review', default: 'Review in AI fixes')}"
+         data-label-suggested="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.suggested', default: 'AI suggestion inserted. Review and edit it, then apply.')}"
+         data-label-applied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.applied', default: 'Saved. The finding is resolved with the next scan of this page.')}"
+         data-label-decorative="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.markedDecorative', default: 'Marked as decorative.')}"
+         data-label-scanning="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.scanning', default: 'Checking saved content…')}"
+         data-label-scanned="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.scanned', default: 'Check finished. The list shows the new result.')}"
+         data-label-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error', default: 'This did not work. Nothing was changed.')}"
+         data-label-error-permission="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.permission', default: 'You may not do this here. Nothing was changed.')}"
+         data-label-error-stale="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.stale', default: 'The content changed since it was checked. Check again.')}"
+         data-label-error-budget="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.budget', default: 'The AI limit is reached. Nothing was sent.')}"
+         data-label-error-rate="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.rate', default: 'Too many AI requests. Try again in a minute.')}"
+         data-label-error-session="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.session', default: 'Your TYPO3 session ended. Log in again.')}"
+         data-label-error-input="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.input', default: 'Check the text: it is empty or too long.')}"
+         data-label-asking="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.asking', default: 'Asking AQG…')}"
+         data-label-you-asked="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.youAsked', default: 'You asked')}"
+         data-label-answer="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.answer', default: 'AQG answer')}"
+         data-label-based-on="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.basedOn', default: 'Based on your AQG findings')}"
+         data-label-general="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.general', default: 'Includes general advice, not a scan result')}"
+         data-label-no-findings-used="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.noFindingsUsed', default: 'Not based on a specific finding')}"
+         data-label-next-step="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.nextStep', default: 'Next step')}"
+         data-label-sources="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.sources', default: 'Findings used')}"
+         data-label-occurrence="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.occurrences.one', default: '1 occurrence')}"
+         data-label-occurrences="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.occurrences', default: '%d occurrences')}"
+         data-label-pages="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.pages', default: 'on %d pages')}"
+         data-label-most-on="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.mostOn', default: 'most on %s')}"
+         data-label-out-of-scope="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.outOfScope', default: 'Outside what AQG can answer')}"
+         data-label-needs-data="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.needsData', default: 'AQG needs more data for this')}"
+         data-label-invalid="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.invalid', default: 'The AI answer could not be used. Nothing was changed; try again or rephrase.')}"
+         data-label-edit="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.edit', default: 'Edit')}"
+         data-label-details="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.details', default: 'Details')}"
+         data-label-error-scope="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.scope', default: 'You do not have access to the whole website. Ask about this page instead.')}"
+         data-label-error-context="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.context', default: 'Open a page, a content element or a file first.')}"
+         data-label-error-usage="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.usage', default: 'AQG could not record this AI question, so it was not sent. Try again later.')}"
+         data-label-error-not-ready="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.notReady', default: 'AI is not available here right now. The findings and guidance above still work.')}"
+         data-label-error-provider="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.provider', default: 'The AI provider did not answer. Try again later.')}"
+         data-label-error-question="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.question', default: 'Write a question of 3 to 400 characters.')}"
+         data-label-answering="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.answering', default: 'Looking at your findings…')}"
+         data-label-cleared="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.cleared', default: 'New conversation started.')}"
+         data-label-deterministic="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.deterministic', default: 'Answered from your AQG findings, no AI used')}"
+         data-label-answer-aqg="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.answerAqg', default: 'AQG')}"
+         data-label-usage="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.usage', default: 'AI questions in this conversation: %1$d of %2$d')}"
+         data-label-usage-cost="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.usageCost', default: 'about %1$s of %2$s used')}"
+         data-label-limit-reached="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.limitReached', default: 'limit reached, start a new conversation')}"
+         data-label-error-daily-limit="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.dailyLimit', default: 'You reached today\'s limit of AI questions. Answers from your findings still work.')}"
+         data-label-error-busy="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.busy', default: 'Another question is still being answered. Wait for it, then ask again.')}"
+         data-label-error-conversation-limit="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.conversationLimit', default: 'This conversation reached its limit of AI questions. Start a new conversation.')}"
+         data-label-error-conversation-budget="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.conversationBudget', default: 'This conversation reached its AI cost limit. Start a new conversation.')}"
+         data-label-error-history="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.history', default: 'The conversation is too long to send. Start a new conversation.')}"
+         data-label-error-timeout="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.timeout', default: 'No answer in time. If the provider still answered, it is counted in AI usage.')}"
+         data-label-error-network="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.error.network', default: 'The question could not be sent. Check the connection and try again.')}"
+         data-label-repair-title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.title', default: 'Repair plan')}"
+         data-label-repair-check="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.check', default: 'Check saved page now')}"
+         data-label-repair-check-started="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.checkStarted', default: 'The Content scan section shows the check. Ask again when it has finished.')}"
+         data-label-repair-check-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.checkUnavailable', default: 'The saved page cannot be checked from here right now. Use the Accessibility module.')}"
+         data-label-repair-cost="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.cost', default: 'Estimated maximum AI cost: %1$s for %2$d requests. Your AI provider bills the actual usage, which is usually lower.')}"
+         data-label-repair-cost-one="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.costOne', default: 'Estimated maximum AI cost: %s for 1 request. Your AI provider bills the actual usage, which is usually lower.')}"
+         data-label-repair-cost-unknown="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.costUnknown', default: 'AQG cannot estimate the AI cost for this provider. Each suggestion is one AI request within your site budget.')}"
+         data-label-repair-prepare="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.prepare', default: 'Prepare %d suggestions')}"
+         data-label-repair-prepare-one="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.prepareOne', default: 'Prepare suggestion')}"
+         data-label-repair-one-by-one="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.oneByOne', default: 'Your account prepares AI suggestions one at a time. Use Prepare suggestion on each issue.')}"
+         data-label-repair-open-queue="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.openQueue', default: 'Open AI fixes')}"
+         data-label-repair-edit-element="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.editElement', default: 'Edit the element yourself')}"
+         data-label-repair-safety="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.safety', default: 'Nothing is applied or published. Every AI suggestion waits for your review in AI fixes; you decide what changes.')}"
+         data-label-repair-basis="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.basis', default: 'Answered from your AQG findings, no AI used. AI is used only when you prepare suggestions.')}"
+         data-label-repair-item-cost="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.itemCost', default: 'max. %s')}"
+         data-label-repair-review="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.review', default: 'Review suggestion')}"
+         data-label-repair-open-item="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.openItem', default: 'Open in AI fixes')}"
+         data-label-repair-preparing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.preparing', default: 'Preparing… Nothing is changed in your content.')}"
+         data-label-repair-generating="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.generating', default: 'Asking AI for a suggestion…')}"
+         data-label-repair-progress="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.progress', default: 'Preparing suggestion %1$d of %2$d…')}"
+         data-label-repair-already-queued="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.alreadyQueued', default: 'Already in AI fixes. No new request was made.')}"
+         data-label-repair-not-prepared="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.notPrepared', default: 'Not prepared')}"
+         data-label-repair-done="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.done', default: 'Finished: %1$d ready for your review, %2$d need attention.')}"
+         data-label-repair-cost-recorded="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.costRecorded', default: 'Recorded AI cost: %s.')}"
+         data-label-repair-cost-recorded-unknown="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.costRecordedUnknown', default: 'The cost of at least one request is not known.')}"
+         data-label-repair-nothing-applied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.nothingApplied', default: 'Nothing was applied or published.')}"
+         data-label-repair-in-progress="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.inProgress', default: 'This suggestion is being prepared already. Open it in AI fixes.')}"
+         data-label-repair-changed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.changed', default: 'This item changed in the meantime. Open it in AI fixes.')}"
+         data-label-repair-ready="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.ready', default: 'Suggestion ready. Review it in AI fixes before anything changes.')}"
+         data-label-repair-retry-later="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.retryLater', default: 'The AI rate limit is reached. Prepare it again in AI fixes in about %d seconds.')}"
+         data-label-repair-no-suggestion="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.noSuggestion', default: 'AI could not suggest a safe value from the available context. Fix it in the editor.')}"
+         data-label-repair-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.failed', default: 'The suggestion could not be prepared. Nothing was changed.')}"
+         data-label-repair-busy="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.repair.ui.busy', default: 'Suggestions are being prepared already. Wait for them to finish.')}"
+         data-label-field-missing="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.fieldMissing', default: 'This field is not open in the editing form.')}">
+    <header class="aqt-assistant__head">
+        <h2 class="aqt-assistant__title" id="aqt-assistant-title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.title" default="Ask AQG" /></h2>
+        <f:switch expression="{assistant.context.type}">
+            <f:case value="record">
+                <dl class="aqt-ctx">
+                    <div class="aqt-ctx__row">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.record" default="Content element" /></dt>
+                        <dd><strong>{assistant.context.title}</strong><f:if condition="{assistant.context.subtitle}"> <span class="aqt-assistant__muted">· {assistant.context.subtitle}</span></f:if></dd>
+                    </div>
+                    <div class="aqt-ctx__row">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.page" default="Page" /></dt>
+                        <dd>{assistant.context.pageTitle}<f:if condition="{assistant.context.languageTitle}"> <span class="aqt-assistant__muted">· {assistant.context.languageTitle}</span></f:if></dd>
+                    </div>
+                </dl>
+            </f:case>
+            <f:case value="page">
+                <dl class="aqt-ctx">
+                    <div class="aqt-ctx__row">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.page" default="Page" /></dt>
+                        <dd><strong>{assistant.context.title}</strong><f:if condition="{assistant.context.languageTitle}"> <span class="aqt-assistant__muted">· {assistant.context.languageTitle}</span></f:if></dd>
+                    </div>
+                </dl>
+            </f:case>
+            <f:case value="file">
+                <dl class="aqt-ctx">
+                    <div class="aqt-ctx__row">
+                        <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.file" default="File" /></dt>
+                        <dd><strong>{assistant.context.title}</strong></dd>
+                    </div>
+                </dl>
+                <f:if condition="{assistant.context.isImage}">
+                    <p class="aqt-assistant__meta">
+                        <f:if condition="{assistant.context.hasAlternative}">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.file.hasAlt" default="The file has a default alternative text." /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.file.noAlt" default="The file has no default alternative text. Each image reference can still have its own." /></f:else>
+                        </f:if>
+                    </p>
+                </f:if>
+            </f:case>
+            <f:case value="folder">
+                <p class="aqt-assistant__context"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.folder" default="Select one file in the list to check its image texts." /></p>
+            </f:case>
+            <f:case value="unavailable">
+                <p class="aqt-assistant__context"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.unavailable" default="AQG cannot show anything for what is open here: it does not exist or you have no access." /></p>
+            </f:case>
+            <f:defaultCase>
+                <p class="aqt-assistant__context"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.context.none" default="Open a page, a content element or a file to check it here. The scan sections below cover the whole site." /></p>
+            </f:defaultCase>
+        </f:switch>
+    </header>
+
+    <f:for each="{assistant.notes}" as="note">
+        <p class="aqt-note aqt-note--{note}">
+            <f:switch expression="{note}">
+                <f:case value="unsaved"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.note.unsavedLabel" default="Unsaved changes:" /></strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.note.unsavedShort" default="the findings describe the saved version. The check inside each text field follows your edits." /></f:case>
+                <f:case value="workspace"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.note.workspaceLabel" default="Workspace:" /></strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.note.workspaceShort" default="the findings describe the live website, not your draft." /></f:case>
+            </f:switch>
+        </p>
+    </f:for>
+
+    <f:comment>No automatic findings list: findings, explanations and links appear only in answers to a question.</f:comment>
+    <f:if condition="{ask.available}">
+        <f:render partial="ToolbarItems/AskAqg" arguments="{ask: ask, assistant: assistant}" />
+    </f:if>
+    <p class="aqt-assistant__status visually-hidden" data-aqt-live="true" role="status" aria-live="polite" aria-atomic="true"></p>
+</section>
+</html>

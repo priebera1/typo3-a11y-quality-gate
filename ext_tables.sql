@@ -20,6 +20,8 @@ CREATE TABLE tx_a11y_scan (
     rendered_checked int(11)      NOT NULL DEFAULT 0,
     rendered_skipped int(11)      NOT NULL DEFAULT 0,
     rendered_skipped_json mediumtext,
+    pages_not_permitted int(11)   NOT NULL DEFAULT 0,
+    not_permitted_json mediumtext,
     crdate           int(11)      NOT NULL DEFAULT 0,
     tstamp           int(11)      NOT NULL DEFAULT 0,
 
@@ -192,9 +194,14 @@ CREATE TABLE tx_a11y_remote_scan (
     sitemap_url varchar(2048) DEFAULT NULL,
     status varchar(50) DEFAULT '' NOT NULL,
     is_free_preview tinyint(4) unsigned DEFAULT '0' NOT NULL,
+    # Preview scan (Atlas D9): a paid single-page scan of a page visitors could not open when it was submitted
+    # (hidden, scheduled or limited to frontend user groups), rendered with the Scanner Token. Decided server-side at
+    # submit time; never paired with a public scan and never counted as public coverage. 0 = public (legacy rows).
+    is_page_preview tinyint(4) unsigned DEFAULT '0' NOT NULL,
 
     pages_scanned int(11) DEFAULT '0' NOT NULL,
     pages_total int(11) DEFAULT '0' NOT NULL,
+    max_pages int(11) DEFAULT '0' NOT NULL,
     pages_failed int(11) DEFAULT '0' NOT NULL,
     issues_total int(11) DEFAULT '0' NOT NULL,
     issues_new int(11) DEFAULT '0' NOT NULL,
@@ -204,6 +211,9 @@ CREATE TABLE tx_a11y_remote_scan (
     finished_at int(11) DEFAULT '0' NOT NULL,
     last_synced_at int(11) DEFAULT '0' NOT NULL,
     persisted_at int(11) DEFAULT '0' NOT NULL,
+    persist_claim_until int(11) DEFAULT '0' NOT NULL,
+    persist_claim_token varchar(64) DEFAULT '' NOT NULL,
+    failure_origin varchar(16) DEFAULT '' NOT NULL,
     sync_error text,
 
     PRIMARY KEY (uid),
@@ -211,6 +221,7 @@ CREATE TABLE tx_a11y_remote_scan (
     KEY job_id (job_id),
     KEY status (status),
     KEY is_free_preview (is_free_preview),
+    KEY is_page_preview (is_page_preview),
     KEY scan_scope (scan_scope),
     KEY page_uid (page_uid),
     KEY language_uid (language_uid),
@@ -247,6 +258,13 @@ CREATE TABLE tx_a11y_remote_scan_page (
     screenshot_expires_at int(11) DEFAULT '0' NOT NULL,
     failure_reason text,
     is_failed tinyint(1) DEFAULT '0' NOT NULL,
+    # Provenance (Sol R01): the TYPO3 page (and translation) the URL belonged to when the results were stored, resolved
+    # once by RemoteResultProvenanceService. 0 = stored before provenance existed, 1 = resolved, 2 = no owner found.
+    # Reads check current rights on this owner; results without a resolved owner are shown to administrators only.
+    owner_state tinyint(1) unsigned DEFAULT '0' NOT NULL,
+    owner_page_uid int(11) DEFAULT '0' NOT NULL,
+    owner_language_uid int(11) DEFAULT '-1' NOT NULL,
+    owner_translation_uid int(11) DEFAULT '0' NOT NULL,
 
     PRIMARY KEY (uid),
     KEY remote_scan (remote_scan),
@@ -355,6 +373,7 @@ CREATE TABLE tx_a11y_ai_configuration (
     last_verified_at int(11) NOT NULL DEFAULT 0,
     last_test_error_code varchar(64) NOT NULL DEFAULT '',
     link_text_suggestions_enabled tinyint(1) NOT NULL DEFAULT 0,
+    revalidation_required tinyint(1) NOT NULL DEFAULT 0,
     crdate int(11) NOT NULL DEFAULT 0,
     tstamp int(11) NOT NULL DEFAULT 0,
     PRIMARY KEY (uid),
@@ -362,6 +381,177 @@ CREATE TABLE tx_a11y_ai_configuration (
     KEY deleted (deleted)
 );
 
+
+#
+# Per-site AI provider choice and privacy settings (AQG 3.0). A site without a row keeps its 2.x behaviour: OpenAI,
+# images and page titles may be sent, and the link-text switch is read from the site's OpenAI configuration row.
+#
+CREATE TABLE tx_a11y_ai_site_setting (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    active_provider varchar(32) NOT NULL DEFAULT '',
+    allow_image_input tinyint(1) NOT NULL DEFAULT 1,
+    allow_page_title tinyint(1) NOT NULL DEFAULT 1,
+    link_text_suggestions_enabled tinyint(1) NOT NULL DEFAULT 0,
+    provider_changed_at int(11) NOT NULL DEFAULT 0,
+    provider_changed_by int(11) NOT NULL DEFAULT 0,
+    budget_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    budget_warning_percent int(11) NOT NULL DEFAULT 0,
+    budget_hard_stop tinyint(1) NOT NULL DEFAULT 0,
+    budget_changed_at int(11) NOT NULL DEFAULT 0,
+    budget_changed_by int(11) NOT NULL DEFAULT 0,
+    budget_alert_email varchar(255) NOT NULL DEFAULT '',
+    processing_ack_provider varchar(32) NOT NULL DEFAULT '',
+    processing_ack_by int(11) NOT NULL DEFAULT 0,
+    processing_ack_at int(11) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY site_identifier (site_identifier)
+);
+
+#
+# One row per AI provider request: provider-reported token counts and a safe outcome code. Never prompt, image,
+# answer, key or other content. A row is admitted as outcome 'pending' before the request (reserved_cost_micro_usd =
+# its worst case, budget_reservation = its monthly hard-stop reservation, if any) and settled afterwards; a row whose
+# settlement failed stays pending and keeps counting (AiUsageRecorder).
+#
+CREATE TABLE tx_a11y_ai_usage (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    be_user int(11) NOT NULL DEFAULT 0,
+    feature varchar(32) NOT NULL DEFAULT '',
+    provider varchar(32) NOT NULL DEFAULT '',
+    model varchar(100) NOT NULL DEFAULT '',
+    outcome varchar(64) NOT NULL DEFAULT '',
+    input_tokens int(11) NOT NULL DEFAULT 0,
+    output_tokens int(11) NOT NULL DEFAULT 0,
+    usage_reported tinyint(1) NOT NULL DEFAULT 0,
+    cache_read_tokens int(11) NOT NULL DEFAULT 0,
+    cache_write_tokens int(11) NOT NULL DEFAULT 0,
+    estimated_cost_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    cost_known tinyint(1) NOT NULL DEFAULT 0,
+    cost_basis varchar(16) NOT NULL DEFAULT '',
+    price_origin varchar(16) NOT NULL DEFAULT '',
+    price_verified_at int(11) NOT NULL DEFAULT 0,
+    conversation_ref varchar(32) NOT NULL DEFAULT '',
+    reserved_cost_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    budget_reservation int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    KEY site_period (site_identifier, crdate),
+    KEY conversation (be_user, conversation_ref)
+);
+
+#
+# Pre-3.0 administrator-entered AI prices. Read-only since 3.0: kept (never deleted or rewritten) as a fallback for
+# models the automatic catalogue does not price. Money is integer micro-USD (1 USD = 1,000,000) per 1M tokens.
+#
+CREATE TABLE tx_a11y_ai_price (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    provider varchar(32) NOT NULL DEFAULT '',
+    model varchar(100) NOT NULL DEFAULT '',
+    input_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    output_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    price_as_of int(11) NOT NULL DEFAULT 0,
+    source varchar(255) NOT NULL DEFAULT '',
+    entered_by int(11) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY provider_model (provider, model)
+);
+
+#
+# Local copy of the central AI price catalogue (GET /ai/pricing/v1/catalogue of the AQG service, read by
+# AiPriceCatalogueService). One row per provider price id; rates is a JSON object of integer micro-USD per 1M tokens
+# (standard rates and an optional prompt-length tier); verified_at is when the AQG service last confirmed the price on
+# the provider's pricing page. A model the catalogue no longer lists keeps its last price with listed = 0.
+#
+CREATE TABLE tx_a11y_ai_model_price (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    provider varchar(32) NOT NULL DEFAULT '',
+    model varchar(100) NOT NULL DEFAULT '',
+    label varchar(100) NOT NULL DEFAULT '',
+    rates text,
+    source_url varchar(255) NOT NULL DEFAULT '',
+    verified_at int(11) NOT NULL DEFAULT 0,
+    listed tinyint(1) NOT NULL DEFAULT 1,
+    crdate int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY provider_model (provider, model)
+);
+
+#
+# State of the local catalogue copy (one row, identifier 'central'): the catalogue version and ETag it holds, when it was
+# last refreshed and attempted, a safe failure code, and the claim that keeps concurrent refreshes apart.
+#
+CREATE TABLE tx_a11y_ai_price_catalogue (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    identifier varchar(32) NOT NULL DEFAULT '',
+    catalogue_version int(11) NOT NULL DEFAULT 0,
+    etag varchar(100) NOT NULL DEFAULT '',
+    published_at int(11) NOT NULL DEFAULT 0,
+    refreshed_at int(11) NOT NULL DEFAULT 0,
+    last_attempt_at int(11) NOT NULL DEFAULT 0,
+    consecutive_failures int(11) NOT NULL DEFAULT 0,
+    error_reason varchar(32) NOT NULL DEFAULT '',
+    claim_token varchar(32) NOT NULL DEFAULT '',
+    claimed_at int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY identifier (identifier)
+);
+
+#
+# Monthly AI budget enforcement: one lock row per site and calendar month (server time), locked with
+# SELECT ... FOR UPDATE while a request is checked, and the open worst-case reservations of running requests.
+#
+CREATE TABLE tx_a11y_ai_budget_lock (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    period int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY site_period (site_identifier, period)
+);
+
+CREATE TABLE tx_a11y_ai_budget_reservation (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    period int(11) NOT NULL DEFAULT 0,
+    cost_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    KEY site_period (site_identifier, period)
+);
+
+#
+# Budget warning e-mails (F-39): one row per site, calendar month (YYYY-MM, server time), warning threshold and budget.
+# The unique key is claimed insert-first, so concurrent settlements cannot both send; status pending/sent/failed with
+# bounded retries. Never content, prompts, keys, recipients or user names.
+#
+CREATE TABLE tx_a11y_ai_budget_alert (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    alert_month varchar(7) NOT NULL DEFAULT '',
+    threshold_percent int(11) NOT NULL DEFAULT 0,
+    budget_micro_usd bigint(20) NOT NULL DEFAULT 0,
+    status varchar(16) NOT NULL DEFAULT 'pending',
+    attempts int(11) NOT NULL DEFAULT 0,
+    last_attempt_at int(11) NOT NULL DEFAULT 0,
+    sent_at int(11) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY alert_key (site_identifier, alert_month, threshold_percent, budget_micro_usd)
+);
 
 #
 # Shared server-side AI rate-limit buckets
@@ -451,10 +641,230 @@ CREATE TABLE tx_a11y_monitoring_run (
     regressed_issue_types int(11) DEFAULT '0' NOT NULL,
     state_fingerprint varchar(100) DEFAULT '' NOT NULL,
     coverage_complete tinyint(1) unsigned DEFAULT '0' NOT NULL,
+    delivery_pending tinyint(1) unsigned DEFAULT '0' NOT NULL,
     notified_at int(11) DEFAULT '0' NOT NULL,
+    delivery_attempts int(11) unsigned DEFAULT '0' NOT NULL,
+    delivery_error varchar(64) DEFAULT '' NOT NULL,
+    delivery_superseded_by int(11) unsigned DEFAULT '0' NOT NULL,
     evaluated_at int(11) DEFAULT '0' NOT NULL,
 
     PRIMARY KEY (uid),
     KEY site_language (site_identifier(50), language_uid),
     KEY job_id (job_id(64))
+);
+
+#
+# Remediation workflow (Package 4): one row per prepared change for one finding and one exact target, from the
+# suggestion to the TYPO3 save and the verification by an AQG check. Stores the target's own value before and after
+# and the AI's short reason — never prompts, other page content, or image data. Retention is an open owner decision.
+#
+CREATE TABLE tx_a11y_remediation_item (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    page_uid int(11) NOT NULL DEFAULT 0,
+    language_uid int(11) NOT NULL DEFAULT 0,
+    workspace_id int(11) NOT NULL DEFAULT 0,
+    finding_uid int(11) NOT NULL DEFAULT 0,
+    finding_fingerprint varchar(64) NOT NULL DEFAULT '',
+    rule_id varchar(255) NOT NULL DEFAULT '',
+    severity int(11) NOT NULL DEFAULT 0,
+    target_kind varchar(32) NOT NULL DEFAULT '',
+    target_table varchar(64) NOT NULL DEFAULT '',
+    target_uid int(11) NOT NULL DEFAULT 0,
+    target_field varchar(64) NOT NULL DEFAULT '',
+    target_descriptor text,
+    base_hash varchar(64) NOT NULL DEFAULT '',
+    original_value text,
+    proposed_value text,
+    edited_value text,
+    explanation varchar(500) NOT NULL DEFAULT '',
+    owner varchar(16) NOT NULL DEFAULT 'unassigned',
+    status varchar(32) NOT NULL DEFAULT 'preparing',
+    status_reason varchar(64) NOT NULL DEFAULT '',
+    origin varchar(32) NOT NULL DEFAULT '',
+    provider varchar(32) NOT NULL DEFAULT '',
+    model varchar(100) NOT NULL DEFAULT '',
+    prompt_version varchar(32) NOT NULL DEFAULT '',
+    input_tokens int(11) NOT NULL DEFAULT 0,
+    output_tokens int(11) NOT NULL DEFAULT 0,
+    proposal_version int(11) NOT NULL DEFAULT 0,
+    row_version int(11) NOT NULL DEFAULT 0,
+    batch_id varchar(32) NOT NULL DEFAULT '',
+    attempts int(11) NOT NULL DEFAULT 0,
+    created_by int(11) NOT NULL DEFAULT 0,
+    reviewed_by int(11) NOT NULL DEFAULT 0,
+    reviewed_at int(11) NOT NULL DEFAULT 0,
+    applied_by int(11) NOT NULL DEFAULT 0,
+    applied_at int(11) NOT NULL DEFAULT 0,
+    staged_at int(11) NOT NULL DEFAULT 0,
+    saved_at int(11) NOT NULL DEFAULT 0,
+    checked_at int(11) NOT NULL DEFAULT 0,
+    verified_at int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    KEY site_status (site_identifier(50), status),
+    KEY page_status (page_uid, status),
+    KEY finding (finding_uid),
+    KEY batch (batch_id)
+);
+
+#
+# Remediation history: append-only state transitions, with codes and value hashes only (no proposed text).
+#
+CREATE TABLE tx_a11y_remediation_event (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    crdate int(11) NOT NULL DEFAULT 0,
+    item_uid int(11) NOT NULL DEFAULT 0,
+    be_user int(11) NOT NULL DEFAULT 0,
+    action varchar(32) NOT NULL DEFAULT '',
+    from_status varchar(32) NOT NULL DEFAULT '',
+    to_status varchar(32) NOT NULL DEFAULT '',
+    detail varchar(64) NOT NULL DEFAULT '',
+    proposal_version int(11) NOT NULL DEFAULT 0,
+    value_hash varchar(64) NOT NULL DEFAULT '',
+    PRIMARY KEY (uid),
+    KEY item (item_uid, crdate)
+);
+
+#
+# Assigned owner of one rule on one page (editor / developer / mixed / unassigned). Without a row the owner is
+# AQG's suggested owner of the rule.
+#
+CREATE TABLE tx_a11y_remediation_owner (
+    uid int(11) NOT NULL AUTO_INCREMENT,
+    pid int(11) NOT NULL DEFAULT 0,
+    tstamp int(11) NOT NULL DEFAULT 0,
+    site_identifier varchar(255) NOT NULL DEFAULT '',
+    page_uid int(11) NOT NULL DEFAULT 0,
+    rule_id varchar(255) NOT NULL DEFAULT '',
+    owner varchar(16) NOT NULL DEFAULT '',
+    assigned_by int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (uid),
+    UNIQUE KEY page_rule (site_identifier(50), page_uid, rule_id(150))
+);
+
+#
+# Table structure for table 'tx_a11y_mcp_site'
+#
+# Agent access (MCP): whether agents may use a site at all and which capabilities they may request there. A capability
+# is only a ceiling: a call also needs the user's consent (the token) and the user's own TYPO3 permissions.
+#
+CREATE TABLE tx_a11y_mcp_site (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    enabled tinyint(1) unsigned DEFAULT '0' NOT NULL,
+    capabilities varchar(255) DEFAULT '' NOT NULL,
+    changed_by int(11) DEFAULT '0' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY site_identifier (site_identifier(100))
+);
+
+#
+# Table structure for table 'tx_a11y_mcp_audit'
+#
+# Agent access (MCP) audit trail: identifiers and outcomes of agent calls, consents, revocations and administrator
+# changes. Never prompts, page content, finding text or tokens. Pruned after 90 days (mcpAuditRetentionDays) by the
+# connector and a11y:mcp:audit-prune.
+#
+CREATE TABLE tx_a11y_mcp_audit (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    be_user_uid int(11) DEFAULT '0' NOT NULL,
+    be_user_name varchar(255) DEFAULT '' NOT NULL,
+    client_name varchar(255) DEFAULT '' NOT NULL,
+    token_suffix varchar(10) DEFAULT '' NOT NULL,
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    action varchar(64) DEFAULT '' NOT NULL,
+    target varchar(255) DEFAULT '' NOT NULL,
+    result varchar(32) DEFAULT '' NOT NULL,
+    reason varchar(64) DEFAULT '' NOT NULL,
+    source varchar(32) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    KEY crdate (crdate),
+    KEY be_user (be_user_uid)
+);
+
+#
+# Table structure for table 'tx_a11y_mcp_scan_request'
+#
+# Durable idempotency of agent scan starts (McpScanRequestStore): one row per TYPO3 user and agent idempotency key, with
+# the request fingerprint and the crawler job it produced. Technical state, kept 7 days; no prompts or page content.
+#
+CREATE TABLE tx_a11y_mcp_scan_request (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+
+    request_hash varchar(64) DEFAULT '' NOT NULL,
+    nonce varchar(32) DEFAULT '' NOT NULL,
+    fingerprint varchar(64) DEFAULT '' NOT NULL,
+    be_user_uid int(11) DEFAULT '0' NOT NULL,
+    status varchar(16) DEFAULT '' NOT NULL,
+    job_id varchar(64) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY request_hash (request_hash),
+    KEY crdate (crdate)
+);
+
+#
+# Table structure for table 'tx_a11y_mcp_consent'
+#
+# Agent access (MCP) consent ledger (clone safety N2, McpConsentLedger): the authorization requests this installation's
+# consent page allowed, as SHA-256 of the request reference (the Gateway's consent reference of the token), with the
+# TYPO3 user and the granted scopes and sites. The connector runs an agent call only for a consent recorded here for that
+# user and that grant. Kept 100 days (longer
+# than the longest token). No token, code or prompt.
+#
+CREATE TABLE tx_a11y_mcp_consent (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    consent_ref_hash varchar(64) DEFAULT '' NOT NULL,
+    be_user_uid int(11) DEFAULT '0' NOT NULL,
+    grant_hash varchar(64) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY consent_user (consent_ref_hash, be_user_uid),
+    KEY crdate (crdate)
+);
+
+#
+# Table structure for table 'tx_a11y_assignment'
+#
+# Team assignment (My issues, 2026-11 company acceptance): one row per issue type on a page in one language — site, page,
+# language and canonical rule (rendered rules fold into their rich-text equivalent). It does not reference finding uids or
+# fingerprints, so it survives rescans and content changes; its state (open / done / reopened) is read live from the
+# findings. assignee 0 = unassigned (the row keeps who unassigned it and when).
+#
+CREATE TABLE tx_a11y_assignment (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    page_uid int(11) DEFAULT '0' NOT NULL,
+    language_uid int(11) DEFAULT '0' NOT NULL,
+    issue_key varchar(150) DEFAULT '' NOT NULL,
+    assignee int(11) DEFAULT '0' NOT NULL,
+    assigned_by int(11) DEFAULT '0' NOT NULL,
+    assigned_at int(11) unsigned DEFAULT '0' NOT NULL,
+    note varchar(280) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY issue_on_page (site_identifier(50), page_uid, language_uid, issue_key(100)),
+    KEY assignee (assignee)
 );

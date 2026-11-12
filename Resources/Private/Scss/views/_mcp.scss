@@ -1,0 +1,583 @@
+// ═══════════════════════════════════════════
+// Agent access views outside Settings: "My connected agents" and the OAuth consent page (G6 redesign 2026-11-11).
+// Built on the Settings design system (.a11y-settings.aqg-module: cards, notices, badges, tokens); theme tokens only,
+// so light and dark follow TYPO3. Long, client-chosen labels wrap anywhere and never widen the layout.
+// ═══════════════════════════════════════════
+.a11y-settings.aqg-module.aqg-mcp-view {
+    max-width: 980px;
+    container-type: inline-size;
+
+    .aqg-mcp-view__body {
+        display: grid;
+        gap: 16px;
+    }
+
+    .aqg-mcp-consent__form {
+        display: grid;
+        gap: 22px;
+    }
+
+    // Links inside running text are underlined (never colour alone, WCAG 1.4.1).
+    p a,
+    .aqg-field__help a {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .aqg-mcp-view__flash:empty {
+        display: none;
+    }
+
+    // A neutral fact pill. The "Not verified" pill uses the warning tone and a word, never colour alone.
+    .aqg-mcp-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        max-width: 100%;
+        padding: 2px 8px;
+        color: var(--aqi-fg-muted);
+        font-size: 11.5px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        background: var(--aqi-surface);
+        border: 1px solid var(--aqi-border);
+        border-radius: 999px;
+
+        strong {
+            color: var(--aqi-fg);
+            font-weight: 600;
+        }
+    }
+
+    .aqg-mcp-chip--unverified {
+        color: var(--aqi-warn);
+        font-weight: 600;
+        background: var(--aqi-warn-bg);
+        border-color: var(--aqi-warn-border);
+    }
+
+    .aqg-mcp-conn__icon {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: 50%;
+        position: relative;
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            background: var(--aqi-fg-muted);
+            -webkit-mask: url("../Icons/mcp-agent.svg") center / contain no-repeat;
+            mask: url("../Icons/mcp-agent.svg") center / contain no-repeat;
+        }
+    }
+
+    // ── My connected agents ────────────────────────────────────────────────────────────────────────────────────────
+    .aqg-mcp-conns {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .aqg-mcp-conn {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+        padding: 16px;
+        background: var(--aqi-surface);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-lg);
+    }
+
+    .aqg-mcp-conn--ended {
+        background: var(--aqi-surface-2);
+
+        .aqg-mcp-conn__name,
+        .aqg-mcp-conn__facts dd {
+            color: var(--aqi-fg-muted);
+        }
+    }
+
+    .aqg-mcp-conn__head {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+    }
+
+    .aqg-mcp-conn__identity {
+        min-width: 0;
+    }
+
+    .aqg-mcp-conn__name {
+        margin: 0;
+        color: var(--aqi-fg);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-conn__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        margin: 6px 0 0;
+    }
+
+    .aqg-mcp-conn__token {
+        color: var(--aqi-fg-muted);
+        font-family: var(--aqi-font-mono);
+        font-size: 12px;
+        background: none;
+        padding: 0;
+    }
+
+    .aqg-mcp-conn__facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px 20px;
+        margin: 0;
+        padding-top: 12px;
+        border-top: 1px solid var(--aqi-divider);
+
+        dt {
+            margin: 0;
+            color: var(--aqi-fg-muted);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        dd {
+            margin: 4px 0 0;
+            color: var(--aqi-fg);
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .aqg-mcp-conn__fact {
+        min-width: 0;
+    }
+
+    .aqg-mcp-conn__fact--wide {
+        grid-column: 1 / -1;
+    }
+
+    .aqg-mcp-conn__caps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .aqg-mcp-conn__cap {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        max-width: 100%;
+        padding: 4px 8px;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-sm);
+    }
+
+    .aqg-mcp-conn__cap-title {
+        font-size: 12.5px;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-conn__site {
+        display: inline-block;
+        margin: 0 6px 4px 0;
+        padding: 1px 6px;
+        font-family: var(--aqi-font-mono);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-sm);
+    }
+
+    // Two-step revoke: a disclosure explains, the confirm button revokes (no JavaScript needed).
+    .aqg-mcp-conn__revoke {
+        justify-self: end;
+        max-width: 100%;
+
+        > summary {
+            list-style: none;
+            cursor: pointer;
+
+            &::-webkit-details-marker {
+                display: none;
+            }
+
+            &:focus-visible {
+                outline: none;
+                box-shadow: var(--aqi-focus-ring);
+            }
+        }
+
+        &[open] {
+            justify-self: stretch;
+
+            > summary {
+                display: none;
+            }
+        }
+    }
+
+    .aqg-mcp-conn__confirm {
+        display: grid;
+        gap: 6px;
+        justify-items: start;
+        padding: 12px 14px;
+        background: var(--aqi-err-bg);
+        border: 1px solid var(--aqi-err-border);
+        border-radius: var(--aqi-radius);
+
+        p {
+            margin: 0;
+            font-size: 13px;
+        }
+
+        .btn:focus-visible {
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-mcp-emptystate {
+        display: grid;
+        gap: 4px;
+        padding: 12px 0;
+    }
+
+    .aqg-mcp-emptystate__title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-ended[open] > summary::after {
+        transform: rotate(-135deg);
+    }
+
+    .aqg-mcp-ended {
+        > summary {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            list-style: none;
+            cursor: pointer;
+
+            &::-webkit-details-marker {
+                display: none;
+            }
+
+            // Disclosure chevron (decorative; the summary's open state is announced by the browser).
+            &::after {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-right: 2px solid var(--aqi-fg-muted);
+                border-bottom: 2px solid var(--aqi-fg-muted);
+                transform: rotate(45deg);
+                margin-right: 4px;
+            }
+
+            &:focus-visible {
+                outline: none;
+                box-shadow: var(--aqi-focus-ring-inset);
+            }
+        }
+    }
+
+    // ── OAuth consent ──────────────────────────────────────────────────────────────────────────────────────────────
+    &.aqg-mcp-consent {
+        max-width: 760px;
+        margin-inline: auto;
+    }
+
+    .aqg-mcp-consent__head {
+        display: block;
+    }
+
+    .aqg-mcp-consent__headtext .aqg-card__title {
+        margin-top: 4px;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-consent__identity {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px 16px;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius-lg);
+
+        p {
+            margin: 0;
+        }
+    }
+
+    .aqg-mcp-consent__identity-text {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    // Plain text, regular weight: a self-chosen or platform label must not look like a confirmed brand name.
+    .aqg-mcp-consent__client {
+        color: var(--aqi-fg);
+        font-size: 15px;
+        font-weight: 400;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-consent__section {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .aqg-mcp-consent__legend {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        float: none;
+        width: auto;
+        margin: 0 0 10px;
+        padding: 0;
+        color: var(--aqi-fg);
+        font-size: 14px;
+        font-weight: 600;
+        border: 0;
+    }
+
+    .aqg-mcp-consent__step {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        color: var(--aqi-fg-muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        border: 1px solid var(--aqi-border);
+        border-radius: 50%;
+    }
+
+    .aqg-mcp-options {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .aqg-mcp-option {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 12px 14px;
+        background: var(--aqi-surface);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius);
+
+        &:has(.aqg-mcp-option__input:checked) {
+            border-color: var(--aqi-focus);
+        }
+
+        &:focus-within {
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-mcp-option--disabled {
+        background: var(--aqi-surface-2);
+
+        .aqg-mcp-option__label {
+            cursor: not-allowed;
+        }
+
+        .aqg-mcp-option__title {
+            color: var(--aqi-fg-muted);
+        }
+    }
+
+    .aqg-mcp-option__input {
+        width: 16px;
+        height: 16px;
+        margin: 2px 0 0;
+    }
+
+    .aqg-mcp-option__label {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+        margin: 0;
+        font-weight: 400;
+        cursor: pointer;
+    }
+
+    .aqg-mcp-option__title {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        color: var(--aqi-fg);
+        font-size: 13.5px;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-option__text {
+        color: var(--aqi-fg-muted);
+        font-size: 12.5px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-option__url {
+        font-family: var(--aqi-font-mono);
+        font-size: 12px;
+    }
+
+    .aqg-mcp-option__note {
+        color: var(--aqi-fg);
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .aqg-mcp-duration-select {
+        width: auto;
+        min-width: 200px;
+        max-width: 100%;
+    }
+
+    .aqg-mcp-cannot {
+        padding: 12px 14px;
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius);
+    }
+
+    .aqg-mcp-cannot__title {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-cannot__list {
+        display: grid;
+        gap: 4px;
+        margin: 0;
+        padding-left: 18px;
+        color: var(--aqi-fg-muted);
+        font-size: 12.5px;
+    }
+
+    // Decision bar: Deny is the first submit button (Enter submits Deny); Allow is the only primary button.
+    .aqg-mcp-decision {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 16px;
+        border-top: 1px solid var(--aqi-divider);
+    }
+
+    .aqg-mcp-decision__text {
+        flex: 1 1 280px;
+        min-width: 0;
+
+        p {
+            margin: 0;
+        }
+    }
+
+    .aqg-mcp-decision__title {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-decision__buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-left: auto;
+
+        .btn {
+            min-width: 120px;
+        }
+
+        .btn:focus-visible {
+            box-shadow: var(--aqi-focus-ring);
+        }
+    }
+
+    .aqg-mcp-result .aqg-card__body {
+        padding-top: 0;
+    }
+
+    .aqg-mcp-result--ok .aqg-card__title {
+        color: var(--aqi-ok);
+    }
+
+    // Narrow screens and narrow TYPO3 content frames.
+    @container (max-width: 560px) {
+        .aqg-mcp-conn__head {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .aqg-mcp-conn__status {
+            grid-column: 2;
+        }
+
+        .aqg-mcp-conn__revoke,
+        .aqg-mcp-conn__revoke > summary {
+            justify-self: stretch;
+            width: 100%;
+        }
+
+        .aqg-mcp-decision__buttons {
+            width: 100%;
+
+            .btn {
+                flex: 1 1 0;
+            }
+        }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .aqg-mcp-option {
+            transition: border-color .12s ease, box-shadow .12s ease;
+        }
+    }
+}
+
+// Module sub-navigation: the agent icon of "Connected agents" (same masked-icon technique as the AI fixes wand).
+.aqg-module .aqg-subnav__agent {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: url("../Icons/mcp-agent.svg") center / contain no-repeat;
+    mask: url("../Icons/mcp-agent.svg") center / contain no-repeat;
+}

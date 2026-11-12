@@ -3,24 +3,26 @@
         <div class="aqg-ai-link-text__head">
             <div>
                 <h3 class="aqg-ai-link-text__title">
-                    <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                    <span class="aqg-media-wand-icon" aria-hidden="true"></span>
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.title" default="AI link text suggestion" />
                 </h3>
                 <p class="aqg-ai-link-text__description">
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.description" default="This sends the link target URL and limited server-derived context to the configured AI provider. Nothing is changed automatically." />
                 </p>
             </div>
-            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.usage" default="Estimated usage: Low text request" />
-            </span>
+            <f:if condition="!{issue.aiCost.linkText}">
+                <span class="aqg-guidance-badge aqg-guidance-badge--neutral">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.usage" default="Estimated usage: Low text request" />
+                </span>
+            </f:if>
         </div>
 
         <div class="aqg-ai-link-text__actions">
-            <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-link-text" data-loading-label="…">
-                <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
-                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.button" default="Suggest link text" /></span>
-                <span class="aqg-btn-pro" aria-hidden="true">PRO</span>
+            <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-link-text" aria-describedby="aqg-ai-cost-linkText-{issue.uid}" data-loading-label="…">
+                <span class="aqg-media-wand-icon" aria-hidden="true"></span>
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiLinkText.button" default="Suggest link text" /><f:if condition="{issue.aiCost.linkText}"> <span class="aqg-ai-cost">({issue.aiCost.linkText})</span></f:if></span>
             </button>
+                <span class="visually-hidden" id="aqg-ai-cost-linkText-{issue.uid}"><f:if condition="{issue.aiCost.linkText}">{issue.aiCost.hint}</f:if></span>
         </div>
 
         <div class="aqg-ai-link-text__review" data-aqg-ai-link-text-review="true" hidden="hidden">

@@ -116,7 +116,7 @@ final class RemoteScanInputResolver
             throw new \InvalidArgumentException('Missing page URL', 1779360101);
         }
 
-        $pageParts = parse_url($pageUrl);
+        $pageParts = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($pageUrl);
         if (!is_array($pageParts)) {
             throw new \InvalidArgumentException('Invalid page URL', 1779360102);
         }
@@ -157,8 +157,8 @@ final class RemoteScanInputResolver
 
     private function isUrlBelowBase(string $url, string $baseUrl): bool
     {
-        $urlParts = parse_url($url);
-        $baseParts = parse_url($baseUrl);
+        $urlParts = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($url);
+        $baseParts = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($baseUrl);
 
         if (!is_array($urlParts) || !is_array($baseParts)) {
             return false;
@@ -293,8 +293,8 @@ final class RemoteScanInputResolver
 
     private function isSameOrigin(string $url, string $siteBase): bool
     {
-        $target = parse_url($url);
-        $base = parse_url($siteBase);
+        $target = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($url);
+        $base = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($siteBase);
         if (!is_array($target) || !is_array($base)) {
             return false;
         }

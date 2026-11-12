@@ -153,6 +153,37 @@ final class MonitoringTaskTest extends TestCase
     }
 
     #[Test]
+    public function aTaskWithoutRecipientsRefusesToRunAndScansNothing(): void
+    {
+        // D-04: the half-saved task of the company acceptance test (site only) ran and notified nobody.
+        $task = self::configured('main', 0);
+        $task->recipients = '';
+
+        try {
+            $task->execute();
+            self::fail('A monitoring task without recipients must not run.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame(1790000011, $exception->getCode());
+            self::assertStringContainsString('no e-mail recipients', $exception->getMessage());
+        }
+        self::assertSame([], $this->runs, 'Nothing is scanned, so no baseline can advance.');
+        self::assertStringEndsWith('· 0 recipient(s) · Not running: no recipients', $task->getAdditionalInformation());
+    }
+
+    #[Test]
+    public function aPastedBackendAddressIsReducedToSchemeAndHost(): void
+    {
+        $task = self::task();
+        $task->setTaskParameters([MonitoringTask::PARAM_BACKEND_URL => 'https://CMS.example.org/typo3/']);
+        self::assertSame('https://cms.example.org', $task->backendUrl);
+
+        $task->setTaskParameters([MonitoringTask::PARAM_BACKEND_URL => 'https://cms.example.org/other/path']);
+        self::assertSame('https://cms.example.org/other/path', $task->backendUrl, 'Anything else is left for the validator to report.');
+        self::assertFalse($task->validateTaskParameters([MonitoringTask::PARAM_BACKEND_URL => 'https://cms.example.org/other/path']));
+        self::assertStringContainsString('backend address', $this->flashMessages()[0] ?? '');
+    }
+
+    #[Test]
     public function choosingTheTaskTypeIsNotBlockedBeforeTheFieldsExist(): void
     {
         self::assertTrue(self::task()->validateTaskParameters(['tasktype' => MonitoringTask::class, 'description' => '']));

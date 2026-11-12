@@ -12,6 +12,8 @@
         data-a11y-language-uid="{currentLanguageUid}"
     >
 
+        <f:render partial="Remediation/SubNav" arguments="{current: 'overview', pageId: currentPageUid, aiFixesCount: aiFixesCount}" />
+
         <header class="aqg-viewhead">
             <h1 class="aqg-viewhead__title">
                 <f:translate
@@ -28,6 +30,13 @@
         </header>
 
         <f:render partial="Shared/UpdateNotice" arguments="{updateNotice: updateNotice}" />
+
+        <f:if condition="{remediationActivity}">
+            <p class="aqg-remediation-activity" data-aqg-remediation-activity="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.overview.activity" arguments="{0: remediationActivity.waiting, 1: remediationActivity.saved, 2: remediationActivity.verified}" />
+                · <a href="{remediationActivity.queueUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.overview.open" default="Open AI fixes" /></a>
+            </p>
+        </f:if>
 
         <f:if condition="!{hasPageContext}">
             <f:then>
@@ -78,6 +87,7 @@
                         lastScanScopeLabel: lastScanScopeLabel,
                         hasLocalResults: hasLocalResults,
                         totalCounts: totalCounts,
+                        localEvidence: localEvidence,
                         localNewCounts: localNewCounts,
                         localScanDelta: localScanDelta,
                         pageStats: pageStats,
@@ -110,6 +120,7 @@
                         fieldsInitializedCount: fieldsInitializedCount,
                         hasEnabledFields: hasEnabledFields,
                         hasFieldConfiguration: hasFieldConfiguration,
+                        fieldsAwaitingRefresh: fieldsAwaitingRefresh,
                         canShowSettings: canShowSettings,
                         scanFieldsSettingsUrl: scanFieldsSettingsUrl
                     }"
@@ -135,6 +146,7 @@
                             canCancelRemoteScan: canCancelRemoteScan,
                             remotePages: remotePages,
                             remoteFailedPages: remoteFailedPages,
+                            priorityUrlsNotScanned: priorityUrlsNotScanned,
                             remotePriorityFixes: remotePriorityFixes,
                             remotePriorityFixesVisible: remotePriorityFixesVisible,
                             remotePriorityFixesMoreCount: remotePriorityFixesMoreCount,
@@ -147,6 +159,7 @@
                             remoteScoreTone: remoteScoreTone,
                             remoteSignalIcon: remoteSignalIcon,
                             remoteCoverageNote: remoteCoverageNote,
+                            remoteTreeCoverage: remoteTreeCoverage,
                             remotePriorityEmpty: remotePriorityEmpty,
                             remoteHasPriorityFixes: remoteHasPriorityFixes,
                             remoteHasNoPriorityFixes: remoteHasNoPriorityFixes,

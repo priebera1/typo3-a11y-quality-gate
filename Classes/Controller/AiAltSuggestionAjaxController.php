@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Controller;
 
 use Priebera\A11yQualityGate\Ai\Contract\AiAltSuggestionServiceInterface;
+use Priebera\A11yQualityGate\Ai\Editor\EditorAiAccessService;
 use Priebera\A11yQualityGate\Ai\Exception\AiConfigurationException;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
 use Priebera\A11yQualityGate\Ai\Exception\AiImagePayloadException;
@@ -15,6 +16,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Core\Http\JsonResponse;
+use TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException;
+use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -43,13 +46,18 @@ final class AiAltSuggestionAjaxController
                 ->withHeader('Retry-After', (string)$exception->retryAfter);
         } catch (ImageRemediationPermissionException) {
             return $this->error('permission_denied', 403);
-        } catch (AiConfigurationException) {
-            return $this->error('ai_unavailable', 403);
+        } catch (AiConfigurationException $exception) {
+            // Readiness and budget refusals keep their own safe code; licence and other refusals stay ai_unavailable.
+            $state = EditorAiAccessService::stateForConfigurationCode((int)$exception->getCode());
+            return $state === EditorAiAccessService::STATE_NOT_CONFIGURED ? $this->error('ai_unavailable', 403) : $this->error($state, 422);
         } catch (\InvalidArgumentException) {
             return $this->error('invalid_input', 422);
         } catch (AiImagePayloadException $exception) {
             $this->logImagePayloadFailure((int)($body['findingId'] ?? 0), $exception);
-            return $this->error('image_unavailable', 422);
+            // N-11: a file this user may not read (no file mount / folder permission) is not a missing file.
+            return self::isFileAccessDenial($exception)
+                ? $this->error('image_no_access', 403)
+                : $this->error('image_unavailable', 422);
         } catch (AiProviderException) {
             return $this->error('provider_failure', 502);
         } catch (\Throwable) {
@@ -74,6 +82,17 @@ final class AiAltSuggestionAjaxController
         } catch (\Throwable) {
             // Logging must never change the safe client response.
         }
+    }
+
+    private static function isFileAccessDenial(\Throwable $exception): bool
+    {
+        for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof InsufficientFileAccessPermissionsException || $cause instanceof InsufficientFolderAccessPermissionsException) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function error(string $code, int $status): JsonResponse

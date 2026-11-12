@@ -43,11 +43,11 @@ staging or production, or select a page of a Site with a public base URL that
 this installation serves. There is no way to scan local or private addresses
 with the AQG crawler.
 
-Below a Free Remote Preview result, the tab names what a 5-day trial adds —
-full-site frontend scans with screenshots, record mapping, scan history and
-comparison — and what PRO and Agency add on top: PDF export, acceptance
-evidence, monitoring and :guilabel:`Verify fix`. The offer follows the result
-and never covers it; :confval:`showProHints` hides it.
+A Free Remote Preview result shows its findings without an upgrade offer.
+Features that need a licence (screenshots, record mapping) say so where they
+would appear; the plans and the 5-day trial are described in
+:guilabel:`Settings › Licence`. The ``showProHints`` option of earlier versions
+has been removed; a stored value is ignored.
 
 ..  _usage-remote-scans-free-activation:
 

@@ -1,0 +1,44 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<section class="aqg-remediation-summary" aria-labelledby="aqg-rem-summary-h" data-aqg-remediation-page="true">
+    <script type="application/json" data-aqg-remediation-page-config="true">{remediation.config -> f:format.raw()}</script>
+    <h2 id="aqg-rem-summary-h" class="aqg-remediation__h3"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.summary" default="Remediation on this page" /></h2>
+    <f:comment>Owner chips without zero entries (Atlas 06·A / 07·A); the split stays readable as text for screen readers.</f:comment>
+    <p class="aqg-remediation-summary__line aqg-remediation-summary__owners" data-aqg-remediation-owners="true">
+        <span class="aqg-remediation-summary__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.ownersLabel" default="Open issues by owner" />:</span>
+        <f:for each="{0: 'editor', 1: 'developer', 2: 'mixed', 3: 'unassigned'}" as="owner">
+            <f:variable name="ownerCount">{remediation.owners.{owner}}</f:variable>
+            <f:if condition="{ownerCount} > 0">
+                <span class="aqg-remediation__owner aqg-remediation__owner--{owner}">{ownerCount} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.{owner}" /></span>
+            </f:if>
+        </f:for>
+    </p>
+    <p class="aqg-remediation-summary__line aqg-remediation__muted" data-aqg-remediation-summary-queue="true">
+        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.summaryQueue" arguments="{0: remediation.queue.pending, 1: remediation.queue.inEditor, 2: remediation.queue.saved, 3: remediation.queue.notVerified}" />
+    </p>
+    <f:if condition="{remediation.aiState} == 'budget_reached'">
+        <p class="aqg-remediation-summary__line aqg-remediation-summary__paused" role="note" data-aqg-remediation-ai-state="budget_reached">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.budgetReached" default="AI is paused: this site's monthly AI budget is used up. Fix issues directly in the record, or ask an administrator to raise the budget." />
+        </p>
+    </f:if>
+    <f:if condition="{remediation.aiState} == 'paused'">
+        <p class="aqg-remediation-summary__line aqg-remediation-summary__paused" role="note" data-aqg-remediation-ai-state="paused">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.paused" default="AI is paused for this site until an administrator checks the AI connection. Fix issues directly in the record in the meantime." />
+        </p>
+    </f:if>
+    <div class="aqg-remediation-summary__actions">
+        <button type="button" class="btn btn-default btn-sm" data-aqg-remediation-plan="true" aria-haspopup="dialog"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.plan.open" default="Page remediation plan" /></button>
+        <a class="btn btn-default btn-sm" href="{remediation.queueUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.openQueue" default="Open AI fixes" /></a>
+    </div>
+    <f:comment>Said once per page instead of under every occurrence; the AI buttons reference these texts as their description.</f:comment>
+    <details class="aqg-remediation-summary__about">
+        <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.aboutTitle" default="How the AI actions work" /></summary>
+        <ul>
+            <li id="aqg-rem-explain-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.aboutExplain" /></li>
+            <li id="aqg-rem-fix-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.aboutFix" /></li>
+            <li id="aqg-rem-cost-hint"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.aboutCost" /></li>
+        </ul>
+    </details>
+    <div class="aqg-remediation-summary__live" role="status" aria-live="polite" data-aqg-remediation-page-live="true"></div>
+    <dialog class="aqg-remediation__dialog" data-aqg-remediation-plan-dialog="true" aria-labelledby="aqg-rem-plan-h"></dialog>
+</section>
+</html>

@@ -1,0 +1,119 @@
+/*
+ * Honest-outcome ladder and outcome chips (UX Atlas 15 "Honest outcomes"), the one implementation for every AQG AI
+ * surface: the AI fixes queue (remediation.scss), the media wand popovers (media-ai.scss) and, copied verbatim because
+ * that stylesheet has no SCSS source, the CKEditor/plain HTML feedback (ckeditor.css). Atlas audit F-22.
+ *
+ * Markup: <ol class="aqg-ladder" aria-label="…"><li class="is-done|is-current [is-verified|is-notverified]">
+ * <span class="aqg-ladder__dot" aria-hidden="true"></span><span>Label</span></li>…</ol>. The state is in the words and
+ * the class; no unicode glyphs (Atlas forbids them). Steps: Suggested → (In text) → Saved → Verified; a step is only
+ * "done" once it really happened, and Verified only after AQG re-checked persisted content.
+ */
+
+.aqg-ladder {
+    display: inline-flex;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    align-items: center;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 11.5px;
+    list-style: none;
+
+    li {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--aqi-fg-subtle);
+    }
+
+    li + li::before {
+        content: "";
+        width: 14px;
+        height: 1px;
+        margin: 0 4px;
+        background: var(--aqi-border);
+    }
+
+    &__dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border: 1.5px solid currentColor;
+        border-radius: 50%;
+    }
+
+    li.is-done {
+        color: var(--aqi-fg-muted);
+
+        .aqg-ladder__dot {
+            background: currentColor;
+        }
+    }
+
+    li.is-current {
+        color: var(--aqi-fg);
+        font-weight: 600;
+
+        .aqg-ladder__dot {
+            background: var(--aqi-fg);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--aqi-fg) 20%, transparent);
+        }
+    }
+
+    li.is-current.is-verified {
+        color: var(--aqi-ok);
+
+        .aqg-ladder__dot {
+            background: var(--aqi-ok);
+            border-color: var(--aqi-ok);
+        }
+    }
+
+    li.is-current.is-notverified {
+        color: var(--aqi-warn);
+
+        .aqg-ladder__dot {
+            background: transparent;
+            border-style: dashed;
+        }
+    }
+}
+
+/* Outcome chips: the same states as the ladder for tight places (list rows, IRRE headers). */
+.aqg-outcome {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border: 1px solid;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--suggested { color: var(--aqi-fg-muted); border-color: var(--aqi-border); background: var(--aqi-surface); }
+    &--inserted { color: var(--aqi-run); border-color: var(--aqi-run-border); border-style: dashed; background: var(--aqi-run-bg); }
+    &--saved { color: var(--aqi-fg); border-color: var(--aqi-fg-subtle); background: var(--aqi-surface-2); }
+    &--verified { color: var(--aqi-ok); border-color: var(--aqi-ok-border); background: var(--aqi-ok-bg); }
+    &--notverified { color: var(--aqi-warn); border-color: var(--aqi-warn-border); background: var(--aqi-warn-bg); }
+    &--rejected { color: var(--aqi-fg-subtle); border-color: var(--aqi-border); background: transparent; text-decoration: line-through; }
+    &--failed { color: var(--aqi-err); border-color: var(--aqi-err-border); background: var(--aqi-err-bg); }
+    &--queued { color: var(--aqi-fg-muted); border-color: var(--aqi-border); border-style: dotted; background: transparent; }
+    /* Queue-only states: approved by a person (and while it is written) is not saved yet; a conflict needs a decision. */
+    &--approved { color: var(--aqi-run); border-color: var(--aqi-run-border); background: var(--aqi-surface); }
+    &--conflict { color: var(--aqi-warn); border-color: var(--aqi-warn-border); background: var(--aqi-surface); }
+}
+
+@media (forced-colors: active) {
+    .aqg-ladder__dot,
+    .aqg-outcome {
+        border-color: CanvasText;
+    }
+
+    /* Forced colours drop background colours: keep reached steps filled, or done and open steps look the same. */
+    .aqg-ladder li:is(.is-done, .is-current) .aqg-ladder__dot {
+        background: CanvasText;
+        forced-color-adjust: none;
+    }
+}

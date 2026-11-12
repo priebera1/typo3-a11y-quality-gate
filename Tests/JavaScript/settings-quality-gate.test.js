@@ -122,3 +122,27 @@ describe('Quality Gate site overrides', () => {
         expect(row.querySelector('.js-aqg-site-details').open).toBe(true);
     });
 });
+
+describe('Quality Gate reset to defaults', () => {
+    it('restores the shipped Warn gate, never Off', () => {
+        document.body.innerHTML = `
+            <form class="js-aqg-quality-gate-form">
+                <input type="hidden" class="js-aqg-quality-gate-scope-input" value="1">
+                <input type="hidden" class="js-aqg-quality-gate-reset-input" value="0">
+                <input type="radio" name="qualityGate[global][publish_mode]" value="0">
+                <input type="radio" name="qualityGate[global][publish_mode]" value="1">
+                <input type="radio" name="qualityGate[global][publish_mode]" value="2" checked>
+                <input type="number" name="qualityGate[global][threshold_critical]" value="4">
+                <button type="button" class="js-aqg-reset-defaults">Reset to defaults</button>
+            </form>
+        `;
+        const form = document.querySelector('form');
+        initializeQualityGateSettings(form);
+
+        form.querySelector('.js-aqg-reset-defaults').click();
+
+        expect(form.querySelector('input[name="qualityGate[global][publish_mode]"]:checked').value).toBe('1');
+        expect(form.querySelector('input[name="qualityGate[global][threshold_critical]"]').value).toBe('0');
+        expect(form.querySelector('.js-aqg-quality-gate-reset-input').value).toBe('1');
+    });
+});

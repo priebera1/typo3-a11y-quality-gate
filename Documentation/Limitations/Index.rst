@@ -107,6 +107,12 @@ Quality gate
     part of the decision. If that scan fails, the page is published without a
     decision and the editor sees a warning. Schedule regular scans to keep the
     reports current, see :ref:`automation`.
+*   Workspaces: content scans read live records only. The gate decides when a
+    workspace is published and the publish makes a page visible; it checks the
+    content that publish puts live, before it is written, and stops the whole
+    publish request in blocking mode. Changes saved inside a workspace are not
+    checked when they are saved. The Workspaces module shows the reason as a
+    message on the next backend page.
 *   Blocking mode requires an active licence. Without one, the gate can only
     warn.
 *   The gate is an editorial safeguard. It is not a security control and not a
@@ -117,10 +123,40 @@ Quality gate
 AI suggestions
 ==============
 
-Suggestions are proposals that an editor must review. AQG rejects unsafe
+Suggestions are proposals that a person must review. AQG rejects unsafe
 outputs, but it cannot verify that a suggested text is factually correct for the
-image or link it describes. Suggestions are never applied automatically and
-never write to RTE bodytext.
+image or link it describes. Suggestions are never applied automatically. AQG
+never writes rich text or HTML on the server: an editor applies a reviewed
+change in the editor and stores it with TYPO3 Save.
+
+*   AI covers selected findings only (link text, image alternative text,
+    button names, iframe titles, empty headings, image metadata). Template and
+    markup problems such as landmarks, document language or duplicate IDs get
+    no AI action.
+*   "Resolved and verified" means that AQG's automated check of the saved
+    record no longer reports the issue. It is not a manual accessibility
+    review.
+*   Costs shown by AQG are estimates from published model prices; provider
+    invoices can differ.
+*   Answers depend on the provider and model. AQG uses only models it has
+    verified and never falls back to another model.
+
+..  _limitations-not-in-3-0:
+
+Not part of AQG 3.0.0
+=====================
+
+The following are not included in AQG 3.0.0, even where earlier design
+documents or roadmaps mention them:
+
+*   public agent access (MCP). The extension contains the agent connector
+    (:ref:`developer-agent-access`), but it is off by default and works only
+    with the hosted AQG MCP Gateway, which AQG has not opened yet. Site crawls,
+    suggestion preparation and applying changes are not offered to agents,
+*   AI suggestions for frontend (crawler) scan rules,
+*   applying AI metadata to several files in one step; metadata is suggested
+    per file in TYPO3's metadata form,
+*   AI that changes content without a person reviewing and saving it.
 
 ..  _limitations-pdf:
 

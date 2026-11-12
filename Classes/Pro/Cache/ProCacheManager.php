@@ -96,6 +96,26 @@ final class ProCacheManager
     public function setToken(string $cacheKey, AccessTokenResult $result, int $ttl): void
     {
         $this->getCache()->set($cacheKey, $result->toArray(), [self::TOKEN_TAG], max(1, $ttl));
+        $this->getCache()->remove($this->buildRefusalKey($cacheKey));
+    }
+
+    /** N-14: the error code of a recent token refusal (no token, no secret), or null. */
+    public function getTokenRefusal(string $cacheKey): ?string
+    {
+        $payload = $this->getCache()->get($this->buildRefusalKey($cacheKey));
+
+        return is_array($payload) && is_string($payload['code'] ?? null) && $payload['code'] !== '' ? $payload['code'] : null;
+    }
+
+    /** Remembered with the tokens, so every token flush (revalidation, licence change) forgets it as well. */
+    public function setTokenRefusal(string $cacheKey, string $errorCode, int $ttl): void
+    {
+        $this->getCache()->set($this->buildRefusalKey($cacheKey), ['code' => $errorCode], [self::TOKEN_TAG], max(1, $ttl));
+    }
+
+    private function buildRefusalKey(string $cacheKey): string
+    {
+        return $cacheKey . '_refusal';
     }
 
     /**

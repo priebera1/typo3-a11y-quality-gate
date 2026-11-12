@@ -3,6 +3,24 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {initializeAiSettings} from '../../Resources/Public/JavaScript/backend/settings-ai.js';
 
+// The model chooser is a radio table (UX Atlas 01 C). This reads it like the former select: value = checked model,
+// options = an empty "no model" entry plus one per offered model.
+const modelPicker = (root) => ({
+    get value() {
+        return root.querySelector('[data-aqg-ai-model-option="true"]:checked')?.value || '';
+    },
+    get options() {
+        return [{value: ''}, ...root.querySelectorAll('[data-aqg-ai-model-option="true"]')];
+    },
+    querySelector(selector) {
+        const match = /^option\[value="([^"]+)"\]$/.exec(selector);
+        return match ? root.querySelector(`[data-aqg-ai-model-option="true"][value="${match[1]}"]`) : null;
+    },
+    focus() {
+        root.querySelector('[data-aqg-ai-model-option="true"]')?.focus();
+    },
+});
+
 // Regression: saving an OpenAI key showed a success message while the key, model and connection status on the page
 // stayed as before. The page now refreshes in place from the authoritative uiState and says what happens next.
 
@@ -26,7 +44,7 @@ const createRoot = () => {
              data-label-connected="Connected" data-label-connection-failed="Connection failed">
             <dd data-aqg-ai-config-source="true">Not configured</dd>
             <dd data-aqg-ai-keyhint="true">—</dd>
-            <select data-aqg-ai-model="true"><option value="">Select an OpenAI model</option></select>
+            <table><tbody data-aqg-ai-model-list="true"><tr class="aqg-ai-models__empty"><td colspan="4">Select an OpenAI model</td></tr></tbody></table><button type="button" data-action="aqg-ai-use-model">Use this model</button>
             <div data-aqg-ai-status-badge="true"></div>
             <div data-aqg-ai-persistent-status="true"></div>
             <div data-aqg-ai-key-panel="true" data-collapsed="0">
@@ -65,6 +83,7 @@ const state = (overrides = {}) => ({
 
 const respond = (body, status = 200) => ({ok: status >= 200 && status < 300, status, json: vi.fn().mockResolvedValue(body)});
 
+const bodyOf = (call) => Object.fromEntries(new URLSearchParams(call[1].body));
 const flush = async () => {
     for (let i = 0; i < 8; i++) {
         await Promise.resolve();
@@ -91,9 +110,9 @@ describe('AI key save', () => {
 
         const status = document.querySelector('[data-aqg-ai-status="true"]');
         expect(status.textContent).toContain('Key saved and connection verified with GPT-4.1 mini.');
-        expect(document.querySelector('[data-aqg-ai-keyhint="true"]').textContent).toBe('••••••••••••6789');
+        expect(document.querySelector('[data-aqg-ai-keyhint="true"]').textContent).toBe('••••6789');
         expect(document.querySelector('[data-aqg-ai-config-source="true"]').textContent).toBe('Site-specific encrypted key');
-        expect(document.querySelector('[data-aqg-ai-model="true"]').value).toBe('gpt-4.1-mini');
+        expect(modelPicker(document).value).toBe('gpt-4.1-mini');
         expect(document.querySelector('[data-aqg-ai-status-badge="true"]').textContent).toContain('Connected');
         expect(document.querySelector('[data-aqg-ai-key-field="true"]').classList.contains('is-hidden')).toBe(true);
         expect(document.querySelector('[data-aqg-ai-key-summary="true"]').hidden).toBe(false);
@@ -124,8 +143,9 @@ describe('AI key save', () => {
         await save();
 
         expect(document.querySelector('[data-aqg-ai-status="true"]').textContent).toContain('Choose one of the available models');
-        expect(document.activeElement).toBe(document.querySelector('[data-aqg-ai-model="true"]'));
-        expect([...document.querySelectorAll('[data-aqg-ai-model="true"] option')].map((option) => option.value)).toEqual(['', 'gpt-5.4-mini', 'gpt-5.4-nano']);
+        expect(document.activeElement).toBe(document.querySelector('[data-aqg-ai-model-option="true"][value="gpt-5.4-mini"]'));
+        expect(modelPicker(document).options.map((option) => option.value)).toEqual(['', 'gpt-5.4-mini', 'gpt-5.4-nano']);
+        expect(modelPicker(document).value).toBe('', 'Nothing is preselected among several models.');
     });
 
     it('reports a failed connection test after the key was saved', async () => {
@@ -156,13 +176,18 @@ describe('AI key save', () => {
             .mockResolvedValueOnce(respond({success: true, code: 'connection_successful', uiState: state({selectedModelId: 'gpt-5.4-mini', selectedModelLabel: 'GPT-5.4 mini', availableModels: [{id: 'gpt-5.4-mini', label: 'GPT-5.4 mini'}, {id: 'gpt-5.4-nano', label: 'GPT-5.4 nano'}]})}));
         await save();
 
-        const select = document.querySelector('[data-aqg-ai-model="true"]');
-        select.value = 'gpt-5.4-mini';
-        select.dispatchEvent(new Event('change'));
+        const radio = document.querySelector('[data-aqg-ai-model-option="true"][value="gpt-5.4-mini"]');
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', {bubbles: true}));
+        await flush();
+        expect(globalThis.fetch.mock.calls.map(([url]) => url)).toEqual(['/save'], 'Choosing a row alone saves nothing.');
+
+        document.querySelector('[data-action="aqg-ai-use-model"]').click();
         await flush();
         await flush();
 
         expect(globalThis.fetch.mock.calls.map(([url]) => url)).toEqual(['/save', '/select', '/test']);
+        expect(bodyOf(globalThis.fetch.mock.calls[1])).toMatchObject({modelId: 'gpt-5.4-mini'});
         expect(document.querySelector('[data-aqg-ai-status-badge="true"]').textContent).toContain('Connected');
         expect(document.querySelector('[data-aqg-ai-status="true"]').textContent).toContain('Connection verified.');
     });

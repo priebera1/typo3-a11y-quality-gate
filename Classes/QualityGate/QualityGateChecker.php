@@ -21,21 +21,25 @@ final class QualityGateChecker
      */
     public function isEnabledForSite(string $siteIdentifier): bool
     {
-        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
-
-        return $ruleset !== null && (int)($ruleset['publish_mode'] ?? 0) !== 0;
+        return (int)($this->effectiveRuleset($siteIdentifier)['publish_mode'] ?? 0) !== 0;
     }
 
     public function check(int $pageUid, string $siteIdentifier, int $languageUid = -1): QualityGateVerdict
     {
-        $ruleset = $this->rulesetRepository->findForSiteOrDefault($siteIdentifier);
+        return $this->verdictForCounts($siteIdentifier, $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid));
+    }
 
-        if ($ruleset === null) {
-            return QualityGateVerdict::pass(mode: 0);
-        }
+    /**
+     * The decision for open issue counts of one page (critical, warning, info, needs_review), by the site's ruleset.
+     * Used for stored findings (check()) and for a workspace publish judged before it is written.
+     *
+     * @param array{critical:int, warning:int, info:int, needs_review:int} $counts
+     */
+    public function verdictForCounts(string $siteIdentifier, array $counts): QualityGateVerdict
+    {
+        $ruleset = $this->effectiveRuleset($siteIdentifier);
 
         $publishMode = (int)($ruleset['publish_mode'] ?? 0);
-        $counts = $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid);
 
         if ($publishMode === 0) {
             return QualityGateVerdict::pass(
@@ -54,7 +58,7 @@ final class QualityGateChecker
         if ($counts['critical'] > $thresholdCritical) {
             $triggered = true;
             $reasons[] = sprintf(
-                '%d critical issue(s) exceed threshold %d',
+                $counts['critical'] === 1 ? '%d critical issue exceeds threshold %d' : '%d critical issues exceed threshold %d',
                 $counts['critical'],
                 $thresholdCritical
             );
@@ -64,7 +68,7 @@ final class QualityGateChecker
         if ($thresholdWarning >= 0 && $counts['warning'] > $thresholdWarning) {
             $triggered = true;
             $reasons[] = sprintf(
-                '%d warning(s) exceed threshold %d',
+                $counts['warning'] === 1 ? '%d warning exceeds threshold %d' : '%d warnings exceed threshold %d',
                 $counts['warning'],
                 $thresholdWarning
             );
@@ -84,5 +88,16 @@ final class QualityGateChecker
             reasons: $reasons,
             reasonDetails: $reasonDetails,
         );
+    }
+
+    /**
+     * The ruleset that applies to the site; the shipped default while no default row has been written yet (a fresh
+     * installation before an administrator opened Settings). Read-only: the gate never creates configuration.
+     *
+     * @return array<string, mixed>
+     */
+    private function effectiveRuleset(string $siteIdentifier): array
+    {
+        return $this->rulesetRepository->findForSiteOrDefault($siteIdentifier) ?? RulesetRepository::DEFAULT_GATE;
     }
 }

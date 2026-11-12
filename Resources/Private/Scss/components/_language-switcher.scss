@@ -256,11 +256,14 @@
     color: var(--aqi-fg-subtle);
 }
 
+/* Narrow module (page tree open, tablet): the trigger sits at the right end of the header, so the menu stays anchored
+ * to its right edge and only shrinks; anchoring it left pushed it past the module's right edge. */
 @media (max-width: 575.98px) {
     .a11y-page-detail .aqg-lang__menu,
     .a11y-overview .aqg-lang__menu {
-        right: auto;
-        left: 0;
-        min-width: min(280px, calc(100vw - 32px));
+        right: 0;
+        left: auto;
+        width: min(280px, calc(100vw - 32px));
+        min-width: 0;
     }
 }

@@ -1,6 +1,7 @@
 <html
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
         xmlns:core="http://typo3.org/ns/TYPO3/CMS/Core/ViewHelpers"
+        xmlns:aqg="http://typo3.org/ns/Priebera/A11yQualityGate/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
 <f:if condition="{show}">
@@ -35,6 +36,8 @@
             </f:if>
 
             <f:if condition="{showPdf} && {pdfUrl}">
+                <aqg:pdfExportAvailable>
+                <f:then>
                 <li>
                     <a href="{pdfUrl}" class="dropdown-item aqg-export-menu__item" aria-describedby="{pdfNoteId}">
                         <core:icon identifier="actions-download" size="small" />
@@ -54,6 +57,18 @@
                         />
                     </p>
                 </li>
+                </f:then>
+                <f:else>
+                <li>
+                    <p class="dropdown-item-text aqg-export-menu__note">
+                        <f:translate
+                                key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:export.pdf.composerOnly"
+                                default="PDF export is available only in Composer installations (it needs mpdf/mpdf). This installation exports CSV."
+                        />
+                    </p>
+                </li>
+                </f:else>
+                </aqg:pdfExportAvailable>
             </f:if>
         </ul>
     </div>

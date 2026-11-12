@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Database\PageDoktypes;
 use Priebera\A11yQualityGate\Database\Tables;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 
 final class RenderedPageTypeGuard
 {
@@ -42,7 +43,8 @@ final class RenderedPageTypeGuard
         }
 
         $qb = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
-        $qb->getRestrictions()->removeAll();
+        // Live rows only: a workspace draft of the page or its translation does not change what visitors get.
+        $qb->getRestrictions()->removeAll()->add(new WorkspaceRestriction(0));
 
         $row = $qb
             ->select('doktype')
@@ -69,12 +71,24 @@ final class RenderedPageTypeGuard
      */
     public function visitorRestriction(int $pageUid, int $languageUid = 0): string
     {
+        return $this->visitorRestrictions($pageUid, $languageUid)[0] ?? '';
+    }
+
+    /**
+     * Every reason why visitors do not get this page in the language (hidden, scheduled, restricted, in that order);
+     * empty when it is public. A hidden page can be scheduled as well, and each reason needs its own access path.
+     *
+     * @return list<string>
+     */
+    public function visitorRestrictions(int $pageUid, int $languageUid = 0): array
+    {
         if ($pageUid <= 0) {
-            return '';
+            return [];
         }
 
         $qb = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
-        $qb->getRestrictions()->removeAll();
+        // Live rows only: a workspace draft of the page or its translation does not change what visitors get.
+        $qb->getRestrictions()->removeAll()->add(new WorkspaceRestriction(0));
         $constraints = [
             $qb->expr()->eq('uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
         ];
@@ -85,7 +99,7 @@ final class RenderedPageTypeGuard
             );
         }
 
-        $rows = $qb
+        return self::restrictionsOfRows($qb
             ->select('hidden', 'starttime', 'endtime', 'fe_group')
             ->from(Tables::PAGES)
             ->where(
@@ -93,18 +107,27 @@ final class RenderedPageTypeGuard
                 $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
             )
             ->executeQuery()
-            ->fetchAllAssociative();
+            ->fetchAllAssociative());
+    }
 
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<string>
+     */
+    private static function restrictionsOfRows(array $rows): array
+    {
         $now = time();
+        $restrictions = [];
         foreach ([self::RESTRICTION_HIDDEN, self::RESTRICTION_SCHEDULED, self::RESTRICTION_RESTRICTED] as $restriction) {
             foreach ($rows as $row) {
                 if (self::rowHasRestriction($row, $restriction, $now)) {
-                    return $restriction;
+                    $restrictions[] = $restriction;
+                    break;
                 }
             }
         }
 
-        return '';
+        return $restrictions;
     }
 
     /**

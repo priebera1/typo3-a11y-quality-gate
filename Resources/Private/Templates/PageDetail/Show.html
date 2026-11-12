@@ -6,6 +6,7 @@
 <f:layout name="Module" />
 
 <f:section name="Content">
+    <f:if condition="{assignmentUrls}"><script type="application/json" data-aqg-assignment-config="true">{assignmentUrls -> f:format.json() -> f:format.raw()}</script></f:if>
     <div class="a11y-page-detail aqg-module aqg-stack container-fluid aqg-sv"
          data-a11y-language-uid="{currentLanguageUid}"
          data-aqg-image-remediation="true"
@@ -28,9 +29,13 @@
          data-message-invalid-input="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.invalidInput')}"
          data-message-update-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.updateFailed')}"
          data-message-ai-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.aiUnavailable')}"
+         data-message-ai-no-permission="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiSuggestions.noPermission')}"
+         data-message-ai-paused="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ai.paused', default: 'AI is paused for this site. Your administrator can resume it in Accessibility › Settings › AI suggestions.')}"
+         data-message-ai-budget-reached="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.ai.budgetReached', default: 'Monthly budget reached. This site has used its AI budget for this month; your administrator can raise the budget.')}"
          data-message-rate-limited="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.rateLimited')}"
          data-message-provider-failure="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.providerFailure')}"
          data-message-image-unavailable="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.imageUnavailable')}"
+         data-message-image-no-access="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.imageNoAccess')}"
          data-message-internal-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.internalError')}"
          data-message-invalid-response="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.invalidResponse')}"
          data-message-request-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.requestFailed')}"
@@ -140,6 +145,14 @@
             <f:render partial="Shared/LastCompletedScan" arguments="{source: 'local', date: '{localDetail.lastScanAt -> f:format.date(format: \'d.m.Y H:i\')}', visible: localDetail.isRelevantScanRunning}" />
         </f:if>
 
+        <f:if condition="{previewScan}">
+            <f:render partial="Remote/PreviewScanAccess" arguments="{previewScan: previewScan, pageUid: pageUid, siteIdentifier: siteIdentifier}" />
+        </f:if>
+
+        <f:if condition="{remediation.active}">
+            <f:render partial="Remediation/PageSummary" arguments="{remediation: remediation, pageUid: pageUid, currentLanguageUid: currentLanguageUid}" />
+        </f:if>
+
         <f:if condition="{statusCounts.all} > 0">
         <section class="aqg-filterbar" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.ariaLabel', default: 'Issue filters')}">
             <div class="aqg-seg" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.filter.status', default: 'Status')}">
@@ -194,6 +207,46 @@
         <f:if condition="{visibleIssuesCount} == 0">
             <f:if condition="{statusCounts.all} == 0">
                 <f:then>
+                    <f:if condition="{languageUnavailable}">
+                        <f:then>
+                            <section class="aqg-status aqg-status--no-scan" aria-labelledby="aqg-page-status-title" data-aqg-language-unavailable="true">
+                                <div class="aqg-status__main">
+                                    <div class="aqg-status__head">
+                                        <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'page'}" /></span>
+                                        <h2 class="aqg-status__title" id="aqg-page-status-title">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.languageUnavailable.title" default="This language is not available to you" />
+                                        </h2>
+                                    </div>
+                                    <p class="aqg-status__text">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.languageUnavailable.text" default="Accessibility results of a language are shown only to editors who may work in it. Choose one of your languages in the language menu above." />
+                                    </p>
+                                </div>
+                            </section>
+                        </f:then>
+                        <f:else>
+                    <f:if condition="{localDetail.hasScan} && {localEvidence.limited}">
+                        <f:then>
+                            <section class="aqg-status aqg-status--no-scan" aria-labelledby="aqg-page-status-title" data-aqg-evidence="{localEvidence.state}">
+                                <div class="aqg-status__main">
+                                    <div class="aqg-status__head">
+                                        <span class="aqg-status__glyph" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'info'}" /></span>
+                                        <h2 class="aqg-status__title" id="aqg-page-status-title">{localEvidence.title}</h2>
+                                    </div>
+                                    <p class="aqg-status__text">{localEvidence.text}</p>
+                                </div>
+                                <div class="aqg-status__actions">
+                                    <f:if condition="{canScanNow}">
+                                        <button type="button" class="btn btn-default btn-sm" data-action="a11y-rescan" data-page-uid="{pageUid}" data-language-uid="{currentLanguageUid}">
+                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanAgain" default="Scan again" />
+                                        </button>
+                                    </f:if>
+                                    <a href="{backUrl}" class="btn btn-default btn-sm">
+                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" />
+                                    </a>
+                                </div>
+                            </section>
+                        </f:then>
+                        <f:else>
                     <f:if condition="{localDetail.hasScan}">
                         <f:then>
                             <section class="aqg-status aqg-status--good" aria-labelledby="aqg-page-status-title">
@@ -245,6 +298,10 @@
                             </section>
                         </f:else>
                     </f:if>
+                        </f:else>
+                    </f:if>
+                        </f:else>
+                    </f:if>
                 </f:then>
                 <f:else>
                     <section class="aqg-status aqg-status--no-scan" aria-labelledby="aqg-page-status-title">
@@ -287,7 +344,12 @@
                     </div>
                     <div class="aqg-bulkbar__actions">
                         <button type="button" class="btn btn-sm aqg-bulkbar__clear" data-action="a11y-bulk-clear"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.clear" default="Clear selection" /></button>
-                        <button type="button" class="btn btn-default btn-sm aqg-bulkbar__ignore" data-action="a11y-bulk-open-confirm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.ignoreSelected" default="Ignore selected" /></button>
+                        <f:if condition="{canIgnore}">
+                            <button type="button" class="btn btn-default btn-sm aqg-bulkbar__ignore" data-action="a11y-bulk-open-confirm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.bulk.ignoreSelected" default="Ignore selected" /></button>
+                        </f:if>
+                        <f:if condition="{remediation.canBulk}">
+                            <button type="button" class="btn btn-default btn-sm" data-aqg-remediation-bulk-prepare="true" hidden="hidden"></button>
+                        </f:if>
                     </div>
                 </div>
 
@@ -417,6 +479,13 @@
                                 </ul>
 
                                 <div class="aqg-rulecard__foot">
+                                    <f:comment>The owner is set per rule and page, so the card shows it once (not on every occurrence).</f:comment>
+                                    <f:if condition="{rule.issues.0.remediation}">
+                                        <f:render partial="Remediation/RuleOwner" arguments="{remediation: rule.issues.0.remediation, ruleId: rule.ruleId, open: rule.hasOpenIssue}" />
+                                    </f:if>
+                                    <f:if condition="{rule.assignment} || ({rule.canAssign} && {rule.hasOpenIssue})">
+                                        <f:render partial="Assignment/RuleAssignment" arguments="{rule: rule, canAssign: rule.canAssign}" />
+                                    </f:if>
                                     <f:if condition="{rule.hasOpenIssue} && {activeStatus} == 'open'">
                                         <details class="aqg-menu" data-aqg-menu="true">
                                             <summary class="btn btn-default btn-sm aqg-menu__toggle">
@@ -426,9 +495,11 @@
                                                 <button type="button" class="aqg-rule-action aqg-menu__item" data-action="a11y-bulk-select-rule" data-rule-id="{rule.ruleId}">
                                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.selectAll" default="Select all with this rule" />
                                                 </button>
-                                                <button type="button" class="aqg-rule-action aqg-rule-action--page aqg-menu__item" data-action="a11y-bulk-open-rule-page" data-rule-id="{rule.ruleId}" data-rule-count="{rule.openRuleCountOnPage}">
-                                                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: rule.openRuleCountOnPage}" />
-                                                </button>
+                                                <f:if condition="{canIgnore}">
+                                                    <button type="button" class="aqg-rule-action aqg-rule-action--page aqg-menu__item" data-action="a11y-bulk-open-rule-page" data-rule-id="{rule.ruleId}" data-rule-count="{rule.openRuleCountOnPage}">
+                                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnPage" default="Ignore all on this page (%d)" arguments="{0: rule.openRuleCountOnPage}" />
+                                                    </button>
+                                                </f:if>
                                                 <f:if condition="{canIgnoreRuleOnSite}">
                                                     <button type="button" class="aqg-rule-action aqg-rule-action--site aqg-menu__item" data-action="a11y-bulk-open-rule-site" data-rule-id="{rule.ruleId}" data-rule-count="{rule.openRuleCountOnSite}">
                                                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.rule.ignoreOnSite" default="Ignore all on site (%d)" arguments="{0: rule.openRuleCountOnSite}" />
@@ -474,36 +545,34 @@
         </f:if>
 
         <f:if condition="{pagination.totalPages} > 1">
-            <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.aria', default: 'Issue pagination')}" class="aqg-detail-pagination">
-                <ul class="pagination mb-0">
-                    <f:if condition="{pagination.hasPrevious}">
-                        <li class="page-item">
-                            <a class="page-link" href="{pagination.previousUrl}">&laquo;</a>
+            <div class="aqg-pagination aqg-pagination--standalone aqg-detail-pagination">
+                <p class="aqg-pagination__info"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pagination.pageOf" default="Page %1$d of %2$d" arguments="{0: pagination.currentPage, 1: pagination.totalPages}" /></p>
+                <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.pagination.aria', default: 'Issue pagination')}">
+                    <ul class="aqg-pagination__list">
+                        <li>
+                            <f:if condition="{pagination.hasPrevious}">
+                                <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" href="{pagination.previousUrl}" rel="prev"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></a></f:then>
+                                <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></span></f:else>
+                            </f:if>
                         </li>
-                    </f:if>
-
-                    <f:for each="{paginationItems}" as="item">
-                        <f:if condition="{item.type} == 'page'">
-                            <f:then>
-                                <li class="page-item {f:if(condition: item.active, then: 'active')}">
-                                    <a class="page-link" href="{item.url}">{item.label}</a>
-                                </li>
-                            </f:then>
-                            <f:else>
-                                <li class="page-item disabled">
-                                    <span class="page-link">…</span>
-                                </li>
-                            </f:else>
-                        </f:if>
-                    </f:for>
-
-                    <f:if condition="{pagination.hasNext}">
-                        <li class="page-item">
-                            <a class="page-link" href="{pagination.nextUrl}">&raquo;</a>
+                        <f:for each="{paginationItems}" as="item">
+                            <li>
+                                <f:if condition="{item.type} == 'ellipsis'">
+                                    <f:then><span class="aqg-pagination__gap" aria-hidden="true">…</span></f:then>
+                                    <f:else if="{item.active}"><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}" aria-current="page"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                    <f:else><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                </f:if>
+                            </li>
+                        </f:for>
+                        <li>
+                            <f:if condition="{pagination.hasNext}">
+                                <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" href="{pagination.nextUrl}" rel="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></a></f:then>
+                                <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></span></f:else>
+                            </f:if>
                         </li>
-                    </f:if>
-                </ul>
-            </nav>
+                    </ul>
+                </nav>
+            </div>
         </f:if>
 
     </div>
@@ -592,24 +661,13 @@
                     </f:else>
                 </f:if>
 
-                <f:if condition="{issue.statusEnum.value} == 0">
-                    <details class="aqg-menu aqg-occ__menu" data-aqg-menu="true">
-                        <summary class="btn btn-default btn-sm aqg-iconbtn aqg-menu__toggle" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.moreActions', default: 'More actions for this occurrence')}" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.moreActions', default: 'More actions for this occurrence')}">
-                            <f:render partial="Shared/AqgIcon" arguments="{name: 'dots'}" />
-                        </summary>
-                        <div class="aqg-menu__panel">
-                            <button
-                                    type="button"
-                                    class="aqg-menu__item a11y-ignore-trigger"
-                                    data-issue-uid="{issue.uid}"
-                            >
-                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.ignore" default="Ignore this occurrence…" />
-                            </button>
-                        </div>
-                    </details>
+                <f:if condition="{issue.statusEnum.value} == 0 && {canIgnore}">
+                    <button type="button" class="btn btn-default btn-sm a11y-ignore-trigger" data-issue-uid="{issue.uid}">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.occurrence.ignoreShort" default="Ignore…" /><span class="visually-hidden">: {issue.location.title}</span>
+                    </button>
                 </f:if>
 
-                <f:if condition="{issue.statusEnum.value} == 2">
+                <f:if condition="{issue.statusEnum.value} == 2 && {canIgnore}">
                     <form method="post" action="{unignoreUrl}" class="d-inline">
                         <input type="hidden" name="issueUid" value="{issue.uid}" />
                         <input type="hidden" name="pageUid" value="{pageUid}" />
@@ -625,6 +683,10 @@
                 </f:if>
             </div>
         </div>
+
+        <f:if condition="{issue.remediation}">
+            <f:render partial="Remediation/Occurrence" arguments="{issue: issue, remediation: issue.remediation, pageUid: pageUid, queueUrl: remediation.queueUrl, ruleTitle: rule.title}" />
+        </f:if>
 
         <div class="aqg-occ__tech">
             <div class="aqg-details-body aqg-occ__techbody" id="aqg-occ-{issue.uid}-tech" hidden="hidden" data-aqg-occ-technical="true">
@@ -705,6 +767,9 @@
 </f:section>
 
 <f:section name="OccurrenceState">
+    <f:if condition="{issue.renderedNotRechecked}">
+        <p class="aqg-occ__state aqg-occ__state--stale" data-aqg-rendered-not-rechecked="true">{issue.renderedNotRechecked}</p>
+    </f:if>
     <f:if condition="{issue.statusEnum.value} == 2">
         <p class="aqg-occ__state">
             <f:if condition="{issue.ignoreIsTemporary}">

@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Backend\ToolbarItems;
 
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use Priebera\A11yQualityGate\Service\ResultEvidenceState;
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorization;
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
+use Priebera\A11yQualityGate\Service\RemoteResultsTooLargeException;
+use Priebera\A11yQualityGate\Backend\ToolbarItems\ConnectedAgents\ConnectedAgentsLinkResolver;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
@@ -20,12 +26,16 @@ use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Toolbar\RequestAwareToolbarItemInterface;
 use TYPO3\CMS\Backend\Toolbar\ToolbarItemInterface;
 use TYPO3\CMS\Backend\View\BackendViewFactory;
 
 final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToolbarItemInterface
 {
+    /** F11-04: newest-first candidates per kind that are checked for read access before the Frontend card gives up. */
+    private const REMOTE_SCAN_CANDIDATES = 20;
+
     private ServerRequestInterface $request;
 
     public function __construct(
@@ -44,6 +54,8 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         private readonly IssueRepository $issueRepository,
         private readonly ?RemoteOccurrenceTotalsService $remoteOccurrenceTotalsService = null,
         private readonly ?ScanResultSummaryService $scanResultSummaryService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
+        private readonly ?ConnectedAgentsLinkResolver $connectedAgentsLinkResolver = null,
     ) {
     }
 
@@ -91,9 +103,11 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             'toolbarState' => $summary['state'],
             'toolbarRunning' => $summary['state']['running'],
             'contentCard' => $summary['content'],
-            'frontendCard' => $summary['frontend'],
+            // Collapsed and neutral when this user or installation has no frontend results here.
+            'frontendCard' => $summary['frontend'] ?? $this->summaryBuilder()->frontendUnavailableCard(),
             'siteLabel' => $summary['siteLabel'],
             'moduleUrl' => (string)$this->uriBuilder->buildUriFromRoute('web_a11y'),
+            'agentsUrl' => $this->connectedAgentsLinkResolver?->resolve($this->backendContextService->getBackendUser()) ?? '',
         ]);
 
         return $view->render('ToolbarItems/A11yScanToolbarDropDown');
@@ -112,14 +126,27 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         $localStatus = $this->resolveLocalStatus();
         $siteIdentifier = $this->resolveSiteIdentifierFromRequestOrStatus($localStatus);
         $canReadSite = $siteIdentifier !== '' && $this->scopeAccessService->canReadSiteIdentifier($siteIdentifier);
+        // Every Content count is page-level data: pages the user may not show (TYPO3 page permissions) add nothing.
+        $readablePagesClause = $this->scopeAccessService->readablePagesClause();
+        $localStatus = $this->withReadableLastScanDelta($localStatus, $canReadSite ? $siteIdentifier : '', $readablePagesClause);
 
-        $contentCard = $builder->contentCard($localStatus, $canReadSite ? $this->countOpenTotals($siteIdentifier) : null);
+        $contentCard = $builder->contentCard(
+            $withFrontendChanges ? $this->withScannedPageTitle($localStatus) : $localStatus,
+            $canReadSite ? $this->countOpenTotals($siteIdentifier, $readablePagesClause) : null,
+            $canReadSite ? $this->contentEvidence($siteIdentifier) : null,
+            $withFrontendChanges && $canReadSite ? $this->countOpenPage($siteIdentifier) : null,
+        );
         $frontendCard = null;
-        if ($canReadSite && $this->shouldShowRemoteSection()) {
-            $remoteScan = $this->withStoredOccurrences($this->resolveRemoteStatus($siteIdentifier));
+        if ($canReadSite && $this->shouldShowRemoteSection($siteIdentifier)) {
+            // Sol R03/R05: a scan the user may not read is not shown (resolveRemoteStatus() checks every candidate); for
+            // users other than administrators the counts are those of the findings they may read, and no new/resolved
+            // comparison is claimed.
+            $remoteScan = $this->resolveRemoteStatus($siteIdentifier);
+            $restricted = $this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser();
+            $remoteScan = $restricted ? $this->withVisibleOccurrences($remoteScan) : $this->withStoredOccurrences($remoteScan);
             $frontendCard = $builder->frontendCard(
                 $remoteScan,
-                $withFrontendChanges ? $this->frontendChanges($remoteScan) : null
+                $withFrontendChanges && !$restricted ? $this->frontendChanges($remoteScan) : null
             );
         }
 
@@ -132,17 +159,127 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     }
 
     /**
+     * STATE-01: what a zero of the readable open Content findings proves (ResultEvidenceState): clean only for a user who
+     * sees every result (administrator, in a language they may use) after a content scan of the whole site in that
+     * language that left nothing out (ScanRepository::coversWholeSite()). Same language as countOpenTotals().
+     */
+    private function contentEvidence(string $siteIdentifier): string
+    {
+        $languageUid = max(0, $this->requestParameterService->getLanguageUid($this->request));
+        $backendUser = $this->backendContextService->getBackendUser();
+        $restricted = !($backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin())
+            || !$this->scopeAccessService->canUseScanLanguage($languageUid);
+        try {
+            $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+            $siteScan = $this->scanRepository->findLastCompletedSubtreeScan($siteIdentifier, $languageUid);
+        } catch (\Throwable) {
+            return ResultEvidenceState::INCOMPLETE;
+        }
+
+        return ResultEvidenceState::resolve(
+            running: false,
+            hasEvidence: true,
+            visibleOpen: 0,
+            restricted: $restricted,
+            complete: ScanRepository::coversWholeSite($siteScan, $site !== null ? (int)$site->getRootPageId() : 0),
+        );
+    }
+
+    /**
      * @return array{critical:int,warning:int,info:int,needs_review:int,total:int}|null
      */
-    private function countOpenTotals(string $siteIdentifier): ?array
+    private function countOpenTotals(string $siteIdentifier, string $readablePagesClause): ?array
     {
         $languageUid = $this->requestParameterService->getLanguageUid($this->request);
 
         try {
-            return $this->issueRepository->countOpenTotalsForSite($siteIdentifier, max(0, $languageUid));
+            return $this->issueRepository->countOpenTotalsForSite($siteIdentifier, max(0, $languageUid), $readablePagesClause);
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * The open Content issues of the page open in the backend (the toolbar request's `id`), counted like the Page
+     * module's panel (PageModuleIndicatorService: same repository call, readable sources only), so the dropdown can say
+     * which part of the website total is on this page. Null without such a page, for a page of another site or one the
+     * user may not read in this language.
+     *
+     * @return array{critical:int,warning:int,info:int,needs_review:int}|null
+     */
+    private function countOpenPage(string $siteIdentifier): ?array
+    {
+        $pageUid = (int)($this->requestParameterService->getPageUid($this->request) ?? 0);
+        $languageUid = max(0, $this->requestParameterService->getLanguageUid($this->request));
+        if ($pageUid <= 0
+            || $this->siteResolutionService->resolveSiteIdentifierForPageId($pageUid) !== $siteIdentifier
+            || !$this->scopeAccessService->canReadPageResultsInLanguage($pageUid, $languageUid)) {
+            return null;
+        }
+        try {
+            return $this->issueRepository->countOpenBySeverity($pageUid, $siteIdentifier, $languageUid, '', true);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * The title of the page a finished page scan checked ("Page scan: “Resources”"), for a page the user may show; the
+     * status passed restrictLocalScanStatus() already.
+     *
+     * @param array<string, mixed> $status
+     * @return array<string, mixed>
+     */
+    private function withScannedPageTitle(array $status): array
+    {
+        $pageUid = (int)($status['pageUid'] ?? 0);
+        if ($pageUid <= 0 || (bool)($status['running'] ?? false) || !$this->scopeAccessService->canReadPage($pageUid)) {
+            return $status;
+        }
+        $page = BackendUtility::getRecord('pages', $pageUid, 'title');
+        $title = is_array($page) ? trim((string)($page['title'] ?? '')) : '';
+        if ($title !== '') {
+            $status['pageTitle'] = mb_substr($title, 0, 80);
+        }
+
+        return $status;
+    }
+
+    /**
+     * The scan row's new/resolved counts cover every page the scan processed. For a user restricted by page
+     * permissions (non-empty clause) "new" is recounted from the stored findings of readable pages (the Overview's
+     * "new" count); "resolved" findings keep no page-level trace there, so it is left out instead of reporting the
+     * scan's total. Administrators (empty clause) keep the scan's own counts.
+     *
+     * @param array<string, mixed> $status
+     * @return array<string, mixed>
+     */
+    private function withReadableLastScanDelta(array $status, string $siteIdentifier, string $readablePagesClause): array
+    {
+        if ($readablePagesClause === '' || !is_array($status['summary'] ?? null)) {
+            return $status;
+        }
+
+        $summary = $status['summary'];
+        $summary['issuesNew'] = null;
+        $summary['issuesResolved'] = null;
+        $scanUid = $this->extractLocalStatusScanUid($status);
+        if ($siteIdentifier !== '' && $scanUid > 0) {
+            $languageUid = $this->requestParameterService->getLanguageUid($this->request);
+            try {
+                $summary['issuesNew'] = $this->issueRepository->countNewOpenTotalsForScan(
+                    $siteIdentifier,
+                    $scanUid,
+                    max(0, $languageUid),
+                    $readablePagesClause
+                )['total'];
+            } catch (\Throwable) {
+                $summary['issuesNew'] = null;
+            }
+        }
+        $status['summary'] = $summary;
+
+        return $status;
     }
 
     private function siteLabel(string $siteIdentifier): string
@@ -179,9 +316,18 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         );
     }
 
-    private function shouldShowRemoteSection(): bool
+    /**
+     * N-05: the Frontend card belongs to the site the toolbar shows; its licence answers whether to show it. Asking
+     * "any site with the crawler?" validated the sites in alphabetical order on every uncached backend render.
+     */
+    private function shouldShowRemoteSection(string $siteIdentifier): bool
     {
-        return $this->proStatusResolverService->hasCrawlerForAnySite();
+        if ($siteIdentifier === '') {
+            return false;
+        }
+        $status = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
+
+        return (bool)($status->valid ?? false) && (bool)($status->hasCrawler ?? false);
     }
 
     /**
@@ -195,8 +341,10 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             return $this->languageAwareLocalStatus($status);
         }
 
+        // AUTH-02: a status rebuilt from a stored scan row names its page or root, language and counters too; it passes
+        // the same page/language/scope rule as the registry status.
         return $this->languageAwareLocalStatus(
-            $this->mergeWithPersistedLocalScan($status)
+            $this->scopeAccessService->restrictLocalScanStatus($this->mergeWithPersistedLocalScan($status))
         );
     }
 
@@ -330,12 +478,17 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
      */
     private function buildRunningStatusFromScanRow(array $scanRow, array $fallbackStatus): array
     {
+        // Review F10-1: the registry's trigger and actor describe the registry's scan only, never another stored row (a
+        // Scheduler/CLI scan writes no registry entry): who started a row decides which counters a viewer sees.
+        $sameScan = (int)($fallbackStatus['scanUid'] ?? 0) > 0 && (int)($fallbackStatus['scanUid'] ?? 0) === (int)($scanRow['uid'] ?? 0);
+        $fallbackStatus = $sameScan ? $fallbackStatus : [];
+
         return [
             'running' => true,
             'startedAt' => (int)($scanRow['started_at'] ?? 0) ?: null,
             'finishedAt' => null,
             'trigger' => $fallbackStatus['trigger'] ?? 'persisted-scan',
-            'triggeredBy' => $fallbackStatus['triggeredBy'] ?? 'TYPO3',
+            'triggeredBy' => $fallbackStatus['triggeredBy'] ?? '',
             'pageUid' => (string)($scanRow['scope'] ?? '') === 'page' ? (int)($scanRow['root_pid'] ?? 0) : null,
             'rootPid' => (int)($scanRow['root_pid'] ?? 0) ?: null,
             'languageUid' => (int)($scanRow['language_uid'] ?? -1),
@@ -353,12 +506,17 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
      */
     private function buildFinishedStatusFromScanRow(array $scanRow, array $fallbackStatus): array
     {
+        // Review F10-1: the registry's trigger and actor describe the registry's scan only, never another stored row (a
+        // Scheduler/CLI scan writes no registry entry): who started a row decides which counters a viewer sees.
+        $sameScan = (int)($fallbackStatus['scanUid'] ?? 0) > 0 && (int)($fallbackStatus['scanUid'] ?? 0) === (int)($scanRow['uid'] ?? 0);
+        $fallbackStatus = $sameScan ? $fallbackStatus : [];
+
         return [
             'running' => false,
             'startedAt' => (int)($scanRow['started_at'] ?? 0) ?: null,
             'finishedAt' => (int)($scanRow['finished_at'] ?? 0),
             'trigger' => $fallbackStatus['trigger'] ?? 'persisted-scan',
-            'triggeredBy' => $fallbackStatus['triggeredBy'] ?? 'TYPO3',
+            'triggeredBy' => $fallbackStatus['triggeredBy'] ?? '',
             'pageUid' => (string)($scanRow['scope'] ?? '') === 'page' ? (int)($scanRow['root_pid'] ?? 0) : null,
             'rootPid' => (int)($scanRow['root_pid'] ?? 0) ?: null,
             'languageUid' => (int)($scanRow['language_uid'] ?? -1),
@@ -463,35 +621,45 @@ HTML;
      * (site scan before page scan). Free Remote Preview results belong to the Overview's Free Remote Preview, which is
      * where an installation without crawler access sees them; the toolbar shows frontend scans only with that access.
      *
+     * F11-04: each candidate is checked with the user's read access (ScopeAccessService::canReadRemoteScan()) before it is
+     * chosen, so a newer scan of a page the user may not read neither blanks the card ("Not scanned yet") nor hides an
+     * older readable result; an unreadable scan is skipped without trace (no date, count or recovery). Page scans and
+     * active scans are taken from bounded, newest-first windows of the same site and language.
+     *
      * @return array<string, mixed>
      */
     private function resolveRemoteStatus(string $siteIdentifier): array
     {
         $languageUid = $this->requestParameterService->getLanguageUid($this->request);
         $siteBase = $this->siteResolutionService->resolveSiteBaseByIdentifier($siteIdentifier);
+        $readable = fn (?array $scan): bool => is_array($scan) && $scan !== [] && $this->scopeAccessService->canReadRemoteScan($scan);
+        $recovered = fn (array $scan): array => $siteBase !== ''
+            ? ($this->remoteScanRecoveryService->recoverScanIfNeeded($scan, $siteBase) ?? $scan)
+            : $scan;
 
         $activeSiteScan = $this->remoteScanRepository->findLatestActiveSiteScanBySite($siteIdentifier, $languageUid);
-        if (is_array($activeSiteScan)) {
-            return $siteBase !== ''
-                ? ($this->remoteScanRecoveryService->recoverScanIfNeeded($activeSiteScan, $siteBase) ?? $activeSiteScan)
-                : $activeSiteScan;
+        if ($readable($activeSiteScan)) {
+            return $recovered($activeSiteScan);
         }
 
         $lastSiteScan = $this->remoteScanRepository->findLastCompletedSiteScanBySite($siteIdentifier, $languageUid, false);
-        if (is_array($lastSiteScan)) {
+        if ($readable($lastSiteScan)) {
             return $lastSiteScan;
         }
 
-        $activeAnyScan = $this->remoteScanRepository->findLatestActiveScanBySite($siteIdentifier, $languageUid);
-        if (is_array($activeAnyScan)) {
-            return $siteBase !== ''
-                ? ($this->remoteScanRecoveryService->recoverScanIfNeeded($activeAnyScan, $siteBase) ?? $activeAnyScan)
-                : $activeAnyScan;
+        foreach ($this->remoteScanRepository->findRecentActiveScansBySite($siteIdentifier, $languageUid, self::REMOTE_SCAN_CANDIDATES) as $activeAnyScan) {
+            if ($readable($activeAnyScan)) {
+                return $recovered($activeAnyScan);
+            }
         }
 
-        $lastPageScan = $this->remoteScanRepository->findLastCompletedPageScanBySite($siteIdentifier, $languageUid, false);
+        foreach ($this->remoteScanRepository->findRecentCompletedPageScansBySite($siteIdentifier, $languageUid, false, self::REMOTE_SCAN_CANDIDATES) as $lastPageScan) {
+            if ($readable($lastPageScan)) {
+                return $lastPageScan;
+            }
+        }
 
-        return is_array($lastPageScan) ? $lastPageScan : [];
+        return [];
     }
 
     /**
@@ -527,6 +695,43 @@ HTML;
             return $scan;
         }
         $scan['issues_total'] = $this->remoteOccurrenceTotalsService->forScan($scan)->total;
+
+        return $scan;
+    }
+
+    /**
+     * @param array<string, mixed> $scan
+     * @return array<string, mixed>
+     */
+    private function withVisibleOccurrences(array $scan): array
+    {
+        if ($scan === []) {
+            return $scan;
+        }
+        $scan['issues_new'] = 0;
+        $scan['issues_resolved'] = 0;
+        // Sol QA-06: a restricted card says "limited to your access", never "no page checked" or "no issues", unless the
+        // stored scan itself loaded no page (its own counter; it reveals nothing about withheld results).
+        $scan['aqg_results_restricted'] = true;
+        $scan['aqg_scan_loaded_pages'] = (int)($scan['pages_scanned'] ?? 0) > 0;
+        if ((string)($scan['scan_scope'] ?? '') !== 'page') {
+            // A site crawl's own page counts (also while it runs) count pages the user may be refused.
+            $scan['pages_scanned'] = 0;
+            $scan['pages_total'] = 0;
+            $scan['pages_failed'] = 0;
+        }
+        if ((string)($scan['status'] ?? '') !== 'completed' || (int)($scan['persisted_at'] ?? 0) <= 0 || $this->remoteResultAuthorizationService === null) {
+            $scan['issues_total'] = 0;
+            return $scan;
+        }
+        try {
+            $visible = $this->remoteResultAuthorizationService->authorize($scan);
+        } catch (RemoteResultsTooLargeException) {
+            $visible = new RemoteResultAuthorization(false, [], [], []);
+        }
+        $scan['issues_total'] = $visible->totals()->total;
+        $scan['pages_total'] = count($visible->resultPages);
+        $scan['pages_scanned'] = count($visible->resultPages);
 
         return $scan;
     }

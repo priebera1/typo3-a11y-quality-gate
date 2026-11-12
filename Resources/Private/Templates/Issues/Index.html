@@ -1,0 +1,190 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <div class="a11y-page-detail aqg-module aqg-stack container-fluid aqg-sv aqg-issues" data-aqg-issues="true">
+        <f:render partial="Remediation/SubNav" arguments="{current: 'issues', pageId: selectedId}" />
+
+        <header class="aqg-pagehead">
+            <div class="aqg-pagehead__main">
+                <h1 class="aqg-pagehead__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.title" default="My issues" /></h1>
+                <f:if condition="{mayAssign}">
+                    <ul class="aqg-pagehead__meta aqg-issues__workload" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.workload.label', default: 'Team workload')}">
+                        <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.workload.unassigned" default="%d unassigned" arguments="{0: unassignedOpen}" /></li>
+                        <f:for each="{workload}" as="person">
+                            <li class="{f:if(condition: person.flagged, then: 'aqg-issues__workload--flagged')}">{person.label}: {person.open}<f:if condition="{person.flagged}"> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.workload.inactive" default="account disabled — reassign" /></f:if></li>
+                        </f:for>
+                    </ul>
+                </f:if>
+            </div>
+        </header>
+        <p class="aqg-issues__intro">
+            <f:if condition="{mayAssign}">
+                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.intro.assigner" default="Issue types on pages, assigned to the people who fix them. Assign or reassign from the issue in the page's report. A task is done when the last content scan finds no occurrence left." /></f:then>
+                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.intro.editor" default="The issues assigned to you. Open one to see where it is, how to fix it and the record to edit. A task is done when the next content scan finds no occurrence left." /></f:else>
+            </f:if>
+        </p>
+
+        <form class="aqg-issues__filters" method="get" action="{formAction}" role="search" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filters.label', default: 'Filter issues')}">
+            <f:if condition="{selectedId}"><input type="hidden" name="id" value="{selectedId}" /></f:if>
+            <f:if condition="{mayAssign}">
+                <div class="aqg-field aqg-field--inline">
+                    <label class="aqg-field__label" for="aqg-issues-assignee"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.assignee" default="Assigned to" /></label>
+                    <select class="form-select form-select-sm" id="aqg-issues-assignee" name="assignee">
+                        <option value="me" {f:if(condition: '{filter} == \'me\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.me" default="Me" /></option>
+                        <option value="unassigned" {f:if(condition: '{filter} == \'unassigned\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.unassigned" default="Nobody (unassigned)" /></option>
+                        <option value="all" {f:if(condition: '{filter} == \'all\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.all" default="Everyone" /></option>
+                        <f:for each="{people}" as="person">
+                            <option value="{person.uid}" {f:if(condition: '{filter} == {person.uid}', then: 'selected="selected"')}>{person.label}</option>
+                        </f:for>
+                    </select>
+                </div>
+            </f:if>
+            <div class="aqg-field aqg-field--inline">
+                <label class="aqg-field__label" for="aqg-issues-state"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.state" default="State" /></label>
+                <select class="form-select form-select-sm" id="aqg-issues-state" name="state">
+                    <option value="open" {f:if(condition: '{state} == \'open\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.state.open" default="To do" /></option>
+                    <option value="done" {f:if(condition: '{state} == \'done\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.state.done" default="Done" /></option>
+                    <option value="any" {f:if(condition: '{state} == \'any\'', then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.state.any" default="All" /></option>
+                </select>
+            </div>
+            <f:if condition="{siteOptions -> f:count()} > 1">
+                <div class="aqg-field aqg-field--inline">
+                    <label class="aqg-field__label" for="aqg-issues-site"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.site" default="Site" /></label>
+                    <select class="form-select form-select-sm" id="aqg-issues-site" name="site">
+                        <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.allSites" default="All sites" /></option>
+                        <f:for each="{siteOptions}" as="option">
+                            <option value="{option.value}" {f:if(condition: '{site} == {option.value}', then: 'selected="selected"')}>{option.label}</option>
+                        </f:for>
+                    </select>
+                </div>
+            </f:if>
+            <div class="aqg-field aqg-field--inline">
+                <label class="aqg-field__label" for="aqg-issues-q"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.search" default="Search" /></label>
+                <input type="search" class="form-control form-control-sm" id="aqg-issues-q" name="q" value="{search}" maxlength="100" placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.searchPlaceholder', default: 'Issue type or page')}" />
+            </div>
+            <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.filter.apply" default="Show" /></button>
+        </form>
+
+        <f:if condition="{taskCount} > 0">
+            <f:then>
+                <f:if condition="{pagination.pages} <= 1">
+                    <p class="aqg-issues__range" id="aqg-issues-range"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.range.all" default="%d tasks" arguments="{0: pagination.total}" /></p>
+                </f:if>
+                <div class="aqg-table-wrap" data-aqg-scroll-labelledby="aqg-issues-caption">
+                    <table class="aqg-table aqg-table--linkrows aqg-issues__table">
+                        <caption id="aqg-issues-caption" class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.table.caption" default="Assigned issue types" /></caption>
+                        <thead>
+                        <tr>
+                            <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.col.issue" default="Issue type" /></th>
+                            <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.col.page" default="Page" /></th>
+                            <th scope="col" class="num"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.col.occurrences" default="Occurrences" /></th>
+                            <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.col.assignee" default="Assigned to" /></th>
+                            <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.col.state" default="State" /></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <f:for each="{tasks}" as="task">
+                            <tr data-aqg-issue-task="true" data-state="{task.state}">
+                                <td>
+                                    <span class="aqg-issues__issue">
+                                        <f:if condition="{task.state} == 'open'">
+                                            <f:then><f:render partial="Shared/SeverityBadge" arguments="{level: task.severityKey}" /></f:then>
+                                        </f:if>
+                                        <a class="aqg-issues__link" href="{task.url}">{task.title}</a>
+                                    </span>
+                                    <f:if condition="{task.owner} == 'developer'">
+                                        <span class="aqg-remediation__owner aqg-remediation__owner--developer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.needsDeveloper" default="Needs a developer" /></span>
+                                    </f:if>
+                                    <f:if condition="{task.note}"><span class="aqg-issues__note">{task.note}</span></f:if>
+                                </td>
+                                <td><f:if condition="{task.shared}"><f:then>{task.pageTitle} <span class="aqg-issues__muted">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.shared.pages" default="%d pages" arguments="{0: task.pageCount}" /></span></f:then><f:else>{task.pageTitle}</f:else></f:if><span class="aqg-issues__lang">{task.languageLabel}</span></td>
+                                <td class="num">{task.open}</td>
+                                <td>
+                                    <f:if condition="{task.assignee}">
+                                        <f:then>
+                                            {task.assigneeLabel}
+                                            <f:if condition="{task.assignedAtLabel}"><span class="aqg-issues__muted">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.since" default="since %s" arguments="{0: task.assignedAtLabel}" /></span></f:if>
+                                            <f:if condition="{task.assigneeFlag}">
+                                                <span class="aqg-issues__flag"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.flag.{task.assigneeFlag}" default="Cannot work on this any more — reassign" /></span>
+                                            </f:if>
+                                        </f:then>
+                                        <f:else><span class="aqg-issues__muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.nobody" default="Nobody" /></span></f:else>
+                                    </f:if>
+                                </td>
+                                <td>
+                                    <f:if condition="{task.state} == 'done'">
+                                        <f:then><span class="aqg-issues__state aqg-issues__state--done"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok', size: 'sm'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.state.doneOn" default="Done · %s" arguments="{0: task.doneAtLabel}" /></span></f:then>
+                                        <f:else if="{task.needsRescan}"><span class="aqg-issues__state aqg-issues__state--rescan"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.state.rescan" default="Changed — scan the page to confirm" /></span></f:else>
+                                        <f:else><span class="aqg-issues__state"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.state.open" default="To do" /></span></f:else>
+                                    </f:if>
+                                </td>
+                            </tr>
+                        </f:for>
+                        </tbody>
+                    </table>
+                </div>
+                <f:if condition="{pagination.pages} > 1">
+                    <div class="aqg-pagination aqg-pagination--standalone aqg-issues__pagination">
+                        <p class="aqg-pagination__info" id="aqg-issues-range"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.range.paged" default="Showing %1$d–%2$d of %3$d tasks" arguments="{0: pagination.rangeStart, 1: pagination.rangeEnd, 2: pagination.total}" /></p>
+                        <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.label', default: 'My issues pages')}">
+                            <ul class="aqg-pagination__list">
+                                <li>
+                                    <f:if condition="{pagination.previousUrl}">
+                                        <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" href="{pagination.previousUrl}" rel="prev"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></a></f:then>
+                                        <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></span></f:else>
+                                    </f:if>
+                                </li>
+                                <f:for each="{pagination.items}" as="item">
+                                    <li>
+                                        <f:if condition="{item.type} == 'ellipsis'">
+                                            <f:then><span class="aqg-pagination__gap" aria-hidden="true">…</span></f:then>
+                                            <f:else if="{item.current}"><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}" aria-current="page"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                            <f:else><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                        </f:if>
+                                    </li>
+                                </f:for>
+                                <li>
+                                    <f:if condition="{pagination.nextUrl}">
+                                        <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" href="{pagination.nextUrl}" rel="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></a></f:then>
+                                        <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></span></f:else>
+                                    </f:if>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </f:if>
+            </f:then>
+            <f:else if="{search}">
+                <section class="aqg-empty aqg-issues__empty" aria-labelledby="aqg-issues-empty-h">
+                    <h2 id="aqg-issues-empty-h" class="aqg-empty__title">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.empty.search" arguments="{0: search}" default="No tasks match “{search}”" />
+                    </h2>
+                    <p class="aqg-empty__body">
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.empty.searchHint" default="Search looks at issue types and page titles. Check the spelling or clear the search." />
+                    </p>
+                </section>
+            </f:else>
+            <f:else>
+                <section class="aqg-empty aqg-issues__empty" aria-labelledby="aqg-issues-empty-h">
+                    <h2 id="aqg-issues-empty-h" class="aqg-empty__title">
+                        <f:if condition="{filter} == 'me'">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.empty.mine" default="Nothing is assigned to you" /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.empty.filter" default="No issues match this filter" /></f:else>
+                        </f:if>
+                    </h2>
+                    <p class="aqg-empty__body">
+                        <f:if condition="{mayAssign}">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.empty.assignerHint" default="Open a page's report and choose “Assign…” on an issue to hand it to an editor. “Nobody (unassigned)” lists the open work that has no owner yet." /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.empty.editorHint" default="When someone assigns an issue to you, it appears here. Issues on your pages are also in the Overview and the Page module." /></f:else>
+                        </f:if>
+                    </p>
+                </section>
+            </f:else>
+        </f:if>
+    </div>
+</f:section>
+</html>

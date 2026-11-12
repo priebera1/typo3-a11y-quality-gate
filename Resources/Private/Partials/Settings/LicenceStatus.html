@@ -118,8 +118,26 @@
                 </f:if>
             </f:else>
         </f:if>
+        <f:if condition="!{proStatus.isTrial}">
+            <p class="aqg-field__help" data-aqg-dpa-prerequisite="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:licence.dpaPrerequisite" default="Before the first frontend scan, the licence owner accepts the AQG data processing agreement (DPA) once in the AQG customer portal (Licence page). Until then frontend scans are refused; content scans and the Quality Gate are not affected." />
+                <a href="{portalUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.openCustomerPortal" default="Open AQG customer portal" /><span class="visually-hidden"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.opensInNewTab" default="(opens in a new tab)" /></span></a>
+            </p>
+        </f:if>
     </f:then>
     <f:else>
+        <f:if condition="{licenceSiteRequired}">
+            <f:then>
+                <f:comment>D-01: several sites and none chosen. Nothing was validated, so this is no licence verdict.</f:comment>
+                <section class="aqg-licence-status tone-none" data-aqg-licence-state="site_required">
+                    <div class="aqg-licence-status__head">
+                        <div class="aqg-licence-status__plan-line"><span class="aqg-licence-status__plan-tag"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.tag.siteRequired" default="CHOOSE SITE" /></span><span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.statusSiteRequired" default="Licence status depends on the site" /></span></div>
+                        <h3 class="aqg-licence-status__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.siteRequired.title" default="Choose a site" /></h3>
+                        <p class="aqg-licence-status__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.siteRequired.text" default="This TYPO3 installation has several sites. AQG checks the licence for the domain of one site and never chooses a site for you. Choose a site above, or select a page of that site in the page tree." /></p>
+                    </div>
+                </section>
+            </f:then>
+            <f:else>
         <f:if condition="{hasLicenceKey}">
             <f:then>
                 <f:variable name="licenceUnverified" value="0" />
@@ -186,6 +204,8 @@
                         <a href="{trialUrl}" class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.startTrial" default="Start trial" /></a>
                     </div>
                 </section>
+            </f:else>
+        </f:if>
             </f:else>
         </f:if>
     </f:else>

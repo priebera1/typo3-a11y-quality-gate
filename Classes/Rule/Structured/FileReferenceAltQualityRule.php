@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Rule\RuleInterface;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
 use Priebera\A11yQualityGate\Service\DictionaryRegistry;
 use Priebera\A11yQualityGate\Service\PhraseMatcher;
+use Priebera\A11yQualityGate\Service\PlaceholderAltText;
 
 final class FileReferenceAltQualityRule implements RuleInterface
 {
@@ -96,6 +97,19 @@ final class FileReferenceAltQualityRule implements RuleInterface
                     severity: $this->getDefaultSeverity(),
                     message: sprintf('Image "%s" has alt text with %d characters. Recommended maximum is %d.', $fileName, $length, $this->defaultMaxLength),
                     hint: $this->getHint(),
+                    contextSnippet: sprintf('sys_file_reference uid:%d, file: %s, alt: "%s"', $referenceUid, $fileName, mb_substr($alt, 0, 160)),
+                    contextPath: $contextPath,
+                );
+
+                continue;
+            }
+
+            if (PlaceholderAltText::isPlaceholder($alt)) {
+                $violations[] = new RuleViolation(
+                    ruleId: $this->getRuleId(),
+                    severity: $this->getDefaultSeverity(),
+                    message: sprintf('Image "%s" alt text is a placeholder, not a description.', $fileName),
+                    hint: 'Replace the placeholder with what the image shows or does in this context, or mark the image as decorative.',
                     contextSnippet: sprintf('sys_file_reference uid:%d, file: %s, alt: "%s"', $referenceUid, $fileName, mb_substr($alt, 0, 160)),
                     contextPath: $contextPath,
                 );

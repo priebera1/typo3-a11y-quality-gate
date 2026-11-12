@@ -1,0 +1,75 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment><!--
+    One agent connection of the signed-in user (My connected agents). Arguments: token (McpSettingsViewBuilder::describeTokens),
+    revokeUrl. The client label comes from the Gateway (where the agent returns), never a verified identity: it is shown as
+    plain text with a "Not verified" chip, never styled like a confirmed name. Token values are never part of the view data.
+    Revoke is a two-step disclosure (works without JavaScript): the first activation explains, the second revokes.
+--></f:comment>
+<article class="aqg-mcp-conn{f:if(condition: token.revocable, then: ' aqg-mcp-conn--active', else: ' aqg-mcp-conn--ended')}" aria-labelledby="aqg-mcp-conn-{token.id}-name">
+    <header class="aqg-mcp-conn__head">
+        <span class="aqg-mcp-conn__icon" aria-hidden="true"></span>
+        <div class="aqg-mcp-conn__identity">
+            <h3 class="aqg-mcp-conn__name" id="aqg-mcp-conn-{token.id}-name">{token.clientName}</h3>
+            <p class="aqg-mcp-conn__meta">
+                <span class="aqg-mcp-chip aqg-mcp-chip--unverified" title="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.notVerifiedHelp', default: 'AQG cannot verify which account or app is behind an agent. The label only says where it returns to.')}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.notVerified" default="Not verified" /></span>
+                <code class="aqg-mcp-conn__token"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.token" default="Token" /> </span>{token.tokenLabel}</code>
+            </p>
+        </div>
+        <div class="aqg-mcp-conn__status">
+            <f:switch expression="{token.status}">
+                <f:case value="active"><span class="aqg-status-badge aqg-status-badge--success"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.active" default="Active" /></span></f:case>
+                <f:case value="expiring_soon"><span class="aqg-status-badge aqg-status-badge--warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.expiringSoon" default="Expiring soon" /></span></f:case>
+                <f:case value="revoked"><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.revoked" default="Revoked" /></span></f:case>
+                <f:defaultCase><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.expired" default="Expired" /></span></f:defaultCase>
+            </f:switch>
+        </div>
+    </header>
+    <dl class="aqg-mcp-conn__facts">
+        <div class="aqg-mcp-conn__fact aqg-mcp-conn__fact--wide">
+            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.capabilities" default="Capabilities" /></dt>
+            <dd>
+                <ul class="aqg-mcp-conn__caps">
+                    <f:for each="{token.scopeItems}" as="item">
+                        <li class="aqg-mcp-conn__cap"><span class="aqg-mcp-conn__cap-title">{item.title}</span> <code class="aqg-mcp-cap__scope">{item.scope}</code></li>
+                    </f:for>
+                </ul>
+            </dd>
+        </div>
+        <f:if condition="{token.siteList}">
+            <div class="aqg-mcp-conn__fact">
+                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.sites" default="Sites" /></dt>
+                <dd><f:for each="{token.siteList}" as="site" iteration="it"><code class="aqg-mcp-conn__site">{site}</code><f:if condition="{it.isLast}"><f:else><span class="visually-hidden">, </span></f:else></f:if></f:for></dd>
+            </div>
+        </f:if>
+        <div class="aqg-mcp-conn__fact">
+            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.lastUsed" default="Last used" /></dt>
+            <dd class="aqg-mcp-num"><f:if condition="{token.lastUsedAt}"><f:then>{token.lastUsedAt}</f:then><f:else><span class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.never" default="Not used yet" /></span></f:else></f:if></dd>
+        </div>
+        <f:if condition="{token.status} == 'revoked'">
+            <f:then>
+                <div class="aqg-mcp-conn__fact">
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.ended" default="Ended" /></dt>
+                    <dd class="aqg-mcp-num">{token.revokedAt}<f:if condition="{token.revokedByName}"> <span class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.revokedBy" arguments="{0: token.revokedByName}" default="by %s" /></span></f:if></dd>
+                </div>
+            </f:then>
+            <f:else>
+                <div class="aqg-mcp-conn__fact">
+                    <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.expires" default="Expires" /></dt>
+                    <dd class="aqg-mcp-num">{token.expiresAt}</dd>
+                </div>
+            </f:else>
+        </f:if>
+    </dl>
+    <f:if condition="{token.revocable}">
+        <details class="aqg-mcp-conn__revoke">
+            <summary class="btn btn-default btn-sm aqg-mcp-conn__revoke-open"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.revokeOpen" default="Revoke…" /><span class="visually-hidden"> {token.clientName} {token.tokenLabel}</span></summary>
+            <form method="post" action="{revokeUrl}" class="aqg-mcp-conn__confirm" data-aqg-mcp-revoke="true">
+                <input type="hidden" name="tokenId" value="{token.id}" />
+                <p class="aqg-mcp-conn__confirm-title"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.revokeTitle" default="Revoke this connection?" /></strong></p>
+                <p class="aqg-mcp-conn__confirm-text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.revokeText" default="The agent loses access immediately. To use it again, connect it anew from the agent." /></p>
+                <button type="submit" class="btn btn-danger btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.revokeConfirm" default="Revoke access" /><span class="visually-hidden"> {token.clientName} {token.tokenLabel}</span></button>
+            </form>
+        </details>
+    </f:if>
+</article>
+</html>
