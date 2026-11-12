@@ -351,7 +351,7 @@ final class RemoteExportBuilder
             'Suggested background candidates',
             'Candidate note',
             ...($withScanKind ? ['Scan kind'] : []),
-        ]), ';');
+        ]), ';', '"', '\\');
     }
 
     /**
@@ -394,7 +394,7 @@ final class RemoteExportBuilder
                     '',
                     '',
                     '',
-                ]), ';');
+                ]), ';', '"', '\\');
 
                 continue;
             }
@@ -423,7 +423,7 @@ final class RemoteExportBuilder
                     $contrastCsv['suggestedForegroundCandidates'],
                     $contrastCsv['suggestedBackgroundCandidates'],
                     $contrastCsv['candidateNote'],
-                ]), ';');
+                ]), ';', '"', '\\');
             }
         }
     }
@@ -482,7 +482,7 @@ final class RemoteExportBuilder
                     '',
                     '',
                     ...$scanKindColumn,
-                ]), ';');
+                ]), ';', '"', '\\');
 
                 continue;
             }
@@ -512,7 +512,7 @@ final class RemoteExportBuilder
                     $contrastCsv['suggestedBackgroundCandidates'],
                     $contrastCsv['candidateNote'],
                     ...$scanKindColumn,
-                ]), ';');
+                ]), ';', '"', '\\');
             }
         }
 

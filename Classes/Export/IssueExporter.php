@@ -50,7 +50,7 @@ final class IssueExporter
             'Last Seen',
             'Ignored By',
             'Ignored Reason',
-        ]), ';');
+        ]), ';', '"', '\\');
 
         foreach ($issues as $issue) {
             fputcsv($output, CsvValueSanitizer::sanitizeRow([
@@ -70,7 +70,7 @@ final class IssueExporter
                 !empty($issue['crdate']) ? date('Y-m-d H:i:s', (int)$issue['crdate']) : '',
                 !empty($issue['tstamp']) ? date('Y-m-d H:i:s', (int)$issue['tstamp']) : '',
                 ...self::ignoreColumns($issue),
-            ]), ';');
+            ]), ';', '"', '\\');
         }
 
         rewind($output);

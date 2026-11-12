@@ -154,6 +154,13 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      # TYPO3 FAL image processing (AiImagePayloadBuilderFunctionalTest) uses GraphicsMagick at /usr/bin/, as in DDEV.
+      - name: Install GraphicsMagick
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends graphicsmagick
+          gm version | head -1
+
       # phpunit.xml sets TYPO3_PATH_ROOT=/var/www/html, as in DDEV: the host project lives there.
       - name: Create TYPO3 ${{ matrix.typo3 }} host project
         run: |

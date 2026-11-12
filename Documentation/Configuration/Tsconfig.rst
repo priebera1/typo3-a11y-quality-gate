@@ -112,6 +112,14 @@ the AI options, and two example groups are in
     review AI fixes requested by other people. Without it, users review their
     own requests.
 
+..  confval:: options.a11y_quality_gate.mcp.connect
+    :type: boolean
+    :Default: 0
+
+    ``1`` lets the user connect AI agents through the AQG MCP Gateway
+    (:guilabel:`My connected agents`). It must be set explicitly, for
+    administrators too. See :ref:`developer-agent-access`.
+
 ..  note::
     ``showToolbarItem``, ``showScanAll`` and ``showScanNow`` only affect
     non-administrators. Administrators always see the toolbar item and both scan
