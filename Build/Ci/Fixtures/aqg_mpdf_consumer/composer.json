@@ -1,0 +1,24 @@
+{
+    "name": "aqg-test/mpdf-consumer",
+    "description": "Negative-control fixture: a second Classic extension that genuinely requires mpdf/mpdf (F11-01).",
+    "type": "typo3-cms-extension",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "typo3/cms-core": "^13.4 || ^14.3",
+        "mpdf/mpdf": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "AqgTest\\MpdfConsumer\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "aqg_mpdf_consumer",
+            "version": "1.0.0",
+            "Package": {
+                "providesPackages": {}
+            }
+        }
+    }
+}

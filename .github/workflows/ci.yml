@@ -1,0 +1,392 @@
+name: AQG CI
+
+# Commit-bound CI and release-artefact identity for EXT:a11y_quality_gate (AQG 3.0.0 release engineering).
+#
+# Every job runs on the checked-out commit ($GITHUB_SHA); nothing is published. Both distributions are built from
+# that one commit by Build/Scripts/build-distributions.sh, built twice to prove byte-reproducibility, and verified by
+# Build/Scripts/verify-distributions.sh. While Build/Release/<version>/ exists, the distributed file inventories must be
+# byte-identical to it (3.0.0: the F13-r1 candidate, F12 plus the MCP post-connection and Fable remediation and the toolbar
+# refinement; re-approved 2026-11-10 from the F13 inventories (and before them F12, aqg-F12-dist-20261109T161256Z), which no
+# longer match) — a change to any distributed
+# file of a frozen version fails here until the version is bumped or the inventories are deliberately re-approved.
+# On a tag, the release-record job adds a signed build-provenance attestation of both ZIPs; it still publishes nothing
+# (no GitHub release, no TER upload, no Packagist action).
+
+on:
+  push:
+    branches: [main, 'release/**', 'integration/**']
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aqg-ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  COMPOSER_NO_INTERACTION: '1'
+  COMPOSER_NO_AUDIT: '1'
+
+jobs:
+  distributions:
+    name: Distributions (Composer + Classic) and provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      composer_sha256: ${{ steps.identity.outputs.composer_sha256 }}
+      classic_sha256: ${{ steps.identity.outputs.classic_sha256 }}
+    steps:
+      - name: Checkout with full history, the builder reads the commit objects
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: zip, json
+          coverage: none
+          tools: none
+
+      - name: Build both distributions twice from ${{ github.sha }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          Build/Scripts/build-distributions.sh . "$GITHUB_SHA" "$RUNNER_TEMP/dist"
+          Build/Scripts/build-distributions.sh . "$GITHUB_SHA" "$RUNNER_TEMP/dist-rebuild"
+          for f in "$RUNNER_TEMP"/dist/*; do cmp "$f" "$RUNNER_TEMP/dist-rebuild/$(basename "$f")"; done
+          echo "Two builds of $GITHUB_SHA are byte-identical."
+          test -z "$(git status --porcelain)" || { git status --porcelain; echo "builder changed the checkout" >&2; exit 1; }
+
+      - name: Verify distributions (and the frozen inventories of this version)
+        run: |
+          version=$(php -r 'echo json_decode(file_get_contents("composer.json"))->extra->{"typo3/cms"}->version;')
+          expected=""
+          if [ -d "Build/Release/$version" ]; then expected="Build/Release/$version"; fi
+          Build/Scripts/verify-distributions.sh "$RUNNER_TEMP/dist" $expected
+
+      - name: Record artefact identity
+        id: identity
+        run: |
+          cd "$RUNNER_TEMP/dist"
+          p=$(ls a11y_quality_gate_*-provenance.json)
+          version=$(php -r 'echo json_decode(file_get_contents($argv[1]))->version;' "$p")
+          sha256sum a11y_quality_gate_*.zip "$p" inventory-*.sha256 > SHA256SUMS
+          php -r '
+            $p = json_decode(file_get_contents($argv[1]), true);
+            $p["ci"] = ["repository" => getenv("GITHUB_REPOSITORY"), "ref" => getenv("GITHUB_REF"), "commit" => getenv("GITHUB_SHA"),
+                "runId" => getenv("GITHUB_RUN_ID"), "runAttempt" => getenv("GITHUB_RUN_ATTEMPT"), "workflow" => getenv("GITHUB_WORKFLOW_REF"),
+                "builtAt" => gmdate("Y-m-d\TH:i:s\Z")];
+            file_put_contents("release-identity.json", json_encode($p, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+          ' "$p"
+          {
+            echo "version=$version"
+            echo "composer_sha256=$(php -r 'echo json_decode(file_get_contents($argv[1]))->composer->sha256;' "$p")"
+            echo "classic_sha256=$(php -r 'echo json_decode(file_get_contents($argv[1]))->classic->sha256;' "$p")"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### AQG $version distributions from \`$GITHUB_SHA\`"
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: aqg-distributions-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/dist/*.zip
+            ${{ runner.temp }}/dist/*.json
+            ${{ runner.temp }}/dist/*.sha256
+            ${{ runner.temp }}/dist/*.diff
+            ${{ runner.temp }}/dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+
+  php:
+    name: PHP ${{ matrix.php }} / TYPO3 ${{ matrix.typo3 }} (unit + functional, MariaDB, Workspaces)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    continue-on-error: ${{ matrix.informational }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { typo3: '13', php: '8.2', informational: false }
+          - { typo3: '14', php: '8.2', informational: false }
+          # Newer PHP is informational until accepted (known PHP-01 deprecation on 8.5); it never gates a release.
+          - { typo3: '14', php: '8.4', informational: true }
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      typo3DatabaseDriver: mysqli
+      typo3DatabaseHost: 127.0.0.1
+      typo3DatabasePort: '3306'
+      typo3DatabaseName: func
+      typo3DatabaseUsername: root
+      typo3DatabasePassword: root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ext
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: intl, mbstring, mysqli, pdo_mysql, gd, zip, sodium, xml, fileinfo, curl
+          ini-values: memory_limit=2G, error_reporting=E_ALL
+          coverage: none
+          tools: composer:v2
+
+      # phpunit.xml sets TYPO3_PATH_ROOT=/var/www/html, as in DDEV: the host project lives there.
+      - name: Create TYPO3 ${{ matrix.typo3 }} host project
+        run: |
+          sudo mkdir -p /var/www/html && sudo chown "$USER" /var/www/html
+          ext/Build/Ci/create-host-project.sh ${{ matrix.typo3 }} /var/www/html ext tests
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ matrix.typo3 }}-${{ matrix.php }}-${{ hashFiles('ext/composer.json') }}
+
+      - name: Composer update
+        working-directory: /var/www/html
+        run: |
+          composer update --no-progress --prefer-dist
+          composer show | grep -E '^(typo3/cms-core|typo3/cms-workspaces|mpdf/mpdf|typo3/testing-framework|phpunit/phpunit) '
+
+      - name: Unit tests
+        working-directory: /var/www/html/packages/a11y_quality_gate
+        run: ../../vendor/bin/phpunit -c phpunit.unit.xml --no-coverage --log-junit /var/www/html/junit-unit.xml
+
+      - name: Functional tests (MariaDB 10.11, Workspaces)
+        working-directory: /var/www/html/packages/a11y_quality_gate
+        run: ../../vendor/bin/phpunit -c phpunit.xml --no-coverage --log-junit /var/www/html/junit-functional.xml
+
+      # Already part of the suites above; listed separately so the release record names the F12 regressions explicitly.
+      - name: F12 regression tests (F11-01 … F11-04)
+        working-directory: /var/www/html/packages/a11y_quality_gate
+        run: |
+          ../../vendor/bin/phpunit -c phpunit.unit.xml --no-coverage Tests/Unit/Configuration/ClassicPackageContractTest.php
+          ../../vendor/bin/phpunit -c phpunit.unit.xml --no-coverage Tests/Unit/Configuration/ReleasePackageManifestTest.php
+          ../../vendor/bin/phpunit -c phpunit.unit.xml --no-coverage Tests/Unit/Configuration/ReleaseVersionConsistencyTest.php
+          for t in ReleaseQa/UnsavedRemoteExportAndCompareTest Controller/OverviewUnsavedRemoteResultTest Backend/ToolbarReadableRemoteScanFunctionalTest; do
+            ../../vendor/bin/phpunit -c phpunit.xml --no-coverage "Tests/Functional/$t.php"
+          done
+
+      # Also part of the suites above; named so the release record shows the F13 MCP regressions (Fable F-02, F-05,
+      # F-06, F-08, F-10, CG-2, post-connection fixes) explicitly.
+      - name: F13 MCP regression tests
+        working-directory: /var/www/html/packages/a11y_quality_gate
+        run: |
+          for t in Mcp/McpCallRunnerTest Mcp/McpConnectorWorkerPoolTest Command/McpConnectorParallelTest Configuration/McpConsentClarityTest Mcp/McpAccountUrlTest; do
+            ../../vendor/bin/phpunit -c phpunit.unit.xml --no-coverage "Tests/Unit/$t.php"
+          done
+          for t in McpParallelDeliveryFunctionalTest McpConsentDecisionFunctionalTest McpAuditPaginationFunctionalTest McpPostConnectionFunctionalTest; do
+            ../../vendor/bin/phpunit -c phpunit.xml --no-coverage "Tests/Functional/Mcp/$t.php"
+          done
+
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-typo3-${{ matrix.typo3 }}-php-${{ matrix.php }}
+          path: |
+            /var/www/html/junit-*.xml
+            /var/www/html/composer.lock
+          if-no-files-found: warn
+
+  javascript:
+    name: JavaScript tests and compiled assets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install (lockfile)
+        run: npm ci --no-audit --no-fund
+
+      - name: Vitest
+        run: npx vitest run Tests/JavaScript
+
+      - name: Compiled CSS equals the committed CSS
+        run: |
+          npm run build
+          git diff --exit-code --stat -- Resources/Public/Css
+          test -z "$(git status --porcelain -- Resources/Public)" || { git status --porcelain -- Resources/Public; exit 1; }
+
+  classic:
+    name: Genuine Classic TYPO3 ${{ matrix.typo3 }} (Classic ZIP + mPDF coexistence negative control)
+    needs: distributions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        typo3: ['13', '14']
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - name: Checkout (Build/Ci only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: intl, mbstring, mysqli, pdo_mysql, gd, zip, sodium, xml, fileinfo, curl
+          ini-values: memory_limit=1G
+          coverage: none
+          tools: none
+
+      - name: Download distributions of ${{ github.sha }}
+        uses: actions/download-artifact@v4
+        with:
+          name: aqg-distributions-${{ github.sha }}
+          path: ${{ runner.temp }}/dist
+
+      - name: Classic coexistence (TYPO3 ${{ matrix.typo3 }})
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: root
+        run: |
+          v=${{ needs.distributions.outputs.version }}
+          Build/Ci/classic-coexistence.sh ${{ matrix.typo3 }} \
+            "$RUNNER_TEMP/dist/a11y_quality_gate_${v}-classic.zip" "$RUNNER_TEMP/dist/a11y_quality_gate_${v}-composer.zip" \
+            "$RUNNER_TEMP/classic" "$RUNNER_TEMP/classic-t${{ matrix.typo3 }}.log"
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: classic-t${{ matrix.typo3 }}
+          path: ${{ runner.temp }}/classic-t${{ matrix.typo3 }}.log
+
+  composer-resolution:
+    name: Composer resolution TYPO3 ${{ matrix.typo3 }} (Composer ZIP locks mPDF, Classic does not)
+    needs: distributions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        typo3: ['13', '14']
+    steps:
+      - name: Checkout (Build/Ci only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: intl, mbstring, gd, zip, xml, fileinfo, curl
+          coverage: none
+          tools: composer:v2
+
+      - name: Download distributions of ${{ github.sha }}
+        uses: actions/download-artifact@v4
+        with:
+          name: aqg-distributions-${{ github.sha }}
+          path: ${{ runner.temp }}/dist
+
+      - name: Resolve and render a PDF
+        run: |
+          v=${{ needs.distributions.outputs.version }}
+          Build/Ci/composer-resolution.sh ${{ matrix.typo3 }} \
+            "$RUNNER_TEMP/dist/a11y_quality_gate_${v}-composer.zip" "$RUNNER_TEMP/dist/a11y_quality_gate_${v}-classic.zip" \
+            "$RUNNER_TEMP/resolve"
+
+  documentation:
+    name: Documentation
+    uses: ./.github/workflows/tests-documentation.yml
+
+  release-record:
+    name: Release record (identity of a fully green commit)
+    needs: [distributions, php, javascript, classic, composer-resolution, documentation]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Require every gating job to have passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | python3 -c '
+          import json, sys
+          needs = json.load(sys.stdin)
+          bad = {k: v["result"] for k, v in needs.items() if v["result"] != "success"}
+          print("\n".join("%s: %s" % (k, v["result"]) for k, v in needs.items()))
+          sys.exit(1 if bad else 0)'
+
+      - name: Download distributions of ${{ github.sha }}
+        uses: actions/download-artifact@v4
+        with:
+          name: aqg-distributions-${{ github.sha }}
+          path: dist
+
+      - name: Check artefact identity
+        run: |
+          cd dist && sha256sum -c SHA256SUMS
+          grep -q "\"commit\": \"$GITHUB_SHA\"" release-identity.json
+          grep -q "\"sourceCommit\": \"$GITHUB_SHA\"" release-identity.json
+
+      - name: Attest build provenance (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/a11y_quality_gate_*-composer.zip
+            dist/a11y_quality_gate_*-classic.zip
+
+      - name: Summary
+        run: |
+          {
+            echo "### AQG ${{ needs.distributions.outputs.version }} — all gating jobs passed on \`$GITHUB_SHA\`"
+            echo "- Composer ZIP sha256 \`${{ needs.distributions.outputs.composer_sha256 }}\`"
+            echo "- Classic/TER ZIP sha256 \`${{ needs.distributions.outputs.classic_sha256 }}\`"
+            echo "- Nothing was published by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
