@@ -39,7 +39,7 @@ final class RenderedPageUrlResolver
 
         $url = $this->appendRenderedCheckParameter($url, $pageUid, $languageUid);
         $siteBase = (string)$site->getBase();
-        $allowedHost = strtolower((string)(parse_url($siteBase, PHP_URL_HOST) ?: parse_url($url, PHP_URL_HOST) ?: ''));
+        $allowedHost = strtolower(\Priebera\A11yQualityGate\Utility\UrlAuthority::host($siteBase) ?: \Priebera\A11yQualityGate\Utility\UrlAuthority::host($url));
         if ($allowedHost === '') {
             return null;
         }

@@ -173,6 +173,27 @@ final class FreePreviewActivationSettingsFunctionalTest extends AbstractFunction
         self::assertSame(FreePreviewActivationService::STATE_DISABLED, $service->status('https://aqg-client.de/en/')['state']);
     }
 
+    #[Test]
+    public function anInstallationWithOnlyLocalSitesIsToldWhyItCannotActivate(): void
+    {
+        // Product acceptance F-02: the form offered only a disabled domain and ended in "Please select an item".
+        $this->createSites(['local' => [1, 'https://aqg-pra.ddev.site/'], 'lan' => [2, 'http://192.168.1.20/']]);
+        $this->setUpEditorWithMounts('1,2');
+
+        $view = $this->activationView();
+        self::assertTrue($view['hasSites']);
+        self::assertFalse($view['hasPublicSites']);
+    }
+
+    #[Test]
+    public function oneReachableSiteKeepsTheActivationForm(): void
+    {
+        $this->createSites(['local' => [1, 'https://aqg-pra.ddev.site/'], 'public' => [2, 'https://www.aqg-public-shop.de/']]);
+        $this->setUpEditorWithMounts('1,2');
+
+        self::assertTrue($this->activationView()['hasPublicSites']);
+    }
+
     /** @return array<string, mixed> */
     private function activationView(): array
     {

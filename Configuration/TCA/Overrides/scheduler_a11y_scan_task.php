@@ -19,7 +19,6 @@ ExtensionManagementUtility::addTCAcolumns(
         A11yScanTask::PARAM_PAGE_UID => [
             'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.field.pageUid',
             'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.field.pageUid.help',
-            'onChange' => 'reload',
             'config' => [
                 'type' => 'number',
                 'default' => 0,
@@ -31,7 +30,6 @@ ExtensionManagementUtility::addTCAcolumns(
         A11yScanTask::PARAM_ROOT_PID => [
             'label' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.field.rootPid',
             'description' => 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scheduler.field.rootPid.help',
-            'onChange' => 'reload',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',

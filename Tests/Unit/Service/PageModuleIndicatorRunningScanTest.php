@@ -166,7 +166,6 @@ final class PageModuleIndicatorRunningScanTest extends TestCase
             reason: null,
             reasonLabel: null,
             statusLabel: 'Licence active — Pro',
-            showProHints: true,
             hasCrawler: true,
             hasExportPdf: true,
             hasMultiSite: false,

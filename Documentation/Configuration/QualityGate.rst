@@ -7,8 +7,16 @@ Quality gate (publishing)
 ============================
 
 The quality gate evaluates the open findings of a page when an editor publishes
-or unhides it, that is, when a hidden page record is made visible. It is configured on the :guilabel:`Publishing rules` tab of the
-Settings view and stored in the ruleset record :sql:`tx_a11y_ruleset`.
+or unhides it, that is, when a hidden page record is made visible. It is configured on the :guilabel:`Quality Gate` tab of the
+Settings view (administrators) and stored in the ruleset record :sql:`tx_a11y_ruleset`.
+
+..  figure:: /Images/settings-quality-gate.png
+    :alt: Settings, tab Quality Gate: the scope choice between Global
+          configuration and Per-site configuration, and a site override for
+          the site main with the mode "Block publish", 0 critical issues
+          allowed and warnings ignored.
+
+    The Quality Gate tab with a per-site override in blocking mode.
 
 ..  _configuration-quality-gate-fields:
 
@@ -17,15 +25,19 @@ Ruleset fields
 
 ..  confval:: publish_mode
     :type: int
-    :Default: 0
+    :Default: 1
 
-    Behaviour of the gate when a page is published or unhidden.
+    Behaviour of the gate when a page is published or unhidden. A new
+    installation warns (``1``) from the start, with the thresholds below, also
+    before an administrator has opened or saved :guilabel:`Settings`.
 
     ``0``
         Disabled. Nothing happens on publish.
     ``1``
-        Warn. The editor sees a warning listing the blocking findings and can
-        continue after reviewing it. Available in all editions.
+        Warn. The page is published (or unhidden) as requested; right after
+        that the editor sees a warning with the thresholds that failed, the
+        most severe rules on the page and where to fix them. Nothing is asked
+        or confirmed beforehand. Available in all editions.
     ``2``
         Block. The publish action is rejected while the thresholds are exceeded.
         Requires an active licence.
@@ -66,7 +78,7 @@ How the gate behaves
 *   The gate uses the findings that are currently stored. A page that has never
     been scanned has no findings and therefore always passes. Schedule regular
     scans so that the gate works on current data; see :ref:`automation`.
-*   In warn mode the editor is informed but keeps control over the publication.
+*   In warn mode the page is published and the editor is informed afterwards.
     In block mode the DataHandler operation is rejected.
 *   The gate runs when a hidden page is made visible: unhiding it in the page
     tree or list, or saving its page properties with the page set to visible.
@@ -75,6 +87,13 @@ How the gate behaves
     offline. A translated page is judged in its own language when the
     translation is made visible. Changes to content elements never run the
     gate; they give the editor feedback on the changed element.
+*   The gate also decides when a workspace is published (a record, a
+    selection, a stage or the whole workspace, including auto-publish) and the
+    request makes a page visible. AQG checks the content this request puts
+    live on that page before anything is written. In blocking mode with an
+    active licence nothing of the request is published; in warning mode, or
+    without a licence, it is published with a warning. Saving inside a
+    workspace runs neither the content feedback nor the gate.
 *   The gate applies to everyone who publishes or unhides a page, including
     backend users without access to the Accessibility module. It never grants
     access to the module.

@@ -84,6 +84,25 @@ final class PublishHook
 
     public function processDatamap_afterAllOperations(DataHandler $dataHandler): void
     {
+        // In a workspace this save created drafts, while the content scan reads live records only: neither feedback
+        // nor a gate decision could describe what was saved, so none is given (and nothing live is re-hidden).
+        if (isset($dataHandler->BE_USER) && (int)$dataHandler->BE_USER->workspace !== 0) {
+            if (($this->pagesBecomingVisible[spl_object_id($dataHandler)] ?? []) !== []) {
+                $this->addFlashMessage(
+                    message: $this->translate(
+                        'publish.flash.workspaceNotChecked',
+                        'The Quality Gate checks workspace changes when the workspace is published, not when they are saved.'
+                    ),
+                    title: $this->translate('publish.flash.warningTitle', 'AQG Warning'),
+                    severity: ContextualFeedbackSeverity::INFO,
+                    deduplicationKey: 'workspace-not-checked',
+                );
+            }
+            unset($this->pagesBecomingVisible[spl_object_id($dataHandler)]);
+
+            return;
+        }
+
         // Content feedback points editors to the AQG module, so only module users get it. The Quality Gate
         // is enforcement: it applies to everyone who can publish or unhide a page, including users without
         // access to the AQG module, and it never grants that access.
@@ -115,7 +134,7 @@ final class PublishHook
                 continue;
             }
 
-            $this->addContentElementFeedback($contentUid);
+            $this->addContentElementFeedback($contentUid, $site->getIdentifier());
         }
     }
 
@@ -127,6 +146,7 @@ final class PublishHook
             return;
         }
 
+        $entries = [];
         foreach ($datamap[Tables::PAGES] as $rawPageUid => $data) {
             if (!is_array($data)) {
                 continue;
@@ -136,10 +156,96 @@ final class PublishHook
             if ($pageUid <= 0 || !isset($this->pagesBecomingVisible[spl_object_id($dataHandler)][$pageUid])) {
                 continue;
             }
+            // G-01: only a page that really became visible is gated. A refused change (no edit permission, a failed
+            // validation) leaves it hidden; TYPO3 reports that itself, and a gate verdict would describe an unhide
+            // that never happened.
+            if (!$this->isStoredVisible($pageUid)) {
+                continue;
+            }
 
             [$gatedPageUid, $languageUid] = $this->resolveGatedPage($pageUid, (int)($data['sys_language_uid'] ?? 0));
-            $this->scanAndCheckPageGate($gatedPageUid, $dataHandler, $languageUid, $pageUid);
+            $entries[] = [$pageUid, $gatedPageUid, $languageUid];
         }
+
+        // Default-language pages first: a translation unhidden in the same save stays offline when its default page is
+        // blocked, so it is neither judged nor reported as "now visible" (ML-01).
+        usort($entries, static fn (array $a, array $b): int => ($a[2] === 0 ? 0 : 1) <=> ($b[2] === 0 ? 0 : 1));
+        $blockedDefaultPages = [];
+        foreach ($entries as [$pageUid, $gatedPageUid, $languageUid]) {
+            if ($languageUid > 0 && isset($blockedDefaultPages[$gatedPageUid])) {
+                continue;
+            }
+            $staysVisible = $this->scanAndCheckPageGate($gatedPageUid, $dataHandler, $languageUid, $pageUid);
+
+            if ($languageUid === 0 && $gatedPageUid === $pageUid) {
+                if (!$staysVisible) {
+                    // A blocked default page takes its translations offline again: they are not published, so not judged.
+                    $blockedDefaultPages[$pageUid] = true;
+                    continue;
+                }
+                $this->checkTranslationsPublishedWithDefaultPage($pageUid, $dataHandler);
+            }
+        }
+    }
+
+    /**
+     * ML-01: a hidden default-language page keeps every translation offline. Unhiding it publishes each translation
+     * whose own record is visible, so each of them is judged on its own findings, in its own language, and only a
+     * failing translation is re-hidden (the default page passed or failed on its own). A translation unhidden in the
+     * same save is judged by its own entry and not twice; hidden, deleted and workspace translations stay offline.
+     */
+    private function checkTranslationsPublishedWithDefaultPage(int $pageUid, DataHandler $dataHandler): void
+    {
+        $site = $this->siteResolutionService->resolveSiteByPageId($pageUid);
+        // Without a gate there is no verdict to give: no extra scans inside the save request.
+        if ($site === null || !$this->qualityGateChecker->isEnabledForSite($site->getIdentifier())) {
+            return;
+        }
+
+        try {
+            $translations = $this->connectionPool->getConnectionForTable(Tables::PAGES)->fetchAllAssociative(
+                'SELECT uid, sys_language_uid FROM pages WHERE l10n_parent = ? AND sys_language_uid > 0'
+                . ' AND hidden = 0 AND deleted = 0 AND t3ver_wsid = 0 ORDER BY sys_language_uid',
+                [$pageUid],
+            );
+        } catch (\Throwable) {
+            $translations = [];
+        }
+
+        foreach ($translations as $translation) {
+            $translationUid = (int)($translation['uid'] ?? 0);
+            $translationLanguageUid = (int)($translation['sys_language_uid'] ?? 0);
+            if ($translationUid <= 0 || $translationLanguageUid <= 0
+                || isset($this->pagesBecomingVisible[spl_object_id($dataHandler)][$translationUid])) {
+                continue;
+            }
+            try {
+                $siteLanguage = $site->getLanguageById($translationLanguageUid);
+            } catch (\Throwable) {
+                // Not a language of this site: the frontend does not serve it, so nothing goes live.
+                continue;
+            }
+            if (!$siteLanguage->isEnabled()) {
+                continue;
+            }
+
+            $this->scanAndCheckPageGate($pageUid, $dataHandler, $translationLanguageUid, $translationUid);
+        }
+    }
+
+    private function isStoredVisible(int $pageUid): bool
+    {
+        try {
+            $hidden = $this->connectionPool->getConnectionForTable(Tables::PAGES)->fetchOne(
+                'SELECT hidden FROM pages WHERE uid = ? AND deleted = 0',
+                [$pageUid],
+            );
+        } catch (\Throwable) {
+            // Unreadable: keep gating (the gate decides on the scan, never on a guess that nothing changed).
+            return true;
+        }
+
+        return in_array($hidden, [0, '0'], true);
     }
 
     /**
@@ -226,7 +332,9 @@ final class PublishHook
      */
     private function resolveContentPageUid(int $contentUid, array $data): int
     {
-        if (isset($data['pid']) && is_numeric($data['pid'])) {
+        // A positive pid is the page. A negative one is DataHandler's "after the element |pid|" (the Page module's
+        // "+ Content" below an element, paste after): the saved element is asked for its page instead.
+        if (isset($data['pid']) && is_numeric($data['pid']) && (int)$data['pid'] > 0) {
             return (int)$data['pid'];
         }
 
@@ -240,10 +348,10 @@ final class PublishHook
             return 0;
         }
 
-        return is_array($record) && isset($record['pid']) ? (int)$record['pid'] : 0;
+        return is_array($record) && (int)($record['pid'] ?? 0) > 0 ? (int)$record['pid'] : 0;
     }
 
-    private function addContentElementFeedback(int $contentUid): void
+    private function addContentElementFeedback(int $contentUid, string $siteIdentifier = ''): void
     {
         $fieldsToCheck = array_values(array_unique(array_merge(
             $this->contentCollector->getRteFieldsForTable(Tables::TT_CONTENT),
@@ -260,6 +368,7 @@ final class PublishHook
                     Tables::TT_CONTENT,
                     $contentUid,
                     $field,
+                    $siteIdentifier,
                 ),
             );
         }
@@ -281,11 +390,15 @@ final class PublishHook
             return;
         }
 
+        $total = $counts['critical'] + $counts['warning'] + $counts['info'];
         $message = sprintf(
-            $this->translate(
+            $this->pluralLabel(
+                $total,
                 'publish.flash.contentIssues',
-                'This content element has %s accessibility issue(s). Open the Accessibility module to review details.'
+                'This content element has %1$d accessibility issue: %2$s. Open the Accessibility module to review details.',
+                'This content element has %1$d accessibility issues: %2$s. Open the Accessibility module to review details.'
             ),
+            $total,
             implode(', ', $parts),
         );
 
@@ -299,12 +412,13 @@ final class PublishHook
 
     /**
      * @param int $pageRecordUid the unhidden page record (a translation is re-hidden, not its default-language page)
+     * @return bool false when the gate re-hid the page record
      */
-    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler, int $languageUid = 0, int $pageRecordUid = 0): void
+    private function scanAndCheckPageGate(int $pageUid, DataHandler $dataHandler, int $languageUid = 0, int $pageRecordUid = 0): bool
     {
         $site = $this->siteResolutionService->resolveSiteByPageId($pageUid);
         if ($site === null) {
-            return;
+            return true;
         }
 
         try {
@@ -324,22 +438,27 @@ final class PublishHook
                     ),
                     title: $this->translate('publish.flash.warningTitle', 'AQG Warning'),
                     severity: ContextualFeedbackSeverity::WARNING,
-                    deduplicationKey: 'page-not-checked:' . $pageUid,
+                    deduplicationKey: 'page-not-checked:' . $pageUid . ':' . $languageUid,
                 );
             }
 
-            return;
+            return true;
         }
 
         $scannedAt = time();
         $verdict = $this->qualityGateChecker->check($pageUid, $site->getIdentifier(), $languageUid);
 
         if ($verdict->isPassed()) {
-            return;
+            return true;
         }
 
+        // A translation's verdict names its language: the editor may have unhidden the default page only.
+        $languagePrefix = $this->languagePrefix($site, $languageUid);
+
         if ($verdict->isWarningOnly()) {
-            $message = $this->buildVerdictMessage($verdict, $scannedAt);
+            // M-03: Warn does not stop or ask; the page is already visible. Say so, and name what tripped the gate.
+            $message = $languagePrefix . $this->translate('publish.flash.warnPublished', 'The page is now visible. It does not meet the Quality Gate:')
+                . ' ' . $this->buildVerdictMessage($verdict, $scannedAt, $this->failingIssueSummary($pageUid, $site->getIdentifier(), $languageUid));
 
             $this->addFlashMessage(
                 message: $message,
@@ -348,7 +467,7 @@ final class PublishHook
                 deduplicationKey: 'page-warning:' . $pageUid . ':' . md5($message),
             );
 
-            return;
+            return true;
         }
 
         $proStatus = $this->getProStatusForSite((string)$site->getBase());
@@ -356,7 +475,7 @@ final class PublishHook
         if ($verdict->isBlockingMode() && $proStatus->valid) {
             $this->reHidePage($pageRecordUid > 0 ? $pageRecordUid : $pageUid);
 
-            $message = $this->buildVerdictMessage($verdict, $scannedAt);
+            $message = $languagePrefix . $this->buildVerdictMessage($verdict, $scannedAt);
 
             if ($proStatus->isTrial) {
                 $message .= ' ' . $this->translate(
@@ -372,10 +491,10 @@ final class PublishHook
                 deduplicationKey: 'page-block:' . $pageUid . ':' . md5($message),
             );
 
-            return;
+            return false;
         }
 
-        $message = $this->buildVerdictMessage($verdict, $scannedAt);
+        $message = $languagePrefix . $this->buildVerdictMessage($verdict, $scannedAt);
 
         $this->addFlashMessage(
             message: $message,
@@ -383,15 +502,74 @@ final class PublishHook
             severity: ContextualFeedbackSeverity::WARNING,
             deduplicationKey: 'page-fallback-warning:' . $pageUid . ':' . md5($message),
         );
+
+        return true;
     }
 
-    private function buildVerdictMessage(QualityGateVerdict $verdict, int $scannedAt): string
+    /**
+     * M-03: the rule names behind the verdict (most severe first, at most three) and where to fix them, so the warning
+     * is actionable without opening the Overview first. Flash messages carry no links; the path is named instead.
+     */
+    private function failingIssueSummary(int $pageUid, string $siteIdentifier, int $languageUid): string
+    {
+        try {
+            $issues = $this->issueRepository->findOpenForPage($pageUid, $siteIdentifier, $languageUid, true);
+        } catch (\Throwable) {
+            return '';
+        }
+        $byRule = [];
+        foreach ($issues as $issue) {
+            $severity = (int)($issue['severity'] ?? 9);
+            if ($severity > 2) {
+                continue;
+            }
+            $label = trim((string)($issue['message'] ?? $issue['rule_id'] ?? ''));
+            $key = (string)($issue['rule_id'] ?? $label);
+            $byRule[$key] ??= ['label' => $label, 'severity' => $severity, 'count' => 0];
+            $byRule[$key]['count']++;
+        }
+        if ($byRule === []) {
+            return '';
+        }
+        uasort($byRule, static fn (array $a, array $b): int => [$a['severity'], -$a['count']] <=> [$b['severity'], -$b['count']]);
+        $parts = [];
+        foreach (array_slice($byRule, 0, 3) as $rule) {
+            $parts[] = $rule['count'] > 1 ? sprintf('%s (%d×)', rtrim($rule['label'], '.'), $rule['count']) : rtrim($rule['label'], '.');
+        }
+
+        // The gate applies to every user who unhides a page; only users with the module can open it (F-06).
+        return ' ' . sprintf(
+            $this->backendUserService->canAccessAccessibilityModule()
+                ? $this->translate('publish.flash.failingIssues', 'To fix: %1$s. Open Accessibility › this page to see every issue and its record.')
+                : $this->translate('publish.flash.failingIssues.noModule', 'To fix: %1$s. Ask a colleague with access to the Accessibility module to show you every issue and its record.'),
+            implode('; ', $parts)
+        );
+    }
+
+    private function languagePrefix(\TYPO3\CMS\Core\Site\Entity\Site $site, int $languageUid): string
+    {
+        if ($languageUid <= 0) {
+            return '';
+        }
+        try {
+            $title = trim($site->getLanguageById($languageUid)->getTitle());
+        } catch (\Throwable) {
+            $title = '';
+        }
+
+        return sprintf(
+            $this->translate('publish.flash.translationPrefix', 'Translation "%s":'),
+            $title !== '' ? $title : (string)$languageUid
+        ) . ' ';
+    }
+
+    private function buildVerdictMessage(QualityGateVerdict $verdict, int $scannedAt, string $failingIssues = ''): string
     {
         $reasons = [];
         foreach ($verdict->reasonDetails as $detail) {
             $template = $detail['severity'] === 'critical'
-                ? $this->translate('publish.flash.reason.critical', '%1$d critical issue(s) exceed threshold %2$d')
-                : $this->translate('publish.flash.reason.warning', '%1$d warning(s) exceed threshold %2$d');
+                ? $this->pluralLabel((int)$detail['count'], 'publish.flash.reason.critical', '%1$d critical issue exceeds threshold %2$d', '%1$d critical issues exceed threshold %2$d')
+                : $this->pluralLabel((int)$detail['count'], 'publish.flash.reason.warning', '%1$d warning exceeds threshold %2$d', '%1$d warnings exceed threshold %2$d');
             $reasons[] = sprintf($template, $detail['count'], $detail['threshold']);
         }
         if ($reasons === []) {
@@ -416,7 +594,7 @@ final class PublishHook
         );
 
         // The decision always rests on the content scan that ran just before it; frontend scans are not part of it.
-        return $message . ' ' . sprintf(
+        return $message . $failingIssues . ' ' . sprintf(
             $this->translate('publish.flash.scanBasis', 'Decision based on the content scan from %s.'),
             BackendTimeUtility::formatDateTime($scannedAt)
         );
@@ -426,12 +604,20 @@ final class PublishHook
     {
         $template = match ($severity) {
             'critical' => $this->translate('publish.flash.count.critical', '%d critical'),
-            'warning' => $this->translate('publish.flash.count.warning', '%d warning'),
+            'warning' => $this->pluralLabel($count, 'publish.flash.count.warning', '%d warning', '%d warnings'),
             'needs_review' => $this->translate('publish.flash.count.needsReview', '%d needs review'),
-            default => $this->translate('publish.flash.count.info', '%d info'),
+            default => $this->pluralLabel($count, 'publish.flash.count.info', '%d info', '%d info'),
         };
 
         return sprintf($template, $count);
+    }
+
+    /** The ".singular" label for exactly one, otherwise the ".plural" label (Atlas audit F-26: no "issue(s)"). */
+    private function pluralLabel(int $count, string $key, string $singular, string $plural): string
+    {
+        return $count === 1
+            ? $this->translate($key . '.singular', $singular)
+            : $this->translate($key . '.plural', $plural);
     }
 
     private function translate(string $key, string $fallback): string

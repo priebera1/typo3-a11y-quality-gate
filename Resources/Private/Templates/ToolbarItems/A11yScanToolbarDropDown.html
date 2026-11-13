@@ -2,17 +2,9 @@
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
-<span
-        data-a11y-toolbar-data="true"
-        data-a11y-running="{f:if(condition: toolbarRunning, then: '1', else: '0')}"
-        data-a11y-state="{toolbarState.state}"
-        data-a11y-tone="{toolbarState.tone}"
-        data-a11y-count="{toolbarState.count}"
-        data-a11y-label="{toolbarState.ariaLabel}"
-></span>
-
 <div class="aqt-pop" role="region" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ariaLabel', default: 'Accessibility Quality Gate toolbar summary')}">
-    <div class="aqt-pop__head">
+    <f:comment>The 15 s refresh replaces only the [data-aqt-refresh] parts; the assistant keeps its state and focus, and open scan sections stay open.</f:comment>
+    <div class="aqt-pop__head" data-aqt-refresh="head">
         <p class="dropdown-headline aqt-pop__title">
             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.title" default="Accessibility" />
         </p>
@@ -21,21 +13,38 @@
         </f:if>
     </div>
 
-    <ul class="aqt-sections">
-        <li class="aqt-sections__item">
-            <f:render partial="ToolbarItems/ScanCard" arguments="{card: contentCard}" />
-        </li>
-        <f:if condition="{frontendCard}">
-            <li class="aqt-sections__item">
-                <f:render partial="ToolbarItems/ScanCard" arguments="{card: frontendCard}" />
-            </li>
-        </f:if>
-    </ul>
+    <div class="aqt-pop__body">
+        <div class="aqt-assistant-slot" data-aqt-assistant="true" hidden="hidden"
+             data-label-loading="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.loading', default: 'Checking what is open…')}"
+             data-label-load-failed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.loadFailed', default: 'The assistant could not be loaded. The scan sections below are still current.')}"
+             data-label-reload="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.reload', default: 'Check again')}"></div>
 
-    <div class="aqt-pop__foot">
-        <a href="{moduleUrl}" class="btn btn-primary btn-sm aqt-pop__button">
-            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.openModule" default="Open Accessibility module" />
+        <div class="aqt-scans" data-aqt-status="true" data-aqt-refresh="scans">
+            <span
+                    data-a11y-toolbar-data="true"
+                    data-a11y-running="{f:if(condition: toolbarRunning, then: '1', else: '0')}"
+                    data-a11y-state="{toolbarState.state}"
+                    data-a11y-tone="{toolbarState.tone}"
+                    data-a11y-count="{toolbarState.count}"
+                    data-a11y-label="{toolbarState.ariaLabel}"
+            ></span>
+            <f:render partial="ToolbarItems/ScanCard" arguments="{card: contentCard}" />
+            <f:if condition="{frontendCard}">
+                <f:render partial="ToolbarItems/ScanCard" arguments="{card: frontendCard}" />
+            </f:if>
+        </div>
+    </div>
+    <p class="visually-hidden" data-aqt-scan-live="true" role="status" aria-live="polite" aria-atomic="true"></p>
+
+    <div class="aqt-pop__foot{f:if(condition: agentsUrl, then: ' aqt-pop__foot--two')}">
+        <a href="{moduleUrl}" class="btn btn-default aqt-pop__button" data-aqt-navigate="true">
+            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.openAccessibility" default="Open Accessibility" />
         </a>
+        <f:if condition="{agentsUrl}">
+            <a href="{agentsUrl}" class="btn btn-default aqt-pop__button" data-aqt-navigate="true" data-aqt-agents="true">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.agents" default="Open MCP" />
+            </a>
+        </f:if>
     </div>
 </div>
 </html>

@@ -160,28 +160,6 @@ final class RuleConfigurationService
     }
 
 
-    public function getShowProHintsFromRuleset(array $ruleset): ?bool
-    {
-        $configuration = $this->decodeRulesJson((string)($ruleset['rules_json'] ?? ''));
-        $ui = is_array($configuration['ui'] ?? null) ? $configuration['ui'] : [];
-
-        if (!array_key_exists('showProHints', $ui)) {
-            return null;
-        }
-
-        return filter_var($ui['showProHints'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? null;
-    }
-
-    public function encodeRulesJsonWithShowProHints(string $currentRulesJson, bool $showProHints): string
-    {
-        $configuration = $this->decodeRulesJson($currentRulesJson);
-        $ui = is_array($configuration['ui'] ?? null) ? $configuration['ui'] : [];
-        $ui['showProHints'] = $showProHints;
-        $configuration['ui'] = $ui;
-
-        return json_encode($configuration, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
-    }
-
     /**
      * @return list<string>
      */

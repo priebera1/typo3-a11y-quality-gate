@@ -43,6 +43,50 @@ Findings from all three check types appear in the **Accessibility** backend
 module, share the same ignore workflow and use stable fingerprints so that a
 finding keeps its state across rescans.
 
+Deterministic checks and AI are separate. Every check above is rule-based and
+never calls an AI provider. AI help is an optional addition for fixing
+selected findings, see :ref:`introduction-ai`.
+
+..  _introduction-editor-first:
+
+Where editors meet AQG
+======================
+
+*   **While writing:** CKEditor and Plain HTML content elements show issues as
+    they appear, with How to fix for each rule; after saving, AQG confirms what
+    is resolved (:ref:`usage-ckeditor`).
+*   **Images:** each image use in a content element shows its alternative text
+    state and a short hint when the text is missing (:ref:`usage-images`).
+*   **Page module and toolbar:** the accessibility state of the current page
+    and site, with a link to the page details (:ref:`usage-overview-toolbar`).
+*   **Publishing:** the Quality Gate warns or blocks when a page with too many
+    open issues is made visible (:ref:`configuration-quality-gate`).
+
+..  _introduction-ai:
+
+AI help in AQG 3.0
+==================
+
+AQG 3.0 adds optional AI help for fixing findings. It needs a PRO or Agency
+licence and an administrator who sets up a provider per site (OpenAI or
+Anthropic Claude, with your own key), verifies a model, confirms the data
+processing acknowledgement and may set a monthly budget
+(:ref:`configuration-ai`). Then:
+
+*   :guilabel:`Fix with AI` and :guilabel:`Explain` in CKEditor and Plain HTML
+    for link text, image alternative text, button names, iframe titles and
+    empty headings,
+*   alternative text for one image use and file metadata suggestions in the
+    metadata form,
+*   :guilabel:`Fix with AI`, :guilabel:`Explain with AI` and
+    :guilabel:`Suggest alt text with AI` in the page details, and the
+    :guilabel:`AI fixes` view for review and approval (:ref:`usage-ai-fixes`).
+
+Every suggestion is reviewed by a person. AQG applies nothing on its own, never
+writes rich text or HTML on the server, and confirms a fix only after it checked
+the saved record. AI does not repair every accessibility issue and does not
+make a page conformant.
+
 ..  _introduction-editions:
 
 Free and licensed features
@@ -61,7 +105,20 @@ require an active licence key.
         -   PRO
         -   Agency
 
-    *   -   CKEditor inline highlighting
+    *   -   Live checks in CKEditor and Plain HTML, How to fix, check after
+            saving
+        -   yes
+        -   yes
+        -   yes
+        -   yes
+
+    *   -   Image alternative text status, guidance and manual image fixes
+        -   yes
+        -   yes
+        -   yes
+        -   yes
+
+    *   -   Page module panel and toolbar status
         -   yes
         -   yes
         -   yes
@@ -145,7 +202,7 @@ require an active licence key.
         -   yes
         -   yes
 
-    *   -   PDF export
+    *   -   PDF export (Composer installations only)
         -   no
         -   no
         -   yes
@@ -157,7 +214,15 @@ require an active licence key.
         -   yes
         -   yes
 
-    *   -   AI-assisted text suggestions (bring your own OpenAI key)
+    *   -   Verify fix, acceptance evidence, scheduled monitoring
+        -   no
+        -   no
+        -   yes
+        -   yes
+
+    *   -   AI help (bring your own OpenAI or Anthropic key): Fix with AI and
+            Explain in editors, image alternative text and metadata
+            suggestions, AI fixes view, usage and budget
         -   no
         -   no
         -   yes

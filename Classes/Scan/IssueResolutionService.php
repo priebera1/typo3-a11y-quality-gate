@@ -59,6 +59,40 @@ final class IssueResolutionService
         );
     }
 
+    /**
+     * @param list<string> $configuredSiteIdentifiers
+     */
+    public function resolveOpenOfUnconfiguredSitesForPage(int $pageUid, array $configuredSiteIdentifiers, int $scanUid): int
+    {
+        return $this->issueRepository->resolveOpenOfUnconfiguredSitesForPage($pageUid, $configuredSiteIdentifiers, $scanUid);
+    }
+
+    /** U-09: findings of deleted pages and records (IssueRepository::resolveOpenOfDeletedSources()). */
+    /** @param list<string> $configuredSiteIdentifiers */
+    public function resolveOpenOfDeletedSources(string $siteIdentifier, array $configuredSiteIdentifiers, int $scanUid): int
+    {
+        $targets = [$siteIdentifier];
+        if ($configuredSiteIdentifiers !== []) {
+            $targets = [...$targets, ...$this->issueRepository->findSiteIdentifiersNotIn($configuredSiteIdentifiers)];
+        }
+
+        return $this->issueRepository->resolveOpenOfDeletedSources($targets, $scanUid);
+    }
+
+    /** ML-02: findings of deleted records of one page, in one language (-1: every language). */
+    public function resolveOpenOfDeletedRecordsOnPage(string $siteIdentifier, int $pageUid, int $languageUid, int $scanUid): int
+    {
+        return $this->issueRepository->resolveOpenOfDeletedRecordsOnPage($siteIdentifier, $pageUid, $languageUid, $scanUid);
+    }
+
+    /**
+     * @param list<int> $pageUids
+     */
+    public function resolveRenderedOnTranslationRows(array $pageUids, string $siteIdentifier, int $scanUid): int
+    {
+        return $this->issueRepository->resolveRenderedOnTranslationRows($pageUids, $siteIdentifier, $scanUid);
+    }
+
     public function resolveRenderedTechnicalErrorSnippetIssues(
         int $pageUid,
         string $siteIdentifier,

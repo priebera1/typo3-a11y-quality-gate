@@ -208,9 +208,8 @@ final class FileReferenceAltRule implements RuleInterface
                 ruleId: $this->getRuleId(),
                 severity: Severity::Critical,
                 message: sprintf(
-                    'Image "%s" has no alt text (file reference uid:%d).',
+                    'Image "%s" has no alt text.',
                     $item['file'],
-                    $item['uid'],
                 ),
                 hint: $this->getHint(),
                 contextSnippet: sprintf(
@@ -225,14 +224,12 @@ final class FileReferenceAltRule implements RuleInterface
         foreach ($warningItems as $item) {
             $message = $item['reason'] === 'decorative_with_alt'
                 ? sprintf(
-                    'Decorative image "%s" should use an empty alt text (file reference uid:%d).',
+                    'Decorative image "%s" should use an empty alt text.',
                     $item['file'],
-                    $item['uid'],
                 )
                 : sprintf(
-                    'Image "%s" uses title text instead of alt text (file reference uid:%d).',
+                    'Image "%s" uses title text instead of alt text.',
                     $item['file'],
-                    $item['uid'],
                 );
 
             $hint = $item['reason'] === 'decorative_with_alt'

@@ -37,7 +37,7 @@
             </details>
         </f:if>
 
-        <f:if condition="{remoteHasAdditionalAutomatedSignals}">
+        <f:if condition="{remoteHasAdditionalAutomatedSignals} && {remoteSignalTone} != 'pending' && {remoteSignalTone} != 'not-stored'">
             <details class="aqg-evidence__row" id="aqg-evidence-signals">
                 <summary class="aqg-evidence__summary">
                     <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.additionalSignals.title" default="Additional automated signals" /></span>
@@ -189,7 +189,7 @@
             <summary class="aqg-evidence__summary">
                 <span class="aqg-evidence__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.title" default="WCAG / BFSG / BITV reporting aid" /></span>
                 <span class="aqg-evidence__line">
-                    <f:if condition="{remoteReportingGroups.automatedIssuesLabel}">
+                    <f:if condition="{remoteReportingGroups.automatedIssuesLabel} && {remoteSignalTone} != 'pending' && {remoteSignalTone} != 'not-stored'">
                         <f:then>{remoteReportingGroups.automatedIssuesLabel}</f:then>
                         <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.subtitle" default="Automated WCAG-mapped findings grouped for reporting context. This does not confirm compliance." /></f:else>
                     </f:if>
@@ -198,7 +198,7 @@
             </summary>
             <div class="aqg-evidence__body">
                 <p class="aqg-evidence__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.reportingAid.subtitle" default="Automated WCAG-mapped findings grouped for reporting context. This does not confirm compliance." /></p>
-                <f:if condition="{remoteReportingGroups.groups}">
+                <f:if condition="{remoteReportingGroups.groups} && {remoteSignalTone} != 'pending' && {remoteSignalTone} != 'not-stored'">
                     <f:then>
                         <div class="aqg-table-wrap aqg-table-wrap--plain">
                             <table class="aqg-table aqg-table--compact">
@@ -223,6 +223,13 @@
                     </f:then>
                     <f:else>
                         <p>
+                            <f:if condition="{remoteSignalTone} == 'pending' || {remoteSignalTone} == 'not-stored'">
+                            <f:then>
+                                <f:comment>F11-02: nothing to group before the results are stored.</f:comment>
+                                <strong>{remotePriorityEmpty.title}</strong>
+                                {remotePriorityEmpty.body}
+                            </f:then>
+                            <f:else>
                             <f:if condition="{remoteScanHasIssues}">
                                 <f:then>
                                     <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyUnmappedTitle" default="No WCAG-mapped findings available" /></strong>
@@ -232,6 +239,8 @@
                                     <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyTitle" default="No WCAG breakdown available" /></strong>
                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.wcagBreakdown.emptyBody" default="Run a frontend scan to generate a breakdown by WCAG success criterion." />
                                 </f:else>
+                            </f:if>
+                            </f:else>
                             </f:if>
                         </p>
                     </f:else>

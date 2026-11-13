@@ -2,8 +2,8 @@
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-// Regression (2.0.2, AQG-202-10): the editor summary said "5 Criticals". Counts now read as a number plus a
-// singular/plural unit per severity ("1 critical issue", "5 critical issues"), translated through rte.count*.
+// Regression (2.0.2, AQG-202-10): the editor summary said "5 Criticals". Since the Atlas pass (audit F-09) the counts
+// are the shared severity badges ("1 Critical", "3 Warnings"), with singular/plural keys translated through rte.badge*.
 
 const issues = (severity, count) => Array.from({length: count}, (_, index) => ({severity, ruleId: 'rte.x', fingerprint: `${severity}-${index}`}));
 
@@ -43,22 +43,27 @@ describe('editor summary severity counts', () => {
         const validator = container.__aqgPlainHtmlValidator;
 
         validator.renderSummary([...issues('critical', 5), ...issues('warning', 1), ...issues('needs_review', 2), ...issues('info', 1)]);
-        expect(countsText(container)).toEqual(['5 critical issues', '1 warning', '2 need review', '1 info note']);
+        expect(countsText(container)).toEqual(['5 Critical', '1 Warning', '2 Needs review', '1 Info']);
 
         validator.renderSummary([...issues('critical', 1), ...issues('warning', 3), ...issues('info', 2)]);
-        expect(countsText(container)).toEqual(['1 critical issue', '3 warnings', '2 info notes']);
+        expect(countsText(container)).toEqual(['1 Critical', '3 Warnings', '2 Info']);
         expect(container.textContent).not.toContain('Criticals');
+        // A badge, not a monospace count pill: icon element plus one text run.
+        expect(container.querySelector('.ck-a11y-summary__count .ck-a11y-summary__count-dot')).not.toBeNull();
+        expect(container.querySelector('.ck-a11y-summary__count-num')).toBeNull();
     });
 
     it('uses the translated units of the wizard labels', () => {
         const container = mountPlainHtml('data[tt_content][8][bodytext]', {
-            countCriticalOne: 'kritisches Problem',
-            countCriticalOther: 'kritische Probleme',
-            countWarningOther: 'Warnungen',
+            badgeCritical: '%d Kritisch',
+            badgeWarningOne: '%d Warnung',
+            badgeWarningOther: '%d Warnungen',
         });
 
         container.__aqgPlainHtmlValidator.renderSummary([...issues('critical', 5), ...issues('warning', 2)]);
+        expect(countsText(container)).toEqual(['5 Kritisch', '2 Warnungen']);
 
-        expect(countsText(container)).toEqual(['5 kritische Probleme', '2 Warnungen']);
+        container.__aqgPlainHtmlValidator.renderSummary([...issues('warning', 1)]);
+        expect(countsText(container)).toEqual(['1 Warnung']);
     });
 });

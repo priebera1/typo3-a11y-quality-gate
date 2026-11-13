@@ -303,7 +303,24 @@ final class A11yScanTaskAdditionalFieldProvider extends AbstractAdditionalFieldP
         }
 
         if ($site === null) {
-            return [];
+            // U-06: a new task has no page yet; list every site's languages, labelled with their site. The task refuses
+            // a language its site does not have when it runs.
+            $byLanguage = [];
+            $sites = $this->getSiteFinder()->getAllSites();
+            ksort($sites);
+            foreach ($sites as $candidate) {
+                foreach ($candidate->getLanguages() as $language) {
+                    $label = (string)$language->getTitle();
+                    $byLanguage[$language->getLanguageId()][] = sprintf('%s (%d) · %s', $label !== '' ? $label : 'Language ' . $language->getLanguageId(), $language->getLanguageId(), $candidate->getIdentifier());
+                }
+            }
+            ksort($byLanguage);
+            $result = [];
+            foreach ($byLanguage as $languageUid => $labels) {
+                $result[] = ['languageUid' => (int)$languageUid, 'label' => implode(' / ', $labels)];
+            }
+
+            return $result;
         }
 
         $result = [];

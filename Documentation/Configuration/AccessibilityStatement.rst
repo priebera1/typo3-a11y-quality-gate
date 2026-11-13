@@ -68,8 +68,8 @@ statement available for copying or download.
 Output
 ======
 
-The result can be copied as HTML, downloaded as plain text or exported as PDF,
-and is meant to be published on a dedicated accessibility statement page of your
+The result can be copied as HTML, downloaded as plain text or, in Composer
+installations, exported as PDF (see :ref:`installation-classic`), and is meant to be published on a dedicated accessibility statement page of your
 site. AQG does not publish the statement for you. Publish the HTML version: the
 PDF is not tagged for screen readers and is only a printable copy, see
 :ref:`limitations-pdf`.

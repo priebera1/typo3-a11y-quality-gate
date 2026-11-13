@@ -28,6 +28,17 @@ hosted AQG scanner, reports findings in a dedicated backend module, highlights
 problems directly in CKEditor and can warn or block editors when a page is
 published above a configured issue threshold.
 
+AQG 3.0 adds optional AI help for fixing selected findings — in CKEditor, in
+the plain HTML editor, for images and in a reviewable :guilabel:`AI fixes`
+view — with per-site provider, privacy, budget and permission controls. Every
+AI suggestion is reviewed by a person and stored with TYPO3 Save.
+
+..  figure:: /Images/overview.png
+    :alt: The Accessibility Overview in the TYPO3 14 backend with open issues
+          by severity and a table of pages with open issues.
+
+    The Accessibility Overview in TYPO3 14.
+
 AQG helps teams find common accessibility problems early. It does not certify
 accessibility and does not replace a manual accessibility audit. See
 :ref:`limitations` for the exact scope of the automated checks.
@@ -71,12 +82,12 @@ accessibility and does not replace a manual accessibility audit. See
     ..  card:: :ref:`Configuration <configuration>`
 
         Scanned fields, rules, quality gate thresholds, licence activation,
-        remote scan access, AI suggestions and TSconfig.
+        remote scan access, AI suggestions, permissions and TSconfig.
 
     ..  card:: :ref:`Usage <usage>`
 
-        CKEditor highlighting, the Accessibility backend module, rendered page
-        checks, remote scans and report exports.
+        Checks while editing, image alternative text, the Accessibility
+        module, AI fixes, rendered page checks, frontend scans and exports.
 
     ..  card:: :ref:`Automation <automation>`
 

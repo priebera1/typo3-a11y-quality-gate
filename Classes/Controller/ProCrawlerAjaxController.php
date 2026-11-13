@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\FreePreview\FreePreviewException;
 use Priebera\A11yQualityGate\FreePreview\FreeRemotePreviewService;
 use Priebera\A11yQualityGate\FreePreview\FreeSubmitIntentService;
+use Priebera\A11yQualityGate\Mcp\McpScanRequestStore;
 use Priebera\A11yQualityGate\Pro\Enum\CrawlerJobStatus;
 use Priebera\A11yQualityGate\Pro\Enum\FeatureFlag;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
@@ -22,6 +24,7 @@ use Priebera\A11yQualityGate\Pro\Service\RemoteScanPersistenceService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanSubmissionTracker;
 use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
+use Priebera\A11yQualityGate\Rendered\RenderedPageTypeGuard;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\DateTimeService;
@@ -32,6 +35,7 @@ use Priebera\A11yQualityGate\Service\RemoteScanResponseService;
 use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
 use Priebera\A11yQualityGate\Service\ScanResultSummaryService;
+use Priebera\A11yQualityGate\Service\RemoteResultProvenanceService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteLanguageService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
@@ -40,6 +44,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Locking\LockFactory;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
@@ -76,6 +81,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         BackendUserService $backendUserService,
         private readonly ?RemoteScanSubmissionTracker $remoteScanSubmissionTracker = null,
         private readonly ?ScanResultSummaryService $scanResultSummaryService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -193,7 +199,8 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     ]);
                 }
 
-                if (!$this->scopeAccessService->canEditPage($requestedPageUid)) {
+                // P1-02: the page, the language and the page's current live translation (shared admission rule).
+                if (!$this->scopeAccessService->canScanPageInLanguage($requestedPageUid, $freeLanguageUid)) {
                     return $this->forbiddenResponse();
                 }
 
@@ -214,6 +221,11 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 $site,
                 $isFreePreview ? $freeLanguageUid : $languageUid
             );
+            // S-01: the scanned language must be one the user may use (the default language 0 included). A paid crawl
+            // without a language (-1, every language) stays admissible: its results are checked per result page.
+            if (!$this->scopeAccessService->canUseLanguage($isFreePreview ? $freeLanguageUid : ($languageContext !== null ? (int)$languageContext['languageId'] : -1))) {
+                return $this->forbiddenResponse();
+            }
             $resolved = $isFreePreview
                 ? $this->remoteScanInputResolver->resolveForFreePreview($site, $freePageUrl)
                 : ($languageContext !== null
@@ -383,6 +395,9 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     isFreePreview: $isFreePreview,
                 );
             }
+            if (!$isFreePreview) {
+                $this->remoteScanRepository->recordMaxPages($result->jobId, (int)$resolved->maxPages);
+            }
 
             $persistedScan = $this->remoteScanRepository->findScanByJobId($result->jobId);
 
@@ -454,6 +469,12 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
     }
 
+    /**
+     * Request attribute set only by the MCP connector (McpToolExecutor): the crawler Idempotency-Key of an agent's scan
+     * request (McpScanRequestStore). Attributes are server-side; a browser request cannot carry one.
+     */
+    public const MCP_SUBMIT_KEY_ATTRIBUTE = 'a11y.mcpScanSubmitKey';
+
     public function submitPageAction(ServerRequestInterface $request): ResponseInterface
     {
         // A single-page scan is "Scan this page", not a site crawl.
@@ -487,6 +508,13 @@ final class ProCrawlerAjaxController extends AbstractApiController
             if ($target instanceof ResponseInterface) {
                 return $target;
             }
+            // S-01: a scan in a language the user may not use (the default language 0 included) would only produce
+            // results the user may not read; it is refused at admission like the read check refuses its results.
+            // P1-02: so is a page whose current live translation the user may not read and edit
+            // (ScopeAccessService::canScanPageInLanguage(), shared with MCP, Verify fix and the Free Remote Preview).
+            if (!$this->scopeAccessService->canScanPageInLanguage($pageUid, $target['languageUid'])) {
+                return $this->forbiddenResponse();
+            }
 
             $submission = $this->submitBoundSinglePageScan(
                 site: $target['site'],
@@ -496,6 +524,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 axeLocale: $axeLocale,
                 cookieDismiss: $cookieDismiss,
                 requireProOrAgency: false,
+                crawlerIdempotencyKey: $this->mcpSubmitKey($request),
             );
 
             return $submission instanceof ResponseInterface
@@ -553,13 +582,22 @@ final class ProCrawlerAjaxController extends AbstractApiController
             return $this->forbiddenResponse();
         }
 
+        $scanLanguageUid = $this->storedRemotePageLanguage($finding['page'], $finding['scan']);
+        if ($scanLanguageUid === null && $this->hasLanguageRestriction()) {
+            return $this->forbiddenResponse();
+        }
+        $scanLanguageUid ??= 0;
+        if (!$this->scopeAccessService->canScanPageInLanguage($scanPageUid, $scanLanguageUid)
+            || !$this->mayScanStoredPageOwner($finding['page'], $site, $scanLanguageUid)) {
+            return $this->forbiddenResponse();
+        }
+
         try {
-            $scanLanguageUid = (int)($finding['scan']['language_uid'] ?? -1);
             $submission = $this->submitBoundSinglePageScan(
                 site: $site,
                 pageUrl: (string)($finding['page']['url'] ?? ''),
                 pageUid: $scanPageUid,
-                languageUid: $scanLanguageUid >= 0 ? $scanLanguageUid : 0,
+                languageUid: $scanLanguageUid,
                 axeLocale: 'en',
                 cookieDismiss: true,
                 requireProOrAgency: true,
@@ -648,6 +686,14 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
     }
 
+    /** The MCP connector's crawler Idempotency-Key, only in the format McpScanRequestStore issues. */
+    private function mcpSubmitKey(ServerRequestInterface $request): string
+    {
+        $key = $request->getAttribute(self::MCP_SUBMIT_KEY_ATTRIBUTE);
+
+        return is_string($key) && McpScanRequestStore::isCrawlerKey($key) ? $key : '';
+    }
+
     /**
      * Submits a single-page scan for a target already bound to the user's page: entitlement, the per-site
      * submit lock and the one-active-scan-per-site rule, the site's access settings, and the local scan row.
@@ -663,6 +709,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
         bool $cookieDismiss,
         bool $requireProOrAgency,
         string $submitPurpose = '',
+        string $crawlerIdempotencyKey = '',
     ): array|ResponseInterface {
         $siteIdentifier = $site->getIdentifier();
         $languageContext = $this->siteLanguageService->resolveLanguageContext($site, $languageUid);
@@ -688,6 +735,25 @@ final class ProCrawlerAjaxController extends AbstractApiController
             : $this->ensureCrawlerAccess($proStatus);
         if ($crawlerAccessResponse !== null) {
             return $crawlerAccessResponse;
+        }
+
+        // A preview scan reaches hidden pages only (ScannerPreviewMiddleware): a page outside its start/stop time or
+        // limited to frontend user groups would answer the crawler with its error page. Refused before any job exists,
+        // from the page as stored in TYPO3.
+        $unsupportedPreview = $this->remotePageScanTargetResolver->unsupportedPreviewRestriction(
+            $pageUid,
+            $languageContext !== null ? (int)$languageContext['languageId'] : 0,
+        );
+        if ($unsupportedPreview !== '') {
+            return $this->buildSimpleErrorResponse(
+                message: $unsupportedPreview === RenderedPageTypeGuard::RESTRICTION_SCHEDULED
+                    ? $this->translate('proCrawler.previewUnsupported.scheduled', 'This page is outside its publication period (start or stop time). Frontend scans cannot open scheduled pages: scan it once it is published, or remove the time limit for the scan.')
+                    : $this->translate('proCrawler.previewUnsupported.restricted', 'This page is limited to frontend user groups. Frontend scans cannot open access-restricted pages: the Scanner Token opens hidden pages only.'),
+                status: 422,
+                code: 'preview_unsupported',
+                title: $this->translate('proCrawler.previewUnsupported.title', 'Preview scan not possible'),
+                details: ['restriction' => $unsupportedPreview],
+            );
         }
 
         $submitLock = $this->acquireRemoteSubmitLock($resolved->siteIdentifier);
@@ -727,6 +793,12 @@ final class ProCrawlerAjaxController extends AbstractApiController
             $captureScreenshot = $this->canCaptureScreenshot($proStatus);
             $remoteAccessSettings = $this->buildRemoteAccessSettingsForCrawl($resolved->siteIdentifier);
             $scannerPreviewToken = $remoteAccessSettings['scannerPreviewToken'];
+            // Atlas D9: a page visitors cannot open right now is scanned as a preview scan, kept apart from its public
+            // history. Decided here from the bound page as stored in TYPO3, never from the request.
+            $isPagePreview = $this->remotePageScanTargetResolver->isPreviewTarget(
+                $pageUid,
+                $languageContext !== null ? (int)$languageContext['languageId'] : 0,
+            );
 
             $this->logRemoteSubmitDebug('submit-page:outbound', [
                 'resolvedRulesetUid' => $remoteAccessSettings['resolvedRulesetUid'],
@@ -739,6 +811,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'remoteCapability' => (bool)($proStatus->hasCrawler ?? false),
                 'pageUid' => $pageUid,
                 'pageUrl' => $pageUrl,
+                'pagePreview' => $isPagePreview,
                 'startUrl' => $resolved->startUrl,
                 'targetDomain' => $resolved->domain,
                 'siteIdentifier' => $siteIdentifier,
@@ -782,19 +855,25 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 languageId: $languageContext !== null ? (int)$languageContext['languageId'] : null,
                 languageCode: $languageCode,
                 purpose: $submitPurpose,
+                idempotencyKey: $crawlerIdempotencyKey,
             );
 
-            $this->remoteScanRepository->markSubmitted(
-                siteIdentifier: $resolved->siteIdentifier,
-                jobId: $result->jobId,
-                sourceType: RemoteScanSourceType::SinglePage,
-                startUrl: $resolved->startUrl,
-                sitemapUrl: null,
-                status: $result->status,
-                scanScope: 'page',
-                pageUid: $pageUid,
-                languageUid: $languageContext !== null ? (int)$languageContext['languageId'] : -1,
-            );
+            // A replayed run (the same crawler Idempotency-Key, reused after a submit the crawler never confirmed) may
+            // already be recorded here: its state is not reset.
+            if (!is_array($this->remoteScanRepository->findScanByJobId($result->jobId))) {
+                $this->remoteScanRepository->markSubmitted(
+                    siteIdentifier: $resolved->siteIdentifier,
+                    jobId: $result->jobId,
+                    sourceType: RemoteScanSourceType::SinglePage,
+                    startUrl: $resolved->startUrl,
+                    sitemapUrl: null,
+                    status: $result->status,
+                    scanScope: 'page',
+                    pageUid: $pageUid,
+                    languageUid: $languageContext !== null ? (int)$languageContext['languageId'] : -1,
+                    isPagePreview: $isPagePreview,
+                );
+            }
 
             return [
                 'jobId' => $result->jobId,
@@ -813,6 +892,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     'cookieDismiss' => $cookieDismiss,
                     'cookieSelectorsConfigured' => $remoteAccessSettings['cookieSelectors'] !== [],
                     'cookieSelectorsCount' => count($remoteAccessSettings['cookieSelectors']),
+                    'pagePreview' => $isPagePreview,
                 ],
             ];
         } finally {
@@ -981,18 +1061,23 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 ? $this->remoteScanErrorPresenter->presentJobFailure($result->failureCode)
                 : null;
 
+            // Sol post-review: a site crawl's page counters count pages the user may be refused; only administrators get
+            // them (as in the MCP status tool). Page scans count their one page.
+            $countersWithheld = $this->isRemoteResultRestricted() && (string)(is_array($scan) ? ($scan['scan_scope'] ?? '') : '') !== 'page';
+
             return $this->jsonResponse([
                 'success' => true,
+                'countsWithheld' => $countersWithheld,
                 'jobId' => $result->jobId,
                 'status' => is_array($scan)
                     ? (string)($scan['status'] ?? $result->status->value)
                     : $result->status->value,
-                'pagesScanned' => is_array($scan)
+                'pagesScanned' => $countersWithheld ? 0 : (is_array($scan)
                     ? (int)($scan['pages_scanned'] ?? $result->pagesScanned)
-                    : $result->pagesScanned,
-                'pagesTotal' => is_array($scan)
+                    : $result->pagesScanned),
+                'pagesTotal' => $countersWithheld ? 0 : (is_array($scan)
                     ? ((int)($scan['pages_total'] ?? 0) > 0 ? (int)$scan['pages_total'] : $result->pagesTotal)
-                    : $result->pagesTotal,
+                    : $result->pagesTotal),
                 'startedAt' => $result->startedAt,
                 'finishedAt' => is_array($scan) && (int)($scan['finished_at'] ?? 0) > 0
                     ? date(DATE_ATOM, (int)$scan['finished_at'])
@@ -1046,6 +1131,38 @@ final class ProCrawlerAjaxController extends AbstractApiController
      * @param array<string, mixed>|null $scan
      * @return array<string, mixed>
      */
+    /**
+     * Sol post-review R05: the crawler's summary covers every page of the scan (top/failed page URLs, rules, report
+     * summaries, priority fixes, counters). Users other than administrators get only what the stored-result policy lets
+     * them read (ScanResultSummaryService::frontendResult()), never the crawler-wide fields.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed>|null $scan
+     */
+    private function summaryResponse(array $payload, ?array $scan): ResponseInterface
+    {
+        $summary = $this->frontendResultSummary($scan);
+        if (!$this->isRemoteResultRestricted()) {
+            return $this->jsonResponse($payload + $summary);
+        }
+        $kept = array_intersect_key($payload, array_flip(['success', 'saved', 'jobId', 'siteId', 'sourceType', 'status', 'alreadyPersisted', 'startedAt', 'finishedAt']));
+
+        return $this->jsonResponse($kept + [
+            'pagesScanned' => isset($summary['pagesLoaded']) ? (int)$summary['pagesLoaded'] : null,
+            'pagesFailed' => isset($summary['pagesFailed']) ? (int)$summary['pagesFailed'] : null,
+            'issuesTotal' => isset($summary['occurrencesTotal']) ? (int)$summary['occurrencesTotal'] : null,
+            'issuesNew' => null,
+            'issuesResolved' => null,
+            'countsWithheld' => true,
+        ] + $summary);
+    }
+
+    /** Users other than administrators (and any context without the policy service) get the restricted view. */
+    private function isRemoteResultRestricted(): bool
+    {
+        return $this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser();
+    }
+
     private function frontendResultSummary(?array $scan): array
     {
         if (!is_array($scan) || !$this->scanResultSummaryService instanceof ScanResultSummaryService) {
@@ -1097,7 +1214,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 // Another view stored the result first: its stored counts give this view's notification the same facts.
                 $storedScan = $this->remoteScanRepository->findScanByJobId($jobId);
 
-                return $this->jsonResponse([
+                return $this->summaryResponse([
                     'success' => true,
                     'saved' => true,
                     'jobId' => $jobId,
@@ -1106,7 +1223,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                     'pagesFailed' => is_array($storedScan) ? (int)($storedScan['pages_failed'] ?? 0) : null,
                     'issuesNew' => is_array($storedScan) ? (int)($storedScan['issues_new'] ?? 0) : null,
                     'issuesResolved' => is_array($storedScan) ? (int)($storedScan['issues_resolved'] ?? 0) : null,
-                ] + $this->frontendResultSummary($storedScan));
+                ], $storedScan);
             }
 
             $domain = $this->resolveDomainFromSiteBase((string)$site->getBase());
@@ -1169,7 +1286,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 resultsData: $resultsPayload,
             );
 
-            return $this->jsonResponse([
+            return $this->summaryResponse([
                 'success' => true,
                 'saved' => true,
                 'jobId' => $summaryResult->jobId,
@@ -1201,7 +1318,7 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 'reportingGroups' => $summaryResult->reportingGroups,
                 'startedAt' => $summaryResult->startedAt,
                 'finishedAt' => $summaryResult->finishedAt,
-            ] + $this->frontendResultSummary($this->remoteScanRepository->findScanByJobId($jobId)));
+            ], $this->remoteScanRepository->findScanByJobId($jobId));
         } catch (FreePreviewException $exception) {
             return $this->buildFreePreviewExceptionResponse($exception);
         } catch (TokenRefreshException $exception) {
@@ -1264,12 +1381,23 @@ final class ProCrawlerAjaxController extends AbstractApiController
                 return $this->forbiddenResponse();
             }
 
-            $scanLanguageUid = (int)($remoteScan['language_uid'] ?? -1);
+            // The stored page's language, never one the request names for it (S-01 review): an all-language crawl's
+            // page is in its owner's language; unknown, it is only for users without a language restriction.
+            $storedLanguageUid = $this->storedRemotePageLanguage($remotePage, $remoteScan);
+            if ($storedLanguageUid === null && $this->hasLanguageRestriction()) {
+                return $this->forbiddenResponse();
+            }
+            // P1-02 review: the stored URL is crawled, so the TYPO3 page it belongs to (and that page's live translation)
+            // is admitted too — not only the page the stored result is mapped to, which is the site root for a result
+            // without mapped elements.
+            if (!$this->mayScanStoredPageOwner($remotePage, $site, $storedLanguageUid ?? max(0, $languageUid))) {
+                return $this->forbiddenResponse();
+            }
 
             return [
                 'site' => $site,
                 'pageUrl' => trim((string)($remotePage['url'] ?? '')),
-                'languageUid' => $scanLanguageUid >= 0 ? $scanLanguageUid : max(0, $languageUid),
+                'languageUid' => $storedLanguageUid ?? max(0, $languageUid),
             ];
         }
 
@@ -1283,6 +1411,89 @@ final class ProCrawlerAjaxController extends AbstractApiController
         }
 
         return ['site' => $site, 'pageUrl' => $pageUrl, 'languageUid' => $languageUid];
+    }
+
+    /**
+     * The language of a stored frontend result page: its scan's language, or for an all-language crawl (-1) the
+     * language of the page's recorded owner (RemoteResultProvenanceService). Null when it is unknown.
+     *
+     * @param array<string, mixed> $remotePage
+     * @param array<string, mixed> $remoteScan
+     */
+    private function storedRemotePageLanguage(array $remotePage, array $remoteScan): ?int
+    {
+        $scanLanguageUid = (int)($remoteScan['language_uid'] ?? -1);
+        if ($scanLanguageUid >= 0) {
+            return $scanLanguageUid;
+        }
+        if ((int)($remotePage['owner_state'] ?? 0) === RemoteResultProvenanceService::STATE_RESOLVED
+            && (int)($remotePage['owner_language_uid'] ?? -1) >= 0) {
+            return (int)$remotePage['owner_language_uid'];
+        }
+
+        return null;
+    }
+
+    /**
+     * The single-page admission rule (ScopeAccessService::canScanPageInLanguage()) for the TYPO3 page a stored frontend
+     * result page belongs to: its recorded owner (RemoteResultProvenanceService), else the page its URL resolves to.
+     * A stored URL that belongs to no TYPO3 page is re-scanned by administrators only.
+     *
+     * @param array<string, mixed> $remotePage
+     */
+    private function mayScanStoredPageOwner(array $remotePage, Site $site, int $languageUid): bool
+    {
+        $url = trim((string)($remotePage['url'] ?? ''));
+        $resolved = (int)($remotePage['owner_state'] ?? 0) === RemoteResultProvenanceService::STATE_RESOLVED
+            && (int)($remotePage['owner_page_uid'] ?? 0) > 0;
+        // The language of the crawled URL, not the scan's: a crawl in one language can store links into another.
+        $urlLanguageUid = $resolved && (int)($remotePage['owner_language_uid'] ?? -1) >= 0
+            ? (int)$remotePage['owner_language_uid']
+            : ($this->siteLanguageOfUrl($site, $url) ?? $languageUid);
+        $ownerPageUid = $resolved
+            ? (int)$remotePage['owner_page_uid']
+            : ($url !== '' ? $this->frontendPageUrlService->resolvePageUidForUrl($site, $url, $urlLanguageUid) : 0);
+        if ($ownerPageUid <= 0) {
+            // A URL that belongs to no TYPO3 page (an extension route, an old redirected slug): its content cannot be bound
+            // to page or translation rights, so only administrators re-scan it (owner decision, P1 remediation review).
+            $backendUser = $this->getBackendUser();
+
+            return $backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin();
+        }
+
+        return $this->scopeAccessService->isPageInSite($ownerPageUid, $site)
+            && $this->scopeAccessService->canScanPageInLanguage($ownerPageUid, $urlLanguageUid);
+    }
+
+    /** The site language whose base the URL is under (the longest matching base), or null. */
+    private function siteLanguageOfUrl(Site $site, string $url): ?int
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['host'])) {
+            return null;
+        }
+        $target = strtolower((string)$parts['host']) . '/' . ltrim(rawurldecode((string)($parts['path'] ?? '/')), '/');
+        $best = null;
+        $bestLength = -1;
+        foreach ($site->getLanguages() as $language) {
+            $base = $language->getBase();
+            $prefix = strtolower($base->getHost() !== '' ? $base->getHost() : (string)$site->getBase()->getHost())
+                . '/' . trim($base->getPath(), '/');
+            $prefix = rtrim($prefix, '/') . '/';
+            if (str_starts_with(rtrim($target, '/') . '/', $prefix) && strlen($prefix) > $bestLength) {
+                $best = $language->getLanguageId();
+                $bestLength = strlen($prefix);
+            }
+        }
+
+        return $best;
+    }
+
+    private function hasLanguageRestriction(): bool
+    {
+        $backendUser = $this->getBackendUser();
+
+        return $backendUser instanceof BackendUserAuthentication && $this->scopeAccessService->hasLanguageRestriction($backendUser);
     }
 
     /**

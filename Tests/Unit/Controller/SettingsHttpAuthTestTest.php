@@ -85,7 +85,7 @@ final class SettingsHttpAuthTestTest extends TestCase
         $status = $this->createMock(ProStatusResolverService::class);
         $status->method('resolveForSiteIdentifier')->willReturn(new ProStatusViewModel(
             configured: true, valid: true, proAvailable: true, plan: 'pro', features: ['crawler'], reason: null, reasonLabel: null,
-            statusLabel: '', showProHints: false, hasCrawler: true, hasExportPdf: true, hasMultiSite: false, hasProRules: true,
+            statusLabel: '', hasCrawler: true, hasExportPdf: true, hasMultiSite: false, hasProRules: true,
         ));
         $cacheManager = $this->createMock(CacheManager::class);
         $cacheManager->method('getCache')->willThrowException(new \RuntimeException('no cache in unit tests'));

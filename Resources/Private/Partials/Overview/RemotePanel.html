@@ -28,6 +28,17 @@
         </f:else>
     </f:if>
 
+    <f:if condition="{remoteScan} && {priorityUrlsNotScanned}">
+        <div class="aqg-note aqg-note--info" role="status" data-aqg-priority-not-scanned="true">
+            <f:render partial="Shared/AqgIcon" arguments="{name: 'info'}" />
+            <div class="aqg-note__text">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityNotScanned.title" default="Some priority URLs were not scanned" /></strong>
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.priorityNotScanned.text" default="A site scan with a sitemap scans only pages the sitemap lists; without a sitemap only pages under the start URL. Exclusions and the page limit apply too. Not in this scan:" />
+                <f:for each="{priorityUrlsNotScanned}" as="entry" iteration="it"><code>{entry}</code><f:if condition="!{it.isLast}">, </f:if></f:for>
+            </div>
+        </div>
+    </f:if>
+
     <f:if condition="{remoteScan}">
     <section class="aqg-block aqg-priority-section" aria-labelledby="aqg-priority-fixes-title">
         <div class="aqg-block__head">
@@ -47,7 +58,8 @@
             </div>
         </div>
 
-        <f:if condition="{remotePriorityFixesVisible}">
+        <f:comment>F11-02: a fix list needs stored findings; until then the storage state is shown (remotePriorityEmpty).</f:comment>
+        <f:if condition="{remotePriorityFixesVisible} && {remoteSignalTone} != 'pending' && {remoteSignalTone} != 'not-stored'">
             <f:then>
                 <div class="aqg-block__panel">
                     <ol class="aqg-fixlist">
@@ -249,30 +261,35 @@
 
                             <f:if condition="{remoteFailedPagination.totalPages} > 1">
                                 <div class="aqg-pagination">
-                                    <div class="aqg-pagination__info">
+                                    <p class="aqg-pagination__info">
                                         {remoteFailedPagination.totalItems}
                                         <f:if condition="{remoteFailedPagination.totalItems} == 1">
                                             <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.page" default="page" /></f:then>
                                             <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.proSummary.pages" default="pages" /></f:else>
                                         </f:if>
-                                    </div>
-                                    <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.failedPages.paginationAria', default: 'Failed frontend pages pagination')}">
-                                        <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
-                                            <li class="page-item {f:if(condition: remoteFailedPagination.hasPrevious, then: '', else: 'disabled')}">
-                                                <a class="page-link" href="{f:if(condition: remoteFailedPagination.hasPrevious, then: remoteFailedPagination.previousUrl, else: '#')}">‹</a>
+                                    </p>
+                                    <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.failedPages.paginationAria', default: 'Failed frontend pages pagination')}">
+                                        <ul class="aqg-pagination__list">
+                                            <li>
+                                                <f:if condition="{remoteFailedPagination.hasPrevious}">
+                                                    <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" href="{remoteFailedPagination.previousUrl}" rel="prev"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></a></f:then>
+                                                    <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></span></f:else>
+                                                </f:if>
                                             </li>
                                             <f:for each="{remoteFailedPaginationItems}" as="item">
-                                                <f:if condition="{item.type} == 'ellipsis'">
-                                                    <f:then>
-                                                        <li class="page-item disabled"><span class="page-link">{item.label}</span></li>
-                                                    </f:then>
-                                                    <f:else>
-                                                        <li class="page-item {f:if(condition: item.active, then: 'active', else: '')}"><a class="page-link" href="{item.url}">{item.label}</a></li>
-                                                    </f:else>
-                                                </f:if>
+                                                <li>
+                                                    <f:if condition="{item.type} == 'ellipsis'">
+                                                        <f:then><span class="aqg-pagination__gap" aria-hidden="true">…</span></f:then>
+                                                        <f:else if="{item.active}"><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}" aria-current="page"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                                        <f:else><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                                    </f:if>
+                                                </li>
                                             </f:for>
-                                            <li class="page-item {f:if(condition: remoteFailedPagination.hasNext, then: '', else: 'disabled')}">
-                                                <a class="page-link" href="{f:if(condition: remoteFailedPagination.hasNext, then: remoteFailedPagination.nextUrl, else: '#')}">›</a>
+                                            <li>
+                                                <f:if condition="{remoteFailedPagination.hasNext}">
+                                                    <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" href="{remoteFailedPagination.nextUrl}" rel="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></a></f:then>
+                                                    <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></span></f:else>
+                                                </f:if>
                                             </li>
                                         </ul>
                                     </nav>
@@ -438,9 +455,6 @@
                                             <a href="{page.detailUrl}" class="aqg-rowlink" title="{page.title}"><f:if condition="{page.title}"><f:then>{page.title}</f:then><f:else>—</f:else></f:if><f:render partial="Shared/AqgIcon" arguments="{name: 'chevr', size: 'sm'}" /></a>
                                         </div>
                                         <span class="aqg-page-cell__meta aqg-page-cell__url" title="{page.url}">{f:if(condition: page.urlPath, then: page.urlPath, else: page.url)}</span>
-                                        <span class="visually-hidden">
-                                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pageIdentifiers" default="Page UID %1$s · Frontend page UID %2$s · Frontend scan UID %3$s" arguments="{0: page.typo3_page_uid, 1: page.uid, 2: page.remote_scan_uid}" />
-                                        </span>
                                     </div>
                                 </td>
 
@@ -488,34 +502,32 @@
 
                 <f:if condition="{remotePagination.totalPages} > 1">
                     <div class="aqg-pagination">
-                        <div class="aqg-pagination__info">
+                        <p class="aqg-pagination__info">
                             {remotePagination.totalItems}
                             {remotePagesCountLabel}
-                        </div>
-
-                        <nav aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pagination.aria', default: 'Frontend scanned pages pagination')}">
-                            <ul class="pagination pagination-sm mb-0 aqg-pagination__nav">
-                                <li class="page-item {f:if(condition: remotePagination.hasPrevious, then: '', else: 'disabled')}">
-                                    <a class="page-link" href="{f:if(condition: remotePagination.hasPrevious, then: remotePagination.previousUrl, else: '#')}">‹</a>
-                                </li>
-
-                                <f:for each="{remotePaginationItems}" as="item">
-                                    <f:if condition="{item.type} == 'ellipsis'">
-                                        <f:then>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">{item.label}</span>
-                                            </li>
-                                        </f:then>
-                                        <f:else>
-                                            <li class="page-item {f:if(condition: item.active, then: 'active', else: '')}">
-                                                <a class="page-link" href="{item.url}">{item.label}</a>
-                                            </li>
-                                        </f:else>
+                        </p>
+                        <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remote.pagination.aria', default: 'Frontend scanned pages pagination')}">
+                            <ul class="aqg-pagination__list">
+                                <li>
+                                    <f:if condition="{remotePagination.hasPrevious}">
+                                        <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" href="{remotePagination.previousUrl}" rel="prev"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></a></f:then>
+                                        <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.previous" default="Previous" /></span></span></f:else>
                                     </f:if>
+                                </li>
+                                <f:for each="{remotePaginationItems}" as="item">
+                                    <li>
+                                        <f:if condition="{item.type} == 'ellipsis'">
+                                            <f:then><span class="aqg-pagination__gap" aria-hidden="true">…</span></f:then>
+                                            <f:else if="{item.active}"><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}" aria-current="page"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                            <f:else><a class="btn btn-default btn-sm aqg-pagination__link" href="{item.url}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.page" default="Page" /> </span>{item.label}</a></f:else>
+                                        </f:if>
+                                    </li>
                                 </f:for>
-
-                                <li class="page-item {f:if(condition: remotePagination.hasNext, then: '', else: 'disabled')}">
-                                    <a class="page-link" href="{f:if(condition: remotePagination.hasNext, then: remotePagination.nextUrl, else: '#')}">›</a>
+                                <li>
+                                    <f:if condition="{remotePagination.hasNext}">
+                                        <f:then><a class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" href="{remotePagination.nextUrl}" rel="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></a></f:then>
+                                        <f:else><span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" aria-disabled="true"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.pagination.next" default="Next" /></span></span></f:else>
+                                    </f:if>
                                 </li>
                             </ul>
                         </nav>
@@ -539,10 +551,6 @@
             </f:else>
         </f:if>
     </section>
-    </f:if>
-
-    <f:if condition="{freePreview.isFree} && {remoteScan} && {freePreview.showUpgradeOffer}">
-        <f:render partial="Overview/FreePreviewUpgrade" arguments="{freePreview: freePreview}" />
     </f:if>
 
     <f:if condition="{remoteScan}">
@@ -575,6 +583,16 @@
             </div>
             <f:if condition="{fix.shortFix}">
                 <p class="aqg-fix__fix">{fix.shortFix}</p>
+            </f:if>
+            <f:if condition="{fix.assignedOwner}">
+                <f:then>
+                    <p class="aqg-fix__tags" data-aqg-fix-tags="{fix.ruleId}">
+                        <span class="aqg-fix__owner aqg-fix__owner--{fix.assignedOwner}" data-aqg-fix-owner="{fix.assignedOwner}"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.fixFirst.tag.ownerPrefix" default="Assigned owner" />: </span>{fix.assignedOwnerLabel}</span>
+                    </p>
+                </f:then>
+                <f:else if="{fix.ownerEditable}">
+                    <p class="aqg-fix__tags" data-aqg-fix-tags="{fix.ruleId}" hidden="hidden"></p>
+                </f:else>
             </f:if>
         </div>
         <div class="aqg-fix__actions">
@@ -628,6 +646,28 @@
             </f:if>
             <f:if condition="{fix.reason}">
                 <p class="aqg-fix__reason">{fix.reason}</p>
+            </f:if>
+            <f:if condition="{fix.ownerEditable}">
+                <form class="aqg-fix__owner-form" data-aqg-fix-owner-form="true" data-rule-id="{fix.ruleId}" data-page-uid="{fix.ownerPageUid}"
+                      data-label-prefix="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.fixFirst.tag.ownerPrefix', default: 'Assigned owner')}"
+                      data-label-saved="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.fixFirst.tag.saved', default: 'Owner saved for this issue type.')}"
+                      data-label-removed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.fixFirst.tag.removed', default: 'Owner removed from this issue type.')}"
+                      data-label-error-generic="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.error.generic', default: 'Something went wrong. Nothing was changed.')}"
+                      data-label-error-permission-denied="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.error.permission_denied', default: 'You may not do this for this item.')}"
+                      data-label-error-session-expired="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.error.session_expired', default: 'Your TYPO3 session has expired. Nothing was saved; log in again in the TYPO3 login window, then try again.')}">
+                    <label class="aqg-fix__owner-label" for="aqg-fix-owner-{fix.ruleId}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.ownerLabel" default="Owner" /></label>
+                    <select class="form-select form-select-sm aqg-fix__owner-select" id="aqg-fix-owner-{fix.ruleId}" name="owner" aria-describedby="aqg-fix-owner-hint-{fix.ruleId}" data-aqg-fix-owner-select="true">
+                        <f:for each="{0: 'editor', 1: 'developer', 2: 'mixed', 3: 'unassigned'}" as="owner">
+                            <f:if condition="{fix.ownerCurrent} == {owner}">
+                                <f:then><option value="{owner}" selected="selected"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.help.{owner}" /></option></f:then>
+                                <f:else><option value="{owner}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.help.{owner}" /></option></f:else>
+                            </f:if>
+                        </f:for>
+                    </select>
+                    <button type="button" class="btn btn-default btn-sm" data-aqg-fix-owner-save="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.fixFirst.tag.assign" default="Assign owner" /><span class="visually-hidden">: {fix.displayTitle}</span></button>
+                    <span class="aqg-fix__owner-hint" id="aqg-fix-owner-hint-{fix.ruleId}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.fixFirst.tag.hint" default="Applies to this issue type on the whole site." /></span>
+                    <span class="aqg-fix__owner-status" role="status" aria-live="polite" data-aqg-fix-owner-status="true"></span>
+                </form>
             </f:if>
         </div>
     </li>

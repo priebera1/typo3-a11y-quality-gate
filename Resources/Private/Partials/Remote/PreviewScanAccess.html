@@ -1,0 +1,45 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment>
+    Atlas 09·A: a page visitors cannot open. The button starts the same paid single-page frontend scan as the Overview's
+    "Scan this page" (pro-module.js, a11y_pro_crawl_submit_page); the server stores it as a preview scan. It is rendered
+    only when that scan can work (PageDetailController::buildPreviewScanAccess()); every other state says why.
+</f:comment>
+<section class="aqg-preview-access aqg-preview-access--{previewScan.state}" aria-labelledby="aqg-preview-access-h" data-aqg-preview-access="{previewScan.state}">
+    <div class="aqg-preview-access__head">
+        <h2 class="aqg-preview-access__title" id="aqg-preview-access-h"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.title" default="Preview scan of this unpublished page" /></h2>
+        <span class="aqg-preview-access__badge"><f:render partial="Shared/AqgIcon" arguments="{name: 'eye', size: 'sm'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.badge" default="Page not public" /></span>
+    </div>
+    <f:switch expression="{previewScan.state}">
+        <f:case value="available">
+            <p class="aqg-preview-access__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.text" default="The AQG crawler renders this page like a browser and runs the frontend checks before you publish it. It requests the page with this site's Scanner Token; TYPO3 delivers the hidden page for that request only." /></p>
+            <div class="aqg-preview-access__actions">
+                <button
+                        type="button"
+                        class="btn btn-primary btn-sm"
+                        data-action="a11y-pro-scan-page"
+                        data-page-uid="{pageUid}"
+                        data-site-identifier="{siteIdentifier}"
+                        data-language-uid="{previewScan.languageUid}"
+                        data-loading-text="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanning', default: 'Scanning...')}"
+                ><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.scan" default="Scan unpublished page" /></button>
+                <span class="aqg-preview-access__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.separate" default="Results stay separate from public scans." /></span>
+            </div>
+        </f:case>
+        <f:case value="noToken">
+            <p class="aqg-preview-access__text"><strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.noToken.title" default="This site has no Scanner Token yet" /></strong> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.noToken.text" default="Without one, TYPO3 answers the crawler like a visitor: with a 404 for this hidden page. The content checks of this page are available." /></p>
+            <f:if condition="{previewScan.settingsUrl}">
+                <p class="aqg-preview-access__text"><a href="{previewScan.settingsUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.remoteScannerTokenNotice.cta" default="Open Remote Scan Access settings" /></a></p>
+            </f:if>
+        </f:case>
+        <f:case value="unsupported">
+            <p class="aqg-preview-access__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.unsupported" default="Not public · content checks only. The Scanner Token opens hidden pages only, not pages outside their start or stop time or limited to frontend user groups." /></p>
+        </f:case>
+        <f:case value="noPermission">
+            <p class="aqg-preview-access__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.noPermission" default="Starting a scan needs the “Scan now” permission and edit access to this page. Ask your TYPO3 administrator." /></p>
+        </f:case>
+        <f:defaultCase>
+            <p class="aqg-preview-access__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:pageDetail.preview.free" default="Preview scans of unpublished pages are part of frontend scans in Trial, PRO and Agency. The Free Remote Preview checks public pages only." /></p>
+        </f:defaultCase>
+    </f:switch>
+</section>
+</html>

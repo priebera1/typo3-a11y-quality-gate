@@ -114,6 +114,31 @@ final class MonitoringTaskValidator
     }
 
     /**
+     * D-04: administrators paste their backend address (`https://cms.example.org/typo3/`). The notification needs scheme
+     * and host only and appends the module path itself, so a `/typo3` path is reduced instead of rejected. Anything else
+     * is returned unchanged for the validator to report.
+     */
+    public static function normalizeBackendUrl(string $url): string
+    {
+        $url = trim($url);
+        $parts = parse_url($url);
+        if ($url === '' || !is_array($parts) || !isset($parts['scheme'], $parts['host'])) {
+            return $url;
+        }
+        foreach (['query', 'fragment', 'user', 'pass'] as $part) {
+            if (isset($parts[$part])) {
+                return $url;
+            }
+        }
+        $path = rtrim((string)($parts['path'] ?? ''), '/');
+        if ($path !== '' && !preg_match('#^/typo3(/.*)?$#i', $path)) {
+            return $url;
+        }
+
+        return strtolower($parts['scheme']) . '://' . strtolower($parts['host']) . (isset($parts['port']) ? ':' . (int)$parts['port'] : '');
+    }
+
+    /**
      * Scheme and host (optionally a port) of the backend: the notification appends the module path itself.
      */
     public static function isBackendBaseUrl(string $url): bool

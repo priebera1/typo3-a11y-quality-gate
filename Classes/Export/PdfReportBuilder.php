@@ -43,12 +43,16 @@ final class PdfReportBuilder
         string $status = 'open',
         string $severity = 'all',
         ?ServerRequestInterface $request = null,
+        int $languageUid = -1,
+        string $readablePagesClause = '',
     ): string {
         $issues = array_values($this->issueExporter->getFilteredIssues(
             siteIdentifier: $siteIdentifier,
             pageUid: null,
             status: $status,
             severity: $severity,
+            languageUid: $languageUid,
+            readablePagesClause: $readablePagesClause,
         ));
 
         $totals = LocalReportModel::totals($issues);
@@ -65,7 +69,7 @@ final class PdfReportBuilder
                 'siteLabel' => $siteLabel,
                 'siteHost' => $this->hostOf($siteLabel),
                 'generatedAt' => $this->formatPdfDate(),
-                'filterLabel' => $this->filterLabel($status, $severity),
+                'filterLabel' => $this->filterLabel($status, $severity) . ' · ' . $this->languageLabel($siteIdentifier, $languageUid),
                 'verdict' => $this->verdict($totals, $pageCounts['total'], $status, false),
                 'startHereNote' => $this->startHereNote(count($startHere), $startHereCount, $totals['total']),
                 'severityRow' => LocalReportModel::severityRow($totals, $pageCounts),
@@ -92,6 +96,8 @@ final class PdfReportBuilder
         string $status = 'open',
         string $severity = 'all',
         ?ServerRequestInterface $request = null,
+        int $languageUid = -1,
+        string $readablePagesClause = '',
     ): string {
         $pageRecord = $pageUid > 0
             ? (BackendUtility::getRecord('pages', $pageUid, 'uid,title,slug') ?: [])
@@ -104,6 +110,8 @@ final class PdfReportBuilder
             pageUid: $pageUid,
             status: $status,
             severity: $severity,
+            languageUid: $languageUid,
+            readablePagesClause: $readablePagesClause,
         ));
 
         $totals = LocalReportModel::totals($issues);
@@ -117,7 +125,7 @@ final class PdfReportBuilder
                 'pageUrl' => $this->buildPageUrlLabel($siteLabel, $pagePath, $pageUid),
                 'pageUid' => $pageUid,
                 'generatedAt' => $this->formatPdfDate(),
-                'filterLabel' => $this->filterLabel($status, $severity),
+                'filterLabel' => $this->filterLabel($status, $severity) . ' · ' . $this->languageLabel($siteIdentifier, $languageUid),
                 'verdict' => $this->verdict($totals, 1, $status, true),
                 'severityRow' => LocalReportModel::severityRow($totals, null),
                 'groups' => $groups,
@@ -242,6 +250,21 @@ final class PdfReportBuilder
         };
 
         return 'Status ' . $label($status) . ' · Severity ' . $label($severity);
+    }
+
+    /** The content language the report covers (the report text itself stays English). */
+    private function languageLabel(string $siteIdentifier, int $languageUid): string
+    {
+        if ($languageUid < 0) {
+            return 'All languages';
+        }
+        try {
+            $title = trim($this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier)?->getLanguageById($languageUid)->getTitle() ?? '');
+        } catch (\Throwable) {
+            $title = '';
+        }
+
+        return 'Language ' . ($title !== '' ? $title : (string)$languageUid);
     }
 
     private function resolveSiteUrlLabel(string $siteIdentifier, ?int $pageUid, ?ServerRequestInterface $request): string

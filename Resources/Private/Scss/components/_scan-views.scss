@@ -12,8 +12,8 @@
 
 .aqg-module.aqg-sv {
     container: aqg-sv / inline-size;
-    --aqg-sv-radius: 8px;
-    --aqg-sv-radius-sm: 5px;
+    --aqg-sv-radius: var(--aqi-radius-lg);
+    --aqg-sv-radius-sm: var(--aqi-radius);
     --aqg-sv-gap: 14px;
     --aqg-sv-critical: var(--aqi-err);
     --aqg-sv-serious: var(--aqi-serious);
@@ -368,6 +368,7 @@
 .aqg-module.aqg-sv .aqg-status--critical { --aqg-status-tone: var(--aqg-sv-critical); }
 .aqg-module.aqg-sv .aqg-status--attention,
 .aqg-module.aqg-sv .aqg-status--incomplete,
+.aqg-module.aqg-sv .aqg-status--restricted,
 .aqg-module.aqg-sv .aqg-status--no-coverage { --aqg-status-tone: var(--aqg-sv-warning); }
 .aqg-module.aqg-sv .aqg-status--info { --aqg-status-tone: var(--aqg-sv-info); }
 .aqg-module.aqg-sv .aqg-status--good { --aqg-status-tone: var(--aqg-sv-ok); }
@@ -433,6 +434,58 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+}
+
+// U-10: the AQG signal explains itself on request (keyboard, touch and screen readers alike; no hover-only title).
+.aqg-module.aqg-sv .aqg-status__score-help {
+    position: relative;
+}
+
+.aqg-module.aqg-sv .aqg-status__score-help > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.aqg-module.aqg-sv .aqg-status__score-help > summary::-webkit-details-marker {
+    display: none;
+}
+
+.aqg-module.aqg-sv .aqg-status__score-help > summary:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-status__score-q {
+    display: inline-grid;
+    place-items: center;
+    width: 14px;
+    height: 14px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.aqg-module.aqg-sv .aqg-status__score-note {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 6px);
+    right: 0;
+    width: min(34ch, 80vw);
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 6px;
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 12%);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    white-space: normal;
 }
 
 .aqg-module.aqg-sv .aqg-status__text {
@@ -551,6 +604,25 @@
 
 .aqg-module.aqg-sv .aqg-coverage-details__page {
     color: var(--aqi-fg);
+}
+
+// U-02: one entry per reason; its pages follow on their own line.
+.aqg-module.aqg-sv .aqg-coverage-details__group + .aqg-coverage-details__group {
+    margin-top: 6px;
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details__reason {
+    color: var(--aqi-fg);
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details__count::before {
+    content: " · ";
+}
+
+.aqg-module.aqg-sv .aqg-coverage-details__pages {
+    display: block;
+    max-width: 90ch;
 }
 
 .aqg-module.aqg-sv .aqg-coverage-details__more {
@@ -999,6 +1071,77 @@
     margin: 2px 0 0;
     color: var(--aqi-fg-muted);
     font-size: 12.5px;
+}
+
+/* Assigned owner of the issue type (F-08, Atlas 07·E): a role, not a severity — neutral chip like the Page Detail
+   owner chip (remediation.scss); only "varies by page" / Unassigned are dashed. Tokens follow light and dark mode. */
+.aqg-module.aqg-sv .aqg-fix__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    margin: 6px 0 0;
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 1px 8px;
+    border: 1px solid var(--aqi-border);
+    border-radius: 999px;
+    background: var(--aqi-surface);
+    color: var(--aqi-fg);
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner--unassigned,
+.aqg-module.aqg-sv .aqg-fix__owner--varies {
+    border-style: dashed;
+    color: var(--aqi-fg-muted);
+}
+
+/* Owner selector inside the fix's closed Details: label, select and Assign on one line, wrapping at narrow widths. */
+.aqg-module.aqg-sv .aqg-fix__owner-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--aqi-divider);
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner-label {
+    margin: 0;
+    color: var(--aqi-fg);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner-select {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner-select:focus-visible {
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner-hint,
+.aqg-module.aqg-sv .aqg-fix__owner-status {
+    flex-basis: 100%;
+    color: var(--aqi-fg-muted);
+    font-size: 12px;
+}
+
+.aqg-module.aqg-sv .aqg-fix__owner-status:empty {
+    display: none;
 }
 
 .aqg-module.aqg-sv .aqg-fix__actions {
@@ -1824,6 +1967,13 @@
     color: var(--aqi-fg);
 }
 
+// U-08: a rendered finding the last scan did not re-check reads as older than that scan.
+.aqg-module.aqg-sv .aqg-occ__state--stale {
+    color: var(--aqi-fg);
+    padding-left: 8px;
+    border-left: 2px solid var(--aqi-warn-border);
+}
+
 .aqg-module.aqg-sv .aqg-occ__actions {
     display: flex;
     flex-wrap: wrap;
@@ -1858,6 +2008,22 @@
 
     .aqg-module.aqg-sv .aqg-pagehead__shot .aqg-shot__frame {
         height: 144px;
+    }
+}
+
+/*
+ * Status cards (Overview Content/Frontend, Page Detail, Remote page detail): below 880 px of module width (a 1440 px
+ * window with the page tree open) the actions move under the summary. Side by side, the action column (up to 420 px)
+ * squeezed a long headline such as "Good automated signal · 2 occurrences · 1 affected page" into a narrow column.
+ */
+@container aqg-sv (max-width: 879.98px) {
+    .aqg-module.aqg-sv .aqg-status {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .aqg-module.aqg-sv .aqg-status__actions {
+        justify-content: flex-start;
+        max-width: none;
     }
 }
 

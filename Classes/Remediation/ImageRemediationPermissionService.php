@@ -70,7 +70,7 @@ final class ImageRemediationPermissionService implements ImageRemediationPermiss
                 $context->fileReferenceUid,
                 $context->pageUid,
             )
-            || !$this->recordAccessService->canEditRecordFields($context->sourceTable, $context->sourceUid)
+            || !$this->recordAccessService->canEditRecordFields($context->sourceTable, $context->sourceUid, [$context->sourceField])
             || !$this->recordAccessService->canEditRecordFields(
                 Tables::SYS_FILE_REFERENCE,
                 $context->fileReferenceUid,
@@ -85,6 +85,15 @@ final class ImageRemediationPermissionService implements ImageRemediationPermiss
         if ($referenceWorkspace > 0 && $referenceWorkspace !== $currentWorkspace) {
             $this->logDecision($backendUser, $operation, $findingId, true, false, 'workspace');
             throw new ImageRemediationPermissionException('workspace_mismatch', 1771001102);
+        }
+
+        // M-1: a write (fields to change) only in the LIVE workspace. In a workspace DataHandler stores a version row
+        // while the finding, the version token and the resolved state all describe the live reference, so the shared
+        // live finding would be marked resolved although the live page is unchanged. A suggestion (no fields) only
+        // reads and stays available. The AI fixes workflow refuses the same case (workspace_apply_in_record).
+        if ($fileReferenceFields !== [] && $currentWorkspace !== 0) {
+            $this->logDecision($backendUser, $operation, $findingId, true, false, 'workspace');
+            throw new ImageRemediationPermissionException('workspace_not_live', 1771001105);
         }
 
         $referenceLanguageUid = (int)($context->fileReference['sys_language_uid'] ?? 0);

@@ -116,6 +116,11 @@ final class MonitorCommand extends Command
             if ($result['outcome'] === RemoteMonitoringService::OUTCOME_NOT_ENTITLED) {
                 $exitCode = Command::FAILURE;
             }
+            if ($result['deliveryFailed'] ?? false) {
+                // NEW-10: the result is recorded, but nobody was told: never a silent exit code 0.
+                $io->warning(sprintf('%s: the notification e-mail could not be sent (see the TYPO3 log). The result is stored; the next run notifies again if the result is unchanged.', $site->getIdentifier()));
+                $exitCode = Command::FAILURE;
+            }
         }
 
         return $exitCode;

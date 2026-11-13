@@ -1,0 +1,50 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment><!-- Agent tokens (Settings › Agent access and My connected agents): agent and user first, scopes as code chips,
+     status as a badge, Revoke as the only row action. Token values are never part of the view data. --></f:comment>
+<div class="aqg-mcp-tablewrap aqg-mcp-tablewrap--framed">
+    <table class="aqg-mcp-table aqg-mcp-table--stack-wide">
+        <caption class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.title" default="Connected agents" /></caption>
+        <thead>
+            <tr>
+                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.agent" default="Agent · user" /></th>
+                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.capabilities" default="Capabilities" /></th>
+                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.lastUsed" default="Last used" /></th>
+                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.expires" default="Expires" /></th>
+                <th scope="col"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.status" default="Status" /></th>
+                <th scope="col"><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.actions" default="Actions" /></span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <f:for each="{tokens}" as="token">
+                <tr>
+                    <th scope="row">
+                        <span class="aqg-mcp-table__primary">{token.clientName}</span>
+                        <f:if condition="{showUser}"><span class="aqg-mcp-table__secondary">{token.beUserName}<f:if condition="{token.sites}"> · {token.sites}</f:if></span></f:if>
+                        <code class="aqg-mcp-table__secondary">{token.tokenLabel}</code>
+                    </th>
+                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.capabilities', default: 'Capabilities')}"><span class="aqg-mcp-scopes"><f:for each="{token.scopes}" as="scope" iteration="scopeIteration"><code class="aqg-mcp-cap__scope">{scope}</code><f:if condition="{scopeIteration.isLast}"><f:else><span class="aqg-mcp-scopes__sep visually-hidden">, </span></f:else></f:if></f:for></span></td>
+                    <td class="aqg-mcp-table__time" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.lastUsed', default: 'Last used')}">{token.lastUsedAt}</td>
+                    <td class="aqg-mcp-table__time" data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.expires', default: 'Expires')}">{token.expiresAt}</td>
+                    <td data-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.status', default: 'Status')}">
+                        <f:switch expression="{token.status}">
+                            <f:case value="active"><span class="aqg-status-badge aqg-status-badge--success"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.active" default="Active" /></span></f:case>
+                            <f:case value="expiring_soon"><span class="aqg-status-badge aqg-status-badge--warning"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.expiringSoon" default="Expiring soon" /></span></f:case>
+                            <f:case value="revoked"><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.revoked" default="Revoked" /></span><f:if condition="{token.revokedByName}"> <span class="aqg-mcp-table__secondary">{token.revokedByName}</span></f:if></f:case>
+                            <f:defaultCase><span class="aqg-status-badge aqg-status-badge--muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.tokenStatus.expired" default="Expired" /></span></f:defaultCase>
+                        </f:switch>
+                    </td>
+                    <td class="aqg-mcp-table__action">
+                        <f:if condition="{token.revocable}">
+                            <form method="post" action="{revokeUrl}" data-aqg-mcp-revoke="true">
+                                <f:for each="{returnParameters}" as="value" key="name"><input type="hidden" name="{name}" value="{value}" /></f:for>
+                                <input type="hidden" name="tokenId" value="{token.id}" />
+                                <button type="submit" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.agents.revoke" default="Revoke" /><span class="visually-hidden"> {token.clientName} {token.tokenLabel}</span></button>
+                            </form>
+                        </f:if>
+                    </td>
+                </tr>
+            </f:for>
+        </tbody>
+    </table>
+</div>
+</html>

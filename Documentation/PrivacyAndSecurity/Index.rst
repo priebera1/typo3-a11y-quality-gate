@@ -60,9 +60,33 @@ Outbound connections
             installed version is compared inside TYPO3.
 
     *   -   AI text suggestions
-        -   OpenAI, with your own project key
-        -   The content context of the individual finding. Requests are sent
-            with ``store=false``. Disabled by default.
+        -   The site's provider: OpenAI or Anthropic Claude, with your own key
+        -   The content context of the individual finding, limited by the
+            site's privacy switches (images, page titles). OpenAI requests are
+            sent with ``store=false``. Disabled by default.
+
+    *   -   Automatic AI model prices
+        -   ``https://api.priebera.sk``
+        -   Nothing beyond the HTTP request itself: a ``GET`` of
+            ``/ai/pricing/v1/catalogue`` (optionally ``If-None-Match``) without
+            licence key, installation id, site, user or usage data. Sent when
+            AQG needs a price — before an AI request, or when an administrator
+            opens the AQG settings — at most every six hours (an hour after a
+            failure, a day after the service answered that it has no
+            catalogue). The installation never contacts the providers' pricing
+            pages; the AQG service reads them centrally.
+
+    *   -   AI budget alert e-mail
+        -   TYPO3's own mailer (your mail configuration), to the site's
+            :guilabel:`Budget alert e-mail` address (stored in
+            :sql:`tx_a11y_ai_site_setting`), otherwise to
+            ``$GLOBALS['TYPO3_CONF_VARS']['BE']['warning_email_addr']``; never
+            to backend users
+        -   Only when a site has a monthly budget and a warning threshold: the
+            site name and host, month, threshold, budget, estimated usage, the
+            number of requests with an unknown cost and a link to the AQG
+            settings (without a backend token). No keys, prompts, content or
+            editor names. See :ref:`configuration-ai`.
 
 Both base URLs can be redirected with the environment variables described in
 :ref:`configuration-licence-endpoint`. If you must not contact any external
@@ -93,10 +117,11 @@ Stored secrets
         -   ``http_auth_pass`` in :sql:`tx_a11y_ruleset`, encrypted with
             ``ext-sodium``.
 
-    *   -   OpenAI project key
-        -   ``encrypted_api_key`` in :sql:`tx_a11y_ai_configuration`, encrypted
-            with ``ext-sodium``, displayed only as a masked hint. Alternatively
-            the environment variable ``AQG_OPENAI_API_KEY``.
+    *   -   OpenAI project key, Anthropic API key
+        -   ``encrypted_api_key`` in :sql:`tx_a11y_ai_configuration`, one row per
+            site and provider, encrypted with ``ext-sodium``, displayed only as
+            a masked hint. For OpenAI alternatively the environment variable
+            ``AQG_OPENAI_API_KEY``.
 
 Treat database dumps that contain :sql:`tx_a11y_ruleset` or
 :sql:`tx_a11y_ai_configuration` as secret material. Regenerate the scanner token
@@ -163,14 +188,19 @@ Backend permissions
 ===================
 
 *   The module and all its AJAX routes share the identifier ``web_a11y``, so
-    module access is the single access control point.
-*   The :guilabel:`Licence`, :guilabel:`Remote scan access`, :guilabel:`AI` and
-    :guilabel:`Scan history` tabs are restricted to administrators.
-*   Image remediation requires the capability from
-    :confval:`options.a11y_quality_gate.allowImageRemediation` **and** TYPO3
-    edit permissions on the affected records. Writes are limited to the
-    ``alternative`` and ``tx_a11y_is_decorative`` fields of
-    :sql:`sys_file_reference`.
+    module access (TYPO3 backend user groups) decides who may open AQG at all.
+*   Module access only opens AQG. Each result needs show access to its page
+    (or to the site root for site-wide views); lists and totals of a site leave
+    out pages the user may not show. Scans, exports and fixes need edit access
+    to the same page, record and field. See :ref:`configuration-permissions`.
+*   Changing the :guilabel:`Rules`, :guilabel:`Scan fields`,
+    :guilabel:`Quality gate`, :guilabel:`Licence`, :guilabel:`Remote scan access`,
+    :guilabel:`AI suggestions` and :guilabel:`Scan history` settings is
+    restricted to administrators, on the server. They apply to every site.
+*   Image remediation requires TYPO3 edit permissions on the affected records
+    and fields; :confval:`options.a11y_quality_gate.allowImageRemediation` ``= 0``
+    switches it off. Writes are limited to the ``alternative`` and
+    ``tx_a11y_is_decorative`` fields of :sql:`sys_file_reference`.
 *   Remote scan targets are always resolved server-side from a page UID. The
     browser never supplies a scan URL, installation identifier, licence key or
     access token.

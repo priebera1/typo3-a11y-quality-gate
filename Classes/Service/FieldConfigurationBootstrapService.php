@@ -24,6 +24,33 @@ final class FieldConfigurationBootstrapService
     ) {
     }
 
+    /** Whether any content field is switched on; a scan without one checks no content (F-05). */
+    public function hasEnabledFields(): bool
+    {
+        try {
+            return $this->fieldConfigRepository->hasEnabledFields();
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * Fields TCA offers that the stored configuration does not list yet (an extension or TCA change after the first
+     * discovery). Only an existing configuration can be outdated; never throws (F-04).
+     */
+    public function countFieldsAwaitingRefresh(): int
+    {
+        try {
+            if (!$this->fieldConfigRepository->hasAnyConfiguration()) {
+                return 0;
+            }
+
+            return $this->fieldConfigRepository->countUnconfiguredDiscoveredFields($this->tcaFieldDiscoveryService->discover());
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
     /**
      * @return int number of fields registered; 0 when a configuration already exists or TCA offers none
      */

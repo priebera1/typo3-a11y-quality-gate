@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface;
+use Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog;
+use Priebera\A11yQualityGate\Ai\Editor\EditorFindingTargetResolver;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
+use Priebera\A11yQualityGate\Remediation\Workflow\RemediationRuleTitle;
 use Priebera\A11yQualityGate\Rule\CheckContext;
+use Priebera\A11yQualityGate\Rule\Rte\LiveValidationHtml;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendLanguageService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
@@ -42,8 +48,23 @@ final class IssueApiController extends AbstractApiController
         BackendUserService $backendUserService,
         private readonly ?RuleMetadataPresentationService $ruleMetadataPresentationService = null,
         private readonly ?BackendLanguageService $backendLanguageService = null,
+        private readonly ?EditorFindingTargetResolver $editorFindingTargetResolver = null,
+        private readonly ?AccessControlService $accessControlService = null,
+        private readonly ?LocalFindingSourceAccessInterface $sourceAccessService = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
+    }
+
+    /**
+     * Stored findings of a record only while the user may read that record now (language, live version, table, page):
+     * edit access to the page alone does not open a record of a refused language (Sol QA-02 review).
+     *
+     * @param list<array<string, mixed>> $issues
+     * @return list<array<string, mixed>>
+     */
+    private function readableIssues(array $issues): array
+    {
+        return $this->sourceAccessService instanceof LocalFindingSourceAccessInterface ? $this->sourceAccessService->filter($issues) : [];
     }
 
     public function issuesAction(ServerRequestInterface $request): ResponseInterface
@@ -73,14 +94,20 @@ final class IssueApiController extends AbstractApiController
             ]);
         }
 
-        $issues = $this->issueRepository->findOpenForRecord(
+        $issues = $this->readableIssues($this->issueRepository->findOpenForRecord(
             sourceTable: Tables::TT_CONTENT,
             sourceUid: $recordUid,
             sourceField: $fieldName,
-        );
+        ));
         if ($issues !== []) {
             $context = $this->buildRteContext($recordUid, $fieldName, '', $pageUid);
             if ($context instanceof CheckContext) {
+                // D-03: only findings of the record's current site; rows of a renamed site are history, not open work.
+                $issues = array_values(array_filter(
+                    $issues,
+                    static fn (array $row): bool => $context->siteIdentifier === ''
+                        || (string)($row['site_identifier'] ?? '') === $context->siteIdentifier
+                ));
                 $issues = array_values(array_filter(
                     $issues,
                     fn (array $row): bool => $this->ruleConfigurationService->isRuleEnabledForSite(
@@ -124,7 +151,8 @@ final class IssueApiController extends AbstractApiController
         $recordUid = (int)($data['recordUid'] ?? 0);
         $fieldName = trim((string)($data['fieldName'] ?? 'bodytext'));
         $pageUid = (int)($data['pageUid'] ?? 0);
-        $html = $this->normalizeLiveValidationHtml((string)($data['html'] ?? ''));
+        $normalized = LiveValidationHtml::normalize((string)($data['html'] ?? ''));
+        $html = $normalized['html'];
 
         if ($recordUid <= 0) {
             return $this->badRequestResponse('Missing recordUid');
@@ -172,7 +200,15 @@ final class IssueApiController extends AbstractApiController
                     continue;
                 }
 
-                $issues[] = $this->formatLiveViolation($violation, $ctx);
+                $issue = $this->formatLiveViolation($violation, $ctx);
+                // Editor AI actions need the exact element; decoded (escaped) markup is not the editor's source.
+                if (!$normalized['decoded'] && $this->editorFindingTargetResolver !== null && EditorAiRuleCatalog::supports($violation->ruleId)) {
+                    $target = $this->editorFindingTargetResolver->resolve($html, $violation);
+                    if ($target !== null) {
+                        $issue['aiTarget'] = $target->toArray();
+                    }
+                }
+                $issues[] = $issue;
             }
         }
 
@@ -180,38 +216,10 @@ final class IssueApiController extends AbstractApiController
             'success' => true,
             'live' => true,
             'languageUid' => $ctx->sourceLangUid,
+            // Lets the editor date a rule-based change by the server clock (editor AI "Saved" check).
+            'serverTime' => time(),
             'issues' => $issues,
         ]);
-    }
-
-    private function normalizeLiveValidationHtml(string $html): string
-    {
-        $html = (string)preg_replace('/<!--.*?-->/s', '', $html);
-
-        // CKEditor normally sends real HTML through editor.getData(). In some source/editing flows,
-        // however, the payload can contain escaped HTML fragments wrapped in normal paragraph tags:
-        // <p>&lt;img href="nic" /&gt;</p>. The previous fallback did not decode this because
-        // the wrapper <p> counted as a real HTML element, so the RTE rules only saw text.
-        if ($this->containsEscapedHtmlElement($html) && $this->countActionableHtmlElements($html) === 0) {
-            $decoded = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            if ($this->countActionableHtmlElements($decoded) > 0) {
-                $html = $decoded;
-            }
-        }
-
-        return $html;
-    }
-
-    private function containsEscapedHtmlElement(string $html): bool
-    {
-        return preg_match('/&lt;\s*(a|img|table|thead|tbody|tr|th|td|button|iframe|svg|h[1-6]|ul|ol|li)\b/i', $html) === 1;
-    }
-
-    private function countActionableHtmlElements(string $html): int
-    {
-        preg_match_all('/<\s*(a|img|table|thead|tbody|tr|th|td|button|iframe|svg|h[1-6]|ul|ol|li)\b/i', $html, $matches);
-
-        return count($matches[0] ?? []);
     }
 
     public function ignoreAction(ServerRequestInterface $request): ResponseInterface
@@ -258,6 +266,15 @@ final class IssueApiController extends AbstractApiController
             return $this->badRequestResponse('Missing recordUid');
         }
 
+        // Same rule as Ignore in Page Detail: the editRecord capability, then edit access to the record.
+        $capabilityResponse = $this->ensureBackendUserAccess(
+            $this->accessControlService ?? new AccessControlService($this->connectionPool),
+            'editRecord'
+        );
+        if ($capabilityResponse !== null) {
+            return $capabilityResponse;
+        }
+
         if (!$this->canAccessRteRecord($recordUid, $pageUid)) {
             return $this->forbiddenResponse();
         }
@@ -274,7 +291,7 @@ final class IssueApiController extends AbstractApiController
             $siteIdentifier !== '' ? $siteIdentifier : null
         );
         if ($issue !== null) {
-            if (!$this->isIssueForRequestedRecord($issue, $recordUid, $fieldName)) {
+            if (!$this->isIssueForRequestedRecord($issue, $recordUid, $fieldName) || $this->readableIssues([$issue]) === []) {
                 return $this->forbiddenResponse();
             }
 
@@ -305,7 +322,8 @@ final class IssueApiController extends AbstractApiController
             return $this->notFoundResponse('Issue not found');
         }
 
-        $html = $this->normalizeLiveValidationHtml((string)($data['html'] ?? ''));
+        $normalized = LiveValidationHtml::normalize((string)($data['html'] ?? ''));
+        $html = $normalized['html'];
 
         if ($recordUid <= 0 || $fieldName === '') {
             return $this->badRequestResponse('Missing live issue context');
@@ -450,6 +468,26 @@ final class IssueApiController extends AbstractApiController
     }
 
     /**
+     * The plain rule name ("Link text is not descriptive") that titles a finding in the editor popover, line panel and
+     * review dialog; the stored message ("<h3> element has no visible text.") stays the description. Empty without the
+     * presentation service (the editor then falls back to the message).
+     */
+    private function ruleTitle(string $ruleId): string
+    {
+        if ($ruleId === '' || $this->ruleMetadataPresentationService === null) {
+            return '';
+        }
+
+        // The same plain rule name as Page Detail, the AI fixes queue and the plan (Atlas audit F-11): the grouped
+        // presentation title ("Links without discernible text") is not a rule name.
+        return RemediationRuleTitle::plain(
+            $this->ruleMetadataPresentationService,
+            $ruleId,
+            $this->backendLanguageService?->getCurrentLanguageCode() ?? 'en'
+        );
+    }
+
+    /**
      * Rule messages are English. Other backend languages get the translated rule title and fix
      * where locallang.xlf has one; otherwise the original message and hint stay.
      *
@@ -481,6 +519,7 @@ final class IssueApiController extends AbstractApiController
             'fingerprint' => 'live:' . $fingerprint,
             'persistedFingerprint' => $fingerprint,
             'ruleId' => $violation->ruleId,
+            'ruleTitle' => $this->ruleTitle((string)$violation->ruleId),
             'severity' => $violation->severity->key(),
             'message' => $message,
             'hint' => $hint,
@@ -507,6 +546,7 @@ final class IssueApiController extends AbstractApiController
         return [
             'fingerprint' => $row['fingerprint'] ?? '',
             'ruleId' => $row['rule_id'] ?? '',
+            'ruleTitle' => $this->ruleTitle((string)($row['rule_id'] ?? '')),
             'severity' => $severity->key(),
             'message' => $message,
             'hint' => $hint,

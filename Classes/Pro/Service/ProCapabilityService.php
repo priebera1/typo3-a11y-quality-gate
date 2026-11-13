@@ -20,15 +20,17 @@ final class ProCapabilityService
     public function getStatus(string $domain, string $version): ProStatusViewModel
     {
         if (!$this->proSettings->isConfigured()) {
-            return ProStatusViewModel::notConfigured(
-                $this->proSettings->showProHints(),
-                $domain
-            );
+            return ProStatusViewModel::notConfigured($domain);
         }
 
         $result = $this->proLicenceService->validate($domain, $version);
 
-        $effectiveIsTrial = $result->isTrial || $this->proSettings->isTrialKey();
+        // The API's answer names the plan; the key prefix only fills in when the answer names none (U-10: a PRO licence
+        // with an `aqg_test_` key was shown as Trial and lost PDF and multi-site).
+        $answeredPlan = $this->normalizePlan($result->plan);
+        $effectiveIsTrial = $result->isTrial
+            || $answeredPlan === 'trial'
+            || ($answeredPlan === '' && $this->proSettings->isTrialKey());
         $effectivePlan = $effectiveIsTrial ? 'trial' : $result->plan;
 
         $hasCrawler = $result->valid && (
@@ -57,7 +59,6 @@ final class ProCapabilityService
             reason: $result->reason,
             reasonLabel: $this->buildReasonLabel($result, $effectiveIsTrial),
             statusLabel: $this->buildStatusLabel($result, $effectiveIsTrial, $effectivePlan),
-            showProHints: $this->proSettings->showProHints(),
             hasCrawler: $hasCrawler,
             hasExportPdf: $hasExportPdf,
             hasMultiSite: $hasMultiSite,
@@ -121,6 +122,7 @@ final class ProCapabilityService
             'domain_limit_reached' => 'Domain limit reached',
             'domain_not_activated' => 'Domain not activated',
             'domain_not_detected' => 'Domain not in this installation',
+            'site_without_domain' => 'Site has no domain',
             'project_mismatch', 'licence_project_mismatch', 'trial_project_mismatch' => 'Different TYPO3 project',
             'project_limit_reached' => 'Project limit reached',
             'trial_expired' => 'Trial expired',
@@ -153,6 +155,7 @@ final class ProCapabilityService
             'domain_limit_reached' => 'Domain limit reached for this licence. Log in to your portal to manage domains.',
             'domain_not_activated' => 'This site\'s domain is not activated for the licence. Activate it under Licence domains in the AQG settings or in the customer portal.',
             'domain_not_detected' => 'No site of this TYPO3 installation uses this domain, so the licence does not cover it.',
+            'site_without_domain' => 'This site\'s base URL has no domain, so the licence cannot be checked for it. Set a full base URL in Site Management › Sites.',
             'project_mismatch', 'licence_project_mismatch' => 'This licence is registered to a different TYPO3 project. PRO covers one project; Agency covers several client projects.',
             'project_limit_reached' => 'All project slots of this Agency licence are in use. Remove a project in the customer portal to add this one.',
             'trial_expired' => 'This trial has expired.',

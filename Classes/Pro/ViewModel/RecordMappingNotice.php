@@ -18,7 +18,7 @@ final class RecordMappingNotice
      * a missing main landmark, a page without h1) belong to the page template and are never linked to a record.
      *
      * @param list<array<string, mixed>> $issues issues with their prepared `nodes` (`hasRecordMapping`)
-     * @return array{show: bool, scannerTokenMissing: bool, unmappedNodes: int, linkedNodes: int, pageLevelNodes: int, totalNodes: int, allUnmapped: bool, settingsUrl: string}
+     * @return array{show: bool, scannerTokenMissing: bool, markersMissing: bool, unmappedNodes: int, linkedNodes: int, pageLevelNodes: int, totalNodes: int, allUnmapped: bool, settingsUrl: string}
      */
     public static function build(array $issues, bool $siteHasScannerToken, bool $isFreePreview, string $settingsUrl): array
     {
@@ -44,10 +44,14 @@ final class RecordMappingNotice
 
         $scannerTokenMissing = !$isFreePreview && !$siteHasScannerToken;
         $linkedNodes = $totalNodes - $unmappedNodes - $pageLevelNodes;
+        // T-01: a token is configured, yet not one content occurrence was linked — the markers did not reach the crawler
+        // (the rendering host did not accept this token, a cache served the page, or the crawler's mapping failed).
+        $markersMissing = !$isFreePreview && $siteHasScannerToken && $unmappedNodes > 0 && $linkedNodes === 0;
 
         return [
-            'show' => $scannerTokenMissing && $unmappedNodes > 0,
+            'show' => ($scannerTokenMissing && $unmappedNodes > 0) || $markersMissing,
             'scannerTokenMissing' => $scannerTokenMissing,
+            'markersMissing' => $markersMissing,
             'unmappedNodes' => $unmappedNodes,
             'linkedNodes' => $linkedNodes,
             'pageLevelNodes' => $pageLevelNodes,

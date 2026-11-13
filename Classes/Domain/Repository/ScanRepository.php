@@ -25,15 +25,19 @@ final class ScanRepository extends AbstractRepository
         int $rootPid,
         int $languageUid,
         string $scope,
+        array $notPermittedPageUids = [],
     ): int {
         $now = time();
         $connection = $this->getConnection(Tables::SCAN);
+        $notPermittedPageUids = array_values(array_unique(array_filter(array_map('intval', $notPermittedPageUids), static fn (int $uid): bool => $uid > 0)));
 
         $connection->insert(Tables::SCAN, [
             'site_identifier' => $siteIdentifier,
             'root_pid' => $rootPid,
             'language_uid' => $languageUid,
             'scope' => $scope,
+            'pages_not_permitted' => count($notPermittedPageUids),
+            'not_permitted_json' => $notPermittedPageUids === [] ? '' : (string)json_encode($notPermittedPageUids),
             'status' => 1,
             'started_at' => $now,
             'crdate' => $now,
@@ -376,14 +380,54 @@ final class ScanRepository extends AbstractRepository
 
         $this->addLanguageConstraint($qb, $languageUid);
 
-        $row = $qb
+        // AUTH-01: a subtree scan started by an editor did not check the pages they may not scan (not_permitted_json); such
+        // a scan never covers that page, an earlier one that did check it still does.
+        $rows = $qb
             ->orderBy('finished_at', 'DESC')
             ->addOrderBy('uid', 'DESC')
-            ->setMaxResults(1)
+            ->setMaxResults(50)
             ->executeQuery()
-            ->fetchAssociative();
+            ->fetchAllAssociative();
+        foreach ($rows as $row) {
+            if (!self::excludesPage($row, $pageUid)) {
+                return $row;
+            }
+        }
 
-        return $row ?: null;
+        return null;
+    }
+
+    /**
+     * STATE-01: whether a completed content scan row is evidence for the whole site: a subtree scan from the site root that
+     * left no page out (AUTH-01) and fetched every rendered page it had to. Pages visitors cannot open are skipped by
+     * design and reported on their own (RenderedCoverage::countNotPublic()); a failed fetch is missing evidence.
+     *
+     * @param array<string, mixed>|null $scanRow
+     */
+    public static function coversWholeSite(?array $scanRow, int $siteRootPid): bool
+    {
+        return is_array($scanRow)
+            && $siteRootPid > 0
+            && (int)($scanRow['status'] ?? self::STATUS_COMPLETED) === self::STATUS_COMPLETED
+            && (string)($scanRow['scope'] ?? '') === self::SCOPE_SUBTREE
+            && (int)($scanRow['root_pid'] ?? 0) === $siteRootPid
+            && (int)($scanRow['pages_not_permitted'] ?? 0) === 0
+            && max(0, (int)($scanRow['rendered_skipped'] ?? 0) - \Priebera\A11yQualityGate\Scan\RenderedCoverage::countNotPublic($scanRow)) === 0;
+    }
+
+    /**
+     * AUTH-01: whether a scan run left this page out because the user who started it may not scan it.
+     *
+     * @param array<string, mixed> $scanRow
+     */
+    public static function excludesPage(array $scanRow, int $pageUid): bool
+    {
+        if ((int)($scanRow['pages_not_permitted'] ?? 0) <= 0 || $pageUid <= 0) {
+            return false;
+        }
+        $excluded = json_decode((string)($scanRow['not_permitted_json'] ?? ''), true);
+
+        return !is_array($excluded) || in_array($pageUid, array_map('intval', $excluded), true);
     }
 
     /**

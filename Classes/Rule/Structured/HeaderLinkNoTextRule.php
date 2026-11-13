@@ -9,10 +9,16 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleInterface;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Workspace\PublishPreviewContext;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 
 final class HeaderLinkNoTextRule implements RuleInterface
 {
+    public function __construct(
+        private readonly ?PublishPreviewContext $publishPreview = null,
+    ) {
+    }
+
     public function getRuleId(): string
     {
         return 'structured.header_link_no_text';
@@ -49,7 +55,9 @@ final class HeaderLinkNoTextRule implements RuleInterface
             return [];
         }
 
-        $record = BackendUtility::getRecord(Tables::TT_CONTENT, $context->sourceUid, 'header');
+        // Before a workspace publish, the header the publish will store counts (PublishPreviewContext).
+        $record = $this->publishPreview?->active()?->publishedVersionOf(Tables::TT_CONTENT, $context->sourceUid)
+            ?? BackendUtility::getRecord(Tables::TT_CONTENT, $context->sourceUid, 'header');
         $header = is_array($record) ? trim((string)($record['header'] ?? '')) : '';
 
         if ($header !== '') {

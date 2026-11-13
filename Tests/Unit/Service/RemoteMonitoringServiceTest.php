@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Domain\Repository\MonitoringRunRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Pro\Dto\CrawlerSubmitResult;
+use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use Priebera\A11yQualityGate\Pro\Dto\RemoteScanRequestData;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Pro\Service\ProCapabilityService;
@@ -128,6 +129,85 @@ final class RemoteMonitoringServiceTest extends TestCase
     }
 
     #[Test]
+    public function anUnreachableCrawlerIsAFailedRunThatIsMailedAndNeverABaseline(): void
+    {
+        $this->crawler->method('submit')->willThrowException(new ApiRequestFailedException('cURL error 7: Failed to connect to crawler', 0));
+        $this->runs->expects(self::once())->method('insertFailed')->with('main', 0, 'failed:monitoring_submit_failed')->willReturn(9);
+        $this->runs->method('findPreviousEvaluated')->willReturn(['state_fingerprint' => '', 'notified_at' => 0]);
+        $this->notifier->expects(self::once())->method('send')
+            ->with(['qa@example.org'], self::callback(static fn (array $report): bool => $report['outcome'] === 'failed'
+                && $report['failure']['code'] === 'monitoring_submit_failed' && !str_contains(json_encode($report['failure']), 'cURL')))
+            ->willReturn(true);
+
+        $result = $this->monitor();
+
+        self::assertSame('failed', $result['outcome']);
+        self::assertSame(9, $result['runUid']);
+        self::assertTrue($result['notified']);
+        self::assertNotSame('', $result['failureMessage']);
+        self::assertStringNotContainsString('cURL', $result['failureMessage'], 'Exception text only goes to the log.');
+        self::assertSame(0, $this->runUpdates[0]['coverage_complete'], 'Never a baseline.');
+        self::assertSame('failed', $this->runUpdates[0]['outcome']);
+        self::assertGreaterThan(0, $this->runUpdates[0]['notified_at']);
+        self::assertSame(0, $this->runUpdates[0]['delivery_pending']);
+    }
+
+    #[Test]
+    public function aContinuingOutageIsNotMailedAgainAndAnUndeliveredMailStaysPending(): void
+    {
+        $this->crawler->method('submit')->willThrowException(new ApiRequestFailedException('timeout', 504));
+        $this->runs->method('insertFailed')->willReturn(10);
+        $this->runs->method('findPreviousEvaluated')->willReturn(['state_fingerprint' => 'failed:monitoring_submit_failed', 'notified_at' => 1700000000]);
+        $this->notifier->expects(self::never())->method('send');
+
+        $result = $this->monitor();
+
+        self::assertFalse($result['notified']);
+        self::assertSame(1700000000, $this->runUpdates[0]['notified_at'], 'The earlier delivery is carried forward.');
+    }
+
+    #[Test]
+    public function aFailureMailThatCouldNotBeDeliveredIsRetriedByTheNextRun(): void
+    {
+        $this->crawler->method('submit')->willThrowException(new ApiRequestFailedException('Server error', 503));
+        $this->runs->method('insertFailed')->willReturn(11);
+        $this->notifier->expects(self::once())->method('send')->willReturn(false);
+
+        $this->monitor();
+
+        self::assertSame(1, $this->runUpdates[0]['delivery_pending']);
+        self::assertSame(0, $this->runUpdates[0]['notified_at']);
+    }
+
+    #[Test]
+    public function aMissingDpaIsReportedWithItsOwnReason(): void
+    {
+        $this->crawler->method('submit')->willThrowException(new ApiRequestFailedException('dpa', 403, null, 'dpa_acceptance_required'));
+        $this->runs->method('insertFailed')->willReturn(12);
+        $this->notifier->expects(self::once())->method('send')
+            ->with(self::anything(), self::callback(static fn (array $report): bool => $report['failure']['code'] === 'dpa_acceptance_required'))
+            ->willReturn(true);
+
+        self::assertStringContainsString('data processing agreement', $this->monitor()['failureMessage']);
+    }
+
+    #[Test]
+    public function aSubmittedScanThatDisappearedIsAFailureTheRecipientsHearAbout(): void
+    {
+        $this->crawler->method('submit')->willReturn(new CrawlerSubmitResult(self::JOB, 'queued', 'sitemap', null));
+        $this->runs->method('insertSubmitted')->willReturn(4);
+        $this->scans->method('findScanByJobId')->willReturn(null);
+        $this->runs->expects(self::never())->method('insertFailed');
+        $this->notifier->expects(self::once())->method('send')->willReturn(true);
+
+        $result = $this->monitor();
+
+        self::assertSame('failed', $result['outcome']);
+        self::assertSame(4, $result['runUid']);
+        self::assertSame('failed:monitoring_scan_missing', $this->runUpdates[0]['state_fingerprint']);
+    }
+
+    #[Test]
     public function aCompleteRegressionIsMailedOnce(): void
     {
         $this->submitsAndCompletes(
@@ -138,6 +218,7 @@ final class RemoteMonitoringServiceTest extends TestCase
         $this->notifier->expects(self::once())->method('send')->willReturn(true);
 
         $result = $this->monitor();
+        self::assertSame(0, $this->runUpdates[0]['delivery_pending'] ?? null, 'A delivered state is a trustworthy baseline.');
 
         self::assertSame('regression', $result['outcome']);
         self::assertTrue($result['notified']);
@@ -192,11 +273,15 @@ final class RemoteMonitoringServiceTest extends TestCase
             'notified_at' => 0,
         ]);
         $this->notifier->expects(self::once())->method('send')->willReturn(true);
+        // NEW-10: the earlier run's undelivered mail about this same state is now delivered: it is superseded, not left pending.
+        $this->runs->expects(self::once())->method('supersedePendingDeliveries')->with('main', 0, self::anything(), self::stringStartsWith('regression:'));
 
         $result = $this->monitor();
 
         self::assertTrue($result['notified']);
+        self::assertFalse($result['deliveryFailed']);
         self::assertGreaterThan(0, $this->runUpdates[0]['notified_at']);
+        self::assertSame('', $this->runUpdates[0]['delivery_error']);
     }
 
     #[Test]
@@ -209,6 +294,13 @@ final class RemoteMonitoringServiceTest extends TestCase
 
         self::assertFalse($result['notified']);
         self::assertSame(0, $this->runUpdates[0]['notified_at']);
+        // D-04: the undelivered regression must not become the next baseline, or the next run compares against it and
+        // the regression is never reported.
+        self::assertSame(1, $this->runUpdates[0]['delivery_pending']);
+        // NEW-10: the failed delivery is reported to the caller (CLI exit code, Scheduler status) and recorded on the run.
+        self::assertTrue($result['deliveryFailed']);
+        self::assertSame('mail_not_sent', $this->runUpdates[0]['delivery_error']);
+        self::assertSame(1, $this->runUpdates[0]['delivery_attempts']);
     }
 
     #[Test]
@@ -402,7 +494,6 @@ final class RemoteMonitoringServiceTest extends TestCase
             reason: null,
             reasonLabel: null,
             statusLabel: '',
-            showProHints: false,
             hasCrawler: true,
             hasExportPdf: true,
             hasMultiSite: $this->plan === 'agency',

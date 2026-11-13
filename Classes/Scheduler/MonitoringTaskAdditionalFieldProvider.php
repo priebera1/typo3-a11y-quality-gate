@@ -92,6 +92,8 @@ final class MonitoringTaskAdditionalFieldProvider extends AbstractAdditionalFiel
      */
     public function validateAdditionalFields(array &$submittedData, SchedulerModuleController $schedulerModule): bool
     {
+        // N-15: the same backend address as on TYPO3 14 ("https://cms.example.org/typo3/" is the backend of that host).
+        $submittedData[self::FIELD_BACKEND_URL] = MonitoringTaskValidator::normalizeBackendUrl((string)($submittedData[self::FIELD_BACKEND_URL] ?? ''));
         $errors = $this->monitoringTaskValidator->validate(
             (string)($submittedData[self::FIELD_SITE] ?? ''),
             (int)($submittedData[self::FIELD_LANGUAGE] ?? 0),

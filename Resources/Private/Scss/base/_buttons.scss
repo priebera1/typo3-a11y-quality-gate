@@ -112,3 +112,12 @@
         outline-offset: 1px;
     }
 }
+
+// AQG-300-FEAT-02/03: the estimated maximum cost inside an AI action button ("Fix with AI (<$0.02)"), quieter than the
+// action name by weight only. It keeps the button's own text colour: an opacity dimmed the 11.5px figure below
+// WCAG AA (4.38:1 on the default button; final customer acceptance audit).
+.aqg-module .aqg-ai-cost,
+.aqg-ai-cost {
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}

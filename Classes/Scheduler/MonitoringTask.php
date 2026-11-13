@@ -66,7 +66,7 @@ final class MonitoringTask extends AbstractTask
         $this->recipients = trim(self::scalar($parameters, self::PARAM_RECIPIENTS, $this->recipients));
         $this->maxPages = (int)self::scalar($parameters, self::PARAM_MAX_PAGES, (string)$this->maxPages);
         $this->maxWait = (int)self::scalar($parameters, self::PARAM_MAX_WAIT, (string)$this->maxWait);
-        $this->backendUrl = trim(self::scalar($parameters, self::PARAM_BACKEND_URL, $this->backendUrl));
+        $this->backendUrl = MonitoringTaskValidator::normalizeBackendUrl(self::scalar($parameters, self::PARAM_BACKEND_URL, $this->backendUrl));
     }
 
     /**
@@ -109,6 +109,17 @@ final class MonitoringTask extends AbstractTask
 
     public function execute(): bool
     {
+        // D-04: a Scheduler monitoring task exists to notify. Without recipients it would scan, find a regression, tell
+        // nobody and hand the regressed scan on as the next baseline — so it refuses to run, and the Scheduler list
+        // shows why (last execution failure). `a11y:monitor` without --notify stays the report-only mode.
+        if (MonitoringTaskValidator::parseRecipients($this->recipients) === []) {
+            $this->logger?->error('AQG monitoring task skipped: no recipients configured.', $this->logContext());
+            throw new \RuntimeException(
+                BackendLabelUtility::translate('scheduler.monitoring.error.noRecipients', 'This monitoring task has no e-mail recipients, so a regression would reach nobody. Nothing was scanned. Edit the task and enter at least one recipient.'),
+                1790000011
+            );
+        }
+
         $monitoringTargetResolver = self::getContainerService(MonitoringTargetResolver::class);
         try {
             $site = $monitoringTargetResolver->resolve($this->siteIdentifier, $this->languageUid);
@@ -131,6 +142,25 @@ final class MonitoringTask extends AbstractTask
             'outcome' => $result['outcome'],
             'notified' => $result['notified'],
         ]);
+
+        if ($result['outcome'] === RemoteMonitoringService::OUTCOME_FAILED && ($result['failureMessage'] ?? '') !== '') {
+            // N-13: recorded and notified by the service; the Scheduler list still shows why this run failed.
+            throw new \RuntimeException(
+                sprintf(
+                    BackendLabelUtility::translate('scheduler.monitoring.error.failed', 'The monitoring scan could not run: %s'),
+                    (string)$result['failureMessage']
+                ),
+                1790000012
+            );
+        }
+
+        if ($result['deliveryFailed'] ?? false) {
+            // NEW-10: the scan result is recorded (the run is not failed); the Scheduler list shows that the mail was not sent.
+            throw new \RuntimeException(
+                BackendLabelUtility::translate('scheduler.monitoring.error.notificationFailed', 'The monitoring result was recorded, but the notification e-mail could not be sent. Check the mail settings; the next run notifies again if the result is unchanged.'),
+                1790000013
+            );
+        }
 
         if ($result['outcome'] === RemoteMonitoringService::OUTCOME_NOT_ENTITLED) {
             throw new \RuntimeException(
@@ -171,12 +201,17 @@ final class MonitoringTask extends AbstractTask
             }
         }
 
-        return sprintf(
+        $recipientCount = count(MonitoringTaskValidator::parseRecipients($this->recipients));
+        $summary = sprintf(
             BackendLabelUtility::translate('scheduler.monitoring.info.summary', '%1$s · %2$s · %3$d recipient(s)'),
             $this->siteIdentifier,
             $languageLabel,
-            count(MonitoringTaskValidator::parseRecipients($this->recipients))
+            $recipientCount
         );
+
+        return $recipientCount > 0
+            ? $summary
+            : $summary . ' · ' . BackendLabelUtility::translate('scheduler.monitoring.info.noRecipients', 'Not running: no recipients');
     }
 
     /**

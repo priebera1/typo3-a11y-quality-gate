@@ -1,5 +1,5 @@
 <div
-        class="tab-pane fade{f:if(condition: '{activeTab} == ''licence''', then: ' show active')}"
+        class="tab-pane fade show active"
         id="a11y-settings-pane-licence"
 >
     <form method="post" action="{saveExtConfUrl}" class="aqg-settings-grid aqg-settings-grid--licence">
@@ -42,7 +42,7 @@
                                                     <span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.savedKeyEnding" default="Key ending in %s" arguments="{0: licenceKeyEnding}" /></span>
                                                 </f:if>
                                             </span>
-                                            <button type="button" class="btn btn-default btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence" data-aqg-licence-revalidate="true">
+                                            <button type="button" class="btn btn-default btn-sm aqg-inputgroup__btn" data-action="a11y-validate-licence" data-aqg-licence-revalidate="true" data-aqg-licence-site="{licenceSiteIdentifier}">
                                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.revalidate" default="Revalidate" />
                                             </button>
                                         </div>
@@ -158,28 +158,6 @@
                                 </div>
                             </div>
 
-                            <input type="hidden" name="showProHints" value="0" />
-                            <input
-                                    type="checkbox"
-                                    role="switch"
-                                    class="aqg-switch__input"
-                                    name="showProHints"
-                                    id="aqg-show-pro-hints"
-                                    value="1"
-                                    {f:if(condition: showProHints, then: 'checked="checked"')}
-                            />
-                            <label class="aqg-switch" for="aqg-show-pro-hints">
-                                <span class="aqg-switch__track" aria-hidden="true"><span class="aqg-switch__thumb"></span></span>
-                                <span class="aqg-switch__body">
-                                    <span class="aqg-switch__label">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHints" default="Show PRO upgrade offers" />
-                                    </span>
-                                    <span class="aqg-switch__hint">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.showProHintsHint" default="Shows the upgrade card with trial and pricing links in the Free Remote Preview. Turn it off to hide these offers from editors; locked features still say that they need a licence." />
-                                    </span>
-                                </span>
-                            </label>
-
                             <div class="aqg-licence-actions">
                                 <button
                                         type="submit"
@@ -210,6 +188,7 @@
         </div>
 
         <aside class="aqg-aside">
+            <f:render partial="Settings/LicenceSitePicker" arguments="{licenceSiteOptions: licenceSiteOptions}" />
             <f:render partial="Settings/LicenceStatus" arguments="{_all}" />
 
             <div class="aqg-aside__module">
@@ -235,6 +214,7 @@
             <section class="aqg-card aqg-licence-domains"
              aria-labelledby="aqg-licence-domains-title"
              data-aqg-licence-domains="true"
+             data-site-identifier="{licenceSiteIdentifier}"
              data-list-url="{licenceDomainsUrl}"
              data-update-url="{licenceDomainsUpdateUrl}"
              data-label-sites-column="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.column.sites', default: 'TYPO3 sites')}"
@@ -377,11 +357,15 @@
                             <p class="aqg-field__help aqg-licence-domains__empty" data-aqg-domains-empty="true" hidden></p>
                         </div>
 
-                        <nav class="aqg-licence-domains__pager" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.label', default: 'Domain pages')}" data-aqg-domains-pager="true" hidden>
-                            <button type="button" class="btn btn-default btn-sm" data-aqg-domains-page="previous"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.previous" default="Previous" /></button>
-                            <span class="aqg-licence-domains__range" aria-live="polite" data-aqg-domains-range="true"></span>
-                            <button type="button" class="btn btn-default btn-sm" data-aqg-domains-page="next"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.next" default="Next" /></button>
-                        </nav>
+                        <div class="aqg-pagination aqg-pagination--standalone aqg-licence-domains__pager" data-aqg-domains-pager="true" hidden>
+                            <p class="aqg-pagination__info"><span class="aqg-licence-domains__range" aria-live="polite" data-aqg-domains-range="true"></span></p>
+                            <nav class="aqg-pagination__nav" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.label', default: 'Domain pages')}">
+                                <ul class="aqg-pagination__list">
+                                    <li><button type="button" class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev" data-aqg-domains-page="previous"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.previous" default="Previous" /></span></button></li>
+                                    <li><button type="button" class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--next" data-aqg-domains-page="next"><span class="aqg-pagination__step-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.licence.domains.pager.next" default="Next" /></span></button></li>
+                                </ul>
+                            </nav>
+                        </div>
                     </div>
                 </div>
             </section>

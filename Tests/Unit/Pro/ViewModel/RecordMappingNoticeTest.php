@@ -49,6 +49,21 @@ final class RecordMappingNoticeTest extends TestCase
         self::assertFalse($notice['scannerTokenMissing']);
     }
 
+    /**
+     * T-01 (2026-11-05 company acceptance): with a Scanner Token, a crawl whose in-page mapping failed showed "Not linked
+     * to a TYPO3 record" on every occurrence and nothing else. With a token and not one content occurrence linked, the
+     * markers did not reach the crawler; that is said, with where to look.
+     */
+    #[Test]
+    public function aTokenSiteWithoutAnyLinkedContentOccurrenceIsDiagnosed(): void
+    {
+        $notice = RecordMappingNotice::build($this->issues(mapped: 0, unmapped: 3), siteHasScannerToken: true, isFreePreview: false, settingsUrl: '/typo3/settings');
+
+        self::assertTrue($notice['show']);
+        self::assertFalse($notice['scannerTokenMissing']);
+        self::assertTrue($notice['markersMissing']);
+    }
+
     #[Test]
     public function aPageWhoseFindingsAreAllMappedNeedsNoNotice(): void
     {

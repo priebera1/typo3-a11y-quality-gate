@@ -1,0 +1,255 @@
+/* ═══════════════════════════════════════════
+   My issues (team assignment) and the assign control on Page Detail rule cards.
+   Atlas "Reviewed Margin": incumbent tokens only, hairline rules, tone triples for state, no new colour.
+═══════════════════════════════════════════ */
+.aqg-issues__intro {
+    max-width: 75ch;
+    margin: 0;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-issues__workload {
+    flex-wrap: wrap;
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-issues__workload--flagged {
+    color: var(--aqi-warn);
+}
+
+.aqg-issues__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: flex-end;
+    padding: 10px 12px;
+    border: 1px solid var(--aqi-border);
+    border-radius: var(--aqi-radius);
+    background: var(--aqi-surface);
+
+    .aqg-field--inline {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 11rem;
+    }
+}
+
+.aqg-issues__issue {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+}
+
+.aqg-issues__link {
+    font-weight: 600;
+}
+
+.aqg-issues__note {
+    display: block;
+    margin-top: 2px;
+    color: var(--aqi-fg-muted);
+    font-size: .8125rem;
+}
+
+.aqg-issues__muted {
+    color: var(--aqi-fg-muted);
+}
+
+.aqg-issues__lang {
+    display: block;
+    color: var(--aqi-fg-muted);
+    font-size: .8125rem;
+}
+
+.aqg-issues__flag {
+    display: inline-flex;
+    margin-left: 4px;
+    padding: 0 .45em;
+    color: var(--aqi-warn);
+    background: var(--aqi-warn-bg);
+    border: 1px solid var(--aqi-warn-border);
+    border-radius: var(--aqi-radius-sm);
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+.aqg-issues__state {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.aqg-issues__state--done {
+    color: var(--aqi-ok);
+}
+
+.aqg-issues__state--rescan {
+    color: var(--aqi-warn);
+}
+
+/* N-17: on a narrow screen the task table scrolls inside its frame (keyboard-focusable via scrollable-tables.js)
+   instead of pushing the page wider than the viewport. */
+.aqg-issues .aqg-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+// The scroll region is a tab stop only while it scrolls (scrollable-tables.js); same ring as the Overview tables.
+.aqg-issues .aqg-table-wrap[data-aqg-scrollable="true"]:focus-visible {
+    outline: 2px solid var(--aqi-focus);
+    outline-offset: -2px;
+}
+
+.aqg-issues__table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--aqi-surface);
+
+    th,
+    td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--aqi-divider);
+        text-align: left;
+    }
+
+    th {
+        white-space: nowrap;
+        color: var(--aqi-fg-muted);
+        font-size: .75rem;
+        font-weight: 600;
+    }
+
+    td {
+        vertical-align: top;
+    }
+
+    th.num,
+    td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    tbody tr:hover {
+        background: var(--aqi-surface-2);
+    }
+
+    th:first-child,
+    td:first-child {
+        width: 40%;
+        min-width: 16rem;
+    }
+
+    td:nth-child(3),
+    td:nth-child(5) {
+        white-space: nowrap;
+    }
+}
+
+/* Assign control on a rule card foot. */
+.aqg-assign {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    align-items: center;
+}
+
+.aqg-assign__chip {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    font-size: .8125rem;
+}
+
+.aqg-assign__panel {
+    display: grid;
+    gap: 6px;
+    width: min(22rem, 80vw);
+    padding: 12px;
+}
+
+/* The extra weight keeps the 12 px form padding that the generic `.aqg-menu__panel` (6 px, a list menu) overrode. */
+.a11y-page-detail .aqg-menu__panel.aqg-assign__panel {
+    width: min(22rem, calc(100vw - 6rem));
+    padding: 12px;
+}
+
+/*
+ * Narrow module (page tree open on a tablet): the rule card foot menus (Assign…, More actions) open from the start of
+ * the foot row instead of from their button. Anchored at a button in the middle of the row they ran past the module's
+ * right edge and scrolled the whole page sideways.
+ */
+@media (max-width: 575.98px) {
+    .a11y-page-detail .aqg-rulecard__foot {
+        position: relative;
+    }
+
+    .a11y-page-detail .aqg-rulecard__foot .aqg-menu {
+        position: static;
+    }
+}
+
+.aqg-assign__actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.aqg-assign__hint {
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-size: .75rem;
+}
+
+.aqg-assign__status {
+    margin: 0;
+    font-size: .8125rem;
+
+    &:empty {
+        display: none;
+    }
+
+    &.is-error {
+        color: var(--aqi-err);
+    }
+}
+
+/* N-01: a shared template task is named on its card as a label, not a control: no border or fill, so it is not
+   mistaken for the "Assign…" button next to it. */
+.aqg-assign__shared {
+    color: var(--aqi-fg);
+    font-size: .8125rem;
+    font-weight: 600;
+
+    &::after {
+        content: "·" / "";
+        margin-inline-start: 8px;
+        color: var(--aqi-fg-muted);
+        font-weight: 400;
+    }
+}
+
+@container (max-width: 640px) {
+    .aqg-issues__filters .aqg-field--inline {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .aqg-issues__table th:first-child,
+    .aqg-issues__table td:first-child {
+        width: auto;
+        min-width: 12rem;
+    }
+}
+
+/* NEW-03: the list is paginated on the server; the range line says how many tasks exist, the nav pages through them. */
+.aqg-issues__range {
+    margin: 0 0 8px;
+    color: var(--aqi-fg-muted);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+}

@@ -293,6 +293,70 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
             'fixType' => 'content',
             'affected' => ['Blind users', 'screen reader users', 'cognitive disabilities'],
         ],
+        'heading-order' => [
+            'titleKey' => 'rule.presentation.heading_order.title',
+            'whyKey' => 'rule.presentation.heading_order.why',
+            'fixKey' => 'rule.presentation.heading_order.fix',
+            'owner' => 'editor',
+            'fixType' => 'content',
+            'affected' => ['Blind users', 'screen reader users', 'cognitive disabilities'],
+        ],
+        'document-title' => [
+            'titleKey' => 'rule.presentation.document_title.title',
+            'whyKey' => 'rule.presentation.document_title.why',
+            'fixKey' => 'rule.presentation.document_title.fix',
+            'owner' => 'editor',
+            'fixType' => 'content',
+            'affected' => ['Blind users', 'screen reader users', 'cognitive disabilities'],
+        ],
+        'html-has-lang' => [
+            'titleKey' => 'rule.presentation.html_has_lang.title',
+            'whyKey' => 'rule.presentation.html_has_lang.why',
+            'fixKey' => 'rule.presentation.html_has_lang.fix',
+            'owner' => 'developer',
+            'fixType' => 'template',
+            'affected' => ['Blind users', 'screen reader users'],
+        ],
+        'aria-valid-attr' => [
+            'titleKey' => 'rule.presentation.aria_valid_attr.title',
+            'whyKey' => 'rule.presentation.aria_valid_attr.why',
+            'fixKey' => 'rule.presentation.aria_valid_attr.fix',
+            'owner' => 'developer',
+            'fixType' => 'template',
+            'affected' => ['Blind users', 'screen reader users'],
+        ],
+        'aria-allowed-attr' => [
+            'titleKey' => 'rule.presentation.aria_allowed_attr.title',
+            'whyKey' => 'rule.presentation.aria_allowed_attr.why',
+            'fixKey' => 'rule.presentation.aria_allowed_attr.fix',
+            'owner' => 'developer',
+            'fixType' => 'template',
+            'affected' => ['Blind users', 'screen reader users'],
+        ],
+        'aria-required-attr' => [
+            'titleKey' => 'rule.presentation.aria_required_attr.title',
+            'whyKey' => 'rule.presentation.aria_required_attr.why',
+            'fixKey' => 'rule.presentation.aria_required_attr.fix',
+            'owner' => 'developer',
+            'fixType' => 'template',
+            'affected' => ['Blind users', 'screen reader users', 'keyboard users'],
+        ],
+        'aria-required-children' => [
+            'titleKey' => 'rule.presentation.aria_required_children.title',
+            'whyKey' => 'rule.presentation.aria_required_children.why',
+            'fixKey' => 'rule.presentation.aria_required_children.fix',
+            'owner' => 'developer',
+            'fixType' => 'template',
+            'affected' => ['Blind users', 'screen reader users', 'keyboard users'],
+        ],
+        'aria-required-parent' => [
+            'titleKey' => 'rule.presentation.aria_required_parent.title',
+            'whyKey' => 'rule.presentation.aria_required_parent.why',
+            'fixKey' => 'rule.presentation.aria_required_parent.fix',
+            'owner' => 'developer',
+            'fixType' => 'template',
+            'affected' => ['Blind users', 'screen reader users', 'keyboard users'],
+        ],
     ];
     /** @var array<string, array{criterion:string,level:string,name:string,technique?:string,techniqueLabel?:string,w3c?:string,techniqueUrl?:string,standards:list<string>,tags:list<string>}> */
     private const WCAG_MAP = [
@@ -326,7 +390,27 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
         $friendly = $friendlyKey !== '' ? (self::FRIENDLY_RULES[$friendlyKey] ?? null) : null;
         $wcagFallback = $friendlyKey !== '' ? (self::WCAG_MAP[$friendlyKey] ?? null) : null;
 
+        // Translation-backed title/why/fix only (no message or rule-id fallback), for views that keep the
+        // stored English message unless a real translation exists. Rule-specific texts win over the
+        // generic plain-language rule they are grouped under.
+        $localizedTitle = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.title', $language) : '';
+        if ($localizedTitle === '') {
+            $localizedTitle = $this->translateFriendly($friendly['titleKey'] ?? null, $language);
+        }
+        $localizedWhyItMatters = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.whyItMatters', $language) : '';
+        if ($localizedWhyItMatters === '') {
+            $localizedWhyItMatters = $this->translateFriendly($friendly['whyKey'] ?? null, $language);
+        }
+        $localizedHowToFix = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.howToFix', $language) : '';
+        if ($localizedHowToFix === '') {
+            $localizedHowToFix = $this->translateFriendly($friendly['fixKey'] ?? null, $language);
+        }
+        // Rule metadata, crawler guidance and axe help are English. A non-English backend user gets the
+        // translation first; English keeps the stored texts.
+        $preferTranslation = $language !== 'en';
+
         $title = $this->firstString([
+            $preferTranslation ? $localizedTitle : null,
             $metadata['plainLanguageTitle'] ?? null,
             $metadata['plain_language_title'] ?? null,
             $issue['plainLanguageTitle'] ?? null,
@@ -341,12 +425,14 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
         }
 
         $why = $this->firstString([
+            $preferTranslation ? $localizedWhyItMatters : null,
             $metadata['whyItMatters'] ?? null,
             $metadata['why_it_matters'] ?? null,
             $issue['guidance_why_it_matters'] ?? null,
             $this->translateFriendly($friendly['whyKey'] ?? null, $language),
         ]);
         $fix = $this->firstString([
+            $preferTranslation ? $localizedHowToFix : null,
             $metadata['remediation'] ?? null,
             $metadata['howToFix'] ?? null,
             $metadata['how_to_fix'] ?? null,
@@ -379,23 +465,12 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
         $owner = $this->normalizeMachineValue($metadata['suggestedOwner'] ?? $metadata['suggested_owner'] ?? $issue['who_should_fix'] ?? $friendly['owner'] ?? '');
         $fixType = $this->normalizeMachineValue($metadata['fixType'] ?? $metadata['fix_type'] ?? $issue['fix_type'] ?? $friendly['fixType'] ?? '');
 
-        // Translation-backed title/fix only (no message or rule-id fallback), for views that keep the
-        // stored English message unless a real translation exists. Rule-specific texts win over the
-        // generic plain-language rule they are grouped under.
-        $localizedTitle = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.title', $language) : '';
-        if ($localizedTitle === '') {
-            $localizedTitle = $this->translateFriendly($friendly['titleKey'] ?? null, $language);
-        }
-        $localizedHowToFix = $ruleId !== '' ? $this->translateFriendly('rule.' . $ruleId . '.howToFix', $language) : '';
-        if ($localizedHowToFix === '') {
-            $localizedHowToFix = $this->translateFriendly($friendly['fixKey'] ?? null, $language);
-        }
-
         return [
             'ruleId' => $ruleId,
             'title' => $title,
             'localizedTitle' => $localizedTitle,
             'localizedHowToFix' => $localizedHowToFix,
+            'localizedWhyItMatters' => $localizedWhyItMatters,
             'whyItMatters' => $why,
             'howToFix' => $fix,
             'affectedUsers' => $affectedUsers,

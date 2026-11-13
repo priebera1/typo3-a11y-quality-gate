@@ -15,7 +15,11 @@ interface ImageRemediationPermissionServiceInterface
         string $authorizationStage = 'service',
     ): BackendUserAuthentication;
 
-    /** @param list<string> $fileReferenceFields */
+    /**
+     * A non-empty $fileReferenceFields means the caller writes these fields; writes are refused outside the LIVE workspace.
+     *
+     * @param list<string> $fileReferenceFields
+     */
     public function assertCanModify(
         ImageFindingContext $context,
         array $fileReferenceFields = [],

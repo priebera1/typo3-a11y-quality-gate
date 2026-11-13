@@ -13,7 +13,13 @@ use TYPO3\CMS\Core\Http\RequestFactory;
 final class RenderedPageFetcher
 {
     private const TIMEOUT_SECONDS = 8;
-    private const MAX_HTML_BYTES = 5242880;
+    /**
+     * Largest decoded HTML body the rendered check accepts. Enforced DURING the transfer (SOL-FINAL-02): a declared
+     * Content-Length above it ends the request after the headers, and the body sink refuses the write that would cross
+     * it, which makes cURL abort, so at most this many decoded bytes are ever buffered (plus the kernel socket buffer
+     * and one decoder chunk of at most 16 KiB that is received but not stored).
+     */
+    public const MAX_HTML_BYTES = 5242880;
 
     /**
      * English error texts, translated for the editor as "renderedCheck.error.<key>". Logs keep English.
@@ -37,6 +43,34 @@ final class RenderedPageFetcher
     ];
 
     private const MAX_REDIRECTS = 3;
+
+    /**
+     * The error key of a stored rendered-check message, for views that show it in the backend language (a scan stores
+     * the text it produced: English from the CLI or scheduler, otherwise the scanning user's language). Matches the
+     * English text and the current backend language's label; '' when the message is not one of these errors.
+     */
+    public static function errorKeyForMessage(string $message): string
+    {
+        $message = trim($message);
+        if ($message === '') {
+            return '';
+        }
+        foreach (self::ERRORS as $key => $english) {
+            $translated = BackendLabelUtility::translate('renderedCheck.error.' . $key, $english);
+            foreach (array_unique([$english, $translated]) as $text) {
+                if (str_contains($text, '%d')) {
+                    $pattern = '/^' . str_replace('%d', '\\d+', preg_quote($text, '/')) . '$/u';
+                    if (preg_match($pattern, $message) === 1) {
+                        return $key;
+                    }
+                } elseif ($text === $message) {
+                    return $key;
+                }
+            }
+        }
+
+        return '';
+    }
 
     private readonly HostAddressResolver $hostAddressResolver;
 
@@ -73,7 +107,7 @@ final class RenderedPageFetcher
                     'allowedPort' => $allowedPort,
                     'allowPrivateHosts' => $allowPrivateHosts,
                     'reason' => self::ERRORS[$validationError],
-                    'resolvedIps' => $this->resolveHostIps((string)parse_url($currentUrl, PHP_URL_HOST)),
+                    'resolvedIps' => $this->resolveHostIps(\Priebera\A11yQualityGate\Utility\UrlAuthority::host($currentUrl)),
                 ]);
 
                 return new RenderedPageResponse(
@@ -83,9 +117,31 @@ final class RenderedPageFetcher
                 );
             }
 
+            $sink = new BoundedResponseSink(self::MAX_HTML_BYTES);
+            $response = null;
+            $e = null;
             try {
-                $response = $this->requestFactory->request($currentUrl, 'GET', $this->requestOptions($currentUrl, $pinnedAddresses));
+                $response = $this->requestFactory->request($currentUrl, 'GET', $this->requestOptions($currentUrl, $pinnedAddresses, $sink));
             } catch (\Throwable $e) {
+                $decided = self::cause($e, ResponseHeadersDecideException::class);
+                if ($decided instanceof ResponseHeadersDecideException) {
+                    // Redirect, error status or non-HTML type: decided from the headers, no body was read.
+                    $response = $decided->response;
+                }
+            }
+            if ($response === null) {
+                $e ??= new \RuntimeException('No response.', 1771003105);
+                $sink->close();
+                if ($sink->exceeded() || self::cause($e, ResponseTooLargeException::class) !== null) {
+                    $this->logger->warning('Rendered page fetch stopped: response larger than the limit.', [
+                        'url' => $url,
+                        'hopUrl' => $currentUrl,
+                        'maxBytes' => self::MAX_HTML_BYTES,
+                        'storedBytes' => $sink->bytes(),
+                    ]);
+
+                    return new RenderedPageResponse(false, error: $this->errorText('tooLarge'), finalUrl: $currentUrl);
+                }
                 $this->logger->warning('Rendered page fetch failed.', [
                     'url' => $url,
                     'hopUrl' => $currentUrl,
@@ -110,10 +166,16 @@ final class RenderedPageFetcher
                 }
                 // The fragment is never sent; the next hop is validated, resolved and pinned like the first one.
                 $currentUrl = explode('#', $nextUrl, 2)[0];
+                $sink->close();
                 continue;
             }
 
-            return $this->responseResult($response, $currentUrl);
+            try {
+                return $this->responseResult($response, $currentUrl, $sink);
+            } finally {
+                $sink->close();
+                $response->getBody()->close();
+            }
         }
 
         $this->logger->warning('Rendered page fetch stopped after too many redirects.', ['url' => $url, 'lastUrl' => $currentUrl]);
@@ -126,7 +188,7 @@ final class RenderedPageFetcher
      */
     private function checkedAddresses(string $url, bool $allowPrivateHosts): array
     {
-        $host = (string)parse_url($url, PHP_URL_HOST);
+        $host = \Priebera\A11yQualityGate\Utility\UrlAuthority::host($url);
         $addresses = $this->hostAddressResolver->resolve($host);
         if ($addresses === []) {
             // Fail closed: an empty answer is not "no private address". With private hosts allowed (DDEV, staging)
@@ -156,10 +218,36 @@ final class RenderedPageFetcher
      * @param list<string> $pinnedAddresses
      * @return array<string, mixed>
      */
-    private function requestOptions(string $url, array $pinnedAddresses): array
+    private function requestOptions(string $url, array $pinnedAddresses, BoundedResponseSink $sink): array
     {
         $options = [
             'timeout' => self::TIMEOUT_SECONDS,
+            // SOL-FINAL-02: the body goes into a bounded sink instead of an unlimited php://temp; crossing the limit aborts
+            // the transfer. Decoding stays on (cURL counts decoded bytes into the sink).
+            'sink' => $sink,
+            'decode_content' => true,
+            'on_headers' => static function (\Psr\Http\Message\ResponseInterface $response): void {
+                // Headers that decide the outcome end the transfer before any body byte: a redirect (followed and
+                // checked in fetch()), an HTTP error status and a non-HTML type need no body.
+                $status = $response->getStatusCode();
+                if ($status < 200) {
+                    // An informational block (103 Early Hints) is not the answer.
+                    return;
+                }
+                $type = strtolower(trim($response->getHeaderLine('Content-Type')));
+                if ($status >= 300
+                    || ($type !== '' && !str_contains($type, 'text/html') && !str_contains($type, 'application/xhtml+xml'))
+                ) {
+                    throw new ResponseHeadersDecideException($response);
+                }
+                // A declared, unencoded length above the limit ends the request before any body byte is read. A
+                // compressed length says nothing about the decoded size, and a missing or false length is caught by the sink.
+                $length = trim($response->getHeaderLine('Content-Length'));
+                $encoding = strtolower(trim($response->getHeaderLine('Content-Encoding')));
+                if (($encoding === '' || $encoding === 'identity') && ctype_digit($length) && (strlen($length) > 12 || (int)$length > self::MAX_HTML_BYTES)) {
+                    throw new ResponseTooLargeException('Declared response size exceeds the rendered-check limit.', 1771003102);
+                }
+            },
             // An HTTP error status is an answer, not a transport failure: report "returned HTTP 404" below instead
             // of Guzzle's exception, which ended as the generic "fetch failed" message.
             'http_errors' => false,
@@ -170,7 +258,7 @@ final class RenderedPageFetcher
             ],
         ];
 
-        $host = (string)parse_url($url, PHP_URL_HOST);
+        $host = \Priebera\A11yQualityGate\Utility\UrlAuthority::host($url);
         if ($pinnedAddresses !== [] && filter_var(trim($host, '[]'), FILTER_VALIDATE_IP) === false && defined('CURLOPT_RESOLVE')) {
             $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
             $port = $this->effectivePort($scheme, parse_url($url, PHP_URL_PORT));
@@ -205,9 +293,25 @@ final class RenderedPageFetcher
         }
     }
 
-    private function responseResult(\Psr\Http\Message\ResponseInterface $response, string $finalUrl): RenderedPageResponse
+    /** The first exception of $class in the chain, or null. */
+    private static function cause(?\Throwable $exception, string $class): ?\Throwable
+    {
+        for ($current = $exception; $current !== null; $current = $current->getPrevious()) {
+            if ($current instanceof $class) {
+                return $current;
+            }
+        }
+
+        return null;
+    }
+
+    private function responseResult(\Psr\Http\Message\ResponseInterface $response, string $finalUrl, BoundedResponseSink $sink): RenderedPageResponse
     {
         $statusCode = $response->getStatusCode();
+        if ($sink->exceeded()) {
+            // Without cURL the stream handler stops copying at the limit instead of failing: still too large.
+            return new RenderedPageResponse(false, statusCode: $statusCode, contentType: strtolower(trim($response->getHeaderLine('Content-Type'))), error: $this->errorText('tooLarge'), finalUrl: $finalUrl);
+        }
         $contentType = strtolower(trim($response->getHeaderLine('Content-Type')));
 
         if ($statusCode < 200 || $statusCode >= 300) {
@@ -218,10 +322,19 @@ final class RenderedPageFetcher
             return new RenderedPageResponse(false, statusCode: $statusCode, contentType: $contentType, error: $this->errorText('notHtml'), finalUrl: $finalUrl);
         }
 
+        // Normally the body IS the bounded sink (at most MAX_HTML_BYTES); a client that ignores the sink option is still
+        // read no further than one chunk past the limit.
         $body = $response->getBody();
+        if ($body->isSeekable()) {
+            $body->rewind();
+        }
         $html = '';
         while (!$body->eof() && strlen($html) <= self::MAX_HTML_BYTES) {
-            $html .= $body->read(8192);
+            $chunk = $body->read(65536);
+            if ($chunk === '') {
+                break;
+            }
+            $html .= $chunk;
         }
 
         if (strlen($html) > self::MAX_HTML_BYTES) {
@@ -237,7 +350,7 @@ final class RenderedPageFetcher
 
     private function validateUrl(string $url, string $allowedHost, ?int $allowedPort): string
     {
-        $parts = parse_url($url);
+        $parts = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($url);
         if (!is_array($parts)) {
             return 'invalidUrl';
         }

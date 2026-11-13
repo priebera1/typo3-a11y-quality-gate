@@ -21,6 +21,10 @@ services:
       tags:
         - name: a11y_quality_gate.ai_model_discovery_provider
 
+    Priebera\A11yQualityGate\Ai\Task\AiStructuredTaskExecutorInterface:
+      tags:
+        - name: a11y_quality_gate.ai_task_executor
+
   Priebera\A11yQualityGate\:
     resource: '../Classes/*'
 
@@ -30,8 +34,38 @@ services:
   Priebera\A11yQualityGate\Service\SiteResolutionService:
     public: true
 
+  # The Scheduler content scan task (A11yScanTask) takes the scan lock from the container (D-02).
+  Priebera\A11yQualityGate\Service\ScanStatusService:
+    public: true
+
+  # My issues: verdicts depend on the acting and the assigned user and on group rights that may change mid-request.
+  Priebera\A11yQualityGate\Assignment\AssignmentService:
+    public: true
+    shared: false
+
+  Priebera\A11yQualityGate\Pro\Service\RemoteScanTreeCoverageService:
+    public: true
+
+  Priebera\A11yQualityGate\Assignment\AssigneeEligibility:
+    shared: false
+
   Priebera\A11yQualityGate\Hook\PublishHook:
     public: true
+
+  Priebera\A11yQualityGate\Hook\WorkspacePublishGateHook:
+    public: true
+
+  Priebera\A11yQualityGate\Workspace\PublishPreviewContext:
+    shared: true
+
+  Priebera\A11yQualityGate\QualityGate\Contract\GateLicenceInterface:
+    alias: Priebera\A11yQualityGate\QualityGate\GateLicence
+
+  Priebera\A11yQualityGate\EventListener\WorkspacePublishGateHookOrder:
+    tags:
+      - name: event.listener
+        identifier: 'a11y-quality-gate/workspace-publish-gate-hook-order'
+        event: TYPO3\CMS\Core\Core\Event\BootCompletedEvent
 
   Priebera\A11yQualityGate\Hook\FileReferenceDecorativeHook:
     public: true
@@ -97,6 +131,10 @@ services:
         - 'rtf'
         - 'csv'
 
+  # The toolbar's "Open MCP" link follows the gates of the "My connected agents" screen (see ConnectedAgentsLinkResolver).
+  Priebera\A11yQualityGate\Backend\ToolbarItems\ConnectedAgents\ConnectedAgentsAvailabilityInterface:
+    alias: Priebera\A11yQualityGate\Backend\ToolbarItems\ConnectedAgents\McpConnectedAgentsAvailability
+
   Priebera\A11yQualityGate\Backend\ToolbarItems\A11yScanToolbarItem:
     tags:
       - name: backend.toolbar.item
@@ -157,6 +195,48 @@ services:
         # so a shortened period cannot delete scans nobody reviewed.
         schedulable: false
 
+  Priebera\A11yQualityGate\Command\RemoteDuplicateRepairCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:remote:repair-duplicates'
+        description: 'Remove pages and findings that a frontend scan stored twice (dry run unless --apply --backup=<file>; --restore rolls back).'
+        # Changes stored history: run deliberately by an operator after reviewing the dry run, never as a Scheduler task.
+        schedulable: false
+
+  Priebera\A11yQualityGate\Command\McpAuditPruneCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:mcp:audit-prune'
+        description: 'Agent access (MCP): delete audit entries older than the configured retention (mcpAuditRetentionDays); deletes nothing without one.'
+        # The connector prunes at every start (the supervisor restarts it hourly via --max-runtime); this command is for
+        # operators and system cron when no connector runs. Not a Scheduler task type (keeps the AQG task list).
+        schedulable: false
+
+  Priebera\A11yQualityGate\Command\McpResetLocalCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:mcp:reset-local'
+        description: 'Agent access (MCP): forget this installation''s Gateway connection locally, without contacting the Gateway (for a copy of an installation).'
+        # Changes only this database: a copy holds the original's credential, so it must never disconnect at the Gateway.
+        schedulable: false
+
+  Priebera\A11yQualityGate\Command\McpConnectorCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:mcp:connector'
+        description: 'Agent access (MCP): outbound connector to the AQG MCP Gateway. Run as a supervised service, not as a Scheduler task.'
+        # A long-running worker (systemd, Supervisor, container); the Scheduler cannot keep it running.
+        schedulable: false
+
+  Priebera\A11yQualityGate\Command\McpConnectorWorkerCommand:
+    tags:
+      - name: console.command
+        command: 'a11y:mcp:connector:worker'
+        description: 'Agent access (MCP): a worker process of a11y:mcp:connector (started by it; not run by hand).'
+        # Started and fed by the connector through stdin (Fable F-02); listing it would only invite running it by hand.
+        hidden: true
+        schedulable: false
+
   Priebera\A11yQualityGate\Service\RemoteMonitoringService:
     public: true
 
@@ -191,6 +271,33 @@ services:
     arguments:
       $providers: !tagged_iterator a11y_quality_gate.ai_provider
 
+  # Read by the plain HTML FormEngine wizard (created by FormEngine, not by DI).
+  Priebera\A11yQualityGate\Ai\Editor\EditorAiEditorConfiguration:
+    public: true
+
+  # Read by the AI media field control (created by FormEngine, not by DI).
+  Priebera\A11yQualityGate\Ai\Media\MediaAiAvailability:
+    public: true
+  Priebera\A11yQualityGate\Ai\Media\FileMetadataRecordResolver:
+    public: true
+  Priebera\A11yQualityGate\Ai\Media\MediaAiSiteResolver:
+    public: true
+
+  Priebera\A11yQualityGate\EventListener\FilelistMediaAiListener:
+    tags:
+      - name: event.listener
+        identifier: 'a11y-quality-gate/filelist-media-ai-actions'
+        method: 'addFileAction'
+        event: TYPO3\CMS\Filelist\Event\ProcessFileListActionsEvent
+      - name: event.listener
+        identifier: 'a11y-quality-gate/filelist-media-ai-assets'
+        method: 'loadInFilelist'
+        event: TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent
+
+  Priebera\A11yQualityGate\Ai\Task\AiStructuredTaskRunner:
+    arguments:
+      $executors: !tagged_iterator a11y_quality_gate.ai_task_executor
+
   Priebera\A11yQualityGate\Controller\AiSettingsAjaxController:
     arguments:
       $providers: !tagged_iterator a11y_quality_gate.ai_provider
@@ -214,10 +321,24 @@ services:
     alias: Priebera\A11yQualityGate\Domain\Repository\AiConfigurationRepository
   Priebera\A11yQualityGate\Domain\Repository\Contract\AiRateLimitRepositoryInterface:
     alias: Priebera\A11yQualityGate\Domain\Repository\AiRateLimitRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiSiteSettingRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiSiteSettingRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiUsageRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiUsageRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiPriceRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiPriceRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiPriceCatalogueRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiPriceCatalogueRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiBudgetRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiBudgetRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\AiBudgetAlertRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\AiBudgetAlertRepository
   Priebera\A11yQualityGate\Domain\Repository\Contract\FileReferenceRepositoryInterface:
     alias: Priebera\A11yQualityGate\Domain\Repository\FileReferenceRepository
   Priebera\A11yQualityGate\Domain\Repository\Contract\IssueRemediationRepositoryInterface:
     alias: Priebera\A11yQualityGate\Domain\Repository\IssueRepository
+  Priebera\A11yQualityGate\Domain\Repository\Contract\RemediationItemRepositoryInterface:
+    alias: Priebera\A11yQualityGate\Domain\Repository\RemediationItemRepository
   Priebera\A11yQualityGate\Contract\AccessControlServiceInterface:
     alias: Priebera\A11yQualityGate\Service\AccessControlService
   Priebera\A11yQualityGate\Contract\InstallationIdentityServiceInterface:
@@ -232,6 +353,9 @@ services:
     alias: Priebera\A11yQualityGate\Service\SecretEncryptionService
   Priebera\A11yQualityGate\Contract\BackendUserServiceInterface:
     alias: Priebera\A11yQualityGate\Service\BackendUserService
+  Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface:
+    alias: Priebera\A11yQualityGate\Service\LocalFindingSourceAccessService
+
   Priebera\A11yQualityGate\Contract\BackendRecordAccessServiceInterface:
     alias: Priebera\A11yQualityGate\Service\BackendRecordAccessService
   Priebera\A11yQualityGate\Remediation\Contract\FileReferenceSchemaServiceInterface:

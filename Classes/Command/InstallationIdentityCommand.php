@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Command;
 
+use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Service\InstallationIdentityService;
 use Psr\Log\LoggerInterface;
@@ -31,6 +32,7 @@ final class InstallationIdentityCommand extends Command
         private readonly InstallationIdentityService $installationIdentityService,
         private readonly ProCacheManager $proCacheManager,
         private readonly LoggerInterface $logger,
+        private readonly McpConnectionStore $mcpConnectionStore,
     ) {
         parent::__construct();
     }
@@ -75,6 +77,9 @@ final class InstallationIdentityCommand extends Command
         // Licence answers, scanner tokens and Free/Trial usage cached for the previous identity must not be used by
         // the new one: a scanner token of the source project would keep reading the source client's history.
         $this->proCacheManager->flushAll();
+        // The agent access connection belongs to the source installation: forget it here, without any Gateway call (a
+        // disconnect with the copied credential would end the source's connection). The copy pairs on its own.
+        $mcpPrevious = $this->mcpConnectionStore->resetLocal('identity-change');
         $this->logger->warning('AQG installation identity replaced on operator request (new installation).', [
             'previousFingerprint' => $result['previousFingerprint'],
             'fingerprint' => $result['fingerprint'],
@@ -91,6 +96,9 @@ final class InstallationIdentityCommand extends Command
             '    Its first public domain is activated automatically; activate further ones in the Licence tab or the portal.',
             '  - PRO and Trial cover one installation: this copy needs its own licence (it is refused as project_mismatch).',
             'The source installation keeps its identity, project and history unchanged.',
+            in_array($mcpPrevious, ['pairing', 'connected'], true)
+                ? 'Agent access (MCP): the copied connection was forgotten here without contacting the Gateway; the source keeps its connection. Pair this installation separately if it needs agent access.'
+                : 'Agent access (MCP): no connection was stored here.',
             'Scan results stored in this database before the change are local copies of the source installation; their',
             'remote details stay with the source project and are no longer available here.',
         ]);

@@ -45,6 +45,46 @@ final class RenderedCoverage
     /**
      * @param array<string, mixed>|null $scan a tx_a11y_scan row
      */
+    /**
+     * Skipped pages grouped by their described reason, the largest group first (U-02: one line per reason, not one per
+     * page). Order within a group and between equally large groups follows the input.
+     *
+     * @param list<array{pageUid:int,title:string,reason:string}> $pages
+     * @return list<array{reason:string,count:int,pages:list<array{pageUid:int,title:string,reason:string}>}>
+     */
+    public static function groupByReason(array $pages): array
+    {
+        $groups = [];
+        foreach ($pages as $page) {
+            $reason = (string)$page['reason'];
+            $groups[$reason] ??= ['reason' => $reason, 'count' => 0, 'pages' => []];
+            $groups[$reason]['count']++;
+            $groups[$reason]['pages'][] = $page;
+        }
+        $groups = array_values($groups);
+        usort($groups, static fn (array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return $groups;
+    }
+
+    /**
+     * U-08: an open rendered finding that the newest scan covering its page did not confirm. That scan ran without the
+     * rendered check (subtree CLI/Scheduler runs, changed-only), so the finding is as old as the scan that last saw it.
+     *
+     * @param array<string, mixed> $issue
+     * @param array<string, mixed>|null $coveringScan
+     */
+    public static function isNotRechecked(array $issue, ?array $coveringScan): bool
+    {
+        $lastSeen = (int)($issue['last_seen_scan_uid'] ?? 0);
+
+        return is_array($coveringScan)
+            && (string)($issue['source_type'] ?? '') === 'rendered'
+            && (int)($issue['status'] ?? -1) === 0
+            && $lastSeen > 0
+            && (int)($coveringScan['uid'] ?? 0) > $lastSeen;
+    }
+
     public static function countNotPublic(?array $scan): int
     {
         $entries = json_decode((string)($scan['rendered_skipped_json'] ?? ''), true);

@@ -6,8 +6,10 @@ namespace Priebera\A11yQualityGate\Scheduler;
 
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
+use Priebera\A11yQualityGate\Service\ScanStatusService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Scheduler\Task\AbstractTask;
 
@@ -122,6 +124,8 @@ final class A11yScanTask extends AbstractTask
             throw new \RuntimeException('Please configure either a single page UID or a root page.', 1792141200);
         }
 
+        $this->assertLanguageBelongsToSite($this->pageUid > 0 ? $this->pageUid : $this->rootPid);
+
         try {
             $container = GeneralUtility::getContainer();
 
@@ -131,6 +135,16 @@ final class A11yScanTask extends AbstractTask
             /** @var SiteResolutionService $siteResolutionService */
             $siteResolutionService = $container->get(SiteResolutionService::class);
 
+            // NEW-06 / review P2-1: one content scan at a time, also for the Scheduler. A busy installation is a
+            // failed run in the Scheduler list (the next run scans), never two scans at once.
+            /** @var ScanStatusService $scanStatusService */
+            $scanStatusService = $container->get(ScanStatusService::class);
+            $scanLock = $scanStatusService->acquireScanLock();
+            if ($scanLock === null) {
+                throw new \RuntimeException('A content scan is already running; this run was skipped.', 1790000014);
+            }
+            $keepLock = static fn (): bool => !$scanStatusService->renewScanLock($scanLock);
+
             if ($this->pageUid > 0) {
                 $siteIdentifier = $siteResolutionService->resolveSiteIdentifierFromPageId($this->pageUid);
 
@@ -139,6 +153,7 @@ final class A11yScanTask extends AbstractTask
                     pageUid: $this->pageUid,
                     languageUid: $this->languageUid,
                     changedOnly: $this->changedOnly,
+                    shouldCancel: $keepLock,
                 );
             } else {
                 $siteIdentifier = $siteResolutionService->resolveSiteIdentifierFromPageId($this->rootPid);
@@ -149,6 +164,7 @@ final class A11yScanTask extends AbstractTask
                     depth: $this->depth,
                     languageUid: $this->languageUid,
                     changedOnly: $this->changedOnly,
+                    shouldCancel: $keepLock,
                 );
             }
 
@@ -164,7 +180,34 @@ final class A11yScanTask extends AbstractTask
             ]));
 
             throw $e;
+        } finally {
+            if (isset($scanStatusService, $scanLock) && is_string($scanLock)) {
+                $scanStatusService->releaseScanLock($scanLock);
+            }
         }
+    }
+
+    /**
+     * U-06: the task form lists the languages of every site. A run whose language its site does not have fails visibly
+     * in the Scheduler instead of scanning nothing.
+     */
+    private function assertLanguageBelongsToSite(int $pageUid): void
+    {
+        if ($this->languageUid <= 0) {
+            return;
+        }
+        try {
+            $site = GeneralUtility::makeInstance(SiteFinder::class)->getSiteByPageId($pageUid);
+        } catch (\Throwable) {
+            return;
+        }
+        foreach ($site->getLanguages() as $language) {
+            if ($language->getLanguageId() === $this->languageUid) {
+                return;
+            }
+        }
+
+        throw new \RuntimeException(sprintf('Language %d is not a language of site %s.', $this->languageUid, $site->getIdentifier()), 1792141201);
     }
 
     public function getAdditionalInformation(): string

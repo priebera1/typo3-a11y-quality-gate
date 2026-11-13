@@ -1,0 +1,234 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <div class="a11y-page-detail aqg-module aqg-stack container-fluid aqg-sv aqg-remediation" data-aqg-remediation-queue="true">
+        <script type="application/json" data-aqg-remediation-config="true">{config -> f:format.raw()}</script>
+
+        <f:render partial="Remediation/SubNav" arguments="{current: 'queue', pageId: selectedId}" />
+
+        <header class="aqg-pagehead">
+            <div class="aqg-pagehead__main">
+                <h1 class="aqg-pagehead__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.title" default="AI fixes" /></h1>
+                <ul class="aqg-pagehead__meta aqg-remediation__meta">
+                    <li class="aqg-remediation__meta-site">{scopeTitle}</li>
+                    <f:if condition="{aiLine}"><li class="aqg-remediation__meta-ai" data-aqg-rq-ailine="true">{aiLine}</li></f:if>
+                    <f:comment><!-- Budget line (Atlas 08·A): administrators only, from the site's AI budget status. --></f:comment>
+                    <f:if condition="{budgetLine}"><li class="aqg-remediation__meta-budget" data-aqg-rq-budget="true">{budgetLine}</li></f:if>
+                </ul>
+            </div>
+        </header>
+        <p class="aqg-remediation__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.intro" default="Review AI-prepared fixes before anything changes. Approved image texts are saved for you; text and link changes open in their editor, where you save them. AQG then checks whether the issue is gone." /></p>
+        <details class="aqg-remediation__howto">
+            <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.howto.title" default="How AI help works" /></summary>
+            <ul>
+                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.howto.fix" default="“Fix with AI” on an issue in Page Detail prepares a suggestion here. Nothing changes until you approve it." /></li>
+                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.howto.explain" default="“Explain with AI” only explains an issue. It never changes content and never adds an item here." /></li>
+                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.howto.editor" default="Suggestions you accept inside the rich-text or HTML editor stay in that editor and are saved with the record, not listed here." /></li>
+                <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.howto.manual" default="Issues without a safe concrete change (form labels, structure, template output) keep their how-to-fix guidance and are fixed by hand." /></li>
+            </ul>
+        </details>
+
+        <f:if condition="{hasLicence}">
+            <f:then>
+                <f:if condition="!{anyAiReady}">
+                    <div class="aqg-remediation__notice" role="note" data-aqg-rq-not-ready="{notReadyReason}">
+                    <f:if condition="{notReadyReason} == 'no_permission'">
+                        <f:then>
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.noPermission.title" default="AI help is not part of your account" /></strong>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.noPermission.text" default="Your administrator decides which editors may use AI suggestions. You can still fix every issue directly in the record." />
+                        </f:then>
+                        <f:else if="{notReadyReason} == 'budget_reached'">
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.budgetReached.title" default="AI is paused: the monthly AI budget of this site is used up" /></strong>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.budgetReached.text" default="New suggestions start again next month or when an administrator raises the budget. Items already in the queue can still be reviewed." />
+                        </f:else>
+                        <f:else if="{notReadyReason} == 'paused'">
+                            <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.paused.title" default="AI is paused for this site" /></strong>
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.paused.text" default="An administrator has to check the AI connection in Accessibility › Settings › AI suggestions. Items already in the queue can still be reviewed." />
+                        </f:else>
+                        <f:else>
+                        <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.notConfigured.title" default="AI suggestions are not set up for this site" /></strong>
+                        <f:if condition="{isAdmin}">
+                            <f:then>
+                                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.notConfigured.admin" default="New suggestions need an AI provider (OpenAI or Anthropic Claude) with a verified model. Items already in the queue can still be reviewed." />
+                                <f:if condition="{settingsUrl}"><a href="{settingsUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.notConfigured.settings" default="Open Settings › AI suggestions" /></a></f:if>
+                            </f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.notConfigured.editor" default="Your administrator can enable them. Items already in the queue can still be reviewed." /></f:else>
+                        </f:if>
+                        </f:else>
+                    </f:if>
+                    </div>
+                </f:if>
+
+                <div class="aqg-remediation__viewbar">
+                    <nav class="aqg-tabs aqg-remediation__tabs" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.tabs.label', default: 'Queue views')}">
+                        <ul class="aqg-tabs__list" role="list">
+                            <li class="aqg-tabs__item"><button type="button" class="btn btn-default btn-sm aqg-remediation__tab" data-aqg-rq-tab="open"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.tab.open" default="All open" /> <span class="aqg-remediation__count" data-aqg-rq-count="open">–</span></button></li>
+                            <li class="aqg-tabs__item"><button type="button" class="btn btn-default btn-sm aqg-remediation__tab" data-aqg-rq-tab="mine"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.tab.mine" default="My queue" /> <span class="aqg-remediation__count" data-aqg-rq-count="mine">–</span></button></li>
+                            <li class="aqg-tabs__item"><button type="button" class="btn btn-default btn-sm aqg-remediation__tab" data-aqg-rq-tab="done"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.tab.done" default="Done" /> <span class="aqg-remediation__count" data-aqg-rq-count="done">–</span></button></li>
+                            <li class="aqg-tabs__item"><button type="button" class="btn btn-default btn-sm aqg-remediation__tab" data-aqg-rq-tab="log"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.tab.log" default="Change log" /></button></li>
+                        </ul>
+                    </nav>
+                    <p class="aqg-remediation__resultcount" aria-live="polite" data-aqg-rq-resultcount="true"></p>
+                </div>
+
+                <div class="aqg-remediation__queueview" data-aqg-rq-queueview="true">
+                    <form class="aqg-remediation__filters" role="search" data-aqg-rq-filters="true" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filters.label', default: 'Filter the queue')}">
+                        <div class="aqg-remediation__filter aqg-remediation__filter--search">
+                            <label for="aqg-rq-query"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.search" default="Search" /></label>
+                            <span class="aqg-remediation__searchfield">
+                                <input id="aqg-rq-query" name="query" type="search" maxlength="100" autocomplete="off" class="form-control form-control-sm" aria-describedby="aqg-rq-query-help" placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.searchPlaceholder', default: 'Page, finding or text')}" />
+                            </span>
+                            <span id="aqg-rq-query-help" class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.searchHelp" default="Search covers page title, finding and suggested text on pages you are allowed to see." /></span>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-status"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.status" default="Status" /></label>
+                            <select id="aqg-rq-status" name="status" class="form-select form-select-sm">
+                                <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.all" default="All" /></option>
+                                <f:for each="{statuses}" as="status"><option value="{status.value}">{status.label}</option></f:for>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-owner"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.owner" default="Owner" /></label>
+                            <select id="aqg-rq-owner" name="owner" class="form-select form-select-sm">
+                                <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.all" default="All" /></option>
+                                <f:for each="{owners}" as="owner"><option value="{owner.value}">{owner.label}</option></f:for>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-site"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.site" default="Site" /></label>
+                            <select id="aqg-rq-site" name="site" class="form-select form-select-sm">
+                                <f:if condition="{siteOptions -> f:count()} > 1">
+                                    <option value="__all"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.allSites" default="All sites" /></option>
+                                </f:if>
+                                <f:for each="{siteOptions}" as="site">
+                                    <f:if condition="{site.selected}">
+                                        <f:then><option value="{site.value}" selected="selected">{site.label}</option></f:then>
+                                        <f:else><option value="{site.value}">{site.label}</option></f:else>
+                                    </f:if>
+                                </f:for>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-origin"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.source" default="Source" /></label>
+                            <select id="aqg-rq-origin" name="origin" class="form-select form-select-sm">
+                                <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.all" default="All" /></option>
+                                <f:for each="{origins}" as="origin"><option value="{origin.value}">{origin.label}</option></f:for>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-severity"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.severity" default="Severity" /></label>
+                            <select id="aqg-rq-severity" name="severity" class="form-select form-select-sm">
+                                <option value="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.all" default="All" /></option>
+                                <option value="1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.critical" /></option>
+                                <option value="2"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.warning" /></option>
+                                <option value="3"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.info" /></option>
+                                <option value="4"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:severity.needsReview" /></option>
+                            </select>
+                        </div>
+                    </form>
+                    <f:if condition="{pageFilter}">
+                        <ul class="aqg-remediation__chips" role="list">
+                            <li class="aqg-remediation__chip" data-aqg-rq-pagechip="true">
+                                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.pageChip" default="Page: %s" arguments="{0: pageFilter.title}" /> <span class="aqg-remediation__uid">[{pageFilter.uid}]</span></span>
+                                <button type="button" class="btn btn-default btn-sm aqg-remediation__chip-remove" data-aqg-rq-pagechip-remove="true" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.removePage', default: 'Remove page filter: %s', arguments: {0: pageFilter.title})}"><span aria-hidden="true">×</span></button>
+                            </li>
+                        </ul>
+                    </f:if>
+
+                    <div class="aqg-remediation__mine-note" data-aqg-rq-mine-note="true" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.mine.text" default="Items you requested, plus items you may apply now." /></div>
+
+                    <div class="aqg-remediation__bulkbar" data-aqg-rq-bulkbar="true" hidden="hidden" role="region" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.bulk.region', default: 'Selected items')}">
+                        <span class="aqg-remediation__bulkcount" aria-live="polite" data-aqg-rq-bulkcount="true"></span>
+                        <span class="aqg-remediation__bulknote" data-aqg-rq-bulknote="true"></span>
+                        <span class="aqg-remediation__bulkactions">
+                            <button type="button" class="btn btn-default btn-sm" data-aqg-rq-bulk="clear"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.bulk.clear" default="Clear selection" /></button>
+                            <button type="button" class="btn btn-primary btn-sm" data-aqg-rq-bulk="review"></button>
+                        </span>
+                    </div>
+
+                    <div class="aqg-remediation__list" data-aqg-rq-list="true" aria-busy="true">
+                        <p class="aqg-remediation__loading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.loading" default="Loading AI fixes…" /></p>
+                    </div>
+                    <nav class="aqg-pagination aqg-pagination--standalone aqg-remediation__pagination" data-aqg-rq-pagination="true" hidden="hidden" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pagination.label', default: 'Queue pages')}"></nav>
+                </div>
+
+                <section class="aqg-remediation__logview" data-aqg-rq-logview="true" hidden="hidden" aria-labelledby="aqg-rq-log-title">
+                    <h2 id="aqg-rq-log-title" class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.tab.log" default="Change log" /></h2>
+                    <form class="aqg-remediation__filters aqg-remediation__filters--log" role="search" data-aqg-rq-log-filters="true" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.filters', default: 'Filter the change log')}">
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-log-period"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.period" default="Period" /></label>
+                            <select id="aqg-rq-log-period" name="period" class="form-select form-select-sm">
+                                <option value="30" selected="selected"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.period.30" default="Last 30 days" /></option>
+                                <option value="7"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.period.7" default="Last 7 days" /></option>
+                                <option value="year"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.period.year" default="This year" /></option>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-log-person"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.person" default="Person" /></label>
+                            <select id="aqg-rq-log-person" name="person" class="form-select form-select-sm">
+                                <option value="0"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.all" default="All" /></option>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-log-action"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.action" default="Action" /></label>
+                            <select id="aqg-rq-log-action" name="action" class="form-select form-select-sm">
+                                <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.allChanges" default="All changes" /></option>
+                                <f:for each="{logActions}" as="action"><option value="{action.value}">{action.label}</option></f:for>
+                            </select>
+                        </div>
+                        <div class="aqg-remediation__filter">
+                            <label for="aqg-rq-log-origin"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.source" default="Source" /></label>
+                            <select id="aqg-rq-log-origin" name="origin" class="form-select form-select-sm">
+                                <option value=""><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.all" default="All" /></option>
+                                <f:for each="{origins}" as="origin"><option value="{origin.value}">{origin.label}</option></f:for>
+                            </select>
+                        </div>
+                    </form>
+                    <f:if condition="{logScopeNote} == 'pages'">
+                        <p class="aqg-remediation__note aqg-remediation__scope"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.scope.pages" default="You see changes on pages you are allowed to open. Administrators see the full log." /></p>
+                    </f:if>
+                    <f:if condition="{logScopeNote} == 'own'">
+                        <p class="aqg-remediation__note aqg-remediation__scope"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.scope.own" default="You see changes to your own requests on pages you are allowed to open. Administrators see the full log." /></p>
+                    </f:if>
+                    <div class="aqg-remediation__list" data-aqg-rq-log="true" aria-busy="true">
+                        <p class="aqg-remediation__loading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.loading" default="Loading the change log…" /></p>
+                    </div>
+                    <div class="aqg-pagination aqg-pagination--standalone aqg-remediation__pagination" data-aqg-rq-log-pagination="true" hidden="hidden"></div>
+                    <p class="aqg-remediation__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.log.note" default="Each step is recorded with its status and a hash of the value. The values themselves are shown in the item." /></p>
+                </section>
+
+                <div class="aqg-remediation__drawer" data-aqg-rq-drawer="true" hidden="hidden" role="dialog" aria-modal="true" aria-labelledby="aqg-rq-drawer-title">
+                    <div class="aqg-remediation__drawer-panel" data-aqg-rq-drawer-panel="true"></div>
+                </div>
+                <dialog class="aqg-remediation__dialog" data-aqg-rq-bulk-dialog="true" aria-labelledby="aqg-rq-bulk-title"></dialog>
+                <div class="visually-hidden" aria-live="polite" role="status" data-aqg-rq-live="true"></div>
+            </f:then>
+            <f:else>
+                <section class="aqg-remediation__state aqg-empty" aria-labelledby="aqg-rq-free-h">
+                    <span class="aqg-empty__icon" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                            <path d="M3 13 L10.2 5.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                            <path d="M11.6 2.2 V4.2 M10.6 3.2 H12.6 M13.4 6.4 V7.8 M12.7 7.1 H14.1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                        </svg>
+                    </span>
+                    <f:if condition="{lockedReason} == 'no_site'">
+                        <f:then>
+                            <h2 id="aqg-rq-free-h" class="aqg-remediation__state-title aqg-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.noSite.title" default="Open AI fixes from one of your pages" /></h2>
+                            <p class="aqg-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.noSite.text" default="Your access covers single pages, not whole sites. Select one of your pages in the page tree to see its AI fixes." /></p>
+                        </f:then>
+                        <f:else>
+                            <h2 id="aqg-rq-free-h" class="aqg-remediation__state-title aqg-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.free.title" default="AI fixes are part of AQG PRO and Agency" /></h2>
+                            <p class="aqg-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.free.text" default="Found issues and how-to guidance stay in the Overview; you fix them directly in the record." /></p>
+                        </f:else>
+                    </f:if>
+                    <p class="aqg-empty__actions"><a class="btn btn-default btn-sm" href="{overviewUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.goToOverview" default="Go to Overview" /></a></p>
+                </section>
+            </f:else>
+        </f:if>
+    </div>
+</f:section>
+</html>

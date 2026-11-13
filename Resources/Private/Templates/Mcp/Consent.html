@@ -1,0 +1,237 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <f:asset.css identifier="a11y-quality-gate-backend" href="EXT:a11y_quality_gate/Resources/Public/Css/backend.css" />
+    <div class="a11y-settings aqg-module aqg-mcp-view aqg-mcp-consent">
+        <div class="aqg-mcp aqg-stack aqg-mcp-view__body">
+        <div class="aqg-mcp-view__flash"><f:flashMessages queueIdentifier="core.template.flashMessages" /></div>
+        <f:switch expression="{state}">
+            <f:case value="consent">
+                <section class="aqg-card aqg-mcp-consent__card" aria-labelledby="aqg-mcp-consent-title">
+                    <header class="aqg-card__head aqg-mcp-consent__head">
+                        <div class="aqg-mcp-consent__headtext">
+                            <p class="aqg-mcp-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.kicker" default="Connect an AI agent" /></p>
+                            <h1 class="aqg-card__title" id="aqg-mcp-consent-title" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.heading" arguments="{0: clientName, 1: userName}" default="%1$s wants to access AQG as %2$s" /></h1>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body aqg-stack">
+                        <f:comment>F-08: the label comes from where the code goes (the redirect URI), never a verified identity. It is
+                            plain text beside a "Not verified" chip and the return target – never styled like a confirmed name (Q2).</f:comment>
+                        <div class="aqg-mcp-consent__identity" role="group" aria-labelledby="aqg-mcp-consent-agent">
+                            <span class="aqg-mcp-conn__icon" aria-hidden="true"></span>
+                            <div class="aqg-mcp-consent__identity-text">
+                                <p class="aqg-mcp-label" id="aqg-mcp-consent-agent"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.requestingAgent" default="Requesting agent" /></p>
+                                <p class="aqg-mcp-consent__client">{clientName}</p>
+                                <p class="aqg-mcp-conn__meta">
+                                    <span class="aqg-mcp-chip aqg-mcp-chip--unverified"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.agent.notVerified" default="Not verified" /></span>
+                                    <f:if condition="{redirectsToLoopback}">
+                                        <f:then><span class="aqg-mcp-chip"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.returnsLocal" default="It returns to an app on this computer." /></span></f:then>
+                                        <f:else><span class="aqg-mcp-chip"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.returnsTo" arguments="{0: redirectHost}" default="It returns to %s." /></span></f:else>
+                                    </f:if>
+                                    <span class="aqg-mcp-chip aqg-mcp-chip--user"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.actsAs" default="Access as" /> <strong>{userName}</strong></span>
+                                </p>
+                                <p class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.clientNote" default="AQG describes the agent by where its sign-in returns; a name the agent chose itself is marked unverified. AQG cannot verify which application or account is behind it." /></p>
+                            </div>
+                        </div>
+
+                        <form method="post" action="{decideUrl}" class="aqg-stack aqg-mcp-consent__form">
+                            <input type="hidden" name="request" value="{requestRef}" />
+                            <f:comment>Fable F-08: anyone who knows this installation's server URL can register a client and send a
+                                consent link; the decision is the user's, so the page says when to deny.</f:comment>
+                            <div class="aqg-notice aqg-tone-warning" role="note">
+                                <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'warning'}" /></span>
+                                <span class="aqg-notice__body">
+                                    <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.startedByYou" default="Allow only if you started this connection in your agent yourself just now. If you opened a link someone sent you, choose Deny." /></span>
+                                </span>
+                            </div>
+
+                            <f:if condition="{existing}">
+                                <div class="aqg-notice aqg-tone-info" role="status">
+                                    <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                                    <span class="aqg-notice__body">
+                                        <span class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.existingTitle" arguments="{0: clientName}" default="%s is already connected" /></span>
+                                        <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.existingText" arguments="{0: existing.expiresAt}" default="Valid until %s. Allowing replaces that connection: the old token stops working immediately." /></span>
+                                    </span>
+                                </div>
+                            </f:if>
+
+                            <fieldset class="aqg-mcp-consent__section">
+                                <legend class="aqg-mcp-consent__legend"><span class="aqg-mcp-consent__step" aria-hidden="true">1</span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.mayDo" default="What the agent may do" /></legend>
+                                <ul class="aqg-mcp-options" role="list">
+                                    <f:for each="{scopes}" as="scope">
+                                        <f:if condition="{scope.grantable}">
+                                            <f:then>
+                                                <li class="aqg-mcp-option">
+                                                    <f:comment>Only reading is ticked in advance (P1-5, controller: scope.preselected); the scan guard repeats it here.</f:comment>
+                                                    <f:if condition="{scope.preselected} && {scope.scope} != 'scans:run-page'">
+                                                        <f:then><input class="aqg-mcp-option__input" type="checkbox" id="{scope.fieldId}" name="scopes[]" value="{scope.scope}" checked="checked" aria-describedby="{scope.fieldId}-text" /></f:then>
+                                                        <f:else><input class="aqg-mcp-option__input" type="checkbox" id="{scope.fieldId}" name="scopes[]" value="{scope.scope}" aria-describedby="{scope.fieldId}-text {scope.fieldId}-explicit" /></f:else>
+                                                    </f:if>
+                                                    <label class="aqg-mcp-option__label" for="{scope.fieldId}">
+                                                        <span class="aqg-mcp-option__title">{scope.title} <f:render partial="Settings/McpRisk" arguments="{risk: scope.risk}" /></span>
+                                                        <span class="aqg-mcp-option__text" id="{scope.fieldId}-text">{scope.description}</span>
+                                                        <f:if condition="{scope.explicitScan}">
+                                                            <f:then><span class="aqg-mcp-option__note" id="{scope.fieldId}-explicit"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.explicitScanScope" default="Not selected in advance: tick it only if the agent may start page scans. Each scan counts against the installation's daily agent scans." /></span></f:then>
+                                                            <f:else if="{scope.explicit}"><span class="aqg-mcp-option__note" id="{scope.fieldId}-explicit"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.explicitScope" default="Not selected in advance: tick it only if the agent may read content checks, including content that is not published yet. Frontend scan results are a separate capability." /></span></f:else>
+                                                        </f:if>
+                                                    </label>
+                                                </li>
+                                            </f:then>
+                                            <f:else>
+                                                <li class="aqg-mcp-option aqg-mcp-option--disabled">
+                                                    <input class="aqg-mcp-option__input" type="checkbox" id="{scope.fieldId}" disabled="disabled" aria-describedby="{scope.fieldId}-text" />
+                                                    <label class="aqg-mcp-option__label" for="{scope.fieldId}">
+                                                        <span class="aqg-mcp-option__title">{scope.title} <span class="aqg-mcp-chip"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.unavailable" default="Unavailable" /></span></span>
+                                                        <span class="aqg-mcp-option__text" id="{scope.fieldId}-text">
+                                                            <f:if condition="{scope.reason} == 'noScanPermission'">
+                                                                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.reason.noScanPermission" default="Not possible: your user group cannot start scans. The agent will not get this capability." /></f:then>
+                                                                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.reason.siteOff" default="Not possible: no site you can access allows this capability for agents." /></f:else>
+                                                            </f:if>
+                                                        </span>
+                                                    </label>
+                                                </li>
+                                            </f:else>
+                                        </f:if>
+                                    </f:for>
+                                </ul>
+                            </fieldset>
+
+                            <fieldset class="aqg-mcp-consent__section">
+                                <legend class="aqg-mcp-consent__legend"><span class="aqg-mcp-consent__step" aria-hidden="true">2</span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.sites" default="Sites" /></legend>
+                                <f:if condition="{sites}">
+                                    <f:then>
+                                        <ul class="aqg-mcp-options" role="list">
+                                            <f:for each="{sites}" as="site" iteration="it">
+                                                <li class="aqg-mcp-option">
+                                                    <f:comment>Sites are approved explicitly (P1-5): only a single listed site comes ticked (site.preselected).</f:comment>
+                                                    <f:if condition="{site.preselected}">
+                                                        <f:then><input class="aqg-mcp-option__input" type="checkbox" id="aqg-mcp-consent-site-{it.index}" name="sites[]" value="{site.identifier}" checked="checked" /></f:then>
+                                                        <f:else><input class="aqg-mcp-option__input" type="checkbox" id="aqg-mcp-consent-site-{it.index}" name="sites[]" value="{site.identifier}" /></f:else>
+                                                    </f:if>
+                                                    <label class="aqg-mcp-option__label" for="aqg-mcp-consent-site-{it.index}">
+                                                        <span class="aqg-mcp-option__title"><code class="aqg-mcp-conn__site">{site.identifier}</code></span>
+                                                        <span class="aqg-mcp-option__text aqg-mcp-option__url">{site.base}</span>
+                                                    </label>
+                                                </li>
+                                            </f:for>
+                                        </ul>
+                                    </f:then>
+                                    <f:else>
+                                        <p class="aqg-mcp-empty"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.noSites" default="No site you can access has agent access turned on. Ask your administrator." /></p>
+                                    </f:else>
+                                </f:if>
+                                <p class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.sitesScope" default="Only sites you can open in TYPO3 and that have agent access turned on are listed." /></p>
+                            </fieldset>
+
+                            <fieldset class="aqg-mcp-consent__section">
+                                <legend class="aqg-mcp-consent__legend"><span class="aqg-mcp-consent__step" aria-hidden="true">3</span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.duration" default="Valid for" /></legend>
+                                <f:comment>7 days preselected (P1-5); a longer period is an explicit choice.</f:comment>
+                                <label class="visually-hidden" for="aqg-mcp-consent-duration"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.duration" default="Valid for" /></label>
+                                <select id="aqg-mcp-consent-duration" name="duration" class="aqg-select aqg-mcp-duration-select" aria-describedby="aqg-mcp-consent-duration-help">
+                                    <option value="7" selected="selected"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.duration7" default="7 days (default)" /></option>
+                                    <option value="30"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.duration30" default="30 days" /></option>
+                                    <option value="90"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.duration90" default="90 days (maximum)" /></option>
+                                </select>
+                                <p class="aqg-field__help" id="aqg-mcp-consent-duration-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.durationHelp" default="Access is never extended silently. After the end the agent must ask again." /></p>
+                            </fieldset>
+
+                            <div class="aqg-mcp-cannot">
+                                <p class="aqg-mcp-cannot__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.cannotTitle" default="What the agent cannot do" /></p>
+                                <ul class="aqg-mcp-cannot__list">
+                                    <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.cannot1" default="Change, save or publish content, or apply suggestions." /></li>
+                                    <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.cannot2" default="See or do more than you can in TYPO3." /></li>
+                                    <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.cannot3" default="Receive your password, the licence key or the site's AI keys." /></li>
+                                    <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.cannot4" default="Keep working once your account is disabled or you revoke access." /></li>
+                                </ul>
+                            </div>
+
+                            <div class="aqg-mcp-decision">
+                                <div class="aqg-mcp-decision__text">
+                                    <p class="aqg-mcp-decision__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.decisionTitle" default="Your decision" /></p>
+                                    <p class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.decisionHelp" default="Deny is safe at any time. Allow grants only the ticked capabilities and sites, for the chosen period." /> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.revokeHint" default="You can revoke access at any time in “My connected agents”." /> <a href="{myAgentsUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.title" default="My connected agents" /></a></p>
+                                </div>
+                                <f:comment>Deny stays the first submit button: Enter in any field submits Deny, never Allow.</f:comment>
+                                <div class="aqg-mcp-decision__buttons">
+                                    <button type="submit" name="decision" value="deny" class="btn btn-default aqg-mcp-decision__deny"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.deny" default="Deny" /></button>
+                                    <f:if condition="{sites}">
+                                        <button type="submit" name="decision" value="allow" class="btn btn-primary aqg-mcp-decision__allow">
+                                            <f:if condition="{existing}">
+                                                <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.allowReplace" default="Allow and replace" /></f:then>
+                                                <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.allow" default="Allow" /></f:else>
+                                            </f:if>
+                                        </button>
+                                    </f:if>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </f:case>
+            <f:case value="allowed">
+                <section class="aqg-card aqg-mcp-result aqg-mcp-result--ok" aria-labelledby="aqg-mcp-consent-result">
+                    <header class="aqg-card__head">
+                        <div>
+                            <h1 class="aqg-card__title" id="aqg-mcp-consent-result" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.allowedTitle" default="Agent connected" /></h1>
+                            <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.allowedText" default="Returning to your agent. Your administrator sees this connection in the audit trail." /></p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body"><a class="btn btn-primary" href="{continueUrl}" target="_top" data-aqg-mcp-continue="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.continue" arguments="{0: continueHost}" default="Continue to %s" /></a></div>
+                </section>
+            </f:case>
+            <f:case value="denied">
+                <section class="aqg-card aqg-mcp-result" aria-labelledby="aqg-mcp-consent-result">
+                    <header class="aqg-card__head">
+                        <div>
+                            <h1 class="aqg-card__title" id="aqg-mcp-consent-result" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.deniedTitle" default="Access denied" /></h1>
+                            <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.deniedText" default="The agent did not get access. Nothing was shared." /></p>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body"><a class="btn btn-default" href="{continueUrl}" target="_top" data-aqg-mcp-continue="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.continue" arguments="{0: continueHost}" default="Continue to %s" /></a></div>
+                </section>
+            </f:case>
+            <f:case value="notAllowed">
+                <f:render section="Result" arguments="{title: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAllowedTitle\', default: \'You may not connect agents\')}', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAllowedText\', default: \'Your user group is not allowed to connect AI agents to AQG. Ask your administrator. Nothing was shared.\')}'}" />
+                <f:if condition="{continueUrl}">
+                    <f:then>
+                        <div class="aqg-card__body"><a class="btn btn-default" href="{continueUrl}" target="_top" data-aqg-mcp-continue="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.continue" arguments="{0: continueHost}" default="Continue to %s" /></a></div>
+                    </f:then>
+                    <f:else if="{decideUrl} && {requestRef}">
+                        <form method="post" action="{decideUrl}" class="aqg-card__body">
+                            <input type="hidden" name="request" value="{requestRef}" />
+                            <button type="submit" name="decision" value="deny" class="btn btn-default"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAllowedReturn" default="Tell the agent and go back" /></button>
+                        </form>
+                    </f:else>
+                </f:if>
+            </f:case>
+            <f:case value="notAvailable">
+                <f:render section="Result" arguments="{title: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAvailableTitle\', default: \'Agent access is not set up\')}', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.notAvailableText\', default: \'This TYPO3 installation is not connected to the AQG MCP Gateway. Nothing was shared.\')}'}" />
+            </f:case>
+            <f:case value="alreadyAnswered">
+                <f:render section="Result" arguments="{title: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.alreadyAnsweredTitle\', default: \'This request was already answered\')}', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.alreadyAnsweredText\', default: \'The first submission of this page decides. Go back to your agent; if it is not connected, start connecting again.\')}'}" />
+            </f:case>
+            <f:case value="gatewayError">
+                <f:render section="Result" arguments="{title: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.gatewayErrorTitle\', default: \'The AQG Gateway did not answer\')}', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.gatewayErrorText\', default: \'Nothing was shared. Go back to your agent and start connecting again.\')}'}" />
+            </f:case>
+            <f:defaultCase>
+                <f:render section="Result" arguments="{title: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.expiredTitle\', default: \'This request has expired\')}', text: '{f:translate(key: \'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.consent.expiredText\', default: \'Requests are valid for 10 minutes. Go back to your agent and start connecting again. Nothing was shared.\')}'}" />
+            </f:defaultCase>
+        </f:switch>
+        </div>
+    </div>
+</f:section>
+
+<f:section name="Result">
+    <section class="aqg-card aqg-mcp-result" aria-labelledby="aqg-mcp-consent-result">
+        <header class="aqg-card__head">
+            <div>
+                <h1 class="aqg-card__title" id="aqg-mcp-consent-result" tabindex="-1">{title}</h1>
+                <p class="aqg-card__sub">{text}</p>
+            </div>
+        </header>
+    </section>
+</f:section>
+</html>

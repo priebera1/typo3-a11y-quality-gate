@@ -13,11 +13,31 @@ import {
 // said "Full scan complete — 0 new, 0 resolved" next to four toasts or a sentence that sent users to the Overview,
 // although the four pages were hidden pages no visitor (and so no rendered check) can open.
 
-const t = (key, fallback, ...values) => values.reduce((text, value) => text.replace(/%d/, String(value)), fallback);
+const t = (key, fallback, ...values) => values.reduce((text, value) => text.replace(/%[ds]/, String(value)), fallback);
 
 const coverage = (skipped, notPublic) => ({checked: 25 - skipped, skipped, notPublic, skippedPages: []});
 
 const open = (critical, warning = 0, info = 0, needsReview = 0) => ({critical, warning, info, needs_review: needsReview, total: critical + warning + info + needsReview});
+
+describe('content scan notification of one language (N-18)', () => {
+    it('names the language and the pages that do not exist in it', () => {
+        const result = contentScanNotification({
+            pagesScanned: 10, pagesWithoutTranslation: 8, languageLabel: 'Deutsch', issuesNew: 0, issuesResolved: 0,
+            openIssues: open(2), renderedCoverage: coverage(0, 0),
+        }, {scope: 'site'}, t);
+
+        expect(result.title).toBe('Content scan (Deutsch) completed');
+        expect(result.message).toContain('Content checks ran on 10 pages.');
+        expect(result.message).toContain('8 pages have no Deutsch version and were not checked.');
+    });
+
+    it('keeps the plain title without a language', () => {
+        const result = contentScanNotification({pagesScanned: 3, issuesNew: 0, issuesResolved: 0, openIssues: open(0), renderedCoverage: coverage(0, 0)}, {scope: 'site'}, t);
+
+        expect(result.title).toBe('Content scan completed');
+        expect(result.message).not.toContain('version');
+    });
+});
 
 describe('content scan notification', () => {
     // NOT-01 (2026-10 Sol audit): a repeat scan of a page with 32 open issues and a scan of a clean page both said
@@ -134,6 +154,18 @@ describe('frontend scan notification', () => {
         expect(frontendScanNotification(clean, {scope: 'page'}, t)).toMatchObject({message: 'No issues found on the checked pages.', severity: 'success'});
     });
 
+    // Atlas D9 (msg:pv.done.text): a preview scan of a page that is not public says so before its numbers.
+    it('names a preview scan of a page that is not public', () => {
+        const summary = {occurrencesTotal: 9, issueTypesTotal: 5, pagesExpected: 1, pagesLoaded: 1, comparison: {available: true, new: 1, resolved: 3}, pagePreview: true};
+
+        expect(frontendScanNotification(summary, {scope: 'page'}, t)).toMatchObject({
+            title: 'Frontend scan completed',
+            message: 'Preview scan · page not public. 9 occurrences of 5 issue types (1 new); 3 resolved.',
+        });
+        expect(frontendScanNotification({...summary, pagePreview: false}, {scope: 'page'}, t).message)
+            .toBe('9 occurrences of 5 issue types (1 new); 3 resolved.');
+    });
+
     it('never reads as clean when no page could be loaded', () => {
         const result = frontendScanNotification({pagesScanned: 0, pagesFailed: 1, issuesNew: 0, issuesResolved: 0}, {scope: 'page'}, t);
 
@@ -206,5 +238,23 @@ describe('showing a scan notification', () => {
     it('points the module URL at the target without the reload marker', () => {
         expect(moduleUrlWithTarget('https://example.test/typo3/module/content/a11y?id=728&_aqgReload=123', 'aqg-rendered-coverage'))
             .toBe('https://example.test/typo3/module/content/a11y?id=728#aqg-rendered-coverage');
+    });
+});
+
+describe('restricted frontend notification (Sol QA-06)', () => {
+    it('never calls a restricted view of a scan that loaded pages clean or unchecked', () => {
+        const none = frontendScanNotification({resultsRestricted: true, scanLoadedPages: true, occurrencesTotal: 0, issueTypesTotal: 0, pagesExpected: 0, pagesLoaded: 0, comparison: {available: false}, reportUrl: '/r'}, {scope: 'site'}, t);
+        expect(none.title).toBe('Frontend scan completed · results limited to your access');
+        expect(none.message).toBe('No results of this scan are available to you. Only results your permissions allow are shown.');
+        expect(none.severity).toBe('info');
+
+        const some = frontendScanNotification({resultsRestricted: true, scanLoadedPages: true, occurrencesTotal: 3, issueTypesTotal: 1, pagesExpected: 1, pagesLoaded: 1, comparison: {available: false}}, {scope: 'site'}, t);
+        expect(some.message).toBe('3 occurrences of 1 issue type. Only results your permissions allow are shown.');
+    });
+
+    it('keeps "checked no page" for a scan that loaded none', () => {
+        const result = frontendScanNotification({resultsRestricted: true, scanLoadedPages: false, occurrencesTotal: 0, pagesExpected: 0, pagesLoaded: 0}, {scope: 'site'}, t);
+        expect(result.title).toBe('Frontend scan checked no page');
+        expect(result.message).toBe('No page could be loaded. The Overview lists the reasons.');
     });
 });

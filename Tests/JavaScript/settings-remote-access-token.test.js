@@ -9,7 +9,7 @@ const FULL_TOKEN = 'f3a1c9e07b5d42a8a6e1d3c5b7f90246e8a0c2d4f6b8091a3c5e7f9b1d3f
 
 const renderForm = (hasToken) => {
     document.body.innerHTML = `
-        <form class="js-aqg-remote-access-form" data-has-token="${hasToken ? '1' : '0'}" data-regenerate-token-url="/token">
+        <form class="js-aqg-remote-access-form" data-has-token="${hasToken ? '1' : '0'}" data-regenerate-token-url="/token" data-label-token-generated="✓ Scanner token generated" data-label-token-regenerated="✓ Scanner token regenerated">
             <input type="hidden" name="rulesetSite" value="main">
             <p class="js-aqg-token-stored" ${hasToken ? '' : 'hidden'}>Active</p>
             <div class="js-aqg-token-present" hidden>
@@ -59,6 +59,22 @@ describe('Scanner Token states', () => {
         expect(document.body.textContent).not.toContain(FULL_TOKEN);
         expect(document.querySelector('.js-aqg-copy-token').disabled).toBe(false);
         expect(document.querySelector('.js-aqg-regenerate-token-label').textContent).toBe('Regenerate token');
+        // U-10: the first token is generated, not regenerated.
+        expect(document.querySelector('.js-aqg-token-success').textContent).toBe('✓ Scanner token generated');
+    });
+
+    it('says "regenerated" only when a token was already stored', async () => {
+        renderForm(true);
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({success: true, maskedToken: 'f3a1…5a7c', token: FULL_TOKEN}),
+        });
+        await import('../../Resources/Public/JavaScript/backend/settings-remote-access.js');
+
+        document.querySelector('.js-aqg-regenerate-token').click();
+        await flush();
+
+        expect(document.querySelector('.js-aqg-token-success').textContent).toBe('✓ Scanner token regenerated');
     });
 
     it('keeps a stored token hidden and its state unchanged when regeneration fails', async () => {

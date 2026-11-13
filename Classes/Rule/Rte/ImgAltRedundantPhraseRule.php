@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
 use Priebera\A11yQualityGate\Service\DictionaryRegistry;
 use Priebera\A11yQualityGate\Service\PhraseMatcher;
+use Priebera\A11yQualityGate\Service\PlaceholderAltText;
 
 final class ImgAltRedundantPhraseRule extends AbstractRteRule
 {
@@ -61,7 +62,8 @@ final class ImgAltRedundantPhraseRule extends AbstractRteRule
             }
 
             $normalizedAlt = PhraseMatcher::normalize($alt);
-            $detail = $this->resolveStructuralRedundancyDetail($image, $normalizedAlt)
+            $detail = (PlaceholderAltText::isPlaceholder($alt) ? 'placeholder_alt' : null)
+                ?? $this->resolveStructuralRedundancyDetail($image, $normalizedAlt)
                 ?? $this->resolvePhraseRedundancyDetail($normalizedAlt, $phrases);
 
             if ($detail === null) {
@@ -158,6 +160,7 @@ final class ImgAltRedundantPhraseRule extends AbstractRteRule
         return match ($detail) {
             'redundant_figcaption' => 'Image alt text repeats the figcaption text.',
             'redundant_link_text' => 'Image alt text repeats the surrounding link text.',
+            'placeholder_alt' => 'Image alt text is a placeholder, not a description.',
             default => $this->getMessage(),
         };
     }
@@ -167,6 +170,7 @@ final class ImgAltRedundantPhraseRule extends AbstractRteRule
         return match ($detail) {
             'redundant_figcaption' => 'Do not repeat the same information in both alt text and figcaption. Keep the alt text shorter or leave the caption to provide the visible description.',
             'redundant_link_text' => 'For linked images, avoid repeating the same label twice. The combined link purpose should be clear once.',
+            'placeholder_alt' => 'Replace the placeholder with what the image shows or does in this context, or mark the image as decorative.',
             default => $this->getHint(),
         };
     }

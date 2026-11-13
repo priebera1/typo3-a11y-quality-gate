@@ -382,7 +382,6 @@ final class InformationDensityRenderingTest extends AbstractFunctionalTestCase
             'licenceKeyFingerprint' => $hasKey ? '0123456789abcdef' : '',
             'proStatus' => ['valid' => false],
             'licenceGuidance' => null,
-            'showProHints' => true,
             'saveExtConfUrl' => '/typo3/settings/save',
             'returnParameters' => [],
             'activeTab' => 'licence',

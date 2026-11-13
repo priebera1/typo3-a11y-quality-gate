@@ -37,6 +37,33 @@ final class AiSettingsUiStateBuilderTest extends TestCase
     }
 
     #[Test]
+    public function anEditorRequestTheProviderRejectedCanBeTestedAgain(): void
+    {
+        $resolver = $this->createMock(AiConfigurationResolverInterface::class);
+        $resolver->method('status')->with('main')->willReturn([
+            'configured' => true,
+            'selectedModelAvailable' => true,
+            'selectedModelId' => 'gpt-4.1-mini',
+            'availableModels' => [['id' => 'gpt-4.1-mini', 'label' => 'GPT-4.1 mini']],
+            'connectionStatus' => 'connection_failed',
+            'lastTestErrorCode' => 'provider_1771002310',
+            'lastTestedAt' => 1720000000,
+            'lastVerifiedAt' => 0,
+        ]);
+
+        $state = (new AiSettingsUiStateBuilder($resolver))->build('main');
+
+        self::assertSame('connection_failed', $state['status']);
+        self::assertSame('provider_1771002310', $state['errorCode']);
+        self::assertSame(1720000000, $state['lastTestedAt']);
+        self::assertSame(0, $state['lastVerifiedAt']);
+        self::assertTrue($state['actions']['refreshModelsEnabled']);
+        // N-10 (final customer acceptance): the pause names "Test the connection again" as the way out; the button
+        // must work (the key may have been fixed at the provider), not only "Use this model".
+        self::assertTrue($state['actions']['testConnectionEnabled']);
+    }
+
+    #[Test]
     public function modelCollectionsAreAlwaysPresentAndNormalized(): void
     {
         $resolver = $this->createMock(AiConfigurationResolverInterface::class);

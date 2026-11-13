@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ModuleTextContrastTest extends TestCase
 {
-    private const TOKENS = __DIR__ . '/../../../Resources/Private/Scss/typo3/_theme-tokens.scss';
+    private const TOKENS = __DIR__ . '/../../../Resources/Private/Scss/typo3/_tokens.scss';
 
     private const TEXT_TOKENS = ['--aqi-fg-muted', '--aqi-fg-subtle', '--aqi-none'];
 
@@ -202,7 +202,7 @@ final class ModuleTextContrastTest extends TestCase
             }
         }
 
-        self::assertIsString($target, sprintf('No %s token block found in _theme-tokens.scss.', $scheme));
+        self::assertIsString($target, sprintf('No %s token block found in _tokens.scss.', $scheme));
         self::assertSame(
             1,
             preg_match('/' . preg_quote($token, '/') . ':\s*([^;]+);/', $target, $matches),

@@ -21,6 +21,11 @@ is not publicly visible. A request that carries the header
 ``X-AQG-Scanner-Token`` with a valid token is served with hidden pages and
 hidden content elements included.
 
+The token does not change the time or log in a frontend user: pages outside
+their start or stop time and pages restricted to frontend user groups stay
+closed to it. AQG refuses a frontend scan of such a page before it is sent to
+the crawler and explains why.
+
 Use :guilabel:`Generate token` to create a token, or
 :guilabel:`Regenerate token` to replace an existing one. The token is a random
 64-character hexadecimal string stored in ``scanner_token``.
@@ -95,6 +100,15 @@ plan is reached:
     /
     /contact
     /products
+
+A site scan with a sitemap scans a priority page first when the site's sitemap
+(of the scanned language) lists it, also when it is far down a large sitemap.
+A path the sitemap does not list is not added: the sitemap remains the list of
+pages a scan visits, so a page of another language or a removed page never
+enters the results. Without a sitemap the crawler starts with the start page,
+then the priority pages under the start URL (for example ``/de/…`` for the
+German site), then the pages it finds by following links. Priority pages count
+towards the page limit; paths are compared case-sensitively.
 
 ..  note::
     The crawler is a hosted service. It requests your site from the internet, so

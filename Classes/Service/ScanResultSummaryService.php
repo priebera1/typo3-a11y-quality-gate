@@ -29,6 +29,7 @@ class ScanResultSummaryService
         private readonly UriBuilder $uriBuilder,
         private readonly RemoteIssueRepository $remoteIssueRepository,
         private readonly RemoteScanPairingService $remoteScanPairingService,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
     ) {
     }
 
@@ -37,11 +38,12 @@ class ScanResultSummaryService
      *
      * @return array{total:int,critical:int,warning:int,info:int,needs_review:int}
      */
-    public function contentOpenIssues(string $scope, string $siteIdentifier, int $uid, int $languageUid): array
+    public function contentOpenIssues(string $scope, string $siteIdentifier, int $uid, int $languageUid, string $readablePagesClause = ''): array
     {
+        // A site total counts only pages the requesting user may show (ScopeAccessService::readablePagesClause()).
         $counts = $scope === 'site'
-            ? $this->issueRepository->countOpenTotalsForSite($siteIdentifier, $languageUid)
-            : $this->issueRepository->countOpenBySeverity($uid, $siteIdentifier, $languageUid);
+            ? $this->issueRepository->countOpenTotalsForSite($siteIdentifier, $languageUid, $readablePagesClause)
+            : $this->issueRepository->countOpenBySeverity($uid, $siteIdentifier, $languageUid, '', true);
 
         $result = [
             'critical' => (int)($counts['critical'] ?? 0),
@@ -69,20 +71,42 @@ class ScanResultSummaryService
      * Stored occurrence totals and page coverage of a persisted frontend scan, and the report that shows it.
      *
      * @param array<string, mixed> $scan a tx_a11y_remote_scan row
-     * @return array<string, int|string>
+     * @return array<string, mixed>
      */
     public function frontendResult(array $scan): array
     {
         $result = [];
+        $scanUid = (int)($scan['uid'] ?? 0);
+        // Sol R05: for users other than administrators the notification states what they may read of the scan — its
+        // visible findings and result pages — and claims no new/resolved comparison over pages they cannot read.
+        $restriction = null;
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            try {
+                $restriction = (int)($scan['persisted_at'] ?? 0) > 0 && $this->remoteResultAuthorizationService !== null
+                    ? $this->remoteResultAuthorizationService->authorize($scan)
+                    : new RemoteResultAuthorization(false, [], [], []);
+            } catch (RemoteResultsTooLargeException) {
+                $restriction = new RemoteResultAuthorization(false, [], [], []);
+            }
+        }
         if ((int)($scan['persisted_at'] ?? 0) > 0) {
-            $totals = $this->remoteOccurrenceTotalsService->forScan($scan);
+            $totals = $restriction !== null ? $restriction->totals() : $this->remoteOccurrenceTotalsService->forScan($scan);
             $result['occurrencesTotal'] = $totals->total;
             $result['issueTypesTotal'] = $totals->issueTypes;
-            $result['comparison'] = $this->comparisonWithPreviousScan($scan);
+            $result['comparison'] = $restriction !== null ? ['available' => false] : $this->comparisonWithPreviousScan($scan);
         }
 
-        $scanUid = (int)($scan['uid'] ?? 0);
-        $coverage = RemoteScanCoverage::fromScanRow($scan, $scanUid > 0 ? $this->remoteScanRepository->countPagesForScan($scanUid, true) : 0);
+        if ($restriction !== null) {
+            // Sol QA-06: the notification says the results are limited to the user's access; only the stored scan's own
+            // "loaded a page" decides between that and "no page checked" (a boolean, no withheld count).
+            $result['resultsRestricted'] = true;
+            $result['scanLoadedPages'] = (int)($scan['pages_scanned'] ?? 0) > 0 || $restriction->resultPages !== [];
+            $visiblePages = count($restriction->resultPages);
+            $scan['pages_total'] = $visiblePages;
+            $scan['pages_scanned'] = $visiblePages;
+            $scan['pages_failed'] = 0;
+        }
+        $coverage = RemoteScanCoverage::fromScanRow($scan, $scanUid > 0 && $restriction === null ? $this->remoteScanRepository->countPagesForScan($scanUid, true) : 0);
         $result += [
             'pagesExpected' => $coverage->expectedPages,
             'pagesLoaded' => $coverage->loadedPages,
@@ -96,6 +120,9 @@ class ScanResultSummaryService
         if ((string)($scan['scan_scope'] ?? '') === 'page' && $scanUid > 0) {
             $pages = $this->remoteScanRepository->findAllPagesForScan($scanUid);
             $remotePageUid = (int)($pages[0]['uid'] ?? 0);
+            if ($restriction !== null && !$restriction->isResultPageVisible($remotePageUid)) {
+                $remotePageUid = 0;
+            }
             if (count($pages) === 1 && $remotePageUid > 0) {
                 $reportUrl = (string)$this->uriBuilder->buildUriFromRoute('web_a11y.remotePageDetail', array_filter([
                     'remotePageUid' => $remotePageUid,
@@ -117,6 +144,8 @@ class ScanResultSummaryService
             ], static fn (mixed $value): bool => $value !== null && $value !== ''));
         }
         $result['reportUrl'] = $reportUrl;
+        // Atlas D9: the notification says it describes a preview scan of a page that was not public.
+        $result['pagePreview'] = RemoteScanPairingService::isPagePreview($scan);
 
         return $result;
     }

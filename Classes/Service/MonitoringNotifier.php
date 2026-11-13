@@ -6,7 +6,9 @@ namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Utility\BackendTimeUtility;
 use Symfony\Component\Mime\Address;
+use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Information\Typo3Version;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Mail\MailerInterface;
 use TYPO3\CMS\Core\Mail\MailMessage;
@@ -27,6 +29,7 @@ final class MonitoringNotifier
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly UriBuilder $uriBuilder,
+        private readonly ?RuleMetadataPresentationService $ruleMetadata = null,
     ) {
     }
 
@@ -80,7 +83,7 @@ final class MonitoringNotifier
 
         $lines = [
             'Site: ' . $siteLabel,
-            'Scan finished: ' . $scannedAt,
+            (is_array($report['failure'] ?? null) ? 'Checked at: ' : 'Scan finished: ') . $scannedAt,
         ];
         if (is_array($report['baseline'])) {
             $lines[] = 'Baseline: the scan of ' . BackendTimeUtility::formatDateTime((int)($report['baseline']['finished_at'] ?? 0)) . ' (same scope, language and start URL).';
@@ -89,6 +92,16 @@ final class MonitoringNotifier
 
         switch ($report['outcome']) {
             case RemoteMonitoringService::OUTCOME_FAILED:
+                $failure = is_array($report['failure'] ?? null) ? $report['failure'] : null;
+                if ($failure !== null) {
+                    // N-13: the scan could not be started (scanner unreachable, refused, rate limited, DPA missing …).
+                    $subject = sprintf('[AQG] Monitoring scan could not run: %s', $site->getIdentifier());
+                    $lines[] = 'The monitoring scan could not be started, so nothing was scanned or compared. This is not an all-clear.';
+                    $lines[] = 'Reason: ' . trim((string)($failure['title'] ?? '')) . ' — ' . trim((string)($failure['message'] ?? ''));
+                    $lines[] = '';
+                    $lines[] = 'The baseline stays the last complete scan. The next scheduled run tries again; you get another message only when the reason changes or the scan works again and finds a regression.';
+                    break;
+                }
                 $subject = sprintf('[AQG] Monitoring scan failed: %s', $site->getIdentifier());
                 $lines[] = 'The monitoring scan did not complete. This is not a regression: nothing was compared.';
                 $lines[] = 'Check that the site is reachable for the AQG scanner, then run the scan again.';
@@ -114,7 +127,7 @@ final class MonitoringNotifier
                     $lines[] = sprintf(
                         '- [%s] %s on %s (%d → %d occurrences)',
                         $entry['impact'] !== '' ? $entry['impact'] : 'unknown',
-                        $entry['ruleId'],
+                        $this->ruleLabel((string)$entry['ruleId']),
                         $entry['url'],
                         $entry['before'],
                         $entry['after']
@@ -130,12 +143,20 @@ final class MonitoringNotifier
         $link = $this->buildBackendLink($site, (string)$report['backendBaseUrl'], (int)$report['languageUid']);
         if ($link !== '') {
             $lines[] = '';
-            $lines[] = 'Investigate in AQG: ' . $link;
+            $lines[] = 'Open the frontend scan report in AQG: ' . $link;
         }
         $lines[] = '';
         $lines[] = 'Automated scans find common accessibility issues; they do not confirm WCAG conformance. Manual review may still be required.';
 
         return [$subject, implode("\n", $lines) . "\n"];
+    }
+
+    /** U-05: "Image alt text missing (image-alt)"; English like the rest of the mail. */
+    private function ruleLabel(string $ruleId): string
+    {
+        $title = trim((string)$this->ruleMetadata?->friendlyTitleForRule($ruleId, '', 'en'));
+
+        return $title !== '' && $title !== $ruleId ? sprintf('%s (%s)', $title, $ruleId) : $ruleId;
     }
 
     /**
@@ -161,21 +182,21 @@ final class MonitoringNotifier
         return $lines;
     }
 
+    /**
+     * N-12: monitoring mails are sent by the Scheduler or the CLI, where the backend UriBuilder has no request and
+     * failed silently (no link in any scheduled mail). The link is the module path with plain parameters and no route
+     * token — a token belongs to one backend session and would be wrong for every recipient. TYPO3 asks for a login
+     * and then opens the module.
+     */
     private function buildBackendLink(Site $site, string $backendBaseUrl, int $languageUid): string
     {
-        try {
-            $path = (string)$this->uriBuilder->buildUriFromRoute('web_a11y', [
-                'id' => (int)$site->getRootPageId(),
-                'site' => $site->getIdentifier(),
-                'language' => $languageUid,
-            ]);
-        } catch (\Throwable) {
-            return '';
-        }
-
-        if (preg_match('#^https?://#i', $path) === 1) {
-            return $path;
-        }
+        $path = self::backendEntryPoint() . $this->modulePath() . '?' . http_build_query([
+            'id' => (int)$site->getRootPageId(),
+            'site' => $site->getIdentifier(),
+            'language' => $languageUid,
+            // Opens the Overview on its Frontend scan tab (pro-module.js initOverviewSourceTabs).
+            'aqgSource' => 'remote',
+        ]);
 
         $base = trim($backendBaseUrl);
         if ($base === '') {
@@ -186,5 +207,27 @@ final class MonitoringNotifier
         }
 
         return $base === '' ? '' : rtrim($base, '/') . '/' . ltrim($path, '/');
+    }
+
+    /** The AQG module path of this TYPO3 version ("/module/web/a11y" on 13, "/module/content/a11y" on 14). */
+    private function modulePath(): string
+    {
+        try {
+            $path = (string)GeneralUtility::makeInstance(ModuleProvider::class)->getModule('web_a11y', null, false)?->getPath();
+            if ($path !== '') {
+                return '/' . ltrim($path, '/');
+            }
+        } catch (\Throwable) {
+            // No module registry (unit context): the path known for this TYPO3 version.
+        }
+
+        return (new Typo3Version())->getMajorVersion() >= 14 ? '/module/content/a11y' : '/module/web/a11y';
+    }
+
+    private static function backendEntryPoint(): string
+    {
+        $entryPoint = trim((string)($GLOBALS['TYPO3_CONF_VARS']['BE']['entryPoint'] ?? '/typo3'), '/');
+
+        return '/' . ($entryPoint !== '' ? $entryPoint : 'typo3');
     }
 }

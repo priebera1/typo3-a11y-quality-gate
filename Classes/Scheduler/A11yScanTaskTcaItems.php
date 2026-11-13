@@ -37,49 +37,25 @@ final class A11yScanTaskTcaItems
      */
     public function addLanguageItems(array &$parameters): void
     {
+        // U-06: every site's translations, labelled with their site, from the first render: the page fields no longer
+        // reload the form ("Refresh required"). The task refuses a language its site does not have when it runs.
         $items = $parameters['items'] ?? [];
-        $row = is_array($parameters['row'] ?? null) ? $parameters['row'] : [];
-        $pageUid = $this->readRowInteger($row, A11yScanTask::PARAM_PAGE_UID);
-        $rootPid = $this->readRowInteger($row, A11yScanTask::PARAM_ROOT_PID);
-        $candidatePid = $pageUid > 0 ? $pageUid : $rootPid;
-
-        if ($candidatePid <= 0) {
-            $parameters['items'] = $items;
-            return;
-        }
-
-        try {
-            $site = $this->getSiteFinder()->getSiteByPageId($candidatePid);
-        } catch (\Throwable) {
-            $parameters['items'] = $items;
-            return;
-        }
-
-        $languageItems = [];
-        foreach ($site->getLanguages() as $language) {
-            $languageId = $language->getLanguageId();
-            if ($languageId === -1 || $languageId === 0) {
-                continue;
+        $byLanguage = [];
+        $sites = $this->getSiteFinder()->getAllSites();
+        ksort($sites);
+        foreach ($sites as $site) {
+            foreach ($site->getLanguages() as $language) {
+                $languageId = $language->getLanguageId();
+                if ($languageId <= 0) {
+                    continue;
+                }
+                $label = (string)$language->getTitle();
+                $byLanguage[$languageId][] = sprintf('%s (%d) · %s', $label !== '' ? $label : 'Language ' . $languageId, $languageId, $site->getIdentifier());
             }
-
-            $label = (string)$language->getTitle();
-            if ($label === '') {
-                $label = 'Language ' . $languageId;
-            }
-
-            $languageItems[] = [
-                'label' => sprintf('%s (%d)', $label, $languageId),
-                'value' => $languageId,
-            ];
         }
-
-        usort(
-            $languageItems,
-            static fn(array $a, array $b): int => (int)$a['value'] <=> (int)$b['value']
-        );
-
-        foreach ($languageItems as $languageItem) {
-            $items[] = SelectItem::fromTcaItemArray($languageItem);
+        ksort($byLanguage);
+        foreach ($byLanguage as $languageId => $labels) {
+            $items[] = SelectItem::fromTcaItemArray(['label' => implode(' / ', $labels), 'value' => $languageId]);
         }
 
         $parameters['items'] = $items;
@@ -105,19 +81,6 @@ final class A11yScanTaskTcaItems
         );
 
         return $result;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function readRowInteger(array $row, string $fieldName): int
-    {
-        $value = $row[$fieldName] ?? 0;
-        if (is_array($value)) {
-            $value = reset($value);
-        }
-
-        return (int)$value;
     }
 
     private function getSiteFinder(): SiteFinder

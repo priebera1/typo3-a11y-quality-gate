@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Pro\Service;
 
+use Priebera\A11yQualityGate\Utility\UrlAuthority;
+
 /**
  * The domain of a site as the AQG service identifies it. FREE acceptances, the installation proof, licence domains and
  * domain grouping all compare this value with the AQG service's own, so it must be the same string: an internationalised
@@ -17,9 +19,10 @@ final class DomainNormalizer
 
     public function normalizeFromSiteBase(string $siteBase): string
     {
-        $host = parse_url($siteBase, PHP_URL_HOST);
+        // COMPAT-01: never parse_url() — it replaced UTF-8 bytes of a Unicode host with "_" under some UTF-8 locales.
+        $host = UrlAuthority::host($siteBase);
 
-        if (!is_string($host) || $host === '') {
+        if ($host === '') {
             return '';
         }
 

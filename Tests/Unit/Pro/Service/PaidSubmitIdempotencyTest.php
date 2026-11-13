@@ -218,6 +218,34 @@ final class PaidSubmitIdempotencyTest extends TestCase
         self::assertSame($this->sentKeys[0], $this->sentKeys[1]);
     }
 
+    /**
+     * Second Sol audit A4: the MCP connector keeps its own durable key per agent request (McpScanRequestStore). That key
+     * is sent on every attempt — after a timeout, a definitive refusal, a token refresh — and the per-fingerprint Registry
+     * entries are never touched for it.
+     */
+    #[Test]
+    public function aCallersDurableKeyIsSentOnEveryAttemptAndBypassesTheRegistryStore(): void
+    {
+        $key = 'aqg-mcp-' . str_repeat('ab', 20);
+        $service = $this->service([
+            new ApiRequestFailedException('timeout', 0),
+            new ApiRequestFailedException('busy', 429, null, 'too_many_active_jobs'),
+            new ApiRequestFailedException('revoked', 401, null, 'token_revoked'),
+            self::JOB,
+        ]);
+        foreach ([1, 2] as $attempt) {
+            try {
+                $service->submit('example.org', '3.0.0', 'main', 'https://example.org/page/', null, RemoteScanSourceType::SinglePage, 1, false, idempotencyKey: $key);
+                self::fail('attempt ' . $attempt . ' is reported');
+            } catch (TokenRefreshException) {
+            }
+        }
+        self::assertSame(self::JOB, $service->submit('example.org', '3.0.0', 'main', 'https://example.org/page/', null, RemoteScanSourceType::SinglePage, 1, false, idempotencyKey: $key)->jobId);
+
+        self::assertSame([$key, $key, $key, $key], $this->sentKeys, 'timeout, refusal and the token-refresh retry all carry the durable key');
+        self::assertSame([], $this->registryEntries, 'the module\'s per-fingerprint store is not used for a caller key');
+    }
+
     #[Test]
     public function anOldUnansweredKeyIsNotReusedForALaterScan(): void
     {

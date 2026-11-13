@@ -18,7 +18,6 @@ final class ProStatusViewModel
         public readonly ?string $reason,
         public readonly ?string $reasonLabel,
         public readonly string $statusLabel,
-        public readonly bool $showProHints,
         public readonly bool $hasCrawler,
         public readonly bool $hasExportPdf,
         public readonly bool $hasMultiSite,
@@ -33,7 +32,29 @@ final class ProStatusViewModel
     ) {
     }
 
-    public static function notConfigured(bool $showProHints, string $domain = ''): self
+    /**
+     * D-01: several sites and no site context — no site is validated on the user's behalf. The key is configured, but
+     * which licence state applies depends on the site, so the status asks for one instead of guessing.
+     */
+    public static function siteRequired(string $reasonLabel): self
+    {
+        return new self(
+            configured: true,
+            valid: false,
+            proAvailable: false,
+            plan: '',
+            features: [],
+            reason: 'site_required',
+            reasonLabel: $reasonLabel,
+            statusLabel: $reasonLabel,
+            hasCrawler: false,
+            hasExportPdf: false,
+            hasMultiSite: false,
+            hasProRules: false,
+        );
+    }
+
+    public static function notConfigured(string $domain = ''): self
     {
         return new self(
             configured: false,
@@ -44,7 +65,6 @@ final class ProStatusViewModel
             reason: 'not_configured',
             reasonLabel: 'Licence not configured',
             statusLabel: 'Licence not configured',
-            showProHints: $showProHints,
             hasCrawler: false,
             hasExportPdf: false,
             hasMultiSite: false,

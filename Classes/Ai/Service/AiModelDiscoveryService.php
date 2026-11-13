@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Ai\Service;
 
 use Priebera\A11yQualityGate\Ai\Contract\AiConfigurationResolverInterface;
+use Priebera\A11yQualityGate\Ai\Contract\AiModelCatalogProviderInterface;
 use Priebera\A11yQualityGate\Ai\Contract\AiModelDiscoveryProviderInterface;
 use Priebera\A11yQualityGate\Ai\Contract\AiModelDiscoveryServiceInterface;
 use Priebera\A11yQualityGate\Ai\Exception\AiModelDiscoveryException;
@@ -29,18 +30,32 @@ final class AiModelDiscoveryService implements AiModelDiscoveryServiceInterface
     public function discover(string $siteIdentifier): array
     {
         $credentials = $this->configurationResolver->resolveCredentials($siteIdentifier);
-        $existingRow = $this->repository->findBySiteIdentifier($siteIdentifier) ?? [];
-        $existingCache = $this->cacheCodec->decode((string)($existingRow['discovered_models_cache'] ?? ''));
+        $provider = $credentials->provider;
+        $existingRow = $this->repository->findBySiteIdentifier($siteIdentifier, $provider) ?? [];
+        $existingCache = $this->cacheCodec->decode((string)($existingRow['discovered_models_cache'] ?? ''), $provider);
         $existingCacheMatchesKey = $existingCache['valid']
             && hash_equals($credentials->keyFingerprint, $existingCache['keyFingerprint']);
 
         try {
             $availableModelIds = null;
-            foreach ($this->providers as $provider) {
-                if ($provider->supports($credentials->provider)) {
-                    $availableModelIds = $provider->listModelIds($credentials);
-                    break;
+            $reportedCapabilities = [];
+            foreach ($this->providers as $discoveryProvider) {
+                if (!$discoveryProvider->supports($provider)) {
+                    continue;
                 }
+                if ($discoveryProvider instanceof AiModelCatalogProviderInterface) {
+                    $availableModelIds = [];
+                    foreach ($discoveryProvider->listModels($credentials) as $model) {
+                        $availableModelIds[] = $model->id;
+                        $reportedCapabilities[$model->id] = [
+                            'imageInput' => $model->imageInput,
+                            'structuredOutputs' => $model->structuredOutputs,
+                        ];
+                    }
+                } else {
+                    $availableModelIds = $discoveryProvider->listModelIds($credentials);
+                }
+                break;
             }
             if (!is_array($availableModelIds)) {
                 throw new AiModelDiscoveryException(
@@ -50,8 +65,8 @@ final class AiModelDiscoveryService implements AiModelDiscoveryServiceInterface
                 );
             }
 
-            $filtered = $this->registry->filterAvailable($availableModelIds);
-            $row = $this->repository->findBySiteIdentifier($siteIdentifier) ?? [];
+            $filtered = $this->registry->filterAvailable($availableModelIds, $provider, $reportedCapabilities);
+            $row = $this->repository->findBySiteIdentifier($siteIdentifier, $provider) ?? [];
             $selectedModelId = trim((string)($row['selected_model_id'] ?? ''));
             if ($selectedModelId === '') {
                 $selectedModelId = trim((string)($row['model'] ?? ''));
@@ -70,12 +85,14 @@ final class AiModelDiscoveryService implements AiModelDiscoveryServiceInterface
                 $filtered['supported'],
                 $filtered['unsupported'],
                 $credentials->keyFingerprint,
+                $provider,
             );
             $this->repository->saveDiscovery(
                 $siteIdentifier,
                 $cacheJson,
                 $discoveredAt,
                 $selectedModelId,
+                $provider,
             );
 
             if ($filtered['supported'] === []) {
@@ -87,10 +104,11 @@ final class AiModelDiscoveryService implements AiModelDiscoveryServiceInterface
                     AiPromptDefinition::AI_PROMPT_VERSION,
                     AiPromptDefinition::CONNECTION_TEST_VERSION,
                     'no_supported_models',
+                    $provider,
                 );
                 throw new AiModelDiscoveryException(
                     'no_supported_models',
-                    'No OpenAI model available to this project is currently supported by AQG.',
+                    'No model available to this provider account is currently supported by AQG.',
                     1771002711,
                 );
             }
@@ -107,6 +125,7 @@ final class AiModelDiscoveryService implements AiModelDiscoveryServiceInterface
                     $siteIdentifier,
                     $exception->safeCode,
                     !$existingCacheMatchesKey,
+                    $provider,
                 );
             }
             throw $exception;
@@ -116,8 +135,8 @@ final class AiModelDiscoveryService implements AiModelDiscoveryServiceInterface
     public function ensureFresh(string $siteIdentifier): void
     {
         $credentials = $this->configurationResolver->resolveCredentials($siteIdentifier);
-        $row = $this->repository->findBySiteIdentifier($siteIdentifier);
-        $cache = $this->cacheCodec->decode((string)($row['discovered_models_cache'] ?? ''));
+        $row = $this->repository->findBySiteIdentifier($siteIdentifier, $credentials->provider);
+        $cache = $this->cacheCodec->decode((string)($row['discovered_models_cache'] ?? ''), $credentials->provider);
         $discoveredAt = (int)($row['discovered_models_at'] ?? 0);
         $fingerprintMatches = $cache['valid']
             && hash_equals($credentials->keyFingerprint, $cache['keyFingerprint']);

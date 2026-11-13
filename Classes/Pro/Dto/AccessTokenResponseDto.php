@@ -20,6 +20,8 @@ final class AccessTokenResponseDto
         public readonly ?string $errorMessage,
         public readonly string $entitlement = '',
         public readonly array $capabilities = [],
+        /** M-06: the API's HTTP status of a refusal (error.status, or the rate limiter's statusCode). 0 = unknown. */
+        public readonly int $httpStatus = 0,
     ) {
     }
 
@@ -57,10 +59,21 @@ final class AccessTokenResponseDto
             expiresIn: max(0, (int)($payload['expires_in'] ?? 0)),
             plan: trim((string)($payload['plan'] ?? '')),
             features: $features,
-            errorCode: isset($error['code']) ? (string)$error['code'] : null,
-            errorMessage: isset($error['message']) ? (string)$error['message'] : null,
+            // M-06: the rate limiter answers {"statusCode":429,"error":"Too Many Requests"} without an error object. A
+            // missing code read as a licence refusal ("Revalidate the licence") — it is a limit to wait out.
+            errorCode: isset($error['code']) ? (string)$error['code'] : (self::statusOf($payload) === 429 ? 'rate_limit_exceeded' : null),
+            errorMessage: isset($error['message']) ? (string)$error['message'] : (isset($payload['message']) && is_string($payload['message']) ? $payload['message'] : null),
             entitlement: trim((string)($payload['entitlement'] ?? '')),
             capabilities: $capabilities,
+            httpStatus: self::statusOf($payload),
         );
+    }
+
+    /** @param array<string, mixed> $payload */
+    private static function statusOf(array $payload): int
+    {
+        $error = is_array($payload['error'] ?? null) ? $payload['error'] : [];
+
+        return max(0, (int)($error['status'] ?? $payload['statusCode'] ?? 0));
     }
 }

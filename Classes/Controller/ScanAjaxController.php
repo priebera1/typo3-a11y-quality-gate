@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
 use Priebera\A11yQualityGate\Service\AccessControlService;
@@ -45,6 +46,7 @@ final class ScanAjaxController extends AbstractApiController
         private readonly LanguageUidResolver $languageUidResolver,
         private readonly ScopeAccessService $scopeAccessService,
         private readonly ?ScanResultSummaryService $scanResultSummaryService = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -62,9 +64,14 @@ final class ScanAjaxController extends AbstractApiController
         }
 
         try {
+            $backendUser = $this->getBackendUser();
+
             return [
                 'scope' => $scope,
-                'openIssues' => $this->scanResultSummaryService->contentOpenIssues($scope, $siteIdentifier, $uid, $languageUid),
+                'openIssues' => $this->scanResultSummaryService->contentOpenIssues($scope, $siteIdentifier, $uid, $languageUid, $this->scopeAccessService->readablePagesClause()),
+                // STATE-01: the open issues are those this user may read; only administrators read every result. From the
+                // user's rights alone, so the flag says nothing about whether hidden findings exist.
+                'openIssuesRestricted' => !($backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin()),
                 'reportUrl' => $this->scanResultSummaryService->contentReportUrl($scope, $siteIdentifier, $uid, $languageUid),
             ];
         } catch (\Throwable $exception) {
@@ -73,19 +80,32 @@ final class ScanAjaxController extends AbstractApiController
         }
     }
 
+    /**
+     * N-18: the language a content scan checked, named in its notification when the site has more than one language
+     * ("Content scan (Deutsch) completed"). Empty for single-language sites and "all languages" scans.
+     */
+    private function scannedLanguageLabel(string $siteIdentifier, int $languageUid): string
+    {
+        if ($languageUid < 0 || $siteIdentifier === '') {
+            return '';
+        }
+        try {
+            $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+            if ($site === null || count($site->getLanguages()) < 2) {
+                return '';
+            }
+
+            return $site->getLanguageById($languageUid)->getTitle();
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
     public function scanPageAction(ServerRequestInterface $request): ResponseInterface
     {
         $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanNow');
         if ($accessResponse !== null) {
             return $accessResponse;
-        }
-
-        if ($this->scanStatusService->isRunning()) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
-                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
-            ], 409);
         }
 
         $body = $request->getParsedBody();
@@ -97,7 +117,22 @@ final class ScanAjaxController extends AbstractApiController
             return $this->badRequestResponse('Missing or invalid pageUid');
         }
 
+        // Every authorization decision comes before the scan state is read or changed: a refused request neither starts
+        // a scan nor learns about a running one, and gets the same answer whatever was refused.
         if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+            return $this->forbiddenResponse();
+        }
+        // I-01: a default-language page plus a language; a translation record's uid is no scan target (its rendered check
+        // fetched the translation and stored it as a default-language scan).
+        if (!$this->scopeAccessService->isDefaultLanguagePageRecord($pageUid)) {
+            return $this->forbiddenResponse();
+        }
+        if (!$this->mayScanPageInLanguage($languageUid)) {
+            return $this->forbiddenResponse();
+        }
+        // AUTH-01: the content collector reads the translated records of the page, so the actual translation record(s)
+        // need the user's show and edit access too (every language for -1), as for a frontend or MCP scan.
+        if (!$this->scopeAccessService->canScanContentPage($pageUid, $languageUid)) {
             return $this->forbiddenResponse();
         }
 
@@ -105,6 +140,17 @@ final class ScanAjaxController extends AbstractApiController
         $triggeredBy = $backendUser instanceof BackendUserAuthentication
             ? (string)($backendUser->user['username'] ?? 'unknown')
             : 'unknown';
+
+        // NEW-06: one content scan at a time, decided atomically (a registry check followed by a write let two scans
+        // start). The loser gets the same 409 as before, never a 500; the lock is released on every way out.
+        $scanLock = $this->scanStatusService->acquireScanLock();
+        if ($scanLock === null) {
+            return $this->jsonResponse([
+                'success' => false,
+                'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
+            ], 409);
+        }
 
         $scanStarted = false;
 
@@ -127,7 +173,8 @@ final class ScanAjaxController extends AbstractApiController
                 pageUid: $pageUid,
                 languageUid: $languageUid,
                 resolvedBy: $resolvedBy,
-                shouldCancel: fn (int $scanUid): bool => $this->scanStatusService->isCancellationRequested()
+                shouldCancel: fn (int $scanUid): bool => !$this->scanStatusService->renewScanLock($scanLock)
+                    || $this->scanStatusService->isCancellationRequested()
                     || $this->scanRepository->isScanCancellationRequested($scanUid),
                 onRunStarted: function (int $scanUid): void {
                     $this->scanStatusService->markScanRunStarted($scanUid);
@@ -146,6 +193,7 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesIgnored' => $result->issuesIgnored,
                 'warnings' => $result->warnings,
                 'renderedCoverage' => $result->renderedCoverage(),
+                'languageLabel' => $this->scannedLanguageLabel($siteIdentifier, $languageUid),
                 'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ] + $this->resultSummary('page', $siteIdentifier, $pageUid, $languageUid));
         } catch (ScanCancelledException) {
@@ -177,6 +225,8 @@ final class ScanAjaxController extends AbstractApiController
                 'error' => $this->translate('scanAjax.failedGeneric', 'The content scan failed. Details are in the TYPO3 log.'),
                 'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ], 500);
+        } finally {
+            $this->scanStatusService->releaseScanLock($scanLock);
         }
     }
 
@@ -185,14 +235,6 @@ final class ScanAjaxController extends AbstractApiController
         $accessResponse = $this->ensureBackendUserAccess($this->accessControlService, 'scanAll');
         if ($accessResponse !== null) {
             return $accessResponse;
-        }
-
-        if ($this->scanStatusService->isRunning()) {
-            return $this->jsonResponse([
-                'success' => false,
-                'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
-                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
-            ], 409);
         }
 
         $body = $request->getParsedBody();
@@ -207,11 +249,39 @@ final class ScanAjaxController extends AbstractApiController
         if (!$this->backendRecordAccessService->canEditRecord(Tables::PAGES, $rootPid)) {
             return $this->forbiddenResponse();
         }
+        // I-01: the subtree starts at a default-language page. S-01: the requested language follows the same language
+        // policy as a page scan (a language the user may not use, -1 only without a language restriction).
+        if (!$this->scopeAccessService->isDefaultLanguagePageRecord($rootPid) || !$this->mayScanPageInLanguage($languageUid)) {
+            return $this->forbiddenResponse();
+        }
 
         $backendUser = $this->getBackendUser();
         $triggeredBy = $backendUser instanceof BackendUserAuthentication
             ? (string)($backendUser->user['username'] ?? 'unknown')
             : 'unknown';
+        // AUTH-01: every page of the subtree needs the same admission as a single-page Content scan of it in the requested
+        // language (edit access to the page and to its translation record(s)). Pages that fail are not checked and are
+        // reported as not permitted; a subtree in which no page may be scanned is refused before any scan state changes.
+        $pageFilter = $backendUser instanceof BackendUserAuthentication && $backendUser->isAdmin()
+            ? null
+            : fn (int $pageUid): bool => $this->scopeAccessService->canScanContentPage($pageUid, $languageUid);
+        if ($pageFilter !== null) {
+            $plan = $this->scanOrchestrator->planSubtree($rootPid, 99, $languageUid, $pageFilter);
+            if ((int)($plan['permittedPages'] ?? count($plan['pageUids'] ?? [])) === 0 && ($plan['notPermittedPageUids'] ?? []) !== []) {
+                return $this->forbiddenResponse();
+            }
+        }
+
+        // NEW-06: one content scan at a time, decided atomically (a registry check followed by a write let two scans
+        // start). The loser gets the same 409 as before, never a 500; the lock is released on every way out.
+        $scanLock = $this->scanStatusService->acquireScanLock();
+        if ($scanLock === null) {
+            return $this->jsonResponse([
+                'success' => false,
+                'error' => $this->translate('scanAjax.alreadyRunning', 'A scan is already running.'),
+                'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
+            ], 409);
+        }
 
         $scanStarted = false;
 
@@ -234,12 +304,14 @@ final class ScanAjaxController extends AbstractApiController
                 rootPid: $rootPid,
                 languageUid: $languageUid,
                 resolvedBy: $resolvedBy,
-                shouldCancel: fn (int $scanUid): bool => $this->scanStatusService->isCancellationRequested()
+                shouldCancel: fn (int $scanUid): bool => !$this->scanStatusService->renewScanLock($scanLock)
+                    || $this->scanStatusService->isCancellationRequested()
                     || $this->scanRepository->isScanCancellationRequested($scanUid),
                 onRunStarted: function (int $scanUid): void {
                     $this->scanStatusService->markScanRunStarted($scanUid);
                 },
                 includeRenderedPageCheck: true,
+                pageFilter: $pageFilter,
             );
 
             $this->scanStatusService->markFinished($result);
@@ -254,6 +326,11 @@ final class ScanAjaxController extends AbstractApiController
                 'issuesIgnored' => $result->issuesIgnored,
                 'warnings' => $result->warnings,
                 'renderedCoverage' => $result->renderedCoverage(),
+                'languageLabel' => $this->scannedLanguageLabel($siteIdentifier, $languageUid),
+                'pagesWithoutTranslation' => $result->pagesWithoutTranslation,
+                // AUTH-01: pages of the subtree this user may not scan; not checked, so the result is incomplete for them.
+                // Only pages the user may see are counted (review F10-3): the number of invisible pages is not theirs to learn.
+                'pagesNotPermitted' => $result->notPermittedPageUids === [] ? 0 : count($this->scopeAccessService->readablePageUids($result->notPermittedPageUids)),
                 'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ] + $this->resultSummary('site', $siteIdentifier, $rootPid, $languageUid));
         } catch (ScanCancelledException) {
@@ -285,6 +362,8 @@ final class ScanAjaxController extends AbstractApiController
                 'error' => $this->translate('scanAjax.failedGeneric', 'The content scan failed. Details are in the TYPO3 log.'),
                 'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
             ], 500);
+        } finally {
+            $this->scanStatusService->releaseScanLock($scanLock);
         }
     }
 
@@ -344,7 +423,7 @@ final class ScanAjaxController extends AbstractApiController
         return $this->jsonResponse([
             'success' => true,
             'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
-            'remoteStatus' => $this->resolveRemoteStatusForRequest($request),
+            'remoteStatus' => $this->visibleRemoteStatus($this->resolveRemoteStatusForRequest($request)),
         ]);
     }
 
@@ -361,6 +440,36 @@ final class ScanAjaxController extends AbstractApiController
         if (PHP_SESSION_ACTIVE === session_status()) {
             session_write_close();
         }
+    }
+
+    /**
+     * Sol post-review R03/R05: a scan the user may not read is not reported (a page scan of a deleted, moved or refused
+     * page included), and users other than administrators get no crawler-wide counters — occurrences, new/resolved,
+     * a site crawl's page counts — nor the stored synchronisation error.
+     *
+     * @param array<string, mixed>|null $scan
+     * @return array<string, mixed>|null
+     */
+    private function visibleRemoteStatus(?array $scan): ?array
+    {
+        if ($scan === null || !$this->scopeAccessService->canReadRemoteScan($scan)) {
+            return null;
+        }
+        if ($this->remoteResultAuthorizationService !== null && $this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            return $scan;
+        }
+        foreach (['issues_total', 'issues_new', 'issues_resolved'] as $counter) {
+            $scan[$counter] = 0;
+        }
+        if ((string)($scan['scan_scope'] ?? '') !== 'page') {
+            foreach (['pages_scanned', 'pages_total', 'pages_failed'] as $counter) {
+                $scan[$counter] = 0;
+            }
+        }
+        unset($scan['sync_error'], $scan['reporting_summary_json'], $scan['api_summary_json']);
+        $scan['countsWithheld'] = true;
+
+        return $scan;
     }
 
     /**
@@ -427,10 +536,8 @@ final class ScanAjaxController extends AbstractApiController
      */
     private function canActOnLocalScan(array $status): bool
     {
-        $pageUid = (int)($status['pageUid'] ?? 0);
-        $rootPid = (int)($status['rootPid'] ?? 0);
-
-        return $this->scopeAccessService->canEditPage($pageUid > 0 ? $pageUid : $rootPid);
+        // AUTH-02: the same admission as starting that scan (page + translation + language, or root + language).
+        return $this->scopeAccessService->canCancelLocalScan($status);
     }
 
     /**
@@ -479,5 +586,21 @@ final class ScanAjaxController extends AbstractApiController
             'code' => 'missing_site_configuration',
             'status' => $this->presentLocalStatus($this->scanStatusService->getStatus()),
         ], 400);
+    }
+
+    /**
+     * The requested language of a page scan follows AQG's language policy (S-01, ScopeAccessService::canUseLanguage()):
+     * a concrete language, the default language 0 included, needs the user's language access. All languages (-1) would
+     * scan and store findings for every language of the page, so it is admitted only for users whose languages are not
+     * restricted (administrators and users without allowed_languages).
+     */
+    private function mayScanPageInLanguage(int $languageUid): bool
+    {
+        if ($languageUid >= 0) {
+            return $this->scopeAccessService->canUseLanguage($languageUid);
+        }
+        $backendUser = $this->getBackendUser();
+
+        return $backendUser instanceof BackendUserAuthentication && !$this->scopeAccessService->hasLanguageRestriction($backendUser);
     }
 }

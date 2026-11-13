@@ -75,24 +75,22 @@ final class RemoteScreenshotAccessFunctionalTest extends AbstractFunctionalTestC
         $this->get(SiteFinder::class)->getAllSites(false);
     }
 
+    /**
+     * Sol post-review R02/R05: a page screenshot shows every record the page renders — storage folders, tables and
+     * languages an editor may not read included — so it is evidence for administrators only, even of a report the
+     * editor may read.
+     */
     #[Test]
-    public function aReadOnlyEditorSeesTheScreenshotOfAReportTheyMayRead(): void
+    public function editorsDoNotLoadPageScreenshotsEvenOfReportsTheyMayRead(): void
     {
-        $this->setUpBackendUser(3);
-        $policy = $this->get(RemoteScreenshotAccessPolicy::class);
-
-        self::assertTrue($policy->canRead(1000), 'page scan of a page with show access');
-        self::assertTrue($policy->canRead(1001), 'site scan with show access to the site root');
-    }
-
-    #[Test]
-    public function anEditorSeesTheScreenshotsOfTheirSite(): void
-    {
-        $this->setUpBackendUser(2);
-        $policy = $this->get(RemoteScreenshotAccessPolicy::class);
-
-        self::assertTrue($policy->canRead(1000));
-        self::assertTrue($policy->canRead(1001));
+        foreach ([2, 3] as $user) {
+            $this->setUpBackendUser($user);
+            $policy = $this->get(RemoteScreenshotAccessPolicy::class);
+            self::assertFalse($policy->canRead(1000), 'page scan of a page with show access');
+            self::assertFalse($policy->canRead(1001), 'site scan with show access to the site root');
+        }
+        $this->setUpBackendUser(1);
+        self::assertTrue($this->get(RemoteScreenshotAccessPolicy::class)->canRead(1001), 'the administrator reads it');
     }
 
     #[Test]

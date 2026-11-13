@@ -20,6 +20,24 @@ final readonly class AiAltSuggestionRequest
         public ?string $linkPurpose = null,
     ) {}
 
+    /** The same request without the page title, for sites that do not allow sending page titles. */
+    public function withoutPageTitle(): self
+    {
+        return new self(
+            $this->dataUrl,
+            $this->mimeType,
+            $this->targetLocale,
+            $this->findingType,
+            $this->currentAlt,
+            $this->qualityReason,
+            null,
+            $this->contentTitle,
+            $this->caption,
+            $this->isLinked,
+            $this->linkPurpose,
+        );
+    }
+
     /** @return array<string, string|bool> */
     public function contextPayload(): array
     {

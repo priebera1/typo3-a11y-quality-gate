@@ -7,6 +7,8 @@ on:
     paths:
       - 'Documentation/**'
       - '.github/workflows/tests-documentation.yml'
+  # Also called by ci.yml, so a release commit always renders the documentation (not only when Documentation/ changed).
+  workflow_call:
   pull_request:
     paths:
       - 'Documentation/**'

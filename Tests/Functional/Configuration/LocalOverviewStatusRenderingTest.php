@@ -66,12 +66,33 @@ final class LocalOverviewStatusRenderingTest extends AbstractFunctionalTestCase
         self::assertStringNotContainsString('No content scan yet', $this->bodyText($xpath));
     }
 
+    /** STATE-01: "No open accessibility issues found." (green) only for a verified clean site (OverviewController::localOverviewEvidence()). */
     #[Test]
-    public function aCleanSiteWithAScanSaysSo(): void
+    public function aCleanSiteWithAVerifiedScanSaysSo(): void
     {
-        $xpath = $this->render('Overview/LocalActions', $this->actionArguments(self::PAGE_SCAN, 'Page scan: Test Page 1', self::NONE));
+        $arguments = ['localEvidence' => ['state' => 'clean', 'clean' => true, 'title' => '']] + $this->actionArguments(self::PAGE_SCAN, 'Page scan: Test Page 1', self::NONE);
+        $xpath = $this->render('Overview/LocalActions', $arguments);
 
         self::assertSame('No open accessibility issues found.', $this->text($xpath, '//*[@id="aqg-local-status-title"]'));
+        self::assertNotNull($xpath->query('//section[contains(@class, "aqg-status--good")]')->item(0));
+    }
+
+    /** STATE-01 (F9: "No open accessibility issues found." with a green tone for both). */
+    #[Test]
+    public function aZeroThatIsRestrictedOrIncompleteIsNamedForWhatItIs(): void
+    {
+        foreach ([
+            'restricted' => 'No open issues in the pages and records you can access.',
+            'incomplete' => 'No open issues found, but the last scan did not check the whole site.',
+        ] as $state => $title) {
+            $arguments = ['localEvidence' => ['state' => $state, 'clean' => false, 'title' => $title]] + $this->actionArguments(self::PAGE_SCAN, 'Page scan: Test Page 1', self::NONE);
+            $xpath = $this->render('Overview/LocalActions', $arguments);
+
+            self::assertSame($title, $this->text($xpath, '//*[@id="aqg-local-status-title"]'), $state);
+            self::assertNull($xpath->query('//section[contains(@class, "aqg-status--good")]')->item(0), $state . ': no green status');
+            self::assertNotNull($xpath->query('//*[@data-aqg-evidence="' . $state . '"]')->item(0));
+            self::assertStringNotContainsString('No open accessibility issues found', $this->bodyText($xpath));
+        }
     }
 
     #[Test]

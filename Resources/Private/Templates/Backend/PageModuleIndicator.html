@@ -20,11 +20,32 @@
             <f:render partial="Backend/PageModuleIndicator/Icon" arguments="{state: overallState}" />
             <span>{statusLabel}</span>
         </span>
+        <f:if condition="{notPublic}">
+            <span class="aqg-page-module-indicator__notpublic" data-aqg-indicator-not-public="true">{notPublic.badge}</span>
+        </f:if>
     </header>
 
     <div class="aqg-page-module-indicator__content">
         <p class="aqg-page-module-indicator__headline">{headline}</p>
         <p class="aqg-page-module-indicator__text">{body}</p>
+
+        <f:if condition="{remediation}">
+            <div class="aqg-page-module-indicator__remediation" data-aqg-indicator-remediation="true">
+                <f:if condition="{remediation.owners}">
+                    <p class="aqg-page-module-indicator__remediation-line aqg-page-module-indicator__owners">
+                        <span class="aqg-page-module-indicator__owners-label">{remediation.ownerLabel}</span>
+                        <f:for each="{remediation.owners}" as="owner">
+                            <span class="aqg-page-module-indicator__owner aqg-page-module-indicator__owner--{owner.owner}">{owner.count} {owner.label}</span>
+                        </f:for>
+                    </p>
+                </f:if>
+                <f:if condition="{remediation.ai}"><p class="aqg-page-module-indicator__remediation-line">{remediation.ai}</p></f:if>
+                <f:if condition="{remediation.pending}">
+                    <p class="aqg-page-module-indicator__remediation-line"><a href="{remediation.queueUrl}" data-aqg-indicator-pending="true">{remediation.pending}</a></p>
+                </f:if>
+                <p class="aqg-page-module-indicator__remediation-source">{remediation.source}</p>
+            </div>
+        </f:if>
 
         <div class="aqg-page-module-indicator__status-list">
             <f:for each="{rows}" as="row">
@@ -76,7 +97,7 @@
 
         <f:if condition="{remoteHint}">
             <div class="aqg-page-module-indicator__pro-hint">
-                <span class="aqg-page-module-indicator__pro-tag">{remoteHint.tag}</span>
+                <f:if condition="{remoteHint.tag}"><span class="aqg-page-module-indicator__pro-tag">{remoteHint.tag}</span></f:if>
                 <span>{remoteHint.text}</span>
                 <f:if condition="{remoteHint.linkUrl}">
                     <a class="aqg-page-module-indicator__hint-link" href="{remoteHint.linkUrl}">{remoteHint.linkLabel}</a>

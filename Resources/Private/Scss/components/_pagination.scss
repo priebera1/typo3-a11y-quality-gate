@@ -1,22 +1,162 @@
-.a11y-page-detail .aqg-detail-pagination {
+/*
+ * Shared pagination footer (Atlas "q-pager", screens/08-remediation-queue.html): the range on the left, one
+ * grouped control cluster on the right, both on the same row; the row wraps as a whole when the module is narrow.
+ *
+ * One markup for every paged list (Overview content/frontend/failed pages, My issues, Page Detail, MCP audit trail,
+ * licence domains, AI fixes queue and change log):
+ *
+ *   <div class="aqg-pagination [aqg-pagination--standalone]">
+ *     <p class="aqg-pagination__info">1–25 of 44</p>
+ *     <nav class="aqg-pagination__nav" aria-label="…">
+ *       <ul class="aqg-pagination__list">
+ *         <li><a|button|span class="btn btn-default btn-sm aqg-pagination__link aqg-pagination__link--prev">
+ *               <span class="aqg-pagination__step-label">Previous</span></a></li>
+ *         <li><a class="btn btn-default btn-sm aqg-pagination__link" aria-current="page">…</a></li>
+ *         <li><span class="aqg-pagination__gap" aria-hidden="true">…</span></li>
+ *         <li>… --next …</li>
+ *
+ * No Bootstrap `.pagination` / `.page-link`: they carry TYPO3's own sizes and colours and made the footer depend on
+ * whichever view-scoped override happened to match (none did in Settings, hence the unstyled MCP audit pager).
+ */
+
+.aqg-pagination {
+    container-type: inline-size;
     display: flex;
-    justify-content: flex-end;
-}
-
-.a11y-page-detail .pagination .page-link {
-    min-width: 28px;
-    min-height: 28px;
-    padding: 5px 8px;
-    border-color: var(--aqi-border);
-    border-radius: var(--aqi-radius-sm);
-    background: var(--aqi-surface);
-    color: var(--aqi-fg);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin: 0;
+    padding: 10px 14px;
+    border-top: 1px solid var(--aqi-border-soft);
+    color: var(--aqi-fg-muted);
     font-size: 12px;
+    line-height: 1.4;
 }
 
-.a11y-page-detail .pagination .active .page-link {
-    color: var(--aqi-surface);
+.aqg-pagination[hidden] {
+    display: none;
+}
+
+/* Below a list or table that has its own frame (My issues, Page Detail, AI fixes, licence domains). */
+.aqg-pagination--standalone {
+    padding: 12px 0 0;
+    border-top: 0;
+    background: transparent;
+}
+
+.aqg-pagination__info {
+    margin: 0;
+    color: var(--aqi-fg-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-pagination__nav {
+    margin-left: auto;
+}
+
+.aqg-pagination__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.aqg-pagination__list > li {
+    display: flex;
+    margin: 0;
+}
+
+/* Controls are the shared button family (`btn btn-default btn-sm`, base/_buttons.scss); the pager only adds the
+ * square number target, the current page and the disabled ends (one look for a disabled <button> and for the
+ * <span aria-disabled> a server-rendered pager uses). The extra `.aqg-pagination .btn` weight and the import after the
+ * views (backend.scss) let these states win over view-scoped button copies such as `.a11y-settings.aqg-module .btn-*`. */
+.aqg-pagination__link {
+    min-width: 29px;
+    font-variant-numeric: tabular-nums;
+}
+
+.aqg-pagination .btn.aqg-pagination__link:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: none;
+    box-shadow: var(--aqi-focus-ring);
+}
+
+.aqg-pagination .btn.aqg-pagination__link[aria-current="page"],
+.aqg-pagination .btn.aqg-pagination__link[aria-current="page"]:hover,
+.aqg-pagination .btn.aqg-pagination__link[aria-current="page"]:focus {
     background: var(--aqi-fg);
     border-color: var(--aqi-fg);
+    color: var(--aqi-surface);
     font-weight: 600;
+    cursor: default;
+}
+
+.aqg-pagination .btn.aqg-pagination__link[aria-disabled="true"],
+.aqg-pagination .btn.aqg-pagination__link[aria-disabled="true"]:hover,
+.aqg-pagination .btn.aqg-pagination__link:disabled,
+.aqg-pagination .btn.aqg-pagination__link:disabled:hover {
+    background: transparent;
+    border-color: var(--aqi-border-soft);
+    color: var(--aqi-fg-subtle);
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.aqg-pagination__gap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    min-height: 29px;
+    color: var(--aqi-fg-subtle);
+}
+
+/* Previous / Next: a drawn chevron in currentColor, so it follows every state and both colour schemes. */
+.aqg-pagination__link--prev::before,
+.aqg-pagination__link--next::after {
+    content: "";
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+}
+
+.aqg-pagination__link--prev::before {
+    margin-left: 2px;
+    transform: rotate(-135deg);
+}
+
+.aqg-pagination__link--next::after {
+    margin-right: 2px;
+    transform: rotate(45deg);
+}
+
+/*
+ * Narrow module area (page tree open on a tablet): the range takes its own row and the controls keep their size;
+ * Previous / Next drop their visible word but keep it as their accessible name.
+ */
+@container (max-width: 460px) {
+    .aqg-pagination__info {
+        flex: 1 0 100%;
+    }
+
+    .aqg-pagination__nav {
+        margin-left: 0;
+    }
+
+    .aqg-pagination__step-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
 }

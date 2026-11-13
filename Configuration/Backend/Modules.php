@@ -43,6 +43,10 @@ return [
                 'remoteFailedQuery' => true,
                 'tab' => true,
                 'rulesetSite' => true,
+                // Agent access (MCP): the consent request reference survives TYPO3 login and the backend frame redirect.
+                'request' => true,
+                'mcpAudit' => true,
+                'mcpAuditPage' => true,
             ],
         ],
         'routes' => [
@@ -52,6 +56,14 @@ return [
             'pageDetail' => [
                 'path' => '/page',
                 'target' => \Priebera\A11yQualityGate\Controller\PageDetailController::class . '::showAction',
+            ],
+            'issues' => [
+                'path' => '/issues',
+                'target' => \Priebera\A11yQualityGate\Controller\IssuesController::class . '::indexAction',
+            ],
+            'remediation' => [
+                'path' => '/remediation',
+                'target' => \Priebera\A11yQualityGate\Controller\RemediationQueueController::class . '::indexAction',
             ],
             'remotePageDetail' => [
                 'path' => '/remote-page',
@@ -65,6 +77,11 @@ return [
                 'path' => '/settings/save',
                 'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::saveAction',
                 'methods' => ['POST'],
+            ],
+            'settingsAiUsageExport' => [
+                'path' => '/settings/ai-usage-export',
+                'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::aiUsageExportAction',
+                'methods' => ['GET'],
             ],
             'settingsSaveExtConf' => [
                 'path' => '/settings/save-ext-conf',
@@ -94,6 +111,50 @@ return [
             'settingsFreePreviewRefresh' => [
                 'path' => '/settings/free-preview/refresh',
                 'target' => \Priebera\A11yQualityGate\Controller\SettingsController::class . '::refreshFreePreviewAction',
+                'methods' => ['POST'],
+            ],
+            'settingsMcpConnect' => [
+                'path' => '/settings/mcp/connect',
+                'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::connectAction',
+                'methods' => ['POST'],
+            ],
+            'settingsMcpCancelPairing' => [
+                'path' => '/settings/mcp/cancel-pairing',
+                'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::cancelPairingAction',
+                'methods' => ['POST'],
+            ],
+            'settingsMcpSaveSites' => [
+                'path' => '/settings/mcp/sites',
+                'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::saveSitesAction',
+                'methods' => ['POST'],
+            ],
+            'settingsMcpRevoke' => [
+                'path' => '/settings/mcp/revoke',
+                'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::revokeAction',
+                'methods' => ['POST'],
+            ],
+            'settingsMcpDisconnect' => [
+                'path' => '/settings/mcp/disconnect',
+                'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::disconnectAction',
+                'methods' => ['POST'],
+            ],
+            // Opened by an agent in the user's browser (OAuth consent); TYPO3 login and MFA run first.
+            'mcpConsent' => [
+                'path' => '/mcp/consent',
+                'target' => \Priebera\A11yQualityGate\Controller\McpConsentController::class . '::showAction',
+            ],
+            'mcpConsentDecide' => [
+                'path' => '/mcp/consent/decide',
+                'target' => \Priebera\A11yQualityGate\Controller\McpConsentController::class . '::decideAction',
+                'methods' => ['POST'],
+            ],
+            'mcpMyAgents' => [
+                'path' => '/mcp/my-agents',
+                'target' => \Priebera\A11yQualityGate\Controller\McpConsentController::class . '::myAgentsAction',
+            ],
+            'mcpMyAgentsRevoke' => [
+                'path' => '/mcp/my-agents/revoke',
+                'target' => \Priebera\A11yQualityGate\Controller\McpConsentController::class . '::revokeMineAction',
                 'methods' => ['POST'],
             ],
             'settingsRefresh' => [

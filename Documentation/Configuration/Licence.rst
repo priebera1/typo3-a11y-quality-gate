@@ -25,14 +25,6 @@ The licence key is stored in the extension configuration of
     ``aqg_live_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``. Trial keys use the
     ``aqg_trial_`` prefix.
 
-..  confval:: showProHints
-    :type: boolean
-    :Default: 1
-
-    Whether a Free Remote Preview result is followed by the upgrade offer with
-    trial and pricing links. Plan badges and notes on locked features stay
-    visible. Can be overridden per ruleset from the Settings view.
-
 There are two ways to set the key:
 
 *   In the :guilabel:`Licence` tab of the AQG Settings view. The tab is only

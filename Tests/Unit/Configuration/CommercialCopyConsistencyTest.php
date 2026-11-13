@@ -95,13 +95,11 @@ final class CommercialCopyConsistencyTest extends TestCase
     #[Test]
     public function lockedFeaturesNameEveryPlanThatIncludesThem(): void
     {
-        foreach (['freePreview.screenshotsLocked', 'freePreview.recordMappingLocked', 'freePreview.upsell', 'settings.publishingRules.freeUpgrade', 'settings.licence.free.advancedRemote'] as $id) {
+        foreach (['freePreview.screenshotsLocked', 'freePreview.recordMappingLocked', 'settings.publishingRules.freeUpgrade', 'settings.licence.free.advancedRemote'] as $id) {
             $source = $this->englishSource($id);
             self::assertStringContainsString('PRO', $source, $id);
             self::assertStringContainsString('Agency', $source, $id);
         }
-        // PDF export is the one frontend-scan extra the trial lacks.
-        self::assertStringContainsString('PDF export needs PRO or Agency', $this->englishSource('freePreview.upsell'));
     }
 
     #[Test]

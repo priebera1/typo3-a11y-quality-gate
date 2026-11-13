@@ -6,9 +6,13 @@
 ![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-blue.svg)
 ![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green.svg)
 
-Accessibility Quality Gate (AQG) is a TYPO3-native accessibility checker and quality gate. It runs WCAG-related checks on editor content, on the rendered page and in a real browser, keeps every finding attached to the TYPO3 record that caused it, and can warn or block publishing while open findings exceed your thresholds.
+Accessibility Quality Gate (AQG) brings accessibility quality assurance into the TYPO3 backend. Editors see
+accessibility problems while they write, every finding stays attached to the TYPO3 page, record and field that
+caused it, and a Quality Gate can warn or block publishing while too many problems are open. AQG 3.0 adds optional
+AI help that prepares fixes for review — nothing changes until a person applies it and saves.
 
-AQG automates the repeatable part of accessibility testing inside the editorial workflow. It does not replace manual testing and does not certify conformance — see [Scope](#scope).
+AQG automates the repeatable part of accessibility testing. It is not a certification service and does not
+replace manual testing — see [Scope](#scope).
 
 [Product](https://typo3.priebera.sk/products/accessibility-quality-gate) ·
 [Documentation](https://typo3.priebera.sk/docs) ·
@@ -18,321 +22,206 @@ AQG automates the repeatable part of accessibility testing inside the editorial 
 [Packagist](https://packagist.org/packages/priebera/typo3-a11y-quality-gate) ·
 [TER](https://extensions.typo3.org/extension/a11y_quality_gate)
 
-## Install
+![The Accessibility Overview in the TYPO3 14 backend: open issues by severity and a table of pages with open issues.](Documentation/Images/overview.png)
 
-```bash
-composer require priebera/typo3-a11y-quality-gate
-./vendor/bin/typo3 extension:setup
-```
+## Why accessibility checks belong inside TYPO3
 
-Supports TYPO3 13.4 LTS and TYPO3 14.3+.
+Generic accessibility scanners look at a finished URL. They report that something is wrong on a page, but not which
+content element, which field or which editor can fix it. AQG works where the content is made:
 
----
+- **At the source.** Rich text, image metadata, headers, links, embeds and forms are checked as TYPO3 records. A
+  finding names the record and field, and **Edit record** opens it.
+- **While editing.** CKEditor and Plain HTML content elements show problems as they appear, with a short
+  **How to fix** for each rule.
+- **Before publishing.** The Quality Gate runs when a page is unhidden or published, including workspace publishing.
+- **On the delivered page as well.** A rendered page check inspects the HTML TYPO3 delivers, and a browser-based
+  frontend scan on the AQG service runs axe-core on published pages, including JavaScript-rendered content.
+- **Within TYPO3 permissions.** Results, scans and fixes follow page, record and field permissions. Module access alone
+  opens no result.
 
-## Features
+## What editors experience
 
-### Free — no licence key required
+Open a text element and AQG marks problems directly in CKEditor or in the HTML code editor. The summary bar counts
+the issues; a marker at the right edge opens the explanation and the fix. After **Save**, AQG checks the saved record
+again and reports what is resolved.
 
-- CKEditor 5 inline highlighting for accessibility issues
-- Backend overview and page detail modules
-- Issue tracking with ignore / unignore workflow and expiry dates
-- Stable issue fingerprints across rescans
-- Batch ignore workflow with required reason confirmation
-- Per-rule enable / disable in Settings
-- Manual scans via backend module and CLI
-- Automated local scans via TYPO3 Scheduler
-- Changed-only scan mode for incremental rescans
-- Quality gate warning mode on page publish / unhide; editors can continue after reviewing the warning
-- Free Remote Preview — a limited daily browser-based frontend scan with axe-core (current limits are shown in the module); a TYPO3 administrator activates it once per site by accepting the FREE terms and DPA, recorded by the AQG service (2.1.0+)
-- FREE rendered page check — inspects the server-rendered HTML of a page; runs for backend page and site scans and for single-page CLI/Scheduler runs
-- CSV export
-- TCA-based field discovery for `tt_content` RTE and file fields
-- Settings module for enabling and disabling scanned fields
-- Built-in rules that help identify common WCAG 2.1 AA-related accessibility issues in RTE content, structured fields and rendered HTML
+![CKEditor with the AQG summary bar ("4 issues found") and an open marker explaining that the link text "click here" is not descriptive, with How to fix guidance.](Documentation/Images/ckeditor-inline-highlighting.png)
 
-### Trial / PRO / Agency
+For images in content elements, AQG shows the state of each image use — alternative text missing, own text,
+inherited from the file, or decorative — and a short hint how to fix a missing text. This works without a licence and
+without AI.
 
-- Remote browser accessibility scans via Playwright + axe-core
-- Remote browser scan results with issue breakdown and screenshot preview
-- Remote CSV export
-- Per-site quality gate configuration
-- Quality gate blocking mode on publish / unhide
-- Scan history and comparison of compatible scans (same site, scope, scan type, language and start URL); the stored history is kept indefinitely by default, can be browsed page by page, and administrators can set a 1-, 3- or 5-year period and delete older scans after reviewing them (2.1.0+)
+![An image in a Text & Images element with the "ALT missing" status and the guidance to describe the image or switch on "Decorative image".](Documentation/Images/image-alt-status-guidance.png)
 
-The trial runs for 5 days with up to 10 pages per frontend scan and 5 frontend scans per day.
+## Optional AI help that stays under review
 
-### PRO / Agency
+With a PRO or Agency licence and an AI provider configured by an administrator, supported findings offer
+**Fix with AI** and **Explain with AI**: link text, image alternative text, button names, iframe titles and empty
+headings. Every suggestion shows Before and After, can be edited, and is applied only by a person; TYPO3 Save stores
+it and AQG verifies the saved record. The **AI fixes** view collects prepared changes per site for review, approval
+and a change log.
 
-- PDF export for overview and page detail reports
-- AI-assisted alt text, link text and iframe title suggestions (bring your own OpenAI key; editors review every suggestion)
-- Accessibility Statement Draft Assistant based on a completed frontend site scan
-- **Verify fix** — from a frontend finding, scan that page again and see *Resolved*, *Still present* or *Not verified*; a failed or incomplete scan never counts as resolved
-- **Scheduled monitoring** — `a11y:monitor` scans a site on a schedule and e-mails only when new or worse issues appear, or when a scan is incomplete or failed
-- **Acceptance evidence** — a PDF/CSV comparing a baseline and a current scan (fixed, new, still open, not compared) for clients and stakeholders
+![The AI fixes view with four suggestions pending review and the review drawer showing Before, After and the reason for a missing iframe title.](Documentation/Images/ai-fixes-review.png)
 
-### Agency
+- **Bring your own key:** OpenAI or Anthropic Claude, one provider and one verified model per site. Requests go from
+  your TYPO3 installation directly to the provider.
+- **Off until an administrator sets it up:** licence, key, verified model, data processing acknowledgement and budget
+  must all be in place before editors see AI. Without them, every non-AI feature works unchanged.
+- **Cost control:** monthly budget per site with a warning e-mail and an optional hard stop, usage and estimated cost
+  per feature, and User TSconfig switches per group.
+- **Deterministic checks never use AI.** Scans, findings, How to fix, the Quality Gate and reports never call an AI
+  provider. AI does not fix every issue, does not decide conformance and never saves on its own.
 
-- Several client TYPO3 installations on one licence: each installation is enrolled as its own project on its first validation, up to the licence's project limit, with its own scans and history
-- Project slots are managed in the customer portal
-- Monitoring several sites in one `a11y:monitor` run
+## Scans, governance and reporting
 
-Plan details, trial access and pricing:
+- **Content scan** of RTE fields and structured TCA values, per page or site, from the backend, CLI or Scheduler.
+- **Rendered page check** of the server-rendered HTML (no JavaScript execution).
+- **Frontend scan** in a real browser on the AQG service: the limited daily Free Remote Preview, or full page and site
+  scans with a licence, with priority fixes, affected pages, screenshots, history and comparisons of compatible scans.
+- **Page Detail** with severity groups, How to fix, ignore with reason and expiry, an owner per issue type and a page
+  remediation plan.
+- **Page module and toolbar** status for the current page and site. The toolbar opens with **Ask AQG** for the page,
+  content element or file you are working on: common questions (what to fix first, why, where) are answered from your
+  findings without AI and at no cost; with AI set up, other questions use the site's own provider key, budget and
+  privacy settings, and answers never change content. Content scan and Frontend scan follow as collapsed sections, and
+  the footer offers **Open Accessibility** and, where agent access is usable for you, **Open MCP**.
+- **Results follow TYPO3 permissions:** findings, counts and exports show only what the user may read now (page,
+  record, table, language, workspace). Frontend results without a readable page or record, and results stored before
+  3.0, are administrators only; restricted views say so instead of reporting a clean scan.
+- **Quality Gate** on publish and unhide: warning mode for everyone, blocking mode and per-site rules with a licence.
+- **Exports:** CSV in every edition; PDF reports, acceptance evidence and scheduled monitoring with PRO or Agency. PDF
+  export needs a Composer installation (see [Installation](#installation)).
 
-- Trial: **https://typo3.priebera.sk/trial**
-- Pricing: **https://typo3.priebera.sk/pricing**
+![The Page module shows the accessibility panel of a page: content scan and frontend scan counts, owners and actions.](Documentation/Images/page-module-status.png)
 
----
+## Agent access (MCP)
+
+The extension contains a connector for AI agents (Model Context Protocol) with ten read and page-scan tools (frontend
+findings, scan history, single-page scans and, with the separate `content:read` scope, local content findings),
+consent per TYPO3 user with "My connected agents", and revocation. It is **off by default and not publicly available in 3.0.0**: it needs the hosted AQG MCP Gateway,
+which AQG has not opened yet, and an administrator must grant `options.a11y_quality_gate.mcp.connect` per group and
+turn sites on. Agents never change content; site crawls and AI changes by agents are not offered. See
+[Agent access](Documentation/Developer/AgentAccess.rst).
+
+## Free and paid features
+
+| | Free | Trial | PRO | Agency |
+|---|:-:|:-:|:-:|:-:|
+| Live checks in CKEditor and Plain HTML, How to fix | ✓ | ✓ | ✓ | ✓ |
+| Image ALT status and guidance, manual image fixes | ✓ | ✓ | ✓ | ✓ |
+| Content scan, rendered page check, CLI and Scheduler | ✓ | ✓ | ✓ | ✓ |
+| Overview, Page Detail, Page module, toolbar, ignore workflow | ✓ | ✓ | ✓ | ✓ |
+| Quality Gate warning mode, CSV export of local findings | ✓ | ✓ | ✓ | ✓ |
+| Free Remote Preview (limited daily browser scan) | ✓ | — | — | — |
+| Frontend page and site scans, screenshots, history, comparisons | — | ✓ | ✓ | ✓ |
+| Quality Gate blocking mode, per-site rules | — | ✓ | ✓ | ✓ |
+| PDF export¹, acceptance evidence, Verify fix, scheduled monitoring | — | — | ✓ | ✓ |
+| AI help (bring your own OpenAI or Anthropic key), AI fixes | — | — | ✓ | ✓ |
+| Accessibility Statement Assistant | — | — | ✓ | ✓ |
+| Several client installations on one licence, multi-site monitoring | — | — | — | ✓ |
+
+¹ PDF export (reports, acceptance evidence as PDF, statement PDF) works only in Composer installations; the TER package
+for Classic mode does not include the mPDF library. Every other feature, CSV export included, works in both.
+
+The Trial column describes trial licence keys (`aqg_trial_…`). A trial issued as an Agency licence has every
+Agency feature for its duration. Current trial terms, plan limits and prices are published on the
+[trial](https://typo3.priebera.sk/trial) and [pricing](https://typo3.priebera.sk/pricing) pages; the documentation has
+the [detailed feature table](Documentation/Introduction/Index.rst).
 
 ## Requirements
 
 - TYPO3 13.4 LTS or TYPO3 14.3+
 - PHP 8.2 or higher
-- No additional services required for the Free version
+- `ext-sodium` to store AI provider keys and remote-access passwords encrypted
+- No additional service for the Free features; frontend scans and licence checks use the hosted AQG service
 
----
+## Installation
 
-## Screenshots
+```bash
+composer require priebera/typo3-a11y-quality-gate
+vendor/bin/typo3 extension:setup
+vendor/bin/typo3 cache:flush
+```
 
-### Overview
+Classic mode (non-Composer) installations can install the extension from the
+[TER](https://extensions.typo3.org/extension/a11y_quality_gate) and use every feature except PDF export: the TER
+package does not include the `mpdf/mpdf` library, so the backend offers CSV and explains that PDF needs Composer.
 
-![Overview module](Documentation/Images/overview.png)
+Then, in the TYPO3 backend:
 
-### Page detail
+1. Open **Accessibility** (below **Web** in TYPO3 13, below **Content** in TYPO3 14).
+2. Select a page of a TYPO3 site and choose **Scan site** to run the first content scan.
+3. Review the discovered fields under **Settings › Scan fields** and the rules under **Settings › Rules**.
+4. Optional: enter a licence key under **Settings › Licence**, set up AI under **Settings › AI suggestions** and the
+   publishing rules under **Settings › Quality Gate**.
+5. Give editor groups access to the Accessibility module and the TYPO3 rights they need — see
+   [Permissions](Documentation/Configuration/Permissions.rst).
 
-![Page detail](Documentation/Images/page-detail.png)
+Upgrading from 2.x: run `extension:setup` for the new tables, then confirm the data processing acknowledgement and
+test the AI connection once per site before editors get AI again. See [Upgrade](Documentation/Upgrade/Index.rst).
 
-### CKEditor inline highlighting
+## Configuration at a glance
 
-![CKEditor highlighting](Documentation/Images/ckeditor-inline-highlighting.png)
+| Where | What |
+|---|---|
+| Accessibility › Settings | Licence, scan fields, rules, Quality Gate, remote scan access, AI, scan history, statement |
+| User TSconfig `options.a11y_quality_gate.*` | Scan buttons, toolbar item, editing findings, image fixes, AI per group (`ai.editor`, `ai.images`, `ai.writing`, `ai.bulk`) |
+| Site settings `a11yQualityGate.dictionary.*` | Language and phrases for the link-text rules |
+| Extension configuration | Licence key, PRO upgrade offers in the Free Remote Preview |
 
----
+```typo3_typoscript
+options.a11y_quality_gate {
+    showScanNow = 1
+    showScanAll = 1
+    ai.editor = 1
+    ai.writing = 0
+}
+```
 
-## Links
+The options only narrow what TYPO3 allows; none of them grants a TYPO3 right.
+
+## Command line
+
+```bash
+vendor/bin/typo3 a11y:scan --root-pid=1                 # content scan of a page tree
+vendor/bin/typo3 a11y:scan --page-uid=42                # one page, including the rendered check
+vendor/bin/typo3 a11y:scan --root-pid=1 --changed-only  # only changed content
+vendor/bin/typo3 a11y:monitor --site=main --notify=web@example.org   # PRO / Agency
+vendor/bin/typo3 a11y:history:prune                     # dry run; add --apply to delete
+```
+
+The Scheduler offers the content scan and *Accessibility monitoring (AQG PRO/Agency)* as tasks.
+
+## Scope
+
+AQG helps teams find and fix common accessibility problems early. It does not guarantee or certify conformance with
+WCAG, the European Accessibility Act, BFSG, BITV or any other law or standard, and it does not replace keyboard
+testing, assistive technology testing or an expert audit. Automated checks cover part of WCAG; findings need review in
+context. AI suggestions can be wrong and are always reviewed by a person. AQG only knows the pages it has scanned.
+
+## Documentation and help
 
 | | |
 |---|---|
+| **Documentation** | https://typo3.priebera.sk/docs (source in [`Documentation/`](Documentation/Index.rst)) |
+| **Rule reference** | https://typo3.priebera.sk/docs/rules-reference |
+| **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
 | **Product** | https://typo3.priebera.sk/products/accessibility-quality-gate |
-| **Documentation** | https://typo3.priebera.sk/docs |
-| **Support** | https://typo3.priebera.sk/contact |
-| **Trial** | https://typo3.priebera.sk/trial |
-| **Pricing** | https://typo3.priebera.sk/pricing |
-| **Portal** | https://typo3.priebera.sk/portal |
+| **Support** | https://typo3.priebera.sk/contact · [SUPPORT.md](SUPPORT.md) · [SECURITY.md](SECURITY.md) |
+| **Trial / Pricing** | https://typo3.priebera.sk/trial · https://typo3.priebera.sk/pricing |
+| **Customer portal** | https://typo3.priebera.sk/portal |
 | **Repository** | https://github.com/priebera1/typo3-a11y-quality-gate |
 | **Packagist** | https://packagist.org/packages/priebera/typo3-a11y-quality-gate |
 | **TER** | https://extensions.typo3.org/extension/a11y_quality_gate/ |
 
----
-
 ## Compatibility
 
 | Version | TYPO3 | PHP | Support |
-|---------|-------|-----|---------|
-| 2.0+ | 13.4 LTS / 14.3+ | 8.2+ | Features and bugfixes |
+|---|---|---|---|
+| 3.0 | 13.4 LTS / 14.3+ | 8.2+ | Features and bugfixes |
+| 2.0 – 2.1 | 13.4 LTS / 14.3+ | 8.2+ | Superseded by 3.0 (same requirements; see the upgrade notes) |
 | 1.4 – 1.9 | 13.4 LTS / 14.3+ | 8.2+ | Superseded by 2.0 (same requirements; see the upgrade notes) |
 | 1.3.x | 13.4 LTS | 8.2+ | Security and bugfixes |
-
----
-
-## Built-in rules
-
-AQG includes rules across three categories. For the full reference with WCAG
-mappings and fix guidance see the documentation:
-**https://typo3.priebera.sk/docs/rules-reference**
-
-### RTE rules — CKEditor and RTE HTML content
-
-| Rule ID | Severity | WCAG |
-|---------|----------|------|
-| `rte.img_alt_missing` | Critical | 1.1.1 |
-| `rte.img_alt_is_filename` | Warning | 1.1.1 |
-| `rte.img_alt_too_long` | Warning | 1.1.1 |
-| `rte.img_alt_redundant_phrase` | Warning | 1.1.1 |
-| `rte.empty_heading` | Critical | 1.3.1 |
-| `rte.empty_link` | Critical | 2.4.4 |
-| `rte.button_label_missing` | Critical | 4.1.2 |
-| `rte.form_control_missing_label` | Critical | 4.1.2 / 3.3.2 |
-| `rte.table_missing_header` | Warning | 1.3.1 |
-| `rte.table_th_missing_scope` | Warning | 1.3.1 |
-| `rte.table_missing_caption` | Info | 1.3.1 |
-| `rte.duplicate_id` | Warning | 1.3.1 |
-| `rte.svg_missing_title` | Warning | 1.1.1 |
-| `rte.iframe_missing_title` | Critical | 4.1.2 |
-| `rte.image_in_link_missing_alt` | Critical | 1.1.1 / 2.4.4 |
-| `rte.marquee_or_blink` | Critical | 2.2.2 |
-| `rte.non_descriptive_link` | Warning | 2.4.4 |
-| `rte.heading_hierarchy_jump` | Warning | 1.3.1 |
-| `rte.link_new_window_no_warning` | Warning | 3.2.2 |
-| `rte.link_text_is_url_or_filename` | Warning | 2.4.4 |
-| `rte.link_to_document` | Needs review | 2.4.4 |
-| `rte.link_to_document_missing_notice` | Info | 2.4.4 |
-| `rte.link_text_duplicate_different_targets` | Warning | 2.4.4 |
-
-### Structured rules — TCA field values
-
-| Rule ID | Severity | WCAG |
-|---------|----------|------|
-| `structured.file_reference_alt` | Critical | 1.1.1 |
-| `structured.file_reference_alt_quality` | Warning | 1.1.1 |
-| `structured.header_ctype_empty` | Warning | 1.3.1 |
-| `structured.header_link_no_text` | Critical | 2.4.4 / 4.1.2 |
-| `structured.header_level_is_h1` | Needs review | 1.3.1 |
-| `structured.uploads_file_missing_description` | Warning | 2.4.4 |
-| `structured.table_missing_caption` | Info | 1.3.1 |
-| `structured.form_placeholder_as_label` | Warning | 1.3.1 / 3.3.2 |
-| `structured.form_field_label_missing` | Critical | 1.3.1 / 3.3.2 |
-| `structured.form_autocomplete_missing` | Warning | 1.3.5 |
-| `structured.media_no_transcript_hint` | Needs review | 1.2.1 |
-
-Some structured rules may adjust severity depending on the detected case, for example missing alternative text versus title-only fallback.
-
-### Rendered HTML rules — FREE, server-rendered HTML only
-
-Rendered checks run for **Scan this page** and **Scan site** in the backend, and
-for CLI or Scheduler runs that target a single page (`--page-uid` / page UID).
-Subtree CLI and Scheduler runs apply the local rules only. They are always
-skipped in changed-only mode, when the rendered check is disabled in the
-ruleset, and for page doktypes that do not deliver a frontend page.
-
-They inspect the final server-rendered HTML returned by TYPO3 and do not
-execute JavaScript, AJAX or lazy-loaded content.
-
-| Rule ID | Severity | WCAG |
-|---------|----------|------|
-| `rendered.img_missing_alt` | Critical | 1.1.1 |
-| `rendered.empty_link` | Critical | 2.4.4 |
-| `rendered.empty_button` | Critical | 4.1.2 |
-| `rendered.empty_heading` | Critical | 1.3.1 |
-| `rendered.iframe_missing_title` | Critical | 4.1.2 |
-| `rendered.form_control_missing_label` | Critical | 4.1.2 / 3.3.2 |
-| `rendered.duplicate_id` | Warning | 1.3.1 |
-| `rendered.table_missing_header` | Warning | 1.3.1 |
-| `rendered.table_empty_header` | Warning | 1.3.1 |
-| `rendered.svg_missing_accessible_name` | Warning | 1.1.1 |
-| `rendered.html_lang_missing` | Warning | 3.1.1 |
-| `rendered.page_title_missing` | Warning | 2.4.2 |
-| `rendered.main_landmark_missing` | Needs review | 1.3.1 |
-| `rendered.landmark_unique` | Needs review | 1.3.1 |
-
----
-
-## Installation and setup
-
-```bash
-composer require priebera/typo3-a11y-quality-gate
-```
-
-Then run TYPO3 extension setup and flush caches:
-
-```bash
-./vendor/bin/typo3 extension:setup
-./vendor/bin/typo3 cache:flush
-```
-
-Next:
-
-1. Open the Accessibility Quality Gate module in the TYPO3 backend
-2. Review the automatically discovered fields in **Settings → Scan fields** (use **Refresh fields** after adding TCA fields)
-3. Configure a Scheduler task or run scans manually via backend module or CLI
-
-For full setup and usage instructions see the documentation:
-**https://typo3.priebera.sk/docs**
-
----
-
-## Configuration
-
-### Field settings
-
-In the Settings module you can:
-
-- refresh supported fields from TCA
-- enable or disable individual fields and rules
-- control which fields are included in future scans
-
-Changes are applied only after clicking **Save settings**.
-
-### Quality Gate
-
-A default ruleset is created automatically on first use.
-
-| Field | Description |
-|---|---|
-| `threshold_critical` | Maximum allowed open critical issues |
-| `threshold_warning` | Maximum allowed open warnings (`-1` disables the warning threshold) |
-| `publish_mode` | `0` = disabled, `1` = warn, `2` = block (PRO) |
-
-For site-specific rulesets set `site_identifier` to match the TYPO3 site
-configuration identifier.
-
----
-
-## CLI usage
-
-```bash
-# Scan a subtree
-./vendor/bin/typo3 a11y:scan --root-pid=1
-
-# Scan a single page
-./vendor/bin/typo3 a11y:scan --page-uid=42
-
-# Scan changed content only
-./vendor/bin/typo3 a11y:scan --root-pid=1 --changed-only
-
-# Scan a specific language
-./vendor/bin/typo3 a11y:scan --root-pid=1 --language=1
-
-# Review stored frontend scans older than the period in Settings › Scan history (dry run) …
-./vendor/bin/typo3 a11y:history:prune
-# … and delete them (never scheduled automatically)
-./vendor/bin/typo3 a11y:history:prune --apply
-```
-
-### Scheduled frontend monitoring (PRO / Agency)
-
-```bash
-./vendor/bin/typo3 a11y:monitor --site=main --notify=web@example.org --backend-url=https://cms.example.org
-```
-
-In the TYPO3 Scheduler, add the task *Accessibility monitoring (AQG PRO/Agency)* (daily or weekly): it offers the
-configured sites and the languages enabled for the selected site, plus the recipients and limits. Each run scans the site,
-compares the result with the previous compatible scan and mails the recipients only when new or worse issues appear,
-or when the scan was incomplete or failed. An unchanged result is not mailed again. A run that finds the previous
-monitoring scan still running waits for it instead of starting another one. Several `--site` options (or
-`--site=all`) need an Agency licence.
-
----
-
-## Backend User TSconfig
-
-```typo3_typoscript
-options.a11y_quality_gate {
-    showToolbarItem = 1
-    showScanAll = 1
-    showScanNow = 1
-}
-```
-
-| Option | Default | Description |
-|---|---|---|
-| `showToolbarItem` | `1` | Show the AQG item in the TYPO3 backend toolbar |
-| `showScanAll` | `1` | Allow site scans ("Scan site", content and frontend) |
-| `showScanNow` | `1` | Allow single-page scans ("Scan this page", the Free Remote Preview and Verify fix) |
-
-These options gate the actions server-side as well. In addition, every result follows TYPO3 page permissions:
-page findings need read access to the page, site-wide results (Overview, site scans, statements) need read access to
-the site root, and scanning or cancelling needs edit access to the page or site root.
-
----
-
-## Scope
-
-AQG helps teams identify common accessibility issues early in the TYPO3 editorial workflow. It is not a legal certification tool and cannot guarantee WCAG, EAA, BITV or any other accessibility compliance on its own.
-
-The Free rendered page check analyzes server-rendered HTML only. It does not execute JavaScript, wait for AJAX or lazy-loaded content, interact with cookie banners or take screenshots. Browser-based frontend scans with axe-core run in the AQG remote scanner, either as the limited daily Free Remote Preview or with a Trial, PRO or Agency licence; screenshots need a Trial, PRO or Agency licence.
-
-Accessibility Quality Gate does not replace a full accessibility audit, keyboard testing, assistive technology testing or a professional WCAG review. Some rules reflect best practices and may not always correspond to a hard WCAG 2.1 failure in every context. All findings should be reviewed in context.
-
----
 
 ## License
 

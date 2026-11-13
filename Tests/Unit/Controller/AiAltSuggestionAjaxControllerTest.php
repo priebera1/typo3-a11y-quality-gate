@@ -76,6 +76,19 @@ final class AiAltSuggestionAjaxControllerTest extends TestCase
     }
 
     #[Test]
+    public function aBudgetRefusalIsNotReportedAsAMissingLicence(): void
+    {
+        $service = $this->createMock(AiAltSuggestionServiceInterface::class);
+        $service->method('suggest')->willThrowException(new AiConfigurationException('Budget reached.', 1771002008));
+
+        $response = (new AiAltSuggestionAjaxController($service))->suggestAction($this->request());
+        $payload = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(422, $response->getStatusCode());
+        self::assertSame('budget_reached', $payload['code']);
+    }
+
+    #[Test]
     public function unsupportedRuleDirectRequestReturnsInvalidInput(): void
     {
         $service = $this->createMock(AiAltSuggestionServiceInterface::class);
@@ -88,6 +101,25 @@ final class AiAltSuggestionAjaxControllerTest extends TestCase
 
         self::assertSame(422, $response->getStatusCode());
         self::assertSame('invalid_input', $payload['code']);
+    }
+
+    #[Test]
+    public function anImageTheUserMayNotReadIsReportedAsMissingFileAccessNotAsAMissingFile(): void
+    {
+        // N-11: the editor had no file mount; the message said "Check that the file exists".
+        $service = $this->createMock(AiAltSuggestionServiceInterface::class);
+        $service->method('suggest')->willThrowException(new AiImagePayloadException(
+            'The image could not be prepared safely for AI processing.',
+            1771002203,
+            new \TYPO3\CMS\Core\Resource\Exception\InsufficientFileAccessPermissionsException('No read access', 1),
+        ));
+
+        $response = (new AiAltSuggestionAjaxController($service))->suggestAction($this->request());
+        $payload = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('image_no_access', $payload['code']);
+        self::assertStringNotContainsString('No read access', (string)$response->getBody());
     }
 
     #[Test]

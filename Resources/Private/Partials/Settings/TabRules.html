@@ -3,7 +3,7 @@
         data-namespace-typo3-fluid="true"
 >
 <div
-        class="tab-pane fade{f:if(condition: '{activeTab} == ''rules''', then: ' show active')}"
+        class="tab-pane fade show active"
         id="a11y-settings-pane-rules"
 >
     <form
@@ -31,7 +31,10 @@
         <input type="hidden" name="tab" value="rules" />
         <input type="hidden" name="rulesManagementFormSubmitted" value="1" />
 
-        <f:variable name="rulesSavedMeta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.savedMeta" default="All changes saved · %s" arguments="{0: settingsLastSavedLabel}" /></f:variable>
+        <f:if condition="{settingsLastSavedLabel}">
+            <f:then><f:variable name="rulesSavedMeta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.savedMeta" default="All changes saved · %s" arguments="{0: settingsLastSavedLabel}" /></f:variable></f:then>
+            <f:else><f:variable name="rulesSavedMeta"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.defaultsMeta" default="Default settings · not changed yet" /></f:variable></f:else>
+        </f:if>
         <div class="aqg-actionbar" data-a11y-rules-actionbar="true">
             <div class="aqg-actionbar__left">
                 <div class="aqg-actionbar__title">
@@ -46,6 +49,7 @@
                 </div>
             </div>
 
+            <f:if condition="{isAdmin}">
             <div class="aqg-actionbar__right">
                 <button
                         type="button"
@@ -59,9 +63,21 @@
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
                 </button>
             </div>
+            </f:if>
         </div>
 
-        <div class="aqg-notice aqg-notice--info aqg-rules-management-notice">
+        <f:if condition="{isAdmin}">
+            <f:else>
+                <div class="aqg-notice aqg-tone-info" role="status" data-a11y-settings-read-only="true">
+                    <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                    <span class="aqg-notice__body">
+                        <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.readOnly" default="Only TYPO3 administrators can change rules and rendered-check settings. They apply to every site, so this configuration is read-only." /></span>
+                    </span>
+                </div>
+            </f:else>
+        </f:if>
+
+        <div class="aqg-notice aqg-tone-info aqg-rules-management-notice">
             <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
             <span class="aqg-notice__body">
                 <span class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.notice.title" default="Rules management" /></span>
@@ -97,10 +113,11 @@
 
                     <div class="aqg-rules-toolbar__bulk">
                         <span class="aqg-rules-toolbar__counts"><span data-a11y-rules-visible-count="true">{rulesManagement.counts.all}</span>/{rulesManagement.counts.all} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.on" default="on" /></span>
-                        <button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-open="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.resetDefaults" default="Reset to defaults" /></button>
+                        <f:if condition="{isAdmin}"><button type="button" class="btn btn-default btn-sm" data-a11y-rules-reset-open="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.resetDefaults" default="Reset to defaults" /></button></f:if>
                     </div>
                 </div>
 
+                <f:if condition="{isAdmin}">
                 <div class="aqg-rules-reset" data-a11y-rules-reset-panel="true" hidden="hidden">
                     <span class="aqg-rules-reset__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'warning'}" /></span>
                     <span class="aqg-rules-reset__body">
@@ -112,6 +129,7 @@
                         <button type="button" class="btn btn-primary btn-sm" data-a11y-rules-reset-confirm="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.reset.confirm" default="Yes, reset rules" /></button>
                     </span>
                 </div>
+                </f:if>
 
                 <div class="aqg-rules-empty" data-a11y-rules-empty="true" hidden="hidden">
                     <h4 class="aqg-rules-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.empty.title" default="No rules match your search" /></h4>
@@ -120,20 +138,21 @@
 
                 <div class="aqg-rules-groups" data-a11y-rules-groups="true">
                     <f:for each="{rulesManagement.groups}" as="group">
-                        <details class="aqg-rgroup" data-a11y-rule-group="true" data-group-key="{group.key}">
-                            <summary class="aqg-rgroup__head">
+                        <f:comment><!-- Not a details/summary: the header row holds the group's bulk button, and a summary must not contain controls (axe nested-interactive). The title is the disclosure button (settings-groups.js). --></f:comment>
+                        <div class="aqg-rgroup" data-a11y-rule-group="true" data-group-key="{group.key}" data-aqg-group-disclosure="true">
+                            <div class="aqg-rgroup__head">
                                 <span class="aqg-rgroup__chev" aria-hidden="true"><f:render partial="Shared/AqgIcon" arguments="{name: 'chevr', size: 'sm'}" /></span>
                                 <span class="aqg-rgroup__title-block">
-                                    <span class="aqg-rgroup__title">{group.title}</span>
+                                    <button type="button" class="aqg-rgroup__title aqg-group-toggle" id="aqg-rgroup-{group.key}-toggle" aria-expanded="false" aria-controls="aqg-rgroup-{group.key}-body" data-aqg-group-toggle="true">{group.title}</button>
                                     <span class="aqg-rgroup__sub">{group.subtitle}</span>
                                 </span>
                                 <span class="aqg-rgroup__count" data-a11y-rule-group-count="true">
                                     <strong>{group.enabledCount}</strong> / {group.totalCount} <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.on" default="on" />
                                 </span>
-                                <button type="button" class="aqg-rgroup__bulk" data-a11y-rule-group-toggle="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.group.enableAll" default="Enable all in group" /></button>
-                            </summary>
+                                <f:if condition="{isAdmin}"><button type="button" class="aqg-rgroup__bulk" data-a11y-rule-group-toggle="true" aria-describedby="aqg-rgroup-{group.key}-toggle"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.group.enableAll" default="Enable all in group" /></button></f:if>
+                            </div>
 
-                            <div class="aqg-rgroup__body">
+                            <div class="aqg-rgroup__body" id="aqg-rgroup-{group.key}-body" role="group" aria-labelledby="aqg-rgroup-{group.key}-toggle" hidden="hidden">
                                 <f:for each="{group.rules}" as="rule">
                                     <label
                                             class="aqg-rule-row{f:if(condition: rule.enabled, else: ' is-disabled')}"
@@ -152,6 +171,7 @@
                                                                 name="enabledRules[]"
                                                                 value="{rule.id}"
                                                                 data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                                                                 data-a11y-rule-toggle="true"
                                                                 checked="checked"
                                                         />
@@ -163,6 +183,7 @@
                                                                 name="enabledRules[]"
                                                                 value="{rule.id}"
                                                                 data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                                                                 data-a11y-rule-toggle="true"
                                                         />
                                                     </f:else>
@@ -194,7 +215,7 @@
                                     </label>
                                 </f:for>
                             </div>
-                        </details>
+                        </div>
                     </f:for>
                 </div>
             </div>
@@ -219,6 +240,7 @@
                                 value="1"
                                 {f:if(condition: renderedCheckSettings.enabled, then: 'checked="checked"')}
                                 data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                         />
                         <span>
                             <span class="aqg-check-option__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.enable" default="Enable rendered page checks" /></span>
@@ -234,6 +256,7 @@
                                 value="1"
                                 {f:if(condition: renderedCheckSettings.allowPrivateHosts, then: 'checked="checked"')}
                                 data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                         />
                         <span>
                             <span class="aqg-check-option__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.rendered.privateHosts" default="Allow private/local frontend hosts for rendered checks" /></span>
@@ -273,7 +296,7 @@
                 <div class="aqg-settings-grid aqg-settings-grid--rules">
                     <div class="aqg-field">
                         <label class="aqg-field__label" for="aqg-dictionary-mode"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.mode" default="Dictionary mode" /></label>
-                        <select id="aqg-dictionary-mode" name="dictionarySettings[mode]" class="aqg-select" data-a11y-rules-input="true">
+                        <select id="aqg-dictionary-mode" name="dictionarySettings[mode]" class="aqg-select" data-a11y-rules-input="true" {f:if(condition: isAdmin, else: 'disabled="disabled"')}>
                             <option value="auto" {f:if(condition: dictionarySettings.isAuto, then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeAuto" default="Auto — uses TYPO3 page language" /></option>
                             <option value="force" {f:if(condition: dictionarySettings.isForce, then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeForce" default="Force a single language" /></option>
                             <option value="disable" {f:if(condition: dictionarySettings.isDisable, then: 'selected="selected"')}><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.modeDisable" default="Disable phrase-based checks" /></option>
@@ -292,6 +315,7 @@
                                 placeholder="en"
                                 maxlength="8"
                                 data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                         />
                         <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.forceLanguageHelp" default="Used only when the dictionary mode forces a single language. Examples:" /> <code>en</code>, <code>de</code>, <code>nl</code>, <code>cs</code>.</div>
                     </div>
@@ -319,6 +343,7 @@
                                     class="aqg-textarea aqg-textarea--mono"
                                     rows="4"
                                     data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                                     placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.onePerLine', default: 'one phrase per line')}"
                             >{dictionarySettings.nonDescriptiveAdditional}</textarea>
                             <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.nonDescAdditionalHelp" default="Adds project-specific phrases to" /> <code>rte.non_descriptive_link</code>.</div>
@@ -332,6 +357,7 @@
                                     class="aqg-textarea aqg-textarea--mono"
                                     rows="4"
                                     data-a11y-rules-input="true"
+                                {f:if(condition: isAdmin, else: 'disabled="disabled"')}
                                     placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.onePerLine', default: 'one phrase per line')}"
                             >{dictionarySettings.nonDescriptiveDisabled}</textarea>
                             <div class="aqg-field__help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.rules.dictionary.nonDescDisabledHelp" default="Removes selected built-in phrases for this project to reduce false positives." /></div>

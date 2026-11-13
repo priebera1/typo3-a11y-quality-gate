@@ -80,6 +80,7 @@ final class ScanAjaxControllerTest extends TestCase
             $this->backendRecordAccessService,
             new LanguageUidResolver(),
             $this->createAllowingScopeAccessService(),
+            remoteResultAuthorizationService: (function () { $policy = $this->createMock(\Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService::class); $policy->method('isUnrestrictedUser')->willReturn(true); return $policy; })(),
         );
 
         $this->request = $this->createMock(ServerRequestInterface::class);
@@ -118,7 +119,7 @@ final class ScanAjaxControllerTest extends TestCase
             ->with($backendUser)
             ->willReturn(false);
 
-        $this->scanStatusService->expects($this->never())->method('isRunning');
+        $this->scanStatusService->expects($this->never())->method('acquireScanLock');
         $this->orchestrator->expects($this->never())->method('scanPage');
 
         $response = $this->controller->scanPageAction($this->request);
@@ -141,8 +142,8 @@ final class ScanAjaxControllerTest extends TestCase
 
         $this->scanStatusService
             ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(true);
+            ->method('acquireScanLock')
+            ->willReturn(null);
 
         $this->scanStatusService
             ->expects($this->once())
@@ -169,10 +170,8 @@ final class ScanAjaxControllerTest extends TestCase
             ->with($backendUser)
             ->willReturn(true);
 
-        $this->scanStatusService
-            ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(false);
+        // The request is validated and authorized before the scan state is read.
+        $this->scanStatusService->expects($this->never())->method('acquireScanLock');
 
         $this->orchestrator->expects($this->never())->method('scanPage');
 
@@ -196,8 +195,8 @@ final class ScanAjaxControllerTest extends TestCase
 
         $this->scanStatusService
             ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(false);
+            ->method('acquireScanLock')
+            ->willReturn('lock-token');
 
         $this->siteResolutionService
             ->expects($this->once())
@@ -258,8 +257,8 @@ final class ScanAjaxControllerTest extends TestCase
 
         $this->scanStatusService
             ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(false);
+            ->method('acquireScanLock')
+            ->willReturn('lock-token');
 
         $this->siteResolutionService
             ->expects($this->once())
@@ -334,7 +333,7 @@ final class ScanAjaxControllerTest extends TestCase
             ->with($backendUser)
             ->willReturn(false);
 
-        $this->scanStatusService->expects($this->never())->method('isRunning');
+        $this->scanStatusService->expects($this->never())->method('acquireScanLock');
         $this->orchestrator->expects($this->never())->method('scanSubtree');
 
         $response = $this->controller->scanSiteAction($this->request);
@@ -357,8 +356,8 @@ final class ScanAjaxControllerTest extends TestCase
 
         $this->scanStatusService
             ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(true);
+            ->method('acquireScanLock')
+            ->willReturn(null);
 
         $this->scanStatusService
             ->expects($this->once())
@@ -385,10 +384,8 @@ final class ScanAjaxControllerTest extends TestCase
             ->with($backendUser)
             ->willReturn(true);
 
-        $this->scanStatusService
-            ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(false);
+        // Validation and authorization come before the scan lock (NEW-06): a refused request never claims it.
+        $this->scanStatusService->expects($this->never())->method('acquireScanLock');
 
         $this->orchestrator->expects($this->never())->method('scanSubtree');
 
@@ -421,8 +418,8 @@ final class ScanAjaxControllerTest extends TestCase
 
         $this->scanStatusService
             ->expects($this->once())
-            ->method('isRunning')
-            ->willReturn(false);
+            ->method('acquireScanLock')
+            ->willReturn('lock-token');
 
         $this->siteResolutionService
             ->expects($this->once())
@@ -516,7 +513,9 @@ final class ScanAjaxControllerTest extends TestCase
     public function scanStatusActionReturnsJsonWhenGuzzleUtilsHasNoJsonHelpers(): void
     {
         self::assertFalse(class_exists('GuzzleHttp\\Utils', false), 'Guzzle\'s own Utils class is already loaded.');
-        require_once __DIR__ . '/../../Fixtures/Guzzle8Utils.php';
+        // A stand-in for Guzzle 8's `GuzzleHttp\\Utils` without jsonEncode()/jsonDecode(), declared in memory: as a file under
+        // Tests/ it would be indexed by class-map scanners (TYPO3 14 functional instances) and shadow the real class.
+        eval('namespace GuzzleHttp; final class Utils {}');
 
         $this->mockLoggedInUser(1);
 
@@ -551,6 +550,7 @@ final class ScanAjaxControllerTest extends TestCase
             $this->backendRecordAccessService,
             new LanguageUidResolver(),
             $this->createAllowingScopeAccessService(),
+            remoteResultAuthorizationService: (function () { $policy = $this->createMock(\Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService::class); $policy->method('isUnrestrictedUser')->willReturn(true); return $policy; })(),
         );
 
         $response = $controller->scanStatusAction($request);
@@ -587,8 +587,16 @@ final class ScanAjaxControllerTest extends TestCase
     {
         $scopeAccessService = $this->getMockBuilder(ScopeAccessService::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['canReadPage', 'canEditPage', 'canReadSiteIdentifier'])
+            ->onlyMethods(['canReadPage', 'canEditPage', 'canReadSiteIdentifier', 'canReadRemoteScan', 'canUseLanguage', 'hasLanguageRestriction', 'isDefaultLanguagePageRecord', 'canScanContentPage', 'restrictLocalScanStatus', 'canCancelLocalScan'])
             ->getMock();
+        // AUTH-01/AUTH-02 predicates are covered by their own tests (ContentScanTranslationAuthorizationTest, ScopeTest).
+        $scopeAccessService->method('canScanContentPage')->willReturn(true);
+        $scopeAccessService->method('canCancelLocalScan')->willReturn(true);
+        $scopeAccessService->method('restrictLocalScanStatus')->willReturnArgument(0);
+        $scopeAccessService->method('isDefaultLanguagePageRecord')->willReturn(true);
+        $scopeAccessService->method('canReadRemoteScan')->willReturn(true);
+        $scopeAccessService->method('canUseLanguage')->willReturn(true);
+        $scopeAccessService->method('hasLanguageRestriction')->willReturn(false);
         $scopeAccessService->method('canReadPage')->willReturn(true);
         $scopeAccessService->method('canEditPage')->willReturn(true);
         $scopeAccessService->method('canReadSiteIdentifier')->willReturn(true);

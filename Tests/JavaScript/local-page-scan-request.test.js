@@ -165,12 +165,19 @@ describe('local page scan request', () => {
         };
         const button = createButton();
         const module = createModule();
+        // The status block on screen holds the reason (updateLocalScanProgress is mocked here; jsdom has no layout).
+        const box = document.createElement('div');
+        box.dataset.a11yLocalScanProgress = 'true';
+        box.textContent = 'Backend failed';
+        box.getClientRects = () => [{width: 1, height: 1}];
+        document.body.append(box);
         const post = vi.fn().mockReturnValue({
             resolve: vi.fn().mockRejectedValue(new Error('Backend failed')),
         });
         setAjaxPostHandler(post);
 
         await A11yFreeBackendModule.prototype.handleRescan.call(module, button);
+        box.remove();
 
         // The reason lives in the failed status block; the toast does not repeat it.
         expect(module.updateLocalScanProgress).toHaveBeenLastCalledWith(true, 'Backend failed', null, 'failed');
@@ -205,5 +212,10 @@ describe('local page scan request', () => {
         );
         expect(button.textContent).toBe('Scan this page');
         expect(module.reloadCurrentModule).not.toHaveBeenCalled();
+        // M-05: no status block on screen (Page module, another tab), so the toast carries the reason itself.
+        expect(module.showNotification).toHaveBeenCalledWith(
+            'Content scan failed: The content scan failed. Details are in the TYPO3 log.',
+            'error',
+        );
     });
 });

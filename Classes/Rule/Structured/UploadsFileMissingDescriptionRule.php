@@ -9,13 +9,16 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Priebera\A11yQualityGate\Rule\RuleInterface;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Workspace\PublishPreviewContext;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\WorkspaceRestriction;
 
 final class UploadsFileMissingDescriptionRule implements RuleInterface
 {
     public function __construct(
         private readonly ConnectionPool $connectionPool,
+        private readonly ?PublishPreviewContext $publishPreview = null,
     ) {
     }
 
@@ -66,7 +69,7 @@ final class UploadsFileMissingDescriptionRule implements RuleInterface
             $violations[] = new RuleViolation(
                 ruleId: $this->getRuleId(),
                 severity: $this->getDefaultSeverity(),
-                message: sprintf('Uploaded file "%s" has no description (file reference uid:%d).', $fileName, $uid),
+                message: sprintf('Uploaded file "%s" has no description.', $fileName),
                 hint: $this->getHint(),
                 contextSnippet: sprintf('sys_file_reference uid:%d, file: %s', $uid, $fileName),
                 contextPath: sprintf(
@@ -88,35 +91,38 @@ final class UploadsFileMissingDescriptionRule implements RuleInterface
     private function fetchFileReferences(int $contentUid, string $fieldName): array
     {
         $qb = $this->connectionPool->getQueryBuilderForTable(Tables::SYS_FILE_REFERENCE);
-
-        $references = $qb
-            ->select('uid', 'uid_local', 'description')
-            ->from(Tables::SYS_FILE_REFERENCE)
-            ->where(
-                $qb->expr()->eq(
-                    'uid_foreign',
-                    $qb->createNamedParameter($contentUid, Connection::PARAM_INT)
-                ),
-                $qb->expr()->eq(
-                    'tablenames',
-                    $qb->createNamedParameter(Tables::TT_CONTENT)
-                ),
-                $qb->expr()->eq(
-                    'fieldname',
-                    $qb->createNamedParameter($fieldName)
-                ),
-                $qb->expr()->eq(
-                    'hidden',
-                    $qb->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $qb->expr()->eq(
-                    'deleted',
-                    $qb->createNamedParameter(0, Connection::PARAM_INT)
-                )
-            )
-            ->orderBy('uid', 'ASC')
-            ->executeQuery()
-            ->fetchAllAssociative();
+        $constraints = [
+            $qb->expr()->eq('uid_foreign', $qb->createNamedParameter($contentUid, Connection::PARAM_INT)),
+            $qb->expr()->eq('tablenames', $qb->createNamedParameter(Tables::TT_CONTENT)),
+            $qb->expr()->eq('fieldname', $qb->createNamedParameter($fieldName)),
+            $qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+        ];
+        $publishSet = $this->publishPreview?->active();
+        if ($publishSet !== null && $this->publishPreview->restrictForPreview($qb)) {
+            // Before a workspace publish: the references as that publish leaves them (PublishPreviewContext).
+            $now = time();
+            $references = $publishSet->overlay(
+                Tables::SYS_FILE_REFERENCE,
+                $qb->select('uid', 'uid_local', 'description', 'uid_foreign', 'tablenames', 'fieldname', 'hidden', 'starttime', 'endtime', 't3ver_oid', 't3ver_wsid', 't3ver_state')
+                    ->from(Tables::SYS_FILE_REFERENCE)
+                    ->where(...$constraints)
+                    ->orderBy('uid', 'ASC')
+                    ->executeQuery()
+                    ->fetchAllAssociative(),
+                static fn (array $row): bool => (int)$row['uid_foreign'] === $contentUid && (string)$row['tablenames'] === Tables::TT_CONTENT
+                    && (string)$row['fieldname'] === $fieldName && PublishPreviewContext::isEnabled($row, $now),
+            );
+        } else {
+            $qb->getRestrictions()->add(new WorkspaceRestriction(0));
+            $references = $qb
+                ->select('uid', 'uid_local', 'description')
+                ->from(Tables::SYS_FILE_REFERENCE)
+                ->where(...$constraints)
+                ->andWhere($qb->expr()->eq('hidden', $qb->createNamedParameter(0, Connection::PARAM_INT)))
+                ->orderBy('uid', 'ASC')
+                ->executeQuery()
+                ->fetchAllAssociative();
+        }
 
         if ($references === []) {
             return [];

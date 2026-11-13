@@ -100,6 +100,41 @@ final class RemoteScanHistoryService
     }
 
     /**
+     * Atlas D9: the page history of one URL in two kinds — preview scans (the page was not public) and public scans —
+     * each offering a comparison only with the previous scan of its own kind. The AQG service's history does not know
+     * the difference; it comes from the stored scans (`$previewJobIds`, job ID => true). Order (newest first) is kept.
+     *
+     * @param list<array<string, mixed>> $items page history items of one URL, newest first
+     * @param array<string, true> $previewJobIds
+     * @return list<array<string, mixed>> the items with `isPagePreview` and their compare link re-paired by kind
+     */
+    public function separatePagePreviewHistory(array $items, array $previewJobIds): array
+    {
+        $items = array_values($items);
+        foreach ($items as $index => $item) {
+            $items[$index]['isPagePreview'] = isset($previewJobIds[trim((string)($item['jobId'] ?? ''))]);
+        }
+
+        $count = count($items);
+        for ($i = 0; $i < $count; $i++) {
+            $items[$i]['compareFromJobId'] = '';
+            $items[$i]['hasComparablePrevious'] = false;
+            $items[$i]['compareLabel'] = BackendLabelUtility::translate('remote.history.noComparable', 'No comparable previous scan found.');
+            for ($j = $i + 1; $j < $count; $j++) {
+                if ($items[$j]['isPagePreview'] !== $items[$i]['isPagePreview']) {
+                    continue;
+                }
+                $items[$i]['compareFromJobId'] = (string)($items[$j]['jobId'] ?? '');
+                $items[$i]['hasComparablePrevious'] = $items[$i]['compareFromJobId'] !== '';
+                $items[$i]['compareLabel'] = BackendLabelUtility::translate('remote.history.compareWithPrevious', 'Compare with previous compatible scan');
+                break;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function loadCompare(string $siteBase, string $fromJobId, string $toJobId): array
@@ -1368,7 +1403,7 @@ final class RemoteScanHistoryService
             return '';
         }
 
-        $parts = parse_url($url);
+        $parts = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($url);
         if (!is_array($parts)) {
             return strtolower(rtrim($url, '/'));
         }

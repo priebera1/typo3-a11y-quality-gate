@@ -788,10 +788,19 @@ final class RemoteReportingSummaryService
             $whyItMatters = $this->normalizeNullableString($item['whyItMatters'] ?? $item['why_it_matters'] ?? $guidance['whyItMatters'] ?? $guidance['why_it_matters'] ?? null);
             $howToFix = $this->normalizeNullableString($item['howToFix'] ?? $item['how_to_fix'] ?? $guidance['howToFix'] ?? $guidance['how_to_fix'] ?? null);
             $whoShouldFix = $this->normalizeMachineValue($item['whoShouldFix'] ?? $item['who_should_fix'] ?? $guidance['whoShouldFix'] ?? $guidance['who_should_fix'] ?? null);
+            $fixType = $this->normalizeMachineValue($item['fixType'] ?? $item['fix_type'] ?? $guidance['fixType'] ?? $guidance['fix_type'] ?? null);
+            if ($language !== 'en') {
+                [$shortFix, $howToFix, $whyItMatters] = $this->localizeApiGuidance(
+                    $metadataPresentation,
+                    $shortFix,
+                    $howToFix,
+                    $whyItMatters,
+                    in_array($whoShouldFix, ['', 'unknown'], true) && in_array($fixType, ['', 'unknown'], true)
+                );
+            }
             if ($whoShouldFix === '') {
                 $whoShouldFix = (string)($metadataPresentation['owner'] ?? '');
             }
-            $fixType = $this->normalizeMachineValue($item['fixType'] ?? $item['fix_type'] ?? $guidance['fixType'] ?? $guidance['fix_type'] ?? null);
             if ($fixType === '') {
                 $fixType = (string)($metadataPresentation['fixType'] ?? '');
             }
@@ -1091,6 +1100,36 @@ final class RemoteReportingSummaryService
     }
 
     /**
+     * The crawler's guidance texts are English. For another backend language the rule's translation replaces them;
+     * the crawler's generic guidance for rules it does not know (no owner, no fix type) is dropped so the translated
+     * fallback applies. Rules without a translation keep the crawler's text.
+     *
+     * @param array<string, mixed> $metadataPresentation
+     * @return array{0: ?string, 1: ?string, 2: ?string}
+     */
+    private function localizeApiGuidance(array $metadataPresentation, ?string $shortFix, ?string $howToFix, ?string $whyItMatters, bool $isGenericGuidance): array
+    {
+        $localizedFix = $this->normalizeNullableString($metadataPresentation['localizedHowToFix'] ?? null);
+        $localizedWhy = $this->normalizeNullableString($metadataPresentation['localizedWhyItMatters'] ?? null);
+
+        if ($localizedFix !== null) {
+            $shortFix = $localizedFix;
+            $howToFix = null;
+        } elseif ($isGenericGuidance) {
+            $shortFix = null;
+            $howToFix = null;
+        }
+
+        if ($localizedWhy !== null) {
+            $whyItMatters = $localizedWhy;
+        } elseif ($isGenericGuidance) {
+            $whyItMatters = null;
+        }
+
+        return [$shortFix, $howToFix, $whyItMatters];
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $rows
      * @return array<int, array<string, mixed>>
      */
@@ -1244,6 +1283,11 @@ final class RemoteReportingSummaryService
                 $rule['fixTypeLabel'] = (string)($metadataPresentation['fixTypeLabel'] ?? '');
             }
             $rule['reason'] = $this->buildPriorityReason($rule);
+            if ($language !== 'en') {
+                // Stored crawler guidance is English; a translation of the rule wins for other languages.
+                $rule['guidanceWhyItMatters'] = $this->normalizeNullableString($metadataPresentation['localizedWhyItMatters'] ?? null) ?? $rule['guidanceWhyItMatters'];
+                $rule['guidanceHowToFix'] = $this->normalizeNullableString($metadataPresentation['localizedHowToFix'] ?? null) ?? $rule['guidanceHowToFix'];
+            }
             $rule['guidanceWhyItMatters'] = $rule['guidanceWhyItMatters'] ?? ($metadataPresentation['whyItMatters'] ?? null);
             $rule['guidanceHowToFix'] = $rule['guidanceHowToFix'] ?? ($metadataPresentation['howToFix'] ?? null);
             $rule['guidanceHasApiText'] = $rule['guidanceWhyItMatters'] !== null || $rule['guidanceHowToFix'] !== null;

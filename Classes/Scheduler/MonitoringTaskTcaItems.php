@@ -49,6 +49,33 @@ final class MonitoringTaskTcaItems
                     'value' => $choice['languageId'],
                 ]);
             }
+        } else {
+            // No site in the form yet (a new task): every site's languages, labelled with their sites, so the form needs
+            // no reload. Saving validates that the language belongs to the chosen site (MonitoringTaskValidator).
+            // N-15: one option per language id, its sites grouped by language name ("English (main, shop) · Deutsch (blog)")
+            // instead of a long run of "label · site / label · site". The save checks the pair against the chosen site.
+            $byLanguage = [];
+            foreach ($this->monitoringTargetResolver->siteChoices() as $siteChoice) {
+                $candidate = $this->monitoringTargetResolver->findSite((string)$siteChoice['identifier']);
+                if (!$candidate instanceof Site) {
+                    continue;
+                }
+                foreach ($this->monitoringTargetResolver->languageChoices($candidate) as $choice) {
+                    $name = trim((string)preg_replace('/\s+–\s+.*$/u', '', (string)$choice['label']));
+                    $byLanguage[(int)$choice['languageId']][$name][] = (string)$siteChoice['identifier'];
+                }
+            }
+            ksort($byLanguage);
+            foreach ($byLanguage as $languageId => $names) {
+                $parts = [];
+                foreach ($names as $name => $sites) {
+                    $parts[] = sprintf('%s (%s)', $name, implode(', ', $sites));
+                }
+                $items[] = SelectItem::fromTcaItemArray([
+                    'label' => sprintf('%d: %s', $languageId, implode(' · ', $parts)),
+                    'value' => $languageId,
+                ]);
+            }
         }
 
         $parameters['items'] = $items;

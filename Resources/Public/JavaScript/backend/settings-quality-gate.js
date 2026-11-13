@@ -264,7 +264,8 @@ class AqgQualityGateSettings {
 
     this.setScope('global');
 
-    const defaultMode = this.form.querySelector('input[name="qualityGate[global][publish_mode]"][value="0"]');
+    // The shipped default gate warns (RulesetRepository::DEFAULT_GATE); a reset never switches it off.
+    const defaultMode = this.form.querySelector('input[name="qualityGate[global][publish_mode]"][value="1"]');
     if (defaultMode instanceof HTMLInputElement) {
       defaultMode.checked = true;
       this.updateRadioCards(defaultMode.name);

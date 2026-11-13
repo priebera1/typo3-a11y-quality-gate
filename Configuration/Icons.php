@@ -17,4 +17,9 @@ return [
         'provider' => SvgIconProvider::class,
         'source' => $moduleIcon,
     ],
+    // The AQG wand of AI suggestions (TYPO3 13 has no core wand icon).
+    'a11y-quality-gate-ai-wand' => [
+        'provider' => SvgIconProvider::class,
+        'source' => 'EXT:a11y_quality_gate/Resources/Public/Icons/ai-wand.svg',
+    ],
 ];

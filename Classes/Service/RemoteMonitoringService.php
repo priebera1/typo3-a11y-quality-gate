@@ -11,7 +11,10 @@ use Priebera\A11yQualityGate\Pro\Service\ProCrawlerService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanAccessSettingsService;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanInputResolver;
 use Priebera\A11yQualityGate\Pro\Service\RemoteScanRecoveryService;
+use Priebera\A11yQualityGate\Pro\Service\RemoteScanErrorPresenter;
 use TYPO3\CMS\Core\Locking\LockFactory;
+use TYPO3\CMS\Core\Log\LogManager;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Locking\LockingStrategyInterface;
 use TYPO3\CMS\Core\Site\Entity\Site;
 
@@ -38,6 +41,8 @@ final class RemoteMonitoringService
     public const OUTCOME_REGRESSION = 'regression';
     public const OUTCOME_INCOMPLETE = 'incomplete';
     public const OUTCOME_FAILED = 'failed';
+    /** NEW-10: stored on a run whose due notification could not be sent (details in the TYPO3 log). */
+    public const DELIVERY_ERROR_NOT_SENT = 'mail_not_sent';
 
     private const POLL_SECONDS = 15;
     private const ACTIVE_STATES = ['waiting', 'queued', 'active', 'running'];
@@ -57,6 +62,8 @@ final class RemoteMonitoringService
         private readonly MonitoringRunRepository $monitoringRunRepository,
         private readonly MonitoringNotifier $monitoringNotifier,
         private readonly LockFactory $lockFactory,
+        // Nullable so a DI container cached before this change still builds the service.
+        private readonly ?RemoteScanErrorPresenter $errorPresenter = null,
     ) {
     }
 
@@ -109,12 +116,90 @@ final class RemoteMonitoringService
             }
         }
 
-        $run = $this->submit($site, $languageUid, $maxPages);
+        try {
+            $run = $this->submit($site, $languageUid, $maxPages);
+        } catch (\Throwable $exception) {
+            // N-13: the crawler could not be reached or refused the scan. Record a truthful failed run (never a baseline),
+            // tell the recipients and keep the Scheduler failure visible (MonitoringTask throws with failureMessage).
+            return $this->recordFailure($site, $languageUid, 0, $this->presentFailure($exception), $recipients, $backendBaseUrl, $exception);
+        }
         if (!is_array($run)) {
             return $this->result(self::OUTCOME_BUSY);
         }
 
         return $this->finishRun($site, $run, $maxWaitSeconds, $recipients, $backendBaseUrl, $sleep);
+    }
+
+    /**
+     * @return array{code:string,title:string,message:string}
+     */
+    private function presentFailure(\Throwable $exception): array
+    {
+        $presented = ($this->errorPresenter ?? new RemoteScanErrorPresenter())->present($exception, 'monitoring_submit_failed');
+
+        return ['code' => (string)$presented['code'], 'title' => (string)$presented['title'], 'message' => (string)$presented['message']];
+    }
+
+    /**
+     * A monitoring run that could not produce a scan (N-13): stored as evaluated/failed without coverage, so it is never
+     * a baseline and never reads as clean; the recipients are told once per failure state (the same rule as other
+     * states: an undelivered mail is retried by the next run). Exception text goes to the log only.
+     *
+     * @param array{code:string,title:string,message:string} $failure
+     * @param list<string> $recipients
+     * @return array{outcome:string,runUid:int,jobId:string,notified:bool,summary:array<string, int>,failureMessage:string}
+     */
+    private function recordFailure(Site $site, int $languageUid, int $runUid, array $failure, array $recipients, string $backendBaseUrl, ?\Throwable $exception = null): array
+    {
+        $siteIdentifier = $site->getIdentifier();
+        if ($exception !== null) {
+            try {
+                GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__)->error('AQG monitoring scan could not be started', [
+                    'site' => $siteIdentifier,
+                    'language' => $languageUid,
+                    'code' => $failure['code'],
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+            } catch (\Throwable) {
+                // Logging must never hide the failure from the recipients.
+            }
+        }
+        $fingerprint = 'failed:' . $failure['code'];
+        if ($runUid <= 0) {
+            $runUid = $this->monitoringRunRepository->insertFailed($siteIdentifier, $languageUid, $fingerprint);
+        }
+        $previous = $this->monitoringRunRepository->findPreviousEvaluated($siteIdentifier, $languageUid, $runUid);
+        $previousDelivery = is_array($previous) ? (int)($previous['notified_at'] ?? 0) : 0;
+        $unchanged = is_array($previous) && (string)($previous['state_fingerprint'] ?? '') === $fingerprint && $previousDelivery > 0;
+        $notify = !$unchanged && $recipients !== [];
+        $notified = $notify && $this->monitoringNotifier->send($recipients, [
+            'outcome' => self::OUTCOME_FAILED,
+            'site' => $site,
+            'scan' => ['finished_at' => time()],
+            'baseline' => null,
+            'comparison' => null,
+            'gaps' => [],
+            'backendBaseUrl' => $backendBaseUrl,
+            'languageUid' => $languageUid,
+            'failure' => $failure,
+        ]);
+        $this->monitoringRunRepository->update($runUid, [
+            'status' => 'evaluated',
+            'outcome' => self::OUTCOME_FAILED,
+            'state_fingerprint' => $fingerprint,
+            'coverage_complete' => 0,
+            'delivery_pending' => $notify && !$notified ? 1 : 0,
+            'notified_at' => $notified ? time() : ($unchanged ? $previousDelivery : 0),
+            'delivery_attempts' => $notify ? 1 : 0,
+            'delivery_error' => $notify && !$notified ? self::DELIVERY_ERROR_NOT_SENT : '',
+            'evaluated_at' => time(),
+        ]);
+        if ($notified) {
+            $this->monitoringRunRepository->supersedePendingDeliveries($siteIdentifier, $languageUid, $runUid, $fingerprint);
+        }
+
+        return $this->result(self::OUTCOME_FAILED, $runUid, '', $notified, [], $notify && !$notified) + ['failureMessage' => $failure['title'] . ': ' . $failure['message']];
     }
 
     /**
@@ -203,8 +288,12 @@ final class RemoteMonitoringService
         while (true) {
             $scan = $this->remoteScanRepository->findScanByJobId($jobId);
             if (!is_array($scan)) {
-                $this->monitoringRunRepository->update($runUid, ['status' => 'evaluated', 'outcome' => self::OUTCOME_FAILED, 'evaluated_at' => time()]);
-                return $this->result(self::OUTCOME_FAILED, $runUid, $jobId);
+                // The submitted scan is not stored any more: a failure the recipients must hear about (N-13), not silence.
+                return $this->recordFailure($site, (int)$run['language_uid'], $runUid, [
+                    'code' => 'monitoring_scan_missing',
+                    'title' => 'Monitoring scan not found',
+                    'message' => 'The submitted monitoring scan is no longer stored in TYPO3, so nothing could be compared. The next run starts a new scan.',
+                ], $recipients, $backendBaseUrl);
             }
 
             $scan = $this->remoteScanRecoveryService->recoverScanIfNeeded($scan, (string)$site->getBase()) ?? $scan;
@@ -309,11 +398,22 @@ final class RemoteMonitoringService
             'regressed_issue_types' => $summary['regressedIssueTypes'],
             'state_fingerprint' => $fingerprint,
             'coverage_complete' => $coverageComplete ? 1 : 0,
+            // D-04: a state that had to be notified but was not delivered (mail failure) never becomes a baseline:
+            // the next run compares against the older baseline, finds the same change and tries again.
+            'delivery_pending' => $notify && !$notified ? 1 : 0,
             'notified_at' => $notified ? time() : ($unchanged ? $previousDelivery : 0),
+            'delivery_attempts' => $notify ? 1 : 0,
+            'delivery_error' => $notify && !$notified ? self::DELIVERY_ERROR_NOT_SENT : '',
             'evaluated_at' => time(),
         ]);
+        // NEW-10: an earlier run whose mail about this very state failed is now delivered by this run: it is no longer
+        // pending (recorded as superseded, so the stale flag no longer keeps it out of the baseline chain for good).
+        // A different, never-delivered state stays pending: it is never silently absorbed into a baseline.
+        if ($notified) {
+            $this->monitoringRunRepository->supersedePendingDeliveries((string)$run['site_identifier'], (int)$run['language_uid'], $runUid, $fingerprint);
+        }
 
-        return $this->result($outcome, $runUid, $jobId, $notified, $summary);
+        return $this->result($outcome, $runUid, $jobId, $notified, $summary, $notify && !$notified);
     }
 
     /**
@@ -433,8 +533,9 @@ final class RemoteMonitoringService
      * @param array<string, int> $summary
      * @return array{outcome:string,runUid:int,jobId:string,notified:bool,summary:array<string, int>}
      */
-    private function result(string $outcome, int $runUid = 0, string $jobId = '', bool $notified = false, array $summary = []): array
+    private function result(string $outcome, int $runUid = 0, string $jobId = '', bool $notified = false, array $summary = [], bool $deliveryFailed = false): array
     {
-        return ['outcome' => $outcome, 'runUid' => $runUid, 'jobId' => $jobId, 'notified' => $notified, 'summary' => $summary];
+        // NEW-10: deliveryFailed = a notification was due and could not be sent; the run is recorded, the delivery pending.
+        return ['outcome' => $outcome, 'runUid' => $runUid, 'jobId' => $jobId, 'notified' => $notified, 'summary' => $summary, 'deliveryFailed' => $deliveryFailed];
     }
 }

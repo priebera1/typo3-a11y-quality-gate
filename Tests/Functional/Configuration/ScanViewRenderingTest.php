@@ -74,7 +74,7 @@ final class ScanViewRenderingTest extends AbstractFunctionalTestCase
         self::assertSame('No content scan yet', $this->text($xpath, '//h2[@id="aqg-local-status-title"]'));
         self::assertSame(1, $xpath->query('//*[@data-aqg-getting-started="free"]')->length);
         self::assertSame(0, $xpath->query('//ul[contains(@class, "aqg-status__counts")]')->length);
-        self::assertSame(['Scan this page', 'Scan site'], $this->texts($xpath, '//div[contains(@class, "aqg-status__actions")]/button'));
+        self::assertSame(['Scan this page', 'Scan site content'], $this->texts($xpath, '//div[contains(@class, "aqg-status__actions")]/button'));
         self::assertSame(1, $xpath->query('//div[contains(@class, "aqg-status__actions")]//*[contains(@class, "btn-primary")]')->length, 'Scanning is the one primary action.');
     }
 
@@ -100,15 +100,34 @@ final class ScanViewRenderingTest extends AbstractFunctionalTestCase
         ]);
 
         self::assertSame('Critical · 377 occurrences · 19 affected pages', $this->text($xpath, '//h2[@id="aqg-remote-status-title"]'));
-        self::assertSame('AQG signal 5 / 100', $this->text($xpath, '//*[contains(@class, "aqg-status__score")]'));
+        self::assertSame('AQG signal 5 / 100? What does this mean?', $this->text($xpath, '//details[contains(@class, "aqg-status__score-help")]/summary'));
+        // U-10: the score says what it is and what it is not, on request.
+        self::assertStringContainsString('not a WCAG, BFSG or BITV conformance rating', $this->text($xpath, '//p[contains(@class, "aqg-status__score-note")]'));
         self::assertSame(['Site scan', '19 pages loaded', 'English', '03.10.2026 12:50'], $this->texts($xpath, '//ul[@class="aqg-status__meta"]/li'));
         $failed = $xpath->query('//a[@href="#a11y-remote-failed-pages"]')->item(0);
         self::assertInstanceOf(\DOMElement::class, $failed);
         self::assertSame('2 failed pages', trim((string)preg_replace('/\s+/', ' ', $failed->textContent)));
         self::assertStringContainsString('no Scanner Token is configured', $this->text($xpath, '//li[contains(@class, "aqg-status__access")]'));
+        // U-01: the quota-using frontend crawl and the local content scan no longer share the label "Scan site".
+        self::assertContains('Scan published site', $this->texts($xpath, '//div[contains(@class, "aqg-status__actions")]//button'));
         self::assertSame(1, $xpath->query('//*[contains(@class, "aqg-status__caveat")]')->length);
         self::assertSame('Manual review checklist (2 tasks)', $this->text($xpath, '//a[@href="#aqg-evidence-manual-review"]'));
         self::assertSame(1, $xpath->query('//*[contains(@class, "btn-primary")]')->length);
+    }
+
+    #[Test]
+    public function theWcagMappedCountUsesTheSingularForOneFinding(): void
+    {
+        foreach ([1 => '1 WCAG-mapped finding', 3 => '3 WCAG-mapped findings'] as $total => $expected) {
+            $xpath = $this->render('Overview/RemoteStatusHead', [
+                'remoteSignalTone' => 'critical',
+                'remoteReportSummary' => ['priorityFixesTotal' => 2],
+                'remoteReportingGroups' => ['automatedIssuesTotal' => $total],
+                'totalRemoteFailedPages' => 0,
+            ]);
+
+            self::assertContains($expected, $this->texts($xpath, '//li[@class="aqg-status__count"]'));
+        }
     }
 
     #[Test]

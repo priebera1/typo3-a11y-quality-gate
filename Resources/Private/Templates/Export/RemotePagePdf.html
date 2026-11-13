@@ -19,8 +19,9 @@
             <bookmark content="Summary" level="0" />
             <p class="aqr-title">{title}</p>
             <p class="aqr-url">{pageUrl}</p>
-            <p class="aqr-meta">Page scan {scanCompletedAt} · HTTP {httpStatusLabel}<f:if condition="{hasScore}"> · Automated signal {score.value} / {score.max}</f:if></p>
+            <p class="aqr-meta">Page scan {scanCompletedAt}<f:if condition="{scanKindLabel}"> · <b>{scanKindLabel}</b></f:if> · HTTP {httpStatusLabel}<f:if condition="{hasScore}"> · Automated signal {score.value} / {score.max}</f:if></p>
             <p class="aqr-verdict"><b>{issuesSummaryLabel}</b></p>
+            <f:if condition="{restrictionNote}"><p class="aqr-meta" data-aqg-results-restricted="true">{restrictionNote}</p></f:if>
             <f:if condition="{hasFailure}"><p class="aqr-box"><b>Scan context.</b> {failureReason}</p></f:if>
 
             <f:if condition="{pageNotChecked}">
@@ -119,6 +120,9 @@
                     </f:if>
                 </f:then>
                 <f:else>
+                    <f:if condition="{restrictionNote}">
+                        <f:then><p class="aqr-box"><b>No results available to you for this page.</b></p></f:then>
+                        <f:else>
                     <f:if condition="{issueDetailsUnavailable}">
                         <f:then><p class="aqr-box"><b>Issue details unavailable.</b> The page summary reports {pageSummaryIssuesCount} automated findings, but no detailed issue rows are stored for this page. Scan the page again.</p></f:then>
                         <f:else>
@@ -126,6 +130,8 @@
                                 <f:then><p class="aqr-box"><b>Not checked.</b> The page did not load during the scan (HTTP {httpStatusLabel}), so no accessibility checks ran. This is not a clean result: fix the page or its URL, then scan it again.</p></f:then>
                                 <f:else><p class="aqr-box"><b>No automated findings.</b> The frontend checks returned no issue types for this page. Manual review may still be required.</p></f:else>
                             </f:if>
+                        </f:else>
+                    </f:if>
                         </f:else>
                     </f:if>
                 </f:else>

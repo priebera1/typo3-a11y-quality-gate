@@ -42,9 +42,19 @@ final class MonitoringTaskTcaItemsTest extends TestCase
         $items->addLanguageItems($shop);
         self::assertSame([0], array_map(self::value(...), $shop['items']));
 
+        // D-04: no reload (and no half-saved task) is needed to pick a language: a new task offers every site's
+        // languages, labelled with their sites; the save validates that the language belongs to the chosen site.
         $none = ['items' => [], 'row' => [MonitoringTask::PARAM_SITE => '']];
         $items->addLanguageItems($none);
-        self::assertSame([], $none['items'], 'No language until a site is chosen.');
+        self::assertSame([0, 2], array_map(self::value(...), $none['items']));
+        // N-15: one readable label per language id, sites grouped by language name.
+        self::assertStringStartsWith('0: ', $none['items'][0]->getLabel());
+        self::assertMatchesRegularExpression('/\((main, shop|main|shop)\)/', $none['items'][0]->getLabel());
+        self::assertStringContainsString('main', $none['items'][0]->getLabel());
+        self::assertStringContainsString('shop', $none['items'][0]->getLabel());
+        self::assertStringContainsString('(main)', $none['items'][1]->getLabel());
+        self::assertStringNotContainsString(' / ', $none['items'][0]->getLabel());
+        self::assertStringNotContainsString('default language', $none['items'][0]->getLabel());
     }
 
     private static function value(SelectItem|array $item): mixed

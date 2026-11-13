@@ -127,6 +127,8 @@ export class AqgLicenceDomains {
     constructor(root) {
         this.root = root;
         this.listUrl = root.dataset.listUrl || '';
+        // D-01: the domains belong to the site the Settings page shows, never to a server-side default.
+        this.siteIdentifier = root.dataset.siteIdentifier || '';
         this.updateUrl = root.dataset.updateUrl || '';
         this.status = root.querySelector('[data-aqg-domains-status]');
         this.content = root.querySelector('[data-aqg-domains-content]');
@@ -289,7 +291,11 @@ export class AqgLicenceDomains {
 
     async load() {
         this.setStatus(this.label('loading'), 'muted');
-        const data = await this.post(this.listUrl, new URLSearchParams());
+        const params = new URLSearchParams();
+        if (this.siteIdentifier !== '') {
+            params.set('siteIdentifier', this.siteIdentifier);
+        }
+        const data = await this.post(this.listUrl, params);
         if (!data) {
             return;
         }
@@ -349,6 +355,9 @@ export class AqgLicenceDomains {
             body.set('all', '1');
         }
         domains.forEach((domain) => body.append('domains[]', domain));
+        if (this.siteIdentifier !== '') {
+            body.set('siteIdentifier', this.siteIdentifier);
+        }
 
         const data = await this.post(this.updateUrl, body);
         if (!data) {

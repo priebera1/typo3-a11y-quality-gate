@@ -279,6 +279,30 @@ final class FieldConfigRepository extends AbstractRepository
     /**
      * @return array<int, array<string, mixed>>
      */
+    /**
+     * How many of the discovered fields have no visible configuration row yet: fields a TCA change added after the
+     * first discovery (or that came back). They are scanned only after "Refresh fields" (F-04).
+     *
+     * @param array<int, array{table_name:string, field_name:string}> $discoveredFields
+     */
+    public function countUnconfiguredDiscoveredFields(array $discoveredFields): int
+    {
+        $known = [];
+        foreach ($this->findAllIncludingHidden() as $row) {
+            if ((int)($row['hidden'] ?? 0) === 0) {
+                $known[$this->buildKey((string)$row['table_name'], (string)$row['field_name'])] = true;
+            }
+        }
+        $new = 0;
+        foreach ($discoveredFields as $field) {
+            if (!isset($known[$this->buildKey((string)$field['table_name'], (string)$field['field_name'])])) {
+                $new++;
+            }
+        }
+
+        return $new;
+    }
+
     private function findAllIncludingHidden(): array
     {
         $queryBuilder = $this->getQueryBuilder(Tables::FIELD_CONFIG);

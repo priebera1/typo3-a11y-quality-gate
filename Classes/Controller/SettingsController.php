@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService;
 use Priebera\A11yQualityGate\Ai\Service\AiSettingsUiStateBuilder;
+use Priebera\A11yQualityGate\Ai\Usage\AiUsageCsvExporter;
+use Priebera\A11yQualityGate\Ai\Usage\AiUsageSummaryService;
 use Priebera\A11yQualityGate\Configuration\PublicLinkProvider;
 use Priebera\A11yQualityGate\Domain\Repository\FieldConfigRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
 use Priebera\A11yQualityGate\Export\PdfGenerator;
 use Priebera\A11yQualityGate\Pro\Cache\ProCacheManager;
 use Priebera\A11yQualityGate\Pro\Dto\LicenceValidationResult;
+use Priebera\A11yQualityGate\Pro\ViewModel\ProStatusViewModel;
 use Priebera\A11yQualityGate\Pro\Service\ProLicenceDomainService;
 use Priebera\A11yQualityGate\Pro\Service\ProLicenceService;
 use Priebera\A11yQualityGate\Pro\Service\ProSiteFingerprintService;
@@ -61,6 +65,10 @@ use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Priebera\A11yQualityGate\Pro\Configuration\ProConstants;
+use Priebera\A11yQualityGate\Ai\Settings\AiSettingsCopy;
+use Priebera\A11yQualityGate\Ai\Provider\AiProviderCatalog;
+use Priebera\A11yQualityGate\Utility\BackendLocaleFormatter;
+use Priebera\A11yQualityGate\Mcp\McpSettingsViewBuilder;
 
 #[AsController]
 final class SettingsController extends AbstractBackendModuleController
@@ -75,20 +83,9 @@ final class SettingsController extends AbstractBackendModuleController
         'rules',
         'remote_access',
         'ai',
+        'mcp',
         'statement',
         'history',
-    ];
-
-    /**
-     * @var list<string>
-     */
-    private const ADMIN_ONLY_RULESET_FIELDS = [
-        'scanner_token',
-        'http_auth_user',
-        'http_auth_pass',
-        'excluded_patterns',
-        'cookie_accept_selectors',
-        'crawl_priority_urls',
     ];
 
     public function __construct(
@@ -131,6 +128,9 @@ final class SettingsController extends AbstractBackendModuleController
         private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
         private readonly ?LocalHistoryRetentionService $localHistoryRetentionService = null,
         private readonly ?FreePreviewActivationService $freePreviewActivationService = null,
+        private readonly ?McpSettingsViewBuilder $mcpSettingsViewBuilder = null,
+        private readonly ?RemoteResultAuthorizationService $remoteResultAuthorizationService = null,
+        private readonly ?AiUsageCsvExporter $aiUsageCsvExporter = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -157,11 +157,14 @@ final class SettingsController extends AbstractBackendModuleController
             $this->pageRenderer,
             $site
         );
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-tabs.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-quality-gate.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-remote-access.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-statement.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-licence-domains.js');
         $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-ai.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-groups.js');
+        $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/settings-mcp.js');
         $updateNotice = $this->updateNoticeService?->buildForCurrentUser();
         if ($updateNotice !== null) {
             $this->backendJavaScriptModuleService->loadVersionedModule($this->pageRenderer, '@priebera/a11y-quality-gate/backend/update-notice.js');
@@ -182,13 +185,16 @@ final class SettingsController extends AbstractBackendModuleController
         $selectedRulesetSite = trim((string)($request->getQueryParams()['rulesetSite'] ?? $currentSiteIdentifier));
         $activeTab = $this->resolveActiveTab((string)($request->getQueryParams()['tab'] ?? 'licence'));
         $isAdmin = $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser());
-        if (in_array($activeTab, ['remote_access', 'ai', 'history'], true) && !$isAdmin) {
+        if (in_array($activeTab, ['remote_access', 'ai', 'mcp', 'history'], true) && !$isAdmin) {
             $activeTab = 'licence';
         }
 
-        $proStatus = $this->resolveLicenceStatus(
-            $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier
+        // D-01: one site for the licence card, Validate, Revalidate and the domain list — never a default site.
+        $licenceSiteIdentifier = $this->resolveLicenceSiteIdentifier(
+            $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier,
+            $isAdmin,
         );
+        $proStatus = $this->resolveLicenceStatus($licenceSiteIdentifier);
         $remoteAccessAvailable = (bool)($proStatus->valid ?? false) && (bool)($proStatus->hasCrawler ?? false);
 
         $qualityGateRuleset = $this->rulesetRepository->findOrCreateDefault();
@@ -244,12 +250,11 @@ final class SettingsController extends AbstractBackendModuleController
             $this->getExtensionConfigurationString('licenceKey'),
             $isAdmin,
         );
-        $showProHints = $this->ruleConfigurationService->getShowProHintsFromRuleset(
-            $qualityGateRuleset,
-        ) ?? $this->getExtensionConfigurationBool('showProHints', true);
         $publicLinks = $this->publicLinkProvider->getBackendLinks();
         $settingsTabUrls = $this->buildSettingsTabUrls($request, $selectedRulesetSite);
+        // A missing site choice is not a licence verdict: it gets the site picker, never the "unexpected answer" guidance.
         $licenceGuidance = $licenceViewData['hasLicenceKey'] && !(bool)($proStatus->valid ?? false)
+            && (string)($proStatus->reason ?? '') !== 'site_required'
             ? LicenceGuidance::forReason((string)($proStatus->reason ?? ''))->toView(
                 [
                     LicenceGuidance::ACTION_RETRY => $settingsTabUrls['licence'] ?? '',
@@ -261,12 +266,25 @@ final class SettingsController extends AbstractBackendModuleController
             )
             : null;
         $aiSiteIdentifier = $selectedRulesetSite !== '' ? $selectedRulesetSite : $currentSiteIdentifier;
+        // Opened without a page or site, the tab shows the first configured site instead of an unusable empty state.
+        if ($aiSiteIdentifier === '' && $siteOptionsWithoutDefault !== []) {
+            $aiSiteIdentifier = (string)($siteOptionsWithoutDefault[0]['identifier'] ?? '');
+        }
+        // Usage report month ("YYYY-MM", validated by AiUsageSummaryService::resolveMonth()); admins only, like the tab.
+        $aiUsageMonth = $isAdmin ? trim((string)($request->getQueryParams()['aiUsageMonth'] ?? '')) : '';
         $aiConfigurationStatus = ($isAdmin && $aiSiteIdentifier !== '')
-            ? $this->aiSettingsUiStateBuilder->build($aiSiteIdentifier)
+            ? $this->aiSettingsUiStateBuilder->build($aiSiteIdentifier, null, $aiUsageMonth)
             : $this->aiSettingsUiStateBuilder->build('');
+        $aiCopy = $isAdmin ? $this->buildAiCopy((string)($aiConfigurationStatus['provider'] ?? '')) : [];
+        $aiSiteOptions = $isAdmin ? $this->buildAiSiteOptions($request, $siteOptionsWithoutDefault, $aiSiteIdentifier) : [];
+        $aiUsageMonthOptions = ($isAdmin && $aiSiteIdentifier !== '')
+            ? $this->buildAiUsageMonthOptions($request, $aiSiteIdentifier, (string)($aiConfigurationStatus['usage']['month'] ?? ''))
+            : [];
 
         $moduleTemplate->assignMultiple([
             'fieldGroups' => $fieldGroups,
+            // F-04: fields TCA added after the first discovery wait for "Refresh fields".
+            'fieldsAwaitingRefresh' => $isAdmin ? $this->fieldConfigurationBootstrapService->countFieldsAwaitingRefresh() : 0,
             'saveUrl' => $saveUrl,
             'saveExtConfUrl' => $saveExtConfUrl,
             'refreshUrl' => $refreshUrl,
@@ -307,6 +325,13 @@ final class SettingsController extends AbstractBackendModuleController
             'settingsLastSavedLabel' => $this->formatSettingsLastSavedLabel($qualityGateRuleset),
             'selectedRulesetSite' => $selectedRulesetSite,
             'currentSiteIdentifier' => $currentSiteIdentifier,
+            // D-01: the site the licence card shows; Validate/Revalidate and the domain list send it explicitly.
+            'licenceSiteIdentifier' => $licenceSiteIdentifier,
+            // Without a saved key the installation runs as Free whatever the site: no site choice to make.
+            'licenceSiteOptions' => $licenceViewData['hasLicenceKey']
+                ? $this->buildLicenceSiteOptions($request, $licenceSiteIdentifier, $isAdmin)
+                : [],
+            'licenceSiteRequired' => $licenceViewData['hasLicenceKey'] && (string)($proStatus->reason ?? '') === 'site_required',
             'currentPageUid' => $pageUid,
             'activeTab' => $activeTab,
             'isAdmin' => $isAdmin,
@@ -315,7 +340,6 @@ final class SettingsController extends AbstractBackendModuleController
             'licenceKeyEnding' => $licenceViewData['licenceKeyEnding'],
             'licenceKeyFingerprint' => $licenceViewData['licenceKeyFingerprint'],
             'licenceGuidance' => $licenceGuidance,
-            'showProHints' => $showProHints,
             'productUrl' => $publicLinks[PublicLinkProvider::PRODUCT],
             'documentationUrl' => $publicLinks[PublicLinkProvider::DOCUMENTATION],
             'pricingUrl' => $publicLinks[PublicLinkProvider::PRICING],
@@ -331,9 +355,32 @@ final class SettingsController extends AbstractBackendModuleController
             'aiSettingsSelectModelUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_select_model'),
             'aiSettingsTestUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_test'),
             'aiSettingsLinkTextToggleUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_link_text_toggle'),
+            'aiSettingsSelectProviderUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_select_provider'),
+            'aiSettingsPrivacyUrl' => $this->buildRouteUrl('ajax_a11y_ai_settings_privacy'),
+            'aiCopy' => $aiCopy,
+            // Dates the AI settings script re-renders (Last verified/tested) use the backend language (Atlas audit F-16).
+            'aiLocale' => BackendLocaleFormatter::forBackendUser()->jsLocale(),
+            'aiSiteOptions' => $aiSiteOptions,
+            'aiUsageMonthOptions' => $aiUsageMonthOptions,
+            'aiUsageExportUrl' => ($isAdmin && $aiSiteIdentifier !== '' && $this->aiUsageCsvExporter !== null)
+                ? $this->buildRouteUrl('web_a11y.settingsAiUsageExport', ['site' => $aiSiteIdentifier, 'month' => (string)($aiConfigurationStatus['usage']['month'] ?? '')])
+                : '',
+            'aiProviderCopyJson' => $isAdmin ? $this->buildAiProviderCopyJson() : '{}',
             'updateNotice' => $updateNotice,
             'historyRetention' => $this->buildHistoryRetentionView($activeTab, $isAdmin),
             'freePreviewActivation' => $this->buildFreePreviewActivationView($activeTab, $isAdmin, $site, (bool)($proStatus->valid ?? false)),
+            'mcp' => $activeTab === 'mcp' && $isAdmin && $this->mcpSettingsViewBuilder !== null
+                ? $this->mcpSettingsViewBuilder->build(
+                    McpSettingsController::isEligible($proStatus),
+                    (string)($proStatus->plan ?? ''),
+                    $returnParameters,
+                    (string)($request->getQueryParams()['mcpAudit'] ?? '') === 'refused' ? 'refused' : '',
+                    // Audit trail page: digits only, anything else is page 1 (the repository clamps to the last page).
+                    preg_match('/^[1-9][0-9]{0,5}$/', (string)($request->getQueryParams()['mcpAuditPage'] ?? '')) === 1
+                        ? (int)$request->getQueryParams()['mcpAuditPage']
+                        : 1,
+                )
+                : null,
         ]);
 
         return $moduleTemplate->renderResponse('Settings/Index');
@@ -357,6 +404,11 @@ final class SettingsController extends AbstractBackendModuleController
         $accessResponse = $this->denyIfSettingsHidden($request);
         if ($accessResponse !== null) {
             return $accessResponse;
+        }
+
+        // Scan fields apply to every site of the installation: only administrators rediscover them.
+        if (!$this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser())) {
+            return $this->buildAdminOnlySettingsDeniedResponse($request, 'fields');
         }
 
         $discoveredFields = $this->tcaFieldDiscoveryService->discover();
@@ -388,20 +440,17 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         $body = $this->parseRequestBody($request);
+        // Every form of this route (scan fields, rules incl. the rendered-check switches, Quality Gate, remote scan
+        // access) changes configuration that applies to all sites: only administrators save it. showSettings only
+        // decides whether the Settings view is shown, it never authorises a change.
         $isAdmin = $this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser());
-        if (!$isAdmin && (
-            (string)($body['qualityGateFormSubmitted'] ?? '') === '1'
-            || (string)($body['remoteScanAccessFormSubmitted'] ?? '') === '1'
-        )) {
-            return $this->buildAdminOnlySettingsDeniedResponse($request, (string)($body['tab'] ?? 'fields'));
-        }
         if (!$isAdmin) {
-            $body = $this->removeAdminOnlyRulesetFields($body);
+            return $this->buildAdminOnlySettingsDeniedResponse($request, (string)($body['tab'] ?? 'fields'));
         }
 
         $selectedRulesetSite = trim((string)($body['rulesetSite'] ?? ''));
         $activeTab = $this->resolveActiveTab((string)($body['tab'] ?? 'fields'));
-        if (in_array($activeTab, ['remote_access', 'ai'], true) && !$isAdmin) {
+        if (in_array($activeTab, ['remote_access', 'ai', 'mcp'], true) && !$isAdmin) {
             $activeTab = 'licence';
         }
 
@@ -421,12 +470,9 @@ final class SettingsController extends AbstractBackendModuleController
             $isGlobal = (string)($qualityGateData['is_global'] ?? '1') === '1';
 
             if ($resetToDefaults) {
+                // "Reset to defaults" restores the gate a fresh installation has (D-01: warn), never switches it off.
                 $isGlobal = true;
-                $globalData = [
-                    'publish_mode' => 0,
-                    'threshold_critical' => 0,
-                    'threshold_warning' => -1,
-                ];
+                $globalData = RulesetRepository::DEFAULT_GATE;
             }
 
             $publishMode = max(0, min(2, (int)($globalData['publish_mode'] ?? 1)));
@@ -520,6 +566,66 @@ final class SettingsController extends AbstractBackendModuleController
         return $this->buildSettingsPostResponse($request, $redirectParameters, $this->translate('settings.flash.saved'));
     }
 
+    /**
+     * "Export CSV" of the AI usage report: one site and one month, by backend user, from the same summary the page
+     * shows (AiUsageCsvExporter). Administrators only (`canManageAdminOnlySettings`), like the AI tab; the site must be
+     * a configured TYPO3 site and the month a valid report month (current month or one of the 12 before it) — anything
+     * else is refused instead of silently exporting another period.
+     */
+    public function aiUsageExportAction(ServerRequestInterface $request): ResponseInterface
+    {
+        if (!$this->accessControlService->canManageAdminOnlySettings($this->backendContextService->getBackendUser())) {
+            return $this->plainTextResponse(403, $this->translateWithFallback('settings.ai.usage.export.denied', 'Only administrators can export AI usage.'));
+        }
+        $query = $request->getQueryParams();
+        $siteIdentifier = trim((string)($query['site'] ?? ''));
+        $month = trim((string)($query['month'] ?? ''));
+        try {
+            $site = $siteIdentifier !== '' ? $this->siteFinder->getSiteByIdentifier($siteIdentifier) : null;
+        } catch (\Throwable) {
+            $site = null;
+        }
+        if ($site === null || $this->aiUsageCsvExporter === null) {
+            return $this->plainTextResponse(404, $this->translateWithFallback('settings.ai.usage.export.noSite', 'This site does not exist.'));
+        }
+        if ($month !== '' && AiUsageSummaryService::resolveMonth($month)->format('Y-m') !== $month) {
+            return $this->plainTextResponse(400, $this->translateWithFallback('settings.ai.usage.export.invalidMonth', 'Choose a month of the AI usage report.'));
+        }
+        try {
+            $export = $this->aiUsageCsvExporter->export(
+                $site->getIdentifier(),
+                $month,
+                fn (string $column): string => $this->translateWithFallback('settings.ai.usage.csv.' . $column, $column),
+                $this->translateWithFallback('settings.ai.usage.siteTotal', 'Site total'),
+                $this->translateWithFallback('settings.ai.usage.personUnknown', 'No backend user'),
+            );
+        } catch (\Throwable $exception) {
+            GeneralUtility::makeInstance(LogManager::class)->getLogger(self::class)->warning('ai_usage_export_failed', ['exception_class' => $exception::class]);
+
+            return $this->plainTextResponse(503, $this->translateWithFallback('settings.ai.usage.loadFailedTitle', 'AI usage could not be loaded'));
+        }
+        $content = "\xEF\xBB\xBF" . $export['content'];
+
+        return $this->responseFactory
+            ->createResponse(200)
+            ->withHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $export['filename'] . '"')
+            ->withHeader('Content-Length', (string)strlen($content))
+            ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('X-Content-Type-Options', 'nosniff')
+            ->withBody($this->streamFactory->createStream($content));
+    }
+
+    private function plainTextResponse(int $status, string $message): ResponseInterface
+    {
+        return $this->responseFactory
+            ->createResponse($status)
+            ->withHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->withHeader('Cache-Control', 'no-store')
+            ->withBody($this->streamFactory->createStream($message));
+    }
+
     public function saveExtConfAction(ServerRequestInterface $request): ResponseInterface
     {
         $accessResponse = $this->denyIfSettingsHidden($request);
@@ -542,11 +648,8 @@ final class SettingsController extends AbstractBackendModuleController
             $configuration = [];
         }
 
-        $showProHints = true;
         if ($activeTab === 'licence') {
-            $showProHints = $this->submittedBoolean($body['showProHints'] ?? null);
             $configuration['licenceKey'] = $this->resolveSubmittedLicenceKey($body, (string)($configuration['licenceKey'] ?? ''));
-            $configuration['showProHints'] = $showProHints ? '1' : '0';
         }
 
         if ($activeTab === 'rules') {
@@ -556,9 +659,6 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         if ($activeTab === 'licence') {
-            // Persist UI-only state in the AQG ruleset first, so the toggle survives even
-            // when LocalConfiguration writes are restricted on a staging/live system.
-            $this->saveShowProHintsState($showProHints);
             $configurationPersisted = $this->persistExtensionConfiguration($configuration);
             $this->proCacheManager->flushAll();
         }
@@ -621,8 +721,10 @@ final class SettingsController extends AbstractBackendModuleController
             ]);
         }
 
-        $pageUid = $this->requestParameterService->getPageUidOrZero($request);
-        $site = $this->resolveSiteForPage($request, $pageUid);
+        $site = $this->resolveRequestedLicenceSite($request, $body);
+        if ($site instanceof JsonResponse) {
+            return $site;
+        }
         $domain = $this->resolveValidationDomain($site);
 
         $isTrial = $this->looksLikeTrialKey($licenceKey);
@@ -663,8 +765,14 @@ final class SettingsController extends AbstractBackendModuleController
             'trialStartedAt' => $result->trialStartedAt,
             'isTrial' => $isTrial,
             'domain' => $domain,
+            'siteIdentifier' => $site->getIdentifier(),
             'reason' => $result->reason,
             'reasonLabel' => $reasonLabel,
+            // N-04: rate limited / unreachable / not answered — the key was not checked, so never "not valid".
+            'transient' => $result->isTransientFailure(),
+            'title' => $result->isTransientFailure()
+                ? $this->translateWithFallback('settings.licence.validation.notChecked', 'Licence not checked.')
+                : null,
         ]);
     }
 
@@ -679,8 +787,12 @@ final class SettingsController extends AbstractBackendModuleController
             return $denied;
         }
 
+        $site = $this->resolveRequestedLicenceSite($request, $this->parseRequestBody($request));
+        if ($site instanceof JsonResponse) {
+            return $site;
+        }
         $result = $this->proLicenceDomainService?->list(
-            $this->resolveValidationDomain($this->resolveSiteForPage($request, $this->requestParameterService->getPageUidOrZero($request))),
+            $this->resolveValidationDomain($site),
             $this->extensionContextService->getExtensionVersion(),
         ) ?? ['success' => false, 'code' => 'unavailable', 'message' => $this->translate('settings.licence.domains.error.failed')];
 
@@ -699,12 +811,16 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         $body = $this->parseRequestBody($request);
+        $site = $this->resolveRequestedLicenceSite($request, $body);
+        if ($site instanceof JsonResponse) {
+            return $site;
+        }
         $domains = $body['domains'] ?? [];
         $result = $this->proLicenceDomainService?->change(
             (string)($body['action'] ?? ''),
             is_array($domains) ? array_values($domains) : [],
             (string)($body['all'] ?? '') === '1' || ($body['all'] ?? false) === true,
-            $this->resolveValidationDomain($this->resolveSiteForPage($request, $this->requestParameterService->getPageUidOrZero($request))),
+            $this->resolveValidationDomain($site),
             $this->extensionContextService->getExtensionVersion(),
         ) ?? ['success' => false, 'code' => 'unavailable', 'message' => $this->translate('settings.licence.domains.error.failed')];
 
@@ -874,6 +990,11 @@ final class SettingsController extends AbstractBackendModuleController
         if (!$this->scopeAccessService->canReadSite($site)) {
             return $this->statementRequestError('access_denied', 403, 'settings.statement.error.accessDenied');
         }
+        // Sol post-review R05: a statement summarises every page of a scan (also pages and records an editor may not
+        // read), and a job ID or page URL from the request names any scan of the site: administrators only.
+        if ($this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser()) {
+            return $this->statementRequestError('access_denied', 403, 'settings.statement.error.accessDenied');
+        }
 
         $proStatus = $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
         if (!$this->hasStatementGeneratorCapability($proStatus)) {
@@ -1040,7 +1161,7 @@ final class SettingsController extends AbstractBackendModuleController
             $password = $this->secretEncryptionService->decrypt($encryptedPassword);
         }
 
-        $siteHost = $site instanceof Site ? trim((string)(parse_url((string)$site->getBase(), PHP_URL_HOST) ?? '')) : '';
+        $siteHost = $site instanceof Site ? trim(\Priebera\A11yQualityGate\Utility\UrlAuthority::host((string)$site->getBase())) : '';
         if ($siteUrl === '' && $siteHost !== '' && $this->isLocalOrPrivateHost($siteHost) && $username !== '' && $password !== '') {
             // A staging site on a private address (VPN, internal DNS, DDEV) was answered with "select a site and
             // enter username and password" although both were given.
@@ -1520,6 +1641,86 @@ final class SettingsController extends AbstractBackendModuleController
         return $states;
     }
 
+    /** @return array<string,string> provider-specific AI settings wording, already translated */
+    private function buildAiCopy(string $provider): array
+    {
+        $copy = [];
+        foreach (AiSettingsCopy::keysFor($provider) as $slot => $key) {
+            $copy[$slot] = $this->translateWithFallback($key, '');
+        }
+        $copy['keyPlaceholder'] = AiSettingsCopy::keyPlaceholder($provider);
+
+        return $copy;
+    }
+
+    /**
+     * The wording of every provider, so the tab can switch providers in place after the administrator confirmed it.
+     * Labels only; no configuration or credential data.
+     */
+    private function buildAiProviderCopyJson(): string
+    {
+        $copy = [];
+        foreach (AiProviderCatalog::ids() as $provider) {
+            $copy[$provider] = $this->buildAiCopy($provider);
+        }
+
+        return (string)json_encode($copy, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
+    }
+
+    /**
+     * Sites the AI tab can show: one entry per configured site, each linking to the AI tab of that site (the same
+     * rulesetSite parameter the other site-scoped tabs use).
+     *
+     * @param list<array{identifier:string,label:string}> $siteOptions
+     * @return list<array{identifier:string,label:string,url:string,selected:bool}>
+     */
+    private function buildAiSiteOptions(ServerRequestInterface $request, array $siteOptions, string $selectedSiteIdentifier): array
+    {
+        $options = [];
+        foreach ($siteOptions as $siteOption) {
+            $identifier = (string)($siteOption['identifier'] ?? '');
+            if ($identifier === '') {
+                continue;
+            }
+            $options[] = [
+                'identifier' => $identifier,
+                'label' => (string)($siteOption['label'] ?? $identifier),
+                'url' => $this->buildSettingsTabUrls($request, $identifier)['ai'] ?? '',
+                'selected' => $identifier === $selectedSiteIdentifier,
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * The usage report's months (current month and AiUsageSummaryService::MONTHS_BACK earlier ones) as links to the AI
+     * tab of the same site, newest first.
+     *
+     * @return list<array{value:string,label:string,url:string,selected:bool}>
+     */
+    private function buildAiUsageMonthOptions(ServerRequestInterface $request, string $siteIdentifier, string $selectedMonth): array
+    {
+        $formatter = BackendLocaleFormatter::forBackendUser();
+        $parameters = $this->getA11yModuleReturnParameters($request);
+        $parameters['rulesetSite'] = $siteIdentifier;
+        $parameters['tab'] = 'ai';
+        $month = AiUsageSummaryService::resolveMonth('');
+        $options = [];
+        for ($i = 0; $i <= AiUsageSummaryService::MONTHS_BACK; $i++) {
+            $value = $month->format('Y-m');
+            $options[] = [
+                'value' => $value,
+                'label' => $formatter->monthYear($month->getTimestamp()),
+                'url' => $this->buildRouteUrl('web_a11y.settings', $parameters + ['aiUsageMonth' => $value]) . '#aqg-ai-section-usage',
+                'selected' => $value === $selectedMonth,
+            ];
+            $month = $month->modify('-1 month');
+        }
+
+        return $options;
+    }
+
     /**
      * @return array<string, string>
      */
@@ -1541,27 +1742,6 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         return $urls;
-    }
-
-    /**
-     * @param array<string, mixed> $body
-     * @return array<string, mixed>
-     */
-    private function removeAdminOnlyRulesetFields(array $body): array
-    {
-        foreach (self::ADMIN_ONLY_RULESET_FIELDS as $field) {
-            unset($body[$field]);
-
-            if (isset($body['qualityGate']) && is_array($body['qualityGate'])) {
-                unset($body['qualityGate'][$field]);
-            }
-
-            if (isset($body['remoteScanAccess']) && is_array($body['remoteScanAccess'])) {
-                unset($body['remoteScanAccess'][$field]);
-            }
-        }
-
-        return $body;
     }
 
     private function normalizeJsonListSetting(mixed $value): string
@@ -1802,6 +1982,9 @@ final class SettingsController extends AbstractBackendModuleController
             'canManage' => $isAdmin,
             'sites' => $sites,
             'hasSites' => $sites !== [],
+            // F-02: a site only on a local or private address cannot use the cloud crawler; without any public site
+            // the form would offer only disabled choices.
+            'hasPublicSites' => array_filter($sites, static fn (array $site): bool => !($site['notPublic'] ?? false)) !== [],
             'multipleSites' => count($sites) > 1,
             'paidLicenceActive' => $paidLicenceActive,
             'termsAvailable' => $terms !== null && $terms->acceptsStatement($language),
@@ -2129,18 +2312,6 @@ final class SettingsController extends AbstractBackendModuleController
         }
     }
 
-    private function saveShowProHintsState(bool $showProHints): void
-    {
-        $ruleset = $this->rulesetRepository->findOrCreateDefault();
-        $currentRulesJson = is_array($ruleset) ? (string)($ruleset['rules_json'] ?? '') : '';
-        $rulesJson = $this->ruleConfigurationService->encodeRulesJsonWithShowProHints(
-            $currentRulesJson,
-            $showProHints,
-        );
-
-        $this->rulesetRepository->saveRulesJsonForDefault($rulesJson);
-    }
-
     private function submittedBoolean(mixed $value): bool
     {
         if (is_array($value)) {
@@ -2179,7 +2350,7 @@ final class SettingsController extends AbstractBackendModuleController
         }
 
         $siteUrl = trim((string)$site->getBase());
-        $parts = parse_url($siteUrl);
+        $parts = \Priebera\A11yQualityGate\Utility\UrlAuthority::parseUrl($siteUrl);
         if (!is_array($parts)) {
             return '';
         }
@@ -2254,9 +2425,10 @@ final class SettingsController extends AbstractBackendModuleController
     }
 
     /**
-     * The site a licence is validated and displayed for: the request's own site, otherwise the first
-     * configured site with a host. Validate (Ajax, which carries no page context) and the Settings
-     * status must resolve the same site, or a key Validate has just accepted renders as INACTIVE.
+     * The site a licence is validated and displayed for: the request's own site, otherwise the only configured site
+     * with a host. With several sites there is no safe default (D-01: the alphabetically first site used to be
+     * validated and bound), so the caller must name the site explicitly — Validate, Revalidate and the domain list
+     * send the site the Settings page shows (`siteIdentifier`).
      */
     private function resolveLicenceSite(?Site $site): ?Site
     {
@@ -2264,19 +2436,144 @@ final class SettingsController extends AbstractBackendModuleController
             return $site;
         }
 
+        $candidates = $this->licenceSiteCandidates();
+
+        return count($candidates) === 1 ? $candidates[0] : null;
+    }
+
+    /**
+     * @return list<Site> sites with a host name, in configuration order
+     */
+    private function licenceSiteCandidates(): array
+    {
+        $candidates = [];
         try {
             foreach ($this->siteFinder->getAllSites() as $candidate) {
                 if (
                     $candidate instanceof Site
                     && $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$candidate->getBase()) !== ''
                 ) {
-                    return $candidate;
+                    $candidates[] = $candidate;
                 }
             }
         } catch (\Throwable) {
         }
 
-        return null;
+        return $candidates;
+    }
+
+    /**
+     * The site a licence request targets (D-01). An explicit `siteIdentifier` must resolve to a configured site with a
+     * host, otherwise the request is refused — never replaced by another site. Without one the page context decides,
+     * then the only site of a single-site installation. Several sites and no context: refused as ambiguous.
+     *
+     * @return Site|JsonResponse the site, or the refusal to return
+     */
+    private function resolveRequestedLicenceSite(ServerRequestInterface $request, array $body): Site|JsonResponse
+    {
+        $query = $request->getQueryParams();
+        $explicit = trim((string)($body['siteIdentifier'] ?? $query['siteIdentifier'] ?? ''));
+        if ($explicit !== '') {
+            foreach ($this->licenceSiteCandidates() as $candidate) {
+                if ($candidate->getIdentifier() === $explicit) {
+                    return $candidate;
+                }
+            }
+
+            return new JsonResponse([
+                'valid' => false,
+                'success' => false,
+                'reason' => 'site_not_found',
+                'code' => 'site_not_found',
+                'reasonLabel' => $this->translateWithFallback('settings.licence.validation.siteNotFound', 'The selected site does not exist or has no domain. Reload the settings and choose the site again.'),
+                'message' => $this->translateWithFallback('settings.licence.validation.siteNotFound', 'The selected site does not exist or has no domain. Reload the settings and choose the site again.'),
+            ], 400);
+        }
+
+        $pageUid = $this->requestParameterService->getPageUidOrZero($request);
+        $site = $pageUid > 0 ? $this->resolveSiteForPage($request, $pageUid) : null;
+        $site = $this->resolveLicenceSite($site);
+        if ($site instanceof Site) {
+            return $site;
+        }
+
+        return new JsonResponse([
+            'valid' => false,
+            'success' => false,
+            'reason' => 'site_required',
+            'code' => 'site_required',
+            // Read by the Revalidate result as its heading: no site was checked, so never "Licence is not valid."
+            'title' => $this->translateWithFallback('settings.licence.validation.siteRequiredTitle', 'Choose a site first.'),
+            'reasonLabel' => $this->translateWithFallback('settings.licence.validation.siteRequired', 'This installation has several sites. Select the site to validate the licence for.'),
+            'message' => $this->translateWithFallback('settings.licence.validation.siteRequired', 'This installation has several sites. Select the site to validate the licence for.'),
+        ], 400);
+    }
+
+    /**
+     * The site the licence card describes. A site the request names (`rulesetSite`, else the selected page's site)
+     * wins; without one, the only site with a host the user may see. Editors only ever get a site they can read (they
+     * see the status, never manage it), so a crafted `rulesetSite` shows them no other site's domain or plan. With
+     * several candidates and no choice the answer is '' and the card asks for a site (D-01: never a default).
+     */
+    private function resolveLicenceSiteIdentifier(string $requested, bool $isAdmin): string
+    {
+        $requested = trim($requested);
+        $candidates = $this->licenceSiteCandidatesFor($isAdmin);
+        // Only a site with a host the user may see: a stale, unknown or host-less identifier would validate an empty
+        // domain (the API refuses it and the card showed a valid key as INACTIVE) — it is treated as no choice.
+        foreach ($candidates as $candidate) {
+            if ($requested !== '' && $candidate->getIdentifier() === $requested) {
+                return $requested;
+            }
+        }
+
+        return count($candidates) === 1 ? $candidates[0]->getIdentifier() : '';
+    }
+
+    /**
+     * @return list<Site> sites with a host the user may choose for the licence card
+     */
+    private function licenceSiteCandidatesFor(bool $isAdmin): array
+    {
+        $candidates = $this->licenceSiteCandidates();
+        if ($isAdmin) {
+            return $candidates;
+        }
+
+        return array_values(array_filter(
+            $candidates,
+            fn (Site $candidate): bool => $this->scopeAccessService->canReadWithinSiteIdentifier($candidate->getIdentifier())
+        ));
+    }
+
+    /**
+     * The licence card's site picker: only on an installation with several sites the user can choose from. Each
+     * option is a plain link to the Settings page for that site (`rulesetSite`), so no request ever picks a site on
+     * the user's behalf and Save keeps the choice.
+     *
+     * @return list<array{identifier:string,domain:string,url:string,selected:bool}>
+     */
+    private function buildLicenceSiteOptions(ServerRequestInterface $request, string $selected, bool $isAdmin): array
+    {
+        $candidates = $this->licenceSiteCandidatesFor($isAdmin);
+        if (count($candidates) < 2) {
+            return [];
+        }
+
+        $parameters = $this->getA11yModuleReturnParameters($request);
+        $parameters['tab'] = 'licence';
+        $options = [];
+        foreach ($candidates as $candidate) {
+            $identifier = $candidate->getIdentifier();
+            $options[] = [
+                'identifier' => $identifier,
+                'domain' => $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$candidate->getBase()),
+                'url' => $this->buildRouteUrl('web_a11y.settings', [...$parameters, 'rulesetSite' => $identifier]),
+                'selected' => $identifier === $selected,
+            ];
+        }
+
+        return $options;
     }
 
     /**
@@ -2290,7 +2587,15 @@ final class SettingsController extends AbstractBackendModuleController
             return $this->proStatusResolverService->resolveForSiteIdentifier($siteIdentifier);
         }
 
-        return $this->proStatusResolverService->resolveForSite($this->resolveLicenceSite(null));
+        $site = $this->resolveLicenceSite(null);
+        if (!$site instanceof Site && count($this->licenceSiteCandidates()) > 1) {
+            // D-01: never validate (or bind) an arbitrary site of a multi-site installation.
+            return ProStatusViewModel::siteRequired(
+                $this->translateWithFallback('settings.licence.validation.siteRequired', 'This installation has several sites. Select the site to validate the licence for.')
+            );
+        }
+
+        return $this->proStatusResolverService->resolveForSite($site);
     }
 
     private function buildValidationReasonLabel(LicenceValidationResult $result): ?string

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\FreePreview;
 
+use Priebera\A11yQualityGate\Utility\UrlAuthority;
+
 /**
  * Recognises a site base URL that the AQG crawler can never reach from the internet: localhost, development
  * domains such as *.ddev.site, reserved and internal-only names (.test, .local, .internal, .lan, .home.arpa …),
@@ -83,10 +85,8 @@ final class PublicSiteAddressClassifier
             $siteBase = 'https://' . ltrim($siteBase, '/');
         }
 
-        $host = parse_url($siteBase, PHP_URL_HOST);
-        if (!is_string($host)) {
-            return '';
-        }
+        // COMPAT-01: locale-independent (parse_url() corrupted Unicode hosts under some UTF-8 locales).
+        $host = UrlAuthority::host($siteBase);
 
         return rtrim(strtolower(trim($host, '[]')), '.');
     }

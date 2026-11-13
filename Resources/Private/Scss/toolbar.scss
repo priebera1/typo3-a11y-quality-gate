@@ -19,6 +19,14 @@
     --aqt-ok-bg: #e4f3ea;
     --aqt-none: #59606b;
     --aqt-none-bg: #eceef1;
+    // Text field (Ask AQG): a light surface on the grey dropdown, a boundary of at least 3:1 against it and the page.
+    --aqt-field-bg: #ffffff;
+    --aqt-field-border: #868c96;
+    --aqt-field-busy-bg: #f4f5f7;
+    // Scan sections: white cards on a soft surface.
+    --aqt-surface: #f2f3f5;
+    --aqt-card-bg: #ffffff;
+    --aqt-text: #1a1c20;
     // Toolbar trigger dot (kept from the earlier tokens).
     --aqi-ok: var(--aqt-ok);
     --aqi-warn: #9a6700;
@@ -46,6 +54,12 @@
     --aqt-ok-bg: #12301f;
     --aqt-none: #a9b0ba;
     --aqt-none-bg: #2b2f35;
+    --aqt-field-bg: #17181b;
+    --aqt-field-border: #7b828d;
+    --aqt-field-busy-bg: #22252a;
+    --aqt-surface: #18191c;
+    --aqt-card-bg: #24272c;
+    --aqt-text: #eef0f2;
     --aqi-warn: #f1c35e;
 }
 
@@ -197,45 +211,267 @@ html[data-color-scheme="dark"] #priebera-a11yqualitygate-backend-toolbaritems-a1
     overflow-wrap: anywhere;
 }
 
-.aqt-sections {
-    margin: 0;
-    padding: 0;
-    list-style: none;
+// Content scan / Frontend scan: collapsed sections. The header button shows name, a short summary and the scan's own
+// status (text + dot). Issue counts never colour the status: a completed scan with findings is "Complete".
+.aqt-scans {
+    display: grid;
+    gap: 6px;
+    padding: 8px;
+    border-top: 1px solid var(--aqt-border);
+    background: var(--aqt-surface);
 }
 
-.aqt-sections__item {
+.aqt-scan {
+    overflow: hidden;
+    border: 1px solid var(--aqt-border);
+    border-radius: 6px;
+    background: var(--aqt-card-bg);
+    color: var(--aqt-text);
+}
+
+.aqt-scan__heading {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+.aqt-scan__toggle {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    min-height: 40px;
+    padding: .5rem .75rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aqt-scan__toggle:hover {
+    background: var(--aqt-none-bg);
+}
+
+.aqt-scan__toggle:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-scan__name {
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.aqt-scan__summary {
+    min-width: 0;
+    color: var(--aqt-text);
+    font-size: 12px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// Phone width: the count wraps instead of being cut ("169 open on the …").
+@media (max-width: 480px) {
+    .aqt-scan__summary {
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+}
+
+.aqt-scan__chevron {
+    width: 8px;
+    height: 8px;
+    margin: 0 2px 3px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 120ms ease;
+}
+
+.aqt-scan__toggle[aria-expanded="true"] .aqt-scan__chevron {
+    margin-bottom: -3px;
+    transform: rotate(-135deg);
+}
+
+.aqt-scan__panel {
+    display: grid;
+    gap: 4px;
+    padding: .625rem .75rem .75rem;
     border-top: 1px solid var(--aqt-border);
 }
 
-.aqt-section {
-    display: grid;
-    gap: 3px;
-    padding: .625rem .875rem;
+.aqt-scan__panel[hidden] {
+    display: none;
 }
 
-.aqt-section__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-}
-
-.aqt-section__title {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.aqt-section__delta,
-.aqt-section__meta {
+.aqt-scan__delta,
+.aqt-scan__meta {
     margin: 0;
     font-size: 12px;
     line-height: 1.4;
 }
 
-.aqt-section__meta {
+.aqt-scan__meta {
     color: var(--aqt-muted);
 }
+
+// "This page: 2 open · 1 warning · 1 needs review": the open page's part of the website total, the panel's headline.
+.aqt-scan__page {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+// What a count or action covers: one short muted line.
+.aqt-scan__note {
+    margin: 0;
+    color: var(--aqt-muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+// "Out of date": a compact status line at the top of the panel, not a paragraph.
+.aqt-scan__stale {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: 6px;
+    margin: 0 0 2px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--aqt-warn-bg);
+    color: var(--aqt-warn);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.aqt-scan__stale-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+// "Recheck saved content" inside the expanded Content scan section, with its visible result below the button.
+.aqt-scan__actions {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--aqt-border);
+}
+
+.aqt-scan__actions .aqt-scan__action {
+    min-height: 30px;
+    padding: 4px 12px;
+    border-color: var(--aqt-primary);
+    background: var(--aqt-primary);
+    color: var(--aqt-primary-fg);
+    font-size: 12.5px;
+}
+
+.aqt-scan__actions .aqt-scan__action:hover {
+    border-color: var(--aqt-primary);
+    opacity: .9;
+}
+
+.aqt-scan__actions .aqt-scan__action[aria-disabled="true"],
+.aqt-scan__actions .aqt-scan__action[aria-busy="true"] {
+    cursor: default;
+    opacity: .55;
+}
+
+.aqt-scan__actions[hidden],
+.aqt-scan__action-status[hidden] {
+    display: none;
+}
+
+.aqt-scan__action-status {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.aqt-scan__action-status--ok { color: var(--aqt-ok); }
+.aqt-scan__action-status--error { color: var(--aqt-crit); }
+.aqt-scan__action-status--info { color: var(--aqt-muted); }
+
+// Textual status with a dot: the word carries the meaning, the dot only reinforces it.
+.aqt-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--aqt-none);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.aqt-state__dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.aqt-state--none .aqt-state__dot {
+    background: transparent;
+    border: 1.5px solid currentColor;
+}
+
+.aqt-state--ok { color: var(--aqt-ok); }
+.aqt-state--info { color: var(--aqt-info); }
+.aqt-state--warning { color: var(--aqt-warn); }
+.aqt-state--error { color: var(--aqt-crit); }
+
+// In a scan header the status is a tinted pill, so "Out of date" or "Failed" stands out from the counts.
+.aqt-scan__toggle .aqt-state {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--aqt-none-bg);
+}
+
+.aqt-scan__toggle .aqt-state--ok { background: var(--aqt-ok-bg); }
+.aqt-scan__toggle .aqt-state--info { background: var(--aqt-info-bg); }
+.aqt-scan__toggle .aqt-state--warning { background: var(--aqt-warn-bg); }
+.aqt-scan__toggle .aqt-state--error { background: var(--aqt-crit-bg); }
+
+// Severity label (text + dot) for findings.
+.aqt-sev {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    color: var(--aqt-none);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+}
+
+.aqt-sev__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.aqt-sev--critical { color: var(--aqt-crit); }
+.aqt-sev--warning { color: var(--aqt-warn); }
+.aqt-sev--info { color: var(--aqt-info); }
 
 .aqt-tag {
     display: inline-flex;
@@ -294,8 +530,15 @@ html[data-color-scheme="dark"] #priebera-a11yqualitygate-backend-toolbaritems-a1
 }
 
 .aqt-pop__foot {
-    padding: .75rem .875rem .875rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .5rem;
+    padding: .625rem .875rem .75rem;
     border-top: 1px solid var(--aqt-border);
+}
+
+.aqt-pop__foot--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .aqt-pop__button,
@@ -305,19 +548,24 @@ html[data-color-scheme="dark"] #priebera-a11yqualitygate-backend-toolbaritems-a1
     justify-content: center;
     width: 100%;
     min-height: 32px;
-    border: 1px solid var(--aqt-primary);
+    padding: 4px 8px;
+    border: 1px solid var(--aqt-border);
     border-radius: 6px;
-    background: var(--aqt-primary);
-    color: var(--aqt-primary-fg);
+    background: transparent;
+    color: inherit;
     font-size: 13px;
     font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
     text-decoration: none;
+    white-space: normal;
 }
 
 .aqt-pop__button:hover,
 #priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem .aqt-pop__button.btn:hover {
-    background: color-mix(in srgb, var(--aqt-primary) 86%, var(--aqt-primary-fg));
-    color: var(--aqt-primary-fg);
+    border-color: var(--aqt-muted);
+    background: var(--aqt-none-bg);
+    color: inherit;
 }
 
 .aqt-pop__button:focus-visible,
@@ -325,6 +573,666 @@ html[data-color-scheme="dark"] #priebera-a11yqualitygate-backend-toolbaritems-a1
     outline: none;
     box-shadow: 0 0 0 2px var(--bs-dropdown-bg, Canvas), 0 0 0 4px var(--aqt-focus);
 }
+
+// Layout: header and footer stay in place, the body (assistant first, then the scan sections) scrolls inside a menu
+// that never grows taller than the space below the top bar (TYPO3 14 positions a taller popover over the toolbar).
+#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem .dropdown-menu {
+    min-width: min(25rem, calc(100vw - 1rem));
+    max-width: min(25rem, calc(100vw - 1rem));
+}
+
+#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem .aqt-pop {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 4.5rem);
+    max-height: calc(100dvh - 4.5rem);
+}
+
+.aqt-pop__head,
+.aqt-pop__foot {
+    flex: none;
+}
+
+.aqt-pop__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.aqt-assistant-slot {
+    border-top: 1px solid var(--aqt-border);
+}
+
+.aqt-assistant {
+    display: grid;
+    gap: .5rem;
+    padding: .625rem .875rem .75rem;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.aqt-assistant p,
+.aqt-assistant ol {
+    margin: 0;
+}
+
+.aqt-assistant__loading {
+    margin: 0;
+    padding: .625rem .875rem;
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-assistant__head {
+    display: grid;
+    gap: 2px;
+}
+
+.aqt-assistant__title {
+    margin: 0;
+    color: var(--aqt-muted);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.aqt-assistant__title:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-assistant__context {
+    overflow-wrap: anywhere;
+}
+
+.aqt-ctx {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+}
+
+.aqt-ctx__row {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .5rem;
+}
+
+.aqt-ctx dt {
+    color: var(--aqt-muted);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.aqt-ctx dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.aqt-assistant__subtitle {
+    margin: .25rem 0 0;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.aqt-assistant__fresh {
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-assistant__fresh--stale strong {
+    color: var(--aqt-warn);
+}
+
+.aqt-finding__count {
+    color: var(--aqt-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.aqt-others {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+}
+
+.aqt-others__item {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+.aqt-others__title {
+    overflow-wrap: anywhere;
+}
+
+#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem a.aqt-others__title,
+#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem a.aqt-turn__link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+a.aqt-others__title:focus-visible,
+a.aqt-turn__link:focus-visible {
+    outline: none;
+    border-radius: 2px;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-others__count {
+    color: var(--aqt-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+// Ask AQG
+.aqt-ask {
+    display: grid;
+    gap: .375rem;
+}
+
+.aqt-ask__about summary {
+    cursor: pointer;
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-ask__about summary:focus-visible {
+    outline: none;
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-ask__about p {
+    margin-top: 3px;
+}
+
+.aqt-ask__form {
+    display: grid;
+    gap: .375rem;
+    margin: 0;
+}
+
+.aqt-ask__scope {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 12px;
+}
+
+.aqt-ask__legend {
+    float: left;
+    width: auto;
+    margin: 0 .25rem 0 0;
+    padding: 0;
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-ask__choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.aqt-ask__choice input:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-ask__label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.aqt-ask__input {
+    display: block;
+    width: 100%;
+    min-height: 4.5rem;
+    padding: 7px 9px;
+    border: 1px solid var(--aqt-field-border);
+    border-radius: 4px;
+    background: var(--aqt-field-bg);
+    color: inherit;
+    font: inherit;
+    font-size: 12.5px;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+.aqt-ask__input::placeholder {
+    color: var(--aqt-muted);
+    opacity: 1;
+}
+
+.aqt-ask__input:focus-visible {
+    outline: none;
+    border-color: var(--aqt-focus);
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+// Loading (an answer is on its way: readOnly, still focusable) and disabled: a quieter surface, same boundary.
+.aqt-ask__input:read-only,
+.aqt-ask__input:disabled {
+    background: var(--aqt-field-busy-bg);
+}
+
+.aqt-ask__form[aria-busy="true"] .aqt-ask__input {
+    cursor: progress;
+}
+
+.aqt-ask__input:disabled {
+    cursor: not-allowed;
+}
+
+.aqt-ask__input[aria-invalid="true"] {
+    border-color: var(--aqt-crit);
+}
+
+.aqt-ask__quick {
+    display: grid;
+    gap: .25rem;
+}
+
+.aqt-ask__usage {
+    font-size: 12px;
+}
+
+.aqt-ask__usage[hidden] {
+    display: none;
+}
+
+.aqt-ask__examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.aqt-chip {
+    padding: 2px 8px;
+    border: 1px solid var(--aqt-border);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 11.5px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.aqt-chip[aria-busy="true"] {
+    cursor: progress;
+    opacity: .75;
+}
+
+.aqt-chip:hover {
+    border-color: var(--aqt-muted);
+}
+
+.aqt-chip:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-ask__actions {
+    display: flex;
+    gap: 4px;
+}
+
+.aqt-ask__status {
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-ask__status:empty {
+    display: none;
+}
+
+/* A failed or refused question (data-tone set by a11y-toolbar-assistant.js): the critical tone, not the muted status. */
+.aqt-ask__status[data-tone="error"] {
+    color: var(--aqt-crit);
+    font-weight: 500;
+}
+
+.aqt-ask__log {
+    display: grid;
+    gap: .5rem;
+}
+
+.aqt-ask__log[hidden] {
+    display: none;
+}
+
+.aqt-turn {
+    display: grid;
+    gap: 4px;
+    padding: .5rem .5625rem;
+    border-radius: 6px;
+    background: var(--aqt-none-bg);
+    font-size: 12.5px;
+    overflow-wrap: anywhere;
+}
+
+.aqt-turn p,
+.aqt-turn ul {
+    margin: 0;
+}
+
+.aqt-turn ul {
+    padding-left: 1.1rem;
+}
+
+.aqt-turn__q {
+    font-weight: 600;
+}
+
+.aqt-turn__who {
+    color: var(--aqt-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.aqt-turn__basis,
+.aqt-turn__sources-title,
+.aqt-turn__notes {
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-turn__sources {
+    display: grid;
+    gap: 2px;
+    font-size: 12px;
+}
+
+// Ask AQG repair plan: shown only in answer to an explicit "fix this" request (never when the toolbar opens).
+.aqt-turn--repair {
+    gap: 6px;
+}
+
+.aqt-repair__notices,
+.aqt-repair__fresh,
+.aqt-repair__ai {
+    font-size: 12px;
+}
+
+.aqt-repair__notices {
+    color: var(--aqt-info);
+}
+
+.aqt-repair__fresh--warning {
+    padding: .25rem .375rem;
+    border: 1px solid var(--aqt-warn-bg);
+    border-radius: 5px;
+    background: var(--aqt-warn-bg);
+    color: inherit;
+}
+
+.aqt-turn ul.aqt-repair__items {
+    display: grid;
+    gap: 4px;
+    padding: 0;
+    list-style: none;
+}
+
+.aqt-repair__item {
+    display: grid;
+    gap: 2px;
+    padding: .375rem .5rem;
+    border: 1px solid var(--aqt-border);
+    border-radius: 5px;
+    background: var(--bs-dropdown-bg, Canvas);
+    font-size: 12px;
+}
+
+.aqt-repair__item-title {
+    font-weight: 600;
+}
+
+.aqt-repair__state {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--aqt-none-bg);
+    color: var(--aqt-none);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.aqt-repair__state--ready { background: var(--aqt-info-bg); color: var(--aqt-info); }
+.aqt-repair__state--queued { background: var(--aqt-ok-bg); color: var(--aqt-ok); }
+.aqt-repair__state--saved { background: var(--aqt-ok-bg); color: var(--aqt-ok); }
+.aqt-repair__state--blocked,
+.aqt-repair__state--stale { background: var(--aqt-warn-bg); color: var(--aqt-warn); }
+
+.aqt-repair__reason:empty {
+    display: none;
+}
+
+.aqt-repair__links,
+.aqt-repair__switch,
+.aqt-repair__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: center;
+}
+
+.aqt-repair__safety {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.aqt-repair__status {
+    font-size: 12px;
+}
+
+.aqt-repair__status:empty {
+    display: none;
+}
+
+.aqt-repair__status--partial {
+    color: var(--aqt-warn);
+}
+
+.aqt-repair__status:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-assistant__kind {
+    display: block;
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-assistant__meta,
+.aqt-assistant__muted,
+.aqt-assistant__more,
+.aqt-assistant__empty,
+.aqt-finding__where {
+    color: var(--aqt-muted);
+    font-size: 12px;
+}
+
+.aqt-note {
+    padding: .375rem .5rem;
+    border-left: 3px solid var(--aqt-info);
+    border-radius: 4px;
+    background: var(--aqt-info-bg);
+    font-size: 12px;
+}
+
+.aqt-assistant__summary {
+    font-weight: 600;
+}
+
+.aqt-findings {
+    display: grid;
+    gap: .375rem;
+    padding: 0;
+    list-style: none;
+}
+
+.aqt-finding {
+    display: grid;
+    gap: 4px;
+    padding: .5rem .5625rem;
+    border: 1px solid var(--aqt-border);
+    border-radius: 6px;
+}
+
+.aqt-finding__head {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+}
+
+.aqt-finding__title {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.aqt-finding__changed {
+    color: var(--aqt-warn);
+    font-size: 12px;
+}
+
+.aqt-finding__advice summary {
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.aqt-finding__advice summary:focus-visible,
+.aqt-result__sent summary:focus-visible {
+    outline: none;
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-finding__advice p {
+    margin-top: 3px;
+    font-size: 12px;
+}
+
+.aqt-finding__actions,
+.aqt-assistant__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.aqt-btn,
+#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem a.aqt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 26px;
+    padding: 2px 8px;
+    border: 1px solid var(--aqt-border);
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.aqt-btn:hover {
+    border-color: var(--aqt-muted);
+}
+
+.aqt-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bs-dropdown-bg, Canvas), 0 0 0 4px var(--aqt-focus);
+}
+
+.aqt-btn--primary {
+    border-color: var(--aqt-primary);
+    background: var(--aqt-primary);
+    color: var(--aqt-primary-fg);
+}
+
+.aqt-btn--link {
+    border-color: transparent;
+    text-decoration: underline;
+}
+
+.aqt-btn[aria-busy="true"] {
+    cursor: progress;
+    opacity: .75;
+}
+
+.aqt-btn[aria-disabled="true"] {
+    cursor: default;
+    opacity: .6;
+}
+
+.aqt-btn--ai::before {
+    content: "✦";
+    font-size: 10px;
+}
+
+.aqt-cost {
+    color: var(--aqt-muted);
+    font-weight: 400;
+}
+
+.aqt-image {
+    display: grid;
+    gap: 4px;
+}
+
+.aqt-image__label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.aqt-image__input {
+    width: 100%;
+    min-height: 3.25rem;
+    padding: 4px 6px;
+    border: 1px solid var(--aqt-border);
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    resize: vertical;
+}
+
+.aqt-image__input:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--aqt-focus);
+}
+
+.aqt-finding__result {
+    display: grid;
+    gap: 4px;
+    padding: .375rem .5rem;
+    border-radius: 5px;
+    background: var(--aqt-none-bg);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.aqt-result--ok { color: var(--aqt-ok); }
+.aqt-result--warning { color: var(--aqt-warn); }
+.aqt-result--error { color: var(--aqt-crit); }
 
 @keyframes aqt-spin {
     to { transform: rotate(360deg); }

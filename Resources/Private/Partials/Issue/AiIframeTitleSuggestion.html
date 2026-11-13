@@ -3,24 +3,26 @@
         <div class="aqg-ai-link-text__head">
             <div>
                 <h3 class="aqg-ai-link-text__title">
-                    <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
+                    <span class="aqg-media-wand-icon" aria-hidden="true"></span>
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.title" default="AI iframe title suggestion" />
                 </h3>
                 <p class="aqg-ai-link-text__description">
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.description" default="This sends the iframe source URL and limited rendered context to the configured AI provider. Nothing is changed automatically." />
                 </p>
             </div>
-            <span class="aqg-guidance-badge aqg-guidance-badge--neutral">
-                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.usage" default="Estimated usage: Low text request" />
-            </span>
+            <f:if condition="!{issue.aiCost.iframeTitle}">
+                <span class="aqg-guidance-badge aqg-guidance-badge--neutral">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.usage" default="Estimated usage: Low text request" />
+                </span>
+            </f:if>
         </div>
 
         <div class="aqg-ai-link-text__actions">
-            <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-iframe-title" data-loading-label="…">
-                <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
-                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.button" default="Suggest iframe title" /></span>
-                <span class="aqg-btn-pro" aria-hidden="true">PRO</span>
+            <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-iframe-title" aria-describedby="aqg-ai-cost-iframeTitle-{issue.uid}" data-loading-label="…">
+                <span class="aqg-media-wand-icon" aria-hidden="true"></span>
+                <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:aiIframeTitle.button" default="Suggest iframe title" /><f:if condition="{issue.aiCost.iframeTitle}"> <span class="aqg-ai-cost">({issue.aiCost.iframeTitle})</span></f:if></span>
             </button>
+                <span class="visually-hidden" id="aqg-ai-cost-iframeTitle-{issue.uid}"><f:if condition="{issue.aiCost.iframeTitle}">{issue.aiCost.hint}</f:if></span>
         </div>
 
         <div class="aqg-ai-link-text__review" data-aqg-ai-iframe-title-review="true" hidden="hidden">

@@ -46,10 +46,10 @@
                         <p class="aqg-rem__desc">
                             <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.fieldDescription" default="Describe the image’s purpose or content for people who cannot see it." />
                         </p>
-                        <f:if condition="{issue.imagePreviewPath}">
+                        <f:if condition="{issue.imageFileName}">
                             <p class="aqg-rem__file" title="{issue.imagePreviewPath}">
                                 <span class="aqg-rem__file-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.file" default="File" />:</span>
-                                <span class="aqg-rem__file-path">{issue.imagePreviewPath}</span>
+                                <span class="aqg-rem__file-path">{issue.imageFileName}</span>
                             </p>
                         </f:if>
                     </div>
@@ -64,28 +64,29 @@
                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.fieldHelp" default="Aim for a short, specific description. Leave decorative images to Mark as decorative." />
                     </div>
                     <div class="aqg-rem__ai-note" data-aqg-ai-note="true" hidden="hidden">
-                        <span aria-hidden="true">✦</span>
+                        <span class="aqg-media-wand-icon" aria-hidden="true"></span>
                         <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.aiSuggestionInserted" default="AI-generated suggestion. Review and edit it before applying." /></span>
                     </div>
                 </div>
 
                 <div class="aqg-rem__actions">
+                    <f:comment>Atlas 07·A: Suggest → Apply reviewed text → Mark as decorative.</f:comment>
+                    <f:if condition="{issue.aiAltSuggestionAvailable}">
+                        <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-alt" aria-describedby="aqg-ai-cost-fixImage-{issue.uid}" data-loading-label="…">
+                            <span class="aqg-media-wand-icon" aria-hidden="true"></span>
+                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.suggestAlt" default="Suggest alt text with AI" /><f:if condition="{issue.aiCost.fixImage}"> <span class="aqg-ai-cost">({issue.aiCost.fixImage})</span></f:if></span>
+                        </button>
+                        <span class="visually-hidden" id="aqg-ai-cost-fixImage-{issue.uid}"><f:if condition="{issue.aiCost.fixImage}">{issue.aiCost.hint}</f:if></span>
+                        <button type="button" class="btn btn-default btn-sm" data-action="aqg-discard-ai" hidden="hidden">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.discardSuggestion" default="Discard suggestion" />
+                        </button>
+                    </f:if>
                     <button type="button" class="btn btn-default btn-sm" data-action="aqg-apply-alt" data-loading-label="…">
                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.applyAlt" default="Apply reviewed text" />
                     </button>
                     <button type="button" class="btn btn-default btn-sm" data-action="aqg-mark-decorative" data-loading-label="…">
                         <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.markDecorative" default="Mark as decorative" />
                     </button>
-                    <f:if condition="{issue.aiAltSuggestionAvailable}">
-                        <button type="button" class="btn btn-default btn-sm aqi-btn--ai" data-action="aqg-suggest-alt" data-loading-label="…">
-                            <span class="aqg-btn-ai-glyph" aria-hidden="true">✦</span>
-                            <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.suggestAlt" default="Suggest alt text with AI" /></span>
-                            <span class="aqg-btn-pro" aria-hidden="true">PRO</span>
-                        </button>
-                        <button type="button" class="btn btn-default btn-sm" data-action="aqg-discard-ai" hidden="hidden">
-                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.discardSuggestion" default="Discard suggestion" />
-                        </button>
-                    </f:if>
                 </div>
                 <p class="aqg-rem__help aqg-rem__help--actions">
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:imageRemediation.help" default="Mark an image decorative only when it conveys no meaningful information. Decorative images use empty alternative text." />

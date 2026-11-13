@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Ai\Service;
 
+use Priebera\A11yQualityGate\Ai\Provider\AiProviderCatalog;
+
 final class AiModelCacheCodec
 {
     /**
      * @param list<array{id:string,label:string}> $supported
      * @param list<string> $unsupported
      */
-    public function encode(array $supported, array $unsupported, string $keyFingerprint): string
-    {
+    public function encode(
+        array $supported,
+        array $unsupported,
+        string $keyFingerprint,
+        string $provider = AiProviderCatalog::OPENAI,
+    ): string {
         return json_encode([
-            'registry_version' => AiModelCompatibilityRegistry::VERSION,
+            'registry_version' => AiModelCompatibilityRegistry::versionFor($provider),
             'key_fingerprint' => $this->normalizeFingerprint($keyFingerprint),
             'supported' => array_values($supported),
             'unsupported' => array_values($unsupported),
@@ -28,7 +34,7 @@ final class AiModelCacheCodec
      *     unsupported:list<string>
      * }
      */
-    public function decode(string $cacheJson): array
+    public function decode(string $cacheJson, string $provider = AiProviderCatalog::OPENAI): array
     {
         $cacheJson = trim($cacheJson);
         if ($cacheJson === '') {
@@ -43,7 +49,8 @@ final class AiModelCacheCodec
 
         $keyFingerprint = $this->normalizeFingerprint((string)($decoded['key_fingerprint'] ?? ''));
         if (!is_array($decoded)
-            || ($decoded['registry_version'] ?? null) !== AiModelCompatibilityRegistry::VERSION
+            // A cache written for another provider's registry is never valid for this one.
+            || ($decoded['registry_version'] ?? null) !== AiModelCompatibilityRegistry::versionFor($provider)
             || $keyFingerprint === ''
             || !is_array($decoded['supported'] ?? null)
             || !is_array($decoded['unsupported'] ?? null)) {

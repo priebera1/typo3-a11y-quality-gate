@@ -28,6 +28,7 @@ final class RuleMetadataKeyResolver
         'rendered.empty_heading' => 'empty_heading',
         'rte.empty_heading' => 'empty_heading',
         'empty_heading' => 'empty_heading',
+        'empty-heading' => 'empty_heading',
         'rendered.main_landmark_missing' => 'landmark-one-main',
         'main_landmark_missing' => 'landmark-one-main',
         'rendered.duplicate_id' => 'duplicate_id',

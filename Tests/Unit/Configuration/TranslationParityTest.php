@@ -48,6 +48,18 @@ final class TranslationParityTest extends TestCase
 
     #[Test]
     #[DataProvider('languageFiles')]
+    public function noLabelIdIsDeclaredTwice(string $file): void
+    {
+        // readUnits() keys by id, so a second unit with the same id silently replaces the first (Atlas pass review).
+        foreach ([$file, 'de.' . $file] as $name) {
+            preg_match_all('/<trans-unit id="([^"]+)"/', (string)file_get_contents(self::LANGUAGE_DIRECTORY . $name), $matches);
+            $duplicates = array_keys(array_filter(array_count_values($matches[1]), static fn(int $count): bool => $count > 1));
+            self::assertSame([], $duplicates, 'Duplicate trans-unit ids in ' . $name);
+        }
+    }
+
+    #[Test]
+    #[DataProvider('languageFiles')]
     public function germanFileMirrorsEveryEnglishLabel(string $file): void
     {
         $english = self::readUnits(self::LANGUAGE_DIRECTORY . $file);
@@ -157,8 +169,8 @@ final class TranslationParityTest extends TestCase
                 }
             }
 
-            // formatCountLabel()/countLabelFor() read "<prefix>.singular" and "<prefix>.plural".
-            preg_match_all('/(?:formatCountLabel|countLabelFor)\([^,]+,\s*\'([A-Za-z0-9_.]+)\'/', $source, $countLabels);
+            // formatCountLabel()/countLabelFor()/pluralLabel() read "<prefix>.singular" and "<prefix>.plural".
+            preg_match_all('/(?:formatCountLabel|countLabelFor|pluralLabel)\([^,]+,\s*\'([A-Za-z0-9_.]+)\'/', $source, $countLabels);
             foreach ($countLabels[1] as $prefix) {
                 foreach (['.singular', '.plural'] as $suffix) {
                     if (!isset($english[$prefix . $suffix])) {
@@ -198,7 +210,8 @@ final class TranslationParityTest extends TestCase
      */
     private static function untranslatedText(string $source): array
     {
-        $source = (string)preg_replace(['/<!--.*?-->/s', '/<svg\b.*?<\/svg>/s', '/<f:translate\b[^>]*?\/>/s'], '', $source);
+        // f:comment content is never rendered.
+        $source = (string)preg_replace(['/<f:comment>.*?<\/f:comment>/s', '/<!--.*?-->/s', '/<svg\b.*?<\/svg>/s', '/<f:translate\b[^>]*?\/>/s'], '', $source);
 
         // Fluid inline syntax, including nested expressions such as {items -> f:count()}.
         do {

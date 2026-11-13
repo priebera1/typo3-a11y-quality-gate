@@ -1,0 +1,59 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:comment>"Ask AQG": a free-text question about the open page or the website. Without usable AI the question is answered from the stored findings (no AI, no cost); with AI it is one request through the existing AI services. Nothing is sent before Ask; the browser keeps the conversation.</f:comment>
+<div class="aqt-ask" data-aqt-ask="true" data-ai="{f:if(condition: ask.ai, then: '1', else: '0')}" data-limits="{ask.limits}" data-principal="{ask.principal}" data-scope="{ask.scope}">
+    <form class="aqt-ask__form" data-aqt-ask-form="true" novalidate="novalidate">
+        <f:if condition="{ask.ai}">
+            <f:if condition="{ask.site}">
+                <f:then>
+                    <fieldset class="aqt-ask__scope">
+                        <legend class="aqt-ask__legend"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.scope" default="Answer about" /></legend>
+                        <label class="aqt-ask__choice"><input type="radio" name="aqt-ask-scope" value="page" checked="checked" />
+                            <f:switch expression="{assistant.context.type}">
+                                <f:case value="record"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.scope.record" default="This content element" /></f:case>
+                                <f:defaultCase><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.scope.page" default="This page" /></f:defaultCase>
+                            </f:switch>
+                        </label>
+                        <label class="aqt-ask__choice"><input type="radio" name="aqt-ask-scope" value="site" /> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.scope.site" default="This website" /></label>
+                    </fieldset>
+                </f:then>
+                <f:else>
+                    <input type="hidden" name="aqt-ask-scope" value="page" />
+                </f:else>
+            </f:if>
+        </f:if>
+        <label class="visually-hidden" for="aqt-ask-input"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.label" default="Your question" /></label>
+        <textarea class="aqt-ask__input" id="aqt-ask-input" name="question" rows="3" maxlength="400" required="required" aria-describedby="aqt-ask-help" data-aqt-ask-input="true"
+                  placeholder="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.placeholder', default: 'Ask about this page or website, e.g. What should I fix first? Where can I fix the missing alt text?')}"></textarea>
+        <div class="aqt-ask__actions">
+            <button type="submit" class="aqt-btn aqt-btn--primary" data-aqt-ask-submit="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.submit" default="Ask" /></button>
+            <button type="button" class="aqt-btn" data-aqt-ask-clear="true" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.clear" default="New conversation" /></button>
+        </div>
+        <p class="aqt-ask__status" data-aqt-ask-status="true" role="status" aria-live="polite"></p>
+        <p class="aqt-ask__usage aqt-assistant__muted" data-aqt-ask-usage="true" hidden="hidden"></p>
+        <div class="aqt-ask__log" data-aqt-ask-log="true" role="log" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.answers', default: 'Answers')}" hidden="hidden"></div>
+        <details class="aqt-ask__about">
+            <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.about" default="How answers work" /></summary>
+            <p class="aqt-assistant__muted" id="aqt-ask-help">
+                <f:if condition="{ask.ai}">
+                    <f:then>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help" default="AQG answers from its stored findings and may be wrong. It changes nothing. Sent to the AI provider: your question, rule names, counts, field names, AQG guidance and your earlier AI questions and answers." />
+                        <f:if condition="{ask.site}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help.site" default="Website answers include only pages you may access." /></f:if>
+                        <f:if condition="{ask.cost}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help.cost" default="Estimated cost per question: %s." arguments="{0: ask.cost}" /></f:if>
+                        <f:if condition="{ask.cap}">
+                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help.limits" default="One conversation allows up to 10 AI questions and %s. Your browser keeps the last 3 questions; AQG stores none." arguments="{0: ask.cap}" /></f:then>
+                            <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help.limitsNoPrice" default="One conversation allows up to 10 AI questions. Your browser keeps the last 3 questions; AQG stores none." /></f:else>
+                        </f:if>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help.common" default="Common questions (what to fix first, why, where) are answered from your findings without AI and cost nothing." />
+                    </f:then>
+                    <f:else>
+                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.ask.help.noAi" default="Answers come from your stored AQG findings and AQG guidance, without AI and without cost. They cover what to fix first, why it matters and where to fix it, for this page or, with access to the site root, the website." />
+                    </f:else>
+                </f:if>
+            </p>
+        </details>
+    </form>
+</div>
+</html>

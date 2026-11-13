@@ -6,6 +6,7 @@ namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueNodeRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteIssueRepository;
+use Priebera\A11yQualityGate\Rendered\RenderedPageTypeGuard;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Site\Entity\Site;
 
@@ -16,6 +17,9 @@ use TYPO3\CMS\Core\Site\Entity\Site;
  * that maps to no page of the scan's site belongs to the site root, so rescanning it needs the same access
  * as scanning the whole site. The Remote Page Detail button and the submit endpoint both use this, which
  * keeps the page a browser may name bound to the URL that is scanned.
+ *
+ * It also decides whether a single-page scan of that page is a preview scan (Atlas D9): the page, as stored in TYPO3
+ * when the scan is submitted, is not open to visitors. The browser never decides this.
  */
 final class RemotePageScanTargetResolver
 {
@@ -23,7 +27,59 @@ final class RemotePageScanTargetResolver
         private readonly RemoteIssueRepository $remoteIssueRepository,
         private readonly RemoteIssueNodeRepository $remoteIssueNodeRepository,
         private readonly SiteResolutionService $siteResolutionService,
+        private readonly ?RenderedPageTypeGuard $renderedPageTypeGuard = null,
     ) {
+    }
+
+    /**
+     * A paid single-page scan of this page in this language is a preview scan when visitors cannot open the page now:
+     * hidden (page or translation), outside its start/stop time, or limited to frontend user groups
+     * (`RenderedPageTypeGuard::visitorRestriction()`). The crawler then only gets it through the Scanner Token.
+     */
+    public function isPreviewTarget(int $pageUid, int $languageUid): bool
+    {
+        return $this->visitorRestriction($pageUid, $languageUid) !== '';
+    }
+
+    /**
+     * A restriction the Scanner Token cannot open, or '' when a preview scan can load the page. The token makes hidden
+     * pages and content visible to the crawler (ScannerPreviewMiddleware), nothing else: it neither moves the clock past
+     * a start or stop time nor logs in a frontend user group, so a scheduled or group-restricted page would only return
+     * an error page to the crawler. Such a scan is refused before it is submitted.
+     */
+    public function unsupportedPreviewRestriction(int $pageUid, int $languageUid): string
+    {
+        if ($pageUid <= 0 || !$this->renderedPageTypeGuard instanceof RenderedPageTypeGuard) {
+            return '';
+        }
+        $unsupported = array_values(array_diff(
+            $this->renderedPageTypeGuard->visitorRestrictions($pageUid, max(0, $languageUid)),
+            [RenderedPageTypeGuard::RESTRICTION_HIDDEN],
+        ));
+
+        return $unsupported[0] ?? '';
+    }
+
+    /**
+     * Whether visitors can open the page in this language now; false when that cannot be determined.
+     */
+    public function isPublicNow(int $pageUid, int $languageUid): bool
+    {
+        return $pageUid > 0
+            && $this->renderedPageTypeGuard instanceof RenderedPageTypeGuard
+            && $this->visitorRestriction($pageUid, $languageUid) === '';
+    }
+
+    /**
+     * Why visitors cannot open the page in this language, or '' when it is public (or unknown).
+     */
+    public function visitorRestriction(int $pageUid, int $languageUid): string
+    {
+        if ($pageUid <= 0 || !$this->renderedPageTypeGuard instanceof RenderedPageTypeGuard) {
+            return '';
+        }
+
+        return $this->renderedPageTypeGuard->visitorRestriction($pageUid, max(0, $languageUid));
     }
 
     /**

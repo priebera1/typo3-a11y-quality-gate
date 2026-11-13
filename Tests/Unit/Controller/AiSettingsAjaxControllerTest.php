@@ -61,7 +61,7 @@ final class AiSettingsAjaxControllerTest extends TestCase
     {
         $configuration = $this->configuration();
         $resolver = $this->createMock(AiConfigurationResolverInterface::class);
-        $resolver->method('resolve')->with('main')->willReturn($configuration);
+        $resolver->method('resolveForConnectionTest')->with('main')->willReturn($configuration);
         $resolver->method('status')->with('main')->willReturn($this->uiStatus('connected'));
         $discovery = $this->createMock(AiModelDiscoveryServiceInterface::class);
         $discovery->method('discover')->with('main')->willReturn([
@@ -188,7 +188,7 @@ final class AiSettingsAjaxControllerTest extends TestCase
     {
         $configuration = $this->configuration();
         $resolver = $this->createMock(AiConfigurationResolverInterface::class);
-        $resolver->method('resolve')->with('main')->willReturn($configuration);
+        $resolver->method('resolveForConnectionTest')->with('main')->willReturn($configuration);
         $resolver->method('status')->with('main')->willReturn($this->uiStatus('connected'));
         $discovery = $this->createMock(AiModelDiscoveryServiceInterface::class);
         $discovery->expects(self::once())->method('ensureFresh')->with('main');
@@ -231,7 +231,7 @@ final class AiSettingsAjaxControllerTest extends TestCase
     ): void {
         $configuration = $this->configuration();
         $resolver = $this->createMock(AiConfigurationResolverInterface::class);
-        $resolver->method('resolve')->willReturn($configuration);
+        $resolver->method('resolveForConnectionTest')->willReturn($configuration);
         $resolver->method('status')->with('main')->willReturn(
             $this->uiStatus('connection_failed', $persistedErrorCode),
         );

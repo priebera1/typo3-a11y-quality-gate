@@ -111,4 +111,27 @@ final class RemoteScanSignalTest extends TestCase
             'pages_total' => $pagesTotal,
         ];
     }
+
+    /** Sol QA-06: a restricted view of a scan that loaded pages is neither "no page checked" nor an all-clear. */
+    #[Test]
+    public function aRestrictedViewOfALoadedScanIsTheNeutralRestrictedState(): void
+    {
+        $visibleNothing = $this->scan(0, 0, 0);
+        $stored = $this->scan(2, 0, 2);
+
+        $none = RemoteScanSignal::resolve($visibleNothing, self::GOOD_API_SCORE, false, [], 0, true, $stored);
+        $some = RemoteScanSignal::resolve($this->scan(1, 0, 1), self::GOOD_API_SCORE, false, [], 0, true, $stored);
+
+        self::assertSame(RemoteScanSignal::TONE_RESTRICTED, $none->tone);
+        self::assertSame(RemoteScanSignal::TONE_RESTRICTED, $some->tone, 'never "good" for a partial view');
+        self::assertFalse($some->showScoreValue);
+    }
+
+    #[Test]
+    public function aRestrictedViewOfAScanThatLoadedNoPageStillSaysSo(): void
+    {
+        $signal = RemoteScanSignal::resolve($this->scan(0, 0, 0), [], false, [], 0, true, $this->scan(0, 2, 2));
+
+        self::assertSame(RemoteScanSignal::TONE_NO_COVERAGE, $signal->tone);
+    }
 }

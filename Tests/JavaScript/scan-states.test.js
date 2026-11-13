@@ -212,7 +212,11 @@ describe('failed frontend scan', () => {
         pro.translations = {};
         pro.showNotification = vi.fn();
         pro.announce = vi.fn();
-        document.querySelector('[data-a11y-remote-scan-progress]').classList.remove('d-none');
+        const box = document.querySelector('[data-a11y-remote-scan-progress]');
+        box.classList.remove('d-none');
+        box.querySelector('[data-a11y-remote-scan-message]').textContent = 'Site not reachable.';
+        // jsdom has no layout: the box is on screen.
+        box.getClientRects = () => [{width: 1, height: 1}];
 
         pro.notifyRemoteScanFailure('Frontend scan failed: Site not reachable from the internet (long text).', 'Site not reachable.');
 
@@ -221,6 +225,22 @@ describe('failed frontend scan', () => {
             'error',
         );
         expect(pro.announce).toHaveBeenCalledWith('Frontend scan failed: Site not reachable.');
+    });
+
+    it('puts the reason into the toast when no visible status holds it (M-05)', () => {
+        mountRemote();
+        const pro = Object.create(A11yProBackendModule.prototype);
+        pro.translations = {};
+        pro.showNotification = vi.fn();
+        pro.announce = vi.fn();
+        // The status box stays hidden (another tab, or the scan never started on this page).
+
+        pro.notifyRemoteScanFailure('Data processing agreement required: Accept it in your AQG account.', 'Accept it in your AQG account.');
+
+        expect(pro.showNotification).toHaveBeenCalledWith(
+            'Frontend scan failed: Data processing agreement required: Accept it in your AQG account.',
+            'error',
+        );
     });
 });
 
@@ -254,6 +274,18 @@ describe('show on page', () => {
 });
 
 describe('ignoring one occurrence', () => {
+    it('gives focus back to the visible Ignore button when the ignore form is cancelled', () => {
+        document.body.innerHTML = `
+            <button type="button" class="btn btn-default btn-sm a11y-ignore-trigger" data-issue-uid="7" hidden>Ignore…</button>
+            <div class="aqg-ignore-form" id="ignore-form-7"><button type="button" id="cancel" class="a11y-ignore-cancel" data-target="ignore-form-7">Cancel</button></div>`;
+
+        A11yFreeBackendModule.prototype.handleIgnoreCancel.call({}, document.getElementById('cancel'));
+
+        expect(document.getElementById('ignore-form-7').hidden).toBe(true);
+        expect(document.querySelector('.a11y-ignore-trigger').hidden).toBe(false);
+        expect(document.activeElement).toBe(document.querySelector('.a11y-ignore-trigger'));
+    });
+
     it('gives focus back to the occurrence menu when the ignore form is cancelled', () => {
         document.body.innerHTML = `
             <details class="aqg-menu aqg-occ__menu" data-aqg-menu="true">

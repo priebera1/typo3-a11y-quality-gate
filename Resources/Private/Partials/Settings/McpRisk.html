@@ -1,0 +1,8 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment><!-- Risk of an MCP capability as an Atlas pill: the word carries the meaning, the tone repeats it. --></f:comment>
+<f:switch expression="{risk}">
+    <f:case value="read"><span class="aqg-mcp-risk aqg-mcp-risk--read"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.risk.read" default="Read" /></span></f:case>
+    <f:case value="act"><span class="aqg-mcp-risk aqg-mcp-risk--act"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.risk.act" default="Action" /></span></f:case>
+    <f:defaultCase><span class="aqg-mcp-risk aqg-mcp-risk--locked"><f:render partial="Shared/AqgIcon" arguments="{name: 'lock', size: 'sm'}" /> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.risk.locked" default="Locked" /></span></f:defaultCase>
+</f:switch>
+</html>

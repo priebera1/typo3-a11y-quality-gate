@@ -28,7 +28,7 @@ Whether a scan includes the rendered page check depends on how it was started.
     *   -   :guilabel:`Scan this page` in the backend module
         -   yes, for the selected page
 
-    *   -   :guilabel:`Scan site` in the backend module
+    *   -   :guilabel:`Scan site content` in the backend module
         -   yes, for the supported pages of the scanned subtree
 
     *   -   CLI ``a11y:scan --page-uid=...``
@@ -49,6 +49,11 @@ Independently of the entry point, the rendered page check is skipped when:
 *   the rendered page check is disabled in the ruleset settings,
 *   the page has a doktype that does not deliver a frontend page, for example a
     folder, a shortcut or a link to an external URL.
+
+A scan without the rendered check neither resolves nor confirms rendered
+findings. Page Detail marks an open rendered finding that the page's last scan
+did not re-check as *Not re-checked by the last scan*; scan the page (or the
+site from the module) to check it again.
 
 AQG requests each page from its own frontend with a one-time nonce, so that the
 check runs against exactly the page and language that was scanned. If a scanner

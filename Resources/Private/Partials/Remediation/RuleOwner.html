@@ -1,0 +1,23 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment>Owner of a rule on this page (per rule and page, RemediationWorkflowService::assignOwner()): once per rule card.</f:comment>
+<div class="aqg-rulecard__owner" data-aqg-rule-owner="true" data-rule-id="{ruleId}">
+    <span class="aqg-rulecard__owner-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.pd.ownerLabel" default="Owner" />:</span>
+    <f:if condition="{remediation.canChangeOwner} && {open}">
+        <f:then>
+            <details class="aqg-menu aqg-remediation-occ__owner" data-aqg-menu="true">
+                <summary class="aqg-remediation__owner aqg-remediation__owner--{remediation.owner}" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.change', default: 'Change owner')}: {remediation.ownerLabel}" data-aqg-owner-current="true">{remediation.ownerLabel}</summary>
+                <div class="aqg-menu__panel" role="group" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.change', default: 'Change owner')}">
+                    <f:for each="{0: 'editor', 1: 'developer', 2: 'mixed', 3: 'unassigned'}" as="owner">
+                        <button type="button" class="aqg-menu__item" data-aqg-owner-set="{owner}" data-rule-id="{ruleId}" aria-pressed="{f:if(condition: '{remediation.owner} == {owner}', then: 'true', else: 'false')}">
+                            <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.owner.help.{owner}" />
+                        </button>
+                    </f:for>
+                </div>
+            </details>
+        </f:then>
+        <f:else>
+            <span class="aqg-remediation__owner aqg-remediation__owner--{remediation.owner}">{remediation.ownerLabel}</span>
+        </f:else>
+    </f:if>
+</div>
+</html>

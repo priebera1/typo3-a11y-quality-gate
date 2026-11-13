@@ -54,7 +54,7 @@ final class ProTokenService
     ) {
     }
 
-    public function getValidToken(string $domain, string $version, bool $forceRefresh = false): AccessTokenResult
+    public function getValidToken(string $domain, string $version, bool $forceRefresh = false, bool $askAgainAfterRefusal = false): AccessTokenResult
     {
         if (!$this->proSettings->isConfigured()) {
             throw new ProNotConfiguredException('AQG PRO licence key is not configured.');
@@ -71,6 +71,18 @@ final class ProTokenService
             && !$cached->isExpiringSoon(ProConstants::TOKEN_REFRESH_MARGIN)
         ) {
             return $cached;
+        }
+
+        // N-14: a missing DPA acceptance does not change from one render to the next. Background callers (Overview
+        // regression signal, history, screenshots) get the remembered answer instead of asking again and using up the
+        // rate limit the user's next scan needs. A forced refresh and a scan the user starts ($askAgainAfterRefusal: the
+        // owner may just have accepted the DPA) still ask.
+        if (!$forceRefresh && !$askAgainAfterRefusal && $this->cacheManager->getTokenRefusal($cacheKey) === self::DPA_REQUIRED) {
+            throw new TokenRefreshException(
+                'AQG token issuance refused: ' . self::DPA_REQUIRED . '.',
+                0,
+                new ApiRequestFailedException('AQG token issuance refused: ' . self::DPA_REQUIRED . '.', 403, null, self::DPA_REQUIRED),
+            );
         }
 
         try {
@@ -99,12 +111,18 @@ final class ProTokenService
             // DPA acceptance (accept it in the customer area): their codes reach the scan error presenter. Other
             // refusals stay a licence authentication failure.
             $errorCode = (string)$responseDto->errorCode;
+            if ($errorCode === self::DPA_REQUIRED) {
+                $this->cacheManager->setTokenRefusal($cacheKey, self::DPA_REQUIRED, ProConstants::TOKEN_REFUSAL_TTL);
+            }
             throw new TokenRefreshException(
                 $responseDto->errorMessage ?? 'AQG token issuance failed.',
                 0,
                 in_array($errorCode, [...self::DOMAIN_TOKEN_ERRORS, self::DPA_REQUIRED], true)
                     ? new ApiRequestFailedException('AQG token issuance refused: ' . $errorCode . '.', 403, null, $errorCode)
-                    : null,
+                    // M-06: a rate limit is no licence verdict; its code reaches the presenter as "limit".
+                    : ($responseDto->httpStatus === 429
+                        ? new ApiRequestFailedException('AQG token issuance rate limited.', 429, null, $errorCode !== '' ? $errorCode : 'rate_limit_exceeded')
+                        : null),
             );
         }
 

@@ -7,6 +7,9 @@ namespace Priebera\A11yQualityGate\Tests\Unit\Scheduler;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Scheduler\A11yScanTask;
+use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Site\SiteFinder;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final class A11yScanTaskTest extends TestCase
 {
@@ -23,6 +26,30 @@ final class A11yScanTaskTest extends TestCase
         $this->expectExceptionMessage('Please configure either a single page UID or a root page.');
 
         $task->execute();
+    }
+
+    /** U-06: the language list names every site's languages; a run refuses one its site does not have. */
+    #[Test]
+    public function aLanguageTheSiteDoesNotHaveFailsVisibly(): void
+    {
+        $site = new Site('northwind', 1, ['base' => 'https://northwind.invalid/', 'languages' => [
+            ['languageId' => 0, 'title' => 'English', 'base' => '/', 'locale' => 'en_US.UTF-8'],
+            ['languageId' => 1, 'title' => 'Deutsch', 'base' => '/de/', 'locale' => 'de_DE.UTF-8'],
+        ]]);
+        $finder = $this->createMock(SiteFinder::class);
+        $finder->method('getSiteByPageId')->willReturn($site);
+        GeneralUtility::addInstance(SiteFinder::class, $finder);
+        $task = self::createTask();
+        $task->rootPid = 1;
+        $task->languageUid = 2;
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('Language 2 is not a language of site northwind.');
+            $task->execute();
+        } finally {
+            GeneralUtility::purgeInstances();
+        }
     }
 
     #[Test]

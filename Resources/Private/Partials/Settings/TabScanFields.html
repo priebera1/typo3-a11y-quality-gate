@@ -1,5 +1,5 @@
 <div
-        class="tab-pane fade{f:if(condition: '{activeTab} == ''fields''', then: ' show active')}"
+        class="tab-pane fade show active"
         id="a11y-settings-pane-fields"
 >
     <div class="aqg-stack">
@@ -33,6 +33,7 @@
                 </div>
             </div>
 
+            <f:if condition="{isAdmin}">
             <div class="aqg-actionbar__right">
                 <span class="aqg-actionbar__dirty" data-a11y-settings-dirty="true" hidden="hidden">
                     <f:render partial="Settings/Icon" arguments="{name: 'warning'}" />
@@ -52,7 +53,29 @@
                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.save" default="Save changes" />
                 </button>
             </div>
+            </f:if>
         </div>
+        </f:if>
+
+        <f:if condition="{fieldsAwaitingRefresh} > 0 && {isAdmin}">
+            <div class="aqg-notice aqg-tone-info" role="status" data-a11y-settings-fields-awaiting-refresh="{fieldsAwaitingRefresh}">
+                <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                <span class="aqg-notice__body">
+                    <strong class="aqg-notice__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scanFields.awaitingRefresh.title" default="New content fields can be scanned" /></strong>
+                    <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:scanFields.awaitingRefresh.text" arguments="{0: fieldsAwaitingRefresh}" default="%d field(s) that your extensions or TCA added are not in the scan configuration yet, so content scans skip them. Choose Refresh fields to add them." /></span>
+                </span>
+            </div>
+        </f:if>
+
+        <f:if condition="{isAdmin}">
+            <f:else>
+                <div class="aqg-notice aqg-tone-info" role="status" data-a11y-settings-read-only="true">
+                    <span class="aqg-notice__icon" aria-hidden="true"><f:render partial="Settings/Icon" arguments="{name: 'info'}" /></span>
+                    <span class="aqg-notice__body">
+                        <span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.readOnly" default="Only TYPO3 administrators can change the scanned fields. They apply to every site, so this configuration is read-only." /></span>
+                    </span>
+                </div>
+            </f:else>
         </f:if>
 
         <form method="post" action="{saveUrl}" id="a11y-settings-fields-form" class="aqg-card">
@@ -79,12 +102,14 @@
                 <f:if condition="{fieldGroups}">
                     <f:then></f:then>
                     <f:else>
+                        <f:if condition="{isAdmin}">
                         <div class="aqg-card__actions">
                             <button type="submit" form="a11y-settings-refresh-fields-form" class="btn btn-default btn-sm">
                                 <f:render partial="Settings/Icon" arguments="{name: 'running'}" />
                                 <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields.short" default="Refresh fields" /></span>
                             </button>
                         </div>
+                        </f:if>
                     </f:else>
                 </f:if>
             </div>
@@ -94,14 +119,15 @@
                     <f:then>
                         <div class="aqg-field-groups">
                             <f:for each="{fieldGroups}" as="group" key="tableName">
-                                <details class="aqg-fgroup" open="open" data-a11y-settings-group="true">
-                                    <summary class="aqg-fgroup__head a11y-field-group-header">
+                                <f:comment><!-- Not a details/summary: the header row holds the "Enable all" button, and a summary must not contain controls (axe nested-interactive). The title is the disclosure button (settings-groups.js). --></f:comment>
+                                <div class="aqg-fgroup is-open" data-a11y-settings-group="true" data-aqg-group-disclosure="true">
+                                    <div class="aqg-fgroup__head a11y-field-group-header">
                                         <span class="aqg-fgroup__chev" aria-hidden="true">
                                             <svg width="12" height="12" viewBox="0 0 12 12" focusable="false" aria-hidden="true"><path d="M4 2.4 L8 6 L4 9.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
                                         </span>
 
                                         <span class="aqg-fgroup__title-block">
-                                            <span class="aqg-fgroup__title">
+                                            <button type="button" class="aqg-fgroup__title aqg-group-toggle" id="aqg-fgroup-{tableName}-toggle" aria-expanded="true" aria-controls="aqg-fgroup-{tableName}-body" data-aqg-group-toggle="true">
                                                 <span>
                                                     <f:if condition="{group.label}">
                                                         <f:then>{group.label}</f:then>
@@ -116,7 +142,7 @@
                                                     </f:if>
                                                 </span>
                                                 <span class="aqg-fgroup__table">{tableName}</span>
-                                            </span>
+                                            </button>
                                             <span class="aqg-fgroup__help">
                                                 <f:switch expression="{tableName}">
                                                     <f:case value="tt_content"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.scanFields.groupHelp.content" default="Standard TYPO3 content fields. Use this group to control what is scanned inside content elements on the page." /></f:case>
@@ -132,19 +158,19 @@
                                         </span>
 
                                         <span class="aqg-fgroup__action">
-                                            <button type="button" class="btn btn-default btn-sm" data-a11y-settings-enable-group="true">
+                                            <f:if condition="{isAdmin}"><button type="button" class="btn btn-default btn-sm" data-a11y-settings-enable-group="true" aria-describedby="aqg-fgroup-{tableName}-toggle">
                                                 <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.enableAll" default="Enable all" />
-                                            </button>
+                                            </button></f:if>
                                         </span>
-                                    </summary>
+                                    </div>
 
-                                    <div class="aqg-fgroup__body">
+                                    <div class="aqg-fgroup__body" id="aqg-fgroup-{tableName}-body" role="group" aria-labelledby="aqg-fgroup-{tableName}-toggle">
                                         <div class="aqg-fgroup__list">
                                             <f:for each="{group.fields}" as="field" iteration="iterator">
                                                 <f:variable name="fieldDomId" value="a11y-field-{tableName}-{iterator.index}" />
 
                                                 <label for="{fieldDomId}" class="aqg-field-row a11y-field-row {f:if(condition: field.is_enabled, then: 'is-checked', else: 'is-unchecked')}" data-a11y-settings-item="true">
-                                                    <input id="{fieldDomId}" type="checkbox" name="enabledFields[{field.table_name}][]" value="{field.field_name}" class="aqg-field-row__input form-check-input" data-a11y-settings-checkbox="true" {f:if(condition: field.is_enabled, then: 'checked="checked"')} />
+                                                    <input id="{fieldDomId}" type="checkbox" name="enabledFields[{field.table_name}][]" value="{field.field_name}" class="aqg-field-row__input form-check-input" data-a11y-settings-checkbox="true" {f:if(condition: isAdmin, else: 'disabled="disabled"')} {f:if(condition: field.is_enabled, then: 'checked="checked"')} />
                                                     <span class="aqg-check" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2 L5 8.4 L9.5 3.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
                                                     <span class="aqg-field-row__body a11y-field-row__content">
                                                         <span class="aqg-field-row__label a11y-field-row__title">{field.field_label}</span>
@@ -155,7 +181,7 @@
                                             </f:for>
                                         </div>
                                     </div>
-                                </details>
+                                </div>
                             </f:for>
                         </div>
                     </f:then>
@@ -174,9 +200,11 @@
                                 <a href="{documentationUrl}" class="btn btn-default btn-sm" target="_blank" rel="noopener noreferrer">
                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.openDocs" default="Open documentation" />
                                 </a>
-                                <button type="submit" form="a11y-settings-refresh-fields-form" class="btn btn-primary btn-sm">
+                                <f:if condition="{isAdmin}">
+                                    <button type="submit" form="a11y-settings-refresh-fields-form" class="btn btn-primary btn-sm">
                                     <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.refreshFields.short" default="Refresh fields" />
                                 </button>
+                                </f:if>
                             </span>
                         </div>
                     </f:else>

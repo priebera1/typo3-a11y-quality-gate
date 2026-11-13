@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Ai\Editor\EditorAiAccessService;
 use Priebera\A11yQualityGate\Ai\Exception\AiConfigurationException;
 use Priebera\A11yQualityGate\Ai\Exception\AiLinkTextSuggestionException;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
@@ -52,10 +53,12 @@ final class AiLinkTextSuggestionAjaxController
             };
         } catch (AiConfigurationException $exception) {
             return match ($exception->getCode()) {
+                // N-08: the user's ai.editor switch is off: no provider request was made.
+                1771002842 => $this->error('no_permission', 403),
                 1771002841 => $this->error('ai_link_text_disabled', 422),
-                1771002001, 1771002002, 1771002003, 1771002004 => $this->error('ai_not_configured', 422),
+                1771002001, 1771002002, 1771002003 => $this->error('ai_not_configured', 422),
                 1771002840 => $this->error('ai_feature_unavailable', 403),
-                default => $this->error('ai_not_configured', 422),
+                default => $this->configurationError((int)$exception->getCode()),
             };
         } catch (AiRateLimitException) {
             return $this->error('rate_limited', 429);
@@ -66,6 +69,14 @@ final class AiLinkTextSuggestionAjaxController
         } catch (\Throwable) {
             return $this->error('unsupported_context', 200);
         }
+    }
+
+    /** Readiness and budget refusals keep their own safe code (paused, budget_reached); everything else is not set up. */
+    private function configurationError(int $code): JsonResponse
+    {
+        $state = EditorAiAccessService::stateForConfigurationCode($code);
+
+        return $state === EditorAiAccessService::STATE_NOT_CONFIGURED ? $this->error('ai_not_configured', 422) : $this->error($state, 422);
     }
 
     private function error(string $code, int $status): JsonResponse

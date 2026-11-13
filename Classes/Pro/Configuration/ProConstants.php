@@ -19,6 +19,8 @@ final class ProConstants
     public const CACHE_TTL_GRACE = 172800;
 
     public const TOKEN_REFRESH_MARGIN = 300;
+    /** N-14: how long a missing-DPA refusal of the token endpoint is remembered (flushed with the tokens). */
+    public const TOKEN_REFUSAL_TTL = 60;
 
     /**
      * Free Remote Preview entitlement status is fetched while the backend module renders, so it

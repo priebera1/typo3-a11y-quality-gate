@@ -7,6 +7,7 @@ namespace Priebera\A11yQualityGate\Tests\Functional\Scan;
 use PHPUnit\Framework\Attributes\Test;
 use Priebera\A11yQualityGate\Rendered\RenderedPageTypeGuard;
 use Priebera\A11yQualityGate\Scan\ScanOrchestrator;
+use Priebera\A11yQualityGate\Service\RemotePageScanTargetResolver;
 use Priebera\A11yQualityGate\Tests\Functional\AbstractFunctionalTestCase;
 use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -97,13 +98,34 @@ final class HiddenPageContentScanFunctionalTest extends AbstractFunctionalTestCa
         $pages->update('pages', ['fe_group' => '3'], ['uid' => self::HIDDEN_PAGE]);
         self::assertSame(RenderedPageTypeGuard::RESTRICTION_RESTRICTED, $guard->visitorRestriction(self::HIDDEN_PAGE));
 
-        // A hidden translation is not shown in its language, the default language page still is.
+        // A page can have several restrictions; a preview scan supports only "hidden" (the Scanner Token).
+        $pages->update('pages', ['hidden' => 1, 'starttime' => time() + 86400], ['uid' => self::HIDDEN_PAGE]);
+        self::assertSame([RenderedPageTypeGuard::RESTRICTION_HIDDEN, RenderedPageTypeGuard::RESTRICTION_SCHEDULED, RenderedPageTypeGuard::RESTRICTION_RESTRICTED], $guard->visitorRestrictions(self::HIDDEN_PAGE));
+        $targets = $this->get(RemotePageScanTargetResolver::class);
+        self::assertSame(RenderedPageTypeGuard::RESTRICTION_SCHEDULED, $targets->unsupportedPreviewRestriction(self::HIDDEN_PAGE, 0));
+        $pages->update('pages', ['starttime' => 0], ['uid' => self::HIDDEN_PAGE]);
+        self::assertSame(RenderedPageTypeGuard::RESTRICTION_RESTRICTED, $targets->unsupportedPreviewRestriction(self::HIDDEN_PAGE, 0));
         $pages->update('pages', ['fe_group' => ''], ['uid' => self::HIDDEN_PAGE]);
+        self::assertSame('', $targets->unsupportedPreviewRestriction(self::HIDDEN_PAGE, 0), 'A hidden page is a supported preview.');
+        self::assertSame('', $targets->unsupportedPreviewRestriction(self::ROOT, 0));
+        $pages->update('pages', ['hidden' => 0], ['uid' => self::HIDDEN_PAGE]);
+
+        // A hidden translation is not shown in its language, the default language page still is.
         $pages->insert('pages', [
             'uid' => 3, 'pid' => self::ROOT, 'title' => 'Versteckt', 'slug' => '/versteckt', 'doktype' => 1, 'deleted' => 0,
             'hidden' => 1, 'sys_language_uid' => 1, 'l10n_parent' => self::HIDDEN_PAGE,
         ]);
         self::assertSame('', $guard->visitorRestriction(self::HIDDEN_PAGE, 0));
         self::assertSame(RenderedPageTypeGuard::RESTRICTION_HIDDEN, $guard->visitorRestriction(self::HIDDEN_PAGE, 1));
+
+        // A workspace draft of the translation changes nothing for visitors of the live page.
+        $pages->update('pages', ['hidden' => 0], ['uid' => 3]);
+        $pages->insert('pages', [
+            'uid' => 5, 'pid' => self::ROOT, 'title' => 'Versteckt (Entwurf)', 'slug' => '/versteckt', 'doktype' => 1, 'deleted' => 0,
+            'fe_group' => '3', 'starttime' => time() + 86400, 'sys_language_uid' => 1, 'l10n_parent' => self::HIDDEN_PAGE,
+            't3ver_oid' => 3, 't3ver_wsid' => 7,
+        ]);
+        self::assertSame([], $guard->visitorRestrictions(self::HIDDEN_PAGE, 1));
+        self::assertSame('', $this->get(RemotePageScanTargetResolver::class)->unsupportedPreviewRestriction(self::HIDDEN_PAGE, 1));
     }
 }

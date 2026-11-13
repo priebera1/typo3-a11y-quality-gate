@@ -129,6 +129,27 @@ final class PageModuleIndicatorScanSelectionTest extends TestCase
         self::assertStringContainsString(date('d.m.Y H:i', 1_790_003_600), $variables['rows'][1]['meta']);
     }
 
+    /** Atlas D9 / 09·E, label only: a preview scan of this page is named as one; a public result keeps its row. */
+    #[Test]
+    public function aPreviewScanOfThePageIsLabelledInTheFrontendRow(): void
+    {
+        $preview = $this->build(
+            pageScanPage: ['uid' => 1, 'issues_count' => 2, 'remote_scan_finished_at' => 1_790_000_000, 'remote_scan_is_page_preview' => 1],
+        );
+
+        self::assertSame('pageModuleIndicator.row.preview', $preview['rows'][1]['label']);
+        self::assertTrue($preview['rows'][1]['isPagePreview']);
+        self::assertStringEndsWith(' · pageModuleIndicator.row.pageNotPublic', $preview['rows'][1]['meta']);
+        self::assertSame('2 issue types', $preview['rows'][1]['headline'], 'The counts are unchanged.');
+
+        $public = $this->build(
+            pageScanPage: ['uid' => 1, 'issues_count' => 2, 'remote_scan_finished_at' => 1_790_000_000, 'remote_scan_is_page_preview' => 0],
+        );
+        self::assertSame('pageModuleIndicator.row.remote', $public['rows'][1]['label']);
+        self::assertFalse($public['rows'][1]['isPagePreview']);
+        self::assertStringNotContainsString('pageNotPublic', $public['rows'][1]['meta']);
+    }
+
     #[Test]
     public function aNewerFailedPageNeverReplacesAPageThatWasChecked(): void
     {
@@ -219,7 +240,6 @@ final class PageModuleIndicatorScanSelectionTest extends TestCase
             reason: null,
             reasonLabel: null,
             statusLabel: 'Licence active — Pro',
-            showProHints: true,
             hasCrawler: true,
             hasExportPdf: true,
             hasMultiSite: false,
@@ -240,6 +260,10 @@ final class PageModuleIndicatorScanSelectionTest extends TestCase
         $scanStatus = $this->createMock(ScanStatusService::class);
         $scanStatus->method('getStatus')->willReturn([]);
         $backendContext = $this->createMock(BackendContextService::class);
+        // An administrator reads every result (STATE-01: only then is a zero a verified "ok"; the remote policy says the same).
+        $admin = $this->getMockBuilder(\TYPO3\CMS\Core\Authentication\BackendUserAuthentication::class)->disableOriginalConstructor()->getMock();
+        $admin->method('isAdmin')->willReturn(true);
+        $backendContext->method('getBackendUser')->willReturn($admin);
         $backendContext->method('translate')->willReturnCallback(static fn (string $key): string => match ($key) {
             'pageModuleIndicator.row.lastScan' => 'Last scan %s',
             'pageModuleIndicator.metric.issueTypes.plural' => '%d issue types',
@@ -265,6 +289,7 @@ final class PageModuleIndicatorScanSelectionTest extends TestCase
             $this->createMock(FreeRemotePreviewService::class),
             null,
             $tracker,
+            remoteResultAuthorizationService: (function () { $policy = $this->createMock(\Priebera\A11yQualityGate\Service\RemoteResultAuthorizationService::class); $policy->method('isUnrestrictedUser')->willReturn(true); return $policy; })(),
         );
 
         $variables = $service->buildViewData(self::PAGE, new Site('main', 1, ['base' => 'https://example.org/']), 0);

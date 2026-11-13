@@ -238,7 +238,8 @@
   border-color: var(--aqg-indicator-error-border);
 }
 
-.aqg-page-module-indicator--none .aqg-page-module-indicator__status-pill {
+.aqg-page-module-indicator--none .aqg-page-module-indicator__status-pill,
+.aqg-page-module-indicator--limited .aqg-page-module-indicator__status-pill {
   color: var(--aqg-indicator-none);
   background: var(--aqg-indicator-none-bg);
   border-color: var(--aqg-indicator-none-border);
@@ -341,7 +342,8 @@
   color: var(--aqg-indicator-running-text);
 }
 
-.aqg-page-module-indicator__status-row--none .aqg-page-module-indicator__status-value {
+.aqg-page-module-indicator__status-row--none .aqg-page-module-indicator__status-value,
+.aqg-page-module-indicator__status-row--limited .aqg-page-module-indicator__status-value {
   color: var(--aqg-indicator-none);
 }
 
@@ -361,6 +363,27 @@
   font-weight: 400;
   line-height: 1.45;
   text-wrap: pretty;
+}
+
+/* Remediation facts (Package 4): who fixes what, AI help, waiting suggestions. Content-scan counts only. */
+.aqg-page-module-indicator__remediation {
+  margin: 0.4rem 0 0;
+  padding: 0.35rem 0 0;
+  border-top: 1px solid var(--aqg-indicator-border-soft);
+}
+
+.aqg-page-module-indicator__remediation-line {
+  margin: 0;
+  color: var(--aqg-indicator-fg);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.aqg-page-module-indicator__remediation-source {
+  margin: 0.15rem 0 0;
+  color: var(--aqg-indicator-fg-muted);
+  font-size: 12px;
 }
 
 .aqg-page-module-indicator__progress {
@@ -686,4 +709,54 @@ p.aqg-page-module-indicator__meta:empty {
     transform: none;
     animation: none;
   }
+}
+
+/* Atlas 09·E: "Not public" next to the status pill — dashed, neutral, the word carries the meaning. */
+.aqg-page-module-indicator__title {
+  flex: 1 1 auto;
+}
+
+.aqg-page-module-indicator__notpublic {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px dashed var(--aqg-indicator-review-text);
+  border-radius: 5px;
+  color: var(--aqg-indicator-review-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+/* Atlas 06·A: owner chips without zero entries; a chip never wraps inside its count. */
+.aqg-page-module-indicator__owners {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.aqg-page-module-indicator__owners-label {
+  color: var(--aqg-indicator-fg-muted);
+  font-size: 12px;
+}
+
+.aqg-page-module-indicator__owner {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid var(--aqg-indicator-border);
+  border-radius: 999px;
+  background: var(--aqg-indicator-surface);
+  color: var(--aqg-indicator-fg);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.aqg-page-module-indicator__owner--unassigned {
+  border-style: dashed;
+  color: var(--aqg-indicator-fg-muted);
 }

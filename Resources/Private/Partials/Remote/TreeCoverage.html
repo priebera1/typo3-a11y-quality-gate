@@ -1,0 +1,33 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment>Frontend scan coverage against the TYPO3 page tree (RemoteScanTreeCoverageService), the same block in the
+Overview and the remote page detail. "unknown" says that AQG cannot compare; it never shows a percentage.</f:comment>
+<f:if condition="{coverage}">
+    <details class="aqg-coverage aqg-coverage--{coverage.state}" data-aqg-tree-coverage="{coverage.state}">
+        <summary class="aqg-coverage__summary">
+            <f:switch expression="{coverage.state}">
+                <f:case value="complete"><f:render partial="Shared/AqgIcon" arguments="{name: 'ok', size: 'sm'}" /><f:if condition="{coverage.inventory} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.complete.one" default="Complete: the public page of the page tree was checked" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.complete" default="Complete: all %1$d public pages of the page tree were checked" arguments="{0: coverage.inventory}" /></f:else></f:if></f:case>
+                <f:case value="partial"><f:render partial="Shared/AqgIcon" arguments="{name: 'warn', size: 'sm'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.partial" default="Partial: %1$d of %2$d public pages of the page tree were checked" arguments="{0: coverage.checked, 1: coverage.inventory}" /></f:case>
+                <f:defaultCase><f:render partial="Shared/AqgIcon" arguments="{name: 'info', size: 'sm'}" /><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.unknown" default="Coverage unknown: this scan did not record which TYPO3 pages it checked" /></f:defaultCase>
+            </f:switch>
+        </summary>
+        <div class="aqg-coverage__body">
+            <dl class="aqg-kvlist">
+                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.inventory" default="Public pages in the page tree" /></dt><dd>{coverage.inventory}</dd>
+                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.checked" default="Checked" /></dt><dd>{coverage.checked}</dd>
+                <f:if condition="{coverage.failed} > 0"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.failed" default="Could not be loaded" /></dt><dd>{coverage.failed}</dd></f:if>
+                <f:if condition="{coverage.notReached} > 0"><dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.notReached" default="Not reached" /></dt><dd>{coverage.notReached}</dd></f:if>
+                <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.source" default="How pages were found" /></dt>
+                <dd><f:if condition="{coverage.sourceType} == 'sitemap'"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.source.sitemap" default="XML sitemap of the site" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.source.crawl" default="Links followed from the start page (no sitemap found)" /></f:else></f:if><f:if condition="{coverage.maxPages} > 0"> · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.limit" default="page limit %d" arguments="{0: coverage.maxPages}" /></f:if></dd>
+            </dl>
+            <f:if condition="{coverage.examples}">
+                <p class="aqg-coverage__label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.examples" default="Not reached, for example:" /></p>
+                <ul class="aqg-coverage__list"><f:for each="{coverage.examples}" as="page"><li>{page.title} <span class="aqg-issues__muted">· <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.pageId" arguments="{0: page.uid}" default="ID %d" /></span></li></f:for></ul>
+            </f:if>
+            <f:for each="{coverage.reasons}" as="reason">
+                <p class="aqg-coverage__next"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.next.{reason}" /></p>
+            </f:for>
+            <p class="aqg-coverage__note"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:coverage.note" default="Public pages = visible standard pages without access restriction or “no index”, in the scan's language. Hidden pages are checked only with a Scanner Token." /></p>
+        </div>
+    </details>
+</f:if>
+</html>

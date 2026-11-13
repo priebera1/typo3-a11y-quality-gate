@@ -51,6 +51,7 @@ final class ProCrawlerService
         ?int $languageId = null,
         string $languageCode = '',
         string $purpose = '',
+        string $idempotencyKey = '',
     ): CrawlerSubmitResult {
         $licence = $this->proLicenceService->validate($domain, $version);
 
@@ -69,12 +70,16 @@ final class ProCrawlerService
             $cookieDismiss, $scannerPreviewToken !== '', $httpAuthUser !== '' && $httpAuthPass !== '', $excludedPatterns,
             $priorityUrls, $cookieSelectors, $languageId, $languageCode, $purpose,
         );
-        $idempotencyKey = $this->submitKeys?->keyFor($fingerprint) ?? PaidSubmitIdempotencyStore::newKey();
+        // A caller that keeps its own durable key (the MCP connector, McpScanRequestStore) sends that one on every
+        // attempt; the per-fingerprint store is for the module's own submits.
+        $callerKey = $idempotencyKey !== '';
+        $idempotencyKey = $callerKey ? $idempotencyKey : ($this->submitKeys?->keyFor($fingerprint) ?? PaidSubmitIdempotencyStore::newKey());
+        $submitKeys = $callerKey ? null : $this->submitKeys;
         // The crawler's own failure, as opposed to one of the licence API while fetching a token.
         $crawlerFailure = null;
 
         try {
-            $responseDto = $this->withCurrentToken($domain, $version, 'submit', function (string $accessToken) use (
+            $responseDto = $this->withCurrentToken($domain, $version, 'submit', askAgainAfterRefusal: true, request: function (string $accessToken) use (
                 $siteId, $startUrl, $sitemapUrl, $sourceType, $maxPages, $followLinks, $axeLocale, $captureScreenshot,
                 $cookieDismiss, $scannerPreviewToken, $httpAuthUser, $httpAuthPass, $excludedPatterns, $priorityUrls,
                 $cookieSelectors, $languageId, $languageCode, $idempotencyKey, &$crawlerFailure,
@@ -108,21 +113,21 @@ final class ProCrawlerService
             });
         } catch (TokenRefreshException $exception) {
             if ($exception->getPrevious() === $crawlerFailure && $this->isUnconfirmedSubmit($crawlerFailure)) {
-                $this->submitKeys?->markUnconfirmed($fingerprint, $idempotencyKey);
+                $submitKeys?->markUnconfirmed($fingerprint, $idempotencyKey);
                 throw new TokenRefreshException(
                     'Remote crawler submit not confirmed (the scan may have been accepted): ' . $exception->getMessage(),
                     0,
                     new ApiRequestFailedException('The crawler did not answer the submit.', 503, $exception, 'submit_unconfirmed'),
                 );
             }
-            $this->submitKeys?->release($fingerprint, $idempotencyKey, false);
+            $submitKeys?->release($fingerprint, $idempotencyKey, false);
             throw $exception;
         } finally {
             // Accepted, refused at the Trial limit or lost in transit: the shown allowance may be out of date now.
             $this->trialUsageService?->forget($domain);
         }
 
-        $this->submitKeys?->release($fingerprint, $idempotencyKey);
+        $submitKeys?->release($fingerprint, $idempotencyKey);
 
         if (!$responseDto->success || $responseDto->jobId === null) {
             throw new TokenRefreshException(
@@ -303,9 +308,10 @@ final class ProCrawlerService
      * @param callable(string): T $request
      * @return T
      */
-    private function withCurrentToken(string $domain, string $version, string $label, callable $request): mixed
+    private function withCurrentToken(string $domain, string $version, string $label, callable $request, bool $askAgainAfterRefusal = false): mixed
     {
-        $token = $this->proTokenService->getValidToken($domain, $version);
+        // N-14: a submit is the user's own request and asks again after a remembered DPA refusal.
+        $token = $this->proTokenService->getValidToken($domain, $version, false, $askAgainAfterRefusal);
         try {
             return $request($token->accessToken);
         } catch (ApiRequestFailedException $exception) {

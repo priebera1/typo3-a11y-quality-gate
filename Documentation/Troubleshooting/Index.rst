@@ -36,6 +36,11 @@ CKEditor does not highlight anything
 
 *   Highlighting is registered for :sql:`tt_content` RTE fields of saved
     records. It is not active for a record that has never been saved.
+*   The editor checks need access to the :guilabel:`Accessibility` module.
+    Users without it get the plain TYPO3 editor, see
+    :ref:`configuration-permissions`.
+*   The rule must be enabled on the :guilabel:`Rules` tab; only a subset of the
+    rules is checked live, see :ref:`usage-ckeditor`.
 *   Clear the TYPO3 caches and reload the backend after an update, so that the
     JavaScript modules are re-read.
 *   Check the browser console for module loading errors.
@@ -184,11 +189,21 @@ Remote scans do not start or find nothing
 AI suggestions are not offered
 ==============================
 
-*   AI requires an active licence and a configured provider key.
+*   Open :guilabel:`Accessibility > Settings > AI suggestions` for the site
+    and check the readiness line: PRO or Agency licence, provider, key,
+    verified model, data processing acknowledgement and budget must all be
+    met. After an upgrade to 3.0, the acknowledgement and one
+    :guilabel:`Test connection` are needed per site.
 *   Link text and iframe title suggestions have their own toggle, which is off
     by default.
 *   The connection must be verified with :guilabel:`Test connection` for the
     current key, model and prompt version.
+*   A budget in "Pause AI for editors" mode stops AI for editors when it is
+    reached.
+*   The user's group may switch AI off with
+    :confval:`options.a11y_quality_gate.ai.editor` or
+    :confval:`options.a11y_quality_gate.ai.images`, and fields that TYPO3
+    renders read-only never offer AI actions.
 *   Suggestions are only offered for the supported rules listed in
     :ref:`configuration-ai-scope`.
 *   ``unsupported_context`` means AQG could not identify exactly one supported
@@ -211,8 +226,12 @@ The quality gate does not react
 PDF export is unavailable
 =========================
 
-PDF export requires an active licence and the ``mpdf/mpdf`` library. In Classic
-installations the library must be provided by the installation.
+PDF export requires an active PRO or Agency licence and a Composer
+installation, which installs the ``mpdf/mpdf`` library. In a Classic mode
+(TER) installation PDF export is not available: the export menus, the
+acceptance evidence and the Statement Assistant offer CSV, HTML or text and
+say that PDF needs Composer, and a direct PDF request answers with that notice
+instead of a file. See :ref:`installation-classic`.
 
 ..  _troubleshooting-sodium:
 

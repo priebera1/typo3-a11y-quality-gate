@@ -100,7 +100,7 @@ Rendered HTML rules
 ===================
 
 Applied to the server-rendered HTML of a page. They run for
-:guilabel:`Scan this page`, for :guilabel:`Scan site` and for single-page CLI or
+:guilabel:`Scan this page`, for :guilabel:`Scan site content` and for single-page CLI or
 Scheduler runs, but not for subtree CLI or Scheduler runs and never in
 changed-only mode. See :ref:`usage-rendered-checks` for the full matrix.
 

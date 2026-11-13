@@ -8,7 +8,7 @@
         <f:if condition="{totalCounts.critical} > 0"><f:variable name="localTone" value="critical" /></f:if>
     </f:then>
     <f:else>
-        <f:if condition="{lastScan}"><f:variable name="localTone" value="good" /></f:if>
+        <f:if condition="{lastScan}"><f:variable name="localTone" value="{f:if(condition: localEvidence.clean, then: 'good', else: 'info')}" /></f:if>
     </f:else>
 </f:if>
 
@@ -40,7 +40,7 @@
                     </f:then>
                     <f:else>
                         <f:if condition="{lastScan}">
-                            <f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues" default="No open accessibility issues found." /></f:then>
+                            <f:then><f:if condition="{localEvidence.clean}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.noOpenIssues" default="No open accessibility issues found." /></f:then><f:else><span data-aqg-evidence="{localEvidence.state}">{localEvidence.title}</span></f:else></f:if></f:then>
                             <f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.status.noScan" default="No content scan yet" /></f:else>
                         </f:if>
                     </f:else>
@@ -83,8 +83,12 @@
                                 <details class="aqg-coverage-details" id="aqg-rendered-coverage">
                                     <summary>{localRenderedCoverage.note} · <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.renderedSkipped.details" default="Pages and reasons" /></summary>
                                     <ul class="aqg-coverage-details__list">
-                                        <f:for each="{localRenderedCoverage.pages}" as="skippedPage">
-                                            <li><span class="aqg-coverage-details__page">{skippedPage.title}</span> <span class="aqg-coverage-details__uid">#{skippedPage.pageUid}</span> · {skippedPage.reason}</li>
+                                        <f:for each="{localRenderedCoverage.groups}" as="group">
+                                            <li class="aqg-coverage-details__group">
+                                                <span class="aqg-coverage-details__reason">{group.reason}</span>
+                                                <span class="aqg-coverage-details__count"><f:if condition="{group.count} == 1"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.renderedSkipped.groupOne" default="1 page" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:overview.local.renderedSkipped.groupMany" arguments="{0: group.count}" default="%d pages" /></f:else></f:if></span>
+                                                <span class="aqg-coverage-details__pages"><f:for each="{group.pages}" as="skippedPage" iteration="it"><span class="aqg-coverage-details__page">{skippedPage.title}</span> <span class="aqg-coverage-details__uid">#{skippedPage.pageUid}</span><f:if condition="!{it.isLast}">, </f:if></f:for></span>
+                                            </li>
                                         </f:for>
                                     </ul>
                                     <f:if condition="{localRenderedCoverage.more}"><p class="aqg-coverage-details__more">{localRenderedCoverage.more}</p></f:if>
@@ -162,7 +166,7 @@
             >
                 <f:translate
                         key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.scanAll"
-                        default="Scan site"
+                        default="Scan site content"
                 />
             </button>
         </f:if>

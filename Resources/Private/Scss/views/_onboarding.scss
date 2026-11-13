@@ -69,19 +69,6 @@
     line-height: 1.45;
 }
 
-.a11y-overview .aqg-free-upgrade {
-    grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.a11y-overview .aqg-free-upgrade .aqg-pro-card__title {
-    margin: 0 0 4px;
-}
-
-.a11y-overview .aqg-free-upgrade .aqg-pro-card__text {
-    margin: 0;
-    max-width: 78ch;
-}
-
 /* Headings that receive the focus from a guidance action: the ring follows the text, not the whole row. */
 .a11y-overview #aqg-free-preview-title,
 .a11y-overview .aqg-section__title[tabindex="-1"] {
@@ -118,8 +105,3 @@
     line-height: 1.5;
 }
 
-@media (max-width: 640px) {
-    .a11y-overview .aqg-free-upgrade {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}

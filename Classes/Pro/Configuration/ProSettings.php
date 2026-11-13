@@ -42,36 +42,41 @@ final class ProSettings
             );
     }
 
-    public function showProHints(): bool
-    {
-        try {
-            $ruleset = $this->rulesetRepository->findDefault();
-            if (is_array($ruleset)) {
-                $storedValue = $this->ruleConfigurationService->getShowProHintsFromRuleset($ruleset);
-                if ($storedValue !== null) {
-                    return $storedValue;
-                }
-            }
-        } catch (\Throwable) {
-        }
-
-        try {
-            $rawValue = $this->extensionConfiguration->get('a11y_quality_gate', 'showProHints');
-        } catch (\Throwable) {
-            return true;
-        }
-
-        return filter_var($rawValue, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true;
-    }
-
     public static function resolveApiBaseUrl(): string
     {
-        $override = getenv('A11Y_QUALITY_GATE_PRO_API_BASE_URL');
-        if (is_string($override) && trim($override) !== '') {
-            return rtrim(trim($override), '/');
-        }
+        return self::acceptedServiceOverride(getenv('A11Y_QUALITY_GATE_PRO_API_BASE_URL')) ?? ProConstants::API_BASE_URL;
+    }
 
-        return ProConstants::API_BASE_URL;
+    /**
+     * An AQG service URL from the environment, only when it is safe to send credentials to (P3-11): https, or plain http
+     * on a development host (loopback, a single-label Docker service name, the reserved *.localhost / *.test / *.invalid /
+     * *.example, *.ddev.site / *.local / *.internal). Licence keys, the MCP connector secret and pairing secrets travel to this URL, so an http URL on a
+     * public host is ignored and the AQG service is used instead — never a downgrade to plain text over the internet.
+     */
+    public static function acceptedServiceOverride(mixed $value): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+        $url = rtrim(trim($value), '/');
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['scheme'], $parts['host']) || isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+        $scheme = strtolower((string)$parts['scheme']);
+        if ($scheme === 'https') {
+            return $url;
+        }
+        if ($scheme !== 'http') {
+            return null;
+        }
+        $host = strtolower(trim((string)$parts['host'], '[]'));
+        $development = $host === 'localhost' || $host === '::1' || preg_match('/^127\.\d+\.\d+\.\d+$/', $host) === 1
+            || !str_contains($host, '.')
+            || preg_match('/\.(localhost|test|invalid|example|ddev\.site|local|internal)$/', $host) === 1
+            || $host === 'host.docker.internal';
+
+        return $development ? $url : null;
     }
 
     /**
@@ -92,11 +97,6 @@ final class ProSettings
 
     public static function resolveCrawlerBaseUrl(): string
     {
-        $override = getenv('A11Y_QUALITY_GATE_PRO_CRAWLER_BASE_URL');
-        if (is_string($override) && trim($override) !== '') {
-            return rtrim(trim($override), '/');
-        }
-
-        return ProConstants::API_BASE_URL;
+        return self::acceptedServiceOverride(getenv('A11Y_QUALITY_GATE_PRO_CRAWLER_BASE_URL')) ?? ProConstants::API_BASE_URL;
     }
 }

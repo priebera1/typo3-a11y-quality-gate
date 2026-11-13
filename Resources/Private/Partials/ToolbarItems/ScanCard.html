@@ -2,25 +2,67 @@
         xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
         data-namespace-typo3-fluid="true"
 >
-<div class="aqt-section" data-aqt-source="{card.key}" data-aqt-state="{card.state}">
-    <div class="aqt-section__head">
-        <p class="aqt-section__title">{card.title}</p>
-        <span class="aqt-tag aqt-tag--{card.tagTone}">
-            <f:if condition="{card.tagIcon} == 'spin'">
-                <f:then><span class="aqt-spinner" aria-hidden="true"></span></f:then>
-                <f:else><f:render partial="Shared/AqgIcon" arguments="{name: card.tagIcon, size: 'sm'}" /></f:else>
+<section class="aqt-scan" data-aqt-source="{card.key}" data-aqt-state="{card.state}" data-aqt-status-label="{card.statusLabel}">
+    <h2 class="aqt-scan__heading">
+        <button type="button" class="aqt-scan__toggle" id="aqt-scan-toggle-{card.key}" aria-expanded="false" aria-controls="aqt-scan-panel-{card.key}" data-aqt-disclosure="{card.key}">
+            <span class="aqt-scan__name">{card.title}</span>
+            <f:if condition="{card.summary}">
+                <span class="aqt-scan__summary"><span class="visually-hidden">, </span>{card.summary}</span>
             </f:if>
-            <span>{card.tagLabel}</span>
-        </span>
+            <span class="aqt-state aqt-state--{card.statusTone}">
+                <f:if condition="{card.running}">
+                    <f:then><span class="aqt-spinner" aria-hidden="true"></span></f:then>
+                    <f:else><span class="aqt-state__dot" aria-hidden="true"></span></f:else>
+                </f:if>
+                <span class="visually-hidden">, </span>{card.statusLabel}
+            </span>
+            <span class="aqt-scan__chevron" aria-hidden="true"></span>
+        </button>
+    </h2>
+    <div class="aqt-scan__panel" id="aqt-scan-panel-{card.key}" data-aqt-panel="{card.key}" hidden="hidden">
+        <f:comment>Out of date: a short status line first, the header already says "Out of date".</f:comment>
+        <f:if condition="{card.staleNote}">
+            <p class="aqt-scan__stale"><span class="aqt-scan__stale-dot" aria-hidden="true"></span>{card.staleNote}</p>
+        </f:if>
+        <f:if condition="{card.pageLine}">
+            <p class="aqt-scan__page" data-aqt-page-line="true">{card.pageLine}</p>
+        </f:if>
+        <f:if condition="{card.delta}">
+            <p class="aqt-scan__delta">{card.delta}</p>
+        </f:if>
+        <f:comment>A running scan with a progress bar: its start time and pages are already the header's summary.</f:comment>
+        <f:if condition="{card.meta}">
+            <f:if condition="{card.progress}">
+                <f:else><p class="aqt-scan__meta">{card.meta}</p></f:else>
+            </f:if>
+        </f:if>
+        <f:if condition="{card.progress}">
+            <div class="aqt-progress" aria-hidden="true"><span class="aqt-progress__bar" style="width: {card.progress}%"></span></div>
+        </f:if>
+        <f:if condition="{card.scopeNote}">
+            <p class="aqt-scan__note">{card.scopeNote}</p>
+        </f:if>
+        <f:if condition="{card.key} == 'content'">
+            <f:comment>Shown by the toolbar script only for an open page the user may scan (the assistant's offer); the scan route checks again.</f:comment>
+            <div class="aqt-scan__actions" data-aqt-content-scan="true" data-scan-running="{f:if(condition: card.running, then: '1', else: '0')}" hidden="hidden"
+                 data-label-scanning="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.scanning', default: 'Checking saved content…')}"
+                 data-label-finished="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.finished', default: 'Check finished.')}"
+                 data-label-result-unchanged="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.resultUnchanged', default: 'No changes. %d open on this page.')}"
+                 data-label-result-changed="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.resultChanged', default: '%1$d new, %2$d resolved. %3$d open on this page.')}"
+                 data-label-no-fields="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.noFields', default: 'No content fields are enabled for scanning, so nothing was checked.')}"
+                 data-label-result-open="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.resultOpen', default: 'Checked. %d open on this page.')}"
+                 data-label-already-running="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.alreadyRunning', default: 'A content scan is already running. This section shows its result when it finishes.')}"
+                 data-label-wait-running="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.waitRunning', default: 'A content scan is already running. Only one runs at a time, so this page can be checked when it has finished.')}"
+                 data-label-error="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.error', default: 'The page could not be checked. Try again or use the Accessibility module.')}"
+                 data-label-error-permission="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.permission', default: 'You may not do this here. Nothing was changed.')}"
+                 data-label-error-session="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.error.session', default: 'Your TYPO3 session ended. Log in again.')}">
+                <button type="button" class="aqt-btn aqt-scan__action" data-aqt-content-scan-button="true" aria-describedby="aqt-content-scan-hint">
+                    <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.assistant.scan" default="Recheck saved content" />
+                </button>
+                <p class="aqt-scan__note" id="aqt-content-scan-hint" data-aqt-content-scan-hint="true"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:toolbar.contentScan.hint" default="Checks the saved content of this page, not unsaved edits." /></p>
+                <p class="aqt-scan__action-status" id="aqt-content-scan-status" data-aqt-content-scan-status="true" hidden="hidden"></p>
+            </div>
+        </f:if>
     </div>
-    <f:if condition="{card.delta}">
-        <p class="aqt-section__delta">{card.delta}</p>
-    </f:if>
-    <f:if condition="{card.meta}">
-        <p class="aqt-section__meta">{card.meta}</p>
-    </f:if>
-    <f:if condition="{card.progress}">
-        <div class="aqt-progress" aria-hidden="true"><span class="aqt-progress__bar" style="width: {card.progress}%"></span></div>
-    </f:if>
-</div>
+</section>
 </html>
