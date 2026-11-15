@@ -16,13 +16,14 @@ use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * The browser shape of a remediation item. Values are plain strings the page inserts as text, never markup. It
  * carries what a reviewer needs to decide (the complete before/after, target, provenance, who did what) and the
  * actions this person may take; no table/uid pair the browser could send back, no prompt, no cost figure.
  */
-final class RemediationItemPresenter
+final class RemediationItemPresenter implements McpCallScopedState
 {
     private const L = 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:';
     private const LOG_OUTCOMES = [
@@ -34,7 +35,7 @@ final class RemediationItemPresenter
     private array $userNames = [];
     /** @var array<int,string> */
     private array $pageTitles = [];
-    /** @var array<string,bool> */
+    /** @var array<string,bool> AI readiness for this person, keyed "userUid:siteIdentifier" (it includes the user's AI flags) */
     private array $aiReady = [];
     /** @var array<string,string> */
     private array $modelLabels = [];
@@ -72,7 +73,7 @@ final class RemediationItemPresenter
         $seen = $proposalVersion > 0 && $this->items->hasSeen((int)$item['uid'], $this->access->userUid(), $proposalVersion);
         $severity = Severity::tryFrom((int)$item['severity']);
         // New AI requests only where the site's AI is ready for this person; reviewing stored proposals never needs it.
-        $aiReady = $this->aiReady[(string)$item['site_identifier']] ??= $this->access->aiState((string)$item['site_identifier']) === 'ready';
+        $aiReady = $this->aiReady[$this->access->userUid() . ':' . (string)$item['site_identifier']] ??= $this->access->aiState((string)$item['site_identifier']) === 'ready';
 
         $data = [
             'uid' => (int)$item['uid'],
@@ -88,7 +89,9 @@ final class RemediationItemPresenter
             'isSaved' => in_array($status, RemediationStatus::SAVED_STATES, true),
             'isVerified' => $status === RemediationStatus::VERIFIED,
             'kind' => $kind,
-            'applyMode' => RemediationTargetKind::isServerWritable($kind) ? 'server' : (RemediationTargetKind::isEditorApplied($kind) ? 'editor' : 'none'),
+            'applyMode' => $this->applyMode($kind, $status, $retryableFailure, $item),
+            // Rich text AQG can apply can always be applied in the editor instead (the person's choice), while it waits.
+            'editorAlternative' => $kind === RemediationTargetKind::RICH_TEXT && ($status === RemediationStatus::PENDING_REVIEW || $retryableFailure),
             'ruleId' => (string)$item['rule_id'],
             'ruleTitle' => $this->ruleTitle($item, $language),
             'severity' => $severity?->key() ?? 'info',
@@ -312,14 +315,38 @@ final class RemediationItemPresenter
             if ($file->isMissing() || !$file->exists() || !$file->getStorage()->isPublic() || !$file->checkActionPermission('read')) {
                 return '';
             }
-            $url = $file->getMimeType() === 'image/svg+xml'
-                ? $file->getPublicUrl()
-                : ($file->isImage() ? $file->process(ProcessedFile::CONTEXT_IMAGEPREVIEW, ['width' => 160, 'height' => 160])->getPublicUrl() : '');
+            if ($file->getMimeType() === 'image/svg+xml') {
+                $url = $file->getPublicUrl();
+            } elseif ($file->isImage()) {
+                // AF-04: in a backend request TYPO3 defers processing and returns /typo3/image/process?…, which answers
+                // 404 when the thumbnail cannot be made (missing GraphicsMagick, memory, unwritable folder): a broken
+                // image. Processing now (once; TYPO3 keeps the result) lets AQG know and send no URL instead.
+                $processed = $this->processNow($file);
+                $url = $processed !== null && ($processed->usesOriginalFile() || $processed->exists()) ? $processed->getPublicUrl() : '';
+            } else {
+                $url = '';
+            }
         } catch (\Throwable) {
             return '';
         }
+        // Only a URL of this backend (path or same-origin absolute) is offered to the drawer.
+        if (!is_string($url) || $url === '' || !((str_starts_with($url, '/') && !str_starts_with($url, '//')) || str_starts_with($url, (string)\TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_URL')))) {
+            return '';
+        }
 
-        return is_string($url) ? $url : '';
+        return $url;
+    }
+
+    private function processNow(\TYPO3\CMS\Core\Resource\File $file): ?ProcessedFile
+    {
+        $context = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Context\Context::class);
+        $previous = $context->hasAspect('fileProcessing') ? $context->getAspect('fileProcessing') : null;
+        $context->setAspect('fileProcessing', new \TYPO3\CMS\Core\Context\FileProcessingAspect(false));
+        try {
+            return $file->process(ProcessedFile::CONTEXT_IMAGEPREVIEW, ['width' => 160, 'height' => 160]);
+        } finally {
+            $context->setAspect('fileProcessing', $previous ?? new \TYPO3\CMS\Core\Context\FileProcessingAspect(true));
+        }
     }
 
     private function label(string $key, string $fallback): string
@@ -422,5 +449,42 @@ final class RemediationItemPresenter
         }
 
         return (string)$this->uriBuilder->buildUriFromRoute('web_a11y.pageDetail', ['id' => $pageUid, 'pageUid' => $pageUid, 'language' => $languageUid]);
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->userNames = [];
+        $this->pageTitles = [];
+        $this->aiReady = [];
+        $this->modelLabels = [];
+    }
+
+    /**
+     * server: AQG writes the reviewed change (image texts; rich text while its proposal awaits review or a failed
+     * direct apply can be retried, AQG 3.0.0 direct apply). editor: the approved rich-text change is applied in the
+     * editor. none: no apply path.
+     */
+    /**
+     * How the change is (or was) applied: 'server' (AQG writes it after review), 'editor' (the person applies it in the
+     * record's editor and saves) or 'none'. Rich text is applied on the server while it waits for review and when it was
+     * applied that way (applied_at without staged_at: "Apply and verify"); an item staged for the editor stays 'editor', so
+     * its progress names the editor step only when there was one.
+     *
+     * @param array<string,mixed> $item
+     */
+    private function applyMode(string $kind, string $status, bool $retryableFailure, array $item = []): string
+    {
+        if (RemediationTargetKind::isServerWritable($kind)) {
+            return 'server';
+        }
+        if (!RemediationTargetKind::isEditorApplied($kind)) {
+            return 'none';
+        }
+        if ($status === RemediationStatus::PENDING_REVIEW || $retryableFailure) {
+            return 'server';
+        }
+
+        return (int)($item['applied_at'] ?? 0) > 0 && (int)($item['staged_at'] ?? 0) === 0 ? 'server' : 'editor';
     }
 }

@@ -263,6 +263,47 @@ describe('queue view', () => {
         expect(labels).toEqual(['Regenerate from current text', 'Discard suggestion', 'Compare in editor']);
         expect(labels).not.toContain('Approve and apply');
     });
+
+    it('stays in the drawer and says why when "Apply and verify" ends in the editor', async () => {
+        const richText = item({kind: 'rich_text', ruleTitle: 'Link text is not descriptive', originalValue: 'click here', finalValue: 'Opening hours',
+            editorAlternative: true, actions: {approve: true, reject: true}});
+        const before = window.location.href;
+        answers['/item'] = () => ({success: true, item: richText});
+        answers['/approve'] = () => ({success: true, item: {...richText, status: 'approved', statusLabel: 'Approved', applyMode: 'editor', editorAlternative: false,
+            editUrl: '/typo3/record/edit?aqgRemediation=1', statusReasonLabel: 'AQG could not prove that only this element changes.', actions: {}}});
+        const {root, queue} = mount({urls: {list: '/list', item: '/item', view: '/view', changelog: '/changelog', reject: '/reject', generate: '/generate', approve: '/approve'}});
+        await flush();
+        await queue.openItem(1);
+        [...root.querySelectorAll('[data-aqg-rq-drawer-panel] .aqg-remediation__actions button')].find((node) => node.textContent === 'Apply and verify').click();
+        await flush();
+        expect(window.location.href).toBe(before);
+        const drawer = root.querySelector('[data-aqg-rq-drawer-panel]');
+        expect(drawer.textContent).toContain('AQG could not prove that only this element changes.');
+        expect(drawer.querySelector('a[href="/typo3/record/edit?aqgRemediation=1"]')).not.toBeNull();
+    });
+
+    it('offers rich text "Apply and verify" with the editor as the alternative, and asks the server to apply only for the first', async () => {
+        const richText = item({kind: 'rich_text', ruleTitle: 'Link text is not descriptive', originalValue: 'click here', finalValue: 'Opening hours',
+            editorAlternative: true, actions: {approve: true, reject: true}});
+        answers['/item'] = () => ({success: true, item: richText});
+        answers['/approve'] = () => ({success: true, item: {...richText, status: 'verified', statusLabel: 'Verified', isDone: true, actions: {}}});
+        const {root, queue} = mount({urls: {list: '/list', item: '/item', view: '/view', changelog: '/changelog', reject: '/reject', generate: '/generate', approve: '/approve'}});
+        await flush();
+        await queue.openItem(1);
+        const drawer = root.querySelector('[data-aqg-rq-drawer-panel]');
+        const buttons = [...drawer.querySelectorAll('.aqg-remediation__actions button')];
+        expect(buttons.map((node) => node.textContent)).toEqual(expect.arrayContaining(['Apply and verify', 'Apply in the editor instead']));
+        expect(drawer.textContent).toContain('Changes only this element of the field through TYPO3 DataHandler');
+
+        buttons.find((node) => node.textContent === 'Apply and verify').click();
+        await flush();
+        expect(requests.filter((request) => request.url === '/approve').map((request) => request.body.mode)).toEqual(['apply']);
+
+        await queue.openItem(1);
+        [...root.querySelectorAll('[data-aqg-rq-drawer-panel] .aqg-remediation__actions button')].find((node) => node.textContent === 'Apply in the editor instead').click();
+        await flush();
+        expect(requests.filter((request) => request.url === '/approve').map((request) => request.body.mode)).toEqual(['apply', '']);
+    });
 });
 
 describe('empty AI fixes (AQG-300-UX-02/03)', () => {

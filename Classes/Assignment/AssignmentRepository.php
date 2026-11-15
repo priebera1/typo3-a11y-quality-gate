@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Assignment;
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Repository\AbstractRepository;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 /**
  * Team assignments (My issues): one row per issue type on a page in one language (tx_a11y_assignment), and the live
@@ -174,7 +175,7 @@ class AssignmentRepository extends AbstractRepository
      *
      * @return list<array<string, mixed>>
      */
-    public function findAssigned(?int $assignee = null, ?int $limit = null): array
+    public function findAssigned(?int $assignee = null, ?int $limit = null, ?array $siteIdentifiers = null): array
     {
         $qb = $this->getQueryBuilder(Tables::ASSIGNMENT);
         $qb->getRestrictions()->removeAll();
@@ -184,6 +185,13 @@ class AssignmentRepository extends AbstractRepository
             ->setMaxResults($limit);
         if ($assignee !== null) {
             $qb->andWhere($qb->expr()->eq('assignee', $qb->createNamedParameter($assignee, Connection::PARAM_INT)));
+        }
+        // Large-installation fix: only the sites the list can show (null = every site).
+        if ($siteIdentifiers !== null) {
+            if ($siteIdentifiers === []) {
+                return [];
+            }
+            $qb->andWhere($qb->expr()->in('site_identifier', $qb->createNamedParameter(array_values($siteIdentifiers), Connection::PARAM_STR_ARRAY)));
         }
 
         return array_values($qb->executeQuery()->fetchAllAssociative());
@@ -213,15 +221,51 @@ class AssignmentRepository extends AbstractRepository
         return $byKey;
     }
 
+    /** @return list<string> every site identifier live findings are stored for */
+    private function siteIdentifiersWithFindings(): array
+    {
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
+
+        return array_values(array_map('strval', $qb->selectLiteral('DISTINCT site_identifier')
+            ->from(Tables::ISSUE)
+            ->where($qb->expr()->eq('deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)))
+            ->executeQuery()->fetchFirstColumn()));
+    }
+
     /**
      * Live findings of the given issue types, aggregated per issue type on a page and language: open occurrences, most
      * severe open severity, latest finding change and latest resolution. Rule ids are the canonical keys' members
      * (RenderedRichTextDuplicates::ruleIdsFor()); the caller folds them back into their key.
      *
+     * G-09 (AQG 3.0.0 security gate): `$sourceConstraint` limits the rows to sources the viewer may read
+     * (LocalFindingSourceAccessInterface::constraint(), per site: '' = unrestricted, '1=0' = nothing), so counts, task
+     * existence and the stored message never come from findings of records the viewer lacks access to.
+     *
      * @param list<string> $siteIdentifiers empty = every site
-     * @return list<array{site_identifier:string,page_uid:int,source_lang_uid:int,rule_id:string,open:int,top_severity:int,last_change:int,last_resolved:int,source_table:string,max_source_uid:int}>
+     * @param (\Closure(QueryBuilder, string): string)|null $sourceConstraint
+     * @return list<array{site_identifier:string,page_uid:int,source_lang_uid:int,rule_id:string,open:int,top_severity:int,last_change:int,last_resolved:int,message:string}>
      */
-    public function aggregateFindings(array $siteIdentifiers = [], ?array $pageUids = null, bool $openOnly = false, ?int $limit = null): array
+    public function aggregateFindings(array $siteIdentifiers = [], ?array $pageUids = null, bool $openOnly = false, ?int $limit = null, ?\Closure $sourceConstraint = null): array
+    {
+        $rows = [];
+        foreach ($this->iterateAggregatedFindings($siteIdentifiers, $pageUids, $openOnly, $limit, $sourceConstraint, false) as $row) {
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * aggregateFindings() as a stream (large-installation fix: My issues never holds every finding row of every site in
+     * memory). With $ordered the rows come per site, page and language (then rule), so a caller can fold one page at a
+     * time.
+     *
+     * @param list<string> $siteIdentifiers empty = every site
+     * @param (\Closure(QueryBuilder, string): string)|null $sourceConstraint
+     * @return \Generator<int, array{site_identifier:string,page_uid:int,source_lang_uid:int,rule_id:string,open:int,top_severity:int,last_change:int,last_resolved:int,message:string}>
+     */
+    public function iterateAggregatedFindings(array $siteIdentifiers = [], ?array $pageUids = null, bool $openOnly = false, ?int $limit = null, ?\Closure $sourceConstraint = null, bool $ordered = true, bool $withMessage = true): \Generator
     {
         $qb = $this->getQueryBuilder(Tables::ISSUE);
         $qb->getRestrictions()->removeAll();
@@ -231,7 +275,9 @@ class AssignmentRepository extends AbstractRepository
                 'MIN(CASE WHEN status = ' . IssueStatus::Open->value . ' THEN severity ELSE 99 END) AS top_severity',
                 'MAX(tstamp) AS last_change',
                 'MAX(resolved_at) AS last_resolved',
-                'MIN(message) AS message',
+                // The stored message is TEXT: aggregating it costs a third of the query on large sites. Without
+                // $withMessage the rows carry '' (My issues loads the message for its page window only).
+                $withMessage ? 'MIN(message) AS message' : "'' AS message",
             )
             ->from(Tables::ISSUE)
             ->where(
@@ -251,17 +297,42 @@ class AssignmentRepository extends AbstractRepository
         }
         if ($pageUids !== null) {
             if ($pageUids === []) {
-                return [];
+                return;
             }
             $qb->andWhere($qb->expr()->in('page_uid', $qb->createNamedParameter(array_values(array_unique($pageUids)), Connection::PARAM_INT_ARRAY)));
         }
         if ($openOnly) {
             $qb->having('open_count > 0');
         }
+        if ($sourceConstraint !== null) {
+            $perSite = [];
+            $restricted = false;
+            $allSites = $siteIdentifiers === [];
+            foreach ($siteIdentifiers !== [] ? $siteIdentifiers : $this->siteIdentifiersWithFindings() as $site) {
+                $condition = $sourceConstraint($qb, $site);
+                if ($condition === '1=0') {
+                    $restricted = true;
+                    continue;
+                }
+                $siteMatch = $qb->expr()->eq('site_identifier', $qb->createNamedParameter($site));
+                $restricted = $restricted || $condition !== '';
+                $perSite[] = $condition === '' ? $siteMatch : (string)$qb->expr()->and($siteMatch, $condition);
+            }
+            if ($perSite === []) {
+                return;
+            }
+            // Every site with findings unrestricted (administrators): the OR of all their identifiers matches every row,
+            // so it is left out instead of sent as one condition per site.
+            if (!($allSites && !$restricted)) {
+                $qb->andWhere($qb->expr()->or(...$perSite));
+            }
+        }
+        if ($ordered) {
+            $qb->orderBy('site_identifier')->addOrderBy('page_uid')->addOrderBy('source_lang_uid')->addOrderBy('rule_id');
+        }
 
-        $rows = [];
-        foreach ($qb->executeQuery()->fetchAllAssociative() as $row) {
-            $rows[] = [
+        foreach ($qb->executeQuery()->iterateAssociative() as $row) {
+            yield [
                 'site_identifier' => (string)$row['site_identifier'],
                 'page_uid' => (int)$row['page_uid'],
                 'source_lang_uid' => (int)$row['source_lang_uid'],
@@ -273,8 +344,6 @@ class AssignmentRepository extends AbstractRepository
                 'message' => (string)($row['message'] ?? ''),
             ];
         }
-
-        return $rows;
     }
 
     /**

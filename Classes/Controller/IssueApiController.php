@@ -51,6 +51,7 @@ final class IssueApiController extends AbstractApiController
         private readonly ?EditorFindingTargetResolver $editorFindingTargetResolver = null,
         private readonly ?AccessControlService $accessControlService = null,
         private readonly ?LocalFindingSourceAccessInterface $sourceAccessService = null,
+        private readonly ?\Priebera\A11yQualityGate\Service\FindingIgnoreAccessService $findingIgnoreAccess = null,
     ) {
         parent::__construct($responseFactory, $streamFactory, $backendUserService);
     }
@@ -291,7 +292,12 @@ final class IssueApiController extends AbstractApiController
             $siteIdentifier !== '' ? $siteIdentifier : null
         );
         if ($issue !== null) {
-            if (!$this->isIssueForRequestedRecord($issue, $recordUid, $fieldName) || $this->readableIssues([$issue]) === []) {
+            // G-01: the stored finding's own target (record, language, stored page, workspace) decides, not the request.
+            if (!$this->isIssueForRequestedRecord($issue, $recordUid, $fieldName)
+                || $this->readableIssues([$issue]) === []
+                || $this->findingIgnoreAccess === null
+                || !is_array($accessContext = $this->issueRepository->findAccessContextByUid((int)$issue['uid']))
+                || !$this->findingIgnoreAccess->canChangeIgnoreState($accessContext)) {
                 return $this->forbiddenResponse();
             }
 
@@ -336,6 +342,12 @@ final class IssueApiController extends AbstractApiController
         $ctx = $this->buildRteContext($recordUid, $fieldName, $html, $pageUid);
         if (!$ctx instanceof CheckContext) {
             return $this->notFoundResponse('RTE record not found');
+        }
+
+        // G-01: a new ignored finding is stored for this record, its language and its page; all three must be editable.
+        if ($this->findingIgnoreAccess === null
+            || !$this->findingIgnoreAccess->canIgnoreRecordFinding(Tables::TT_CONTENT, $recordUid, $ctx->pageUid)) {
+            return $this->forbiddenResponse();
         }
 
         $matchedViolation = null;

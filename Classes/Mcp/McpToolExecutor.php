@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Controller\ProCrawlerAjaxController;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Mcp\Intelligence\McpIntelligenceTools;
+use Priebera\A11yQualityGate\Mcp\Remediation\McpSuggestionTools;
 use Priebera\A11yQualityGate\Pro\ViewModel\RemoteOccurrenceTotals;
 use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\RemoteResultAuthorization;
@@ -67,6 +68,7 @@ final class McpToolExecutor
         private readonly McpScanRequestStore $scanRequests,
         private readonly ProCrawlerAjaxController $crawlerController,
         private readonly McpIntelligenceTools $intelligence,
+        private readonly ?McpSuggestionTools $suggestions = null,
     ) {
     }
 
@@ -114,9 +116,32 @@ final class McpToolExecutor
                     $arguments,
                     $this->contentReadable((string)($arguments['siteIdentifier'] ?? ''), $principal),
                 )),
+                // AI Fixes (suggestions:prepare): prepares suggestions and reports their status as this user; approving
+                // and applying stay with a person in the backend (no tool exists for them).
+                'aqg_prepare_suggestions' => $this->freshRequest(fn (): array => $this->suggestionTools()->prepare(
+                    $user,
+                    $this->requireSite((string)($arguments['siteIdentifier'] ?? ''), [McpScopes::SUGGESTIONS_PREPARE], $principal),
+                    $arguments,
+                    $this->contentReadable((string)($arguments['siteIdentifier'] ?? ''), $principal),
+                )),
+                'aqg_get_suggestion_status' => $this->freshRequest(fn (): array => $this->suggestionTools()->status(
+                    $user,
+                    $this->requireSite((string)($arguments['siteIdentifier'] ?? ''), [McpScopes::SUGGESTIONS_PREPARE], $principal),
+                    $arguments,
+                    $this->contentReadable((string)($arguments['siteIdentifier'] ?? ''), $principal),
+                )),
                 default => throw new McpCallRefused('tool_not_available', 'This tool is not available.'),
             };
         });
+    }
+
+    private function suggestionTools(): McpSuggestionTools
+    {
+        if (!$this->suggestions instanceof McpSuggestionTools) {
+            throw new McpCallRefused('tool_not_available', 'This tool is not available.');
+        }
+
+        return $this->suggestions;
     }
 
     /**

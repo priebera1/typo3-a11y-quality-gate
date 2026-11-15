@@ -10,8 +10,8 @@ namespace Priebera\A11yQualityGate\Ai\Editor;
  */
 final class EditorAiPrompts
 {
-    public const FIX_PROMPT_VERSION = 'aqg_editor_fix_v1';
-    public const EXPLAIN_PROMPT_VERSION = 'aqg_editor_explain_v1';
+    public const FIX_PROMPT_VERSION = 'aqg_editor_fix_v4';
+    public const EXPLAIN_PROMPT_VERSION = 'aqg_editor_explain_v2';
     public const WRITING_PROMPT_VERSION = 'aqg_editor_writing_v1';
     public const TRANSLATION_PROMPT_VERSION = 'aqg_editor_translation_v1';
 
@@ -38,7 +38,10 @@ TEXT;
         EditorAiRuleCatalog::KIND_LINK_TEXT => <<<'TEXT'
 Task: suggest visible link text for one link (kind "link_text").
 - The link text must say where the link goes or what it does, understandable out of context (screen reader users list links).
-- Base it on link_target, surrounding_text and, when present, page_title or link_target_title. Name the document type and format for document links when known (for example "(PDF)").
+- Base it on link_target, link_target_title (the title of the linked page, when known) and surrounding_text. Name the document type and format for document links when known (for example "(PDF)").
+- An external web address in link_target (http or https with a host name) is a known destination: the link goes to that website. Name it only with a name that surrounding_text gives for it, or else with the host name itself (for example "Visit the example.com website"); never invent an organisation name from a domain. When link_target has a path beyond "/", it leads to one page of that website: describe that page only as far as surrounding_text says what it is. Query parameters are removed from link_target on purpose; their absence never makes the destination unknown.
+- The link text describes the destination. Never use the title of the page the link is on as the destination.
+- Use status "needs_review" only when link_target says the destination is unknown, or link_target is empty or only an anchor or record reference and neither link_target_title nor surrounding_text say where the link goes. Then say in reason that the destination could not be determined.
 - Never return generic text ("click here", "more", "read more", "here", "link") or a raw URL or file name.
 - Keep it short: at most 120 characters, usually 2 to 8 words.
 TEXT,
@@ -61,13 +64,16 @@ TEXT,
         EditorAiRuleCatalog::KIND_IFRAME_TITLE => <<<'TEXT'
 Task: suggest the title attribute of one iframe (kind "iframe_title").
 - Describe what the embedded content is, for example "Map: customer centre, Main Street 12" or "Video: How to read your meter".
-- Base it on iframe_source (host and path) and surrounding_text. If the content cannot be identified, use status "needs_review".
+- Base it on iframe_source (host and path) and surrounding_text.
+- If surrounding_text does not say what the content is but iframe_source names a website or service, name that source factually, for example "Embedded content from example.com" or "Embedded map (Google Maps)". Never describe content the context does not show.
+- Use status "needs_review" only when iframe_source is missing or not a website address.
 - At most 150 characters.
 TEXT,
         EditorAiRuleCatalog::KIND_HEADING_TEXT => <<<'TEXT'
 Task: suggest the text of one empty heading (kind "heading_text").
 - The heading must summarise the content that follows it (following_text). Use previous_heading only for context.
 - If following_text gives no clear basis (for example it is empty or only a table without explanation), use status "needs_review". Do not invent content.
+- Never use the page title, the site name or a generic greeting or label ("Welcome", "Introduction", "Section") as the heading. A stray empty heading is removed by the editor, not filled.
 - At most 150 characters.
 TEXT,
     ];
@@ -76,6 +82,7 @@ TEXT,
 Task: explain one accessibility finding to a content editor who is not an accessibility expert.
 - explanation: 2 to 4 short sentences. Who is affected and how, referring to the concrete element in element_summary and surrounding_text. No legal claims, no WCAG compliance claims.
 - how_to_fix: one sentence with the concrete next step for this element. Do not contradict rule_guidance.
+- For a link, the next step names its destination as the "Fix with AI" suggestion would: an external web address is the website of that host; page_title is the page the link is on, never the link's destination.
 - If the context is not enough to explain the concrete case, use status "needs_review" and give a general explanation of the rule.
 TEXT;
 

@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 use Priebera\A11yQualityGate\Rule\CheckContext;
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Site\Entity\Site;
 use TYPO3\CMS\Core\Site\Entity\SiteLanguage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-final class DictionaryRegistry
+final class DictionaryRegistry implements McpCallScopedState
 {
     private const MAX_REQUEST_CACHE_ENTRIES = 500;
     private const DICTIONARY_PATH = 'EXT:a11y_quality_gate/Resources/Private/Dictionaries/';
@@ -33,6 +34,12 @@ final class DictionaryRegistry
      *
      * @return list<string>
      */
+    /** G-15: phrases resolved from site and ruleset settings never outlive one MCP call (settings can change meanwhile). */
+    public function resetCallState(): void
+    {
+        $this->resolvedPhraseCache = [];
+    }
+
     public function resolveForContext(string $ruleId, CheckContext $context): array
     {
         $site = $this->resolveSite($context);

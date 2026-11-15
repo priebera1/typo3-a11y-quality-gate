@@ -377,9 +377,16 @@
         <f:case value="revoked">
             <div class="aqg-statusline tone-error" role="alert">
                 <span class="aqg-statusline__icon" aria-hidden="true">!</span>
-                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.revoked" default="The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Connect it again." /></p></div>
+                <div class="aqg-statusline__content"><p class="aqg-statusline__message"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.status.revoked" default="The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Remove the old connection to connect again." /></p></div>
             </div>
-            <f:render section="ConnectIntro" arguments="{mcp: mcp}" />
+            <f:comment><!-- MCP-UI-01: the old connection still blocks Connect here; this one action ends it locally only after the Gateway refuses it again, then starts a new pairing. --></f:comment>
+            <div class="aqg-mcp-connect" data-aqg-mcp-reconnect="true">
+                <form method="post" action="{mcp.urls.reconnect}" class="aqg-mcp-connect__action">
+                    <f:render section="ReturnFields" arguments="{returnParameters: mcp.returnParameters}" />
+                    <button type="submit" class="btn btn-primary btn-sm" id="aqg-mcp-reconnect" aria-describedby="aqg-mcp-reconnect-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.revoked.reconnect" default="Remove old connection and connect again" /></button>
+                    <p class="aqg-field__help" id="aqg-mcp-reconnect-help"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:settings.mcp.revoked.reconnectHelp" default="AQG first asks the Gateway again. Only if it still refuses the old connection is that connection removed from this installation, then a new pairing code is shown. The host identity, site settings and the audit trail are kept; users confirm their agent again." /></p>
+                </form>
+            </div>
         </f:case>
         <f:defaultCase>
             <div class="aqg-statusline tone-error" role="alert">

@@ -133,6 +133,11 @@ return [
                 'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::revokeAction',
                 'methods' => ['POST'],
             ],
+            'settingsMcpReconnect' => [
+                'path' => '/settings/mcp/reconnect',
+                'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::reconnectAction',
+                'methods' => ['POST'],
+            ],
             'settingsMcpDisconnect' => [
                 'path' => '/settings/mcp/disconnect',
                 'target' => \Priebera\A11yQualityGate\Controller\McpSettingsController::class . '::disconnectAction',

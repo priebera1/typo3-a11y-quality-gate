@@ -139,8 +139,12 @@ final class ReferenceAltAiService
      * After TYPO3 Save: AQG's structured alternative-text check of the stored references. A reference older than its
      * suggestion was not saved; in a workspace the check would read the live record, so it waits for publishing.
      *
-     * @param list<array{referenceUid:int,suggestedAt:int}> $items
-     * @return array{items:list<array{referenceUid:int,status:string}>}
+     * AF-03: an item may name the rule of its finding (`ruleId`). Its status then reflects only that rule; another
+     * rule that reports the same image (e.g. the quality check of a text longer than 120 characters) is returned as
+     * `warning`, never as "still reported".
+     *
+     * @param list<array{referenceUid:int,suggestedAt:int,ruleId?:string}> $items
+     * @return array{items:list<array{referenceUid:int,status:string,warning?:bool}>}
      */
     public function verify(string $parentTable, int $parentUid, string $fieldName, array $items): array
     {
@@ -164,14 +168,20 @@ final class ReferenceAltAiService
                 $results[] = ['referenceUid' => $referenceUid, 'status' => 'not_saved'];
                 continue;
             }
+            $ruleId = (string)($item['ruleId'] ?? '');
+            $ownRules = $ruleId !== '' && in_array($ruleId, FileMetadataAiService::VERIFY_RULE_IDS, true) ? [$ruleId] : null;
             $status = match (true) {
                 (int)$reference['tstamp'] < (int)$item['suggestedAt'] => 'not_saved',
                 $workspace > 0 => 'workspace',
                 $rules === [] => 'not_verified',
-                FileMetadataAiService::reportsReference($violations, $referenceUid, $parentTable, $parentUid, $fieldName) => 'still_reported',
+                FileMetadataAiService::reportsReference($violations, $referenceUid, $parentTable, $parentUid, $fieldName, $ownRules) => 'still_reported',
                 default => 'verified',
             };
-            $results[] = ['referenceUid' => $referenceUid, 'status' => $status];
+            $result = ['referenceUid' => $referenceUid, 'status' => $status];
+            if ($ownRules !== null && $status === 'verified') {
+                $result['warning'] = FileMetadataAiService::reportsReference($violations, $referenceUid, $parentTable, $parentUid, $fieldName);
+            }
+            $results[] = $result;
         }
 
         return ['items' => $results];

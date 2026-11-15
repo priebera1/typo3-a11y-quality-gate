@@ -13,7 +13,8 @@ namespace Priebera\A11yQualityGate\Ai\Media;
 final class MediaAiPrompts
 {
     public const METADATA_PROMPT_VERSION = 'aqg_media_metadata_v1';
-    public const REFERENCE_PROMPT_VERSION = 'aqg_media_reference_alt_v1';
+    // v2 (AF-03): at most 120 characters, the length AQG's own quality check accepts without a warning.
+    public const REFERENCE_PROMPT_VERSION = 'aqg_media_reference_alt_v2';
     public const TRANSLATION_PROMPT_VERSION = 'aqg_media_translation_v1';
 
     public const STATUS_SUGGESTION = 'suggestion';
@@ -53,7 +54,7 @@ TEXT;
 
     private const REFERENCE_RULES = <<<'TEXT'
 Task: suggest the alternative text of one image in one content element (this use only). The same file can need a different text on another page.
-- Look at the supplied image and use element_header, element_text and page_title to decide what the image contributes here. Describe its purpose in this context, not every visible detail, at most 150 characters.
+- Look at the supplied image and use element_header, element_text and page_title to decide what the image contributes here. Describe its purpose in this context, not every visible detail, at most 120 characters.
 - If link_target is present, the image is the only content of a link: the alternative text must name the link destination or action.
 - file_default_alternative is the file default other uses inherit. If it already fits this context, use status "default_fits" and return it unchanged in alternative.
 - Avoid openings like "image of", "photo of", "picture of".

@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\ToolbarAssistantContext;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\ToolbarAssistantService;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
+use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Remediation\ImageFindingContextResolver;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationAccessService;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationException;
@@ -68,23 +69,41 @@ final class AskAqgRepairService
         private readonly ?ScanPermissionService $scanPermissionService = null,
         private readonly ?AiActionCostEstimator $costEstimator = null,
         private readonly ?LockFactory $lockFactory = null,
+        private readonly ?AskAqgFindingGuidance $findingGuidance = null,
+        private readonly ?IssueRepository $issueRepository = null,
     ) {}
 
     /**
      * The repair answer for an Ask AQG question (deterministic, no AI request, nothing written).
      *
+     * Options: `mode` "list" (the numbered problems of the target, answered for "What problems does this page have?")
+     * or "repair" (default); `only` the finding uids a numbered reference resolved to ("Fix problem 1"), with
+     * `numbers` (finding uid => the number it had in that list) so the problem keeps its number; `clarify` a reason
+     * ("unknown" | "changed") to show the current list instead and ask the editor to choose again.
+     *
      * @param array{repair:bool,mentions:string,kinds:list<string>} $intent
+     * @param array{mode?:string,only?:list<int>,numbers?:array<int,int>,clarify?:string} $options
      * @return array<string,mixed> an Ask AQG payload with intent "repair" and the plan under "repair"
      */
-    public function plan(ToolbarAssistantContext $context, string $scope, string $question, array $intent, string $requestedTarget = ''): array
+    public function plan(ToolbarAssistantContext $context, string $scope, string $question, array $intent, string $requestedTarget = '', array $options = []): array
     {
         if (!in_array($context->type, [ToolbarAssistantContext::TYPE_PAGE, ToolbarAssistantContext::TYPE_RECORD, ToolbarAssistantContext::TYPE_FILE], true)) {
             throw new EditorAiException('no_context', 'Open a page, a content element or a file first.', 422);
         }
+        $mode = ($options['mode'] ?? '') === 'list' ? 'list' : 'repair';
+        $only = array_values(array_filter(array_map('intval', (array)($options['only'] ?? [])), static fn (int $uid): bool => $uid > 0));
+        $numbers = array_map('intval', (array)($options['numbers'] ?? []));
+        $clarify = in_array($options['clarify'] ?? '', ['unknown', 'changed'], true) ? (string)$options['clarify'] : '';
+        // 'resolved' is decided here only (never by a caller): the named finding was closed by AQG's own check.
         $selected = $this->selectedTarget($context);
-        $target = $this->target($context, $requestedTarget);
         $mentions = (string)($intent['mentions'] ?? '');
-        $kinds = array_values(array_filter((array)($intent['kinds'] ?? []), 'is_string'));
+        // The words decide when they name the page explicitly ("Oprav mi túto stránku" while a content element is open):
+        // the editor asked for the page, so the page is the target and the element is the alternative, never the reverse.
+        if ($requestedTarget === '' && $mentions === AskAqgRepairIntent::MENTION_PAGE && $context->type === ToolbarAssistantContext::TYPE_RECORD && $context->pageUid > 0) {
+            $requestedTarget = self::TARGET_PAGE;
+        }
+        $target = $this->target($context, $requestedTarget);
+        $kinds = $only === [] ? array_values(array_filter((array)($intent['kinds'] ?? []), 'is_string')) : [];
         $notices = [];
         $alternatives = [];
 
@@ -92,19 +111,69 @@ final class AskAqgRepairService
         if ($scope === AskAqgService::SCOPE_SITE || $mentions === AskAqgRepairIntent::MENTION_SITE) {
             $notices[] = $this->t('toolbar.repair.notice.site', 'Ask AQG prepares fixes for one content element or page at a time, never for the whole website at once. It shows the selected target below; use AI fixes for other pages.');
         }
-        if ($context->type === ToolbarAssistantContext::TYPE_RECORD && $target === self::TARGET_RECORD && $mentions === AskAqgRepairIntent::MENTION_PAGE) {
-            // "Oprav mi túto stránku" with "This content element" selected: say which target is used and offer the page.
-            $notices[] = $this->t('toolbar.repair.notice.pageWording', 'You asked about the page, but the selected scope is this content element. AQG shows only this element. Choose the whole page if you meant it.');
+        if ($only === [] && $context->type === ToolbarAssistantContext::TYPE_RECORD && $target === self::TARGET_RECORD && $context->pageUid > 0) {
             $alternatives[] = ['target' => self::TARGET_PAGE, 'label' => $this->t('toolbar.repair.alt.page', 'Show fixes for the whole page')];
-        } elseif ($context->type === ToolbarAssistantContext::TYPE_RECORD && $target === self::TARGET_PAGE) {
+        } elseif ($only === [] && $context->type === ToolbarAssistantContext::TYPE_RECORD && $target === self::TARGET_PAGE) {
             $alternatives[] = ['target' => self::TARGET_RECORD, 'label' => $this->t('toolbar.repair.alt.record', 'Show only this content element')];
         }
 
+        if ($context->unsaved) {
+            // Findings and suggestions describe the record as saved; the open form has edits AQG has not seen.
+            $notices[] = $this->t('toolbar.repair.notice.unsaved', 'This form has unsaved changes. The problems and suggestions here are based on the saved version: save first, then choose “Recheck saved content”.');
+        }
         if ($context->workspace > 0) {
             $notices[] = $this->t('toolbar.repair.notice.workspace', 'Findings describe the live website. Suggestions prepared here belong to your current workspace and are applied in its version of the record.');
         }
 
         $all = $this->findingsOf($context, $target);
+        if ($only !== []) {
+            // Exactly the referenced findings, and only while each one is still an open finding of this target that the
+            // editor may read. One that is gone (fixed, rescanned, moved, no longer readable) is never replaced by the
+            // finding that now sorts in its place: the current list is shown and the editor chooses again.
+            $byUid = [];
+            foreach ($all as $issue) {
+                $byUid[(int)$issue['uid']] = $issue;
+            }
+            $picked = array_values(array_filter(array_map(static fn (int $uid): ?array => $byUid[$uid] ?? null, $only)));
+            if (count($picked) === count($only)) {
+                $all = $picked;
+            } else {
+                $missing = array_values(array_diff($only, array_map(static fn (array $issue): int => (int)$issue['uid'], $picked)));
+                $closed = array_values(array_filter($this->workflow->preflight($missing, false), static fn (array $entry): bool => ($entry['reason'] ?? '') === 'finding_closed'));
+                // A check that changed the content closes the old row and stores the problem again under a new uid and
+                // fingerprint: "no longer open" is said only when no open finding of the same rule remains in that field.
+                $openKeys = array_flip(array_map(static fn (array $issue): string => self::sourceKey($issue), $all));
+                $successor = false;
+                foreach ($missing as $uid) {
+                    $row = $this->issueRepository?->findByUid($uid);
+                    if (!is_array($row) || isset($openKeys[self::sourceKey($row)])) {
+                        $successor = true;
+                    }
+                }
+                if (!$successor && count($closed) === count($missing)) {
+                    // Not a changed list: AQG's own check of the saved content closed exactly the named problem(s).
+                    $named = array_map(static fn (int $uid): string => (string)($numbers[$uid] ?? ''), $missing);
+                    $notices[] = sprintf(
+                        $this->t('toolbar.repair.clarify.resolved', 'Problem %s is no longer open: AQG’s latest check of the saved content no longer finds it. Nothing was prepared. The problems still open are below.'),
+                        implode(', ', array_filter($named)),
+                    );
+                    $clarify = 'resolved';
+                } else {
+                    $clarify = 'changed';
+                }
+                $only = [];
+                $numbers = [];
+                $mode = 'list';
+            }
+        }
+        if ($clarify === 'resolved') {
+            $mode = 'list';
+        } elseif ($clarify !== '') {
+            $mode = 'list';
+            $notices[] = $clarify === 'changed'
+                ? $this->t('toolbar.repair.clarify.changed', 'The problem you named is no longer open here, or the list has changed since. Nothing was prepared. Choose a problem from the current list below.')
+                : $this->t('toolbar.repair.clarify.unknown', 'I am not sure which problem you mean, so nothing was prepared. Choose one from the list below, or ask “Fix problem 2”.');
+        }
         $issues = $kinds === [] ? $all : array_values(array_filter($all, static fn (array $issue): bool => in_array(self::kindOfRule((string)$issue['rule_id']), $kinds, true)));
         if ($kinds !== [] && count($issues) < count($all)) {
             $notices[] = sprintf($this->t('toolbar.repair.notice.kinds', 'Only the kinds of problems you named are included; %d other open issues of this target are not.'), count($all) - count($issues));
@@ -128,17 +197,19 @@ final class AskAqgRepairService
         $queueUrl = $this->queueUrl($context->pageUid > 0 ? $context->pageUid : (int)($issues[0]['page_uid'] ?? 0), 0);
 
         $items = [];
-        $counts = ['found' => count($issues), 'ready' => 0, 'queued' => 0, 'saved' => 0, 'manual' => 0, 'blocked' => 0, 'stale' => 0];
+        // AQA-05: "In AI Fixes" is split by what the item needs (review, apply, nothing usable, still preparing); each
+        // finding counts once, in the bucket of its card ('countKey', else its state).
+        $counts = ['found' => count($issues), 'ready' => 0, 'queued' => 0, 'review' => 0, 'apply' => 0, 'nosuggestion' => 0, 'saved' => 0, 'manual' => 0, 'blocked' => 0, 'stale' => 0];
         $cost = 0;
         $costUnknown = false;
         $readyIds = [];
         foreach ($issues as $issue) {
             $entry = $byFinding[(int)$issue['uid']] ?? ['outcome' => 'skipped', 'reason' => 'not_found', 'itemUid' => 0, 'itemStatus' => '', 'itemReason' => '', 'aiKind' => '', 'targetKind' => ''];
-            $item = $this->item($context, $issue, $entry, $language);
+            $item = $this->item($context, $issue, $entry, $language, $licence);
             if ($item === null) {
                 continue;
             }
-            $counts[$item['state']]++;
+            $counts[$item['countKey'] ?? $item['state']]++;
             if ($item['state'] === 'ready') {
                 $readyIds[] = $item['id'];
                 $micro = $this->maxCost((string)$issue['site_identifier'], (string)$entry['aiKind']);
@@ -152,16 +223,26 @@ final class AskAqgRepairService
             $items[] = $item;
         }
         $counts['found'] = count($items);
+        if ($only !== [] && count($items) !== count($only)) {
+            // A referenced finding closed between reading the list and checking it: ask again, never a partial plan.
+            return $this->plan($context, $scope, $question, $intent, $requestedTarget, ['mode' => 'list', 'clarify' => 'changed']);
+        }
+        foreach ($items as $index => $item) {
+            $items[$index]['number'] = $numbers[$item['id']] ?? ($index + 1);
+        }
 
         $freshness = $this->freshness($context);
         $repair = [
+            'mode' => $mode,
+            'clarify' => $clarify,
+            'single' => $only !== [] && count($items) === 1,
             'target' => $target,
             'targetLabel' => $this->targetLabel($context, $target),
             'selectedTarget' => $selected,
             'notices' => $notices,
             'alternatives' => $alternatives,
             'counts' => $counts,
-            'headline' => $this->headline($counts['found'], $target),
+            'headline' => $mode === 'list' ? $this->listHeadline($counts['found'], $target) : $this->headline($counts['found'], $target, $only !== []),
             'summary' => $this->summaryLines($counts),
             'freshness' => $freshness,
             'ai' => [
@@ -177,6 +258,9 @@ final class AskAqgRepairService
                 'requests' => count($readyIds),
             ],
             'items' => $items,
+            // The numbered list this answer shows, in order: AskAqgService signs it (AskAqgSelection) so that a later
+            // "Fix problem 2" means exactly this answer's number 2.
+            'listIds' => array_map(static fn (array $item): int => (int)$item['id'], $items),
             'prepareIds' => $readyIds,
             'queueUrl' => $queueUrl,
             'editUrl' => $context->type === ToolbarAssistantContext::TYPE_RECORD && !$context->isEditingRecord() && $this->recordAccess->canEditRecord($context->table, $context->recordUid)
@@ -340,7 +424,33 @@ final class AskAqgRepairService
      * @param array<string,mixed> $entry
      * @return array<string,mixed>|null
      */
-    private function item(ToolbarAssistantContext $context, array $issue, array $entry, string $language): ?array
+    private function item(ToolbarAssistantContext $context, array $issue, array $entry, string $language, bool $licence = true): ?array
+    {
+        $item = $this->itemState($context, $issue, $entry, $language, $licence);
+        if ($item === null || !in_array($item['state'], ['manual', 'blocked', 'stale'], true) || $this->findingGuidance === null) {
+            return $item;
+        }
+        // Not a dead end: what is wrong, where, what to change, how, what AQG cannot know and how it confirms the fix.
+        $item['guidance'] = $this->findingGuidance->build($issue, [
+            'place' => (string)$item['location'],
+            // The rule's own guidance, also where it is AQG's generic text: in the guidance it is the recommended change.
+            'howToFix' => (string)$item['howToFix'] !== '' ? (string)$item['howToFix'] : mb_substr((string)($this->guidanceService->present($issue, $this->backendContextService->getCurrentLanguageCode() === 'de' ? 'de' : 'en')['howToFix'] ?? ''), 0, 300),
+            'reason' => (string)($entry['reason'] ?? ''),
+            'state' => (string)$item['state'],
+            'editable' => $item['editUrl'] !== '',
+            'editingThis' => $item['formField'] !== '',
+            'workspace' => $context->workspace,
+        ]);
+
+        return $item;
+    }
+
+    /**
+     * @param array<string,mixed> $issue
+     * @param array<string,mixed> $entry
+     * @return array<string,mixed>|null
+     */
+    private function itemState(ToolbarAssistantContext $context, array $issue, array $entry, string $language, bool $licence): ?array
     {
         $outcome = (string)$entry['outcome'];
         $reason = (string)$entry['reason'];
@@ -371,9 +481,19 @@ final class AskAqgRepairService
             'cost' => '',
             'detailUrl' => $this->assistantService->pageDetailUrl($issue),
             // Not for the record whose form is open already (the editor is in it); otherwise only with edit access.
-            'editUrl' => $table !== '' && $recordUid > 0 && !($context->isEditingRecord() && $context->table === $table && $context->recordUid === $recordUid)
+            // Never for a finding of the rendered page: its source is not known, so no record is offered as "the" editor.
+            'editUrl' => !AskAqgFindingGuidance::isRendered($issue) && $table !== '' && $recordUid > 0 && !($context->isEditingRecord() && $context->table === $table && $context->recordUid === $recordUid)
                 && $this->recordAccess->canEditRecord($table, $recordUid) ? $this->assistantService->editUrl($table, $recordUid) : '',
             'howToFix' => ($guidance['howToFixIsFallback'] ?? false) === true ? '' : mb_substr((string)($guidance['howToFix'] ?? ''), 0, 300),
+            'why' => mb_substr((string)($guidance['whyItMatters'] ?? ''), 0, 400),
+            'key' => self::sourceKey($issue),
+            // The form field of the finding while its record is open in the editor ("Show in form"), else ''.
+            'formField' => !AskAqgFindingGuidance::isRendered($issue) && $context->isEditingRecord() && $context->table === $table && $context->recordUid === $recordUid
+                && preg_match('/^[a-z][a-z0-9_]{0,63}$/', (string)($issue['source_field'] ?? '')) === 1
+                ? sprintf('data[%s][%d][%s]', $table, $recordUid, (string)$issue['source_field']) : '',
+            // Findings of the rendered page (template, layout or plugin output) have no editable source AQG knows.
+            'source' => AskAqgFindingGuidance::isRendered($issue) ? 'rendered' : 'content',
+            'guidance' => null,
         ];
 
         if ($outcome === 'ready') {
@@ -383,14 +503,39 @@ final class AskAqgRepairService
 
             return $item;
         }
+        // AF-01: an item kept from a paid period is not a usable action while the site's licence lacks AI fixes. It is
+        // not deleted (it opens again once the licence is active); no Review / Apply link leads to a locked module.
+        if (!$licence && (($outcome === 'already_queued' && (int)$entry['itemUid'] > 0) || (int)($entry['savedItemUid'] ?? 0) > 0)) {
+            $item['state'] = 'blocked';
+            $item['countKey'] = 'blocked';
+            $item['itemUid'] = (int)($entry['itemUid'] ?: ($entry['savedItemUid'] ?? 0));
+            $item['stateLabel'] = $this->t('toolbar.repair.state.licence', 'Needs PRO or Agency');
+            $item['reason'] = $this->t('toolbar.repair.reason.licenceKept', 'An AI fix exists for this issue, but the licence of this site does not include AI fixes right now. It is kept and opens again once the licence is active.');
+
+            return $item;
+        }
         if ($outcome === 'already_queued') {
             if ((int)$entry['itemUid'] > 0) {
+                $itemStatus = (string)$entry['itemStatus'];
                 $item['state'] = 'queued';
                 $item['itemUid'] = (int)$entry['itemUid'];
-                $item['itemStatus'] = (string)$entry['itemStatus'];
-                $item['stateLabel'] = $this->t('remediation.status.' . $entry['itemStatus'], (string)$entry['itemStatus']);
-                $item['reason'] = $this->t('toolbar.repair.reason.queued', 'Already in AI fixes; nothing new is prepared.');
+                $item['itemStatus'] = $itemStatus;
+                // AQA-05/AQA-06: one reason and one main action per item status, instead of "Already in AI fixes".
+                [$item['queueKind'], $item['countKey'], $reasonKey, $reasonFallback] = match ($itemStatus) {
+                    RemediationStatus::PENDING_REVIEW => ['review', 'review', 'toolbar.repair.reason.review', 'A suggestion is waiting for your review in AI fixes.'],
+                    RemediationStatus::APPROVED, RemediationStatus::IN_EDITOR => ['apply', 'apply', 'toolbar.repair.reason.apply', 'The suggestion is approved. Open the editor to apply it, then save.'],
+                    RemediationStatus::NO_SUGGESTION => ['nosuggestion', 'nosuggestion', 'toolbar.repair.reason.nosuggestion', 'AQG found no safe automatic change for this issue. Fix it in the record.'],
+                    default => ['queued', 'queued', 'toolbar.repair.reason.queued', 'Already in AI fixes; nothing new is prepared.'],
+                };
+                $item['stateLabel'] = $this->t('remediation.status.' . $itemStatus, $itemStatus);
+                $item['reason'] = $this->t($reasonKey, $reasonFallback);
                 $item['reviewUrl'] = $this->queueUrl((int)$issue['page_uid'], (int)$entry['itemUid']);
+                // Approved for the editor but not applied yet: the editor opens with the staged change (AI Fixes'
+                // own staged URL, ?aqgRemediation=<item>; the editor asks the server for the change and the editor saves).
+                if (in_array((string)$entry['itemStatus'], [RemediationStatus::APPROVED, RemediationStatus::IN_EDITOR], true)
+                    && $table !== '' && $recordUid > 0 && !AskAqgFindingGuidance::isRendered($issue) && $this->recordAccess->canEditRecord($table, $recordUid)) {
+                    $item['applyUrl'] = $this->stagedEditUrl($table, $recordUid, (int)$entry['itemUid']);
+                }
             } else {
                 // Held by another person's item that this user may not open: not revealed, not prepared twice.
                 $item['state'] = 'blocked';
@@ -429,6 +574,18 @@ final class AskAqgRepairService
         $item['reason'] = $this->reasonLabel($reason);
 
         return $item;
+    }
+
+    /**
+     * The same rule in the same record field ("rule|table|uid|field"): the only identity a finding keeps when a check of
+     * changed content stores it again under a new uid and fingerprint. Used to avoid calling such a problem resolved and
+     * by the toolbar's verification summary; never to substitute one finding for another.
+     *
+     * @param array<string,mixed> $issue
+     */
+    public static function sourceKey(array $issue): string
+    {
+        return sha1(implode('|', [(string)($issue['rule_id'] ?? ''), (string)($issue['source_table'] ?? ''), (int)($issue['source_uid'] ?? 0), (string)($issue['source_field'] ?? ''), (int)($issue['source_lang_uid'] ?? 0)]));
     }
 
     /** The AI kind a rule is about (for "fix the alt texts"): the AI Fixes catalogue first, then the rule id. */
@@ -487,20 +644,43 @@ final class AskAqgRepairService
         };
     }
 
-    private function headline(int $found, string $target): string
+    /** The headline of the numbered list ("5 problems on this page, most severe first"). */
+    private function listHeadline(int $found, string $target): string
     {
         if ($found === 0) {
-            return $this->t('toolbar.repair.headline.none', 'AQG stores no open issues you can access for this target. That does not prove it is accessible; a new content check shows the current state.');
+            return $this->headline(0, $target);
         }
         $where = match ($target) {
-            self::TARGET_RECORD => $this->t('toolbar.repair.where.record', 'this content element'),
-            self::TARGET_FILE => $this->t('toolbar.repair.where.file', 'this file'),
-            default => $this->t('toolbar.repair.where.page', 'this page'),
+            self::TARGET_RECORD => $this->t('toolbar.repair.list.where.record', 'in this content element'),
+            self::TARGET_FILE => $this->t('toolbar.repair.list.where.file', 'for this file'),
+            default => $this->t('toolbar.repair.list.where.page', 'on this page'),
         };
 
         return $found === 1
-            ? sprintf($this->t('toolbar.repair.headline.one', 'I found 1 problem in %s.'), $where)
-            : sprintf($this->t('toolbar.repair.headline.many', 'I found %1$d problems in %2$s.'), $found, $where);
+            ? sprintf($this->t('toolbar.repair.list.one', '1 problem %s.'), $where)
+            : sprintf($this->t('toolbar.repair.list.many', '%1$d problems %2$s, most severe first.'), $found, $where);
+    }
+
+    private function headline(int $found, string $target, bool $selected = false): string
+    {
+        if ($selected && $found > 0) {
+            return $found === 1
+                ? $this->t('toolbar.repair.headline.selectedOne', 'Here is the problem you chose.')
+                : sprintf($this->t('toolbar.repair.headline.selected', 'Here are the %d problems you chose.'), $found);
+        }
+        if ($found === 0) {
+            return $this->t('toolbar.repair.headline.none', 'AQG stores no open issues you can access for this target. That does not prove it is accessible; a new content check shows the current state.');
+        }
+        // "on this page", "in this content element", "for this file": the preposition belongs to the place.
+        $where = match ($target) {
+            self::TARGET_RECORD => $this->t('toolbar.repair.list.where.record', 'in this content element'),
+            self::TARGET_FILE => $this->t('toolbar.repair.list.where.file', 'for this file'),
+            default => $this->t('toolbar.repair.list.where.page', 'on this page'),
+        };
+
+        return $found === 1
+            ? sprintf($this->t('toolbar.repair.headline.oneWhere', 'I found 1 problem %s.'), $where)
+            : sprintf($this->t('toolbar.repair.headline.manyWhere', 'I found %1$d problems %2$s.'), $found, $where);
     }
 
     /**
@@ -513,6 +693,15 @@ final class AskAqgRepairService
         $line = fn (int $count, string $one, string $oneFallback, string $many, string $manyFallback): string => $count === 1 ? $this->t($one, $oneFallback) : sprintf($this->t($many, $manyFallback), $count);
         if ($counts['ready'] > 0) {
             $lines[] = $line($counts['ready'], 'toolbar.repair.sum.readyOne', '1 AI suggestion can be prepared for your review.', 'toolbar.repair.sum.ready', '%d AI suggestions can be prepared for your review.');
+        }
+        if ($counts['review'] > 0) {
+            $lines[] = $line($counts['review'], 'toolbar.repair.sum.reviewOne', '1 suggestion waits for your review in AI Fixes.', 'toolbar.repair.sum.review', '%d suggestions wait for your review in AI Fixes.');
+        }
+        if ($counts['apply'] > 0) {
+            $lines[] = $line($counts['apply'], 'toolbar.repair.sum.applyOne', '1 approved suggestion waits to be applied in the editor.', 'toolbar.repair.sum.apply', '%d approved suggestions wait to be applied in the editor.');
+        }
+        if ($counts['nosuggestion'] > 0) {
+            $lines[] = $line($counts['nosuggestion'], 'toolbar.repair.sum.nosuggestionOne', '1 has no safe automatic fix; fix it in the record.', 'toolbar.repair.sum.nosuggestion', '%d have no safe automatic fix; fix them in the record.');
         }
         if ($counts['queued'] > 0) {
             $lines[] = $line($counts['queued'], 'toolbar.repair.sum.queuedOne', '1 is already in AI Fixes.', 'toolbar.repair.sum.queued', '%d are already in AI Fixes.');
@@ -578,6 +767,15 @@ final class AskAqgRepairService
     private function money(int $micro, string $language): string
     {
         return sprintf($this->t('ai.cost.max', '<$%s'), AiActionCostEstimator::formatUpperBound($micro, $language === 'de' ? ',' : '.'));
+    }
+
+    private function stagedEditUrl(string $table, int $recordUid, int $itemUid): string
+    {
+        try {
+            return (string)$this->uriBuilder->buildUriFromRoute('record_edit', ['edit' => [$table => [$recordUid => 'edit']], 'aqgRemediation' => $itemUid]);
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     /** The AI Fixes list of the page, or one item's review drawer (the item route checks visibility again). */

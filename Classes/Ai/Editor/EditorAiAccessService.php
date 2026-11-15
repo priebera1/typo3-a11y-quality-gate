@@ -15,6 +15,7 @@ use Priebera\A11yQualityGate\Ai\Settings\AiSiteSettingsService;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiConfigurationRepositoryInterface;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Whether editor AI is usable for a user on a site, and why not. Layers (all must allow it): PRO/Agency licence,
@@ -24,7 +25,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
  * acknowledgement, budget). The state is what the editor UI shows; the same checks run again server-side on every
  * request, and AiUsageRecorder enforces the budget once more under a lock right before the provider request.
  */
-final class EditorAiAccessService
+final class EditorAiAccessService implements McpCallScopedState
 {
     /** An AI request whose usage row could not be written was refused before sending (AiUsageRecorder::CODE_USAGE_UNAVAILABLE). */
     public const STATE_USAGE_UNAVAILABLE = 'usage_unavailable';
@@ -236,5 +237,11 @@ final class EditorAiAccessService
         if ($flag !== self::FLAG_EDITOR && !$this->userAllows($flag)) {
             throw new EditorAiException(self::STATE_NO_PERMISSION, 'This AI action is not enabled for your user group.', 403);
         }
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->resolveCodes = [];
     }
 }

@@ -13,7 +13,10 @@ use Priebera\A11yQualityGate\Controller\McpConsentController;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
 use Priebera\A11yQualityGate\Mcp\McpConsentLedger;
+use Priebera\A11yQualityGate\Mcp\McpAttestation;
 use Priebera\A11yQualityGate\Mcp\McpHostKey;
+use Priebera\A11yQualityGate\Mcp\McpInstallationKey;
+use Priebera\A11yQualityGate\Tests\Support\McpAttestationFixture;
 use Priebera\A11yQualityGate\Mcp\McpSiteSettingsRepository;
 use Priebera\A11yQualityGate\Tests\Functional\AbstractFunctionalTestCase;
 use Psr\Http\Message\RequestInterface;
@@ -49,6 +52,8 @@ final class McpConsentDecisionFunctionalTest extends AbstractFunctionalTestCase
 
     /** @var list<array{path: string, body: array<string, mixed>}> */
     private array $requests = [];
+    /** @var array{secretKey: string, publicKey: string} */
+    private array $installationKey;
     /** @var array<string, \Closure(array<string, mixed>): array{0: int, 1: array<string, mixed>}> */
     private array $routes = [];
 
@@ -103,13 +108,17 @@ final class McpConsentDecisionFunctionalTest extends AbstractFunctionalTestCase
         $settings->save('client-b', true, ['findings:read', 'history:read', 'scans:run-page'], 1);
 
         $store = $this->get(McpConnectionStore::class);
-        self::assertTrue($store->startPairing(self::PAIRING, 'ABCD2345', 'aqgp_poll', time() + 600, 'https://app.example/app/agent-access', 'admin'));
-        self::assertTrue($store->completePairingIfCurrent(self::PAIRING, self::SECRET, 'slug', 'https://gw.example/mcp/i/slug'));
+        // Attested pairing (V1): the consent page signs every decision with this installation's key (V2).
+        $this->installationKey = McpInstallationKey::generate();
+        self::assertTrue($store->startPairing(self::PAIRING, 'ABCD2345', 'aqgp_poll', time() + 600, 'https://app.example/app/agent-access', 'admin',
+            $this->installationKey + ['pinnedKeys' => (new McpAttestationFixture())->pinned()]));
+        self::assertTrue($store->completePairingIfCurrent(self::PAIRING, self::SECRET, 'slug', 'https://gw.example/mcp/i/slug', McpAttestationFixture::INSTALLATION_ID));
         self::assertTrue($store->markActivatedIfCurrent($store->get()['credentialId']));
 
         $this->routes['#/mcp/connector/authorization-requests/describe$#'] = fn (): array => [200, ['success' => true, 'request' => [
             'status' => 'pending', 'clientName' => 'Agent (self-declared)', 'clientId' => 'aqgmc_client', 'redirectHost' => '127.0.0.1',
             'redirectsToLoopback' => true, 'requestedScopes' => ['findings:read', 'history:read', 'scans:run-page'],
+            'redirectUri' => 'http://127.0.0.1:33418/callback', 'codeChallenge' => str_repeat('C', 43), 'consentSigning' => true,
         ]]];
         $this->routes['#/mcp/connector/authorization-requests/decide$#'] = fn (): array => [200, ['success' => true, 'redirect' => self::REDIRECT, 'status' => 'decided']];
         $this->routes['#/mcp/connector/tokens$#'] = fn (): array => [200, ['success' => true, 'tokens' => []]];
@@ -232,6 +241,13 @@ final class McpConsentDecisionFunctionalTest extends AbstractFunctionalTestCase
         self::assertSame(['client-a'], $decisions[0]['siteIdentifiers'], 'client-b is outside the reader\'s mounts');
         self::assertSame(7, $decisions[0]['durationDays'], 'an unknown duration falls back to the shortest, 7 days (P1-5)');
         self::assertNull($decisions[0]['replaceTokenId']);
+        // V2: the decision is signed with the installation key over exactly what was decided, bound to the agent.
+        $payload = McpAttestation::base64UrlDecode($decisions[0]['consent']['payload']);
+        self::assertTrue(sodium_crypto_sign_verify_detached(McpAttestation::base64UrlDecode($decisions[0]['consent']['signature']), $payload,
+            McpAttestation::base64UrlDecode($this->installationKey['publicKey'])));
+        $signed = json_decode($payload, true);
+        self::assertSame([McpAttestationFixture::INSTALLATION_ID, 3, 'aqgmc_client', ['findings:read'], ['client-a'], 7, str_repeat('C', 43)],
+            [$signed['installationId'], $signed['beUserUid'], $signed['clientId'], $signed['scopes'], $signed['sites'], $signed['durationDays'], $signed['codeChallenge']]);
         self::assertTrue($this->recorded(3, ['findings:read'], ['client-a']));
         self::assertFalse($this->recorded(3, ['findings:read', 'scans:run-page'], ['client-a']), 'the record is the narrowed grant');
         self::assertSame([['result' => 'token_issued', 'reason' => '']], $this->audit());
@@ -263,6 +279,7 @@ final class McpConsentDecisionFunctionalTest extends AbstractFunctionalTestCase
         // Pending when shown, expired by the time it is decided: the Gateway's 410 withdraws the local record.
         $this->routes['#/mcp/connector/authorization-requests/describe$#'] = fn (): array => [200, ['success' => true, 'request' => [
             'status' => 'pending', 'clientName' => 'Agent', 'clientId' => 'c', 'requestedScopes' => ['findings:read'],
+            'redirectUri' => 'http://127.0.0.1:33418/callback', 'codeChallenge' => str_repeat('C', 43),
         ]]];
         $this->routes['#/mcp/connector/authorization-requests/decide$#'] = fn (): array => [410, ['success' => false, 'error' => ['code' => 'request_expired']]];
         $this->decide(['request' => self::REQUEST_REF, 'decision' => 'allow', 'scopes' => ['findings:read'], 'sites' => ['client-a']]);

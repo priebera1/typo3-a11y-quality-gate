@@ -18,6 +18,7 @@ final class RemoteScanPersistenceService
 {
     /** Seconds a persistence claim protects a scan; a process that died mid-store frees it after this. */
     public const PERSIST_CLAIM_TTL = 300;
+    private const DEADLOCK_ATTEMPTS = 3;
 
     public function __construct(
         private readonly RemoteScanRepository $remoteScanRepository,
@@ -80,9 +81,21 @@ final class RemoteScanPersistenceService
         }
 
         try {
-            return $this->remoteScanRepository->remoteScanConnection()->transactional(
-                fn (): int => $this->storeClaimedResults($logger, $siteIdentifier, $jobId, $sourceType, $startUrl, $sitemapUrl, $resultsData)
-            );
+            // MEDIUM-4: a deadlock rolls the whole transaction back (nothing partial is stored) and the claim stays ours,
+            // so the store is retried a bounded number of times instead of reporting "could not be saved".
+            for ($attempt = 1; ; $attempt++) {
+                try {
+                    return $this->remoteScanRepository->remoteScanConnection()->transactional(
+                        fn (): int => $this->storeClaimedResults($logger, $siteIdentifier, $jobId, $sourceType, $startUrl, $sitemapUrl, $resultsData, $attempt > 1)
+                    );
+                } catch (\Doctrine\DBAL\Exception\DeadlockException $exception) {
+                    if ($attempt >= self::DEADLOCK_ATTEMPTS) {
+                        throw $exception;
+                    }
+                    $logger->info('AQG remote persist: deadlock, retrying', ['jobId' => $jobId, 'attempt' => $attempt]);
+                    usleep(random_int(50, 250) * 1000 * $attempt);
+                }
+            }
         } finally {
             $this->remoteScanRepository->releasePersistenceClaim($claimUid, $claimToken);
         }
@@ -99,6 +112,7 @@ final class RemoteScanPersistenceService
         string $startUrl,
         ?string $sitemapUrl,
         array $resultsData,
+        bool $retry = false,
     ): int {
         $remoteScanUid = $this->remoteScanRepository->upsertScan(
             siteIdentifier: $siteIdentifier,
@@ -126,10 +140,22 @@ final class RemoteScanPersistenceService
             languageUid: (int)($resultsData['languageUid'] ?? $resultsData['languageId'] ?? -1),
         );
 
+        // MEDIUM-4 (large-installation fix): a DELETE of the (empty) result rows of a just-created scan takes a gap lock
+        // at the end of the remote_scan index; two scans stored at the same time then deadlocked on their INSERTs.
+        // The claim makes this request the only writer of the scan, so a plain read decides whether an earlier,
+        // interrupted attempt left rows to remove. A retry after a deadlock always deletes (locking statements): its
+        // claim may have expired meanwhile and another request stored rows a plain read of this snapshot cannot see.
         $existingIssueUids = $this->remoteIssueRepository->findUidsByRemoteScan($remoteScanUid);
-        $this->remoteIssueNodeRepository->deleteByRemoteIssueUids($existingIssueUids);
-        $this->remoteIssueRepository->deleteByRemoteScan($remoteScanUid);
-        $this->remoteScanRepository->deletePagesByRemoteScan($remoteScanUid);
+        if ($retry || $existingIssueUids !== []) {
+            $this->remoteIssueNodeRepository->deleteByRemoteIssueUids($existingIssueUids);
+            if ($retry) {
+                $this->remoteIssueNodeRepository->deleteByRemoteScan($remoteScanUid);
+            }
+            $this->remoteIssueRepository->deleteByRemoteScan($remoteScanUid);
+        }
+        if ($retry || $this->remoteScanRepository->hasStoredPages($remoteScanUid)) {
+            $this->remoteScanRepository->deletePagesByRemoteScan($remoteScanUid);
+        }
 
         $pages = is_array($resultsData['pages'] ?? null) ? $resultsData['pages'] : [];
 

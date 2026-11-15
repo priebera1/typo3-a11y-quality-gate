@@ -355,6 +355,29 @@ abstract class AbstractBackendModuleController
         return (string)$this->uriBuilder->buildUriFromRoute($route, $parameters);
     }
 
+    /**
+     * MI-05: the module-level Settings action in the doc header, the same on Overview, Page Detail, My issues and AI
+     * fixes (right-hand group, cog icon, label). Shown only to people who may open Settings.
+     *
+     * @param array<string, mixed> $returnParameters
+     */
+    protected function addSettingsDocHeaderButton(ModuleTemplate $moduleTemplate, bool $allowed, array $returnParameters = []): void
+    {
+        if (!$allowed) {
+            return;
+        }
+        $buttonBar = $moduleTemplate->getDocHeaderComponent()->getButtonBar();
+        $buttonBar->addButton(
+            $buttonBar->makeLinkButton()
+                ->setHref($this->buildRouteUrl('web_a11y.settings', $returnParameters))
+                ->setTitle($this->translate('settings.title') ?: 'Settings')
+                ->setShowLabelText(true)
+                ->setIcon($this->iconFactory->getIcon('actions-cog', \TYPO3\CMS\Core\Imaging\IconSize::SMALL)),
+            \TYPO3\CMS\Backend\Template\Components\ButtonBar::BUTTON_POSITION_RIGHT,
+            1,
+        );
+    }
+
     protected function setModuleTitle(ModuleTemplate $moduleTemplate, string $mainLabelKey, string $subLabelKey): void
     {
         $moduleTemplate->setTitle(

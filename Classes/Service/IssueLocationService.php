@@ -9,13 +9,14 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\BackendLayoutView;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Where a content finding is, in the words an editor uses in the page module: the record's title, its content type and
  * column, and the field label. Read-only display data for the Content page view; the stored table, uid and field stay
  * authoritative and remain visible in the technical details.
  */
-final class IssueLocationService
+final class IssueLocationService implements McpCallScopedState
 {
     private const RENDERED_HTML_FIELD = '__rendered_html';
 
@@ -37,13 +38,11 @@ final class IssueLocationService
      */
     public function describe(string $table, int $uid, string $field): array
     {
-        $fieldLabel = $this->fieldLabel($table, $field);
-
         if ($table === 'pages') {
             return [
                 'title' => BackendLabelUtility::translate('pageDetail.location.outsideContent', 'Outside content elements'),
                 'context' => BackendLabelUtility::translate('pageDetail.sourceHint.rendered', 'Likely: template, layout or plugin output'),
-                'fieldLabel' => $fieldLabel,
+                'fieldLabel' => $this->fieldLabel($table, $field),
                 'isContentElement' => false,
                 'isPageLevel' => true,
                 'exists' => true,
@@ -51,6 +50,7 @@ final class IssueLocationService
         }
 
         $record = $uid > 0 && $table !== '' ? $this->record($table, $uid) : null;
+        $fieldLabel = $this->fieldLabel($table, $field, $record);
 
         if ($table === 'tt_content') {
             $header = trim((string)($record['header'] ?? ''));
@@ -112,16 +112,70 @@ final class IssueLocationService
         ];
     }
 
-    private function fieldLabel(string $table, string $field): string
+    /**
+     * The label the editor sees on the field in the record's form: the record type's label first (showitem
+     * "field;label", also inside the type's palettes, then the type's columnsOverrides), else the column label. A Plain
+     * HTML element's bodytext is "HTML Code", not the generic "Text".
+     *
+     * @param array<string, mixed>|null $record
+     */
+    private function fieldLabel(string $table, string $field, ?array $record = null): string
     {
         if ($field === self::RENDERED_HTML_FIELD) {
             return BackendLabelUtility::translate('pageDetail.location.renderedHtml', 'Rendered page HTML');
         }
 
-        $label = (string)($GLOBALS['TCA'][$table]['columns'][$field]['label'] ?? '');
-        $translated = $label !== '' ? $this->sL($label) : '';
+        $translated = '';
+        $typeLabel = $record !== null ? $this->typeFieldLabel($table, $field, $record) : '';
+        if ($typeLabel !== '') {
+            $translated = $this->sL($typeLabel);
+        }
+        if ($translated === '') {
+            $label = (string)($GLOBALS['TCA'][$table]['columns'][$field]['label'] ?? '');
+            $translated = $label !== '' ? $this->sL($label) : '';
+        }
 
         return $translated !== '' ? $translated : $field;
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     */
+    private function typeFieldLabel(string $table, string $field, array $record): string
+    {
+        if ($field === '' || !isset($GLOBALS['TCA'][$table]['columns'][$field])) {
+            return '';
+        }
+        try {
+            $type = (string)BackendUtility::getTCAtypeValue($table, $record);
+        } catch (\Throwable) {
+            return '';
+        }
+        $typeConfiguration = $GLOBALS['TCA'][$table]['types'][$type] ?? null;
+        if (!is_array($typeConfiguration)) {
+            return '';
+        }
+        $label = $this->showitemLabel($table, (string)($typeConfiguration['showitem'] ?? ''), $field, true);
+
+        return $label !== '' ? $label : (string)($typeConfiguration['columnsOverrides'][$field]['label'] ?? '');
+    }
+
+    private function showitemLabel(string $table, string $showitem, string $field, bool $withPalettes): string
+    {
+        foreach (GeneralUtility::trimExplode(',', $showitem, true) as $item) {
+            $parts = GeneralUtility::trimExplode(';', $item);
+            if (($parts[0] ?? '') === $field && ($parts[1] ?? '') !== '') {
+                return $parts[1];
+            }
+            if ($withPalettes && ($parts[0] ?? '') === '--palette--' && ($parts[2] ?? '') !== '') {
+                $paletteLabel = $this->showitemLabel($table, (string)($GLOBALS['TCA'][$table]['palettes'][$parts[2]]['showitem'] ?? ''), $field, false);
+                if ($paletteLabel !== '') {
+                    return $paletteLabel;
+                }
+            }
+        }
+
+        return '';
     }
 
     private function tableLabel(string $table): string
@@ -222,5 +276,12 @@ final class IssueLocationService
         }
 
         return trim($languageService->sL($label));
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->records = [];
+        $this->columnLabels = [];
     }
 }

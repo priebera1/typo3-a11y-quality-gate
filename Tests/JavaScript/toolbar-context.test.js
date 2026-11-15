@@ -15,6 +15,11 @@ describe('toolbar context', () => {
         expect(url.searchParams.get('language')).toBe('1');
     });
 
+    it('reads a repeated parameter as TYPO3 does: the last value', () => {
+        // TYPO3 13 builds "?id=4&id=16" after module navigation and shows page 16.
+        expect(withToolbarContext(renderUrl(), moduleUrl('?id=4&id=16'), '7').searchParams.get('id')).toBe('16');
+    });
+
     it('does not replace a site the module names', () => {
         expect(withToolbarContext(renderUrl(), moduleUrl('?site=main'), '7').searchParams.has('id')).toBe(false);
     });

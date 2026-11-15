@@ -42,11 +42,13 @@ final class RteIgnorePermissionFunctionalTest extends AbstractFunctionalTestCase
         $content->insert('tt_content', ['uid' => 11, 'pid' => 3, 'CType' => 'text', 'bodytext' => '<p><img src="b.jpg"></p>']);
 
         $groups = $pool->getConnectionForTable('be_groups');
-        $groups->insert('be_groups', ['uid' => 10, 'title' => 'Editors', 'groupMods' => 'web_layout,web_a11y', 'db_mountpoints' => '1', 'tables_modify' => 'tt_content', 'tables_select' => 'tt_content', 'non_exclude_fields' => 'tt_content:bodytext']);
+        // G-01: an editor of the record needs TYPO3's own edit right to it, the CType authMode (explicitAllow) included.
+        $groups->insert('be_groups', ['uid' => 10, 'title' => 'Editors', 'groupMods' => 'web_layout,web_a11y', 'db_mountpoints' => '1', 'tables_modify' => 'tt_content', 'tables_select' => 'tt_content', 'non_exclude_fields' => 'tt_content:bodytext', 'explicit_allowdeny' => 'tt_content:CType:text']);
+        $groups->insert('be_groups', ['uid' => 13, 'title' => 'Editors without the CType', 'groupMods' => 'web_layout,web_a11y', 'db_mountpoints' => '1', 'tables_modify' => 'tt_content', 'tables_select' => 'tt_content', 'non_exclude_fields' => 'tt_content:bodytext']);
         $groups->insert('be_groups', ['uid' => 11, 'title' => 'Editors without ignore', 'groupMods' => 'web_layout,web_a11y', 'db_mountpoints' => '1', 'tables_modify' => 'tt_content', 'tables_select' => 'tt_content', 'TSconfig' => 'options.a11y_quality_gate.editRecord = 0']);
         $groups->insert('be_groups', ['uid' => 12, 'title' => 'Readers', 'groupMods' => 'web_layout,web_a11y', 'db_mountpoints' => '1', 'tables_select' => 'tt_content']);
         $users = $pool->getConnectionForTable('be_users');
-        foreach ([[2, 'editor', '10'], [3, 'no-ignore', '11'], [4, 'reader', '12']] as [$uid, $name, $group]) {
+        foreach ([[2, 'editor', '10'], [3, 'no-ignore', '11'], [4, 'reader', '12'], [5, 'no-ctype', '13']] as [$uid, $name, $group]) {
             $users->insert('be_users', ['uid' => $uid, 'username' => $name, 'admin' => 0, 'usergroup' => $group, 'disable' => 0, 'deleted' => 0]);
         }
 
@@ -89,6 +91,18 @@ final class RteIgnorePermissionFunctionalTest extends AbstractFunctionalTestCase
     public function aReadOnlyUserChangesNothing(): void
     {
         $this->setUpBackendUser(4);
+
+        $response = $this->get(IssueApiController::class)->ignoreAction($this->request('fp-10', 10));
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(0, $this->issueStatus($this->issueUid));
+    }
+
+    #[Test]
+    public function anEditorTypo3WouldNotLetEditTheRecordChangesNothing(): void
+    {
+        // G-01: tables_modify and page rights alone are not record rights; DataHandler refuses this CType to them.
+        $this->setUpBackendUser(5);
 
         $response = $this->get(IssueApiController::class)->ignoreAction($this->request('fp-10', 10));
 

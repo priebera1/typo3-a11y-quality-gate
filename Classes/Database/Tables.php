@@ -31,6 +31,10 @@ final class Tables
     public const MCP_AUDIT = 'tx_a11y_mcp_audit';
     public const MCP_SCAN_REQUEST = 'tx_a11y_mcp_scan_request';
     public const MCP_CONSENT = 'tx_a11y_mcp_consent';
+    /** Call attestation ids already used (V4 replay protection). */
+    public const MCP_ATTESTATION = 'tx_a11y_mcp_attestation';
+    /** Agent tokens revoked in this installation (V4: refused here even when the Gateway does not revoke them). */
+    public const MCP_TOKEN_REVOCATION = 'tx_a11y_mcp_token_revocation';
     public const ASSIGNMENT = 'tx_a11y_assignment';
 
     public const PAGES = 'pages';

@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Domain\Enum\Severity;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\ScanRepository;
 use Priebera\A11yQualityGate\Mcp\McpCallRefused;
+use Priebera\A11yQualityGate\Mcp\Remediation\McpRemediationReasons;
 use Priebera\A11yQualityGate\Rule\RuleRegistry;
 use Priebera\A11yQualityGate\Scan\ContentHashCalculator;
 use Priebera\A11yQualityGate\Scan\RenderedCoverage;
@@ -123,6 +124,7 @@ final class McpIntelligenceTools
 
         $hasMore = count($readable) > $page * $pageSize;
         $slice = array_slice($readable, ($page - 1) * $pageSize, $pageSize);
+        $translationRows = $withContentFindings && $slice !== [] ? $this->visibleTranslationRows($site) : [];
         $pages = [];
         foreach ($slice as $item) {
             $row = $item['row'];
@@ -134,7 +136,7 @@ final class McpIntelligenceTools
                 'doktype' => (int)$row['doktype'],
                 'visibility' => self::visibilityOf($row),
                 'matchedOn' => self::matchedOn($row, $query, $match),
-                'contentFindings' => $withContentFindings ? $this->pageFindingSummary($site, $defaultUid, $languageUid) : null,
+                'contentFindings' => $withContentFindings ? $this->pageFindingSummary($site, $defaultUid, $languageUid, $translationRows) : null,
                 'untrusted' => [
                     'title' => self::truncate((string)($row['title'] ?? ''), 300),
                     'navTitle' => self::truncate((string)($row['nav_title'] ?? ''), 300),
@@ -191,12 +193,21 @@ final class McpIntelligenceTools
 
         return $this->withMetadataLanguage($metadataLanguage, function () use ($site, $pageUid, $languageUid, $statusKey, $severities, $severityKeys, $sourceType, $ruleId, $page, $pageSize, $metadataLanguage): array {
             $siteIdentifier = $site->getIdentifier();
-            $counts = $this->issueRepository->countForAgent($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId);
+            $translationRows = $this->visibleTranslationRows($site);
+            $counts = $this->issueRepository->countForAgent($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId, $translationRows);
             $rows = $counts['total'] > ($page - 1) * $pageSize
-                ? $this->issueRepository->findForAgent($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId, ($page - 1) * $pageSize, $pageSize)
+                ? $this->issueRepository->findForAgent($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId, ($page - 1) * $pageSize, $pageSize, $translationRows)
                 : [];
             $covering = $pageUid !== null ? $this->coveringScan($siteIdentifier, $pageUid, $languageUid) : null;
             $scanTimes = $this->scanTimes($rows);
+            // Evidence per finding from the scan covering its own page and language, exactly as
+            // aqg_get_finding_context computes it: a site-wide list (no pageUid) or a list over every language must
+            // not call a finding "current" that the detail view calls "stale".
+            $coveringScans = [];
+            $findings = [];
+            foreach ($rows as $row) {
+                $findings[] = $this->presentFinding($row, $metadataLanguage, $this->coveringScanFor($siteIdentifier, $row, $coveringScans, $translationRows), $scanTimes, $translationRows);
+            }
 
             return [
                 'siteIdentifier' => $siteIdentifier,
@@ -210,7 +221,7 @@ final class McpIntelligenceTools
                     'total' => $counts['total'],
                     'bySeverity' => ['critical' => $counts['critical'], 'warning' => $counts['warning'], 'info' => $counts['info'], 'needs_review' => $counts['needs_review']],
                 ],
-                'findings' => array_map(fn (array $row): array => $this->presentFinding($row, $metadataLanguage, $covering, $scanTimes), $rows),
+                'findings' => $findings,
                 'page' => $page,
                 'pageSize' => $pageSize,
                 'total' => $counts['total'],
@@ -226,18 +237,20 @@ final class McpIntelligenceTools
      */
     public function getFindingContext(BackendUserAuthentication $user, Site $site, array $arguments): array
     {
-        $issue = $this->requireFinding($site, $arguments);
+        $translationRows = $this->visibleTranslationRows($site);
+        $issue = $this->requireFinding($site, $arguments, $translationRows);
         $metadataLanguage = self::metadataLanguage($arguments);
 
-        return $this->withMetadataLanguage($metadataLanguage, function () use ($site, $issue, $metadataLanguage): array {
+        return $this->withMetadataLanguage($metadataLanguage, function () use ($site, $issue, $metadataLanguage, $translationRows): array {
             $table = (string)$issue['source_table'];
             $uid = (int)$issue['source_uid'];
             $field = (string)$issue['source_field'];
-            $pageUid = (int)$issue['page_uid'];
+            // The source record keeps its stored language; the page is the finding's default page (D-02 legacy rows).
             $languageUid = (int)$issue['source_lang_uid'];
-            $covering = $this->coveringScan($site->getIdentifier(), $pageUid, $languageUid);
+            [$pageUid, $pageLanguageUid] = self::attribution($issue, $translationRows);
+            $covering = $this->coveringScan($site->getIdentifier(), $pageUid, $pageLanguageUid);
             $scanTimes = $this->scanTimes([$issue]);
-            $finding = $this->presentFinding($issue, $metadataLanguage, $covering, $scanTimes);
+            $finding = $this->presentFinding($issue, $metadataLanguage, $covering, $scanTimes, $translationRows);
             $location = $this->issueLocationService->describe($table, $uid, $field);
             $labels = $this->issueLocationService->contentElementLabels($table, $uid);
             $record = $this->liveRecord($table, $uid);
@@ -301,12 +314,14 @@ final class McpIntelligenceTools
         }
         $metadataLanguage = self::metadataLanguage($arguments);
         $issue = null;
+        $translationRows = [];
         if ($hasFinding) {
             if (!$contentReadable) {
                 // Without content:read a finding id names nothing (it would confirm that the finding exists).
                 throw new McpCallRefused('capability_off', 'Guidance for a content finding needs the content:read capability on this site.');
             }
-            $issue = $this->requireFinding($site, $arguments);
+            $translationRows = $this->visibleTranslationRows($site);
+            $issue = $this->requireFinding($site, $arguments, $translationRows);
             $ruleId = (string)$issue['rule_id'];
         } else {
             $ruleId = (string)$arguments['ruleId'];
@@ -315,7 +330,7 @@ final class McpIntelligenceTools
             }
         }
 
-        return $this->withMetadataLanguage($metadataLanguage, function () use ($site, $issue, $ruleId, $metadataLanguage): array {
+        return $this->withMetadataLanguage($metadataLanguage, function () use ($site, $issue, $ruleId, $metadataLanguage, $translationRows): array {
             $rule = $this->ruleRegistry->getById($ruleId);
             $basis = $issue ?? ['rule_id' => $ruleId, 'hint' => $rule !== null ? $rule->getHint() : ''];
             $guidance = $this->guidanceService->present($basis, $metadataLanguage);
@@ -325,7 +340,8 @@ final class McpIntelligenceTools
             $forFinding = null;
             $limits = ['Automated guidance from AQG rule metadata: a person decides the final wording and structure. No AI was used.'];
             if (is_array($issue)) {
-                $presented = $this->presentFinding($issue, $metadataLanguage, $this->coveringScan($site->getIdentifier(), (int)$issue['page_uid'], (int)$issue['source_lang_uid']), $this->scanTimes([$issue]));
+                [$issuePageUid, $issueLanguageUid] = self::attribution($issue, $translationRows);
+                $presented = $this->presentFinding($issue, $metadataLanguage, $this->coveringScan($site->getIdentifier(), $issuePageUid, $issueLanguageUid), $this->scanTimes([$issue]), $translationRows);
                 $fieldLabel = (string)$this->issueLocationService->describe((string)$issue['source_table'], (int)$issue['source_uid'], (string)$issue['source_field'])['fieldLabel'];
                 $step = RuleEvidenceCatalog::concreteStep($issue, self::truncate($fieldLabel, 120));
                 $forFinding = [
@@ -346,6 +362,9 @@ final class McpIntelligenceTools
             if (!$known) {
                 $limits[] = 'AQG has no guidance for this rule id.';
             }
+            // Whether AI Fixes can prepare a suggestion at all, from AQG's catalog only (live MCP QA 2026-11-14: agents
+            // prepared unsupported findings blind). Per finding, aqg_get_suggestion_status answers with the user's rights.
+            $limits[] = McpRemediationReasons::ruleSupportLine($ruleId, self::sourceTypeOf(is_array($issue) ? $issue : ['rule_id' => $ruleId]));
 
             return [
                 'siteIdentifier' => $site->getIdentifier(),
@@ -389,10 +408,12 @@ final class McpIntelligenceTools
      * @param array<string, mixed> $row
      * @param array<string, mixed>|null $covering
      * @param array<int, int> $scanTimes scan uid => finished (or started) time
+     * @param array<int, array{page: int, language: int}> $translationRows visible D-02 legacy rows
      * @return array<string, mixed>
      */
-    private function presentFinding(array $row, string $metadataLanguage, ?array $covering, array $scanTimes): array
+    private function presentFinding(array $row, string $metadataLanguage, ?array $covering, array $scanTimes, array $translationRows = []): array
     {
+        [$pageUid, $languageUid] = self::attribution($row, $translationRows);
         $table = (string)($row['source_table'] ?? '');
         $uid = (int)($row['source_uid'] ?? 0);
         $field = (string)($row['source_field'] ?? '');
@@ -426,12 +447,13 @@ final class McpIntelligenceTools
                 'name' => self::truncate((string)($reference['name'] ?? ''), 200),
             ], array_values(array_filter((array)($guidance['wcagReferences'] ?? []), 'is_array'))), 0, 4),
             'location' => [
-                'pageUid' => (int)($row['page_uid'] ?? 0),
+                // The default-language page and the language it was checked in: what aqg_list_content_findings filters by.
+                'pageUid' => $pageUid,
                 'table' => $table,
                 'uid' => $uid,
                 'field' => $field,
                 'fieldLabel' => self::truncate((string)$location['fieldLabel'], 200),
-                'languageUid' => (int)($row['source_lang_uid'] ?? 0),
+                'languageUid' => $languageUid,
                 'isContentElement' => (bool)$location['isContentElement'],
                 'isPageLevel' => (bool)$location['isPageLevel'],
                 'recordExists' => (bool)$location['exists'],
@@ -588,6 +610,26 @@ final class McpIntelligenceTools
         return $times;
     }
 
+    /**
+     * The covering scan of a finding's own page and language (as the detail view uses), looked up once per page and
+     * language within one list call.
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, array<string, mixed>|null> $memo
+     * @param array<int, array{page: int, language: int}> $translationRows
+     * @return array<string, mixed>|null
+     */
+    private function coveringScanFor(string $siteIdentifier, array $row, array &$memo, array $translationRows = []): ?array
+    {
+        [$pageUid, $languageUid] = self::attribution($row, $translationRows);
+        $key = $pageUid . ':' . $languageUid;
+        if (!array_key_exists($key, $memo)) {
+            $memo[$key] = $this->coveringScan($siteIdentifier, $pageUid, $languageUid);
+        }
+
+        return $memo[$key];
+    }
+
     /** @return array<string, mixed>|null the newest completed local scan that covered the page */
     private function coveringScan(string $siteIdentifier, int $pageUid, int $languageUid): ?array
     {
@@ -621,10 +663,13 @@ final class McpIntelligenceTools
         ];
     }
 
-    /** @return array{open: int, bySeverity: array<string, int>, lastCheckedAt: ?string, neverChecked: bool} */
-    private function pageFindingSummary(Site $site, int $pageUid, int $languageUid): array
+    /**
+     * @param array<int, array{page: int, language: int}> $translationRows
+     * @return array{open: int, bySeverity: array<string, int>, lastCheckedAt: ?string, neverChecked: bool}
+     */
+    private function pageFindingSummary(Site $site, int $pageUid, int $languageUid, array $translationRows = []): array
     {
-        $counts = $this->issueRepository->countForAgent($site->getIdentifier(), $pageUid, $languageUid, 'open', [], 'all', null);
+        $counts = $this->issueRepository->countForAgent($site->getIdentifier(), $pageUid, $languageUid, 'open', [], 'all', null, $translationRows);
         $covering = $this->coveringScan($site->getIdentifier(), $pageUid, $languageUid);
         $checkedAt = is_array($covering) ? ((int)($covering['finished_at'] ?? 0) ?: (int)($covering['started_at'] ?? 0)) : 0;
 
@@ -638,18 +683,68 @@ final class McpIntelligenceTools
 
     /**
      * @param array<string, mixed> $arguments
+     * @param array<int, array{page: int, language: int}> $translationRows
      * @return array<string, mixed>
      */
-    private function requireFinding(Site $site, array $arguments): array
+    private function requireFinding(Site $site, array $arguments, array $translationRows = []): array
     {
         $findingId = (int)($arguments['findingId'] ?? 0);
-        $issue = $findingId > 0 ? $this->issueRepository->findReadableForAgent($site->getIdentifier(), $findingId) : null;
+        $issue = $findingId > 0 ? $this->issueRepository->findReadableForAgent($site->getIdentifier(), $findingId, $translationRows) : null;
         // Unknown, foreign-site, unreadable-source, disabled-rule and deleted findings answer the same.
         if (!is_array($issue) || (string)$issue['site_identifier'] !== $site->getIdentifier()) {
             throw new McpCallRefused('finding_not_found', 'No content finding with this id is available to this agent on this site.');
         }
 
         return $issue;
+    }
+
+    /**
+     * D-02 legacy rows the current user may see: page translation records carrying findings of the site (stored by
+     * releases before 3.0.0 as "page <translation uid>, language 0"), each with its default page and language, kept only
+     * when that default page is a live page of this site and the user may read it in that language — the language
+     * policy, the site's languages, the default page and this translation record's own page access. Evaluated per call
+     * (rights are read fresh; nothing is cached on this service). The stored rows are never changed.
+     *
+     * @return array<int, array{page: int, language: int}> translation page uid => default page uid + language
+     */
+    public function visibleTranslationRows(Site $site): array
+    {
+        $visible = [];
+        foreach ($this->issueRepository->findTranslationPageRowsWithFindings($site->getIdentifier()) as $translationUid => $row) {
+            try {
+                $site->getLanguageById($row['language']);
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($this->scopeAccessService->isDefaultLanguagePageRecord($row['page'])
+                && $this->scopeAccessService->isPageInSite($row['page'], $site)
+                && $this->scopeAccessService->canUseLanguage($row['language'])
+                && $this->scopeAccessService->canReadPageInLanguage($row['page'], $row['language'])
+                && $this->scopeAccessService->canReadPage($translationUid)
+            ) {
+                $visible[$translationUid] = $row;
+            }
+        }
+
+        return $visible;
+    }
+
+    /**
+     * The page and language a finding belongs to: its stored page and language, or — for a D-02 legacy row on a page
+     * translation record — the default page in the translation's language.
+     *
+     * @param array<string, mixed> $row
+     * @param array<int, array{page: int, language: int}> $translationRows
+     * @return array{0: int, 1: int}
+     */
+    private static function attribution(array $row, array $translationRows): array
+    {
+        $storedPageUid = (int)($row['page_uid'] ?? 0);
+        if (isset($translationRows[$storedPageUid])) {
+            return [$translationRows[$storedPageUid]['page'], $translationRows[$storedPageUid]['language']];
+        }
+
+        return [$storedPageUid, (int)($row['source_lang_uid'] ?? 0)];
     }
 
     private function requireLanguage(Site $site, int $languageUid): void
@@ -664,7 +759,7 @@ final class McpIntelligenceTools
         }
     }
 
-    private function requirePage(Site $site, int $pageUid, int $languageUid): void
+    public function requirePage(Site $site, int $pageUid, int $languageUid): void
     {
         $readable = $pageUid > 0
             && $this->scopeAccessService->isDefaultLanguagePageRecord($pageUid)
@@ -824,7 +919,7 @@ final class McpIntelligenceTools
     }
 
     /** @param array<string, mixed> $parameters */
-    private function shareablePath(string $route, array $parameters): ?string
+    public function shareablePath(string $route, array $parameters): ?string
     {
         // The connector has no real backend request: the path is built against the configured backend entry point
         // (BE.entryPoint, default /typo3) at the web root. An installation in a subdirectory gets a path the Gateway

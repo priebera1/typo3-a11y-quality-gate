@@ -135,9 +135,18 @@ final class AskAqgRepairFunctionalTest extends AbstractFunctionalTestCase
 
         self::assertSame('repair', $payload['intent']);
         self::assertSame('aqg', $payload['source'], 'Answered without AI.');
-        self::assertSame('record', $repair['target'], 'The selected scope (this content element) is used, not silently the page.');
+        // AQG 3.0.0: the editor asked about the page, so the page is the target (named in the answer) and the open
+        // element is the explicit alternative — the reverse of the earlier "selected scope wins", which editors found
+        // confusing. Nothing becomes site-wide.
+        self::assertSame('page', $repair['target']);
+        self::assertSame('Page: AQG 09 - Cancel Local Scan', $repair['targetLabel']);
+        self::assertSame([['target' => 'record', 'label' => 'Show only this content element']], $repair['alternatives']);
+        self::assertSame(4, $repair['counts']['found']);
+        $element = $this->service()->plan($this->elementContext(), 'page', 'Oprav mi túto stránku', $intent, 'record')['repair'];
+        self::assertSame('record', $element['target']);
+        $repair = $this->service()->plan($this->elementContext(), 'page', 'Fix this element', AskAqgRepairIntent::detect('Fix this element'))['repair'];
+        self::assertSame('record', $repair['target'], 'Words that name the element keep the element.');
         self::assertSame([['target' => 'page', 'label' => 'Show fixes for the whole page']], $repair['alternatives']);
-        self::assertStringContainsString('selected scope is this content element', implode(' ', $repair['notices']));
         self::assertSame(3, $repair['counts']['found']);
         $states = array_column($repair['items'], 'state', 'ruleId');
         self::assertSame('ready', $states['rte.button_label_missing']);
@@ -221,6 +230,16 @@ final class AskAqgRepairFunctionalTest extends AbstractFunctionalTestCase
         $queued = $plan['items'][array_search('rte.button_label_missing', array_column($plan['items'], 'ruleId'), true)];
         self::assertSame(['queued', $byId[$button]['itemUid']], [$queued['state'], $queued['itemUid']]);
         self::assertNotContains($button, $plan['prepareIds']);
+        self::assertArrayNotHasKey('applyUrl', $queued, 'A proposal waiting for review is reviewed first.');
+
+        // Approved for the editor: the card leads back to the editor with exactly this staged change.
+        $item = $repository->findByUid($byId[$button]['itemUid']);
+        self::assertTrue($repository->transition((int)$item['uid'], (int)$item['row_version'], [RemediationStatus::PENDING_REVIEW], RemediationStatus::APPROVED));
+        $approved = $service->plan($this->elementContext(), 'page', 'Fix this element', AskAqgRepairIntent::detect('Fix this element'))['repair'];
+        $card = $approved['items'][array_search('rte.button_label_missing', array_column($approved['items'], 'ruleId'), true)];
+        self::assertStringContainsString('aqgRemediation=' . $byId[$button]['itemUid'], urldecode((string)$card['applyUrl']));
+        self::assertStringContainsString('edit[tt_content][10]=edit', urldecode((string)$card['applyUrl']));
+        $repository->transition((int)$item['uid'], (int)$item['row_version'] + 1, [RemediationStatus::APPROVED], RemediationStatus::PENDING_REVIEW);
 
         // ... and a delayed retry of the generate step with the row version of the first click is refused (no second charge).
         try {
@@ -232,6 +251,42 @@ final class AskAqgRepairFunctionalTest extends AbstractFunctionalTestCase
         self::assertSame('Close dialog', (string)$repository->findByUid($byId[$button]['itemUid'])['proposed_value']);
         self::assertSame(0, $this->rows('tx_a11y_ai_usage'));
         self::assertSame(self::HTML, $this->bodytext(10), 'Nothing is written to the record before an approved review.');
+    }
+
+    /**
+     * AF-01/AQA-05 (owner QA 2026-11-14): on FREE, Ask AQG showed "Pending review" and a working "Review suggestion" that
+     * opened an AI fixes module saying only "AI fixes are part of AQG PRO and Agency". A kept item is now a licence
+     * state without links into the locked module; with the licence back it is "Needs review" again, counted once.
+     */
+    #[Test]
+    public function aKeptItemIsALicenceStateWithoutReviewLinksUntilTheLicenceIsBack(): void
+    {
+        $this->login(self::ADMIN);
+        $service = $this->service();
+        $button = $this->findings['10:rte.button_label_missing'];
+        $prepared = array_column($service->prepare($this->elementContext(), 'record', [$button])['items'], null, 'id');
+        $repository = $this->get(RemediationItemRepository::class);
+        $item = $repository->findByUid($prepared[$button]['itemUid']);
+        self::assertTrue($repository->transition((int)$item['uid'], (int)$item['row_version'], [RemediationStatus::PREPARING], RemediationStatus::PENDING_REVIEW, ['proposed_value' => 'Close dialog', 'proposal_version' => 1]));
+        $card = function () use ($service): array {
+            $plan = $service->plan($this->elementContext(), 'page', 'Fix this element', AskAqgRepairIntent::detect('Fix this element'))['repair'];
+
+            return [$plan, $plan['items'][array_search('rte.button_label_missing', array_column($plan['items'], 'ruleId'), true)]];
+        };
+
+        [$plan, $review] = $card();
+        self::assertSame(['queued', 'review'], [$review['state'], $review['queueKind']]);
+        self::assertNotEmpty($review['reviewUrl']);
+        self::assertSame(1, $plan['counts']['review']);
+        self::assertSame(0, $plan['counts']['queued'], 'Each finding is counted once, in the bucket of its card.');
+
+        $this->licensed = false;
+        [$plan, $locked] = $card();
+        self::assertSame('blocked', $locked['state']);
+        self::assertSame((int)$item['uid'], $locked['itemUid'], 'The item is kept, not reported as missing.');
+        self::assertSame('', (string)($locked['reviewUrl'] ?? ''), 'No link into the locked AI fixes module.');
+        self::assertSame('', (string)($locked['applyUrl'] ?? ''));
+        self::assertSame(0, $plan['counts']['review']);
     }
 
     #[Test]
@@ -297,7 +352,7 @@ final class AskAqgRepairFunctionalTest extends AbstractFunctionalTestCase
         // The container-wired service: no licence in this instance, so AI is unavailable and nothing may be prepared.
         $ask = $this->get(AskAqgService::class);
 
-        $repair = $ask->ask($this->elementContext(), 'Oprav mi túto stránku', 'page');
+        $repair = $ask->ask($this->elementContext(), 'Oprav mi tento prvok', 'page');
         self::assertSame(['repair', 'aqg'], [$repair['intent'], $repair['source']]);
         self::assertSame(3, $repair['repair']['counts']['found']);
         self::assertSame([], $repair['repair']['prepareIds'], 'Without a licence nothing is offered for preparation.');
@@ -310,6 +365,95 @@ final class AskAqgRepairFunctionalTest extends AbstractFunctionalTestCase
         self::assertArrayNotHasKey('repair', $information);
         self::assertSame(0, $this->rows('tx_a11y_ai_usage'));
         self::assertSame(0, $this->rows('tx_a11y_remediation_item'));
+    }
+
+    #[Test]
+    public function aNumberedListIsAnsweredAndProblemNumberOneMeansExactlyThatFinding(): void
+    {
+        $this->login(self::ADMIN);
+        $ask = $this->get(AskAqgService::class);
+
+        $list = $ask->ask($this->elementContext(), 'What problems does this element have?', 'page');
+        self::assertSame(['repair', 'list'], [$list['intent'], $list['repair']['mode']]);
+        self::assertSame('aqg', $list['source']);
+        self::assertSame([1, 2, 3], array_column($list['repair']['items'], 'number'));
+        self::assertNotSame('', $list['repair']['selection']);
+        self::assertArrayNotHasKey('listIds', $list['repair'], 'The browser gets the signed list only.');
+        $conversation = (string)$list['conversation']['id'];
+        $second = (int)$list['repair']['items'][1]['id'];
+
+        $fix = $ask->ask($this->elementContext(), 'Fix problem 2', 'page', '', [], $conversation, '', $list['repair']['selection']);
+        self::assertSame('repair', $fix['repair']['mode']);
+        self::assertTrue($fix['repair']['single']);
+        self::assertSame([$second], array_column($fix['repair']['items'], 'id'), 'Exactly the finding that was number 2.');
+        self::assertSame([2], array_column($fix['repair']['items'], 'number'), 'It keeps its number.');
+        self::assertSame($conversation, $fix['conversation']['id']);
+
+        // A card's "Prepare fix" sends the number as pick: the same resolution.
+        $picked = $ask->ask($this->elementContext(), 'Fix problem', 'page', 'repair', [], $conversation, '', $fix['repair']['selection'], [3]);
+        self::assertSame([(int)$list['repair']['items'][2]['id']], array_column($picked['repair']['items'], 'id'));
+        self::assertSame(0, $this->rows('tx_a11y_remediation_item'), 'Choosing a problem prepares nothing by itself.');
+    }
+
+    #[Test]
+    public function aReferenceWithoutItsListOrOutsideItIsNeverGuessed(): void
+    {
+        $this->login(self::ADMIN);
+        $ask = $this->get(AskAqgService::class);
+        $list = $ask->ask($this->elementContext(), 'What problems does this element have?', 'page');
+        $conversation = (string)$list['conversation']['id'];
+
+        foreach ([
+            'no list' => ['', $conversation],
+            'another conversation' => [$list['repair']['selection'], ''],
+            'forged list' => [str_replace('s1.record.', 's1.page.', $list['repair']['selection']), $conversation],
+        ] as $case => [$selection, $conversationId]) {
+            $answer = $ask->ask($this->elementContext(), 'Fix problem 1', 'page', '', [], $conversationId, '', $selection);
+            self::assertSame(['list', 'unknown'], [$answer['repair']['mode'], $answer['repair']['clarify']], $case);
+            self::assertStringContainsString('not sure which problem you mean', implode(' ', $answer['repair']['notices']), $case);
+        }
+        $outside = $ask->ask($this->elementContext(), 'Fix problem 9', 'page', '', [], $conversation, '', $list['repair']['selection'], [9]);
+        self::assertSame('unknown', $outside['repair']['clarify'], 'A number that is not in the list.');
+
+        // The finding number 1 was closed by a later check: said so, nothing prepared, the current list shown.
+        $first = (int)$list['repair']['items'][0]['id'];
+        GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('tx_a11y_issue')->update('tx_a11y_issue', ['status' => 1], ['uid' => $first]);
+        $closed = $ask->ask($this->elementContext(), 'Fix problem 1', 'page', '', [], $conversation, '', $list['repair']['selection']);
+        self::assertSame(['list', 'resolved'], [$closed['repair']['mode'], $closed['repair']['clarify']]);
+        self::assertStringContainsString('Problem 1 is no longer open', implode(' ', $closed['repair']['notices']));
+        self::assertNotContains($first, array_column($closed['repair']['items'], 'id'));
+        self::assertSame(0, $this->rows('tx_a11y_remediation_item'));
+    }
+
+    #[Test]
+    public function aHeadingJumpGetsConcreteGuidanceFromTheSavedText(): void
+    {
+        $this->login(self::ADMIN);
+        $pool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $html = '<h2>Overview</h2><p>Intro</p><h5>Details</h5><p>More</p>';
+        $pool->getConnectionForTable('tt_content')->insert('tt_content', ['uid' => 12, 'pid' => 1, 'CType' => 'text', 'header' => 'Headings', 'bodytext' => $html, 'deleted' => 0, 'hidden' => 0]);
+        $rule = $this->get(RuleRegistry::class)->getById('rte.heading_hierarchy_jump');
+        self::assertNotNull($rule);
+        foreach ($rule->check(new CheckContext(siteIdentifier: 'test', pageUid: 1, sourceLangUid: 0, sourceTable: 'tt_content', sourceUid: 12, sourceField: 'bodytext', content: $html, cType: 'text', contextPath: 'Page:1 > tt_content:12 > bodytext')) as $violation) {
+            $this->insertIssue(['source_uid' => 12, 'source_type' => 'rte', 'rule_id' => 'rte.heading_hierarchy_jump', 'severity' => 2, 'message' => $violation->message, 'context_path' => $violation->contextPath, 'context_snippet' => $violation->contextSnippet]);
+        }
+        $context = new ToolbarAssistantContext(type: ToolbarAssistantContext::TYPE_RECORD, siteIdentifier: 'test', pageUid: 1, languageUid: 0, table: 'tt_content', recordUid: 12, recordTitle: 'Headings', recordType: 'text', pageTitle: 'AQG 09 - Cancel Local Scan');
+
+        $repair = $this->get(AskAqgService::class)->ask($context, 'What problems does this element have?', 'page')['repair'];
+
+        self::assertCount(1, $repair['items']);
+        $item = $repair['items'][0];
+        // Never an AI suggestion: manual (rule-based in the editor) or, without a licence in this instance, blocked.
+        self::assertContains($item['state'], ['manual', 'blocked']);
+        self::assertSame([], $repair['prepareIds'], 'A heading level is never changed by AI.');
+        $guidance = $item['guidance'];
+        self::assertStringContainsString('“Details” is an H5', $guidance['problem']);
+        self::assertStringContainsString('“Overview”, is an H2', $guidance['problem']);
+        self::assertSame('Change “Details” from H5 to H3, one level below the H2 before it.', $guidance['recommendation'], 'One level below the heading before it, never a guess like H2.');
+        self::assertStringContainsString('Change to Heading 3', $guidance['action']);
+        self::assertStringContainsString('page template were not compared', $guidance['missing']);
+        self::assertSame([['level' => 2, 'text' => 'Overview', 'flagged' => false], ['level' => 5, 'text' => 'Details', 'flagged' => true]], $guidance['outline']);
+        self::assertNotSame('', $guidance['verify']);
     }
 
     /** A backend user with the backend language service every AJAX request has (labels are resolved through it). */
@@ -352,10 +496,13 @@ final class AskAqgRepairFunctionalTest extends AbstractFunctionalTestCase
 
     private RemediationAccessService $access;
 
+    /** AF-01: whether the site's licence includes AI fixes right now (a downgrade flips it). */
+    private bool $licensed = true;
+
     private function workflow(): RemediationWorkflowService
     {
         $licence = $this->createMock(AiFeatureAccessServiceInterface::class);
-        $licence->method('isAvailable')->willReturn(true);
+        $licence->method('isAvailable')->willReturnCallback(fn (): bool => $this->licensed);
         $resolver = $this->createMock(AiConfigurationResolverInterface::class);
         $resolver->method('resolve')->willReturn(new AiProviderConfiguration('openai', 'sk-test', 'gpt-test', 'site'));
         $configuration = $this->createMock(AiConfigurationRepositoryInterface::class);

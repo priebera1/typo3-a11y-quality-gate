@@ -18,16 +18,19 @@ final class McpScopesTest extends TestCase
     #[Test]
     public function theV1ScopesAndContentReadAreGrantable(): void
     {
-        self::assertSame(['findings:read', 'history:read', 'scans:run-page', 'content:read'], McpScopes::GRANTABLE);
+        self::assertSame(['findings:read', 'history:read', 'scans:run-page', 'content:read', 'suggestions:prepare'], McpScopes::GRANTABLE);
         // Only reading is ticked in advance (public hardening, Fable P1-5): scans (an external effect with a quota) and
         // content:read (possibly unpublished content) need a deliberate tick.
-        self::assertSame(['scans:run-page', 'content:read'], McpScopes::EXPLICIT_CONSENT);
+        self::assertSame(['scans:run-page', 'content:read', 'suggestions:prepare'], McpScopes::EXPLICIT_CONSENT);
+        // Preparing AI suggestions costs the site's AI budget: never ticked in advance. Applying stays locked.
+        self::assertTrue(McpScopes::requiresExplicitConsent('suggestions:prepare'));
+        self::assertSame(['scans:run-site', 'changes:apply'], McpScopes::NOT_AVAILABLE);
         self::assertTrue(McpScopes::requiresExplicitConsent('content:read'));
         self::assertTrue(McpScopes::requiresExplicitConsent('scans:run-page'));
         self::assertFalse(McpScopes::requiresExplicitConsent('findings:read'));
         self::assertFalse(McpScopes::requiresExplicitConsent('history:read'));
         self::assertSame(
-            ['findings:read', 'scans:run-page'],
+            ['findings:read', 'scans:run-page', 'suggestions:prepare'],
             McpScopes::normalize(['scans:run-page', 'changes:apply', 'suggestions:prepare', 'findings:read', 'findings:read', '*']),
             'Unknown and locked scopes are dropped, order follows the catalogue, duplicates collapse.'
         );
@@ -53,10 +56,14 @@ final class McpScopesTest extends TestCase
         self::assertFalse(McpScopes::toolAllowed('aqg_get_scan_results', ['history:read']));
         self::assertFalse(McpScopes::toolAllowed('aqg_start_scan', ['findings:read', 'history:read']));
         self::assertTrue(McpScopes::toolAllowed('aqg_get_scan_status', ['scans:run-page']));
-        self::assertFalse(McpScopes::toolAllowed('aqg_apply_change', ['findings:read', 'history:read', 'scans:run-page']), 'No write tool exists.');
+        self::assertFalse(McpScopes::toolAllowed('aqg_apply_change', ['findings:read', 'history:read', 'scans:run-page', 'suggestions:prepare']), 'No tool applies changes.');
+        self::assertTrue(McpScopes::toolAllowed('aqg_prepare_suggestions', ['suggestions:prepare']));
+        self::assertFalse(McpScopes::toolAllowed('aqg_prepare_suggestions', ['findings:read', 'history:read', 'scans:run-page', 'content:read']), 'Preparing needs its own scope.');
+        self::assertFalse(McpScopes::toolAllowed('aqg_get_suggestion_status', ['content:read']));
         self::assertSame(
             ['aqg_whoami', 'aqg_list_sites', 'aqg_list_scans', 'aqg_get_scan_results', 'aqg_start_scan', 'aqg_get_scan_status',
-                'aqg_find_pages', 'aqg_list_content_findings', 'aqg_get_finding_context', 'aqg_get_remediation_guidance'],
+                'aqg_find_pages', 'aqg_list_content_findings', 'aqg_get_finding_context', 'aqg_get_remediation_guidance',
+                'aqg_prepare_suggestions', 'aqg_get_suggestion_status'],
             array_keys(McpScopes::TOOL_SCOPES)
         );
         // The connector announces exactly the tools it runs (capability negotiation with the Gateway).

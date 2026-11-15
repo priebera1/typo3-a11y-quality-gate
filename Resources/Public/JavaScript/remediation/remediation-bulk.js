@@ -6,7 +6,8 @@
 export const BULK_STATUSES = ['pending_review'];
 
 export function isBulkEligible(item) {
-    return Boolean(item && item.applyMode === 'server' && item.actions?.approve && (BULK_STATUSES.includes(item.status) || item.actions?.retry));
+    // Rich text is applied one item at a time after its own review ("Apply and verify"), never in a bulk run.
+    return Boolean(item && item.applyMode === 'server' && item.kind !== 'rich_text' && item.actions?.approve && (BULK_STATUSES.includes(item.status) || item.actions?.retry));
 }
 
 /** @returns {{eligible: object[], excluded: object[], unseen: object[], label: 'apply'|'review'}} */

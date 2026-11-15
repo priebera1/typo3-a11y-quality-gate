@@ -7,6 +7,8 @@ namespace Priebera\A11yQualityGate\Controller;
 use Priebera\A11yQualityGate\Assignment\AssignmentService;
 use Priebera\A11yQualityGate\Assignment\AssigneeEligibility;
 use Priebera\A11yQualityGate\Assignment\AssignmentRepository;
+use Priebera\A11yQualityGate\Assignment\IssuesListState;
+use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendContextService;
 use Priebera\A11yQualityGate\Service\BackendJavaScriptModuleService;
 use Priebera\A11yQualityGate\Service\RequestParameterService;
@@ -48,6 +50,7 @@ final class IssuesController extends AbstractBackendModuleController
         private readonly ScopeAccessService $scopeAccessService,
         private readonly SiteFinder $siteFinder,
         private readonly ?BackendJavaScriptModuleService $backendJavaScriptModuleService = null,
+        private readonly ?AccessControlService $accessControlService = null,
     ) {
         parent::__construct($moduleTemplateFactory, $uriBuilder, $iconFactory, $backendContextService, $siteResolutionService, $requestParameterService);
     }
@@ -64,31 +67,38 @@ final class IssuesController extends AbstractBackendModuleController
         $query = $request->getQueryParams();
         $selectedId = max(0, (int)($query['id'] ?? 0));
         $mayAssign = $this->assignmentService->mayAssign();
-        $filter = (string)($query['assignee'] ?? AssignmentService::FILTER_ME);
-        if (!in_array($filter, [AssignmentService::FILTER_ME, AssignmentService::FILTER_UNASSIGNED, AssignmentService::FILTER_ALL], true) && !ctype_digit($filter)) {
-            $filter = AssignmentService::FILTER_ME;
-        }
-        $state = (string)($query['state'] ?? AssignmentService::STATE_OPEN);
+        // MI-02/MI-03: one sanitised list state for the query, the chips, the page links and the way back from a task.
+        $listState = IssuesListState::fromArray($query);
         $readableSites = array_values(array_filter($this->siteFinder->getAllSites(), fn (Site $site): bool => $this->scopeAccessService->canReadSite($site)));
-        $siteIdentifier = (string)($query['site'] ?? '');
-        if ($siteIdentifier !== '' && !in_array($siteIdentifier, array_map(static fn (Site $s): string => $s->getIdentifier(), $readableSites), true)) {
-            $siteIdentifier = '';
+        if ($listState->site !== '' && !in_array($listState->site, array_map(static fn (Site $s): string => $s->getIdentifier(), $readableSites), true)) {
+            $listState = $listState->withSite('');
         }
 
         $language = (string)($GLOBALS['BE_USER']->user['lang'] ?? '') === 'de' ? 'de' : 'en';
-        // NEW-03: the list is paginated on the server (no silent cut-off) and can be searched.
-        $requestedPage = max(1, (int)($query['page'] ?? 1));
-        $search = trim(mb_substr((string)($query['q'] ?? ''), 0, 100));
-        $result = $this->assignmentService->listTasks($filter, $state, $siteIdentifier, $language, $requestedPage, AssignmentService::PER_PAGE, $search);
+        // NEW-03: the list is paginated on the server (no silent cut-off) and can be searched; MI-03: 10 / 25 / 50 per page.
+        $result = $this->assignmentService->listTasks($listState->assignee, $listState->state, $listState->site, $language, $listState->page, $listState->perPage, $listState->query);
+        if ($result['filter'] !== $listState->assignee) {
+            // An editor who may not assign always sees their own tasks; the chips and links must say so.
+            $listState = $listState->withAssignee($result['filter']);
+        }
+        $listState = $listState->withPage($result['page']);
+        $search = $listState->query;
+        $state = $listState->state;
+        $siteIdentifier = $listState->site;
+        $base = $selectedId > 0 ? ['id' => $selectedId] : [];
+        $listUrl = fn (IssuesListState $target): string => $this->buildRouteUrl('web_a11y.issues', $base + $target->toParameters());
+        $returnValue = $listState->toReturnValue();
 
         $tasks = array_map(fn (array $task): array => $task + [
-            'url' => $this->buildRouteUrl('web_a11y.pageDetail', [
+            'url' => $this->buildRouteUrl('web_a11y.pageDetail', array_filter([
                 'id' => $task['pageUid'],
                 'pageUid' => $task['pageUid'],
                 'site' => $task['siteIdentifier'],
                 'language' => $task['languageUid'],
                 'rule' => $task['shared'] ? (string)$task['linkRule'] : $task['issueKey'],
-            ]) . '#' . $this->cardAnchor($task),
+                // MI-06: Page Detail offers "Back to My issues" with exactly these filters, rebuilt server-side.
+                IssuesListState::RETURN_PARAMETER => $returnValue !== '' ? $returnValue : 'list',
+            ], static fn ($value): bool => $value !== null)) . '#' . $this->cardAnchor($task),
             'severityKey' => match (true) {
                 $task['severity'] <= 1 => 'critical',
                 $task['severity'] === 2 => 'warning',
@@ -109,16 +119,10 @@ final class IssuesController extends AbstractBackendModuleController
                 $people[] = ['uid' => (string)$row['uid'], 'label' => AssigneeEligibility::label($row)];
             }
         }
+        $siteOptions = array_map(static fn (Site $site): array => ['value' => $site->getIdentifier(), 'label' => (string)($site->getConfiguration()['websiteTitle'] ?? '') ?: $site->getIdentifier()], $readableSites);
+        $pageUrl = fn (int $page): string => $listUrl($listState->withPage($page));
 
-        $listParameters = array_filter([
-            'id' => $selectedId > 0 ? $selectedId : null,
-            'assignee' => $result['filter'],
-            'state' => $state,
-            'site' => $siteIdentifier !== '' ? $siteIdentifier : null,
-            'q' => $search !== '' ? $search : null,
-        ], static fn ($value): bool => $value !== null);
-        $pageUrl = fn (int $page): string => $this->buildRouteUrl('web_a11y.issues', $listParameters + ($page > 1 ? ['page' => $page] : []));
-
+        $formAction = $this->buildRouteUrl('web_a11y.issues');
         $moduleTemplate->assignMultiple([
             'tasks' => $tasks,
             'taskCount' => $result['total'],
@@ -139,14 +143,67 @@ final class IssuesController extends AbstractBackendModuleController
             'filter' => $result['filter'],
             'state' => $state,
             'site' => $siteIdentifier,
-            'siteOptions' => array_map(static fn (Site $site): array => ['value' => $site->getIdentifier(), 'label' => (string)($site->getConfiguration()['websiteTitle'] ?? '') ?: $site->getIdentifier()], $readableSites),
+            'perPage' => $listState->perPage,
+            'perPageOptions' => IssuesListState::PER_PAGE_OPTIONS,
+            'siteOptions' => $siteOptions,
             'people' => $people,
             'selectedId' => $selectedId > 0 ? $selectedId : null,
-            'formAction' => $this->buildRouteUrl('web_a11y.issues'),
+            'formAction' => $formAction,
+            // MI-01: a GET form replaces the action's query string, so the route token travels as a hidden field.
+            // Without it TYPO3 answered with its login redirect and the iframe rendered a second backend.
+            'formToken' => $this->routeToken($formAction),
+            'chips' => $this->activeFilterChips($listState, $people, $siteOptions, $listUrl),
+            'clearUrl' => $listState->hasActiveFilters() ? $listUrl($listState->cleared()) : '',
+            'unassignedDone' => $result['filter'] === AssignmentService::FILTER_UNASSIGNED && $state === AssignmentService::STATE_DONE,
             'selfName' => AssigneeEligibility::label(['username' => (string)($GLOBALS['BE_USER']->user['username'] ?? ''), 'realName' => (string)($GLOBALS['BE_USER']->user['realName'] ?? '')]),
         ]);
+        $this->addSettingsDocHeaderButton($moduleTemplate, $this->accessControlService?->canShowSettings($this->backendContextService->getBackendUser()) ?? false, $base);
 
         return $moduleTemplate->renderResponse('Issues/Index');
+    }
+
+    private function routeToken(string $url): string
+    {
+        parse_str((string)parse_url($url, PHP_URL_QUERY), $parameters);
+
+        return is_string($parameters['token'] ?? null) ? $parameters['token'] : '';
+    }
+
+    /**
+     * MI-04: the filters that narrow the list, as readable chips; each × link is the same list without it. Widening
+     * choices ("Everyone", "All" states, "All sites") are no chips (owner QA 2026-11-14, the same rule as AI fixes);
+     * "Clear filters" still resets them to the defaults.
+     *
+     * @param list<array{uid:string,label:string}> $people
+     * @param list<array{value:string,label:string}> $siteOptions
+     * @param \Closure(IssuesListState):string $listUrl
+     * @return list<array{name:string,label:string,value:string,removeUrl:string,removeLabel?:string}>
+     */
+    private function activeFilterChips(IssuesListState $state, array $people, array $siteOptions, \Closure $listUrl): array
+    {
+        $chips = [];
+        if (!in_array($state->assignee, [AssignmentService::FILTER_ME, AssignmentService::FILTER_ALL], true)) {
+            $value = $state->assignee === AssignmentService::FILTER_UNASSIGNED
+                ? BackendLabelUtility::translate('assignment.filter.unassigned', 'Nobody (unassigned)')
+                : (array_column($people, 'label', 'uid')[$state->assignee] ?? ('#' . $state->assignee));
+            $chips[] = ['name' => 'assignee', 'label' => BackendLabelUtility::translate('assignment.filter.assignee', 'Assigned to'), 'value' => $value, 'removeUrl' => $listUrl($state->without('assignee'))];
+        }
+        if ($state->state === AssignmentService::STATE_DONE) {
+            $chips[] = ['name' => 'state', 'label' => BackendLabelUtility::translate('assignment.filter.state', 'Status'), 'value' => BackendLabelUtility::translate('assignment.state.done', 'Done'), 'removeUrl' => $listUrl($state->without('state'))];
+        }
+        if ($state->site !== '') {
+            $chips[] = ['name' => 'site', 'label' => BackendLabelUtility::translate('assignment.filter.site', 'Site'), 'value' => array_column($siteOptions, 'label', 'value')[$state->site] ?? $state->site, 'removeUrl' => $listUrl($state->without('site'))];
+        }
+        if ($state->query !== '') {
+            $chips[] = ['name' => 'q', 'label' => BackendLabelUtility::translate('assignment.filter.search', 'Search'), 'value' => '“' . $state->query . '”', 'removeUrl' => $listUrl($state->without('q'))];
+        }
+
+        $remove = BackendLabelUtility::translate('assignment.chips.remove', 'Remove filter %s');
+        foreach ($chips as $index => $chip) {
+            $chips[$index]['removeLabel'] = sprintf($remove, $chip['label'] . ': ' . $chip['value']);
+        }
+
+        return $chips;
     }
 
     /**

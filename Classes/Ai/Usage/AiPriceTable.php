@@ -10,6 +10,7 @@ use Priebera\A11yQualityGate\Ai\Provider\AiProviderCatalog;
 use Priebera\A11yQualityGate\Ai\Service\AiModelCompatibilityRegistry;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiPriceCatalogueRepositoryInterface;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiPriceRepositoryInterface;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * THE effective price of a provider model — the one definition the settings screen shows, the budget reserves, a
@@ -26,7 +27,7 @@ use Priebera\A11yQualityGate\Domain\Repository\Contract\AiPriceRepositoryInterfa
  *    only). It is incomplete (no cache or prompt-length rates), so a hard-stop budget does not rely on it.
  * Otherwise there is no price: cost is "unknown", never 0, and a hard-stop budget refuses the request.
  */
-class AiPriceTable
+class AiPriceTable implements McpCallScopedState
 {
     /** Prices older than this are shown as out of date (they still apply; the sync runs about daily). */
     public const STALE_AFTER_SECONDS = 7 * 86400;
@@ -231,5 +232,13 @@ class AiPriceTable
             $this->lookupFailed = true;
             return null;
         }
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->cache = [];
+        $this->lookupFailed = false;
+        $this->refreshChecked = false;
     }
 }

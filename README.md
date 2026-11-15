@@ -57,8 +57,9 @@ without AI.
 
 With a PRO or Agency licence and an AI provider configured by an administrator, supported findings offer
 **Fix with AI** and **Explain with AI**: link text, image alternative text, button names, iframe titles and empty
-headings. Every suggestion shows Before and After, can be edited, and is applied only by a person; TYPO3 Save stores
-it and AQG verifies the saved record. The **AI fixes** view collects prepared changes per site for review, approval
+headings. Every suggestion shows Before and After, can be edited, and is applied only by a person: **Apply and verify**
+stores exactly that element through TYPO3 DataHandler with the person's permissions (or the editor saves it with
+TYPO3 Save), and AQG verifies the saved record. The **AI fixes** view collects prepared changes per site for review, approval
 and a change log.
 
 ![The AI fixes view with four suggestions pending review and the review drawer showing Before, After and the reason for a missing iframe title.](Documentation/Images/ai-fixes-review.png)

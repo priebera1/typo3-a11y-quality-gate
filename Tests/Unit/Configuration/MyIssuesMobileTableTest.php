@@ -30,6 +30,6 @@ final class MyIssuesMobileTableTest extends TestCase
     public function theScrollingFrameIsKeyboardReachable(): void
     {
         self::assertStringContainsString("'@priebera/a11y-quality-gate/backend/issues.js'", self::read('Classes/Controller/IssuesController.php'));
-        self::assertStringContainsString('initializeScrollableTables(document)', self::read('Resources/Public/JavaScript/backend/issues.js'));
+        self::assertStringContainsString('initializeScrollableTables(doc)', self::read('Resources/Public/JavaScript/backend/issues.js'));
     }
 }

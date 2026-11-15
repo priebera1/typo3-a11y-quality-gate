@@ -6,13 +6,14 @@ namespace Priebera\A11yQualityGate\Ai\Editor;
 
 use Priebera\A11yQualityGate\Rule\Rte\RteDomLoader;
 use Priebera\A11yQualityGate\Rule\RuleViolation;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Finds the element a live RTE finding is about, in the same parse the rule used, and describes it so an editor can
  * prove it found the same element (see EditorFindingTarget). The rule's structural path ("p[2] > a") is unique in
  * that parse; its snippet must match the element's serialization, otherwise the finding is not targeted at all.
  */
-final class EditorFindingTargetResolver
+final class EditorFindingTargetResolver implements McpCallScopedState
 {
     public const MAX_TEXT_LENGTH = 1000;
     public const MAX_ATTRIBUTE_LENGTH = 2000;
@@ -251,5 +252,12 @@ final class EditorFindingTargetResolver
         }
 
         return 0;
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->parsedHash = '';
+        $this->parsed = null;
     }
 }

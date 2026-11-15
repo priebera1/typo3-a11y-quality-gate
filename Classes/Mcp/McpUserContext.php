@@ -36,6 +36,8 @@ final class McpUserContext
         private readonly CacheManager $cacheManager,
         private readonly SiteFinder $siteFinder,
         private readonly AccessControlService $accessControlService,
+        /** @var iterable<McpCallScopedState> every service tagged a11y_quality_gate.mcp_call_scoped */
+        private readonly iterable $callScopedState = [],
     ) {
     }
 
@@ -49,11 +51,21 @@ final class McpUserContext
     {
         // The connector is a long-running process: rootlines, mounts and site configuration cached by an earlier call
         // (or another user) must not decide this one. Every call reads permissions and sites fresh.
-        $this->resetRuntimeState();
-        $backendUser = $this->buildUser($beUserUid);
-
         $previousUser = $GLOBALS['BE_USER'] ?? null;
         $previousLanguage = $GLOBALS['LANG'] ?? null;
+        // A tool that builds a backend request (McpToolExecutor::backendRequest()) must not leave it, and with it the
+        // previous user's per-request evaluations, to a later call (finding 1, #8).
+        $hadRequest = array_key_exists('TYPO3_REQUEST', $GLOBALS);
+        $previousRequest = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        unset($GLOBALS['TYPO3_REQUEST']);
+        try {
+            $this->resetRuntimeState();
+            $backendUser = $this->buildUser($beUserUid);
+        } catch (\Throwable $exception) {
+            $this->restoreRequest($hadRequest, $previousRequest);
+            throw $exception;
+        }
+
         $previousUserAspect = $this->context->hasAspect('backend.user') ? $this->context->getAspect('backend.user') : null;
         $previousWorkspaceAspect = $this->context->hasAspect('workspace') ? $this->context->getAspect('workspace') : null;
 
@@ -65,18 +77,23 @@ final class McpUserContext
         try {
             return $callback($backendUser);
         } finally {
-            $this->resetRuntimeState();
-            $GLOBALS['BE_USER'] = $previousUser;
-            $GLOBALS['LANG'] = $previousLanguage;
-            if ($previousUserAspect !== null) {
-                $this->context->setAspect('backend.user', $previousUserAspect);
-            } else {
-                $this->context->unsetAspect('backend.user');
-            }
-            if ($previousWorkspaceAspect !== null) {
-                $this->context->setAspect('workspace', $previousWorkspaceAspect);
-            } else {
-                $this->context->unsetAspect('workspace');
+            // The previous user, language, aspects and request come back even when a reset fails.
+            try {
+                $this->resetRuntimeState();
+            } finally {
+                $this->restoreRequest($hadRequest, $previousRequest);
+                $GLOBALS['BE_USER'] = $previousUser;
+                $GLOBALS['LANG'] = $previousLanguage;
+                if ($previousUserAspect !== null) {
+                    $this->context->setAspect('backend.user', $previousUserAspect);
+                } else {
+                    $this->context->unsetAspect('backend.user');
+                }
+                if ($previousWorkspaceAspect !== null) {
+                    $this->context->setAspect('workspace', $previousWorkspaceAspect);
+                } else {
+                    $this->context->unsetAspect('workspace');
+                }
             }
         }
     }
@@ -89,10 +106,27 @@ final class McpUserContext
         return $value === 1 || $value === '1';
     }
 
+    /**
+     * Before and after every call (deferred work included, which also runs through runAs()): TYPO3's runtime cache,
+     * the site configuration, and every per-request memo of the extension's singletons (McpCallScopedState). A memo
+     * that is not reset fails Tests/Unit/Mcp/McpCallScopedStateGuardTest.
+     */
     private function resetRuntimeState(): void
     {
+        foreach ($this->callScopedState as $service) {
+            $service->resetCallState();
+        }
         $this->cacheManager->getCache('runtime')->flush();
         $this->siteFinder->getAllSites(false);
+    }
+
+    private function restoreRequest(bool $hadRequest, mixed $previousRequest): void
+    {
+        if ($hadRequest) {
+            $GLOBALS['TYPO3_REQUEST'] = $previousRequest;
+        } else {
+            unset($GLOBALS['TYPO3_REQUEST']);
+        }
     }
 
     private function buildUser(int $beUserUid): BackendUserAuthentication
@@ -104,6 +138,12 @@ final class McpUserContext
         // No session and no cookie: setBeUserByUid() only loads the user row (start() is never called here). The cookie
         // flag is protected on TYPO3 13, so it is not touched.
         $backendUser = GeneralUtility::makeInstance(BackendUserAuthentication::class);
+        // An anonymous, non-fixated session object in memory only (no cookie, never persisted, a fresh random id per
+        // call). Core code reads the session identifier: FormEngine's group and file providers load the clipboard's
+        // module data, which threw on a user without a session. AQG's field visibility check caught that and failed
+        // closed, so every record with file references or group fields counted as "not editable" for agents (owner MCP
+        // QA 2026-11-15: canEdit false for tt_content 2075 under an administrator; image alt AI fixes refused).
+        $backendUser->initializeUserSessionManager();
         $backendUser->setBeUserByUid($beUserUid);
         if (!is_array($backendUser->user) || (int)($backendUser->user['uid'] ?? 0) !== $beUserUid) {
             throw new McpCallRefused('user_not_active', 'The TYPO3 user of this agent is disabled or no longer exists.');

@@ -2436,13 +2436,16 @@ final class OverviewController extends AbstractBackendModuleController
         int $currentPageUid,
         int $languageUid,
     ): array {
+        // LOW-3: the three histories are reused for a short time while the site's locally known scans are unchanged.
+        $historyVersion = $this->remoteScanRepository->historyVersion($siteIdentifier);
         $sitemapHistory = $this->remoteScanHistoryService->loadHistory(
             $siteBase,
             $siteIdentifier,
             10,
             'sitemap',
             '',
-            'completed'
+            'completed',
+            $historyVersion
         );
         $crawlHistory = $this->remoteScanHistoryService->loadHistory(
             $siteBase,
@@ -2450,7 +2453,8 @@ final class OverviewController extends AbstractBackendModuleController
             10,
             'crawl',
             '',
-            'completed'
+            'completed',
+            $historyVersion
         );
         $pageHistory = $this->remoteScanHistoryService->loadHistory(
             $siteBase,
@@ -2458,7 +2462,8 @@ final class OverviewController extends AbstractBackendModuleController
             10,
             'single_page',
             '',
-            'completed'
+            'completed',
+            $historyVersion
         );
 
         $apiSiteScans = $this->mergeHistoryItemsByJobId(
@@ -3034,12 +3039,64 @@ final class OverviewController extends AbstractBackendModuleController
             ];
         }
 
-        $comparison = $this->remoteScanHistoryService->loadCompare($siteBase, (string)$pair['from']['job_id'], (string)$pair['to']['job_id']);
-        if ($comparison['available'] ?? false) {
+        return $this->presentRemoteScanCompare(
+            $request,
+            $siteIdentifier,
+            $pair,
+            $this->remoteScanHistoryService->loadCompare($siteBase, (string)$pair['from']['job_id'], (string)$pair['to']['job_id']),
+        );
+    }
+
+    /**
+     * The AQG service's comparison of two stored, compatible scans as the Overview shows it.
+     *
+     * @param array{from:array<string, mixed>,to:array<string, mixed>} $pair
+     * @param array<string, mixed> $comparison RemoteScanHistoryService::loadCompare()
+     * @return array<string, mixed>
+     */
+    private function presentRemoteScanCompare(ServerRequestInterface $request, string $siteIdentifier, array $pair, array $comparison): array
+    {
+        $comparison = $this->guardComparisonPages($comparison, $pair);
+        if (($comparison['available'] ?? false) && ($comparison['comparable'] ?? false)) {
             $comparison['acceptanceEvidence'] = $this->buildAcceptanceEvidenceLinks($siteIdentifier, $pair);
+        }
+        if (($comparison['available'] ?? false) && !($comparison['comparable'] ?? true)) {
+            // Each scan keeps its own report: the findings are valid, only the change between them is not.
+            $queryParams = $request->getQueryParams();
+            foreach (['previousScan' => $pair['from'], 'currentScan' => $pair['to']] as $key => $scan) {
+                $parameters = ['site' => $siteIdentifier, 'language' => (int)($queryParams['language'] ?? 0), 'remoteScanUid' => (int)($scan['uid'] ?? 0)];
+                if ((int)($queryParams['id'] ?? 0) > 0) {
+                    $parameters['id'] = (int)$queryParams['id'];
+                }
+                $comparison[$key]['reportUrl'] = $this->buildRouteUrl('web_a11y', $parameters);
+            }
         }
 
         return $comparison;
+    }
+
+    /**
+     * D-1: an AQG service without the scope verdict (crawler before 032) counts new and resolved findings over both scans
+     * whatever pages each checked. Its numbers are shown only when both stored scans loaded the same pages.
+     *
+     * @param array<string, mixed> $comparison
+     * @param array{from:array<string, mixed>,to:array<string, mixed>} $pair
+     * @return array<string, mixed>
+     */
+    private function guardComparisonPages(array $comparison, array $pair): array
+    {
+        if (!($comparison['available'] ?? false) || !($comparison['comparable'] ?? false) || ($comparison['scopeVerdict'] ?? false)) {
+            return $comparison;
+        }
+        $overlap = $this->remoteScanPairingService->pageOverlap($pair['from'], $pair['to']);
+        if ($overlap->isSamePages()) {
+            return $comparison;
+        }
+
+        return $this->remoteScanHistoryService->notComparable($comparison, 'different_pages', [
+            'onlyInEarlier' => $overlap->onlyInEarlier,
+            'onlyInLater' => $overlap->onlyInLater,
+        ]);
     }
 
     /**

@@ -67,6 +67,37 @@ final class PageDetailAiActionsTest extends TestCase
     }
 
     #[Test]
+    public function aTextFindingAiFixesCanApplyHasOnlyFixWithAiNeverTheCopyOnlyCard(): void
+    {
+        // Observed: a Plain HTML "Click here" link got the copy-only link text card and no "Fix with AI".
+        foreach (['rte.non_descriptive_link', 'rte.empty_link'] as $rule) {
+            $row = PageDetailController::withAiActions(['aiLinkTextSuggestionAvailable' => true] + $this->row($rule, 'rte'), $this->context(RemediationPageSummaryService::FIX_AI_TEXT), self::COST, true);
+            self::assertFalse($row['aiLinkTextSuggestionAvailable'], $rule);
+            self::assertFalse($row['remediation']['inlineAi'], $rule);
+            self::assertTrue($row['remediation']['canPrepare'], $rule);
+        }
+        // Also while an item exists: the card would be a second, paid suggestion for the same occurrence.
+        $queued = $this->context(RemediationPageSummaryService::FIX_AI_TEXT);
+        $queued['findings'][5]['item'] = ['uid' => 1, 'status' => 'pending_review'];
+        $row = PageDetailController::withAiActions(['aiLinkTextSuggestionAvailable' => true] + $this->row('rte.empty_link', 'rte'), $queued, self::COST, true);
+        self::assertFalse($row['aiLinkTextSuggestionAvailable']);
+        // An image occurrence with an item gets no inline "Suggest alt text" either: no second charge, no write
+        // outside the item's checks and history.
+        $image = $this->context(RemediationPageSummaryService::FIX_AI_IMAGE);
+        $image['findings'][5]['item'] = ['uid' => 2, 'status' => 'pending_review'];
+        $row = PageDetailController::withAiActions(['aiAltSuggestionAvailable' => true, 'imageRemediationAvailable' => true] + $this->row('structured.file_reference_alt', 'structured'), $image, self::COST, true);
+        self::assertFalse($row['aiAltSuggestionAvailable']);
+        self::assertFalse($row['remediation']['inlineAi']);
+        $free = PageDetailController::withAiActions(['aiAltSuggestionAvailable' => true, 'imageRemediationAvailable' => true] + $this->row('structured.file_reference_alt', 'structured'), $this->context(RemediationPageSummaryService::FIX_AI_IMAGE), self::COST, true);
+        self::assertTrue($free['aiAltSuggestionAvailable'], 'without an item the inline image flow stays');
+        // Rendered output has no record AQG may write: its suggestion card (review and copy) stays.
+        $rendered = PageDetailController::withAiActions(['aiLinkTextSuggestionAvailable' => true] + $this->row('rendered.empty_link', 'rendered'), $this->context(RemediationPageSummaryService::FIX_DEVELOPER), self::COST, true);
+        self::assertTrue($rendered['aiLinkTextSuggestionAvailable']);
+        self::assertTrue($rendered['remediation']['inlineAi']);
+        self::assertFalse($rendered['remediation']['canPrepare']);
+    }
+
+    #[Test]
     public function costHintsFollowTheActionAndAreEmptyWithoutAPrice(): void
     {
         $text = PageDetailController::withAiActions($this->row('rte.empty_heading', 'rte'), $this->context(RemediationPageSummaryService::FIX_AI_TEXT), self::COST, true);

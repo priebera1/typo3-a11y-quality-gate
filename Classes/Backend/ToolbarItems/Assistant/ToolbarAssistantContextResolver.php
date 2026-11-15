@@ -45,6 +45,10 @@ final class ToolbarAssistantContextResolver
         if (!$backendUser instanceof BackendUserAuthentication) {
             return ToolbarAssistantContext::none($workspace);
         }
+        if ($requestedLanguage === null && ($query['module'] ?? '') === 'web_layout') {
+            // The Page module without a language in its URL shows the language kept in the editor's module data.
+            $requestedLanguage = self::pageModuleLanguage($backendUser->getModuleData('web_layout'));
+        }
 
         $editTable = (string)($query['editTable'] ?? '');
         $editUid = self::positiveInt($query['editUid'] ?? null);
@@ -269,6 +273,33 @@ final class ToolbarAssistantContextResolver
     private static function positiveInt(mixed $value): int
     {
         return is_string($value) && preg_match('/^[1-9][0-9]{0,9}$/D', $value) === 1 ? (int)$value : 0;
+    }
+
+    /**
+     * The language the Page module shows from the editor's module data: TYPO3 13 keeps one `language` (-1 = all
+     * languages), TYPO3 14 a list `languages` (several in its comparison view). One translation is that language; the
+     * default language alone, or several translations, is the default language; anything else is unknown (null).
+     */
+    public static function pageModuleLanguage(mixed $moduleData): ?int
+    {
+        if (!is_array($moduleData)) {
+            return null;
+        }
+        if (is_array($moduleData['languages'] ?? null)) {
+            $listed = array_values(array_filter(
+                array_map(static fn(mixed $value): ?int => self::nonNegativeInt(is_int($value) ? (string)$value : $value), $moduleData['languages']),
+                static fn(?int $value): bool => $value !== null,
+            ));
+            $translations = array_values(array_unique(array_filter($listed, static fn(int $value): bool => $value > 0)));
+            if ($listed === []) {
+                return null;
+            }
+
+            return count($translations) === 1 ? $translations[0] : 0;
+        }
+        $language = $moduleData['language'] ?? null;
+
+        return self::nonNegativeInt(is_int($language) ? (string)$language : $language);
     }
 
     private static function nonNegativeInt(mixed $value): ?int

@@ -36,6 +36,48 @@ final class RemediationPageSummaryService
         private readonly RemediationAccessService $access,
     ) {}
 
+    /**
+     * Whether the finding's element, as the scan stored it, is one AQG would refuse to change: a text change of an element
+     * with inner markup, or a template placeholder. An unreadable or truncated snippet decides nothing (prepare checks
+     * the stored record again).
+     */
+    public static function snippetIsManualOnly(string $ruleId, string $snippet): bool
+    {
+        $entry = EditorAiRuleCatalog::entry($ruleId);
+        $snippet = trim($snippet);
+        if ($entry === null || $snippet === '' || strlen($snippet) > 20000) {
+            return false;
+        }
+        if (preg_match('/\{[^}]*\}/', $snippet) === 1) {
+            return true;
+        }
+        if ($entry['operation'] !== EditorAiRuleCatalog::OPERATION_TEXT) {
+            return false;
+        }
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $loaded = $document->loadHTML('<?xml encoding="utf-8"?><div>' . $snippet . '</div>', LIBXML_NONET | LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        if (!$loaded) {
+            return false;
+        }
+        foreach ($document->getElementsByTagName('*') as $element) {
+            $tag = strtolower($element->tagName);
+            if ($entry['tag'] === 'h*' ? preg_match('/^h[1-6]$/', $tag) === 1 : $tag === $entry['tag']) {
+                foreach ($element->childNodes as $child) {
+                    if ($child instanceof \DOMElement) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        return false;
+    }
+
     /** @param array<string,mixed> $issue */
     public function fixPath(array $issue): string
     {
@@ -45,7 +87,13 @@ final class RemediationPageSummaryService
             return self::FIX_AI_IMAGE;
         }
         if ($sourceType === 'rte' && EditorAiRuleCatalog::supports($ruleId)) {
-            return EditorAiRuleCatalog::hasAiFix($ruleId) ? self::FIX_AI_TEXT : self::FIX_RULE_EDITOR;
+            if (!EditorAiRuleCatalog::hasAiFix($ruleId)) {
+                return self::FIX_RULE_EDITOR;
+            }
+            // The same refusal prepare makes (EditorFindingTargetResolver: nested_markup, template_placeholder), decided
+            // from the stored snippet so that no "Fix with AI" is offered that can only be refused: a link with an icon
+            // inside, or a Fluid placeholder, is fixed by hand.
+            return self::snippetIsManualOnly($ruleId, (string)($issue['context_snippet'] ?? '')) ? self::FIX_MANUAL : self::FIX_AI_TEXT;
         }
         if ($sourceType === 'rendered') {
             return self::FIX_DEVELOPER;

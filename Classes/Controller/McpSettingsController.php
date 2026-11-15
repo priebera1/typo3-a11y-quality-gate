@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Mcp\McpHostKeyUnavailable;
 use Priebera\A11yQualityGate\Mcp\Http\McpGatewayClient;
 use Priebera\A11yQualityGate\Mcp\McpAuditRepository;
 use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
+use Priebera\A11yQualityGate\Mcp\McpConsentLedger;
 use Priebera\A11yQualityGate\Mcp\McpPairingService;
 use Priebera\A11yQualityGate\Mcp\McpScopes;
 use Priebera\A11yQualityGate\Mcp\McpSettingsViewBuilder;
@@ -55,6 +56,7 @@ final class McpSettingsController extends AbstractBackendModuleController
         private readonly ExtensionContextService $extensionContextService,
         private readonly SiteFinder $siteFinder,
         private readonly McpSettingsViewBuilder $viewBuilder,
+        private readonly ?McpConsentLedger $consentLedger = null,
     ) {
         parent::__construct($moduleTemplateFactory, $uriBuilder, $iconFactory, $backendContextService, $siteResolutionService, $requestParameterService);
     }
@@ -83,6 +85,44 @@ final class McpSettingsController extends AbstractBackendModuleController
         $this->auditRepository->record('pairing_started', 'admin_change', 'backend', $this->actorContext());
 
         return $this->back($request);
+    }
+
+    /**
+     * MCP-UI-01: "Remove old connection and connect again" for a connection the Gateway no longer accepts. The stored
+     * connection is ended locally only after the Gateway itself refused that credential (never on a guess), recorded in
+     * the audit trail, then a new pairing starts like Connect. A connection that still works is never replaced.
+     */
+    public function reconnectAction(ServerRequestInterface $request): ResponseInterface
+    {
+        $denied = $this->denyNonAdmin($request);
+        if ($denied !== null) {
+            return $denied;
+        }
+        $site = $this->resolveLicenceSite($request);
+        if (!$site instanceof Site || !self::isEligible($this->proStatusResolverService->resolveForSite($site))) {
+            return $this->back($request, $this->translate('settings.mcp.flash.notEligible'), ContextualFeedbackSeverity::ERROR);
+        }
+        try {
+            $released = $this->connectionStore->get()['status'] === 'connected'
+                ? $this->pairingService->releaseRejectedConnection($this->actorName())
+                : 'none';
+            if ($released === 'still_accepted') {
+                return $this->back($request, $this->translate('settings.mcp.flash.stillAccepted'), ContextualFeedbackSeverity::INFO);
+            }
+            if ($released === 'released') {
+                $this->auditRepository->record('installation_rejected_forgotten', 'admin_change', 'backend', $this->actorContext());
+            }
+            if (!$this->pairingService->start($site, $this->actorName())) {
+                return $this->back($request, $this->translate('settings.mcp.flash.alreadyConnected'), ContextualFeedbackSeverity::WARNING);
+            }
+        } catch (ApiRequestFailedException $exception) {
+            return $this->back($request, $this->gatewayFailureMessage($exception), ContextualFeedbackSeverity::ERROR);
+        } catch (McpHostKeyUnavailable) {
+            return $this->back($request, $this->translate('settings.mcp.flash.hostKeyUnavailable'), ContextualFeedbackSeverity::ERROR);
+        }
+        $this->auditRepository->record('pairing_started', 'admin_change', 'backend', $this->actorContext());
+
+        return $this->back($request, $released === 'released' ? $this->translate('settings.mcp.flash.rejectedForgotten') : '');
     }
 
     /** Polled by the tab while a pairing code is shown. */
@@ -183,6 +223,19 @@ final class McpSettingsController extends AbstractBackendModuleController
         if (preg_match('/^[0-9a-f-]{36}$/i', $tokenId) !== 1) {
             return $this->back($request, $this->translate('settings.mcp.flash.revokeFailed'), ContextualFeedbackSeverity::ERROR);
         }
+        // V4: an administrator's revocation holds here first, whatever the Gateway does with it: the token by id and the
+        // consent the Gateway's list names for that token's user.
+        $listed = null;
+        try {
+            foreach ($this->gatewayClient->listTokens() as $token) {
+                if (strtolower((string)($token['id'] ?? '')) === strtolower($tokenId)) {
+                    $listed = $token;
+                }
+            }
+        } catch (ApiRequestFailedException) {
+            // Unreachable Gateway: the token id is revoked locally all the same.
+        }
+        $this->consentLedger?->revokeConnection($tokenId, $listed, (int)($listed['beUserUid'] ?? 0));
         try {
             $this->gatewayClient->revokeToken($tokenId, 'admin', $this->actorName());
         } catch (ApiRequestFailedException $exception) {

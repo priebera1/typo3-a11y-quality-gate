@@ -18,6 +18,11 @@ use TYPO3\CMS\Core\Site\Entity\Site;
  * Pairing with the AQG MCP Gateway (atlas 13 · A "Connecting"): the installation proves its licence exactly like a
  * crawler token request (licence key + installation id + site inventory), the Gateway answers with a code that the
  * licence owner confirms in the AQG account, and only then does this installation collect its connector secret.
+ *
+ * Attested execution (V1, AQG 3.0.0): every pairing makes a new Ed25519 key pair (McpInstallationKey) and pins the AQG
+ * licence API's attestation keys (McpAttestationKeys) before it starts; the public key goes with the pairing start. The
+ * completion is stored only with the licence API's binding receipt for exactly this key and pairing — a Gateway that
+ * swapped the key on the way, or a Gateway without attested execution, gets its completion discarded.
  */
 final class McpPairingService
 {
@@ -36,6 +41,7 @@ final class McpPairingService
         private readonly ExtensionContextService $extensionContextService,
         private readonly UriBuilder $uriBuilder,
         private readonly McpHostKey $hostKey,
+        private readonly ?McpAttestationKeys $attestationKeys = null,
     ) {
     }
 
@@ -51,6 +57,10 @@ final class McpPairingService
         }
         // The host key first (McpHostKeyUnavailable): without one, no pairing is opened at the Gateway.
         $this->hostKey->ensure();
+        // V1: the licence API's keys first (refused when they do not verify), then this pairing's own key pair.
+        $trust = $this->attestationKeys?->pairingTrust() ?? ['keys' => [], 'trustChain' => ''];
+        $pinnedKeys = $trust['keys'];
+        $installationKey = McpInstallationKey::generate();
         $domain = $this->extensionContextService->getNormalizedDomainFromSiteBase((string)$licenceSite->getBase());
         $base = (string)$licenceSite->getBase();
         $siteUrl = str_contains($base, '://') ? $base : 'https://' . $domain . '/';
@@ -63,6 +73,7 @@ final class McpPairingService
             'version' => $this->extensionContextService->getExtensionVersion(),
             'label' => mb_substr(trim((string)($GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] ?? '')) ?: $domain, 0, 120),
             'consentUrl' => (string)$this->uriBuilder->buildUriFromRoute('web_a11y.mcpConsent', [], UriBuilder::SHAREABLE_URL),
+            'installationPublicKey' => $installationKey['publicKey'],
         ]);
 
         $stored = $this->connectionStore->startPairing(
@@ -72,6 +83,7 @@ final class McpPairingService
             (int)strtotime((string)($response['expiresAt'] ?? '')),
             self::accountUrl($response['confirmUrl'] ?? null),
             $startedBy,
+            $pinnedKeys !== [] ? $installationKey + ['pinnedKeys' => $pinnedKeys, 'trustChain' => $trust['trustChain']] : [],
         );
         if (!$stored) {
             // Connected meanwhile (another request): the code just issued must not stay confirmable.
@@ -107,7 +119,18 @@ final class McpPairingService
         $status = (string)($response['status'] ?? '');
         if ($status === 'completed' && is_string($response['connectorSecret'] ?? null)) {
             $secret = $response['connectorSecret'];
-            if (!$this->connectionStore->completePairingIfCurrent($pairingId, $secret, (string)($response['slug'] ?? ''), (string)($response['serverUrl'] ?? ''))) {
+            $installationId = (string)($response['installationId'] ?? '');
+            $trust = $this->connectionStore->attestationTrust();
+            // V1: only the licence API's receipt for exactly this pairing and this installation's key makes the
+            // completion usable. Without one (a Gateway without attested execution, or a swapped key) nothing is stored
+            // and the Gateway installation is discarded: no unattested connection is ever made.
+            if (!McpAttestationKeys::bindingVerifies((string)($response['binding'] ?? ''), $trust['pinnedKeys'], $installationId, $pairingId, $trust['publicKey'])) {
+                $this->discardLostPairing($secret);
+                $this->connectionStore->cancelPairingIfCurrent($pairingId);
+
+                return 'cancelled';
+            }
+            if (!$this->connectionStore->completePairingIfCurrent($pairingId, $secret, (string)($response['slug'] ?? ''), (string)($response['serverUrl'] ?? ''), $installationId)) {
                 $this->discardLostPairing($secret);
 
                 return $this->connectionStore->get()['status'] === 'connected' ? 'connected' : 'cancelled';
@@ -161,6 +184,44 @@ final class McpPairingService
         $this->connectionStore->cancelPairingIfCurrent($connection['pairingId']);
 
         return $confirmed ? 'cancelled' : 'unconfirmed';
+    }
+
+    /**
+     * MCP-UI-01: ends the stored connection locally only when the Gateway definitively refuses its credential
+     * (401 connector_unauthorized: disconnected elsewhere or paired again). A connection the Gateway still accepts, or
+     * any other answer (proxy, rate limit, outage), is kept. The host key, the consent ledger and the audit trail are
+     * not touched; compare-and-set on the credential id (A5), so a credential replaced meanwhile is left alone.
+     *
+     * @return string 'released' | 'still_accepted' | 'none'
+     * @throws ApiRequestFailedException for an answer that is not a definitive refusal (nothing is changed)
+     */
+    public function releaseRejectedConnection(string $by): string
+    {
+        $credential = $this->connectionStore->currentCredential();
+        if ($credential === null) {
+            return 'none';
+        }
+        try {
+            if ($credential['activationPending']) {
+                // Not activated yet: activating is the definitive question. Accepted → it is live and stays.
+                $this->gatewayClient->activate($credential['secret']);
+                $this->connectionStore->markActivatedIfCurrent($credential['credentialId']);
+            } else {
+                $this->gatewayClient->statusWithSecret($credential['secret']);
+            }
+
+            return 'still_accepted';
+        } catch (ApiRequestFailedException $exception) {
+            $refused = $credential['activationPending']
+                ? in_array($exception->apiErrorCode, self::ACTIVATION_REFUSALS, true)
+                : $exception->httpStatus === 401 && $exception->apiErrorCode === 'connector_unauthorized';
+            if (!$refused) {
+                // A rate limit, a proxy's answer, an outage: nothing is known, nothing changes, the admin sees why.
+                throw $exception;
+            }
+        }
+
+        return $this->connectionStore->markDisconnectedIfCurrent($credential['credentialId'], $by) ? 'released' : 'none';
     }
 
     /**

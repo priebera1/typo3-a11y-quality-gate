@@ -1,6 +1,13 @@
-import {el, format, postRemediation} from '@priebera/a11y-quality-gate/remediation/remediation-api.js';
+import {aiDeclineReason, el, format, postRemediation} from '@priebera/a11y-quality-gate/remediation/remediation-api.js';
+import {AskAqgDock} from '@priebera/a11y-quality-gate/toolbar/ask-aqg-dock.js';
 
 /** Same rounding as AiMoney::formatUsd(): below one cent is "< $0.01", otherwise whole cents. */
+/**
+ * Whether the toolbar's approve saves on the server: the same rule as AI fixes and Page Detail (applyMode "server").
+ * Rich text gets the same review as there: what changes, why, Before / After, the write note and the editor alternative.
+ */
+const directSave = (item) => item?.applyMode === 'server';
+
 const formatUsdMicro = (micro) => {
     if (micro > 0 && micro < 10000) {
         return '< $0.01';
@@ -48,15 +55,32 @@ export function collectAssistantContext(frameWindow, treePage = '') {
     }
 
     if (url) {
-        const id = url.searchParams.get('id') ?? '';
+        // A repeated parameter ("?id=4&id=16", as TYPO3 13 builds it after module navigation) means its LAST value, as in
+        // PHP and so in TYPO3: the first one would name the previous page.
+        const last = (key) => url.searchParams.getAll(key).pop() ?? null;
+        const id = last('id') ?? '';
         if (/^[1-9][0-9]{0,9}$/.test(id)) {
             context.id = id;
         }
         for (const key of ['language', 'languageUid']) {
-            const language = url.searchParams.get(key) ?? '';
+            const language = last(key) ?? '';
             if (/^(0|[1-9][0-9]{0,4})$/.test(language)) {
                 context.language = language;
                 break;
+            }
+        }
+        if (context.language === undefined) {
+            // TYPO3 14's Page module names its languages as `languages[]` (several in its comparison view): one
+            // translation is that language, otherwise the default language.
+            const listed = [...url.searchParams].filter(([key]) => /^languages\[[0-9]{0,3}\]$/.test(key)).map(([, value]) => value)
+                .filter((value) => /^(0|[1-9][0-9]{0,4})$/.test(value));
+            const translations = [...new Set(listed.filter((value) => value !== '0'))];
+            if (listed.length > 0) {
+                context.language = translations.length === 1 ? translations[0] : '0';
+            } else if (/\/module\/web\/layout\/?$/.test(url.pathname)) {
+                // Without a language in the URL (a click in the page tree) the Page module shows the language the editor
+                // chose before, kept in TYPO3's module data: the server reads it from there (ToolbarAssistantContextResolver).
+                context.module = 'web_layout';
             }
         }
         for (const [key, value] of url.searchParams) {
@@ -372,6 +396,23 @@ async function postForm(url, payload) {
 }
 
 /**
+ * The stored form of a plan answer (this tab's sessionStorage, the same scope as the other turns): what was shown, so a
+ * reload can show it again as a record with "Refresh status". Never sent back as AI history (source "aqg").
+ */
+export function planTurn(data) {
+    const repair = data?.repair && typeof data.repair === 'object' ? data.repair : {};
+    return {
+        status: 'answer',
+        source: 'aqg',
+        intent: 'repair',
+        question: String(data?.question ?? ''),
+        answer: String(data?.answer ?? ''),
+        // The plan keeps its own signed list: a refresh resolves its numbers against the list it showed, never a newer one.
+        repair: {...repair, items: (Array.isArray(repair.items) ? repair.items : []).slice(0, 50)},
+    };
+}
+
+/**
  * The toolbar assistant inside the existing AQG dropdown: loads the context view when the dropdown opens and runs
  * the actions the server offered. Each action is an existing AQG endpoint that checks every permission, licence and
  * budget again; AI answers are shown as text and change nothing until the user applies or approves them.
@@ -395,6 +436,62 @@ export class ToolbarAssistant {
         // and the last visible result, which belongs to the offered page only. The section is re-rendered by the status
         // refresh, so this state is applied again with syncContentScan() after every refresh.
         this.contentScanState = {pageUid: 0, languageUid: 0, busy: false, active: null, message: '', tone: '', waitMessage: false};
+        // Where the assistant's one DOM root is shown: 'toolbar' (dropdown), 'dock' (right-hand column beside the TYPO3
+        // workspace, non-blocking) or 'dialog' (fallback where the dock does not fit).
+        this.presentation = 'toolbar';
+        this.dock = new AskAqgDock({
+            win,
+            label: (key, fallback) => this.label(this.root, key, fallback),
+            onClose: () => this.closeDock(),
+            onMinimize: () => {},
+            onNavigate: (href, withReturnUrl) => this.navigate?.(href, withReturnUrl),
+            // The rail cannot open beside the editor (narrow window, page tree open): the same conversation moves into
+            // the existing dialog instead of a panel that would squeeze the form.
+            onNoRoom: () => {
+                this.closeDock({restoreFocus: false});
+                this.expand();
+            },
+        });
+        // While docked, the assistant follows what is open in TYPO3: every module or record the content frame loads
+        // (navigation, Save, Save & close) is resolved again on the server, and the dock shows that context's own
+        // conversation. A plan of the previous page never stays on screen for the next one.
+        const followContext = () => {
+            if (this.presentation !== 'dock') {
+                return;
+            }
+            this.win.clearTimeout(this.followTimer);
+            this.followTimer = this.win.setTimeout(() => this.load({into: 'dock'}), 250);
+        };
+        const followFrame = (event) => {
+            if (event.target instanceof this.win.Element && event.target.matches('#typo3-contentIframe, typo3-iframe-module iframe')) {
+                followContext();
+            }
+        };
+        this.win.document.addEventListener('typo3-module-loaded', followContext);
+        this.win.document.addEventListener('load', followFrame, true);
+        // AQA-07: AI Fixes tells the backend document when an item changed (approve, reject, reopen, regenerate, save,
+        // verify). A live plan that shows that item asks the server again once (free, no AI); the event carries only
+        // an item id, so what is shown still comes from the server's scoped answer.
+        const onRemediationChanged = (event) => {
+            const detail = event?.detail ?? event?.data ?? {};
+            this.onRemediationChanged(Number(detail.itemUid ?? 0), Number(detail.findingUid ?? 0));
+        };
+        this.win.document.addEventListener('aqg:remediation-changed', onRemediationChanged);
+        let channel = null;
+        try {
+            channel = typeof this.win.BroadcastChannel === 'function' ? new this.win.BroadcastChannel('aqg-remediation') : null;
+            if (channel) {
+                channel.onmessage = onRemediationChanged;
+            }
+        } catch {
+            channel = null;
+        }
+        this.disposers = [
+            () => this.win.document.removeEventListener('typo3-module-loaded', followContext),
+            () => this.win.document.removeEventListener('load', followFrame, true),
+            () => this.win.document.removeEventListener('aqg:remediation-changed', onRemediationChanged),
+            () => channel?.close(),
+        ];
         this.win.document.addEventListener('click', (event) => {
             const button = event.target instanceof this.win.Element ? event.target.closest('[data-aqt-content-scan-button]') : null;
             if (!button) {
@@ -403,6 +500,13 @@ export class ToolbarAssistant {
             event.preventDefault();
             this.contentScan(button);
         });
+    }
+
+    /** Removes the document listeners of this instance (the backend keeps one for its lifetime; tests create several). */
+    dispose() {
+        (this.disposers ?? []).forEach((dispose) => dispose());
+        this.disposers = [];
+        this.win.clearTimeout(this.followTimer);
     }
 
     /** The Content scan section's action area in the open dropdown, if there is one. */
@@ -589,10 +693,26 @@ export class ToolbarAssistant {
         return root?.dataset?.[dataKey] || fallback;
     }
 
-    async load() {
-        const slot = this.slot();
+    /**
+     * Renders the assistant for what is open now. `into: 'dock'` renders it inside the docked column (after a TYPO3
+     * navigation); the dropdown opening while the assistant is docked shows only a pointer to the dock.
+     */
+    async load({into = 'toolbar'} = {}) {
+        const dropdown = this.slot();
         const url = this.ajaxUrls().a11y_toolbar_assistant;
-        if (!slot || !url) {
+        if (!url) {
+            return;
+        }
+        if (this.dialog?.open) {
+            // The expanded view holds the assistant (the backend is inert behind it): nothing to reload underneath it.
+            return;
+        }
+        if (this.presentation === 'dock' && into !== 'dock') {
+            this.showDockedNotice();
+            return;
+        }
+        const slot = into === 'dock' && this.presentation === 'dock' ? this.dock.body : dropdown;
+        if (!slot) {
             return;
         }
         const ticket = ++this.request;
@@ -637,12 +757,19 @@ export class ToolbarAssistant {
         }
         slot.innerHTML = html;
         const root = slot.querySelector('[data-aqt-assistant-root]');
+        this.root = root;
+        if (slot === this.dock.body && root) {
+            // A re-render inside the dock (after a TYPO3 navigation) needs the same layout as openDock(): without
+            // --expanded the conversation does not scroll and the composer is pushed out of the column.
+            root.classList.add('aqt-assistant--expanded', 'aqt-assistant--docked');
+        }
         this.setContentScanOffer(Number(root?.dataset.contentScanPage ?? 0), Number(root?.dataset.contentScanLanguage ?? 0));
         this.bind(root);
         if (hadFocus) {
             slot.querySelector('#aqt-assistant-title')?.setAttribute('tabindex', '-1');
             slot.querySelector('#aqt-assistant-title')?.focus({preventScroll: true});
         }
+        this.syncExpandButtons(root);
     }
 
     bind(root) {
@@ -650,6 +777,19 @@ export class ToolbarAssistant {
             return;
         }
         this.bindAsk(root);
+        root.querySelectorAll('[data-aqt-expand]').forEach((button) => {
+            button.setAttribute('aria-expanded', 'false');
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                if (this.dialog?.open) {
+                    this.collapse();
+                } else if (this.presentation === 'dock') {
+                    this.closeDock();
+                } else {
+                    this.expand(button);
+                }
+            });
+        });
         root.addEventListener('click', (event) => {
             const button = event.target.closest('[data-aqt-action]');
             if (!button || !root.contains(button) || button.getAttribute('aria-busy') === 'true') {
@@ -724,6 +864,12 @@ export class ToolbarAssistant {
         this.say(root, finding, this.label(root, errorLabelKey(code), this.label(root, 'error')), 'error');
     }
 
+    /** "Reason given by the AI: …" — model text, rendered as text only. */
+    aiReasonLine(root, reason) {
+        return el('p', {class: 'aqt-repair__why', 'data-aqt-ai-reason': 'true'},
+            el('strong', {text: `${this.label(root, 'aiReason', 'Reason given by the AI')}: `}), reason);
+    }
+
     async explain(root, button, finding, findingUid) {
         const region = this.result(finding);
         if (region?.dataset.aqtExplained === '1') {
@@ -785,13 +931,22 @@ export class ToolbarAssistant {
             return;
         }
         let status = entry.outcome === 'already_queued' ? 'queued' : 'preparing';
+        let item = null;
         if (entry.outcome === 'queued') {
             const current = await postRemediation(urls.a11y_remediation_item, {item: entry.itemUid, detailed: false});
             if (current.ok && current.data.item?.status === 'preparing') {
                 const generated = await postRemediation(urls.a11y_remediation_generate, {item: entry.itemUid, rowVersion: current.data.item.rowVersion, detailed: false});
-                status = generated.ok && !generated.data.retryAfter ? String(generated.data.item?.status ?? 'preparing') : 'preparing';
+                if (!generated.ok && generated.code !== 'in_progress') {
+                    // A refused or failed request is not "queued": say what happened (the item stays in AI fixes).
+                    this.failed(root, finding, generated.code);
+                    this.removePrepare(finding);
+                    return;
+                }
+                item = generated.ok ? (generated.data.item ?? null) : null;
+                status = generated.ok && !generated.data.retryAfter ? String(item?.status ?? 'preparing') : 'preparing';
             } else if (current.ok) {
-                status = String(current.data.item?.status ?? 'preparing');
+                item = current.data.item ?? null;
+                status = String(item?.status ?? 'preparing');
             }
         }
         const queueUrl = root.querySelector('a[data-aqt-queue]')?.getAttribute('href') ?? '';
@@ -800,8 +955,20 @@ export class ToolbarAssistant {
             this.say(root, finding, this.label(root, 'prepared'), 'ok', ...(link ? [link] : []));
         } else if (status === 'preparing' || status === 'queued') {
             this.say(root, finding, this.label(root, 'queued'), 'info', ...(link ? [link] : []));
+        } else if (status === 'no_suggestion') {
+            // The AI answered without a usable value: its own reason (if it gave one) says what the editor must decide.
+            const why = aiDeclineReason(item);
+            this.say(root, finding, this.label(root, 'prepareNone'), 'warning',
+                ...(why !== '' ? [this.aiReasonLine(root, why)] : []), ...(link ? [link] : []));
+            const live = root.querySelector('[data-aqt-live]');
+            if (live && why !== '') {
+                // Screen readers hear the reason too, not only the generic line.
+                live.textContent = `${this.label(root, 'prepareNone')} ${this.label(root, 'aiReason', 'Reason given by the AI')}: ${why}`;
+            }
         } else {
-            this.say(root, finding, this.label(root, 'prepareNone'), 'warning');
+            // Failed, not applicable (the content changed) …: the item's own status and reason, not "no suggestion".
+            const text = [item?.statusLabel, item?.statusReasonLabel].filter((part) => String(part ?? '') !== '').join(': ');
+            this.say(root, finding, text !== '' ? text : this.label(root, 'prepareNone'), status === 'failed' ? 'error' : 'warning', ...(link ? [link] : []));
         }
         this.removePrepare(finding);
     }
@@ -910,6 +1077,11 @@ export class ToolbarAssistant {
      * most those earlier turns back with their server tokens, and nothing else. Another user or login in this tab drops
      * every stored conversation; a context without its own history starts empty. The server binds the conversation id
      * to user, login and context, verifies each turn token and counts AI questions and cost from its usage rows.
+     *
+     * One conversation, one place: the log of the current scope is a single DOM node. When the dropdown opens again for
+     * the same context, that node (with live repair plans, their pending requests and results) is moved into the newly
+     * rendered view instead of being rebuilt; "Expand" moves the whole assistant into a dialog and back. So the toolbar
+     * and the expanded view never hold two copies that could disagree or send a request twice.
      */
     bindAsk(root) {
         const section = root.querySelector('[data-aqt-ask]');
@@ -923,44 +1095,80 @@ export class ToolbarAssistant {
         // The context and scope this view was rendered for: a question asked on it belongs to them, even if load() has
         // already moved on to the next context while that view is still on screen.
         this.askViews ??= new WeakMap();
-        this.askViews.set(form, {context: {...(this.context ?? {})}, scope: this.conversationScope});
+        const view = {context: {...(this.context ?? {})}, scope: this.conversationScope};
+        this.askViews.set(form, view);
         form.addEventListener('submit', (event) => {
             event.preventDefault();
             this.ask(root, form, {});
         });
         section.querySelectorAll('[data-aqt-ask-intent]').forEach((button) => {
-            button.addEventListener('click', () => this.ask(root, form, {intent: button.dataset.aqtAskIntent, question: button.textContent.trim(), button}));
+            button.addEventListener('click', () => this.ask(root, form, {intent: button.dataset.aqtAskIntent, question: (button.dataset.question ?? button.textContent).trim(), button}));
         });
-        form.querySelector('[data-aqt-ask-clear]')?.addEventListener('click', (event) => {
-            this.storeConversation({conversation: '', turns: []});
-            const log = section.querySelector('[data-aqt-ask-log]');
-            log?.replaceChildren();
-            if (log) {
-                log.hidden = true;
+        form.querySelector('[data-aqt-ask-input]')?.addEventListener('keydown', (event) => {
+            // Enter sends, Shift+Enter starts a new line (the usual chat convention); IME composition is left alone.
+            if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                event.preventDefault();
+                this.ask(root, form, {});
             }
-            event.currentTarget.hidden = true;
-            const usage = form.querySelector('[data-aqt-ask-usage]');
-            if (usage) {
-                usage.hidden = true;
-                usage.textContent = '';
-            }
-            const status = form.querySelector('[data-aqt-ask-status]');
-            if (status) {
-                status.textContent = this.label(root, 'cleared');
-                delete status.dataset.tone;
-            }
-            (form.querySelector('[data-aqt-ask-input]') ?? section.querySelector('[data-aqt-ask-intent]'))?.focus({preventScroll: true});
         });
+        form.querySelector('[data-aqt-ask-clear]')?.addEventListener('click', (event) => this.newConversation(root, section, form, event.currentTarget));
+
+        const log = section.querySelector('[data-aqt-ask-log]');
+        const live = this.liveLog;
+        if (log && live && live.scope !== '' && live.scope === this.conversationScope && live.log !== log) {
+            // The same context as before: keep the very same conversation (live plans included).
+            log.replaceWith(live.log);
+            this.liveLog = {scope: this.conversationScope, log: live.log};
+            if (live.log.childElementCount > 0) {
+                live.log.hidden = false;
+                form.querySelector('[data-aqt-ask-clear]')?.removeAttribute('hidden');
+            }
+            this.syncAskEmpty(section);
+            return;
+        }
+        this.liveLog = {scope: this.conversationScope, log};
         // A conversation of this context from earlier in this browser tab (sessionStorage only).
         const stored = this.storedConversation();
-        if (stored.turns.length > 0) {
-            const log = section.querySelector('[data-aqt-ask-log]');
-            stored.turns.forEach((turn) => log?.append(this.turn(root, turn)));
-            if (log) {
-                log.hidden = false;
-            }
+        if (stored.turns.length > 0 && log) {
+            stored.turns.forEach((turn) => log.append(turn?.intent === 'repair' && turn?.repair ? this.renderPlan(turn, view, {stored: true}) : this.turn(root, turn)));
+            log.hidden = false;
             form.querySelector('[data-aqt-ask-clear]')?.removeAttribute('hidden');
         }
+        this.syncAskEmpty(section);
+    }
+
+    /** The quick questions are the empty state; once a conversation exists they stay available but step back. */
+    syncAskEmpty(section) {
+        const log = section?.querySelector('[data-aqt-ask-log]');
+        section?.classList.toggle('aqt-ask--active', Boolean(log && log.childElementCount > 0));
+    }
+
+    /**
+     * "New conversation": this context's stored turns, numbered list and conversation id are dropped, and an answer
+     * still on its way for the old conversation is discarded when it arrives (askEpoch), so it can neither reappear
+     * nor be stored into the new one.
+     */
+    newConversation(root, section, form, button) {
+        this.askEpoch = (this.askEpoch ?? 0) + 1;
+        this.storeConversation({conversation: '', turns: [], selection: ''});
+        const log = section.querySelector('[data-aqt-ask-log]');
+        log?.replaceChildren();
+        if (log) {
+            log.hidden = true;
+        }
+        button.hidden = true;
+        const usage = form.querySelector('[data-aqt-ask-usage]');
+        if (usage) {
+            usage.hidden = true;
+            usage.textContent = '';
+        }
+        const status = form.querySelector('[data-aqt-ask-status]');
+        if (status) {
+            status.textContent = this.label(root, 'cleared');
+            delete status.dataset.tone;
+        }
+        this.syncAskEmpty(section);
+        (form.querySelector('[data-aqt-ask-input]') ?? section.querySelector('[data-aqt-ask-intent]'))?.focus({preventScroll: true});
     }
 
     /**
@@ -990,6 +1198,8 @@ export class ToolbarAssistant {
         }
         if (nextPrincipal !== this.principal || (storedPrincipal !== null && storedPrincipal !== nextPrincipal)) {
             this.memoryConversations.clear();
+            // Another user or login: the live conversation of the previous one is never moved into this view.
+            this.liveLog = null;
             if (storage && storedPrincipal !== nextPrincipal) {
                 purgeAskStorage(storage);
             }
@@ -1011,14 +1221,19 @@ export class ToolbarAssistant {
     }
 
     storedConversation(scope = this.conversationScope) {
-        const empty = {conversation: '', turns: []};
+        const empty = {conversation: '', turns: [], selection: ''};
         const key = this.storageKey(scope);
         if (key === '') {
             return empty;
         }
         const limit = this.askLimits?.maxHistoryTurns ?? DEFAULT_LIMITS.maxHistoryTurns;
         const valid = (data) => data && typeof data === 'object' && Array.isArray(data.turns)
-            ? {conversation: typeof data.conversation === 'string' ? data.conversation : '', turns: data.turns.slice(-limit)}
+            ? {
+                conversation: typeof data.conversation === 'string' ? data.conversation : '',
+                turns: data.turns.slice(-limit),
+                // The signed numbered list of the latest plan ("Fix problem 2" refers to it); opaque to the browser.
+                selection: typeof data.selection === 'string' && /^s1\.[a-z]+\.[0-9]+\.[0-9-]*\.[a-f0-9]+$/.test(data.selection) ? data.selection : '',
+            }
             : null;
         try {
             const stored = valid(JSON.parse(this.win.sessionStorage.getItem(key) ?? 'null'));
@@ -1045,16 +1260,28 @@ export class ToolbarAssistant {
         }
     }
 
-    async ask(root, form, {intent = '', question: given = '', button = null, repairTarget = ''}) {
+    /** The Ask AQG form of the view on screen now (toolbar or expanded), or null. */
+    currentAsk() {
+        const root = this.root?.isConnected ? this.root : this.slot()?.querySelector('[data-aqt-assistant-root]');
+        const form = root?.querySelector('[data-aqt-ask-form]') ?? null;
+
+        return root && form ? {root, form} : null;
+    }
+
+    /**
+     * @param {{intent?: string, question?: string, button?: HTMLElement|null, repairTarget?: string, pick?: number[], plan?: HTMLElement|null}} options
+     *   `pick`: numbers of the conversation's signed list (a card's "Prepare fix"); `plan`: the plan article a refresh replaces
+     */
+    async ask(root, form, {intent = '', question: given = '', button = null, repairTarget = '', pick = [], plan = null, selection = null}) {
         const input = form.querySelector('[data-aqt-ask-input]');
         const submit = form.querySelector('[data-aqt-ask-submit]');
         const status = form.querySelector('[data-aqt-ask-status]');
         const trigger = button ?? submit;
         if (this.askPending) {
-            return;
+            return null;
         }
         const question = (intent !== '' ? given : String(input?.value ?? '')).replace(/\s+/g, ' ').trim();
-        const limits = this.askLimits;
+        const limits = this.askLimits ?? {...DEFAULT_LIMITS};
         if ((intent === '' || intent === 'repair') && (question.length < limits.minQuestionChars || question.length > limits.maxQuestionChars)) {
             if (status) {
                 status.textContent = this.label(root, 'errorQuestion');
@@ -1062,7 +1289,7 @@ export class ToolbarAssistant {
             }
             input?.setAttribute('aria-invalid', 'true');
             input?.focus({preventScroll: true});
-            return;
+            return null;
         }
         input?.removeAttribute('aria-invalid');
         const scope = form.querySelector('input[name="aqt-ask-scope"]:checked, input[type="hidden"][name="aqt-ask-scope"]')?.value === 'site' ? 'site' : 'page';
@@ -1070,6 +1297,7 @@ export class ToolbarAssistant {
         const view = this.askViews?.get(form) ?? {context: this.context ?? {}, scope: this.conversationScope};
         const conversationScope = view.scope;
         const stored = this.storedConversation(conversationScope);
+        const epoch = this.askEpoch ?? 0;
         this.askPending = true;
         trigger?.setAttribute('aria-busy', 'true');
         // Loading: the question stays readable and focusable (readOnly, not disabled) until the answer arrives.
@@ -1091,6 +1319,9 @@ export class ToolbarAssistant {
             history: historyFor(stored.turns, limits),
             conversation: stored.conversation,
             ...(repairTarget !== '' ? {repairTarget} : {}),
+            // A plan's own refresh names its list; otherwise the conversation's newest list.
+            ...((selection ?? stored.selection) !== '' ? {selection: selection ?? stored.selection} : {}),
+            ...(Array.isArray(pick) && pick.length > 0 ? {pick: pick.map(Number).filter((number) => Number.isInteger(number) && number > 0)} : {}),
         }, controller ? {signal: controller.signal} : {});
         if (timer !== null) {
             this.win.clearTimeout(timer);
@@ -1101,6 +1332,13 @@ export class ToolbarAssistant {
         if (input) {
             input.readOnly = false;
         }
+        if ((this.askEpoch ?? 0) !== epoch) {
+            // "New conversation" was chosen meanwhile: this answer belongs to the conversation that was cleared.
+            if (status) {
+                status.textContent = '';
+            }
+            return null;
+        }
         if (!answer.ok) {
             if (status) {
                 status.textContent = this.label(root, askErrorLabelKey(answer.code), this.label(root, 'error'));
@@ -1110,7 +1348,7 @@ export class ToolbarAssistant {
             if (['conversation_limit', 'conversation_budget'].includes(answer.code)) {
                 form.querySelector('[data-aqt-ask-clear]')?.removeAttribute('hidden');
             }
-            return;
+            return null;
         }
         if (answer.data.status === 'invalid_response') {
             if (status) {
@@ -1118,219 +1356,551 @@ export class ToolbarAssistant {
                 status.dataset.tone = 'error';
             }
             this.showUsage(root, form, answer.data.conversation, stored);
-            return;
+            return null;
         }
         // The log announces the new turn; the status is emptied so the answer is not read twice.
         if (status) {
             status.textContent = '';
             delete status.dataset.tone;
         }
+        // The live log of this conversation, wherever it is now: the dropdown may have re-rendered (and moved the log into
+        // its new view) while the answer was on its way.
+        const live = this.liveLog?.scope === conversationScope && this.liveLog.log ? this.liveLog.log : null;
+        const log = live ?? root.querySelector('[data-aqt-ask-log]');
+        const conversationId = typeof answer.data.conversation?.id === 'string' ? answer.data.conversation.id : stored.conversation;
+        let node = null;
         if (answer.data.intent === 'repair' && answer.data.repair && typeof answer.data.repair === 'object') {
-            // A repair plan has live controls: it is shown, never stored or replayed (AI Fixes holds the real state).
-            const log = root.querySelector('[data-aqt-ask-log]');
-            if (log) {
-                log.hidden = false;
-                const article = this.repairTurn(root, form, answer.data, view);
-                log.append(article);
-                article.scrollIntoView?.({block: 'nearest'});
-            }
-            if (input && intent === '') {
-                input.value = '';
-            }
-            form.querySelector('[data-aqt-ask-clear]')?.removeAttribute('hidden');
-            return;
+            node = this.renderPlan(answer.data, view);
+            const turn = planTurn(answer.data);
+            this.storeConversation({
+                conversation: conversationId,
+                turns: [...stored.turns, turn].slice(-limits.maxHistoryTurns),
+                selection: typeof answer.data.repair.selection === 'string' ? answer.data.repair.selection : stored.selection,
+            }, conversationScope);
+        } else {
+            const turn = {...answer.data};
+            node = this.turn(root, turn);
+            this.storeConversation({
+                conversation: conversationId,
+                turns: [...stored.turns, turn].slice(-limits.maxHistoryTurns),
+                selection: stored.selection,
+            }, conversationScope);
+            this.showUsage(root, form, answer.data.conversation, stored);
         }
-        const turn = {...answer.data};
-        const log = root.querySelector('[data-aqt-ask-log]');
         if (log) {
             log.hidden = false;
-            log.append(this.turn(root, turn));
-            log.lastElementChild?.scrollIntoView?.({block: 'nearest'});
+            if (plan && plan.parentElement === log) {
+                plan.replaceWith(node);
+            } else {
+                log.append(node);
+            }
+            // The start of the new answer, not its end: a long plan is read from its headline down.
+            this.revealInLog(log, node, this.dialog?.open || this.presentation === 'dock' ? 'start' : 'nearest');
         }
         if (input && intent === '') {
             input.value = '';
         }
-        this.storeConversation({
-            conversation: typeof answer.data.conversation?.id === 'string' ? answer.data.conversation.id : stored.conversation,
-            turns: [...stored.turns, turn].slice(-limits.maxHistoryTurns),
-        }, conversationScope);
-        this.showUsage(root, form, answer.data.conversation, stored);
         form.querySelector('[data-aqt-ask-clear]')?.removeAttribute('hidden');
+        this.syncAskEmpty(log?.closest('[data-aqt-ask]') ?? root.querySelector('[data-aqt-ask]'));
+
+        return node;
     }
 
     /**
-     * Ask AQG's repair answer: what AQG found for the target, what the existing AI Fixes workflow can prepare (re-checked
-     * in the saved content just now), what needs manual work and why, the staleness of the stored check, the estimated
-     * maximum AI cost and the real "Prepare" action. Built as text nodes only; every link is a server-built backend URL.
+     * A plan answer — the numbered problems of a page, element or file ("What problems does this page have?"), the
+     * selected problem ("Fix problem 1") or every problem ("Fix all problems on this page") — as finding cards with
+     * their real state in AI Fixes, the concrete next step and the actions that exist for each one. Built as text nodes
+     * only; every link is a server-built backend URL (checked again by safeBackendHref()).
+     *
+     * A plan restored from this tab's storage after a reload is a record of what was shown: its actions are replaced by
+     * "Refresh status", which asks the server again (free, no AI) before anything can be prepared.
      */
-    repairTurn(root, form, data, view) {
+    renderPlan(data, view, {stored = false} = {}) {
+        const root = this.root ?? this.slot()?.querySelector('[data-aqt-assistant-root]');
         const repair = data.repair;
         const items = Array.isArray(repair.items) ? repair.items : [];
         const ai = repair.ai && typeof repair.ai === 'object' ? repair.ai : {};
         const counts = repair.counts && typeof repair.counts === 'object' ? repair.counts : {};
         this.repairSequence = (this.repairSequence ?? 0) + 1;
         const id = `aqt-repair-${this.repairSequence}`;
-        const article = el('article', {class: 'aqt-turn aqt-turn--repair', 'aria-labelledby': `${id}-head`, 'data-aqt-repair': 'true', 'data-aqt-repair-target': String(repair.target ?? '')});
+        const article = el('article', {
+            class: `aqt-turn aqt-turn--repair aqt-plan${stored ? ' aqt-plan--stored' : ''}`,
+            'aria-labelledby': `${id}-head`,
+            'data-aqt-repair': 'true',
+            'data-aqt-repair-target': String(repair.target ?? ''),
+            'data-aqt-plan-mode': repair.mode === 'list' ? 'list' : 'repair',
+        });
         const status = el('p', {class: 'aqt-repair__status', role: 'status', 'aria-live': 'polite', 'data-aqt-repair-status': 'true'});
+        const plan = {data, view, status, id};
+        this.plans ??= new WeakMap();
+        this.plans.set(article, plan);
 
-        article.append(
-            el('p', {class: 'aqt-turn__q'}, el('span', {class: 'aqt-turn__who', text: `${this.label(root, 'youAsked')}: `}), String(data.question ?? '')),
-            el('p', {class: 'aqt-turn__who', text: [this.label(root, 'answerAqg'), this.label(root, 'repairTitle')].filter(Boolean).join(' · ')}),
-            el('p', {class: 'aqt-repair__head', id: `${id}-head`}, el('strong', {text: String(repair.headline ?? '')})),
-            el('p', {class: 'aqt-repair__target aqt-assistant__muted', text: String(repair.targetLabel ?? '')}),
-        );
+        article.append(this.questionBubble(root, String(data.question ?? '')));
+        const answer = el('div', {class: 'aqt-answer'});
+        article.append(answer);
+        answer.append(el('p', {class: 'aqt-answer__who'},
+            el('span', {class: 'aqt-answer__badge', 'aria-hidden': 'true', text: 'AQG'}),
+            el('span', {text: [this.label(root, 'answerAqg'), this.label(root, repair.mode === 'list' ? 'planListTitle' : 'repairTitle')].filter(Boolean).join(' · ')}),
+        ));
+        answer.append(el('h3', {class: 'aqt-plan__head', id: `${id}-head`, tabindex: '-1', text: String(repair.headline ?? '')}));
+        const targetLine = el('p', {class: 'aqt-plan__target'}, el('span', {class: 'aqt-chip', text: String(repair.targetLabel ?? '')}));
+        const alternatives = Array.isArray(repair.alternatives) ? repair.alternatives : [];
+        if (!stored && alternatives.length > 0) {
+            targetLine.append(...alternatives.map((alternative) => el('button', {
+                type: 'button',
+                class: 'aqt-btn aqt-btn--quiet',
+                'data-aqt-repair-switch': String(alternative.target ?? ''),
+                text: String(alternative.label ?? ''),
+                onclick: (event) => this.planAsk(article, {intent: repair.mode === 'list' ? 'list' : 'repair', repairTarget: String(alternative.target ?? ''), button: event.currentTarget}),
+            })));
+        }
+        answer.append(targetLine);
         const notices = Array.isArray(repair.notices) ? repair.notices.map(String).filter(Boolean) : [];
         if (notices.length > 0) {
-            article.append(el('ul', {class: 'aqt-repair__notices'}, notices.map((notice) => el('li', {text: notice}))));
+            answer.append(el('div', {class: `aqt-callout${repair.clarify ? ' aqt-callout--ask' : ''}`, 'data-aqt-repair-notices': 'true'}, notices.map((notice) => el('p', {text: notice}))));
         }
-        const alternatives = Array.isArray(repair.alternatives) ? repair.alternatives : [];
-        if (alternatives.length > 0) {
-            article.append(el('p', {class: 'aqt-repair__switch'}, alternatives.map((alternative) => el('button', {
-                type: 'button',
-                class: 'aqt-btn',
-                text: String(alternative.label ?? ''),
-                onclick: (event) => this.ask(root, form, {intent: 'repair', question: String(data.question ?? ''), button: event.currentTarget, repairTarget: String(alternative.target ?? '')}),
-            }))));
+        if (stored) {
+            answer.append(el('p', {class: 'aqt-callout aqt-callout--muted'},
+                el('span', {text: this.label(root, 'planStored', 'This is the status from earlier. Refresh it before you act on it.') + ' '}),
+                el('button', {type: 'button', class: 'aqt-btn', 'data-aqt-repair-refresh': 'true', text: this.label(root, 'planRefresh', 'Refresh status'), onclick: (event) => this.planRefresh(article, event.currentTarget)}),
+            ));
         }
-        const summary = Array.isArray(repair.summary) ? repair.summary.map(String) : [];
-        if (summary.length > 0) {
-            article.append(el('ul', {class: 'aqt-turn__list aqt-repair__summary'}, summary.map((line) => el('li', {text: line}))));
+        const chips = this.stateChips(root, counts);
+        if (chips) {
+            answer.append(chips);
         }
-        const freshness = repair.freshness && typeof repair.freshness === 'object' ? repair.freshness : {};
-        if (freshness.text) {
-            const warn = Boolean(freshness.stale || freshness.never);
-            const line = el('p', {class: `aqt-repair__fresh${warn ? ' aqt-repair__fresh--warning' : ''}`, text: String(freshness.text)});
-            article.append(line);
-            if (freshness.canCheck && Number(freshness.pageUid) > 0) {
-                article.append(el('p', {class: 'aqt-repair__actions'}, el('button', {
-                    type: 'button',
-                    class: 'aqt-btn',
-                    'data-aqt-repair-check': 'true',
-                    text: this.label(root, 'repairCheck'),
-                    onclick: () => this.repairCheck(root, status),
-                })));
-            }
-        }
-        if (!ai.ready && ai.reason) {
-            article.append(el('p', {class: 'aqt-repair__ai aqt-repair__fresh--warning', text: String(ai.reason)}));
+        if (!ai.ready && ai.reason && items.some((item) => item.state === 'ready' || item.state === 'blocked')) {
+            answer.append(el('p', {class: 'aqt-callout aqt-callout--muted aqt-repair__ai', text: String(ai.reason)}));
         }
 
-        const list = el('ul', {class: 'aqt-repair__items'});
-        items.forEach((item) => list.append(this.repairItem(root, item, repair, article, form, view, status)));
+        const list = el('ol', {class: 'aqt-cards aqt-repair__items', 'aria-label': this.label(root, 'planCards', 'Problems')});
+        const openGuidance = items.length <= 2 || Boolean(repair.single);
+        items.forEach((item) => list.append(this.planCard(root, item, article, plan, {stored, openGuidance})));
         if (items.length > 0) {
-            article.append(list);
+            answer.append(list);
         }
 
         const ready = Array.isArray(repair.prepareIds) ? repair.prepareIds.map(Number).filter((value) => value > 0) : [];
-        if (ready.length > 0 && ai.ready) {
+        if (!stored && ready.length > 0 && ai.ready) {
             const cost = repair.cost && typeof repair.cost === 'object' ? repair.cost : {};
             const costText = cost.total
                 ? format(this.label(root, ready.length === 1 ? 'repairCostOne' : 'repairCost'), String(cost.total), ready.length)
                 : (cost.unknown ? this.label(root, 'repairCostUnknown') : '');
             const costId = `${id}-cost`;
-            if (costText !== '') {
-                article.append(el('p', {class: 'aqt-repair__cost aqt-assistant__muted', id: costId, text: costText}));
-            }
-            if (repair.bulk || ready.length === 1) {
-                // One step for every ready finding: only with the AI queue permission (or a single finding), as in Page Detail.
-                article.append(el('p', {class: 'aqt-repair__actions'}, el('button', {
+            if (ready.length > 1 && repair.bulk) {
+                // One step for every ready finding of this target: only with the AI queue permission, as in Page Detail.
+                const bar = el('div', {class: 'aqt-plan__bulk'});
+                bar.append(el('button', {
                     type: 'button',
                     class: 'aqt-btn aqt-btn--primary',
                     'data-aqt-repair-prepare': 'all',
                     'aria-describedby': costText !== '' ? costId : null,
-                    text: ready.length === 1 ? this.label(root, 'repairPrepareOne') : format(this.label(root, 'repairPrepare'), ready.length),
+                    text: format(this.label(root, 'repairPrepare'), ready.length),
                     onclick: (event) => this.repairPrepare(root, article, repair, view, ready, event.currentTarget, status),
-                })));
-            } else {
-                article.append(el('p', {class: 'aqt-repair__note aqt-assistant__muted', text: this.label(root, 'repairOneByOne')}));
+                }));
+                if (costText !== '') {
+                    bar.append(el('p', {class: 'aqt-repair__cost aqt-assistant__muted', id: costId, text: costText}));
+                }
+                answer.append(bar);
+            } else if (costText !== '') {
+                answer.append(el('p', {class: 'aqt-repair__cost aqt-assistant__muted', id: costId, text: costText}));
             }
         }
-        if (repair.queueUrl && safeBackendHref(repair.queueUrl, this.win) && (Number(counts.queued ?? 0) > 0 || Number(counts.saved ?? 0) > 0)) {
-            article.append(el('p', {class: 'aqt-repair__actions'}, el('a', {href: repair.queueUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', text: this.label(root, 'repairOpenQueue')})));
+
+        const freshness = repair.freshness && typeof repair.freshness === 'object' ? repair.freshness : {};
+        const foot = el('div', {class: 'aqt-plan__foot'});
+        if (freshness.text) {
+            const warn = Boolean(freshness.stale || freshness.never);
+            foot.append(el('p', {class: `aqt-repair__fresh${warn ? ' aqt-repair__fresh--warning' : ''}`, text: String(freshness.text)}));
+        }
+        const footActions = el('p', {class: 'aqt-repair__actions'});
+        // Offered whenever the user may check this page (the server sends pageUid only then): after a save it is the step
+        // that turns "saved" into verified or still open. Emphasised when the stored check is stale.
+        if (!stored && Number(freshness.pageUid) > 0) {
+            footActions.append(el('button', {
+                type: 'button',
+                class: 'aqt-btn',
+                'data-aqt-repair-check': 'true',
+                text: this.label(root, 'repairCheck'),
+                onclick: (event) => this.planCheck(article, event.currentTarget),
+            }));
+        }
+        if (repair.queueUrl && safeBackendHref(repair.queueUrl, this.win) && ['queued', 'review', 'apply', 'nosuggestion', 'saved', 'ready'].some((key) => Number(counts[key] ?? 0) > 0)) {
+            footActions.append(el('a', {href: repair.queueUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', text: this.label(root, 'repairOpenQueue')}));
         }
         if (repair.editUrl && safeBackendHref(repair.editUrl, this.win)) {
-            article.append(el('p', {class: 'aqt-repair__actions'}, el('a', {href: repair.editUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', text: this.label(root, 'repairEditElement')})));
+            footActions.append(el('a', {href: repair.editUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', text: this.label(root, 'repairEditElement')}));
         }
-        article.append(el('p', {class: 'aqt-repair__safety', text: this.label(root, 'repairSafety')}), status);
-        article.append(el('p', {class: 'aqt-turn__basis', text: this.label(root, 'repairBasis')}));
+        if (footActions.childNodes.length > 0) {
+            foot.append(footActions);
+        }
+        foot.append(el('p', {class: 'aqt-repair__safety', text: this.label(root, 'repairSafety')}), status);
+        foot.append(el('p', {class: 'aqt-turn__basis', text: this.label(root, 'repairBasis')}));
+        answer.append(foot);
 
         return article;
     }
 
-    /** One finding of the repair plan: what it is, where, its state and reason, and the actions that exist for it. */
-    repairItem(root, item, repair, article, form, view, status) {
-        const state = ['ready', 'queued', 'saved', 'manual', 'blocked', 'stale'].includes(item.state) ? item.state : 'manual';
-        const row = el('li', {class: `aqt-repair__item aqt-repair__item--${state}`, 'data-aqt-repair-item': String(Number(item.id) || 0)});
-        const tone = ['critical', 'warning', 'info'].includes(item.tone) ? item.tone : 'info';
-        row.append(
-            el('p', {class: 'aqt-repair__item-title'},
-                el('span', {class: `aqt-sev aqt-sev--${tone}`}, el('span', {class: 'aqt-sev__dot', 'aria-hidden': 'true'}), String(item.severityLabel ?? '')),
-                ' ',
-                el('span', {text: String(item.title ?? '')}),
-            ),
-        );
-        if (item.location) {
-            row.append(el('p', {class: 'aqt-assistant__muted', text: String(item.location)}));
-        }
-        row.append(el('p', {class: 'aqt-repair__state-line'},
-            el('span', {class: `aqt-repair__state aqt-repair__state--${state}`, 'data-aqt-repair-state': 'true', text: String(item.stateLabel ?? '')}),
-            item.cost ? el('span', {class: 'aqt-assistant__muted', text: ` · ${format(this.label(root, 'repairItemCost'), String(item.cost))}`}) : null,
-        ));
-        const reason = el('p', {class: 'aqt-repair__reason', 'data-aqt-repair-result': 'true', text: String(item.reason ?? '')});
-        row.append(reason);
-        if (['manual', 'blocked', 'stale'].includes(state) && item.howToFix) {
-            row.append(el('p', {class: 'aqt-assistant__muted', text: String(item.howToFix)}));
-        }
-        const links = el('p', {class: 'aqt-repair__links', 'data-aqt-repair-links': 'true'});
-        if (item.reviewUrl && safeBackendHref(item.reviewUrl, this.win)) {
-            // "Review suggestion" only for a proposal waiting for review; any other item is opened as it is.
-            links.append(el('a', {href: item.reviewUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', text: this.label(root, item.itemStatus === 'pending_review' ? 'repairReview' : 'repairOpenItem')}), ' ');
-        }
-        if (state !== 'ready' && state !== 'queued' && item.editUrl && safeBackendHref(item.editUrl, this.win)) {
-            links.append(el('a', {href: item.editUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', text: this.label(root, 'edit')}), ' ');
-        }
-        if (item.detailUrl && safeBackendHref(item.detailUrl, this.win)) {
-            links.append(el('a', {href: item.detailUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', text: this.label(root, 'details')}));
-        }
-        if (state === 'ready' && repair.ai?.ready && !repair.bulk && (repair.prepareIds ?? []).length > 1) {
-            // Without the AI queue permission each suggestion is its own explicit request, as on Page Detail.
-            links.prepend(el('button', {
-                type: 'button',
-                class: 'aqt-btn',
-                'data-aqt-repair-prepare': String(Number(item.id)),
-                text: this.label(root, 'repairPrepareOne'),
-                onclick: (event) => this.repairPrepare(root, article, repair, view, [Number(item.id)], event.currentTarget, status),
-            }), ' ');
-        }
-        if (links.childNodes.length > 0) {
-            row.append(links);
-        }
-
-        return row;
+    /** "You asked …" as its own bubble, so the question and AQG's answer read as two turns. */
+    questionBubble(root, question) {
+        return el('p', {class: 'aqt-turn__q aqt-bubble'}, el('span', {class: 'visually-hidden', text: `${this.label(root, 'youAsked')}: `}), question);
     }
 
-    /** "Check saved page now": the Content scan section's own action (PI-04 target handling), opened and started. */
-    repairCheck(root, status) {
-        const area = this.contentScanArea();
-        const button = area?.querySelector('[data-aqt-content-scan-button]');
-        if (!area || !button || area.hidden) {
-            status.textContent = this.label(root, 'repairCheckUnavailable');
-            return;
-        }
-        const pop = this.slot()?.closest('.aqt-pop') ?? this.win.document;
-        const toggle = pop.querySelector('[data-aqt-disclosure="content"]');
-        if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
-            toggle.click();
-        }
-        button.focus({preventScroll: false});
-        this.contentScan(button);
-        status.textContent = this.label(root, 'repairCheckStarted');
+    /** Compact counts per state ("2 ready to prepare · 1 needs manual work"), the plan's overview line. */
+    stateChips(root, counts) {
+        const order = [
+            ['ready', 'planCountReady', 'Ready to prepare: %d'],
+            // AQA-05: what an AI Fixes item needs, not only that one exists.
+            ['review', 'planCountReview', 'Needs review: %d'],
+            ['apply', 'planCountApply', 'Approved, apply in editor: %d'],
+            ['nosuggestion', 'planCountNosuggestion', 'No usable suggestion: %d'],
+            ['queued', 'planCountQueued', 'In AI Fixes: %d'],
+            ['saved', 'planCountSaved', 'Saved, not verified: %d'],
+            ['manual', 'planCountManual', 'Manual work: %d'],
+            ['blocked', 'planCountBlocked', 'Not possible now: %d'],
+            ['stale', 'planCountStale', 'May be fixed already: %d'],
+        ];
+        const chips = order.filter(([key]) => Number(counts?.[key] ?? 0) > 0)
+            .map(([key, label, fallback]) => el('li', {class: `aqt-state aqt-state--${key}`, text: format(this.label(root, label, fallback), Number(counts[key]))}));
+
+        return chips.length > 0 ? el('ul', {class: 'aqt-plan__states', 'aria-label': this.label(root, 'planStates', 'Overview')}, chips) : null;
     }
 
     /**
-     * "Prepare": creates the AI Fixes items through the toolbar route (scope re-checked, no AI request), then asks the
-     * existing generate route once per new item with the row version the server returned. A second click is ignored
-     * (aria-busy); a retry with an old row version is refused by the workflow, so nothing is paid twice.
+     * One finding card: its number in this conversation, title, severity, where it is, its state and reason, the
+     * guidance for manual work, and the actions that exist for it (Prepare fix, Review, Show in form / Open editor,
+     * Details). The data-aqt-repair-* hooks are the contract with the plan's own updates.
+     */
+    planCard(root, item, article, plan, {stored = false, openGuidance = false} = {}) {
+        const state = ['ready', 'queued', 'saved', 'manual', 'blocked', 'stale'].includes(item.state) ? item.state : 'manual';
+        const number = Number(item.number) > 0 ? Number(item.number) : 0;
+        const card = el('li', {
+            class: `aqt-card aqt-repair__item aqt-repair__item--${state}`,
+            'data-aqt-repair-item': String(Number(item.id) || 0),
+            'data-aqt-number': String(number),
+            // AQA-07: the AI Fixes item of this card; a change of that item in AI Fixes refreshes the plan once.
+            'data-aqt-item-uid': String(Number(item.itemUid) || 0),
+        });
+        const tone = ['critical', 'warning', 'info'].includes(item.tone) ? item.tone : 'info';
+        const titleId = `${plan.id}-item-${Number(item.id) || 0}`;
+        card.setAttribute('aria-labelledby', titleId);
+        card.append(el('div', {class: 'aqt-card__head'},
+            number > 0 ? el('span', {class: 'aqt-card__num', 'aria-hidden': 'true', text: String(number)}) : null,
+            el('div', {class: 'aqt-card__titles'},
+                el('h4', {class: 'aqt-card__title aqt-repair__item-title', id: titleId},
+                    number > 0 ? el('span', {class: 'visually-hidden', text: format(this.label(root, 'planNumber', 'Problem %d: '), number)}) : null,
+                    String(item.title ?? '')),
+                el('p', {class: 'aqt-card__meta'},
+                    el('span', {class: `aqt-sev aqt-sev--${tone}`}, el('span', {class: 'aqt-sev__dot', 'aria-hidden': 'true'}), String(item.severityLabel ?? '')),
+                    item.location ? el('span', {class: 'aqt-card__where', text: String(item.location)}) : null,
+                    item.source === 'rendered' ? el('span', {class: 'aqt-tag', text: this.label(root, 'planSourceRendered', 'Page output')}) : null,
+                ),
+            ),
+        ));
+        card.append(el('p', {class: 'aqt-card__status aqt-repair__state-line'},
+            el('span', {class: `aqt-state aqt-state--${state} aqt-repair__state aqt-repair__state--${state}`, 'data-aqt-repair-state': 'true', text: String(item.stateLabel ?? '')}),
+        ));
+        card.append(el('p', {class: 'aqt-repair__reason', 'data-aqt-repair-result': 'true', text: String(item.reason ?? '')}));
+
+        const guidance = item.guidance && typeof item.guidance === 'object' ? item.guidance : null;
+        if (guidance) {
+            card.append(this.guidancePanel(root, guidance, openGuidance, String(item.location ?? '')));
+        } else if (['manual', 'blocked', 'stale'].includes(state) && item.howToFix) {
+            card.append(el('p', {class: 'aqt-assistant__muted', text: String(item.howToFix)}));
+        }
+        if (item.why) {
+            card.append(el('details', {class: 'aqt-card__why'}, el('summary', {text: this.label(root, 'planWhy', 'Why it matters')}), el('p', {text: String(item.why)})));
+        }
+        // The outcome of Prepare / Approve for this card (Before/After, the next step); filled in by the plan's actions.
+        card.append(el('div', {class: 'aqt-card__outcome', 'data-aqt-card-outcome': 'true', hidden: true}));
+
+        const links = el('p', {class: 'aqt-card__actions aqt-repair__links', 'data-aqt-repair-links': 'true'});
+        const repair = plan.data.repair;
+        let costId = null;
+        if (!stored && state === 'ready' && repair.ai?.ready) {
+            // The estimate stays with the step that spends it, quietly: the prepare button describes itself with it.
+            costId = item.cost ? `${titleId}-cost` : null;
+            links.append(el('button', {
+                type: 'button',
+                class: 'aqt-btn aqt-btn--primary aqt-btn--ai',
+                'data-aqt-repair-prepare': String(Number(item.id)),
+                'aria-describedby': costId,
+                text: this.label(root, 'planPrepareFix', 'Prepare fix'),
+                onclick: (event) => this.repairPrepare(root, article, repair, plan.view, [Number(item.id)], event.currentTarget, plan.status),
+            }));
+        }
+        if (!stored && item.applyUrl && safeBackendHref(item.applyUrl, this.win)) {
+            // Approved for the editor, not applied yet: back to the editor with the staged change (then TYPO3 Save).
+            links.append(el('a', {href: item.applyUrl, class: 'aqt-btn aqt-btn--primary', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', 'data-aqt-apply': 'true', text: this.label(root, 'planOpenToApply', 'Open in editor to apply')}));
+        }
+        // AQA-06: without a usable suggestion the record is the place to fix it; AI Fixes is only a secondary link.
+        const noSuggestion = item.queueKind === 'nosuggestion';
+        if (item.reviewUrl && safeBackendHref(item.reviewUrl, this.win) && noSuggestion) {
+            if (!item.formField && item.editUrl && safeBackendHref(item.editUrl, this.win)) {
+                links.append(el('a', {href: item.editUrl, class: 'aqt-btn aqt-btn--primary', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', text: this.label(root, 'planOpenEditor', this.label(root, 'edit'))}));
+            }
+            links.append(el('a', {href: item.reviewUrl, class: 'aqt-turn__link aqt-card__more', 'data-aqt-navigate': 'true', 'data-aqt-repair-review': 'true', text: this.label(root, 'repairOpenItem')}));
+        } else if (item.reviewUrl && safeBackendHref(item.reviewUrl, this.win)) {
+            // "Review suggestion" only for a proposal waiting for review; any other item is opened as it is.
+            links.append(el('a', {href: item.reviewUrl, class: `aqt-btn ${item.itemStatus === 'pending_review' ? 'aqt-btn--primary' : ''}`, 'data-aqt-navigate': 'true', 'data-aqt-repair-review': 'true', text: this.label(root, item.itemStatus === 'pending_review' ? 'repairReview' : 'repairOpenItem')}));
+        }
+        if (item.formField) {
+            links.append(el('button', {type: 'button', class: 'aqt-btn', 'data-aqt-show-field': String(item.formField), text: this.label(root, 'planShowField', 'Show in form'), onclick: () => this.showFieldFor(card, String(item.formField))}));
+        } else if (state !== 'queued' && item.editUrl && safeBackendHref(item.editUrl, this.win)) {
+            links.append(el('a', {href: item.editUrl, class: 'aqt-btn', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', text: this.label(root, 'planOpenEditor', this.label(root, 'edit'))}));
+        }
+        if (item.detailUrl && safeBackendHref(item.detailUrl, this.win)) {
+            links.append(el('a', {href: item.detailUrl, class: 'aqt-turn__link aqt-card__more', 'data-aqt-navigate': 'true', text: this.label(root, 'details')}));
+        }
+        if (costId) {
+            links.append(el('span', {class: 'aqt-card__cost', id: costId, text: format(this.label(root, 'repairItemCost', 'max. %s'), String(item.cost))}));
+        }
+        if (links.childNodes.length > 0) {
+            card.append(links);
+        }
+        this.oneMainAction(card);
+
+        return card;
+    }
+
+    /** Manual work, spelled out: what is wrong, where, the change, the editor step, what AQG cannot know, how it checks. */
+    guidancePanel(root, guidance, open, location = '') {
+        const rows = [
+            ['problem', 'guideProblem', 'What is wrong'],
+            ['where', 'guideWhere', 'Where'],
+            ['recommendation', 'guideChange', 'Recommended change'],
+            ['action', 'guideAction', 'How to do it'],
+            ['missing', 'guideMissing', 'What AQG cannot tell'],
+            ['verify', 'guideVerify', 'How AQG confirms the fix'],
+        ];
+        const list = el('dl', {class: 'aqt-guide__list'});
+        rows.forEach(([key, label, fallback]) => {
+            const value = String(guidance[key] ?? '').trim();
+            // The card already names the place; the row repeats it only when the guidance knows more.
+            if (value !== '' && !(key === 'where' && value === location)) {
+                list.append(el('div', {class: `aqt-guide__row aqt-guide__row--${key}`}, el('dt', {text: this.label(root, label, fallback)}), el('dd', {text: value})));
+            }
+        });
+        const outline = Array.isArray(guidance.outline) ? guidance.outline : [];
+        const body = [list];
+        if (outline.length > 0) {
+            body.push(el('p', {class: 'aqt-guide__outline-title', text: this.label(root, 'guideOutline', 'Headings in this text, as saved')}));
+            body.push(el('ol', {class: 'aqt-guide__outline'}, outline.map((heading) => {
+                const level = Math.min(6, Math.max(1, Number(heading.level) || 1));
+                return el('li', {class: `aqt-guide__h aqt-guide__h--${level}${heading.flagged ? ' aqt-guide__h--flagged' : ''}`},
+                    el('span', {class: 'aqt-guide__level', text: `H${level}`}),
+                    el('span', {class: 'aqt-guide__text', text: String(heading.text ?? '')}),
+                    heading.flagged ? el('span', {class: 'aqt-guide__flag', text: this.label(root, 'guideFlagged', 'skips a level')}) : null,
+                );
+            })));
+        }
+
+        return el('details', {class: 'aqt-guide', open: open ? true : null, 'data-aqt-guidance': 'true'},
+            el('summary', {text: this.label(root, 'guideTitle', 'How to fix it')}),
+            ...body,
+        );
+    }
+
+    /**
+     * Scrolls the conversation log only. Element.scrollIntoView() also scrolls every scrollable ancestor — in the
+     * backend that includes TYPO3's own scaffold, which then hides the module's docheader (Close / Save) and the dock's
+     * controls (seen with the docked panel).
+     */
+    revealInLog(log, node, block = 'nearest') {
+        if (!log || !node || !log.contains(node)) {
+            return;
+        }
+        const logBox = log.getBoundingClientRect();
+        const box = node.getBoundingClientRect();
+        if (block === 'start' || box.height > logBox.height) {
+            log.scrollTop += box.top - logBox.top;
+        } else if (box.bottom > logBox.bottom) {
+            log.scrollTop += box.bottom - logBox.bottom;
+        } else if (box.top < logBox.top) {
+            log.scrollTop += box.top - logBox.top;
+        }
+        this.keepShellInPlace();
+    }
+
+    /** TYPO3's scaffold never scrolls: a scroll that reached it (from inside the module frame) is undone. */
+    keepShellInPlace() {
+        this.win.document.querySelectorAll('.scaffold, .scaffold-content').forEach((element) => {
+            if (element.scrollTop !== 0 || element.scrollLeft !== 0) {
+                element.scrollTop = 0;
+                element.scrollLeft = 0;
+            }
+        });
+    }
+
+    /** "Show in form": the finding's field in the editing form that is open (the toolbar or dialog closes first). */
+    showFieldFor(card, fieldName) {
+        const frameWindow = contentWindowOf(this.win);
+        const field = frameWindow ? findFormField(frameWindow.document, fieldName) : null;
+        const root = this.root;
+        if (!field) {
+            const result = card.querySelector('[data-aqt-repair-result]');
+            if (result) {
+                result.textContent = this.label(root, 'fieldMissing');
+            }
+            return;
+        }
+        // The dock stays open next to the form; only the blocking fallback dialog closes first.
+        if (this.dialog?.open) {
+            this.collapse({restoreFocus: false});
+        }
+        field.item.scrollIntoView({block: 'center'});
+        this.keepShellInPlace();
+        this.navigate?.(null);
+        field.focusTarget?.focus?.({preventScroll: true});
+    }
+
+    /** Asks again from a plan (switch target, refresh) with the conversation's own list; the old plan is replaced. */
+    async planAsk(article, {intent, repairTarget = '', pick = [], button = null, replace = repairTarget === '', ownList = false}) {
+        const current = this.currentAsk();
+        const plan = this.plans?.get(article);
+        if (!current || !plan) {
+            return null;
+        }
+        // A plan of another context is never re-asked here: its view no longer matches the open form.
+        const view = this.askViews?.get(current.form);
+        if (!view || view.scope !== plan.view.scope) {
+            plan.status.textContent = this.label(current.root, 'planContextChanged', 'You moved to another page or record. Ask again there.');
+            return null;
+        }
+        const question = String(plan.data.question ?? '');
+        return this.ask(current.root, current.form, {intent, question: question.length >= 3 ? question : this.label(current.root, 'planRefresh', 'Refresh status'), repairTarget, pick, button, plan: replace ? article : null,
+            selection: ownList && typeof plan.data.repair?.selection === 'string' ? plan.data.repair.selection : null});
+    }
+
+    /**
+     * AQA-07: an AI Fixes item changed elsewhere (usually after "Review suggestion" led there, so the plan in the dock is
+     * the restored record of the conversation). The newest plan showing a card for it is asked again once — the same
+     * free "Refresh status" request, no AI — debounced, so several events of one action cause one request.
+     */
+    onRemediationChanged(itemUid, findingUid = 0) {
+        if (!(itemUid > 0)) {
+            return;
+        }
+        this.pendingRemediationItems ??= new Map();
+        this.pendingRemediationItems.set(itemUid, findingUid > 0 ? Math.trunc(findingUid) : 0);
+        this.win.clearTimeout(this.remediationTimer);
+        this.remediationTimer = this.win.setTimeout(() => {
+            if (this.askPending) {
+                // A question is being answered right now: try again shortly instead of dropping the refresh.
+                this.onRemediationChanged(itemUid, findingUid);
+                return;
+            }
+            const changes = [...this.pendingRemediationItems];
+            this.pendingRemediationItems.clear();
+            const articles = new Set();
+            for (const [uid, finding] of changes) {
+                // A card names the item it shows, or (prepared again, rejected) only its finding.
+                const selector = `.aqt-plan [data-aqt-item-uid="${Math.trunc(uid)}"]` + (finding > 0 ? `, .aqt-plan [data-aqt-repair-item="${finding}"]` : '');
+                const cards = [...this.win.document.querySelectorAll(selector)];
+                const article = cards.map((card) => card.closest('[data-aqt-repair]')).filter((candidate) => candidate && this.plans?.has(candidate)).pop();
+                if (article) {
+                    articles.add(article);
+                }
+            }
+            articles.forEach((article) => this.planRefresh(article, null));
+        }, 400);
+    }
+
+    /** "Refresh status" of a restored plan: the same request again (no AI), replacing the stale record. */
+    planRefresh(article, button) {
+        const plan = this.plans?.get(article);
+        if (!plan) {
+            return null;
+        }
+        const repair = plan.data.repair ?? {};
+        const numbers = (repair.items ?? []).map((item) => Number(item.number)).filter((number) => number > 0);
+
+        return this.planAsk(article, {intent: repair.mode === 'list' ? 'list' : 'repair', pick: repair.single ? numbers : [], button, ownList: true});
+    }
+
+    /**
+     * "Check saved page": the existing content check of the plan's page (Scan now permission and edit access checked
+     * again; one content scan at a time, shared with the toolbar's own "Check saved page now"), then the plan is asked
+     * again so each problem reads Resolved or Still open from the new check — never from a staged or generated change.
+     */
+    async planCheck(article, button) {
+        const plan = this.plans?.get(article);
+        if (!plan || button.getAttribute('aria-busy') === 'true') {
+            return;
+        }
+        const root = this.root;
+        const freshness = plan.data.repair?.freshness ?? {};
+        const target = {pageUid: Number(freshness.pageUid) || 0, languageUid: Number(freshness.languageUid) || 0};
+        const state = this.contentScanState;
+        if (target.pageUid <= 0) {
+            plan.status.textContent = this.label(root, 'repairCheckUnavailable');
+            return;
+        }
+        if (state.busy) {
+            plan.status.textContent = this.label(root, 'waitRunning', this.label(root, 'alreadyRunning'));
+            return;
+        }
+        // A check of changed content stores a problem again under a new id: problems are compared by rule + record +
+        // field (`key`), counted, so one of two identical problems fixed is never reported as both fixed.
+        const keyOf = (item) => String(item.key ?? item.id);
+        const before = (plan.data.repair?.items ?? []).map((item) => ({key: keyOf(item), title: String(item.title ?? '')}));
+        button.setAttribute('aria-busy', 'true');
+        state.busy = true;
+        state.active = target;
+        plan.status.textContent = this.label(root, 'scanning');
+        this.syncContentScan();
+        const answer = await postForm(this.ajaxUrls().a11y_scan_page, {pageUid: String(target.pageUid), languageUid: String(target.languageUid)});
+        state.busy = false;
+        state.active = null;
+        button.removeAttribute('aria-busy');
+        this.syncContentScan();
+        this.onScanFinished({contentScan: true, refocus: false});
+        if (!answer.ok) {
+            const key = errorLabelKey(answer.code);
+            plan.status.textContent = this.label(root, key === 'alreadyRunning' ? 'alreadyRunning' : key, this.label(root, 'error'));
+            return;
+        }
+        // Items saved through AI Fixes are re-checked by AI Fixes too, so its queue shows Verified / Not verified.
+        for (const item of plan.data.repair?.items ?? []) {
+            if (item.state === 'saved' && Number(item.itemUid) > 0) {
+                await postRemediation(this.ajaxUrls().a11y_remediation_refresh, {item: Number(item.itemUid), detailed: false});
+            }
+        }
+        const scanned = contentScanResultMessage(answer.data, (key, fallback = '') => this.label(root, key, fallback));
+        const repair = plan.data.repair ?? {};
+        const fresh = await this.planAsk(article, {intent: 'list', repairTarget: String(repair.target ?? ''), button, replace: true});
+        const freshPlan = fresh ? this.plans?.get(fresh) : null;
+        if (!freshPlan) {
+            plan.status.textContent = scanned;
+            return;
+        }
+        const open = new Map();
+        (freshPlan.data.repair?.items ?? []).forEach((item) => open.set(keyOf(item), (open.get(keyOf(item)) ?? 0) + 1));
+        const resolved = [];
+        const still = [];
+        before.forEach((item) => {
+            const left = open.get(item.key) ?? 0;
+            if (left > 0) {
+                open.set(item.key, left - 1);
+                still.push(item);
+            } else {
+                resolved.push(item);
+            }
+        });
+        const summary = el('div', {class: 'aqt-verify', 'data-aqt-verify': 'true'},
+            // The Save itself may have closed the problem already: the head names the check, the lines its outcome.
+            el('p', {class: 'aqt-verify__head', text: resolved.length > 0 ? this.label(root, 'verifyChecked', 'Checked the saved content just now.') : scanned}),
+            resolved.length > 0 ? el('p', {class: 'aqt-verify__ok'}, el('strong', {text: format(this.label(root, 'verifyResolved', 'Verified fixed (%d):'), resolved.length) + ' '}), resolved.map((item) => item.title).join(', ')) : null,
+            still.length > 0 ? el('p', {class: 'aqt-verify__open'}, el('strong', {text: format(this.label(root, 'verifyOpen', 'Still open (%d):'), still.length) + ' '}), still.map((item) => item.title).join(', ')) : null,
+        );
+        fresh.querySelector('.aqt-answer')?.prepend(summary);
+    }
+
+    /**
+     * "Prepare fix" / "Prepare all": creates the AI Fixes items through the toolbar route (scope re-checked, no AI
+     * request), then asks the existing generate route once per new item with the row version the server returned. A
+     * second click is ignored (aria-busy); a retry with an old row version is refused by the workflow, so nothing is paid
+     * twice. Each card then shows the real outcome: the suggestion (Before/After) with Approve, or why there is none.
      */
     async repairPrepare(root, article, repair, view, ids, button, status) {
         if (article.dataset.aqtRepairBusy === '1' || button.getAttribute('aria-busy') === 'true') {
@@ -1390,6 +1960,9 @@ export class ToolbarAssistant {
                 control.remove();
             }
         });
+        if (ids.length > 1 || !article.querySelector('[data-aqt-repair-prepare]:not([data-aqt-repair-prepare="all"])')) {
+            article.querySelector('[data-aqt-repair-prepare="all"]')?.closest('.aqt-plan__bulk')?.remove();
+        }
         article.dataset.aqtRepairBusy = '';
         const parts = [format(this.label(root, 'repairDone'), tally.review, tally.attention)];
         if (tally.costs.length > 0) {
@@ -1404,8 +1977,11 @@ export class ToolbarAssistant {
         status.textContent = parts.join(' ');
         status.classList.toggle('aqt-repair__status--partial', tally.attention > 0);
         if (hadFocus) {
-            status.setAttribute('tabindex', '-1');
-            status.focus({preventScroll: true});
+            // Single finding: focus the suggestion just shown; else the status that summarises the run.
+            const outcome = ids.length === 1 ? article.querySelector(`[data-aqt-repair-item="${Number(ids[0])}"] [data-aqt-card-outcome]:not([hidden])`) : null;
+            const target = outcome ?? status;
+            target.setAttribute('tabindex', '-1');
+            target.focus({preventScroll: true});
         }
     }
 
@@ -1423,6 +1999,7 @@ export class ToolbarAssistant {
         if (status === 'pending_review') {
             tally.review++;
             this.repairRow(root, row, {state: 'queued', stateLabel: String(item.statusLabel ?? ''), reason: this.label(root, 'repairReady'), reviewUrl: result.reviewUrl, ready: true});
+            this.showSuggestion(root, row, item, result.reviewUrl);
             return;
         }
         tally.attention++;
@@ -1434,29 +2011,193 @@ export class ToolbarAssistant {
             state: status === 'not_applicable' ? 'stale' : 'blocked',
             stateLabel: String(item.statusLabel ?? ''),
             reason: reason !== '' ? reason : this.label(root, status === 'no_suggestion' ? 'repairNoSuggestion' : 'repairFailed'),
+            aiReason: aiDeclineReason(item),
             reviewUrl: result.reviewUrl,
         });
     }
 
-    /** Updates one finding row in place (state, reason, review link); its other links stay. */
-    repairRow(root, row, {state, stateLabel, reason, reviewUrl = '', ready = false}) {
+    /**
+     * The suggestion, reviewed in place: Before → After as text, the steps still ahead (Approve, apply in the editor and
+     * save, check) and Approve itself. Approving here is AI Fixes' own approve step for exactly this item and row
+     * version: an image text or a rich-text element AQG can prove is saved by the workflow ("Apply and verify", with what
+     * changes, why, the write note and "Apply in the editor instead"); otherwise it is approved for the editor and
+     * applied there. Nothing is "fixed" before TYPO3 saved it and a check confirmed it.
+     */
+    showSuggestion(root, row, item, reviewUrl) {
+        const outcome = row?.querySelector('[data-aqt-card-outcome]');
+        if (!outcome) {
+            return;
+        }
+        const before = String(item.originalValue ?? '');
+        const after = String(item.finalValue ?? item.proposedValue ?? '');
+        const nodes = [
+            this.stepper(root, item.status, item.applyMode),
+            el('div', {class: 'aqt-diff', role: 'group', 'aria-label': this.label(root, 'planSuggestion', 'Suggested change')},
+                el('div', {class: 'aqt-diff__side aqt-diff__side--before'}, el('p', {class: 'aqt-diff__label', text: this.label(root, 'planBefore', 'Before')}), el('p', {class: 'aqt-diff__value', text: before !== '' ? before : this.label(root, 'planEmpty', '(empty)')})),
+                el('div', {class: 'aqt-diff__side aqt-diff__side--after'}, el('p', {class: 'aqt-diff__label', text: this.label(root, 'planAfter', 'After')}), el('p', {class: 'aqt-diff__value', text: after})),
+            ),
+        ];
+        const richText = item.kind === 'rich_text';
+        const where = [item.fieldLabel, item.targetLabel].filter(Boolean).join(' · ');
+        if (where) {
+            nodes.splice(1, 0, el('p', {class: 'aqt-outcome__reason', 'data-aqt-review-target': 'true'}, el('strong', {text: `${this.label(root, 'planChanges', 'Changes')}: `}), where));
+        }
+        if (item.explanation) {
+            nodes.push(el('p', {class: 'aqt-outcome__reason', text: String(item.explanation)}));
+        }
+        const actions = el('p', {class: 'aqt-card__actions'});
+        if (item.actions?.approve && Number(item.proposalVersion) > 0) {
+            const saves = directSave(item);
+            if (saves && richText) {
+                nodes.push(el('p', {class: 'aqt-outcome__reason', 'data-aqt-write-note': 'true', text: this.label(root, 'planRichTextNote', 'Changes only this element of the field through TYPO3 DataHandler, with your permissions, then checks the saved record. Live, the change is on the website at once; in a workspace it is published with the workspace. Reversible in the record history.')}));
+            }
+            actions.append(el('button', {
+                type: 'button',
+                class: 'aqt-btn aqt-btn--primary',
+                'data-aqt-approve': String(Number(item.uid)),
+                text: saves
+                    ? (richText ? this.label(root, 'planApplyVerify', 'Apply and verify') : this.label(root, 'planApproveSave', 'Approve and save'))
+                    : this.label(root, 'planApproveEditor', 'Approve for the editor'),
+                onclick: (event) => this.approveSuggestion(root, row, item, reviewUrl, event.currentTarget),
+            }));
+            if (saves && richText && item.editorAlternative && item.status === 'pending_review') {
+                actions.append(el('button', {
+                    type: 'button',
+                    class: 'aqt-btn',
+                    'data-aqt-approve-editor': String(Number(item.uid)),
+                    text: this.label(root, 'planApplyInstead', 'Apply in the editor instead'),
+                    onclick: (event) => this.approveSuggestion(root, row, item, reviewUrl, event.currentTarget, {direct: false}),
+                }));
+            }
+        }
+        if (reviewUrl && safeBackendHref(reviewUrl, this.win)) {
+            actions.append(el('a', {href: reviewUrl, class: 'aqt-btn', 'data-aqt-navigate': 'true', 'data-aqt-repair-review': 'true', text: this.label(root, 'planEditInFixes', 'Adjust in AI Fixes')}));
+        }
+        if (actions.childNodes.length > 0) {
+            nodes.push(actions);
+        }
+        outcome.hidden = false;
+        outcome.replaceChildren(...nodes);
+        // Reviewed right here: the card's separate "Review suggestion" link would only repeat "Adjust in AI Fixes".
+        if (actions.querySelector('a')) {
+            row.querySelector('[data-aqt-repair-links] [data-aqt-repair-review]')?.remove();
+        }
+        // Prepared: "Prepare fix" is done; Approve is the card's one main action now.
+        row.querySelector('[data-aqt-repair-links] [data-aqt-repair-prepare]')?.remove();
+        row.querySelector('.aqt-card__cost')?.remove();
+        this.oneMainAction(row);
+        const result = row.querySelector('[data-aqt-repair-result]');
+        if (result) {
+            result.textContent = this.label(root, 'planReviewBelow', 'Check the suggestion below, then approve it or adjust it in AI Fixes.');
+        }
+    }
+
+    /**
+     * Where the item stands, as the Atlas outcome ladder Suggested → Approved → Saved → Verified: the current step is the
+     * state the item has reached (never the next verb), earlier steps are done, Verified turns green only when verified.
+     */
+    stepper(root, status, applyMode) {
+        const steps = [
+            ['suggested', 'stepSuggested', 'Suggested'],
+            ['reviewed', 'stepReviewed', 'Approved'],
+            ['applied', applyMode === 'server' ? 'stepSaved' : 'stepEditor', applyMode === 'server' ? 'Saved' : 'Saved in TYPO3'],
+            ['verified', 'stepVerified', 'Verified'],
+        ];
+        const current = {preparing: -1, no_suggestion: -1, pending_review: 0, approved: 1, in_editor: 1, applying: 1, saved: 2, not_verified: 2, verified: 3}[String(status)] ?? 0;
+        return el('ol', {class: `aqt-steps${String(status) === 'not_verified' ? ' aqt-steps--not-verified' : ''}`, 'aria-label': this.label(root, 'stepTitle', 'Progress')}, steps.map(([key, label, fallback], index) => el('li', {
+            class: `aqt-steps__step${index < current ? ' aqt-steps__step--done' : ''}${index === current ? ' aqt-steps__step--current' : ''}${index === current && key === 'verified' ? ' aqt-steps__step--verified' : ''}`,
+            'aria-current': index === current ? 'step' : null,
+            'data-step': key,
+        }, el('span', {class: 'aqt-steps__dot', 'aria-hidden': 'true'}), el('span', {text: this.label(root, label, fallback)}))));
+    }
+
+    /**
+     * One main action per card, chosen by what the card's state offers next (Prepare fix, Review, Approve, Open in editor
+     * to apply, Open editor): the first primary in reading order stays; every other button becomes a quiet one. Without a
+     * primary, the first button (the editor for manual work) becomes it. Links stay links.
+     */
+    oneMainAction(card) {
+        const buttons = [...card.querySelectorAll('.aqt-card__outcome:not([hidden]) .aqt-btn, [data-aqt-repair-links] .aqt-btn')];
+        const main = buttons.find((button) => button.classList.contains('aqt-btn--primary')) ?? buttons[0];
+        buttons.forEach((button) => {
+            button.classList.toggle('aqt-btn--primary', button === main);
+            button.classList.toggle('aqt-btn--secondary', button !== main);
+        });
+    }
+
+    /** Approve one suggestion: recorded as seen (it is on screen), then AI Fixes' approve with the returned row version. */
+    async approveSuggestion(root, row, item, reviewUrl, button, {direct = true} = {}) {
+        if (button.getAttribute('aria-busy') === 'true') {
+            return;
+        }
+        // One decision per card: while it runs, neither "Apply and verify" nor the editor alternative takes a second click.
+        const choices = [...(row?.querySelectorAll('[data-aqt-approve], [data-aqt-approve-editor]') ?? [button])];
+        choices.forEach((choice) => choice.setAttribute('aria-busy', 'true'));
+        const urls = this.ajaxUrls();
+        const result = row.querySelector('[data-aqt-repair-result]');
+        const seen = await postRemediation(urls.a11y_remediation_view, {item: Number(item.uid), proposalVersion: Number(item.proposalVersion), detailed: false});
+        const current = seen.ok ? (seen.data.item ?? item) : item;
+        // "Approve and save" (the button the user saw) applies on the server, unless the item now says otherwise.
+        const approved = await postRemediation(urls.a11y_remediation_approve, {item: Number(item.uid), rowVersion: Number(current.rowVersion), bulk: false, detailed: false, ...(direct && directSave(item) && directSave({...item, ...current}) ? {mode: 'apply'} : {})});
+        choices.forEach((choice) => choice.removeAttribute('aria-busy'));
+        if (!approved.ok) {
+            if (result) {
+                result.textContent = this.label(root, approved.code === 'changed_concurrently' ? 'repairChanged' : errorLabelKey(approved.code), this.label(root, 'error'));
+            }
+            return;
+        }
+        const next = approved.data.item ?? {};
+        const status = String(next.status ?? '');
+        this.repairRow(root, row, {state: ['saved', 'verified'].includes(status) ? 'saved' : 'queued', stateLabel: String(next.statusLabel ?? ''), reason: ''});
+        const outcome = row.querySelector('[data-aqt-card-outcome]');
+        const nodes = [this.stepper(root, status, next.applyMode ?? item.applyMode)];
+        if (status === 'saved' || status === 'verified') {
+            nodes.push(el('p', {class: 'aqt-result aqt-result--ok', text: this.label(root, 'planSavedCheck', 'Saved. Check the saved page to confirm the problem is gone.')}));
+        } else if (next.editUrl && safeBackendHref(next.editUrl, this.win)) {
+            nodes.push(el('p', {class: 'aqt-result', text: String(next.statusReasonLabel || '') || this.label(root, 'planApplyInEditor', 'Approved. Open the element: AQG puts the change into the field, and you save it with TYPO3’s Save button.')}));
+            nodes.push(el('p', {class: 'aqt-card__actions'}, el('a', {href: next.editUrl, class: 'aqt-btn aqt-btn--primary', 'data-aqt-navigate': 'true', 'data-aqt-return': 'true', text: this.label(root, 'planOpenToApply', 'Open in editor to apply')})));
+        } else {
+            nodes.push(el('p', {class: 'aqt-result', text: String(next.statusReasonLabel ?? next.statusLabel ?? '')}));
+        }
+        if (reviewUrl && safeBackendHref(reviewUrl, this.win)) {
+            nodes.push(el('p', {}, el('a', {href: reviewUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', text: this.label(root, 'repairOpenItem')})));
+        }
+        if (outcome) {
+            outcome.hidden = false;
+            outcome.replaceChildren(...nodes);
+            outcome.setAttribute('tabindex', '-1');
+            outcome.focus({preventScroll: true});
+            this.oneMainAction(row);
+        }
+        const live = (this.root ?? root).querySelector('[data-aqt-live]');
+        if (live) {
+            live.textContent = String(next.statusLabel ?? '');
+        }
+    }
+
+    /** Updates one finding card in place (state, reason, review link); its other links stay. */
+    repairRow(root, row, {state, stateLabel, reason, aiReason = '', reviewUrl = '', ready = false}) {
         if (!row) {
             return;
         }
-        row.className = `aqt-repair__item aqt-repair__item--${state}`;
+        row.className = `aqt-card aqt-repair__item aqt-repair__item--${state}`;
         const badge = row.querySelector('[data-aqt-repair-state]');
         if (badge) {
-            badge.className = `aqt-repair__state aqt-repair__state--${state}`;
+            badge.className = `aqt-state aqt-state--${state} aqt-repair__state aqt-repair__state--${state}`;
             badge.textContent = stateLabel;
         }
         const result = row.querySelector('[data-aqt-repair-result]');
         if (result) {
             result.textContent = reason;
+            row.querySelector('[data-aqt-ai-reason]')?.remove();
+            if (aiReason !== '') {
+                result.after(this.aiReasonLine(root, aiReason));
+            }
         }
         if (reviewUrl && safeBackendHref(reviewUrl, this.win) && !row.querySelector('[data-aqt-repair-review]')) {
             let links = row.querySelector('[data-aqt-repair-links]');
             if (!links) {
-                links = el('p', {class: 'aqt-repair__links', 'data-aqt-repair-links': 'true'});
+                links = el('p', {class: 'aqt-card__actions aqt-repair__links', 'data-aqt-repair-links': 'true'});
                 row.append(links);
             }
             links.querySelectorAll('a[href]').forEach((link) => {
@@ -1464,7 +2205,238 @@ export class ToolbarAssistant {
                     link.remove();
                 }
             });
-            links.prepend(el('a', {href: reviewUrl, class: 'aqt-turn__link', 'data-aqt-navigate': 'true', 'data-aqt-repair-review': 'true', text: this.label(root, ready ? 'repairReview' : 'repairOpenItem')}), ' ');
+            links.prepend(el('a', {href: reviewUrl, class: 'aqt-btn', 'data-aqt-navigate': 'true', 'data-aqt-repair-review': 'true', text: this.label(root, ready ? 'repairReview' : 'repairOpenItem')}));
+        }
+    }
+
+    /**
+     * "Expand": the same assistant (one DOM, one conversation, one set of pending requests) moves into a large modal
+     * dialog and back. The native dialog keeps focus inside, closes on Escape and makes the rest of the backend inert,
+     * so the context cannot change underneath an open plan. Closing returns the assistant to the toolbar slot and focus
+     * to the AQG toolbar button.
+     */
+    expand(trigger = null) {
+        const root = this.root;
+        const doc = this.win.document;
+        if (!root || this.dialog?.open) {
+            return;
+        }
+        // The non-blocking dock wherever it fits next to the TYPO3 workspace; the dialog only as the fallback.
+        if (this.dock.available()) {
+            this.openDock(trigger);
+            return;
+        }
+        let dialog = this.dialog;
+        if (!dialog) {
+            dialog = el('dialog', {class: 'aqt-dialog', 'aria-labelledby': 'aqt-assistant-title', 'data-aqt-dialog': 'true'});
+            const body = el('div', {class: 'aqt-dialog__body', 'data-aqt-dialog-body': 'true'});
+            dialog.append(body);
+            dialog.addEventListener('close', () => this.afterCollapse());
+            dialog.addEventListener('click', (event) => {
+                const link = event.target instanceof this.win.Element ? event.target.closest('a[data-aqt-navigate]') : null;
+                if (link && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+                    // Inside the dialog the toolbar's own link handler cannot see the click: close, then open the URL.
+                    event.preventDefault();
+                    this.collapse({restoreFocus: false});
+                    this.navigate?.(link.getAttribute('href') ?? '', link.hasAttribute('data-aqt-return'));
+                    return;
+                }
+                if (event.target === dialog) {
+                    // A click on the backdrop closes like Escape.
+                    this.collapse();
+                }
+            });
+            doc.body.append(dialog);
+            this.dialog = dialog;
+        }
+        const toolbar = doc.querySelector('#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem');
+        dialog.classList.toggle('aqt-dialog--theme-dark', Boolean(toolbar?.classList.contains('aqt-toolbar--theme-dark')));
+        dialog.classList.toggle('aqt-dialog--theme-light', Boolean(toolbar?.classList.contains('aqt-toolbar--theme-light')));
+        const focused = root.contains(doc.activeElement) && doc.activeElement !== trigger ? doc.activeElement : null;
+        // As in openDock(): a dropdown render still on its way must not replace the assistant the dialog now holds.
+        this.request++;
+        this.expandedFrom = root.parentElement;
+        this.navigate?.(null);
+        dialog.querySelector('[data-aqt-dialog-body]').append(root);
+        root.classList.add('aqt-assistant--expanded');
+        root.querySelectorAll('[data-aqt-expand]').forEach((button) => {
+            button.setAttribute('aria-expanded', 'true');
+            button.textContent = this.label(root, 'collapse', 'Back to toolbar');
+        });
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+        (focused ?? root.querySelector('[data-aqt-ask-input]') ?? root.querySelector('#aqt-assistant-title'))?.focus({preventScroll: true});
+        const log = root.querySelector('[data-aqt-ask-log]');
+        if (log) {
+            // The latest turn, completely: the conversation continues where the toolbar left it.
+            log.scrollTop = log.scrollHeight;
+        }
+    }
+
+    /**
+     * Moves the assistant's one root into the docked column beside the workspace. Nothing is re-rendered or re-sent:
+     * the same conversation, pending request and plans continue there, and the TYPO3 workspace stays interactive.
+     */
+    openDock(trigger = null, {focus = true} = {}) {
+        const root = this.root;
+        const doc = this.win.document;
+        const principal = root?.querySelector('[data-aqt-ask]')?.dataset.principal ?? '';
+        const body = this.dock.open(principal);
+        if (!root || !body) {
+            return false;
+        }
+        const focused = root.contains(doc.activeElement) && doc.activeElement !== trigger ? doc.activeElement : null;
+        // A render still on its way (the dropdown refreshes while its assistant stays clickable) belongs to the place the
+        // assistant just left: it must not put a second root there and take the live conversation out of the dock.
+        this.request++;
+        this.presentation = 'dock';
+        this.navigate?.(null);
+        body.append(root);
+        root.classList.add('aqt-assistant--expanded', 'aqt-assistant--docked');
+        this.syncTheme();
+        this.syncExpandButtons(root);
+        this.showDockedNotice();
+        if (focus) {
+            (focused ?? root.querySelector('[data-aqt-ask-input]') ?? root.querySelector('#aqt-assistant-title'))?.focus({preventScroll: true});
+        }
+        const log = root.querySelector('[data-aqt-ask-log]');
+        if (log) {
+            log.scrollTop = log.scrollHeight;
+        }
+        this.win.document.dispatchEvent(new CustomEvent('aqg:ask-presentation', {detail: {presentation: 'dock'}}));
+
+        return true;
+    }
+
+    /**
+     * After a full backend reload: when this tab had Ask AQG docked (sessionStorage, per principal), it is rendered
+     * for what is open now and docked again — only for the same principal (user + login session) and only where it fits.
+     */
+    async restoreDock() {
+        let candidate = false;
+        try {
+            for (let index = 0; index < this.win.sessionStorage.length; index++) {
+                const key = this.win.sessionStorage.key(index) ?? '';
+                if (key.startsWith('aqg-ask-dock:') && JSON.parse(this.win.sessionStorage.getItem(key) ?? '{}')?.open === true) {
+                    candidate = true;
+                    break;
+                }
+            }
+        } catch {
+            candidate = false;
+        }
+        if (!candidate || this.presentation !== 'toolbar' || !this.dock.available()) {
+            return;
+        }
+        await this.load();
+        const principal = this.root?.querySelector('[data-aqt-ask]')?.dataset.principal ?? '';
+        const stored = principal !== '' ? this.dock.stored(principal) : null;
+        if (stored?.open && this.presentation === 'toolbar' && this.openDock(null, {focus: false}) && stored.minimized) {
+            this.dock.setMinimized(true, {silent: true});
+        }
+    }
+
+    /** Back to the toolbar: the dock is removed, TYPO3's layout returns, the same root goes back into the dropdown. */
+    closeDock({restoreFocus = true} = {}) {
+        const root = this.root;
+        if (this.presentation !== 'dock') {
+            return;
+        }
+        this.presentation = 'toolbar';
+        // A render for the dock still on its way would land in the removed column (see openDock()).
+        this.request++;
+        this.dock.close();
+        if (root) {
+            root.classList.remove('aqt-assistant--expanded', 'aqt-assistant--docked');
+            const slot = this.slot();
+            if (slot) {
+                slot.replaceChildren(root);
+                slot.hidden = false;
+            }
+            this.syncExpandButtons(root);
+        }
+        if (restoreFocus) {
+            this.win.document.querySelector('#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem .dropdown-toggle')?.focus({preventScroll: true});
+        }
+        this.win.document.dispatchEvent(new CustomEvent('aqg:ask-presentation', {detail: {presentation: 'toolbar'}}));
+    }
+
+    /** The dropdown while the assistant is docked: where it is, and the way to it or back (no second conversation). */
+    showDockedNotice() {
+        const slot = this.slot();
+        if (!slot || this.presentation !== 'dock') {
+            return;
+        }
+        const show = el('button', {type: 'button', class: 'aqt-btn aqt-btn--primary', 'data-aqt-dock-show': 'true', text: this.label(slot, 'dockShow', 'Show panel')});
+        const back = el('button', {type: 'button', class: 'aqt-btn', 'data-aqt-dock-back': 'true', text: this.label(slot, 'dockBack', 'Back to toolbar')});
+        show.addEventListener('click', () => {
+            this.navigate?.(null);
+            if (this.dock.minimized) {
+                this.dock.setMinimized(false);
+            }
+            (this.root?.querySelector('[data-aqt-ask-input]') ?? this.root)?.focus?.({preventScroll: true});
+        });
+        back.addEventListener('click', () => this.closeDock());
+        slot.hidden = false;
+        slot.replaceChildren(el('div', {class: 'aqt-assistant aqt-assistant__docked-note', 'data-aqt-docked-note': 'true'},
+            el('p', {role: 'status', text: this.label(slot, 'dockOpenHere', 'Ask AQG is open in the panel on the right.')}),
+            el('p', {class: 'aqt-assistant__actions'}, show, back),
+        ));
+    }
+
+    /** The root's own Expand button names what it does in the current presentation. */
+    syncExpandButtons(root) {
+        root?.querySelectorAll('[data-aqt-expand]').forEach((button) => {
+            const expanded = this.presentation !== 'toolbar' || Boolean(this.dialog?.open);
+            button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            button.textContent = this.label(root, expanded ? 'collapse' : 'expand', expanded ? 'Back to toolbar' : 'Expand');
+            // The dock's own controls (Minimize, Close panel) replace it there.
+            button.hidden = this.presentation === 'dock';
+        });
+    }
+
+    /** The backend colour scheme the toolbar resolved, applied to the dock and the dialog (they live outside it). */
+    syncTheme() {
+        const toolbar = this.win.document.querySelector('#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem');
+        const dark = Boolean(toolbar?.classList.contains('aqt-toolbar--theme-dark'));
+        const light = Boolean(toolbar?.classList.contains('aqt-toolbar--theme-light'));
+        this.dock.setTheme(dark, light);
+        this.dialog?.classList.toggle('aqt-dialog--theme-dark', dark);
+        this.dialog?.classList.toggle('aqt-dialog--theme-light', light);
+    }
+
+    collapse({restoreFocus = true} = {}) {
+        this.restoreFocusOnCollapse = restoreFocus;
+        if (this.dialog?.open && typeof this.dialog.close === 'function') {
+            this.dialog.close();
+        } else if (this.dialog?.hasAttribute('open')) {
+            this.dialog.removeAttribute('open');
+            this.afterCollapse();
+        }
+    }
+
+    afterCollapse() {
+        const root = this.root;
+        const restore = this.restoreFocusOnCollapse !== false;
+        this.restoreFocusOnCollapse = true;
+        if (!root) {
+            return;
+        }
+        root.classList.remove('aqt-assistant--expanded');
+        root.querySelectorAll('[data-aqt-expand]').forEach((button) => {
+            button.setAttribute('aria-expanded', 'false');
+            button.textContent = this.label(root, 'expand', 'Expand');
+        });
+        const slot = this.slot();
+        if (slot && !slot.contains(root)) {
+            slot.replaceChildren(root);
+            slot.hidden = false;
+        }
+        if (restore) {
+            this.win.document.querySelector('#priebera-a11yqualitygate-backend-toolbaritems-a11yscantoolbaritem .dropdown-toggle')?.focus({preventScroll: true});
         }
     }
 
@@ -1499,7 +2471,8 @@ export class ToolbarAssistant {
         }
         const citations = Array.isArray(data.citations) ? data.citations : [];
         const nodes = [
-            el('p', {class: 'aqt-turn__q'}, el('span', {class: 'aqt-turn__who', text: `${this.label(root, 'youAsked')}: `}), String(data.question ?? '')),
+            // The same bubble as a plan's question: typed, suggested, follow-up and restored questions all read as the user's turn.
+            this.questionBubble(root, String(data.question ?? '')),
             el('p', {class: 'aqt-turn__who', text: [this.label(root, data.source === 'aqg' ? 'answerAqg' : 'answer'), kind !== '' ? this.label(root, kind) : ''].filter(Boolean).join(' · ')}),
             ...answerNodes(data.answer),
         ];
@@ -1559,6 +2532,7 @@ export class ToolbarAssistant {
             return;
         }
         field.item.scrollIntoView({block: 'center'});
+        this.keepShellInPlace();
         this.navigate?.(null);
         field.focusTarget?.focus?.({preventScroll: true});
     }

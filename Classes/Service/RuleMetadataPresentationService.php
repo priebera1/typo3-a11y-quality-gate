@@ -430,6 +430,7 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
             $metadata['why_it_matters'] ?? null,
             $issue['guidance_why_it_matters'] ?? null,
             $this->translateFriendly($friendly['whyKey'] ?? null, $language),
+            $localizedWhyItMatters,
         ]);
         $fix = $this->firstString([
             $preferTranslation ? $localizedHowToFix : null,
@@ -438,6 +439,8 @@ final class RuleMetadataPresentationService implements RuleMetadataPresentationS
             $metadata['how_to_fix'] ?? null,
             $issue['guidance_how_to_fix'] ?? null,
             $this->translateFriendly($friendly['fixKey'] ?? null, $language),
+            // AQG's own per-rule guidance is the last fallback in every language (English: the label's source text).
+            $localizedHowToFix,
         ]);
 
         $affectedUsers = $this->localizeAffectedUsers(

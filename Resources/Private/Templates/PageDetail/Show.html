@@ -241,7 +241,7 @@
                                         </button>
                                     </f:if>
                                     <a href="{backUrl}" class="btn btn-default btn-sm">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" />
+                                        <f:if condition="{backToIssues}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.backToList" default="Back to My issues" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" /></f:else></f:if>
                                     </a>
                                 </div>
                             </section>
@@ -268,7 +268,7 @@
                                         </button>
                                     </f:if>
                                     <a href="{backUrl}" class="btn btn-default btn-sm">
-                                        <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" />
+                                        <f:if condition="{backToIssues}"><f:then><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.backToList" default="Back to My issues" /></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:action.backToOverview" default="Back to overview" /></f:else></f:if>
                                     </a>
                                 </div>
                             </section>

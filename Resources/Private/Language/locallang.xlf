@@ -6631,6 +6631,9 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="rte.aiRuleBasedNote">
                 <source>A rule-based fix without an AI request.</source>
             </trans-unit>
+            <trans-unit id="ai.editor.reason.emptyHeadingNoBasis">
+                <source>Nothing follows this empty heading, so there is no section for it to name. Remove the empty heading.</source>
+            </trans-unit>
             <trans-unit id="rte.aiNeedsReviewHelp">
                 <source>The context does not allow a reliable suggestion. Please fix it yourself.</source>
             </trans-unit>
@@ -9172,6 +9175,9 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="toolbar.assistant.prepareNone">
                 <source>AI did not produce a usable suggestion. Fix it manually with the guidance above.</source>
             </trans-unit>
+            <trans-unit id="toolbar.assistant.aiReason">
+                <source>Reason given by the AI</source>
+            </trans-unit>
             <trans-unit id="toolbar.assistant.prepareManual">
                 <source>AQG cannot prepare a safe AI change for this occurrence. Fix it in the editor with the guidance above.</source>
             </trans-unit>
@@ -9740,6 +9746,45 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="notification.scanResult.frontend.noBaseline">
                 <source>(no earlier comparable scan).</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.label">
+                <source>Not directly comparable</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.scope">
+                <source>The scan scope changed (excluded paths, priority URLs or sitemap), so the scans checked different pages. A reliable direct comparison is not available. Open each scan to review its findings.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.pageBudget">
+                <source>The page limit changed and at least one scan stopped at its limit, so the scans checked different pages. A reliable direct comparison is not available. Open each scan to review its findings.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.scopeNotRecorded">
+                <source>At least one of these scans ran before the AQG service recorded which pages a scan may check, and the two scans did not check the same pages. A reliable direct comparison is not available. Open each scan to review its findings.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.pages">
+                <source>The scans checked different pages (%1$d only in the earlier scan, %2$d only in the later scan). A reliable direct comparison is not available. Open each scan to review its findings.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.generic">
+                <source>These scans are not directly comparable. Open each scan to review its findings.</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.openEarlierReport">
+                <source>Open earlier scan report</source>
+            </trans-unit>
+            <trans-unit id="remote.comparison.openLaterReport">
+                <source>Open later scan report</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.notComparable.title">
+                <source>No regression signal: the previous scan covered a different scope.</source>
+            </trans-unit>
+            <trans-unit id="remote.regression.notComparable.summary">
+                <source>Run another scan with the same settings to get a comparison.</source>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.deltaPartial">
+                <source>(%d new, %d resolved on the %d pages also checked in the previous scan).</source>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.differentPages">
+                <source>(the previous scan checked other pages; no direct comparison).</source>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noComparison">
+                <source>Frontend scan completed. The report lists every open issue.</source>
             </trans-unit>
             <trans-unit id="settings.qualityGate.readOnly">
                 <source>Only TYPO3 administrators can change Quality Gate settings. This configuration is read-only.</source>
@@ -11161,7 +11206,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Page %d</source>
             </trans-unit>
             <trans-unit id="remediation.intro">
-                <source>Review AI-prepared fixes before anything changes. Approved image texts are saved for you; text and link changes open in their editor, where you save them. AQG then checks whether the issue is gone.</source>
+                <source>Review AI-prepared fixes before anything changes. Approved image texts and reviewed changes in rich text and Plain HTML are saved for you with Apply and verify, which changes only that element. A change AQG cannot prove opens in its editor, where you save it. AQG then checks whether the issue is gone.</source>
             </trans-unit>
             <trans-unit id="remediation.free.title">
                 <source>AI fixes are part of AQG PRO and Agency</source>
@@ -11935,7 +11980,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Writes only this image use's alternative text through TYPO3 DataHandler. Reversible in the record history.</source>
             </trans-unit>
             <trans-unit id="remediation.js.drawer.editorApply">
-                <source>AQG never rewrites rich text or HTML on the server. The record opens with this change staged; you check it there and save with TYPO3 Save.</source>
+                <source>The record opens with this change staged; you check it there and save with TYPO3 Save.</source>
             </trans-unit>
             <trans-unit id="remediation.js.drawer.noEditAccess">
                 <source>No edit access — someone who can edit this record must apply it.</source>
@@ -11969,6 +12014,15 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="remediation.js.action.approveApply">
                 <source>Approve and apply</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.action.applyVerify">
+                <source>Apply and verify</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.action.applyInEditor">
+                <source>Apply in the editor instead</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.drawer.richTextServerWrite">
+                <source>Changes only this element of the field through TYPO3 DataHandler, with your permissions, then checks the saved record. In the live workspace the change is on the website at once; in a workspace it is published with the workspace. Reversible in the record history.</source>
             </trans-unit>
             <trans-unit id="remediation.js.action.approveEditor">
                 <source>Approve and open in editor</source>
@@ -12807,6 +12861,9 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="remediation.pd.result.noneText">
                 <source>The AI answered, but without a suggestion AQG can use. Nothing was changed; fix this occurrence in the record.</source>
             </trans-unit>
+            <trans-unit id="remediation.pd.result.aiReason">
+                <source>Reason given by the AI</source>
+            </trans-unit>
             <trans-unit id="remediation.pd.result.failedTitle">
                 <source>AI request failed</source>
             </trans-unit>
@@ -13102,7 +13159,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Scan a whole site</source>
             </trans-unit>
             <trans-unit id="mcp.scope.suggestionsPrepare.text">
-                <source>Later: AI suggestions that a person reviews in the remediation queue.</source>
+                <source>Asks AI for fix suggestions to content issues, as this TYPO3 user and within the site's AI budget. Nothing changes: a person reviews, approves and saves every suggestion in AI Fixes.</source>
             </trans-unit>
             <trans-unit id="mcp.scope.suggestionsPrepare.title">
                 <source>Prepare fix suggestions</source>
@@ -13450,7 +13507,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Reason: %s. This happens on a copy of another installation, on a host without the same MCP connector key, or after a new installation identity. Nothing is sent to the Gateway from here. On a copy, run a11y:mcp:reset-local --confirm and pair it separately; never disconnect a copy, it would end the original's connection. Otherwise provide the same AQG_MCP_CONNECTOR_KEY on every host, or connect again.</source>
             </trans-unit>
             <trans-unit id="settings.mcp.status.revoked">
-                <source>The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Connect it again.</source>
+                <source>The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Remove the old connection to connect again.</source>
             </trans-unit>
             <trans-unit id="settings.mcp.status.suspended">
                 <source>Agent access is suspended: the licence does not allow it now. Tokens are kept; they work again until their own end date once the licence is valid.</source>
@@ -13776,7 +13833,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Edit the element yourself</source>
             </trans-unit>
             <trans-unit id="toolbar.repair.ui.safety">
-                <source>Nothing is applied or published. Every AI suggestion waits for your review in AI fixes; you decide what changes.</source>
+                <source>Nothing changes until you approve a suggestion and it is saved. You decide what changes.</source>
             </trans-unit>
             <trans-unit id="toolbar.repair.ui.basis">
                 <source>Answered from your AQG findings, no AI used. AI is used only when you prepare suggestions.</source>
@@ -14129,7 +14186,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Open the first one in Page Detail, fix it, then check the saved page again.</source>
             </trans-unit>
             <trans-unit id="toolbar.ask.placeholder">
-                <source>Ask about this page or website, e.g. What should I fix first? Where can I fix the missing alt text?</source>
+                <source>Ask a question, e.g. What should I fix first?</source>
             </trans-unit>
             <trans-unit id="toolbar.ask.answers">
                 <source>Answers</source>
@@ -14414,7 +14471,7 @@ Automated checks found accessibility issues that require review and remediation.
                 <source>Site</source>
             </trans-unit>
             <trans-unit id="assignment.filter.state">
-                <source>State</source>
+                <source>Status</source>
             </trans-unit>
             <trans-unit id="assignment.filter.unassigned">
                 <source>Nobody (unassigned)</source>
@@ -14880,6 +14937,501 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="mcp.consent.decisionHelp">
                 <source>Deny is safe at any time. Allow grants only the ticked capabilities and sites, for the chosen period.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.expand">
+                <source>Expand</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.collapse">
+                <source>Back to toolbar</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.listTitle">
+                <source>Problems</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.stored">
+                <source>This is the status from earlier. Refresh it before you act on it.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.refresh">
+                <source>Refresh status</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.cards">
+                <source>Problems</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.states">
+                <source>Overview</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.ready">
+                <source>Ready to prepare: %d</source></trans-unit>
+            <trans-unit id="toolbar.plan.count.queued">
+                <source>In AI Fixes: %d</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.saved">
+                <source>Saved, not verified: %d</source></trans-unit>
+            <trans-unit id="toolbar.plan.count.manual">
+                <source>Manual work: %d</source></trans-unit>
+            <trans-unit id="toolbar.plan.count.blocked">
+                <source>Not possible now: %d</source></trans-unit>
+            <trans-unit id="toolbar.plan.count.stale">
+                <source>May be fixed already: %d</source></trans-unit>
+            <trans-unit id="toolbar.plan.number">
+                <source>Problem %d: </source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.sourceRendered">
+                <source>Page output</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.why">
+                <source>Why it matters</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.prepareFix">
+                <source>Prepare fix</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.showField">
+                <source>Show in form</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.openEditor">
+                <source>Open editor</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.contextChanged">
+                <source>You moved to another page or record. Ask again there.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.suggestion">
+                <source>Suggested change</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.before">
+                <source>Before</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.after">
+                <source>After</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.empty">
+                <source>(empty)</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.approveSave">
+                <source>Approve and save</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.approveEditor">
+                <source>Approve for the editor</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.editInFixes">
+                <source>Adjust in AI Fixes</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.savedCheck">
+                <source>Saved. Check the saved page to confirm the problem is gone.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.applyInEditor">
+                <source>Approved. Open the element: AQG puts the change into the field, and you save it with TYPO3’s Save button.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.openToApply">
+                <source>Open in editor to apply</source>
+            </trans-unit>
+            <trans-unit id="toolbar.ask.intro">
+                <source>Ask what to fix here. Answers come from your AQG findings, and nothing changes until you approve it.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.title">
+                <source>Progress</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.suggested">
+                <source>Suggested</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.reviewed">
+                <source>Approved</source></trans-unit>
+            <trans-unit id="toolbar.plan.step.saved">
+                <source>Saved</source></trans-unit>
+            <trans-unit id="toolbar.plan.step.editor">
+                <source>Saved in TYPO3</source></trans-unit>
+            <trans-unit id="toolbar.plan.step.verified">
+                <source>Verified</source></trans-unit>
+            <trans-unit id="toolbar.plan.verify.resolved">
+                <source>Verified fixed (%d):</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.verify.open">
+                <source>Still open (%d):</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.title">
+                <source>How to fix it</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.problem">
+                <source>What is wrong</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.where">
+                <source>Where</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.change">
+                <source>Recommended change</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.action">
+                <source>How to do it</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.missing">
+                <source>What AQG cannot tell</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.verify">
+                <source>How AQG confirms the fix</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.outline">
+                <source>Headings in this text, as saved</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.flagged">
+                <source>skips a level</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.expandHint">
+                <source>Open Ask AQG in a large view</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.quick.list">
+                <source>What problems does this page have?</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.quick.fixAll">
+                <source>Fix all problems on this page</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.quick.title">
+                <source>Start with</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.composerHint">
+                <source>Enter sends, Shift+Enter adds a line. Refer to a problem by its number, e.g. “Fix problem 2”.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.one">
+                <source>1 problem %s.</source></trans-unit>
+            <trans-unit id="toolbar.repair.list.many">
+                <source>%1$d problems %2$s, most severe first.</source></trans-unit>
+            <trans-unit id="toolbar.repair.headline.selectedOne">
+                <source>Here is the problem you chose.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.selected">
+                <source>Here are the %d problems you chose.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.clarify.changed">
+                <source>The problem you named is no longer open here, or the list has changed since. Nothing was prepared. Choose a problem from the current list below.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.clarify.unknown">
+                <source>I am not sure which problem you mean, so nothing was prepared. Choose one from the list below, or ask “Fix problem 2”.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.verify">
+                <source>After you save, choose “Recheck saved content”. AQG checks the page again and closes this issue when the problem is gone.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.rendered.where">
+                <source>In the page as visitors see it (template, layout or plugin output).</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.rendered.action">
+                <source>Send this issue to the person who maintains your templates or extensions. If it comes from content, find the element on the page and correct it there.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.rendered.missing">
+                <source>AQG found this in the rendered page. It does not know which content element, template or plugin produced it, so it cannot open an editor for it.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.action.noAccess">
+                <source>You may read this content but not change it. Ask an editor with access to this element to make the change.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.action.here">
+                <source>The element is open in the editor. Use “Show in form” to jump to the field, correct it and save.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.action.open">
+                <source>Open the element in the editor, correct the field named above and save.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.workspace">
+                <source>AQG checked the live version. Your workspace version may differ; check it before you publish.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.missing">
+                <source>AQG checked this text field on its own. Headings in the element’s own header, in other elements and in the page template were not compared. If this text starts a new section of the page, choose the level that fits the page’s heading structure.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.problemUnknown">
+                <source>A heading in this text skips a level.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.problemNamed">
+                <source>The heading “%1$s” is an H%2$d, but the heading before it in this text, “%3$s”, is an H%4$d. Level H%5$d is skipped, so screen reader users may think part of the content is missing.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.recommendNamed">
+                <source>Change “%1$s” from H%2$d to H%3$d, one level below the H%4$d before it.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.problem">
+                <source>A heading in this text jumps from H%1$d to H%2$d. Level H%3$d is skipped, so screen reader users may think part of the content is missing.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.recommend">
+                <source>Change that H%1$d to H%2$d, one level below the H%3$d before it.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.changed">
+                <source>The saved text no longer shows this jump. It may be fixed already; check the saved page to confirm.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.action">
+                <source>Open the text in the editor. AQG marks the heading there; choose “Change to Heading %d” in AQG’s panel (no AI), or pick that level in the toolbar’s Heading menu. Then save.</source></trans-unit>
+            <trans-unit id="toolbar.repair.list.where.page">
+                <source>on this page</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.where.record">
+                <source>in this content element</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.where.file">
+                <source>for this file</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.reviewBelow">
+                <source>Check the suggestion below, then approve it or adjust it in AI Fixes.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.clarify.resolved">
+                <source>Problem %s is no longer open: AQG’s latest check of the saved content no longer finds it. Nothing was prepared. The problems still open are below.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.oneWhere">
+                <source>I found 1 problem %s.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.manyWhere">
+                <source>I found %1$d problems %2$s.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.notice.unsaved">
+                <source>This form has unsaved changes. The problems and suggestions here are based on the saved version: save first, then choose “Recheck saved content”.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.resize">
+                <source>Resize Ask AQG panel</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.minimize">
+                <source>Minimize</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.close">
+                <source>Close panel</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.controls">
+                <source>Ask AQG panel</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.restore">
+                <source>Show Ask AQG</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.show">
+                <source>Show panel</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.back">
+                <source>Back to toolbar</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.openHere">
+                <source>Ask AQG is open in the panel on the right.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.verify.checked">
+                <source>Checked the saved content just now.</source>
+            </trans-unit>
+            <trans-unit id="assignment.filter.perPage">
+                <source>Per page</source>
+            </trans-unit>
+            <trans-unit id="assignment.filter.pending">
+                <source>Changed filters are not applied yet.</source>
+            </trans-unit>
+            <trans-unit id="assignment.filter.error">
+                <source>The list could not be updated. Reload the module and try again.</source>
+            </trans-unit>
+            <trans-unit id="assignment.chips.label">
+                <source>Active filters:</source>
+            </trans-unit>
+            <trans-unit id="assignment.chips.remove">
+                <source>Remove filter %s</source>
+            </trans-unit>
+            <trans-unit id="assignment.chips.clearAll">
+                <source>Clear filters</source>
+            </trans-unit>
+            <trans-unit id="assignment.empty.unassignedDone">
+                <source>Unassigned work is always open work</source>
+            </trans-unit>
+            <trans-unit id="assignment.empty.unassignedDoneHint">
+                <source>“Done” lists tasks that were assigned to someone and are now fixed. Choose “Everyone” or a person to see finished work, or “To do” to see unassigned work.</source>
+            </trans-unit>
+            <trans-unit id="assignment.backToList">
+                <source>Back to My issues</source>
+            </trans-unit>
+            <trans-unit id="remediation.meta.site">
+                <source>Site:</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.unavailable.title">
+                <source>This AI fix cannot be opened</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.unavailable.text">
+                <source>It no longer exists, or your account has no access to its page, record or workspace. The list below shows the AI fixes you can open.</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.otherPage">
+                <source>This AI fix belongs to the page “%s”, not to the page selected in the link. It is opened anyway.</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.title">
+                <source>This AI fix is kept, but the licence does not include AI fixes right now</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.text">
+                <source>The suggestion for the page “%s” has not been deleted. It opens here again as soon as the site has an active PRO or Agency licence. Until then nothing is applied.</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.open">
+                <source>Check the licence in Settings</source>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.editor">
+                <source>Ask an administrator to check the AQG licence of this site.</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.drawer.previewUnavailable">
+                <source>Image preview unavailable</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.state.licence">
+                <source>Needs PRO or Agency</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.licenceKept">
+                <source>An AI fix exists for this issue, but the licence of this site does not include AI fixes right now. It is kept and opens again once the licence is active.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.review">
+                <source>A suggestion is waiting for your review in AI fixes.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.apply">
+                <source>The suggestion is approved. Open the editor to apply it, then save.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.nosuggestion">
+                <source>AQG found no safe automatic change for this issue. Fix it in the record.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.reviewOne">
+                <source>1 suggestion waits for your review in AI Fixes.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.review">
+                <source>%d suggestions wait for your review in AI Fixes.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.applyOne">
+                <source>1 approved suggestion waits to be applied in the editor.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.apply">
+                <source>%d approved suggestions wait to be applied in the editor.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.nosuggestionOne">
+                <source>1 has no safe automatic fix; fix it in the record.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.nosuggestion">
+                <source>%d have no safe automatic fix; fix them in the record.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.review">
+                <source>Needs review: %d</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.apply">
+                <source>Approved, apply in editor: %d</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.nosuggestion">
+                <source>No usable suggestion: %d</source>
+            </trans-unit>
+            <trans-unit id="settings.mcp.revoked.reconnect">
+                <source>Remove old connection and connect again</source>
+            </trans-unit>
+            <trans-unit id="settings.mcp.revoked.reconnectHelp">
+                <source>AQG first asks the Gateway again. Only if it still refuses the old connection is that connection removed from this installation, then a new pairing code is shown. The host identity, site settings and the audit trail are kept; users confirm their agent again.</source>
+            </trans-unit>
+            <trans-unit id="settings.mcp.flash.rejectedForgotten">
+                <source>The Gateway refused the old connection; it was removed from this installation. Confirm the new pairing code in your AQG account.</source>
+            </trans-unit>
+            <trans-unit id="settings.mcp.flash.stillAccepted">
+                <source>The Gateway accepts this connection again, so nothing was removed. Check the connection status below.</source>
+            </trans-unit>
+            <trans-unit id="remediation.reason.quality_warning">
+                <source>The image now has alternative text, so this issue is fixed. AQG's quality check still has a remark about the text (for example, longer than 120 characters); you can shorten it in the record.</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.error.suggestion_outdated">
+                <source>This suggestion was made under older rules and is not approved as it is. Regenerate it, or edit the value yourself.</source>
+            </trans-unit>
+            <trans-unit id="remediation.reason.suggestion_outdated">
+                <source>This suggestion was made under older rules (before AQG stopped inventing texts for empty headings). Regenerate it or fix the content in the record.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.licenceHint.inactive">
+                <source>The AQG licence is not active for this site: %s</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.licenceHint.askAdmin">
+                <source>Ask an administrator to check it.</source>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.licenceHint.open">
+                <source>Check the licence</source>
+            </trans-unit>
+            <trans-unit id="assignment.range.one">
+                <source>1 task</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.filter.remove">
+                <source>Remove filter %s</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.group">
+                <source>Suggested change</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.before">
+                <source>Before</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.empty">
+                <source>(empty)</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.after">
+                <source>After</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.afterEditable">
+                <source>After (you can edit it)</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.apply">
+                <source>Apply and verify</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyImage">
+                <source>Approve and apply</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyNote">
+                <source>Changes only this element of the field through TYPO3 DataHandler, with your permissions. Live, the change is visible on the website at once; in a workspace it is published with the workspace. Applying sends no AI request.</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyNoteImage">
+                <source>Saves this text through TYPO3 DataHandler, with your permissions. Applying sends no AI request.</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applying">
+                <source>Applying and checking…</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.failedTitle">
+                <source>Not applied</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.nothingWritten">
+                <source>Nothing was written.</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.verifiedTitle">
+                <source>Applied and verified</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.verifiedText">
+                <source>AQG saved the change and its check of the stored record no longer reports this issue.</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.savedTitle">
+                <source>Applied, not verified</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.savedText">
+                <source>AQG saved the change. Its check does not confirm the fix yet:</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.openEditor">
+                <source>Open in editor</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.editorTitle">
+                <source>Apply this change in the editor</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.editorText">
+                <source>AQG could not prove that it can change only this element, so nothing was written. The record opens with the change prepared; save it there.</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.conflictTitle">
+                <source>Not applied: the content changed</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.conflictText">
+                <source>The element changed after the suggestion was made. Nothing was written; generate a new suggestion in AI fixes.</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.error.apply_in_editor">
+                <source>AQG cannot apply this change itself. Apply it in the editor.</source>
+            </trans-unit>
+            <trans-unit id="remediation.js.error.record_open">
+                <source>The record is open in the editor of another person. Try again when it is closed, or apply the change in the editor.</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyInEditor">
+                <source>Apply in the editor instead</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.target">
+                <source>Changes</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.reason">
+                <source>Why</source>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.editorChosenText">
+                <source>Nothing was written. The record opens with the change prepared; apply it there and save.</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.applyVerify">
+                <source>Apply and verify</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.applyInstead">
+                <source>Apply in the editor instead</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.changes">
+                <source>Changes</source>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.richTextNote">
+                <source>Changes only this element of the field through TYPO3 DataHandler, with your permissions, then checks the saved record. Live, the change is on the website at once; in a workspace it is published with the workspace. Reversible in the record history.</source>
+            </trans-unit>
+            <trans-unit id="remediation.reason.direct_not_provable">
+                <source>AQG could not prove that only this element changes, so it does not write the field itself: the record opens with the change prepared, and you save it with TYPO3 Save.</source>
+            </trans-unit>
+            <trans-unit id="remediation.reason.record_open">
+                <source>The record is open in the editor of another person, so AQG did not write it. Apply the change in the editor once that person has closed or saved the record.</source>
             </trans-unit>
         </body>
     </file>

@@ -203,8 +203,9 @@ Exact target
 
 Undo and saving
     Apply is one CKEditor change or one CodeMirror transaction, so one
-    :kbd:`Ctrl+Z` / :kbd:`Cmd+Z` restores the previous text. AQG never writes
-    rich text or HTML on the server.
+    :kbd:`Ctrl+Z` / :kbd:`Cmd+Z` restores the previous text. Applying in the
+    editor writes nothing on the server; :guilabel:`Apply and verify` in AI
+    Fixes is the separate reviewed server path (see :ref:`usage-ai-fixes`).
 
 Review fixes
     When a field has two or more fixes, :guilabel:`Review fixes (n)` in the

@@ -74,6 +74,24 @@ export function format(template, ...values) {
     });
 }
 
+/**
+ * The model's own reason for a "No safe suggestion" item (e.g. "the link target is only '/info' …"), or ''. Only for
+ * a decline (status reason needs_review): a rejected value stores no reason, and other states have their own text.
+ * The server bounds it and strips markup; callers render it as text, never as HTML.
+ *
+ * With `fromAiOnly` (the default) only a reason the AI gave: an item AQG declined without asking a provider (an empty
+ * heading with nothing after it) carries AQG's own guidance and no provider, and must not be labelled as the AI's.
+ */
+export function aiDeclineReason(item, {fromAiOnly = true} = {}) {
+    if (String(item?.status ?? '') !== 'no_suggestion' || String(item?.statusReason ?? '') !== 'needs_review') {
+        return '';
+    }
+    if (fromAiOnly && String(item?.provider ?? '') === '') {
+        return '';
+    }
+    return String(item?.explanation ?? '').trim();
+}
+
 export function relativeAge(timestamp, labels, now = Date.now() / 1000) {
     const seconds = Math.max(0, now - Number(timestamp || 0));
     if (seconds < 60) {

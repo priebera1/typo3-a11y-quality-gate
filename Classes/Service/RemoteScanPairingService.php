@@ -99,6 +99,20 @@ final class RemoteScanPairingService
     }
 
     /**
+     * The pages both stored scans loaded (D-1): a comparison's counts are only meaningful on these.
+     *
+     * @param array<string, mixed> $earlier
+     * @param array<string, mixed> $later
+     */
+    public function pageOverlap(array $earlier, array $later): RemoteScanPageOverlap
+    {
+        return RemoteScanPageOverlap::of(
+            $this->remoteScanRepository->findLoadedPageKeysForScan((int)($earlier['uid'] ?? 0)),
+            $this->remoteScanRepository->findLoadedPageKeysForScan((int)($later['uid'] ?? 0)),
+        );
+    }
+
+    /**
      * Whether a stored scan is a preview scan of a page that was not public when it was submitted (legacy rows: public).
      *
      * @param array<string, mixed> $scan

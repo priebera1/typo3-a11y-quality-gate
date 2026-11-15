@@ -125,9 +125,19 @@ AI suggestions
 
 Suggestions are proposals that a person must review. AQG rejects unsafe
 outputs, but it cannot verify that a suggested text is factually correct for the
-image or link it describes. Suggestions are never applied automatically. AQG
-never writes rich text or HTML on the server: an editor applies a reviewed
-change in the editor and stores it with TYPO3 Save.
+image or link it describes. Suggestions are never applied automatically: each
+change is applied only after a person reviewed it. In rich text and plain HTML,
+:guilabel:`Apply and verify` (in AI Fixes and in the page details) changes
+exactly one element (one attribute or the plain text of an element without
+inner markup) through TYPO3 DataHandler as the reviewer; anything AQG cannot
+prove byte-exact is offered in the editor instead. Rich text is never part of a
+bulk approval, and findings in rendered output, templates or extension markup
+are never written to a record.
+
+*   Applied in a workspace, a change waits in the workspace version and is
+    published with it; AQG reports it as :guilabel:`Not verified` until then.
+*   Links with inner markup, heading level changes, encoded HTML sources and
+    findings in rendered output or templates are not applied by AQG.
 
 *   AI covers selected findings only (link text, image alternative text,
     button names, iframe titles, empty headings, image metadata). Template and

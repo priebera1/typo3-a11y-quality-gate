@@ -51,58 +51,71 @@
             </div>
         </f:if>
 
-        <div class="aqg-history-compare__metrics" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.summary', default: 'Scan comparison summary')}">
-            <span class="aqg-history-metric aqg-history-metric--warning"><strong>{comparison.summary.newIssues}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.newIssues" default="new in automated scan" /></span>
-            <span class="aqg-history-metric aqg-history-metric--positive"><strong>{comparison.summary.resolvedIssues}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.resolvedIssues" default="resolved in automated scan" /></span>
-            <span class="aqg-history-metric"><strong>{comparison.summary.unchangedIssues}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.unchangedIssues" default="unchanged in automated scan" /></span>
-            <span class="aqg-history-metric"><strong>{comparison.summary.scoreDelta}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.scoreDelta" default="score change" /></span>
-            <span class="aqg-history-metric"><strong>{comparison.summary.improvedPages}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.improvedPages" default="improved pages" /></span>
-            <span class="aqg-history-metric"><strong>{comparison.summary.worsenedPages}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.worsenedPages" default="worsened pages" /></span>
-        </div>
+        <f:if condition="{comparison.status} == 'not_comparable'">
+            <f:then>
+                <p class="aqg-history-compare__message" role="status">{comparison.statusMessage}</p>
+                <f:if condition="{comparison.previousScan.reportUrl} || {comparison.currentScan.reportUrl}">
+                    <div class="aqg-history-compare__actions">
+                        <f:if condition="{comparison.previousScan.reportUrl}"><a href="{comparison.previousScan.reportUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.openEarlierReport" default="Open earlier scan report" /></a></f:if>
+                        <f:if condition="{comparison.currentScan.reportUrl}"><a href="{comparison.currentScan.reportUrl}" class="btn btn-default btn-sm"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.openLaterReport" default="Open later scan report" /></a></f:if>
+                    </div>
+                </f:if>
+            </f:then>
+            <f:else>
+            <div class="aqg-history-compare__metrics" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.summary', default: 'Scan comparison summary')}">
+                <span class="aqg-history-metric aqg-history-metric--warning"><strong>{comparison.summary.newIssues}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.newIssues" default="new in automated scan" /></span>
+                <span class="aqg-history-metric aqg-history-metric--positive"><strong>{comparison.summary.resolvedIssues}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.resolvedIssues" default="resolved in automated scan" /></span>
+                <span class="aqg-history-metric"><strong>{comparison.summary.unchangedIssues}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.unchangedIssues" default="unchanged in automated scan" /></span>
+                <span class="aqg-history-metric"><strong>{comparison.summary.scoreDelta}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.scoreDelta" default="score change" /></span>
+                <span class="aqg-history-metric"><strong>{comparison.summary.improvedPages}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.improvedPages" default="improved pages" /></span>
+                <span class="aqg-history-metric"><strong>{comparison.summary.worsenedPages}</strong> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.worsenedPages" default="worsened pages" /></span>
+            </div>
 
-        <p class="aqg-history-compare__message">{comparison.statusMessage}</p>
+            <p class="aqg-history-compare__message">{comparison.statusMessage}</p>
 
-        <f:if condition="{comparison.hasByRule}">
-            <div class="aqg-history-compare__block">
-                <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.byRule" default="Changes by rule" /></h4>
-                <div class="aqg-history-change-list">
-                    <f:for each="{comparison.byRule}" as="row">
-                        <div class="aqg-history-change aqg-history-change--{row.tone}">
-                            <strong>{row.label}</strong>
-                            <span>{row.issueSummaryLabel}</span>
-                            <f:if condition="{row.note}"><small>{row.note}</small></f:if>
-                        </div>
-                    </f:for>
+            <f:if condition="{comparison.hasByRule}">
+                <div class="aqg-history-compare__block">
+                    <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.byRule" default="Changes by rule" /></h4>
+                    <div class="aqg-history-change-list">
+                        <f:for each="{comparison.byRule}" as="row">
+                            <div class="aqg-history-change aqg-history-change--{row.tone}">
+                                <strong>{row.label}</strong>
+                                <span>{row.issueSummaryLabel}</span>
+                                <f:if condition="{row.note}"><small>{row.note}</small></f:if>
+                            </div>
+                        </f:for>
+                    </div>
                 </div>
-            </div>
-        </f:if>
-        <f:if condition="{comparison.hasByPage}">
-            <div class="aqg-history-compare__block">
-                <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.byPage" default="Changes by page" /></h4>
-                <div class="aqg-history-change-list">
-                    <f:for each="{comparison.byPage}" as="row">
-                        <div class="aqg-history-change aqg-history-change--{row.tone}">
-                            <strong>{row.label}</strong>
-                            <span>{row.issueSummaryLabel}</span>
-                            <f:if condition="{row.note}"><small>{row.note}</small></f:if>
-                        </div>
-                    </f:for>
+            </f:if>
+            <f:if condition="{comparison.hasByPage}">
+                <div class="aqg-history-compare__block">
+                    <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.byPage" default="Changes by page" /></h4>
+                    <div class="aqg-history-change-list">
+                        <f:for each="{comparison.byPage}" as="row">
+                            <div class="aqg-history-change aqg-history-change--{row.tone}">
+                                <strong>{row.label}</strong>
+                                <span>{row.issueSummaryLabel}</span>
+                                <f:if condition="{row.note}"><small>{row.note}</small></f:if>
+                            </div>
+                        </f:for>
+                    </div>
                 </div>
-            </div>
-        </f:if>
-        <f:if condition="{comparison.hasTopChanges}">
-            <div class="aqg-history-compare__block">
-                <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.topChanges" default="Top changes" /></h4>
-                <div class="aqg-history-change-list">
-                    <f:for each="{comparison.topChanges}" as="row">
-                        <div class="aqg-history-change aqg-history-change--{row.tone}">
-                            <strong>{row.label}</strong>
-                            <span>{row.statusLabel}</span>
-                            <f:if condition="{row.note}"><small>{row.note}</small></f:if>
-                        </div>
-                    </f:for>
+            </f:if>
+            <f:if condition="{comparison.hasTopChanges}">
+                <div class="aqg-history-compare__block">
+                    <h4><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remote.comparison.topChanges" default="Top changes" /></h4>
+                    <div class="aqg-history-change-list">
+                        <f:for each="{comparison.topChanges}" as="row">
+                            <div class="aqg-history-change aqg-history-change--{row.tone}">
+                                <strong>{row.label}</strong>
+                                <span>{row.statusLabel}</span>
+                                <f:if condition="{row.note}"><small>{row.note}</small></f:if>
+                            </div>
+                        </f:for>
+                    </div>
                 </div>
-            </div>
+            </f:if>
+            </f:else>
         </f:if>
     </section>
 </f:if>

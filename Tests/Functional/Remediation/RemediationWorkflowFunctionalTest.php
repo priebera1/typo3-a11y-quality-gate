@@ -18,6 +18,7 @@ use Priebera\A11yQualityGate\Remediation\ImageFindingVersionTokenService;
 use Priebera\A11yQualityGate\Remediation\ImageRemediationServiceInterface;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationAccessService;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationItemData;
+use Priebera\A11yQualityGate\Remediation\Workflow\RemediationException;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationStatus;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationTargetResolver;
 use Priebera\A11yQualityGate\Remediation\Workflow\RemediationWorkflowService;
@@ -99,6 +100,46 @@ final class RemediationWorkflowFunctionalTest extends AbstractFunctionalTestCase
         self::assertGreaterThan(0, (int)$pool->getConnectionForTable('sys_history')->fetchOne("SELECT COUNT(*) FROM sys_history WHERE tablename = 'sys_file_reference' AND recuid = 20"), 'The write is undoable in the record history.');
         $actions = array_column($this->get(RemediationItemRepository::class)->findEvents($uid), 'action');
         self::assertSame(['viewed', 'approved', 'saved', 'verified'], $actions);
+    }
+
+    /**
+     * AF-03 (owner QA 2026-11-14, About us / hotel_intercontinental_wien.jpeg): a 133-character text was saved and closed
+     * the "missing alt text" finding, yet the item said "Saved, not verified — AQG's check still reports this issue".
+     * The check ran the length/wording quality rule too and counted its remark as the missing text. It is verified now,
+     * with the quality remark as a note.
+     */
+    #[Test]
+    public function aSavedTextLongerThanTheQualityThresholdIsVerifiedWithAQualityNote(): void
+    {
+        $text = 'Grand hotel facade on a Vienna ring road at dusk, warm lights in many windows, flags above the entrance and a tram passing in front';
+        self::assertGreaterThan(120, mb_strlen($text));
+        $uid = $this->pendingItem($text);
+
+        $item = $this->workflow()->approve($uid, 0, false);
+
+        self::assertSame($text, (string)GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('sys_file_reference')->fetchOne('SELECT alternative FROM sys_file_reference WHERE uid = 20'));
+        self::assertSame(RemediationStatus::VERIFIED, $item['status'], 'The finding\'s own rule (missing alt text) no longer reports the reference.');
+        self::assertSame('quality_warning', (string)$item['status_reason']);
+    }
+
+    #[Test]
+    public function anImageUseOpenInAnotherEditorIsNotWrittenUntilItIsClosed(): void
+    {
+        // AQG 3.0.0 security review: the other editor's next save would write the old text back.
+        $uid = $this->pendingItem('Bar chart of water prices');
+        $locks = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('sys_lockedrecords');
+        $locks->insert('sys_lockedrecords', ['userid' => 77, 'username' => 'colleague', 'tstamp' => time(), 'record_table' => 'sys_file_reference', 'record_uid' => 20, 'record_pid' => 1]);
+
+        try {
+            $this->workflow()->approve($uid, 0, false);
+            self::fail('Refused while the image use is open.');
+        } catch (RemediationException $exception) {
+            self::assertSame([409, 'record_open'], [$exception->httpStatus, $exception->safeCode]);
+        }
+        self::assertSame(RemediationStatus::PENDING_REVIEW, $this->get(RemediationItemRepository::class)->findByUid($uid)['status'], 'Nothing was claimed.');
+
+        $locks->delete('sys_lockedrecords', ['record_uid' => 20]);
+        self::assertSame(RemediationStatus::VERIFIED, $this->workflow()->approve($uid, 0, false)['status']);
     }
 
     #[Test]

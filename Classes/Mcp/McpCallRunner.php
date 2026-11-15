@@ -19,9 +19,19 @@ use TYPO3\CMS\Core\Log\LogManager;
  * Used by the connector process itself and by its worker processes (McpConnectorWorkerPool, Fable F-02), which run
  * calls in parallel: each worker holds the same connector instance id and runs this same code, so nothing a worker
  * does is beyond what the single-process connector did.
+ *
+ * Attested execution (V4/V5, AQG 3.0.0): a call runs only with the AQG licence API's call attestation (McpAttestation),
+ * verified against the keys this installation pinned at pairing. The principal the tool runs as and the arguments it
+ * runs with come from the attestation — never from the Gateway's begin answer or relayed arguments — so a compromised
+ * Gateway can neither run a call for a consent it did not get from this installation nor alter a consented call.
+ * Missing, invalid, expired, replayed, foreign or mismatching attestations run nothing and are audited (V5). There is
+ * no unattested mode: a connection paired by an earlier build is refused until it is paired again.
  */
 final class McpCallRunner
 {
+    /** The longest call window this process accepts from the Gateway (the connector's supervisor assumes the same). */
+    private const MAX_CALL_WINDOW_MS = 10000;
+
     /**
      * Fable F-05: what the Gateway relays (MCP_MAX_RESULT_BYTES, 256 KiB, measured on its own JSON) less a margin for
      * the envelope. A larger answer is replaced by `result_too_large` here, so the agent is told to ask for a smaller
@@ -38,6 +48,9 @@ final class McpCallRunner
         private readonly McpAuditRepository $auditRepository,
         private readonly McpConsentLedger $consentLedger,
         private readonly LogManager $logManager,
+        private readonly ?McpDeferredWork $deferredWork = null,
+        private readonly ?McpAttestation $attestation = null,
+        private readonly ?McpConnectionStore $connectionStore = null,
     ) {
     }
 
@@ -47,6 +60,8 @@ final class McpCallRunner
      */
     public function run(array $call): string
     {
+        // Work left by an earlier call never runs as part of this one.
+        $this->deferredWork?->clear();
         $callId = (string)($call['id'] ?? '');
         $claimId = (string)($call['claimId'] ?? '');
         $tool = (string)($call['tool'] ?? '');
@@ -64,31 +79,52 @@ final class McpCallRunner
             return 'not_started';
         }
         $principal = $this->normalizePrincipal($begun['principal']);
+        // Recorded for the audit as the Gateway named it; replaced below by what the licence API attested.
         $audit += [
             'beUserUid' => $principal['beUserUid'],
             'beUserName' => $principal['beUserName'],
             'clientName' => $principal['clientName'],
             'tokenSuffix' => $principal['tokenSuffix'],
         ];
-        $deadline = microtime(true) + $begun['remainingMs'] / 1000;
+        // G-07: never later than the connector assumes (McpConnectorCommand::callDeadline() caps at 10 s), so deferred work
+        // bounded by this deadline + CALL_GRACE ends before the pool replaces the worker, whatever the Gateway sends.
+        $deadline = microtime(true) + min($begun['remainingMs'], self::MAX_CALL_WINDOW_MS) / 1000;
         $tokenEnds = strtotime($principal['expiresAt']);
 
         try {
+            // The Gateway names the call it began (3.0.0 Gateway with F-02); a call handed to this process under another
+            // tool name than the one the Gateway authorized is never run.
+            if (($begun['tool'] ?? '') !== '' && $begun['tool'] !== $tool) {
+                throw new McpCallRefused('call_mismatch', 'The call does not match what the Gateway authorized.', 'refused');
+            }
+            // V4/V5: nothing runs without a valid attestation; afterwards the attested principal and arguments are used.
+            if ($this->attestation === null || $this->connectionStore === null) {
+                throw new McpCallRefused('attestation_unavailable', 'This connector cannot verify call attestations; nothing was run.', 'refused');
+            }
+            $verified = $this->attestation->verifyCall($begun['attestation'] ?? null, $call, $begun['principal'], $this->connectionStore->attestationTrust());
+            $principal = $verified['principal'];
+            $arguments = $verified['arguments'];
+            $audit['beUserUid'] = $principal['beUserUid'];
+            $tokenEnds = strtotime($principal['expiresAt']);
             if ($principal['tokenId'] === '' || $principal['beUserUid'] <= 0 || $tokenEnds === false || $tokenEnds <= time()) {
                 throw new McpCallRefused('token_expired', 'The agent token has expired; connect again.');
             }
             if ($begun['remainingMs'] <= 0) {
                 throw new McpCallRefused('call_expired', 'The agent stopped waiting for this call.');
             }
-            // The Gateway names the call it began (3.0.0 Gateway with F-02); a call handed to this process under another
-            // tool name than the one the Gateway authorized is never run.
-            if (($begun['tool'] ?? '') !== '' && $begun['tool'] !== $tool) {
-                throw new McpCallRefused('call_mismatch', 'The call does not match what the Gateway authorized.', 'refused');
-            }
-            if (!$this->consentLedger->isRecorded($principal['consentRefHash'], $principal['beUserUid'], $principal['scopes'], $principal['siteIdentifiers'])) {
-                // Consent decided elsewhere (a copy of this installation) or lost with a restore: never run it here.
-                throw new McpCallRefused('consent_unknown', 'This installation has no record of the consent behind this agent token; connect the agent again.', 'refused');
-            }
+            // The consent ledger (clone safety N2) was checked by the attestation: this installation recorded and signed
+            // exactly this consent for this user, client and grant, bound to this token, not revoked here.
+            // Finding 2: work this call leaves runs only on a core continuation of exactly this verified call
+            // (McpDeferredAuthorization), so the job keeps the attestation and its claims, never the Gateway's values.
+            $this->deferredWork?->begin([
+                'callId' => $callId,
+                'attestation' => (string)($begun['attestation'] ?? ''),
+                'tool' => $tool,
+                'siteIdentifier' => (string)($arguments['siteIdentifier'] ?? ''),
+                'deadline' => $deadline,
+                'claims' => $verified['claims'] ?? [],
+                'principal' => ['beUserName' => $principal['beUserName'], 'clientName' => $principal['clientName'], 'tokenSuffix' => $principal['tokenSuffix']],
+            ]);
             $result = $this->toolExecutor->execute($tool, $arguments, $principal);
             $payload = ['ok' => true, 'result' => $result];
             $started = $tool === 'aqg_start_scan' && ($result['status'] ?? '') === 'submitted';
@@ -119,16 +155,46 @@ final class McpCallRunner
 
         if (microtime(true) > $deadline) {
             // The agent stopped waiting; the Gateway would discard the answer. Never replayed.
+            $this->deferredWork?->clear();
             return 'answered_late';
         }
         try {
             $this->gatewayClient->submitResult($callId, $claimId, $payload);
         } catch (ApiRequestFailedException) {
             // 404: the agent request already gave up or access ended meanwhile. Never replayed.
+            // The Gateway refused the answer (agent gone, token revoked or access ended): nothing more runs for it.
+            $this->deferredWork?->clear();
             return 'not_delivered';
         }
+        $this->runDeferred($tool, ($payload['ok'] ?? false) === true, $deadline);
 
         return 'executed';
+    }
+
+    /**
+     * The work the executed call left (AI suggestions of items it created), after its answer: an answer the agent no
+     * longer receives does not undo items that exist, and their owner sees them in AI Fixes either way. A refused or
+     * failed call leaves nothing to run.
+     */
+    private function runDeferred(string $tool, bool $executed, float $deadline): void
+    {
+        if ($this->deferredWork === null) {
+            return;
+        }
+        // Too close to the deadline: the worker could overrun its grace (McpDeferredWork::MAX_JOBS). The items stay
+        // Preparing; the agent's next call continues them.
+        if (!$executed || microtime(true) > $deadline - McpDeferredWork::START_BEFORE_DEADLINE_SECONDS) {
+            $this->deferredWork->clear();
+            return;
+        }
+        $this->deferredWork->run(function (\Throwable $exception) use ($tool): void {
+            $this->logManager->getLogger(McpConnectorCommand::class)->error('AQG MCP deferred work failed', [
+                'tool' => $tool,
+                'exception' => $exception::class,
+                'code' => $exception->getCode(),
+                'message' => McpConnectorCommand::loggableMessage($exception->getMessage()),
+            ]);
+        });
     }
 
     /**

@@ -68,7 +68,9 @@ final class McpSettingsViewBuilder
                 $gateway['quotas'] = is_array($status['quotas'] ?? null) ? $status['quotas'] : [];
                 $gateway['lastHeartbeat'] = self::date((string)($gateway['lastHeartbeatAt'] ?? ''));
             } catch (ApiRequestFailedException $exception) {
-                $gatewayError = in_array($exception->httpStatus, [401, 403], true) ? 'revoked' : 'unreachable';
+                // MCP-UI-01: only the Gateway's own refusal of this credential is "no longer accepted" (its recovery
+                // releases exactly that case); a proxy's or WAF's 403 or another 401 is an unreachable Gateway.
+                $gatewayError = $exception->httpStatus === 401 && in_array($exception->apiErrorCode, ['connector_unauthorized', ''], true) ? 'revoked' : 'unreachable';
             }
         }
         $neverHeard = $gateway !== null && ($gateway['lastHeartbeatAt'] ?? null) === null;
@@ -139,6 +141,7 @@ final class McpSettingsViewBuilder
             'returnParameters' => $returnParameters,
             'urls' => [
                 'connect' => $this->url('web_a11y.settingsMcpConnect'),
+                'reconnect' => $this->url('web_a11y.settingsMcpReconnect'),
                 'cancelPairing' => $this->url('web_a11y.settingsMcpCancelPairing'),
                 'pairingStatus' => (string)$this->uriBuilder->buildUriFromRoute('ajax_a11y_mcp_pairing_status'),
                 'connectionState' => (string)$this->uriBuilder->buildUriFromRoute('ajax_a11y_mcp_connection_state'),

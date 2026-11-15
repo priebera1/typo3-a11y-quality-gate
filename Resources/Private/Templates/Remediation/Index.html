@@ -14,14 +14,35 @@
             <div class="aqg-pagehead__main">
                 <h1 class="aqg-pagehead__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.title" default="AI fixes" /></h1>
                 <ul class="aqg-pagehead__meta aqg-remediation__meta">
-                    <li class="aqg-remediation__meta-site">{scopeTitle}</li>
+                    <li class="aqg-remediation__meta-site"><span class="aqg-remediation__meta-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.meta.site" default="Site:" /></span> {scopeTitle}</li>
                     <f:if condition="{aiLine}"><li class="aqg-remediation__meta-ai" data-aqg-rq-ailine="true">{aiLine}</li></f:if>
                     <f:comment><!-- Budget line (Atlas 08·A): administrators only, from the site's AI budget status. --></f:comment>
                     <f:if condition="{budgetLine}"><li class="aqg-remediation__meta-budget" data-aqg-rq-budget="true">{budgetLine}</li></f:if>
                 </ul>
             </div>
         </header>
-        <p class="aqg-remediation__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.intro" default="Review AI-prepared fixes before anything changes. Approved image texts are saved for you; text and link changes open in their editor, where you save them. AQG then checks whether the issue is gone." /></p>
+        <p class="aqg-remediation__intro"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.intro" default="Review AI-prepared fixes before anything changes. Approved image texts and reviewed changes in rich text and Plain HTML are saved for you with Apply and verify, which changes only that element. A change AQG cannot prove opens in its editor, where you save it. AQG then checks whether the issue is gone." /></p>
+
+        <f:comment><!-- AF-02: a link to one item that cannot open here says why (never an unrelated empty state). --></f:comment>
+        <f:if condition="{deepLink.state} == 'unavailable'">
+            <div class="aqg-remediation__notice aqg-remediation__notice--deeplink" role="status" data-aqg-rq-deeplink="unavailable">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.unavailable.title" default="This AI fix cannot be opened" /></strong>
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.unavailable.text" default="It no longer exists, or your account has no access to its page, record or workspace. The list below shows the AI fixes you can open." />
+            </div>
+        </f:if>
+        <f:comment><!-- The item's site lacks the licence while another site in scope has it: the queue opens, the reason is said here. --></f:comment>
+        <f:if condition="{deepLink.state} == 'licence' && {hasLicence}">
+            <div class="aqg-remediation__notice aqg-remediation__notice--deeplink" role="status" data-aqg-rq-deeplink="licence-other-site">
+                <strong><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.title" default="This AI fix is kept, but the licence does not include AI fixes right now" /></strong>
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.text" default="The suggestion for the page “%s” has not been deleted. It opens here again as soon as the site has an active PRO or Agency licence. Until then nothing is applied." arguments="{0: deepLink.pageTitle}" />
+                <f:if condition="{licenceUrl}"><a href="{licenceUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.open" default="Check the licence in Settings" /></a></f:if>
+            </div>
+        </f:if>
+        <f:if condition="{deepLink.state} == 'other_page'">
+            <div class="aqg-remediation__notice aqg-remediation__notice--deeplink" role="status" data-aqg-rq-deeplink="other_page">
+                <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.otherPage" default="This AI fix belongs to the page “%s”, not to the page selected in the link. It is opened anyway." arguments="{0: deepLink.pageTitle}" />
+            </div>
+        </f:if>
         <details class="aqg-remediation__howto">
             <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.howto.title" default="How AI help works" /></summary>
             <ul>
@@ -130,14 +151,18 @@
                             </select>
                         </div>
                     </form>
-                    <f:if condition="{pageFilter}">
-                        <ul class="aqg-remediation__chips" role="list">
+                    <f:comment><!-- Active filters, the same row as My issues: chips for narrowing filters (the page of a deep link, and the
+                         filters the script adds), then one "Clear filters". Hidden while nothing is filtered. --></f:comment>
+                    <div class="aqg-filterchips" data-aqg-rq-chips="true">
+                        <ul class="aqg-remediation__chips" role="list" data-aqg-rq-chiplist="true" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:assignment.chips.label', default: 'Active filters:')}">
+                            <f:if condition="{pageFilter}">
                             <li class="aqg-remediation__chip" data-aqg-rq-pagechip="true">
                                 <span><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.pageChip" default="Page: %s" arguments="{0: pageFilter.title}" /> <span class="aqg-remediation__uid">[{pageFilter.uid}]</span></span>
                                 <button type="button" class="btn btn-default btn-sm aqg-remediation__chip-remove" data-aqg-rq-pagechip-remove="true" aria-label="{f:translate(key: 'LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.filter.removePage', default: 'Remove page filter: %s', arguments: {0: pageFilter.title})}"><span aria-hidden="true">×</span></button>
                             </li>
+                            </f:if>
                         </ul>
-                    </f:if>
+                    </div>
 
                     <div class="aqg-remediation__mine-note" data-aqg-rq-mine-note="true" hidden="hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.js.mine.text" default="Items you requested, plus items you may apply now." /></div>
 
@@ -221,8 +246,20 @@
                             <p class="aqg-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.noSite.text" default="Your access covers single pages, not whole sites. Select one of your pages in the page tree to see its AI fixes." /></p>
                         </f:then>
                         <f:else>
+                            <f:if condition="{deepLink.state} == 'licence'">
+                                <f:then>
+                                    <h2 id="aqg-rq-free-h" class="aqg-remediation__state-title aqg-empty__title" data-aqg-rq-deeplink="licence"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.title" default="This AI fix is kept, but the licence does not include AI fixes right now" /></h2>
+                                    <p class="aqg-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.text" default="The suggestion for the page “%s” has not been deleted. It opens here again as soon as the site has an active PRO or Agency licence. Until then nothing is applied." arguments="{0: deepLink.pageTitle}" /></p>
+                                    <f:if condition="{licenceUrl}">
+                                        <f:then><p class="aqg-empty__actions"><a class="btn btn-primary btn-sm" href="{licenceUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.open" default="Check the licence in Settings" /></a></p></f:then>
+                                        <f:else><p class="aqg-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.deepLink.licence.editor" default="Ask an administrator to check the AQG licence of this site." /></p></f:else>
+                                    </f:if>
+                                </f:then>
+                                <f:else>
                             <h2 id="aqg-rq-free-h" class="aqg-remediation__state-title aqg-empty__title"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.free.title" default="AI fixes are part of AQG PRO and Agency" /></h2>
                             <p class="aqg-empty__body"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.free.text" default="Found issues and how-to guidance stay in the Overview; you fix them directly in the record." /></p>
+                                </f:else>
+                            </f:if>
                         </f:else>
                     </f:if>
                     <p class="aqg-empty__actions"><a class="btn btn-default btn-sm" href="{overviewUrl}"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:remediation.goToOverview" default="Go to Overview" /></a></p>

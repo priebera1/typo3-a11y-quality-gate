@@ -142,6 +142,10 @@ final class RemoteResultProvenanceService
             }
         }
 
+        // Large-installation fix (HIGH-2): slugs repeat across the sites of a multi-site installation (/kontakt,
+        // /produkte), so a slug lookup returns one candidate per site. Whether a candidate belongs to this site is
+        // answered from one walk of this site's page tree, not from a rootline (SiteFinder) per candidate.
+        $sitePages = $lookups !== [] ? $this->sitePageUids($site) : [];
         foreach ($lookups as $languageUid => $slugs) {
             foreach (array_chunk(array_keys($slugs), self::CHUNK) as $chunk) {
                 $variants = [];
@@ -150,7 +154,7 @@ final class RemoteResultProvenanceService
                     $variants[] = $slug . '/';
                 }
                 foreach ($this->pagesBySlug($variants, (int)$languageUid) as $slug => $candidates) {
-                    $inSite = array_values(array_filter($candidates, fn (array $candidate): bool => $this->isPageInSite($candidate['pageUid'], $site)));
+                    $inSite = array_values(array_filter($candidates, static fn (array $candidate): bool => isset($sitePages[$candidate['pageUid']])));
                     // Exactly one page of this site, or nothing: an ambiguous slug has no owner.
                     if (count(array_unique(array_column($inSite, 'pageUid'))) !== 1) {
                         continue;
@@ -206,6 +210,56 @@ final class RemoteResultProvenanceService
             if ($pageUid > 0) {
                 $pages[$slug][] = ['pageUid' => $pageUid, 'translationUid' => $languageUid > 0 ? (int)$row['uid'] : 0];
             }
+        }
+
+        return $pages;
+    }
+
+    /**
+     * The live default-language pages of a site, as SiteFinder::getSiteByPageId() assigns them: the site's root page and
+     * every page below it, except the subtree of another site's root page (a nested site owns its pages). Not deleted,
+     * live workspace; hidden pages included (getSiteByPageId() ignores visibility). One query per tree level and chunk.
+     *
+     * @return array<int, true>
+     */
+    private function sitePageUids(Site $site): array
+    {
+        $rootPageUid = (int)$site->getRootPageId();
+        if ($rootPageUid <= 0) {
+            return [];
+        }
+        $otherRoots = [];
+        foreach ($this->siteResolutionService->getAllSites() as $other) {
+            if ((int)$other->getRootPageId() !== $rootPageUid) {
+                $otherRoots[(int)$other->getRootPageId()] = true;
+            }
+        }
+        $pages = [$rootPageUid => true];
+        $frontier = [$rootPageUid];
+        for ($depth = 0; $depth < 100 && $frontier !== []; $depth++) {
+            $next = [];
+            foreach (array_chunk($frontier, self::CHUNK) as $chunk) {
+                $queryBuilder = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
+                $queryBuilder->getRestrictions()->removeAll();
+                $queryBuilder->select('uid')
+                    ->from(Tables::PAGES)
+                    ->where(
+                        $queryBuilder->expr()->in('pid', $queryBuilder->createNamedParameter($chunk, Connection::PARAM_INT_ARRAY)),
+                        $queryBuilder->expr()->eq('sys_language_uid', 0),
+                        $queryBuilder->expr()->eq('deleted', 0),
+                    );
+                if (($GLOBALS['TCA'][Tables::PAGES]['ctrl']['versioningWS'] ?? false)) {
+                    $queryBuilder->andWhere($queryBuilder->expr()->eq('t3ver_wsid', 0));
+                }
+                foreach ($queryBuilder->executeQuery()->fetchFirstColumn() as $uid) {
+                    $uid = (int)$uid;
+                    if ($uid > 0 && !isset($pages[$uid]) && !isset($otherRoots[$uid])) {
+                        $pages[$uid] = true;
+                        $next[] = $uid;
+                    }
+                }
+            }
+            $frontier = $next;
         }
 
         return $pages;

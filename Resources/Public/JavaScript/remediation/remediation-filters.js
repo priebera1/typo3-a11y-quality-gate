@@ -276,3 +276,73 @@ export function logRow(entry, l, when = (timestamp) => formatDateTime(timestamp)
         el('td', {'data-label': l('log.col.outcome', 'Outcome')}, entry.outcome ? outcomeChip(entry.outcome, entry.outcomeLabel) : null),
     );
 }
+
+/**
+ * Filter UX consistency (owner QA 2026-11-14, shared with My issues): an active-filter chip is shown only for a
+ * control that narrows the list — a search text, or a select away from its default to a value that is not "All".
+ * Widening choices ("All", "All sites") never become chips; "Clear filters" still resets them.
+ */
+const ALL_VALUES = ['', '-1', '__all', 'all', 'any'];
+
+function defaultOption(select) {
+    return [...select.options].find((option) => option.defaultSelected) ?? select.options[0] ?? null;
+}
+
+function controlLabel(form, control) {
+    return (control.id ? form.querySelector(`label[for="${control.id}"]`)?.textContent : '')?.replace(/\s+/g, ' ').trim() || control.name;
+}
+
+export function activeFilterChips(form) {
+    if (!form) {
+        return [];
+    }
+    const chips = [];
+    for (const control of form.elements) {
+        if (!control.name || control.disabled) {
+            continue;
+        }
+        if (control.tagName === 'SELECT') {
+            const selected = control.selectedOptions?.[0] ?? null;
+            if (!selected || selected === defaultOption(control) || ALL_VALUES.includes(selected.value)) {
+                continue;
+            }
+            chips.push({name: control.name, label: controlLabel(form, control), value: selected.textContent.replace(/\s+/g, ' ').trim()});
+        } else if (control.type === 'search' || control.type === 'text') {
+            const value = control.value.replace(/\s+/g, ' ').trim();
+            if (value !== '') {
+                chips.push({name: control.name, label: controlLabel(form, control), value: `“${value}”`});
+            }
+        }
+    }
+    return chips;
+}
+
+/** True when any control differs from its default (also a widening "All"): then "Clear filters" is offered. */
+export function filtersChanged(form) {
+    if (!form) {
+        return false;
+    }
+    return [...form.elements].some((control) => {
+        if (!control.name || control.disabled) {
+            return false;
+        }
+        if (control.tagName === 'SELECT') {
+            return control.selectedOptions?.[0] !== defaultOption(control);
+        }
+        return (control.type === 'search' || control.type === 'text') && control.value.trim() !== '';
+    });
+}
+
+/** The × of one chip: that control back to its default. */
+export function resetFilterControl(form, name) {
+    const control = form?.elements.namedItem(name);
+    if (!control) {
+        return;
+    }
+    if (control.tagName === 'SELECT') {
+        const option = defaultOption(control);
+        control.value = option ? option.value : '';
+    } else {
+        control.value = '';
+    }
+}

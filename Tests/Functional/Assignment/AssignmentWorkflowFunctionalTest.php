@@ -73,6 +73,7 @@ final class AssignmentWorkflowFunctionalTest extends AbstractFunctionalTestCase
         $this->findingNews = $this->insertIssue(['site_identifier' => 'northwind', 'page_uid' => 4, 'rule_id' => 'rte.img_alt_missing', 'severity' => 1, 'source_uid' => 11]);
         $this->findingCareers = $this->insertIssue(['site_identifier' => 'careers', 'page_uid' => 30, 'rule_id' => 'rte.form_control_missing_label', 'severity' => 1, 'source_uid' => 15]);
         $this->insertIssue(['site_identifier' => 'northwind', 'page_uid' => 3, 'rule_id' => 'rte.non_descriptive_link', 'severity' => 2, 'source_uid' => 5]);
+        $this->createContentRecordsForFindings();
     }
 
     #[Test]
@@ -190,6 +191,7 @@ final class AssignmentWorkflowFunctionalTest extends AbstractFunctionalTestCase
         self::assertSame(['Cargo Bikes'], array_column($anna->listTasks(AssignmentService::FILTER_ME)['tasks'], 'pageTitle'));
         self::assertSame(['News'], array_column($anna->listTasks(AssignmentService::FILTER_ME, AssignmentService::STATE_DONE)['tasks'], 'pageTitle'));
         $this->insertIssue(['site_identifier' => 'northwind', 'page_uid' => 4, 'rule_id' => 'rte.img_alt_missing', 'severity' => 1, 'source_uid' => 12]);
+        $this->createContentRecordsForFindings();
         self::assertContains('News', array_column($this->get(AssignmentService::class)->listTasks(AssignmentService::FILTER_ME)['tasks'], 'pageTitle'));
 
         // Ben sees his German task only — never Anna's English work, never filters beyond his own.
@@ -214,5 +216,22 @@ final class AssignmentWorkflowFunctionalTest extends AbstractFunctionalTestCase
 
         $this->setUpBackendUser(2);
         self::assertSame([], $this->get(AssignmentService::class)->listTasks(AssignmentService::FILTER_ME)['tasks']);
+    }
+
+    /**
+     * G-09: My issues only counts findings of records the viewer may read, so every tt_content source a fixture finding
+     * names exists (on the finding's page, in its language).
+     */
+    private function createContentRecordsForFindings(): void
+    {
+        $pool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $rows = $pool->getConnectionForTable('tx_a11y_issue')->select(['page_uid', 'source_uid', 'source_lang_uid'], 'tx_a11y_issue', ['source_table' => 'tt_content'])->fetchAllAssociative();
+        $content = $pool->getConnectionForTable('tt_content');
+        foreach ($rows as $row) {
+            if ($content->count('uid', 'tt_content', ['uid' => (int)$row['source_uid']]) === 0) {
+                $content->insert('tt_content', ['uid' => (int)$row['source_uid'], 'pid' => (int)$row['page_uid'], 'CType' => 'text',
+                    'sys_language_uid' => (int)$row['source_lang_uid'], 'header' => 'Fixture ' . (int)$row['source_uid']]);
+            }
+        }
     }
 }

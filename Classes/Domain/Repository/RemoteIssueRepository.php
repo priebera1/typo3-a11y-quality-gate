@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Domain\Repository;
 
 use Priebera\A11yQualityGate\Database\Tables;
+use Priebera\A11yQualityGate\Utility\ScanUrlUtility;
 use TYPO3\CMS\Core\Database\Connection;
 
 final class RemoteIssueRepository extends AbstractRepository
@@ -283,6 +284,48 @@ final class RemoteIssueRepository extends AbstractRepository
         }
 
         return $fingerprints;
+    }
+
+    /**
+     * The crawler fingerprints of a scan's stored issues per page (ScanUrlUtility::comparable() of the page URL), with the
+     * same rules as findFingerprintsForScan(): ignored issues included, null when an issue has no fingerprint. An issue
+     * without a stored page is keyed ''; a page-restricted comparison never counts it (D-1).
+     *
+     * @return array<string, array<string, true>>|null page key => fingerprint => true
+     */
+    public function findFingerprintsByPageForScan(int $remoteScanUid): ?array
+    {
+        if ($remoteScanUid <= 0) {
+            return null;
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE);
+        $rows = $queryBuilder
+            ->select('ri.fingerprint')
+            ->addSelectLiteral('rsp.url AS page_url')
+            ->from(Tables::REMOTE_ISSUE, 'ri')
+            ->leftJoin(
+                'ri',
+                Tables::REMOTE_SCAN_PAGE,
+                'rsp',
+                $queryBuilder->expr()->eq('rsp.uid', 'ri.remote_scan_page')
+            )
+            ->where(
+                $queryBuilder->expr()->eq('ri.remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $byPage = [];
+        foreach ($rows as $row) {
+            $fingerprint = trim((string)($row['fingerprint'] ?? ''));
+            if ($fingerprint === '') {
+                return null;
+            }
+            $byPage[ScanUrlUtility::comparable((string)($row['page_url'] ?? ''))][$fingerprint] = true;
+        }
+
+        return $byPage;
     }
 
     /**

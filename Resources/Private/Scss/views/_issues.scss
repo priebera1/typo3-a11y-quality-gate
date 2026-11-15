@@ -253,3 +253,41 @@
     font-size: .8125rem;
     font-variant-numeric: tabular-nums;
 }
+
+/* MI-01..MI-04 + filter UX consistency (owner QA 2026-11-14): the filter bar, chips and result count are AI fixes'
+   own (.aqg-remediation__filters, .aqg-filterchips in remediation.scss); only My issues' column count lives here. */
+.aqg-issues__filterview {
+    container-type: inline-size;
+}
+
+.aqg-remediation__filters.aqg-remediation__filters--issues {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+}
+
+@container (min-width: 1080px) {
+    .aqg-remediation__filters.aqg-remediation__filters--issues {
+        grid-template-columns: minmax(14rem, 2.2fr) repeat(4, minmax(7rem, 1fr));
+    }
+}
+
+@container (max-width: 660px) {
+    .aqg-remediation__filters.aqg-remediation__filters--issues {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.aqg-issues__results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    &[aria-busy="true"] {
+        opacity: .6;
+        transition: opacity .15s ease-in;
+    }
+}
+
+.aqg-issues__error {
+    margin: 0;
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Controller;
 
+use Priebera\A11yQualityGate\Assignment\IssuesListState;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Enum\Severity;
@@ -65,6 +66,8 @@ final class PageDetailController extends AbstractBackendModuleController
     private const MAX_VISIBLE_PAGINATION_ITEMS = 5;
 
     private int $activeLanguageUidForUrls = -1;
+    /** MI-06: the sanitised My issues state this view was opened from ('' = not from My issues). */
+    private string $issuesReturnValue = '';
 
     public function __construct(
         ModuleTemplateFactory $moduleTemplateFactory,
@@ -101,6 +104,7 @@ final class PageDetailController extends AbstractBackendModuleController
         private readonly ?RemoteScanAccessSettingsService $remoteScanAccessSettingsService = null,
         private readonly ?\Priebera\A11yQualityGate\Ai\Usage\AiActionCostEstimator $aiCostEstimator = null,
         private readonly ?\Priebera\A11yQualityGate\Assignment\AssignmentService $assignmentService = null,
+        private readonly ?\Priebera\A11yQualityGate\Service\FindingIgnoreAccessService $findingIgnoreAccess = null,
     ) {
         parent::__construct(
             $moduleTemplateFactory,
@@ -215,7 +219,13 @@ final class PageDetailController extends AbstractBackendModuleController
             $this->translateWithFallback('pageDetail.rendered.notRechecked', 'Not re-checked by the last scan (%s): it did not run the rendered check. Scan this page to check it again.'),
             BackendTimeUtility::formatDateTime((int)($coveringScan['finished_at'] ?? 0), 'd.m.Y · H:i')
         ) : '';
+        // Large-installation fix (MEDIUM-2): record edit access once per record of this response (was once per finding).
+        $recordEditable = [];
+        $canEditRecord = function (string $table, int $uid) use (&$recordEditable): bool {
+            return $recordEditable[$table . ':' . $uid] ??= $this->backendRecordAccessService->canEditRecord($table, $uid);
+        };
         $allIssues = array_map(function (array $row) use (
+            $canEditRecord,
             $coveringScan,
             $notRecheckedLabel,
             $backendLanguageCode,
@@ -285,7 +295,7 @@ final class PageDetailController extends AbstractBackendModuleController
             if (
                 $sourceTable !== ''
                 && $sourceUid > 0
-                && $this->backendRecordAccessService->canEditRecord($sourceTable, $sourceUid)
+                && $canEditRecord($sourceTable, $sourceUid)
             ) {
                 $row['hasEditAccess'] = true;
                 $row['aiLinkTextSuggestionAvailable'] = $aiLinkTextSuggestionAvailable
@@ -307,7 +317,7 @@ final class PageDetailController extends AbstractBackendModuleController
                 && $aiLinkTextSuggestionAvailable
                 && $ruleId === 'rendered.empty_link'
                 && $pageUid > 0
-                && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+                && $canEditRecord(Tables::PAGES, $pageUid)) {
                 $row['aiLinkTextSuggestionAvailable'] = true;
             }
 
@@ -315,7 +325,7 @@ final class PageDetailController extends AbstractBackendModuleController
                 && $aiIframeTitleSuggestionAvailable
                 && $ruleId === 'rendered.iframe_missing_title'
                 && $pageUid > 0
-                && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid)) {
+                && $canEditRecord(Tables::PAGES, $pageUid)) {
                 $row['aiIframeTitleSuggestionAvailable'] = true;
             }
 
@@ -355,16 +365,20 @@ final class PageDetailController extends AbstractBackendModuleController
         // reliable price exists; the button then keeps its plain label.
         $aiCost = $aiAvailable ? $this->aiCostLabels($siteIdentifier, $backendLanguageCode) : [];
         $explainTextAllowed = $aiLinkTextSuggestionAvailable;
+        // Large-installation fix (MEDIUM-2): one field check per record field of this request, not per finding — a page
+        // with hundreds of findings in a few dozen records compiled the same FormEngine data hundreds of times. The
+        // decision is unchanged; it is only not repeated for the same table, record and field within this response.
+        $fieldEditable = [];
         $allIssues = array_map(
-            function (array $row) use ($remediation): array {
+            function (array $row) use ($remediation, &$fieldEditable): array {
                 // "Edit record" needs the record; an AI action changes or explains one field, which can be read-only
                 // (TCA, TSconfig, inline parent): the same field boundary the AI routes enforce decides what is offered.
                 if (($remediation['active'] ?? false) && ($row['hasEditAccess'] ?? false) && (string)($row['source_type'] ?? '') === 'rte') {
-                    $row['aiFieldEditable'] = $this->backendRecordAccessService->canEditRecordFields(
-                        (string)($row['source_table'] ?? ''),
-                        (int)($row['source_uid'] ?? 0),
-                        [(string)($row['source_field'] ?? '')],
-                    );
+                    $table = (string)($row['source_table'] ?? '');
+                    $uid = (int)($row['source_uid'] ?? 0);
+                    $field = (string)($row['source_field'] ?? '');
+                    $row['aiFieldEditable'] = $fieldEditable[$table . ':' . $uid . ':' . $field]
+                        ??= $this->backendRecordAccessService->canEditRecordFields($table, $uid, [$field]);
                 }
 
                 return $row;
@@ -462,6 +476,15 @@ final class PageDetailController extends AbstractBackendModuleController
         }
 
         $backUrl = $this->buildOverviewUrl($pageUid, $siteIdentifier, $request);
+        // MI-06: a task opened from My issues returns there with its filters, search and page. The list state is
+        // re-sanitised and the URL rebuilt through the route builder; nothing from the request is used as a URL.
+        $backToIssues = false;
+        $issuesReturn = $request->getQueryParams()[IssuesListState::RETURN_PARAMETER] ?? null;
+        if (is_string($issuesReturn) && ($issuesState = IssuesListState::fromReturnValue($issuesReturn)) !== null) {
+            $backUrl = $this->buildRouteUrl('web_a11y.issues', ['id' => $pageUid] + $issuesState->toParameters());
+            $backToIssues = true;
+            $this->issuesReturnValue = $issuesState->toReturnValue() ?: 'list';
+        }
 
         $ignoreUrl = $this->buildRouteUrl('web_a11y.ignore');
         $batchIgnoreUrl = $this->buildRouteUrl('web_a11y.batchIgnore');
@@ -548,7 +571,8 @@ final class PageDetailController extends AbstractBackendModuleController
             $moduleTemplate,
             $backUrl,
             $returnParameters,
-            $canShowSettings
+            $canShowSettings,
+            $backToIssues,
         );
 
         $scanStatus = $this->scanStatusService->getStatus();
@@ -609,6 +633,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'resetFilterUrl' => $resetFilterUrl,
             'filterSummary' => $filterSummary,
             'backUrl' => $backUrl,
+            'backToIssues' => $backToIssues,
             'ignoreUrl' => $ignoreUrl,
             'batchIgnoreUrl' => $batchIgnoreUrl,
             'ignoreRuleOnPageUrl' => $ignoreRuleOnPageUrl,
@@ -684,6 +709,10 @@ final class PageDetailController extends AbstractBackendModuleController
                 'explain' => $this->buildRouteUrl('ajax_a11y_remediation_explain'),
                 'generate' => $this->buildRouteUrl('ajax_a11y_remediation_generate'),
                 'item' => $this->buildRouteUrl('ajax_a11y_remediation_item'),
+                // The inline review of a prepared suggestion: the queue's own view → edit → approve steps.
+                'view' => $this->buildRouteUrl('ajax_a11y_remediation_view'),
+                'edit' => $this->buildRouteUrl('ajax_a11y_remediation_edit'),
+                'approve' => $this->buildRouteUrl('ajax_a11y_remediation_approve'),
                 'owner' => $this->buildRouteUrl('ajax_a11y_remediation_owner'),
                 'plan' => $this->buildRouteUrl('ajax_a11y_remediation_plan'),
             ],
@@ -759,16 +788,24 @@ final class PageDetailController extends AbstractBackendModuleController
             'pd.explainSentField.elementSummary', 'pd.explainSentField.surroundingText', 'pd.explainSentField.pageTitle', 'pd.explainModel',
             'pd.result.explainTitle', 'pd.result.explains', 'pd.result.problem', 'pd.result.howToFix', 'pd.result.nothingChanged',
             'pd.result.explainFailedTitle', 'pd.result.preparingText', 'pd.result.readyTitle', 'pd.result.readyText', 'pd.result.reviewAction',
-            'pd.result.noneTitle', 'pd.result.noneText', 'pd.result.failedTitle', 'pd.result.failedText', 'pd.result.unavailableTitle',
+            'pd.result.noneTitle', 'pd.result.noneText', 'pd.result.aiReason', 'pd.result.failedTitle', 'pd.result.failedText', 'pd.result.unavailableTitle',
             'pd.result.unavailableText', 'pd.result.queuedTitle', 'pd.result.queuedText', 'pd.result.openItem', 'pd.result.editRecord',
             'pd.result.retry', 'pd.result.waiting', 'pd.usage.notSent', 'pd.usage.reported', 'pd.usage.bound', 'pd.usage.none',
             'pd.usage.unknown', 'pd.usage.mayBill', 'pd.usage.unconfirmed',
+            'pd.review.group', 'pd.review.before', 'pd.review.empty', 'pd.review.after', 'pd.review.afterEditable', 'pd.review.apply',
+            'pd.review.applyImage', 'pd.review.applyNote', 'pd.review.applyNoteImage', 'pd.review.applying', 'pd.review.failedTitle',
+            'pd.review.nothingWritten', 'pd.review.verifiedTitle', 'pd.review.verifiedText', 'pd.review.savedTitle', 'pd.review.savedText',
+            'pd.review.openEditor', 'pd.review.editorTitle', 'pd.review.editorText', 'pd.review.conflictTitle', 'pd.review.conflictText',
+            'pd.review.applyInEditor', 'pd.review.target', 'pd.review.reason', 'pd.review.editorChosenText',
         ] as $key) {
             $labels[$key] = $this->translate('remediation.' . $key);
         }
         foreach (['session_expired', 'permission_denied', 'rate_limited', 'generic', 'no_licence', 'invalid_state', 'in_progress', 'not_found',
             'stale', 'finding_closed', 'unsupported_rule', 'provider_unavailable', 'provider_timeout', 'provider_rate_limited', 'provider_credit', 'refused',
-            'paused', 'budget_reached', 'not_configured', 'no_permission', 'link_text_disabled', 'invalid_response'] as $code) {
+            'paused', 'budget_reached', 'not_configured', 'no_permission', 'link_text_disabled', 'invalid_response',
+            // The inline review's edit / view / approve answers.
+            'invalid_value', 'not_reviewed', 'stale_view', 'suggestion_outdated', 'changed_concurrently', 'already_done', 'conflict', 'editor_only',
+            'workspace_mismatch', 'no_edit_access', 'apply_in_editor', 'record_open'] as $code) {
             $labels['error.' . $code] = $this->translate('remediation.js.error.' . $code);
         }
         foreach (['editor', 'developer', 'mixed', 'unassigned'] as $owner) {
@@ -897,9 +934,24 @@ final class PageDetailController extends AbstractBackendModuleController
                 && (!$sendsImage || $remediation['images'])
                 // Link text and iframe titles need the site's AI link/iframe switch (prepareRefusal checks it too).
                 && (!in_array($kind, [\Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_LINK_TEXT, \Priebera\A11yQualityGate\Ai\Editor\EditorAiRuleCatalog::KIND_IFRAME_TITLE], true) || $textSuggestionsAllowed);
+            // AQG 3.0.0: a text finding in a record AI Fixes can apply (rich text, plain HTML) has one AI entry, "Fix
+            // with AI": suggestion → review → Apply and verify through the queue. The older copy-only link text card is
+            // not offered for it (also not while an item exists: that would be a second, paid suggestion for the same
+            // occurrence); it stays for rendered findings, which have no record AQG may write.
+            if (($row['remediation']['fixPath'] ?? '') === RemediationPageSummaryService::FIX_AI_TEXT) {
+                $row['aiLinkTextSuggestionAvailable'] = false;
+                $row['aiIframeTitleSuggestionAvailable'] = false;
+            }
+            // An occurrence that already has an AI fixes item is reviewed there (or in place): no inline card may ask the
+            // provider again for it (a second charge) or write it outside the item's checks and history.
+            if (($row['remediation']['item'] ?? null) !== null) {
+                $row['aiAltSuggestionAvailable'] = false;
+                $row['aiLinkTextSuggestionAvailable'] = false;
+                $row['aiIframeTitleSuggestionAvailable'] = false;
+            }
             // Atlas 07·A: one AI entry per occurrence. An occurrence whose card already has the inline suggestion
-            // (alt text, link text, iframe title) shows no per-occurrence queue button; it stays eligible for the
-            // bulk "Prepare AI suggestions" path (07·B).
+            // (alt text of a file reference, link text and iframe titles of rendered output) shows no per-occurrence
+            // queue button; it stays eligible for the bulk "Prepare AI suggestions" path (07·B).
             $row['remediation']['inlineAi'] = self::hasInlineAiFlow($row);
             $row['remediation']['canChangeOwner'] = $remediation['canChangeOwner'];
         }
@@ -1133,7 +1185,8 @@ final class PageDetailController extends AbstractBackendModuleController
                 $user['uid'],
                 $user['name'],
                 $user['username'],
-                $expiry['ignoredUntil']
+                $expiry['ignoredUntil'],
+                $this->ignoreAuthorization(),
             );
             $this->addFlashMessage($this->ignoreCount('pageDetail.flash.ignored', $ignored, '%d issue ignored.', '%d issues ignored.'), ContextualFeedbackSeverity::OK, $this->flashTitle());
         } else {
@@ -1190,7 +1243,8 @@ final class PageDetailController extends AbstractBackendModuleController
                 $user['uid'],
                 $user['name'],
                 $user['username'],
-                $expiry['ignoredUntil']
+                $expiry['ignoredUntil'],
+                $this->ignoreAuthorization(),
             );
             $this->addFlashMessage(sprintf($this->ignoreCount('pageDetail.flash.ignoredRulePage', $ignored, '%1$d issue of “%2$s” ignored on this page.', '%1$d issues of “%2$s” ignored on this page.', false), $ignored, $this->ruleTitle($ruleId)), ContextualFeedbackSeverity::OK, $this->flashTitle());
         } else {
@@ -1260,6 +1314,7 @@ final class PageDetailController extends AbstractBackendModuleController
                 $user['username'],
                 $expiry['ignoredUntil'],
                 $this->scopeAccessService->contentEditablePagesClause(),
+                $this->ignoreAuthorization(),
             );
             $this->addFlashMessage(sprintf($this->ignoreCount('pageDetail.flash.ignoredRuleSite', $ignored, '%1$d issue of “%2$s” ignored on this site.', '%1$d issues of “%2$s” ignored on this site.', false), $ignored, $this->ruleTitle($ruleId)), ContextualFeedbackSeverity::OK, $this->flashTitle());
         } else {
@@ -1311,21 +1366,29 @@ final class PageDetailController extends AbstractBackendModuleController
     }
 
 
+    /**
+     * G-01: ignore/unignore of one finding needs current edit authority over its actual target (record, language,
+     * stored page, workspace), decided from the stored row; request parameters are no proof (FindingIgnoreAccessService).
+     */
     private function canEditIssue(int $issueUid): bool
     {
         $context = $this->issueRepository->findAccessContextByUid($issueUid);
-        if (!is_array($context)) {
-            return false;
-        }
 
-        $sourceTable = trim((string)($context['source_table'] ?? ''));
-        $sourceUid = (int)($context['source_uid'] ?? 0);
-        if ($sourceTable !== '' && $sourceUid > 0) {
-            return $this->backendRecordAccessService->canEditRecord($sourceTable, $sourceUid);
-        }
+        return is_array($context)
+            && $this->findingIgnoreAccess !== null
+            && $this->findingIgnoreAccess->canChangeIgnoreState($context);
+    }
 
-        $pageUid = (int)($context['page_uid'] ?? 0);
-        return $pageUid > 0 && $this->backendRecordAccessService->canEditRecord(Tables::PAGES, $pageUid);
+    /**
+     * G-01: the per-finding filter for bulk and rule ignores; without the policy service nothing is changed.
+     *
+     * @return \Closure(list<array<string, mixed>>): list<int>
+     */
+    private function ignoreAuthorization(): \Closure
+    {
+        $policy = $this->findingIgnoreAccess;
+
+        return static fn (array $candidates): array => $policy !== null ? $policy->filterChangeable($candidates) : [];
     }
 
     /** Ignore feedback in the backend language with the right singular or plural (product acceptance: "1 issues ignored"). */
@@ -1397,6 +1460,7 @@ final class PageDetailController extends AbstractBackendModuleController
         string $backUrl,
         array $returnParameters,
         bool $canShowSettings,
+        bool $backToIssues = false,
     ): void {
         $this->setModuleTitle(
             $moduleTemplate,
@@ -1408,7 +1472,9 @@ final class PageDetailController extends AbstractBackendModuleController
 
         $backButton = $buttonBar->makeLinkButton()
             ->setHref($backUrl)
-            ->setTitle($this->translate('settings.backToOverview') ?: 'Back to overview')
+            ->setTitle($backToIssues
+                ? ($this->translate('assignment.backToList') ?: 'Back to My issues')
+                : ($this->translate('settings.backToOverview') ?: 'Back to overview'))
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-view-go-back', IconSize::SMALL));
         $buttonBar->addButton($backButton, ButtonBar::BUTTON_POSITION_LEFT, 1);
@@ -1484,7 +1550,7 @@ final class PageDetailController extends AbstractBackendModuleController
             'severity' => $severity,
             'page' => $page,
             'language' => $this->activeLanguageUidForUrls,
-        ]);
+        ] + ($this->issuesReturnValue !== '' ? [IssuesListState::RETURN_PARAMETER => $this->issuesReturnValue] : []));
     }
 
     /**

@@ -15,6 +15,11 @@ describe('bulk review', () => {
         expect(mixed.excluded.map((item) => item.uid)).toEqual([3]);
     });
 
+    it('never puts rich text into a bulk run, even when it can be applied one by one', () => {
+        expect(isBulkEligible(imageItem({kind: 'rich_text'}))).toBe(false);
+        expect(isBulkEligible(imageItem({kind: 'image_reference_alt'}))).toBe(true);
+    });
+
     it('never offers items without an approve permission or in other states', () => {
         expect(isBulkEligible(imageItem({actions: {approve: false}}))).toBe(false);
         expect(isBulkEligible(imageItem({status: 'conflict', actions: {approve: false}}))).toBe(false);

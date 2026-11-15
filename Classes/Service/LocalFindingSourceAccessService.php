@@ -12,6 +12,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Current read access to the source record of a stored local finding (`tx_a11y_issue`).
@@ -33,7 +34,7 @@ use TYPO3\CMS\Core\Type\Bitmask\Permission;
  * module, notifications, AI queue entry points) applies the same set through {@see constraint()} so that lists,
  * counts and files agree. Gate checks (publish/workspace quality gate) deliberately stay unfiltered.
  */
-final class LocalFindingSourceAccessService implements LocalFindingSourceAccessInterface
+final class LocalFindingSourceAccessService implements LocalFindingSourceAccessInterface, McpCallScopedState
 {
     private const CHUNK = 1000;
     /** The field of findings of a page's rendered HTML, stored with the default page and the rendered language. */
@@ -261,13 +262,27 @@ final class LocalFindingSourceAccessService implements LocalFindingSourceAccessI
 
         $deniedPageLanguages = [];
         $translatedPageUids = array_fill_keys(array_merge([], ...array_values($translatedPages)), true);
+        $readablePageSources = array_fill_keys($sources[Tables::PAGES] ?? [], true);
+        // Large-installation fix: the live translations of all candidate pages, one query per language and chunk
+        // (was one query per page and language), and their show access in one batch.
+        $pagesByLanguage = [];
         foreach ($candidates['pageLanguages'] as $pageUid => $pageLanguages) {
             // Only a default-language row has translations of its own; a translated row is decided by its language.
-            if (!in_array($pageUid, $sources[Tables::PAGES] ?? [], true) || isset($translatedPageUids[$pageUid])) {
+            if (!isset($readablePageSources[$pageUid]) || isset($translatedPageUids[$pageUid])) {
                 continue;
             }
             foreach ($pageLanguages as $languageUid) {
-                $translationUid = $this->liveTranslationUid($pageUid, $languageUid);
+                $pagesByLanguage[$languageUid][] = $pageUid;
+            }
+        }
+        $translationsByLanguage = [];
+        foreach ($pagesByLanguage as $languageUid => $pageUids) {
+            $translationsByLanguage[$languageUid] = $this->liveTranslationUids($pageUids, (int)$languageUid);
+        }
+        $this->preloadShowablePages($backendUser, array_merge([], ...array_map('array_values', array_values($translationsByLanguage))));
+        foreach ($pagesByLanguage as $languageUid => $pageUids) {
+            foreach ($pageUids as $pageUid) {
+                $translationUid = $translationsByLanguage[$languageUid][$pageUid] ?? 0;
                 if ($translationUid > 0 && !$this->canShowPage($backendUser, $translationUid)) {
                     $deniedPageLanguages[$languageUid][] = $pageUid;
                 }
@@ -284,23 +299,36 @@ final class LocalFindingSourceAccessService implements LocalFindingSourceAccessI
         return $value;
     }
 
-    private function liveTranslationUid(int $pageUid, int $languageUid): int
+    /**
+     * The live translation of each page in one language: the lowest live uid (not deleted, live workspace), as the
+     * former one-query-per-page lookup chose it.
+     *
+     * @param list<int> $pageUids
+     * @return array<int, int> pageUid => translation uid (pages without a live translation are absent)
+     */
+    private function liveTranslationUids(array $pageUids, int $languageUid): array
     {
-        $qb = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
-        $qb->getRestrictions()->removeAll();
+        $map = [];
+        foreach (array_chunk(array_values(array_unique(array_map('intval', $pageUids))), self::CHUNK) as $chunk) {
+            $qb = $this->connectionPool->getQueryBuilderForTable(Tables::PAGES);
+            $qb->getRestrictions()->removeAll();
+            $rows = $qb->select('uid', 'l10n_parent')
+                ->from(Tables::PAGES)
+                ->where(
+                    $qb->expr()->in('l10n_parent', $qb->createNamedParameter($chunk, Connection::PARAM_INT_ARRAY)),
+                    $qb->expr()->eq('sys_language_uid', $qb->createNamedParameter($languageUid, Connection::PARAM_INT)),
+                    $qb->expr()->eq('deleted', 0),
+                    $qb->expr()->eq('t3ver_wsid', 0),
+                )
+                ->orderBy('uid')
+                ->executeQuery()
+                ->fetchAllAssociative();
+            foreach ($rows as $row) {
+                $map[(int)$row['l10n_parent']] ??= (int)$row['uid'];
+            }
+        }
 
-        return (int)$qb->select('uid')
-            ->from(Tables::PAGES)
-            ->where(
-                $qb->expr()->eq('l10n_parent', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
-                $qb->expr()->eq('sys_language_uid', $qb->createNamedParameter($languageUid, Connection::PARAM_INT)),
-                $qb->expr()->eq('deleted', 0),
-                $qb->expr()->eq('t3ver_wsid', 0),
-            )
-            ->orderBy('uid')
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchOne();
+        return $map;
     }
 
     /** @return array{languages: list<int>, sources: array<string, list<int>>, pageLanguages: array<int, list<int>>} */
@@ -368,7 +396,14 @@ final class LocalFindingSourceAccessService implements LocalFindingSourceAccessI
             $qb->select('*')
                 ->from($table)
                 ->where($qb->expr()->in('uid', $qb->createNamedParameter($chunk, Connection::PARAM_INT_ARRAY)));
-            foreach ($qb->executeQuery()->iterateAssociative() as $record) {
+            $records = $qb->executeQuery()->fetchAllAssociative();
+            // Large-installation fix: the show access of every page of this chunk in one batch (was readPageAccess()
+            // per page: two to three queries each).
+            $this->preloadShowablePages($backendUser, array_map(
+                static fn (array $record): int => $table === Tables::PAGES ? (int)$record['uid'] : (int)($record['pid'] ?? 0),
+                $records,
+            ));
+            foreach ($records as $record) {
                 if ($deleteField !== '' && (int)($record[$deleteField] ?? 0) !== 0) {
                     continue;
                 }
@@ -414,6 +449,32 @@ final class LocalFindingSourceAccessService implements LocalFindingSourceAccessI
         return ['uids' => $readable, 'translatedPages' => $translatedPages];
     }
 
+    /**
+     * Fills the per-evaluation page cache for many pages at once (BatchedPageShowAccess: readPageAccess() semantics,
+     * live workspace). Elsewhere canShowPage() keeps the per-page check.
+     *
+     * @param list<int> $pageUids
+     */
+    private function preloadShowablePages(BackendUserAuthentication $backendUser, array $pageUids): void
+    {
+        $todo = [];
+        foreach ($pageUids as $pageUid) {
+            if ($pageUid > 0 && !isset($this->readablePages[$pageUid])) {
+                $todo[$pageUid] = $pageUid;
+            }
+        }
+        if ($todo === []) {
+            return;
+        }
+        $map = BatchedPageShowAccess::readableMap($backendUser, $this->connectionPool, array_values($todo));
+        if ($map === null) {
+            return;
+        }
+        foreach ($map as $pageUid => $showable) {
+            $this->readablePages[$pageUid] = $showable;
+        }
+    }
+
     private function canShowPage(BackendUserAuthentication $backendUser, int $pageUid): bool
     {
         if ($pageUid <= 0) {
@@ -425,5 +486,12 @@ final class LocalFindingSourceAccessService implements LocalFindingSourceAccessI
 
             return is_array($page) && $page !== [];
         })();
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->readablePages = [];
+        $this->requestCache = null;
     }
 }

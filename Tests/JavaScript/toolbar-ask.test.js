@@ -173,6 +173,27 @@ describe('Ask AQG', () => {
         expect(turn.querySelector('.aqt-turn__notes').textContent).toContain('did not answer in time');
     });
 
+    it('shows a typed question in the same user bubble as a suggested one, once, before the answer', async () => {
+        const instance = await loaded();
+        const question = 'How can I fix the unnamed button in content element #1749 on the About us page? See https://example.test/a/very/long/path/that/must/wrap/inside/the/bubble?with=query&and=more';
+        fetchMock.mockResolvedValueOnce(json(200, aiAnswer({question})));
+        document.querySelector('[data-aqt-ask-input]').value = question;
+        submit();
+
+        await vi.waitFor(() => expect(document.querySelector('.aqt-turn')).not.toBeNull());
+        const turn = document.querySelector('.aqt-turn');
+        const bubble = turn.firstElementChild;
+        const root = document.querySelector('[data-aqt-assistant-root]');
+        expect(bubble.outerHTML).toBe(instance.questionBubble(root, question).outerHTML, 'the bubble a suggestion or plan uses');
+        expect(bubble.classList.contains('aqt-bubble')).toBe(true);
+        expect(bubble.querySelector('.visually-hidden').textContent).toBe('You asked: ');
+        expect(bubble.textContent).toBe(`You asked: ${question}`);
+        expect(turn.querySelectorAll('.aqt-bubble')).toHaveLength(1);
+        expect(turn.textContent.split(question)).toHaveLength(2, 'the question is not repeated');
+        expect(Array.from(turn.querySelectorAll('.aqt-turn__who')).map((node) => node.textContent)).toEqual(['AQG answer'], 'no visible inline "You asked:" line');
+        expect(bubble.nextElementSibling.textContent).toBe('AQG answer');
+    });
+
     it('sends only the question, scope, context ids, the bounded history and the signed id, and renders text only', async () => {
         await loaded();
         fetchMock.mockResolvedValueOnce(json(200, aiAnswer()));
@@ -217,7 +238,7 @@ describe('Ask AQG', () => {
         document.querySelector('[data-aqt-ask-clear]').click();
         expect(fetchMock.mock.calls.length).toBe(calls, 'clearing needs no request: nothing is stored on the server');
         expect(document.querySelectorAll('.aqt-turn')).toHaveLength(0);
-        expect(JSON.parse(window.sessionStorage.getItem('aqg-toolbar-ask:' + scope))).toEqual({conversation: '', turns: []});
+        expect(JSON.parse(window.sessionStorage.getItem('aqg-toolbar-ask:' + scope))).toEqual({conversation: '', turns: [], selection: ''});
     });
 
     it('refuses a too short question locally and explains server refusals', async () => {

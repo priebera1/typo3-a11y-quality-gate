@@ -9,8 +9,13 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Priebera\A11yQualityGate\Mcp\Http\McpGatewayClient;
 use Priebera\A11yQualityGate\Mcp\McpAuditRepository;
+use Priebera\A11yQualityGate\Mcp\McpAttestation;
 use Priebera\A11yQualityGate\Mcp\McpCallRunner;
+use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
+use Priebera\A11yQualityGate\Mcp\McpScopes;
+use Priebera\A11yQualityGate\Mcp\McpCallRefused;
 use Priebera\A11yQualityGate\Mcp\McpConsentLedger;
+use Priebera\A11yQualityGate\Mcp\McpDeferredWork;
 use Priebera\A11yQualityGate\Mcp\McpToolExecutor;
 use Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException;
 use TYPO3\CMS\Core\Log\LogManager;
@@ -51,12 +56,50 @@ final class McpCallRunnerTest extends TestCase
         $ledger = $this->createMock(McpConsentLedger::class);
         $ledger->method('isRecorded')->willReturn(true);
 
-        return new McpCallRunner($this->gateway, $this->executor, $this->audit, $ledger, $this->createMock(LogManager::class));
+        return new McpCallRunner($this->gateway, $this->executor, $this->audit, $ledger, $this->createMock(LogManager::class), null, ...$this->attested());
+    }
+
+    /**
+     * The V4 verification as a pass-through (it is tested on its own in McpAttestationFunctionalTest): these tests are
+     * about what happens after a call was attested — the attested principal and arguments are the begun call's.
+     *
+     * @return array{0: McpAttestation, 1: McpConnectionStore}
+     */
+    private function attested(): array
+    {
+        $attestation = $this->createMock(McpAttestation::class);
+        $attestation->method('verifyCall')->willReturnCallback(static function (?string $token, array $call, array $principal): array {
+            $strings = static fn (mixed $values): array => is_array($values) ? array_values(array_map('strval', $values)) : [];
+            return ['principal' => [
+                'tokenId' => (string)($principal['tokenId'] ?? ''), 'tokenSuffix' => (string)($principal['tokenSuffix'] ?? ''),
+                'clientName' => (string)($principal['clientName'] ?? ''), 'beUserUid' => (int)($principal['beUserUid'] ?? 0),
+                'beUserName' => (string)($principal['beUserName'] ?? ''), 'scopes' => McpScopes::normalize($strings($principal['scopes'] ?? [])),
+                'siteIdentifiers' => $strings($principal['siteIdentifiers'] ?? []), 'expiresAt' => (string)($principal['expiresAt'] ?? ''),
+                'consentRefHash' => (string)($principal['consentRefHash'] ?? ''),
+            ], 'arguments' => is_array($call['arguments'] ?? null) ? $call['arguments'] : [],
+                'claims' => ['jti' => 'attested-call-jti-0001', 'callId' => (string)($call['id'] ?? ''), 'tool' => (string)($call['tool'] ?? ''),
+                    'tokenId' => (string)($principal['tokenId'] ?? ''), 'beUserUid' => (int)($principal['beUserUid'] ?? 0), 'consentRefHash' => (string)($principal['consentRefHash'] ?? ''),
+                    'clientId' => 'client', 'scopes' => [], 'sites' => []]];
+        });
+        $store = $this->createMock(McpConnectionStore::class);
+        $store->method('attestationTrust')->willReturn(['installationId' => 'i', 'pinnedKeys' => [['kid' => 'k', 'x' => 'x']], 'publicKey' => 'p']);
+
+        return [$attestation, $store];
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function nothingRunsWithoutAnAttestationVerifier(): void
+    {
+        $this->begins();
+        $this->executor->expects(self::never())->method('execute');
+        $ledger = $this->createMock(McpConsentLedger::class);
+        (new McpCallRunner($this->gateway, $this->executor, $this->audit, $ledger, $this->createMock(LogManager::class)))->run(self::CALL);
+        self::assertSame('attestation_unavailable', $this->submitted[0]['error']['code'] ?? null);
     }
 
     private function begins(string $tool = 'aqg_list_scans'): void
     {
-        $this->gateway->method('beginCall')->willReturn(['remainingMs' => 8000, 'tool' => $tool, 'principal' => [
+        $this->gateway->method('beginCall')->willReturn(['remainingMs' => 8000, 'tool' => $tool, 'attestation' => 'h.p.s', 'principal' => [
             'tokenId' => 'tttttttt-0000-4000-8000-000000000001', 'tokenSuffix' => 'abcd', 'clientName' => 'Agent', 'beUserUid' => 7,
             'beUserName' => 'Eva', 'scopes' => ['history:read'], 'siteIdentifiers' => ['main'],
             'expiresAt' => gmdate('Y-m-d\TH:i:s\Z', time() + 3600), 'consentRefHash' => str_repeat('a', 64),
@@ -139,5 +182,67 @@ final class McpCallRunnerTest extends TestCase
         $this->executor->expects(self::once())->method('execute')->willReturn(['sites' => []]);
 
         self::assertSame('executed', $this->runner()->run(self::CALL));
+    }
+
+    #[Test]
+    public function workLeftByACallRunsOnlyAfterItsSuccessfulAnswerAndNeverInTheNextCall(): void
+    {
+        $this->begins('aqg_list_scans');
+        $deferred = new McpDeferredWork();
+        $order = [];
+        $this->gateway->method('submitResult')->willReturnCallback(function () use (&$order): void {
+            $order[] = 'submitted';
+        });
+        $this->executor->method('execute')->willReturnCallback(function () use ($deferred, &$order): array {
+            $deferred->add(function (array $context) use (&$order): void {
+                // Finding 2: the job gets the verified call (id, raw attestation, claims) to ask for its continuation.
+                $order[] = 'generated:' . $context['callId'] . ':' . $context['claims']['jti'] . ':' . ($context['attestation'] !== '' ? 'attested' : 'none');
+            });
+            return ['ok' => 1];
+        });
+        $ledger = $this->createMock(McpConsentLedger::class);
+        $ledger->method('isRecorded')->willReturn(true);
+        $runner = new McpCallRunner($this->gateway, $this->executor, $this->audit, $ledger, $this->createMock(LogManager::class), $deferred, ...$this->attested());
+
+        self::assertSame('executed', $runner->run(self::CALL));
+        self::assertSame(['submitted', 'generated:' . self::CALL['id'] . ':attested-call-jti-0001:attested'], $order, 'The answer leaves first; the provider request runs afterwards.');
+
+        // Work left over from elsewhere is dropped before a call runs.
+        $deferred->add(function () use (&$order): void {
+            $order[] = 'stale';
+        });
+        $this->executor = $this->createMock(McpToolExecutor::class);
+        $this->executor->method('execute')->willThrowException(new McpCallRefused('scope_not_granted', 'no'));
+        $refusing = new McpCallRunner($this->gateway, $this->executor, $this->audit, $ledger, $this->createMock(LogManager::class), $deferred, ...$this->attested());
+        $refusing->run(self::CALL);
+        self::assertNotContains('stale', $order);
+        self::assertSame(0, $deferred->count());
+    }
+
+    #[Test]
+    public function anAnswerTheGatewayRefusesLeavesNoProviderRequestBehind(): void
+    {
+        $this->begins('aqg_list_scans');
+        $deferred = new McpDeferredWork();
+        $ran = false;
+        $gateway = $this->createMock(McpGatewayClient::class);
+        $gateway->method('beginCall')->willReturn(['remainingMs' => 8000, 'tool' => 'aqg_list_scans', 'principal' => [
+            'tokenId' => 'tttttttt-0000-4000-8000-000000000001', 'tokenSuffix' => 'abcd', 'clientName' => 'Agent', 'beUserUid' => 7,
+            'beUserName' => 'Eva', 'scopes' => ['history:read'], 'siteIdentifiers' => ['main'],
+            'expiresAt' => gmdate('Y-m-d\TH:i:s\Z', time() + 3600), 'consentRefHash' => str_repeat('a', 64),
+        ]]);
+        $gateway->method('submitResult')->willThrowException(new ApiRequestFailedException('gone', 404, null, 'call_not_found'));
+        $this->executor->method('execute')->willReturnCallback(function () use ($deferred, &$ran): array {
+            $deferred->add(function () use (&$ran): void {
+                $ran = true;
+            });
+            return ['ok' => 1];
+        });
+        $ledger = $this->createMock(McpConsentLedger::class);
+        $ledger->method('isRecorded')->willReturn(true);
+
+        self::assertSame('not_delivered', (new McpCallRunner($gateway, $this->executor, $this->audit, $ledger, $this->createMock(LogManager::class), $deferred, ...$this->attested()))->run(self::CALL));
+        self::assertFalse($ran, 'A revoked token or a vanished agent never causes a paid request.');
+        self::assertSame(0, $deferred->count());
     }
 }

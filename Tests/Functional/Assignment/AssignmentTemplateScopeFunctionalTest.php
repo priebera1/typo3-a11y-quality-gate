@@ -65,6 +65,7 @@ final class AssignmentTemplateScopeFunctionalTest extends AbstractFunctionalTest
             }
         }
         $this->template(3, 1, '<a href="/de/"><img src="/fileadmin/logo.png" class="logo"></a>');
+        $this->createContentRecordsForFindings();
     }
 
     #[Test]
@@ -178,5 +179,22 @@ final class AssignmentTemplateScopeFunctionalTest extends AbstractFunctionalTest
         sort($values);
 
         return $values;
+    }
+
+    /**
+     * G-09: My issues only counts findings of records the viewer may read, so every tt_content source a fixture finding
+     * names exists (on the finding's page, in its language).
+     */
+    private function createContentRecordsForFindings(): void
+    {
+        $pool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $rows = $pool->getConnectionForTable('tx_a11y_issue')->select(['page_uid', 'source_uid', 'source_lang_uid'], 'tx_a11y_issue', ['source_table' => 'tt_content'])->fetchAllAssociative();
+        $content = $pool->getConnectionForTable('tt_content');
+        foreach ($rows as $row) {
+            if ($content->count('uid', 'tt_content', ['uid' => (int)$row['source_uid']]) === 0) {
+                $content->insert('tt_content', ['uid' => (int)$row['source_uid'], 'pid' => (int)$row['page_uid'], 'CType' => 'text',
+                    'sys_language_uid' => (int)$row['source_lang_uid'], 'header' => 'Fixture ' . (int)$row['source_uid']]);
+            }
+        }
     }
 }
