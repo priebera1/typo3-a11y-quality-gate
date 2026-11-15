@@ -7,6 +7,7 @@ namespace Priebera\A11yQualityGate\Domain\Repository;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Pro\Enum\RemoteScanSourceType;
 use Priebera\A11yQualityGate\Service\RemoteScreenshotState;
+use Priebera\A11yQualityGate\Utility\ScanUrlUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
@@ -284,6 +285,24 @@ final class RemoteScanRepository extends AbstractRepository
         $existing = $this->findScanByJobId($jobId);
 
         return is_array($existing) && (int)($existing['persisted_at'] ?? 0) > 0;
+    }
+
+    /**
+     * A version of the site's locally known frontend scans: it changes whenever a scan of the site is submitted, synced
+     * or stored here (LOW-3: short-lived reuse of the service's scan history).
+     */
+    public function historyVersion(string $siteIdentifier): string
+    {
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN);
+        $queryBuilder->getRestrictions()->removeAll();
+        $row = $queryBuilder
+            ->selectLiteral('COUNT(*) AS c', 'MAX(uid) AS u', 'MAX(tstamp) AS t', 'MAX(persisted_at) AS p')
+            ->from(Tables::REMOTE_SCAN)
+            ->where($queryBuilder->expr()->eq('site_identifier', $queryBuilder->createNamedParameter($siteIdentifier)))
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return is_array($row) ? implode(':', [(int)$row['c'], (int)$row['u'], (int)$row['t'], (int)$row['p']]) : '';
     }
 
     public function findScanByJobId(string $jobId): ?array
@@ -948,6 +967,20 @@ final class RemoteScanRepository extends AbstractRepository
         );
     }
 
+    /** Whether any result page is stored for the scan (a plain read: no locks). */
+    public function hasStoredPages(int $remoteScanUid): bool
+    {
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
+        $queryBuilder->getRestrictions()->removeAll();
+
+        return $queryBuilder->select('uid')
+            ->from(Tables::REMOTE_SCAN_PAGE)
+            ->where($queryBuilder->expr()->eq('remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)))
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne() !== false;
+    }
+
     public function deletePagesByRemoteScan(int $remoteScanUid): void
     {
         $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
@@ -1053,6 +1086,40 @@ final class RemoteScanRepository extends AbstractRepository
         } catch (\JsonException) {
             return '';
         }
+    }
+
+    /**
+     * The pages a stored scan loaded, as ScanUrlUtility::comparable() keys: what two scans must share before their
+     * findings are compared page for page (D-1). Failed pages checked nothing and are not part of it.
+     *
+     * @return array<string, true>
+     */
+    public function findLoadedPageKeysForScan(int $remoteScanUid): array
+    {
+        if ($remoteScanUid <= 0) {
+            return [];
+        }
+
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_SCAN_PAGE);
+        $urls = $queryBuilder
+            ->select('url')
+            ->from(Tables::REMOTE_SCAN_PAGE)
+            ->where(
+                $queryBuilder->expr()->eq('remote_scan', $queryBuilder->createNamedParameter($remoteScanUid, Connection::PARAM_INT)),
+                $queryBuilder->expr()->eq('is_failed', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT))
+            )
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        $keys = [];
+        foreach ($urls as $url) {
+            $key = ScanUrlUtility::comparable((string)$url);
+            if ($key !== '') {
+                $keys[$key] = true;
+            }
+        }
+
+        return $keys;
     }
 
     public function countPagesForScan(int $remoteScanUid, bool $failed, string $search = '', string $ruleId = ''): int

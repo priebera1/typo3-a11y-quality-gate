@@ -20,6 +20,7 @@ use Priebera\A11yQualityGate\Rule\RuleViolation;
 use Priebera\A11yQualityGate\Rule\Rte\LiveValidationHtml;
 use Priebera\A11yQualityGate\Rule\Rte\RteDomLoader;
 use Priebera\A11yQualityGate\Service\RuleConfigurationService;
+use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
 
 /**
  * Editor AI for one live finding: Explain and Fix (a value for the finding's exact target), the rule-based check of a
@@ -41,6 +42,9 @@ final class EditorAiRemediationService
 
     /** What editor AI never sends, listed under "What was sent?". */
     public const NOT_SENT = ['otherFields', 'userNames', 'drafts'];
+    /** reason of a needs_review answer given without a provider request (an empty heading with nothing after it). */
+    public const REASON_NO_BASIS = 'no_basis';
+    private const NO_BASIS_HEADING_TEXT = 'Nothing follows this empty heading, so there is no section for it to name. Remove the empty heading.';
 
     public function __construct(
         private readonly EditorAiRecordContextResolver $recordContextResolver,
@@ -78,6 +82,11 @@ final class EditorAiRemediationService
         }
 
         $prepared = $this->contextBuilder->forFix($target, $record, $settings->allowPageTitle, $violation->message);
+        if ($target->kind === EditorAiRuleCatalog::KIND_HEADING_TEXT && trim((string)($prepared['context']['following_text'] ?? '')) === '') {
+            // Nothing follows the empty heading, so there is no section for it to name: the fix is to remove it.
+            // No provider request (no cost); the manual guidance says so instead of an invented heading.
+            return $this->withoutBasis($target);
+        }
         $response = $this->taskRunner->run($record->siteIdentifier, $this->request(
             EditorAiRuleCatalog::task($target->kind),
             EditorAiPrompts::FIX_PROMPT_VERSION,
@@ -107,6 +116,14 @@ final class EditorAiRemediationService
         }
 
         $resolves = $this->resolvesFinding($html, $record, $target, $value);
+        if ($resolves === false && $target->kind === EditorAiRuleCatalog::KIND_LINK_TEXT
+            && trim((string)($target->attributes['aria-label'] ?? '')) === '') {
+            // For link text AQG's own check is exactly the defect: another generic phrase ("click here" for
+            // "read more"), a URL-like or empty-looking text cannot fix the finding, so it is never offered for review.
+            // Not for a link with an aria-label: the rule reads that label first, which a text change cannot fix; the
+            // value is kept with the still_reported warning so the editor can also remove or reword the label.
+            return ['status' => 'invalid_response', 'rejection' => 'still_reported', 'reason' => ''] + $payload;
+        }
         $payload['value'] = $value;
         $payload['resolvesFinding'] = $resolves;
         if ($resolves === false) {
@@ -328,7 +345,7 @@ final class EditorAiRemediationService
      * without an open editor; a finding that no longer matches the stored content resolves to null (stale), never to
      * a nearby element.
      *
-     * @return array{record:EditorAiRecordContext,target:EditorFindingTarget,html:string,tstamp:int}|null
+     * @return array{record:EditorAiRecordContext,target:EditorFindingTarget,html:string,tstamp:int,raw:string}|null
      */
     public function locateStoredFinding(string $table, int $uid, string $field, string $ruleId, string $contextPath, string $snippet): ?array
     {
@@ -346,7 +363,7 @@ final class EditorAiRemediationService
             }
             $target = $this->targetResolver->resolve($html, $violation);
             if ($target !== null) {
-                return ['record' => $record, 'target' => $target, 'html' => $html, 'tstamp' => $stored['tstamp']];
+                return ['record' => $record, 'target' => $target, 'html' => $html, 'tstamp' => $stored['tstamp'], 'raw' => $stored['html']];
             }
         }
 
@@ -422,26 +439,8 @@ final class EditorAiRemediationService
     /** The field HTML with the value applied to the target element, or null when the element cannot be found. */
     private function changedHtml(string $html, EditorFindingTarget $target, string $value): ?string
     {
-        $dom = RteDomLoader::load($html);
-        $element = $dom->getElementsByTagName($target->tag)->item($target->occurrence);
-        $body = $dom->getElementsByTagName('body')->item(0);
-        if (!$element instanceof \DOMElement || !$body instanceof \DOMElement) {
-            return null;
-        }
-        if ($target->operation === EditorAiRuleCatalog::OPERATION_ATTRIBUTE) {
-            $element->setAttribute($target->attribute, $value);
-        } else {
-            while ($element->firstChild !== null) {
-                $element->removeChild($element->firstChild);
-            }
-            $element->appendChild($dom->createTextNode($value));
-        }
-        $changed = '';
-        foreach ($body->childNodes as $child) {
-            $changed .= (string)$dom->saveHTML($child);
-        }
-
-        return $changed;
+        // One definition for the editor flow, the expected element and the direct apply's proof.
+        return \Priebera\A11yQualityGate\Remediation\Workflow\RichTextElementWriter::changedHtml($html, $target, $value);
     }
 
     /** Applies the value to a fresh parse and runs the rule again: does it still report this element? */
@@ -519,6 +518,31 @@ final class EditorAiRemediationService
      * @param list<string> $sent
      * @return array<string,mixed>
      */
+    /** @return array<string,mixed> needs_review without a provider request: the context gives the model no basis. */
+    private function withoutBasis(EditorFindingTarget $target): array
+    {
+        return [
+            'status' => EditorAiPrompts::STATUS_NEEDS_REVIEW,
+            'provider' => '',
+            'providerLabel' => '',
+            'model' => '',
+            'modelLabel' => '',
+            'promptVersion' => EditorAiPrompts::FIX_PROMPT_VERSION,
+            'usage' => ['inputTokens' => 0, 'outputTokens' => 0, 'reported' => true],
+            'sent' => [],
+            'notSent' => self::NOT_SENT,
+            'serverTime' => time(),
+            'target' => $target->toArray(),
+            'original' => $target->currentValue,
+            'value' => '',
+            // Shown as the reason of "No safe suggestion" in the popover, review dialog and Ask AQG.
+            'reason' => BackendLabelUtility::translate('ai.editor.reason.emptyHeadingNoBasis', self::NO_BASIS_HEADING_TEXT),
+            'reasonCode' => self::REASON_NO_BASIS,
+            'warnings' => [],
+            'resolvesFinding' => null,
+        ];
+    }
+
     private function basePayload(AiStructuredResponse $response, string $promptVersion, array $sent): array
     {
         return [

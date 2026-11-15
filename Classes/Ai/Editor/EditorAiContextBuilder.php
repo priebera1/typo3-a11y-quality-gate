@@ -26,6 +26,7 @@ final class EditorAiContextBuilder
         private readonly ResourceFactory $resourceFactory,
         private readonly BackendUserService $backendUserService,
         private readonly ?SiteResolutionService $siteResolutionService = null,
+        private readonly ?\Priebera\A11yQualityGate\Service\FrontendPageUrlService $frontendPageUrlService = null,
     ) {}
 
     /**
@@ -111,7 +112,11 @@ final class EditorAiContextBuilder
                 throw new \InvalidArgumentException('No AI fix context for this kind.');
         }
 
-        if ($allowPageTitle) {
+        // A heading names the section that follows it. The page title is no basis for that: offered to the model it
+        // becomes the invented heading ("Welcome to our corporate website") the prompt forbids.
+        // Link text names the link's destination: the title of the page the link is on is no evidence of where it goes
+        // (observed: an empty link to /r1 got the current page's title). Only the resolved destination is sent.
+        if ($allowPageTitle && !in_array($target->kind, [EditorAiRuleCatalog::KIND_HEADING_TEXT, EditorAiRuleCatalog::KIND_LINK_TEXT], true)) {
             $pageTitle = $this->pageTitle($record->pageUid);
             if ($pageTitle !== '') {
                 $context['page_title'] = $pageTitle;
@@ -151,7 +156,8 @@ final class EditorAiContextBuilder
         ];
         $sent = ['elementSummary', 'surroundingText'];
         $includesPageTitle = false;
-        if ($allowPageTitle) {
+        // A link's destination is never the page it is on: no page title for link findings (as in forFix()).
+        if ($allowPageTitle && $target->kind !== EditorAiRuleCatalog::KIND_LINK_TEXT) {
             $pageTitle = $this->pageTitle($record->pageUid);
             if ($pageTitle !== '') {
                 $context['page_title'] = $pageTitle;
@@ -214,7 +220,53 @@ final class EditorAiContextBuilder
         $path = (string)($parts['path'] ?? '');
         $url = ($host !== '' ? ($scheme !== '' ? $scheme . '://' : '//') . $host : '') . $path;
 
+        // A link into this site (a path, or an address on one of the site's hosts) is resolved to its TYPO3 page, so the
+        // destination is known instead of guessed. Without a query or fragment only: "?tx_news…" names a record of a
+        // plugin, not the page. A path that is no page of this site is said to be unknown.
+        $internal = $this->internalDestination($href, $parts, $allowPageTitle, $siteIdentifier);
+        if ($internal !== null) {
+            return $internal;
+        }
+
         return [$this->bounded($url, 300), ''];
+    }
+
+    /**
+     * @param array<string, mixed> $parts parse_url() of the link
+     * @return array{0:string,1:string}|null null: not a link into this site
+     */
+    private function internalDestination(string $href, array $parts, bool $allowPageTitle, string $siteIdentifier): ?array
+    {
+        if ($siteIdentifier === '' || $this->frontendPageUrlService === null || $this->siteResolutionService === null
+            || isset($parts['query']) || ($parts['fragment'] ?? '') !== '' || !str_starts_with((string)($parts['path'] ?? ''), '/') && !isset($parts['host'])) {
+            return null;
+        }
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        if ($site === null) {
+            return null;
+        }
+        $host = strtolower((string)($parts['host'] ?? ''));
+        if ($host !== '') {
+            $siteHosts = [strtolower($site->getBase()->getHost())];
+            foreach ($site->getLanguages() as $language) {
+                $siteHosts[] = strtolower($language->getBase()->getHost());
+            }
+            if (!in_array($host, array_filter($siteHosts), true)) {
+                return null;
+            }
+        }
+        $path = (string)($parts['path'] ?? '/');
+        try {
+            $pageUid = $this->frontendPageUrlService->resolvePageUidForUrl($site, $href);
+        } catch (\Throwable) {
+            $pageUid = 0;
+        }
+        if ($pageUid <= 0) {
+            return [$this->bounded('internal path ' . $path . ' (no page of this site has this address; destination unknown)', 300), ''];
+        }
+        $title = $allowPageTitle ? $this->readablePageTitle($pageUid, $siteIdentifier) : '';
+
+        return [$this->bounded('internal TYPO3 page ' . $path, 300), $title];
     }
 
     private function blockText(\DOMElement $element): string

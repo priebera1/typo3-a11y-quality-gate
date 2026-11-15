@@ -12,6 +12,8 @@ use Priebera\A11yQualityGate\Command\McpConnectorCommand;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Mcp\McpAuditRepository;
 use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
+use Priebera\A11yQualityGate\Mcp\McpInstallationKey;
+use Priebera\A11yQualityGate\Tests\Support\McpAttestationFixture;
 use Priebera\A11yQualityGate\Mcp\McpPairingService;
 use Priebera\A11yQualityGate\Tests\Functional\AbstractFunctionalTestCase;
 use Psr\Http\Message\RequestInterface;
@@ -141,8 +143,12 @@ final class McpPairingAndDeliveryFunctionalTest extends AbstractFunctionalTestCa
     public function aWinningCompletionIsActivatedAndACancelGoesToTheGatewayFirst(): void
     {
         $store = $this->get(McpConnectionStore::class);
-        $store->startPairing(self::PAIRING, 'ABCD2345', 'aqgp_poll', time() + 600, 'https://app.example/app/agent-access', 'admin');
-        $this->routes['#/mcp/pairing/[^/]+/complete$#'] = fn (): array => [200, ['success' => true, 'status' => 'completed', 'connectorSecret' => self::SECRET, 'slug' => 'slug', 'serverUrl' => 'https://gw.example/mcp/i/slug']];
+        // V1: an attested pairing completes with the licence API's receipt for this installation's own key.
+        $licenceApi = new McpAttestationFixture();
+        $key = McpInstallationKey::generate();
+        $store->startPairing(self::PAIRING, 'ABCD2345', 'aqgp_poll', time() + 600, 'https://app.example/app/agent-access', 'admin', $key + ['pinnedKeys' => $licenceApi->pinned()]);
+        $this->routes['#/mcp/pairing/[^/]+/complete$#'] = fn (): array => [200, ['success' => true, 'status' => 'completed', 'connectorSecret' => self::SECRET, 'slug' => 'slug', 'serverUrl' => 'https://gw.example/mcp/i/slug',
+            'installationId' => McpAttestationFixture::INSTALLATION_ID, 'binding' => $licenceApi->binding(McpAttestationFixture::INSTALLATION_ID, self::PAIRING, $key['publicKey'])]];
         $this->routes['#/mcp/connector/activate$#'] = fn (): array => [200, ['success' => true, 'status' => 'active']];
         self::assertSame('connected', $this->get(McpPairingService::class)->poll());
         self::assertFalse($store->get()['activationPending']);
@@ -188,6 +194,77 @@ final class McpPairingAndDeliveryFunctionalTest extends AbstractFunctionalTestCa
         self::assertFalse($this->get(McpPairingService::class)->ensureActivated());
         self::assertSame('disconnected', $store->get()['status']);
         self::assertSame('', $store->getConnectorSecret());
+    }
+
+    /**
+     * MCP-UI-01 (owner QA 2026-11-14): the Gateway refused the installation ("No longer accepted") but Connect said
+     * "already connected, disconnect first". The stored connection ends locally only on the Gateway's own refusal of
+     * exactly that credential; the host key stays, and a new pairing can start.
+     */
+    #[Test]
+    public function aConnectionTheGatewayRefusesIsReleasedAndANewPairingCanStart(): void
+    {
+        $store = $this->activeConnection();
+        $hostKey = $this->get(\Priebera\A11yQualityGate\Mcp\McpHostKey::class);
+        $hostKeyBefore = $hostKey->ensure();
+        $this->routes['#/mcp/connector/status$#'] = fn (): array => [401, ['success' => false, 'error' => ['code' => 'connector_unauthorized']]];
+
+        self::assertSame('released', $this->get(McpPairingService::class)->releaseRejectedConnection('admin'));
+        self::assertSame('disconnected', $store->get()['status']);
+        self::assertSame('', $store->getConnectorSecret());
+        self::assertSame('Bearer ' . self::SECRET, $this->requests[count($this->requests) - 1]['auth'], 'The Gateway was asked about exactly the stored credential.');
+        self::assertSame($hostKeyBefore, $hostKey->ensure(), 'The host identity is not regenerated.');
+    }
+
+    #[Test]
+    public function aConnectionTheGatewayStillAcceptsOrDidNotAnswerIsKept(): void
+    {
+        $store = $this->activeConnection();
+        $this->routes['#/mcp/connector/status$#'] = fn (): array => [200, ['success' => true, 'installation' => ['id' => 'i1'], 'quotas' => []]];
+        self::assertSame('still_accepted', $this->get(McpPairingService::class)->releaseRejectedConnection('admin'));
+        self::assertSame('connected', $store->get()['status']);
+
+        foreach ([[403, 'origin_not_allowed'], [503, 'gateway_unavailable'], [401, 'token_expired']] as [$status, $code]) {
+            $this->routes['#/mcp/connector/status$#'] = fn (): array => [$status, ['success' => false, 'error' => ['code' => $code]]];
+            try {
+                $this->get(McpPairingService::class)->releaseRejectedConnection('admin');
+                self::fail('A non-definitive answer (' . $status . ' ' . $code . ') must not release the connection.');
+            } catch (\Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException) {
+            }
+            self::assertSame('connected', $store->get()['status']);
+            self::assertSame(self::SECRET, $store->getConnectorSecret());
+        }
+    }
+
+    /** Review finding: a pending activation during an outage is neither "accepted again" nor released. */
+    #[Test]
+    public function aPendingActivationIsReleasedOnlyOnTheGatewaysRefusal(): void
+    {
+        $store = $this->get(McpConnectionStore::class);
+        $store->startPairing(self::PAIRING, 'ABCD2345', 'aqgp_poll', time() + 600, 'https://app.example/app/agent-access', 'admin');
+        $store->completePairingIfCurrent(self::PAIRING, self::SECRET, 'slug', 'https://gw.example/mcp/i/slug');
+        $this->routes['#/mcp/connector/activate$#'] = fn (): array => [503, ['success' => false, 'error' => ['code' => 'gateway_unavailable']]];
+        try {
+            $this->get(McpPairingService::class)->releaseRejectedConnection('admin');
+            self::fail('An outage must be reported, not read as "accepted again".');
+        } catch (\Priebera\A11yQualityGate\Pro\Exception\ApiRequestFailedException) {
+        }
+        self::assertSame(self::SECRET, $store->getConnectorSecret());
+
+        $this->routes['#/mcp/connector/activate$#'] = fn (): array => [410, ['success' => false, 'error' => ['code' => 'activation_expired']]];
+        self::assertSame('released', $this->get(McpPairingService::class)->releaseRejectedConnection('admin'));
+        self::assertSame('disconnected', $store->get()['status']);
+    }
+
+    private function activeConnection(): McpConnectionStore
+    {
+        $store = $this->get(McpConnectionStore::class);
+        $store->startPairing(self::PAIRING, 'ABCD2345', 'aqgp_poll', time() + 600, 'https://app.example/app/agent-access', 'admin');
+        $store->completePairingIfCurrent(self::PAIRING, self::SECRET, 'slug', 'https://gw.example/mcp/i/slug');
+        $store->markActivatedIfCurrent($store->get()['credentialId']);
+        self::assertSame('connected', $store->get()['status']);
+
+        return $store;
     }
 
     #[Test]

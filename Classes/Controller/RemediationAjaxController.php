@@ -157,7 +157,10 @@ final class RemediationAjaxController
     public function editAction(ServerRequestInterface $request): ResponseInterface
     {
         return $this->handle($request, fn (array $body): array => $this->itemResponse(
-            $this->workflow->editValue((int)($body['item'] ?? 0), (int)($body['rowVersion'] ?? -1), mb_substr((string)($body['value'] ?? ''), 0, 1000)),
+            // An over-long value is refused, never cut: what is stored is exactly what the person reviewed.
+            $this->workflow->editValue((int)($body['item'] ?? 0), (int)($body['rowVersion'] ?? -1), mb_strlen((string)($body['value'] ?? '')) > 1000
+                ? throw new RemediationException('invalid_value', 'The text is too long.', 422)
+                : (string)($body['value'] ?? '')),
             $body,
         ));
     }
@@ -170,6 +173,8 @@ final class RemediationAjaxController
                 (int)($body['rowVersion'] ?? -1),
                 ($body['bulk'] ?? false) === true,
                 preg_match('/^[a-f0-9]{16}$/', (string)($body['batchId'] ?? '')) === 1 ? (string)$body['batchId'] : '',
+                // "Apply & verify" for rich text: AQG stores the reviewed element change (never for a bulk run).
+                ($body['mode'] ?? '') === 'apply',
             ),
             $body,
         ));

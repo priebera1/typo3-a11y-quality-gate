@@ -272,6 +272,38 @@ final class ToolbarAssistantFunctionalTest extends AbstractFunctionalTestCase
     }
 
     #[Test]
+    public function thePageModuleWithoutALanguageInItsUrlIsTheLanguageKeptInTheEditorsModuleData(): void
+    {
+        // TYPO3 13 keeps one `language`, 14 a list `languages`; a click in the page tree loads `?id=N` only.
+        $this->asUser(4);
+        $GLOBALS['BE_USER']->pushModuleData('web_layout', ['function' => 1, 'language' => '1']);
+        self::assertSame(1, $this->assistant(['id' => '2', 'module' => 'web_layout'])['context']['languageUid']);
+        self::assertSame('unavailable', $this->assistant(['id' => '2'])['context']['type'], 'without the Page module hint: the default language');
+
+        $GLOBALS['BE_USER']->pushModuleData('web_layout', ['viewMode' => 2, 'languages' => [0, 1]]);
+        self::assertSame(1, $this->assistant(['id' => '2', 'module' => 'web_layout'])['context']['languageUid']);
+
+        // A language in the URL wins; one the editor may not use still falls back as before.
+        $this->asUser(2);
+        $GLOBALS['BE_USER']->pushModuleData('web_layout', ['language' => '1']);
+        self::assertSame(0, $this->assistant(['id' => '2', 'module' => 'web_layout'])['context']['languageUid']);
+        self::assertSame(0, $this->assistant(['id' => '2', 'language' => '0', 'module' => 'web_layout'])['context']['languageUid']);
+    }
+
+    #[Test]
+    public function thePageModuleLanguageIsReadFromBothModuleDataShapes(): void
+    {
+        self::assertSame(1, ToolbarAssistantContextResolver::pageModuleLanguage(['language' => '1']));
+        self::assertSame(2, ToolbarAssistantContextResolver::pageModuleLanguage(['language' => 2]));
+        self::assertNull(ToolbarAssistantContextResolver::pageModuleLanguage(['language' => '-1']), 'all languages: unknown');
+        self::assertSame(0, ToolbarAssistantContextResolver::pageModuleLanguage(['languages' => [0]]));
+        self::assertSame(3, ToolbarAssistantContextResolver::pageModuleLanguage(['languages' => [0, 3]]));
+        self::assertSame(0, ToolbarAssistantContextResolver::pageModuleLanguage(['languages' => [1, 2]]), 'several translations: the default');
+        self::assertNull(ToolbarAssistantContextResolver::pageModuleLanguage(['languages' => ['x']]));
+        self::assertNull(ToolbarAssistantContextResolver::pageModuleLanguage(null));
+    }
+
+    #[Test]
     public function aDisallowedLanguageFallsBackToTheDefaultOnlyWhenThatIsAllowed(): void
     {
         $this->asUser(2);

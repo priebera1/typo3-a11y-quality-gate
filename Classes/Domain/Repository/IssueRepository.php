@@ -694,32 +694,28 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         string $backendUserName = '',
         string $backendUsername = '',
         int $ignoredUntil = 0,
+        ?\Closure $authorize = null,
     ): int {
         $issueUids = array_values(array_unique(array_filter(array_map('intval', $issueUids), static fn(int $uid): bool => $uid > 0)));
         if ($issueUids === [] || $siteIdentifier === '' || $pageUid <= 0 || trim($reason) === '') {
             return 0;
         }
 
-        $now = time();
-        $qb = $this->getQueryBuilder(Tables::ISSUE);
-        $qb->update(Tables::ISSUE)
-            ->set('status', (string)IssueStatus::Ignored->value)
-            ->set('ignored_reason', $reason)
-            ->set('ignored_by', (string)$backendUserUid)
-            ->set('ignored_by_name', $backendUserName)
-            ->set('ignored_by_username', $backendUsername)
-            ->set('ignored_at', (string)$now)
-            ->set('ignored_until', (string)$ignoredUntil)
-            ->set('ignored_reopened_at', '0')
-            ->set('tstamp', (string)$now)
-            ->where(
+        $constrain = function (QueryBuilder $qb) use ($issueUids, $siteIdentifier, $pageUid, $languageUid): void {
+            $qb->where(
                 $qb->expr()->in('uid', $qb->createNamedParameter($issueUids, Connection::PARAM_INT_ARRAY)),
                 $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
                 $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
                 $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT)),
             );
+            $this->addLanguageConstraint($qb, $languageUid);
+        };
 
-        $this->addLanguageConstraint($qb, $languageUid);
+        $qb = $this->buildIgnoreUpdateQuery($reason, $backendUserUid, $backendUserName, $backendUsername, $ignoredUntil);
+        $constrain($qb);
+        if (!$this->restrictIgnoreToAuthorized($qb, $constrain, $authorize)) {
+            return 0;
+        }
 
         return (int)$qb->executeStatement();
     }
@@ -734,15 +730,24 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         string $backendUserName = '',
         string $backendUsername = '',
         int $ignoredUntil = 0,
+        ?\Closure $authorize = null,
     ): int {
         if ($siteIdentifier === '' || $pageUid <= 0 || trim($ruleId) === '' || trim($reason) === '') {
             return 0;
         }
 
-        $qb = $this->buildOpenRuleIgnoreQuery($siteIdentifier, $ruleId, $languageUid, $reason, $backendUserUid, $backendUserName, $backendUsername, $ignoredUntil);
-        $qb->andWhere(
-            $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT))
-        );
+        $constrain = function (QueryBuilder $qb) use ($siteIdentifier, $ruleId, $languageUid, $pageUid): void {
+            $this->applyOpenRuleConstraints($qb, $siteIdentifier, $ruleId, $languageUid);
+            $qb->andWhere(
+                $qb->expr()->eq('page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT))
+            );
+        };
+
+        $qb = $this->buildIgnoreUpdateQuery($reason, $backendUserUid, $backendUserName, $backendUsername, $ignoredUntil);
+        $constrain($qb);
+        if (!$this->restrictIgnoreToAuthorized($qb, $constrain, $authorize)) {
+            return 0;
+        }
 
         return (int)$qb->executeStatement();
     }
@@ -757,15 +762,24 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         string $backendUsername = '',
         int $ignoredUntil = 0,
         string $editablePagesClause = '',
+        ?\Closure $authorize = null,
     ): int {
         if ($siteIdentifier === '' || trim($ruleId) === '' || trim($reason) === '') {
             return 0;
         }
 
-        $qb = $this->buildOpenRuleIgnoreQuery($siteIdentifier, $ruleId, $languageUid, $reason, $backendUserUid, $backendUserName, $backendUsername, $ignoredUntil);
-        if ($editablePagesClause !== '') {
-            // Only findings on pages whose content the user may edit (ScopeAccessService::contentEditablePagesClause()).
-            $qb->andWhere($qb->expr()->in('page_uid', 'SELECT pages.uid FROM ' . Tables::PAGES . ' pages WHERE ' . $editablePagesClause));
+        $constrain = function (QueryBuilder $qb) use ($siteIdentifier, $ruleId, $languageUid, $editablePagesClause): void {
+            $this->applyOpenRuleConstraints($qb, $siteIdentifier, $ruleId, $languageUid);
+            if ($editablePagesClause !== '') {
+                // Only findings on pages whose content the user may edit (ScopeAccessService::contentEditablePagesClause()).
+                $qb->andWhere($qb->expr()->in('page_uid', 'SELECT pages.uid FROM ' . Tables::PAGES . ' pages WHERE ' . $editablePagesClause));
+            }
+        };
+
+        $qb = $this->buildIgnoreUpdateQuery($reason, $backendUserUid, $backendUserName, $backendUsername, $ignoredUntil);
+        $constrain($qb);
+        if (!$this->restrictIgnoreToAuthorized($qb, $constrain, $authorize)) {
+            return 0;
         }
 
         return (int)$qb->executeStatement();
@@ -1433,8 +1447,15 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
      * Statuses are effective ones: an ignore whose `ignored_until` has passed counts as open, as the module shows it
      * after reopenExpiredIgnoredIssues() — without writing (agent reads never change a finding).
      *
+     * Legacy rows on a page translation record (D-02: releases before 3.0.0 stored rendered findings of a translated page
+     * as "page <translation uid>, language 0") are kept as stored and attributed to their default page in the
+     * translation's language. Only the rows of $translationRows (translation page uid => default page + language, see
+     * {@see findTranslationPageRowsWithFindings()}; the caller passes the ones the user may read) are returned; every
+     * other row on a translation record is withheld.
+     *
      * @param string $statusKey open|resolved|ignored|all
      * @param list<int> $severities Severity values; [] = every severity
+     * @param array<int, array{page: int, language: int}> $translationRows
      * @return list<array<string, mixed>>
      */
     public function findForAgent(
@@ -1447,8 +1468,9 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         ?string $ruleId,
         int $offset,
         int $limit,
+        array $translationRows = [],
     ): array {
-        $qb = $this->agentFindingsQuery($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId);
+        $qb = $this->agentFindingsQuery($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId, $translationRows);
         $qb->select('i.*')
             ->orderBy('i.status', 'ASC')
             ->addOrderBy('i.severity', 'ASC')
@@ -1464,6 +1486,7 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
      * The total and per-severity counts of the same filtered set as {@see findForAgent()}.
      *
      * @param list<int> $severities
+     * @param array<int, array{page: int, language: int}> $translationRows
      * @return array{total: int, critical: int, warning: int, info: int, needs_review: int}
      */
     public function countForAgent(
@@ -1474,8 +1497,9 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         array $severities,
         string $sourceType,
         ?string $ruleId,
+        array $translationRows = [],
     ): array {
-        $qb = $this->agentFindingsQuery($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId);
+        $qb = $this->agentFindingsQuery($siteIdentifier, $pageUid, $languageUid, $statusKey, $severities, $sourceType, $ruleId, $translationRows);
         $qb->select('i.severity')->addSelectLiteral('COUNT(*) AS cnt')->groupBy('i.severity');
         $counts = ['total' => 0, 'critical' => 0, 'warning' => 0, 'info' => 0, 'needs_review' => 0];
         foreach ($qb->executeQuery()->fetchAllAssociative() as $row) {
@@ -1491,14 +1515,15 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
      * One finding for an agent: the row only when it belongs to the site, its rule is enabled, its page is live and the
      * current backend user may read its source — otherwise null (unknown and unreadable look the same).
      *
+     * @param array<int, array{page: int, language: int}> $translationRows
      * @return array<string, mixed>|null
      */
-    public function findReadableForAgent(string $siteIdentifier, int $issueUid): ?array
+    public function findReadableForAgent(string $siteIdentifier, int $issueUid, array $translationRows = []): ?array
     {
         if ($issueUid <= 0 || $siteIdentifier === '') {
             return null;
         }
-        $qb = $this->agentFindingsQuery($siteIdentifier, null, -1, 'all', [], 'all', null);
+        $qb = $this->agentFindingsQuery($siteIdentifier, null, -1, 'all', [], 'all', null, $translationRows);
         $qb->select('i.*')
             ->andWhere($qb->expr()->eq('i.uid', $qb->createNamedParameter($issueUid, Connection::PARAM_INT)))
             ->setMaxResults(1);
@@ -1508,7 +1533,42 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
     }
 
     /**
+     * D-02 legacy rows: the page translation records (sys_language_uid > 0 with a default page) that carry findings of
+     * the site, with their default page and language. Bounded by the number of such pages; nothing is written.
+     *
+     * @return array<int, array{page: int, language: int}> translation page uid => default page uid + language
+     */
+    public function findTranslationPageRowsWithFindings(string $siteIdentifier): array
+    {
+        if ($siteIdentifier === '') {
+            return [];
+        }
+        $qb = $this->getQueryBuilder(Tables::ISSUE);
+        $qb->getRestrictions()->removeAll();
+        $rows = $qb->select('p.uid', 'p.l10n_parent', 'p.sys_language_uid')
+            ->from(Tables::ISSUE, 'i')
+            ->innerJoin('i', Tables::PAGES, 'p', $qb->expr()->eq('p.uid', 'i.page_uid'))
+            ->where(
+                $qb->expr()->eq('i.site_identifier', $qb->createNamedParameter($siteIdentifier)),
+                $qb->expr()->eq('i.deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+                $qb->expr()->gt('p.sys_language_uid', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+                $qb->expr()->gt('p.l10n_parent', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+            )
+            ->groupBy('p.uid', 'p.l10n_parent', 'p.sys_language_uid')
+            ->orderBy('p.uid')
+            ->executeQuery()
+            ->fetchAllAssociative();
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int)$row['uid']] = ['page' => (int)$row['l10n_parent'], 'language' => (int)$row['sys_language_uid']];
+        }
+
+        return $map;
+    }
+
+    /**
      * @param list<int> $severities
+     * @param array<int, array{page: int, language: int}> $translationRows
      */
     private function agentFindingsQuery(
         string $siteIdentifier,
@@ -1518,6 +1578,7 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         array $severities,
         string $sourceType,
         ?string $ruleId,
+        array $translationRows = [],
     ): QueryBuilder {
         $qb = $this->getQueryBuilder(Tables::ISSUE);
         $qb->getRestrictions()->removeAll();
@@ -1526,8 +1587,22 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
                 $qb->expr()->eq('i.site_identifier', $qb->createNamedParameter($siteIdentifier)),
                 $qb->expr()->eq('i.deleted', $qb->createNamedParameter(0, Connection::PARAM_INT)),
             );
+        // Translation rows as literal integer lists (values cast to int; the set is bounded by translated pages).
+        $intList = static fn (array $values): string => implode(',', array_map('intval', $values));
+        $legacyUids = [];
+        foreach ($translationRows as $translationUid => $row) {
+            if ((int)$translationUid > 0 && (int)($row['page'] ?? 0) > 0 && (int)($row['language'] ?? 0) > 0) {
+                $legacyUids[(int)$translationUid] = ['page' => (int)$row['page'], 'language' => (int)$row['language']];
+            }
+        }
+        $onLegacyRow = static fn (array $uids): string => $uids === [] ? '1=0' : 'i.page_uid IN (' . $intList($uids) . ')';
         if ($pageUid !== null) {
-            $qb->andWhere($qb->expr()->eq('i.page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)));
+            // D-02: the page's own rows plus legacy rows stored on one of its translation records.
+            $ofPage = array_keys(array_filter($legacyUids, static fn (array $row): bool => $row['page'] === $pageUid));
+            $qb->andWhere($qb->expr()->or(
+                $qb->expr()->eq('i.page_uid', $qb->createNamedParameter($pageUid, Connection::PARAM_INT)),
+                $onLegacyRow($ofPage),
+            ));
         }
         $now = time();
         $expiredIgnore = $qb->expr()->and(
@@ -1573,7 +1648,23 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
             $qb->andWhere($qb->expr()->eq('i.rule_id', $qb->createNamedParameter($ruleId)));
         }
         $this->addExistingPageJoinAndRestrictions($qb, 'i');
-        $this->addLanguageConstraint($qb, $languageUid, 'i');
+        // D-02: a row on a page translation record is only shown as a visible legacy row (above); any other one names no
+        // page an agent can address (translation uids are refused as pages) and stays withheld.
+        $qb->andWhere($qb->expr()->or(
+            $qb->expr()->eq('p.sys_language_uid', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+            $onLegacyRow(array_keys($legacyUids)),
+        ));
+        if ($languageUid >= 0) {
+            // A legacy row's stored language (0) is not the language its page was rendered in: the translation's is.
+            $inLanguage = array_keys(array_filter($legacyUids, static fn (array $row): bool => $row['language'] === $languageUid));
+            $qb->andWhere($qb->expr()->or(
+                $qb->expr()->and(
+                    $qb->expr()->eq('p.sys_language_uid', $qb->createNamedParameter(0, Connection::PARAM_INT)),
+                    $qb->expr()->eq('i.source_lang_uid', $qb->createNamedParameter($languageUid, Connection::PARAM_INT)),
+                ),
+                $onLegacyRow($inLanguage),
+            ));
+        }
         $this->addEnabledRuleConstraint($qb, $siteIdentifier, 'i');
         // Always: the predicate of every native reader; unrestricted (no condition) only for administrators.
         $this->addReadableSourceConstraint($qb, $siteIdentifier, 'i');
@@ -1655,7 +1746,7 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         $qb = $this->getQueryBuilder(Tables::ISSUE);
 
         $row = $qb
-            ->select('uid', 'page_uid', 'source_table', 'source_uid', 'site_identifier')
+            ->select('uid', 'deleted', 'page_uid', 'source_table', 'source_uid', 'source_lang_uid', 'source_field', 'site_identifier', 'status')
             ->from(Tables::ISSUE)
             ->where(
                 $qb->expr()->eq('uid', $qb->createNamedParameter($issueUid, Connection::PARAM_INT)),
@@ -2020,10 +2111,7 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
         return array_slice($rules, 0, max(1, $limit));
     }
 
-    private function buildOpenRuleIgnoreQuery(
-        string $siteIdentifier,
-        string $ruleId,
-        int $languageUid,
+    private function buildIgnoreUpdateQuery(
         string $reason,
         int $backendUserUid,
         string $backendUserName,
@@ -2041,16 +2129,60 @@ final class IssueRepository extends AbstractRepository implements IssueRemediati
             ->set('ignored_at', (string)$now)
             ->set('ignored_until', (string)$ignoredUntil)
             ->set('ignored_reopened_at', '0')
-            ->set('tstamp', (string)$now)
-            ->where(
-                $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
-                $qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId)),
-                $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT))
-            );
-
-        $this->addLanguageConstraint($qb, $languageUid);
+            ->set('tstamp', (string)$now);
 
         return $qb;
+    }
+
+    private function applyOpenRuleConstraints(QueryBuilder $qb, string $siteIdentifier, string $ruleId, int $languageUid): void
+    {
+        $qb->where(
+            $qb->expr()->eq('site_identifier', $qb->createNamedParameter($siteIdentifier)),
+            $qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId)),
+            $qb->expr()->eq('status', $qb->createNamedParameter(IssueStatus::Open->value, Connection::PARAM_INT))
+        );
+
+        $this->addLanguageConstraint($qb, $languageUid);
+    }
+
+    /**
+     * G-01: a bulk ignore with an authorization callback changes only the rows the callback allows. The candidates are
+     * read with the same constraints; the UPDATE keeps all of them (open status included, so a concurrent change is
+     * not overwritten) and adds the allowed uids. false = nothing allowed, nothing to update.
+     *
+     * @param \Closure(QueryBuilder): void $constrain
+     * @param (\Closure(list<array<string, mixed>>): list<int>)|null $authorize
+     */
+    private function restrictIgnoreToAuthorized(QueryBuilder $update, \Closure $constrain, ?\Closure $authorize): bool
+    {
+        if ($authorize === null) {
+            return true;
+        }
+
+        $select = $this->getQueryBuilder(Tables::ISSUE);
+        $select->getRestrictions()->removeAll();
+        $select->select('uid', 'deleted', 'site_identifier', 'page_uid', 'source_table', 'source_uid', 'source_lang_uid', 'source_field')
+            ->from(Tables::ISSUE);
+        $constrain($select);
+        $select->andWhere($select->expr()->eq('deleted', $select->createNamedParameter(0, Connection::PARAM_INT)));
+        $candidates = $select->executeQuery()->fetchAllAssociative();
+        if ($candidates === []) {
+            return false;
+        }
+
+        $allowed = array_values(array_unique(array_filter(
+            array_map('intval', (array)$authorize($candidates)),
+            static fn (int $uid): bool => $uid > 0,
+        )));
+        if ($allowed === []) {
+            return false;
+        }
+
+        // Literal integers (each cast): a site-wide ignore must not exceed the database's bound-parameter limit.
+        $update->andWhere($update->expr()->in('uid', implode(',', $allowed)));
+        $update->andWhere($update->expr()->eq('deleted', $update->createNamedParameter(0, Connection::PARAM_INT)));
+
+        return true;
     }
 
 

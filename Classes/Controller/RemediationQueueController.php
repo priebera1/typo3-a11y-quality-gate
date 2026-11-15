@@ -57,6 +57,8 @@ final class RemediationQueueController extends AbstractBackendModuleController
         private readonly ?\Priebera\A11yQualityGate\Domain\Repository\IssueRepository $issueRepository = null,
         private readonly ?EditorAiAccessService $editorAiAccess = null,
         private readonly ?\Priebera\A11yQualityGate\Ai\Settings\AiSiteSettingsService $aiSiteSettings = null,
+        private readonly ?RemediationWorkflowService $workflow = null,
+        private readonly ?\Priebera\A11yQualityGate\Service\AccessControlService $accessControlService = null,
     ) {
         parent::__construct($moduleTemplateFactory, $uriBuilder, $iconFactory, $backendContextService, $siteResolutionService, $requestParameterService);
     }
@@ -122,13 +124,20 @@ final class RemediationQueueController extends AbstractBackendModuleController
         $this->pageRenderer->addCssFile('EXT:a11y_quality_gate/Resources/Public/Css/remediation.css');
 
         $pageFilter = $pageUid > 0 ? ['uid' => $pageUid, 'title' => $this->pageTitle($pageUid)] : null;
+        // AF-01/AF-02: a link that names one item says precisely why it cannot open, instead of an unrelated empty state.
+        $deepLink = $this->deepLinkState(max(0, (int)($queryParams['item'] ?? 0)), $pageUid);
+        $this->addSettingsDocHeaderButton(
+            $moduleTemplate,
+            $this->accessControlService?->canShowSettings($this->backendContextService->getBackendUser()) ?? false,
+            $returnParameters,
+        );
         $config = [
             'sites' => array_map(static fn (Site $site): string => $site->getIdentifier(), $licensedSites),
             'allSites' => array_map(static fn (Site $site): string => $site->getIdentifier(), $filterSites),
             'pageUid' => $pageUid,
             // "Review suggestion" from Page Detail opens exactly this item. Only a number passes; the item route checks
             // that this person may see it, like every other drawer request.
-            'openItem' => max(0, (int)($queryParams['item'] ?? 0)),
+            'openItem' => in_array($deepLink['state'], ['open', 'other_page'], true) ? $deepLink['item'] : 0,
             'view' => $view,
             'returnUrl' => $returnUrl,
             'isAdmin' => $this->access->isAdmin(),
@@ -169,6 +178,10 @@ final class RemediationQueueController extends AbstractBackendModuleController
             'logScopeNote' => $this->access->isAdmin() ? '' : ($this->access->mayUseBulk() ? 'pages' : 'own'),
             'pageFilter' => $pageFilter,
             'pageUid' => $pageUid,
+            'deepLink' => $deepLink,
+            'licenceUrl' => $deepLink['state'] === 'licence' && $this->access->isAdmin()
+                ? $this->buildRouteUrl('web_a11y.settings', ['tab' => 'licence', 'site' => $deepLink['site']])
+                : '',
             'config' => json_encode($config, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE),
         ]);
 
@@ -215,6 +228,48 @@ final class RemediationQueueController extends AbstractBackendModuleController
         }
 
         return null;
+    }
+
+    /**
+     * AF-01/AF-02: what a link to one AI fixes item (?item=N, from Ask AQG or Page Detail) can show this person.
+     *
+     * - open: visible to this person on a site whose licence includes AI fixes (the drawer opens it);
+     * - licence: the item exists and this person may see it, but its site's licence does not include AI fixes (now);
+     *   nothing is deleted and it opens again once the licence is active;
+     * - other_page: visible, but it belongs to another page than the link's pageUid (the drawer still opens it);
+     * - unavailable: it does not exist (any more) or this person may not see it. Both read the same, so the reply
+     *   never tells anyone that an item they cannot see exists.
+     *
+     * @return array{state:string,item:int,site:string,pageTitle:string,status:string}
+     */
+    private function deepLinkState(int $itemUid, int $pageUid): array
+    {
+        $none = ['state' => '', 'item' => 0, 'site' => '', 'pageTitle' => '', 'status' => ''];
+        if ($itemUid <= 0) {
+            return $none;
+        }
+        try {
+            $item = $this->workflow?->visibleItem($itemUid);
+        } catch (\Throwable) {
+            $item = null;
+        }
+        if (!is_array($item)) {
+            return ['state' => 'unavailable'] + $none;
+        }
+        $site = (string)($item['site_identifier'] ?? '');
+        $state = match (true) {
+            !$this->access->hasLicence($site) => 'licence',
+            $pageUid > 0 && (int)$item['page_uid'] !== $pageUid => 'other_page',
+            default => 'open',
+        };
+
+        return [
+            'state' => $state,
+            'item' => $itemUid,
+            'site' => $site,
+            'pageTitle' => $this->pageTitle((int)$item['page_uid']),
+            'status' => (string)($item['status'] ?? ''),
+        ];
     }
 
     private function siteForPage(int $pageUid): ?Site
@@ -289,7 +344,7 @@ final class RemediationQueueController extends AbstractBackendModuleController
     private function labels(): array
     {
         $keys = [
-            'loading', 'empty.title', 'empty.text', 'empty.firstAction', 'empty.firstNote', 'empty.noEligible', 'empty.overview', 'noMatch.title', 'noMatch.text', 'clearFilters', 'error.load', 'resultCount',
+            'loading', 'empty.title', 'empty.text', 'empty.firstAction', 'empty.firstNote', 'empty.noEligible', 'empty.overview', 'noMatch.title', 'noMatch.text', 'clearFilters', 'filter.remove', 'error.load', 'resultCount',
             'col.select', 'change.to', 'col.page', 'col.finding', 'col.field', 'col.change', 'col.owner', 'col.source', 'col.status', 'col.age',
             'drawer.close', 'drawer.discardEdit', 'drawer.page', 'drawer.record', 'drawer.field', 'drawer.owner', 'drawer.before', 'drawer.after', 'drawer.empty',
             'drawer.why', 'drawer.edited', 'drawer.suggestion', 'drawer.noSuggestion', 'drawer.whatWasSent', 'drawer.notSent', 'drawer.tokens',
@@ -304,7 +359,7 @@ final class RemediationQueueController extends AbstractBackendModuleController
             'announce.applying', 'announce.saved', 'announce.verified', 'announce.notVerified', 'announce.rejected', 'announce.conflict', 'announce.inEditor', 'announce.failed', 'announce.edited',
             'error.session_expired', 'error.permission_denied', 'error.no_edit_access', 'error.changed_concurrently', 'error.not_reviewed', 'error.invalid_value',
             'error.in_progress', 'error.already_done', 'error.workspace_mismatch', 'error.conflict', 'error.rate_limited', 'error.no_licence', 'error.generic',
-            'error.not_found', 'error.invalid_state', 'error.agent_approval_disabled', 'error.editor_only', 'error.stale_view',
+            'error.not_found', 'error.suggestion_outdated', 'error.invalid_state', 'error.agent_approval_disabled', 'error.editor_only', 'error.stale_view',
             'bulk.selected', 'bulk.notViewed', 'bulk.allViewed', 'bulk.richTextExcluded', 'bulk.review', 'bulk.applyN', 'bulk.clear', 'bulk.dialogTitle',
             'bulk.dialogText', 'bulk.openFirst', 'bulk.approveItem', 'bulk.skipItem', 'bulk.stop', 'bulk.applyingN', 'bulk.summary', 'bulk.retryFailed',
             'bulk.result.saved', 'bulk.result.verified', 'bulk.result.notVerified', 'bulk.result.conflict', 'bulk.result.failed', 'bulk.result.skipped',
@@ -316,7 +371,7 @@ final class RemediationQueueController extends AbstractBackendModuleController
             'conflict.unknown', 'conflict.decorative', 'action.regenerateCurrent', 'action.compare', 'action.discard',
             'log.label', 'log.col.time', 'log.col.person', 'log.col.page', 'log.col.change', 'log.col.model', 'log.col.outcome',
             'log.count', 'log.range', 'log.empty.title', 'log.empty.text', 'log.hash',
-            'resultCountOne', 'log.countOne', 'log.details', 'ladder.not_verified', 'drawer.modelId', 'drawer.preview',
+            'resultCountOne', 'log.countOne', 'log.details', 'ladder.not_verified', 'drawer.modelId', 'drawer.preview', 'drawer.previewUnavailable',
             'bulk.dialogTitleOne', 'bulk.reviewOne', 'bulk.richTextExcludedOne',
             // Owner UX pass 3.0.0: list columns, row action and the state-driven drawer.
             'col.where', 'col.issue', 'col.actions', 'row.review', 'row.open', 'change.none',

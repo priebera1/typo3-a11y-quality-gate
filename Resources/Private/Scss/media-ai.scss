@@ -332,10 +332,10 @@ html[data-color-scheme="dark"] {
 }
 
 /* FormEngine wand and popover. The wand is a TYPO3 field control (right of the field); the popover is anchored below
-   the field inside the palette field and floats over what follows, so the field itself never moves (UX Atlas 05 A). */
-.aqg-media-wand--filled {
-    box-shadow: inset 0 -3px 0 var(--aqi-run);
-}
+   the field inside the palette field and floats over what follows, so the field itself never moves (UX Atlas 05 A).
+   An applied suggestion leaves the wand's look unchanged: `aqg-media-wand--filled` is a state hook only. A bar drawn
+   on the TYPO3 field-control button read as a broken border or a stuck focus state; the popover status, the outcome
+   and the field's chips already say that the value changed, and the focus ring stays the wand's only box-shadow. */
 
 .aqg-media-pophost {
     position: relative;

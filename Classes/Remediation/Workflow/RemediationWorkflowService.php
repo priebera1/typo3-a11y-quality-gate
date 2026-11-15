@@ -49,6 +49,8 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 final class RemediationWorkflowService
 {
     public const MAX_BATCH = 50;
+    /** Findings per agent request (MCP): small batches keep paid AI work and review load visible to the person. */
+    public const MAX_AGENT_BATCH = 10;
     /** An "applying" claim older than this was interrupted; the stored value tells whether the write happened. */
     private const APPLY_INTERRUPTED_AFTER = 300;
     /** A staged change nobody saved returns to Approved after this time (no unsaved editor holds it any more). */
@@ -90,6 +92,7 @@ final class RemediationWorkflowService
         private readonly RuleMetadataPresentationServiceInterface $ruleMetadata,
         private readonly ConnectionPool $connectionPool,
         private readonly ?DatabaseMutex $prepareMutex = null,
+        private readonly ?RichTextRecordWriter $richTextWriter = null,
     ) {}
 
     /**
@@ -121,6 +124,41 @@ final class RemediationWorkflowService
         $results = [];
         foreach ($findingUids as $findingUid) {
             $results[] = ['findingUid' => $findingUid] + $this->prepareOne($findingUid, $bulk ? RemediationAccessService::ORIGIN_BULK : RemediationAccessService::ORIGIN_EDITOR_REQUEST, $batchId, $bulk);
+        }
+
+        return ['batchId' => $batchId, 'items' => $results];
+    }
+
+    /**
+     * Preparation requested by an agent (MCP `suggestions:prepare`), as the TYPO3 user the agent token belongs to: the
+     * same checks as prepare() — finding readable and open, no open item for it, licence, a safe target re-located in the
+     * saved record, the user's AI rights (several findings at once only with the queue permission ai.bulk), field edit
+     * access, readable image — and the same per-finding mutex, so an agent and an editor never create two items for one
+     * finding. Items carry origin "agent": they can be reviewed and approved only by a person in the backend (the agent
+     * has no tool that approves or applies, see RemediationAccessService::applyRefusal()). Called only by the MCP tool
+     * executor after its own scope, consent, site and capability checks; prepare() keeps refusing the agent origin.
+     *
+     * @param list<int> $findingUids
+     * @return array{batchId:string,items:list<array{findingUid:int,itemUid:int,outcome:string,reason:string}>}
+     */
+    public function prepareForAgent(array $findingUids): array
+    {
+        $this->access->assertLoggedIn();
+        $findingUids = array_values(array_unique(array_filter(array_map('intval', $findingUids), static fn (int $uid): bool => $uid > 0)));
+        if ($findingUids === []) {
+            throw new RemediationException('invalid_input', 'No finding selected.', 422);
+        }
+        if (count($findingUids) > self::MAX_AGENT_BATCH) {
+            throw new RemediationException('batch_too_large', 'At most 10 findings per agent request.', 422, ['max' => self::MAX_AGENT_BATCH]);
+        }
+        $bulk = count($findingUids) > 1;
+        if ($bulk && !$this->access->mayUseBulk()) {
+            throw new RemediationException('permission_denied', 'Preparing several suggestions needs the queue permission.', 403);
+        }
+        $batchId = $bulk ? bin2hex(random_bytes(8)) : '';
+        $results = [];
+        foreach ($findingUids as $findingUid) {
+            $results[] = ['findingUid' => $findingUid] + $this->prepareOne($findingUid, RemediationAccessService::ORIGIN_AGENT, $batchId, $bulk);
         }
 
         return ['batchId' => $batchId, 'items' => $results];
@@ -366,7 +404,8 @@ final class RemediationWorkflowService
                 // A failed write is retried as a write (approve), never by replacing the reviewed suggestion.
                 throw new RemediationException('not_retryable', 'Retry applying this item instead.', 409);
             }
-            $this->transitionOrFail($item, $rowVersion, [$status], RemediationStatus::PREPARING, ['status_reason' => ''], 'regenerate');
+            // applied_at marks a direct write of the previous proposal; the new one has none (RemediationItemPresenter::applyMode()).
+            $this->transitionOrFail($item, $rowVersion, [$status], RemediationStatus::PREPARING, ['status_reason' => '', 'applied_at' => 0], 'regenerate');
             $item = $this->mustFind($itemUid);
             $rowVersion = (int)$item['row_version'];
         } elseif ($status !== RemediationStatus::PREPARING) {
@@ -685,10 +724,13 @@ final class RemediationWorkflowService
             if ($other !== null) {
                 throw new RemediationException('already_queued', 'Another item holds this finding.', 409, ['itemUid' => (int)$other['uid']]);
             }
-            $to = (string)$item['proposed_value'] !== '' ? RemediationStatus::PENDING_REVIEW : RemediationStatus::NO_SUGGESTION;
+            // AF-05: a suggestion from a prompt before the no-invention rules is not offered for approval again; it
+            // comes back without a proposal to approve, and Regenerate prepares a new one under the current rules.
+            $outdated = self::isOutdatedSuggestion($item);
+            $to = (string)$item['proposed_value'] !== '' && !$outdated ? RemediationStatus::PENDING_REVIEW : RemediationStatus::NO_SUGGESTION;
             // A new version: a view recorded before the rejection is no approval evidence for the reopened item.
             $this->transitionOrFail($item, $rowVersion, [RemediationStatus::REJECTED], $to, [
-                'status_reason' => '',
+                'status_reason' => $outdated ? 'suggestion_outdated' : '',
                 'reviewed_by' => 0,
                 'reviewed_at' => 0,
                 'proposal_version' => (int)$item['proposal_version'] + 1,
@@ -701,12 +743,39 @@ final class RemediationWorkflowService
     }
 
     /**
+     * Prompt versions whose rich-text suggestions predate the rules against invented content (empty headings filled
+     * from the page title, "Welcome to …"). Their proposals are not approvable without a human edit (AF-05).
+     */
+    public const OUTDATED_PROMPT_VERSIONS = ['aqg_editor_fix_v1'];
+
+    /**
+     * Link texts of the v2 prompt could name the page the link is on instead of its destination (the page title was
+     * offered as context): not approvable unedited, like every v1 suggestion.
+     */
+    public const OUTDATED_LINK_TEXT_PROMPT_VERSIONS = ['aqg_editor_fix_v2'];
+
+    /** @param array<string,mixed> $item */
+    public static function isOutdatedSuggestion(array $item): bool
+    {
+        if ((string)($item['target_kind'] ?? '') !== RemediationTargetKind::RICH_TEXT || trim((string)($item['edited_value'] ?? '')) !== '') {
+            return false;
+        }
+        $version = (string)($item['prompt_version'] ?? '');
+        if (in_array($version, self::OUTDATED_PROMPT_VERSIONS, true)) {
+            return true;
+        }
+
+        return in_array($version, self::OUTDATED_LINK_TEXT_PROMPT_VERSIONS, true)
+            && (string)(RemediationItemData::descriptor($item)['aiKind'] ?? '') === EditorAiRuleCatalog::KIND_LINK_TEXT;
+    }
+
+    /**
      * Approve and apply an image item through AQG's allow-listed write, or approve a rich-text item for the editor.
      * $bulk marks a bulk run: it needs the queue permission and a recorded view of this exact proposal version.
      *
      * @return array<string,mixed> the updated item
      */
-    public function approve(int $itemUid, int $rowVersion, bool $bulk, string $batchId = ''): array
+    public function approve(int $itemUid, int $rowVersion, bool $bulk, string $batchId = '', bool $applyDirectly = false): array
     {
         $item = $this->visibleItem($itemUid);
         $refusal = $this->access->applyRefusal($item, $bulk);
@@ -723,6 +792,11 @@ final class RemediationWorkflowService
         }
         if ((int)$item['proposal_version'] <= 0 || RemediationItemData::finalValue($item) === '') {
             throw new RemediationException('invalid_state', 'There is no suggestion to approve.', 409);
+        }
+        // AF-05: an unedited suggestion from an outdated prompt (generated before the rules against invented headings
+        // and texts) is never approved as it is: regenerate it, or write the value yourself.
+        if (self::isOutdatedSuggestion($item)) {
+            throw new RemediationException('suggestion_outdated', 'This suggestion was made under older rules. Regenerate it or enter your own value.', 409);
         }
         // Server-authoritative review evidence: nobody approves a change they have not displayed in full.
         if (!$this->items->hasSeen($itemUid, $this->access->userUid(), (int)$item['proposal_version'])) {
@@ -747,7 +821,11 @@ final class RemediationWorkflowService
             if ($bulk) {
                 throw new RemediationException('editor_only', 'Rich text is applied one by one in the editor.', 422);
             }
-            return $this->approveForEditor($item, $rowVersion, $value);
+            // Direct reviewed apply: AQG stores exactly this one element change as the reviewer and checks the saved
+            // record. Where that cannot be proven safe, the change is approved for the editor as before.
+            return $applyDirectly
+                ? $this->applyRichText($item, $rowVersion, $status, $value)
+                : $this->approveForEditor($item, $rowVersion, $value);
         }
 
         throw new RemediationException('no_safe_action', 'This item has no apply path.', 422);
@@ -760,6 +838,11 @@ final class RemediationWorkflowService
         // DataHandler stamps the reference with the request's EXEC_TIME; the check of the stored reference compares
         // its tstamp with this time, so both must come from the same clock reading.
         $now = (int)($GLOBALS['EXEC_TIME'] ?? time());
+        // The image use or its content element open in another person's form: that form's next save would write the old
+        // text back. Nothing is claimed; the person tries again once it is closed.
+        if ($this->access->isRecordOpenElsewhere(Tables::SYS_FILE_REFERENCE, (int)$item['target_uid'])) {
+            throw new RemediationException('record_open', 'The record is open in another editor.', 409);
+        }
         // The claim: from here on no second request may write this item.
         $this->transitionOrFail($item, $rowVersion, [$fromStatus], RemediationStatus::APPLYING, [
             'reviewed_by' => $this->access->userUid(),
@@ -835,12 +918,94 @@ final class RemediationWorkflowService
     }
 
     /**
+     * Rich text, applied by AQG after the person's review (AQG 3.0.0): the stored field with exactly the reviewed element
+     * changed (RichTextElementWriter: only that attribute or that element's plain text, proven against the editor
+     * flow's document), written through DataHandler as the reviewer (RichTextRecordWriter: stale-value check under a
+     * row lock, TYPO3 permissions and workspace versioning), then checked like an editor save (refresh(): Verified or
+     * Not verified). Nothing is written when the element cannot be proven; the change is then approved for the editor.
+     *
+     * @param array<string,mixed> $item
+     */
+    private function applyRichText(array $item, int $rowVersion, string $fromStatus, string $value): array
+    {
+        $itemUid = (int)$item['uid'];
+        $issue = $this->issues->findByUid((int)$item['finding_uid']) ?? [];
+        $target = $this->targetResolver->resolve($issue);
+        // The write goes only to the record, field and finding that were reviewed and permission-checked: a finding
+        // re-keyed to another record with an identical element is a conflict, never a write elsewhere.
+        if (!$target->isAvailable() || $target->baseHash !== (string)$item['base_hash']
+            || $target->table !== (string)$item['target_table'] || $target->uid !== (int)$item['target_uid'] || $target->field !== (string)$item['target_field']
+            || (string)($issue['fingerprint'] ?? '') !== (string)$item['finding_fingerprint']) {
+            $this->transitionOrFail($item, $rowVersion, [$fromStatus], RemediationStatus::CONFLICT, ['status_reason' => 'target_changed'], 'conflict');
+            return $this->mustFind($itemUid);
+        }
+        $located = $this->editorAi->locateStoredFinding($target->table, $target->uid, $target->field, (string)$issue['rule_id'], (string)($issue['context_path'] ?? ''), (string)($issue['context_snippet'] ?? ''));
+        $expected = $located !== null ? $this->editorAi->expectedSignature($located['html'], $located['target'], $value) : null;
+        if ($located === null || $expected === null) {
+            $this->transitionOrFail($item, $rowVersion, [$fromStatus], RemediationStatus::CONFLICT, ['status_reason' => 'target_changed'], 'conflict');
+            return $this->mustFind($itemUid);
+        }
+        $planned = RichTextElementWriter::apply($located['raw'], $located['target'], $value);
+        // A record open in FormEngine would overwrite the change with the editor's next save: the change goes to that
+        // editor instead (TYPO3 shows who has it open).
+        if ($planned['reason'] === RichTextElementWriter::OK && $this->access->isRecordOpenElsewhere($target->table, $target->uid)) {
+            $planned = ['html' => '', 'reason' => 'record_open'];
+        }
+        if ($planned['reason'] !== RichTextElementWriter::OK || $fromStatus !== RemediationStatus::PENDING_REVIEW && $fromStatus !== RemediationStatus::FAILED) {
+            if ($fromStatus !== RemediationStatus::PENDING_REVIEW) {
+                throw new RemediationException($planned['reason'] === 'record_open' ? 'record_open' : 'apply_in_editor', 'Apply this change in the editor.', 409);
+            }
+            $this->event($itemUid, 'direct_apply_refused', $fromStatus, $fromStatus, 'reason:' . $planned['reason']);
+            // The item says why it goes to the editor (shown in AI fixes, Page Detail and the toolbar).
+            return $this->approveForEditor($item, $rowVersion, $value, $planned['reason'] === 'record_open' ? 'record_open' : 'direct_not_provable');
+        }
+
+        // DataHandler stamps the record with the request's EXEC_TIME; the check of the saved record needs a save at
+        // or after the review, so both come from the same clock reading.
+        $now = (int)($GLOBALS['EXEC_TIME'] ?? time());
+        $descriptor = RemediationItemData::descriptor($item);
+        $descriptor['expected'] = ['occurrence' => -1, 'total' => -1] + $expected;
+        // The claim: from here on no second request may write this item.
+        $this->transitionOrFail($item, $rowVersion, [$fromStatus], RemediationStatus::APPLYING, [
+            'reviewed_by' => $this->access->userUid(),
+            'reviewed_at' => $now,
+            'applied_by' => $this->access->userUid(),
+            'applied_at' => $now,
+            'attempts' => (int)$item['attempts'] + 1,
+            'status_reason' => '',
+            'target_descriptor' => RemediationItemData::encodeDescriptor($descriptor),
+            'edited_value' => $value === (string)$item['proposed_value'] ? '' : $value,
+        ], 'approved', RemediationTarget::hashValue($value), 'direct');
+        $item = $this->mustFind($itemUid);
+
+        try {
+            $outcome = ($this->richTextWriter ?? new RichTextRecordWriter($this->connectionPool))
+                ->write($target->table, $target->uid, $target->field, $located['raw'], $planned['html']);
+        } catch (\Throwable) {
+            $outcome = RichTextRecordWriter::WRITE_FAILED;
+        }
+
+        if ($outcome === RichTextRecordWriter::SAVED || $outcome === RichTextRecordWriter::ALREADY_SAVED) {
+            $this->move($item, RemediationStatus::SAVED, ['saved_at' => time(), 'status_reason' => $outcome === RichTextRecordWriter::ALREADY_SAVED ? 'already_saved' : ''], 'saved', RemediationTarget::hashValue($value), 'direct');
+            return $this->refresh($itemUid);
+        }
+        if ($outcome === RichTextRecordWriter::CONFLICT || $outcome === RichTextRecordWriter::TARGET_MISSING) {
+            $this->move($item, RemediationStatus::CONFLICT, ['status_reason' => $outcome === RichTextRecordWriter::CONFLICT ? 'target_changed' : 'target_missing'], 'conflict', '', 'direct');
+        } else {
+            // Nothing was written: TYPO3 refused the save or the transaction rolled back.
+            $this->move($item, RemediationStatus::FAILED, ['status_reason' => $outcome], 'apply_failed', '', 'direct');
+        }
+
+        return $this->mustFind($itemUid);
+    }
+
+    /**
      * Rich text: the approval stages the change for the person's editor. Nothing is written here; the item becomes
      * "Saved" only once the stored record contains exactly the approved element (refresh()).
      *
      * @param array<string,mixed> $item
      */
-    private function approveForEditor(array $item, int $rowVersion, string $value): array
+    private function approveForEditor(array $item, int $rowVersion, string $value, string $reason = ''): array
     {
         $issue = $this->issues->findByUid((int)$item['finding_uid']) ?? [];
         $target = $this->targetResolver->resolve($issue);
@@ -861,6 +1026,9 @@ final class RemediationWorkflowService
         $this->transitionOrFail($item, $rowVersion, [RemediationStatus::PENDING_REVIEW], RemediationStatus::APPROVED, [
             'reviewed_by' => $this->access->userUid(),
             'reviewed_at' => time(),
+            'status_reason' => $reason,
+            // Applied in the editor, not by AQG: no earlier direct write of this item counts for its progress.
+            'applied_at' => 0,
             'target_descriptor' => RemediationItemData::encodeDescriptor($descriptor),
             // The editor receives exactly the validated value the expected element was computed from.
             'edited_value' => $value === (string)$item['proposed_value'] ? '' : $value,
@@ -904,7 +1072,7 @@ final class RemediationWorkflowService
         }
         $now = time();
         if ((string)$item['status'] === RemediationStatus::APPROVED) {
-            $this->move($item, RemediationStatus::IN_EDITOR, ['staged_at' => $now, 'applied_by' => $this->access->userUid()], 'staged');
+            $this->move($item, RemediationStatus::IN_EDITOR, ['staged_at' => $now, 'applied_by' => $this->access->userUid(), 'status_reason' => ''], 'staged');
         } else {
             $this->items->transition((int)$item['uid'], (int)$item['row_version'], [RemediationStatus::IN_EDITOR], RemediationStatus::IN_EDITOR, ['staged_at' => $now]);
         }
@@ -1012,8 +1180,10 @@ final class RemediationWorkflowService
             $this->move($item, RemediationStatus::SAVED, ['saved_at' => $now], 'saved', RemediationTarget::hashValue(RemediationItemData::finalValue($item)));
             $item = $this->mustFind($itemUid);
         }
-        if ($result === 'verified') {
-            $this->move($item, RemediationStatus::VERIFIED, ['verified_at' => $now, 'checked_at' => $now, 'status_reason' => ''], 'verified');
+        if ($result === 'verified' || $result === 'verified_warning') {
+            // The finding's rule no longer reports it on the saved record. A remaining quality remark of the same
+            // image (e.g. a text over 120 characters) is shown as a note, not as "still reports this issue".
+            $this->move($item, RemediationStatus::VERIFIED, ['verified_at' => $now, 'checked_at' => $now, 'status_reason' => $result === 'verified_warning' ? 'quality_warning' : ''], 'verified');
         } elseif ((string)$item['status'] === RemediationStatus::NOT_VERIFIED && $this->findingIgnored($item)) {
             // Someone decided to ignore the finding: the saved change stays in TYPO3, the item leaves the queue.
             $this->move($item, RemediationStatus::NOT_APPLICABLE, ['checked_at' => $now, 'status_reason' => 'finding_closed'], 'not_applicable');
@@ -1042,7 +1212,7 @@ final class RemediationWorkflowService
         // A closed finding row alone is no proof (applying an image text closes its finding itself): "solved
         // differently" also needs AQG's check of the stored image to pass now.
         if ((string)$item['status'] === RemediationStatus::NOT_VERIFIED && (!is_array($issue) || (int)$issue['status'] !== IssueStatus::Open->value)
-            && ($reason !== 'value_changed' || $this->imageCheck($item) === 'verified')) {
+            && ($reason !== 'value_changed' || in_array($this->imageCheck($item), ['verified', 'verified_warning'], true))) {
             $this->move($item, RemediationStatus::NOT_APPLICABLE, [
                 'checked_at' => $now,
                 'status_reason' => $reason === 'value_changed' ? 'solved_differently' : 'finding_closed',
@@ -1084,6 +1254,7 @@ final class RemediationWorkflowService
 
         return match ($status) {
             'verified' => 'verified',
+            'verified_warning' => 'verified_warning',
             'still_reported' => 'still_reported',
             'not_saved' => 'not_saved',
             default => 'check_unavailable',
@@ -1175,13 +1346,15 @@ final class RemediationWorkflowService
                 (string)($descriptor['parentTable'] ?? ''),
                 (int)($descriptor['parentUid'] ?? 0),
                 (string)($descriptor['fieldName'] ?? ''),
-                [['referenceUid' => (int)$item['target_uid'], 'suggestedAt' => (int)$item['applied_at']]],
+                [['referenceUid' => (int)$item['target_uid'], 'suggestedAt' => (int)$item['applied_at'], 'ruleId' => (string)$item['rule_id']]],
             );
         } catch (EditorAiException) {
             return 'unchecked';
         }
+        $status = (string)($result['items'][0]['status'] ?? '');
 
-        return (string)($result['items'][0]['status'] ?? '');
+        // AF-03: the finding's own rule passes, another check of the same image still has a remark (quality warning).
+        return $status === 'verified' && ($result['items'][0]['warning'] ?? false) === true ? 'verified_warning' : $status;
     }
 
     /**
@@ -1218,6 +1391,17 @@ final class RemediationWorkflowService
     /** @param array<string,mixed> $item */
     private function recoverInterrupted(array $item): array
     {
+        if ((string)$item['target_kind'] === RemediationTargetKind::RICH_TEXT) {
+            // A direct apply that stopped midway: saved only when the record holds exactly the applied element.
+            $written = in_array($this->checkRichText($item), ['verified', 'still_reported', 'workspace_publish'], true);
+            if ($written) {
+                $this->move($item, RemediationStatus::SAVED, ['saved_at' => time(), 'status_reason' => 'recovered'], 'saved');
+                return $this->refresh((int)$item['uid']);
+            }
+            $this->move($item, RemediationStatus::FAILED, ['status_reason' => 'interrupted'], 'apply_failed');
+
+            return $this->mustFind((int)$item['uid']);
+        }
         $current = $this->storedReference((int)$item['target_uid']);
         $written = is_array($current)
             && (string)$current['alternative'] === $this->appliedImageValue($item)

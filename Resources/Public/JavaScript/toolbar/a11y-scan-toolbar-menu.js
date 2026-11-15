@@ -48,7 +48,8 @@ export function selectedTreePage(storage = ModuleStateStorage) {
  */
 export function withToolbarContext(renderUrl, moduleUrl, treePage = '') {
     ['id', 'site', 'pageUid', 'language', 'languageUid', 'L', 'sys_language_uid'].forEach((key) => {
-        const value = moduleUrl.searchParams.get(key);
+        // The last of repeated parameters ("?id=4&id=16"), as PHP and so TYPO3 read them.
+        const value = moduleUrl.searchParams.getAll(key).pop() ?? null;
         if (value === null || value === '' || ((key === 'id' || key === 'pageUid') && !/^[1-9][0-9]*$/.test(value))) {
             return;
         }
@@ -216,8 +217,39 @@ export function finishedAnnouncement(before, after) {
         .join('. ');
 }
 
+/**
+ * One toolbar render at a time (large-installation fix MEDIUM-3). Every backend load asked twice at once: the startup
+ * timer and TYPO3's toolbar-ready callback (Toolbar.registerEvent() also runs its callback when the document is
+ * ready), so the server built the same summary twice per load. A refresh requested while one is in flight shares that
+ * answer; `force` (the result after the user's own "Check saved page now") always sends its own request.
+ *
+ * @template T
+ * @param {(...args: any[]) => Promise<T>} run
+ * @returns {(force: boolean, ...args: any[]) => Promise<T>}
+ */
+export function coalescedRefresh(run) {
+    let inflight = null;
+
+    return (force = false, ...args) => {
+        if (inflight !== null && !force) {
+            return inflight;
+        }
+        const tracked = Promise.resolve()
+            .then(() => run(...args))
+            .finally(() => {
+                if (inflight === tracked) {
+                    inflight = null;
+                }
+            });
+        inflight = tracked;
+
+        return tracked;
+    };
+}
+
 class A11yScanToolbarMenu {
     constructor() {
+        this.refresh = coalescedRefresh((showLoading, options) => this.renderMenu(showLoading, options));
         this.syncTheme();
         this.observeThemeChanges();
         this.assistant = new ToolbarAssistant({
@@ -225,7 +257,8 @@ class A11yScanToolbarMenu {
             ajaxUrls: () => TYPO3.settings?.ajaxUrls ?? {},
             treePage: () => selectedTreePage(),
             navigate: (href, withReturnUrl) => this.navigate(href, withReturnUrl),
-            onScanFinished: (options = {}) => this.updateMenu(false, options),
+            // A finished scan always gets its own refresh, never an older one still in flight (coalescedRefresh()).
+            onScanFinished: (options = {}) => this.updateMenu(false, {...options, force: true}),
         });
         this.prepareToggle();
         // Scan sections the user opened in this backend window; collapsed by default and kept across refreshes.
@@ -290,6 +323,8 @@ class A11yScanToolbarMenu {
         }, 1000);
 
         window.setTimeout(() => this.updateMenu(false), 0);
+        // A docked Ask AQG of this tab comes back after a full backend reload (state kept per user + login session).
+        window.setTimeout(() => this.assistant.restoreDock?.(), 400);
     }
 
     getThemeDocuments() {
@@ -340,6 +375,8 @@ class A11yScanToolbarMenu {
             panel.classList.toggle('aqt-pop--theme-light', !isDark);
             panel.setAttribute('data-aqt-theme', themeName);
         });
+        // The docked Ask AQG and its fallback dialog live outside the toolbar element.
+        this.assistant?.syncTheme?.();
     }
 
     observeThemeChanges() {
@@ -442,7 +479,11 @@ class A11yScanToolbarMenu {
      * @param {{contentScan?: boolean, refocus?: boolean}} options after the user's own "Check saved page now" the new
      *   result goes in at once (focus is moved back to the re-rendered button), not only when focus leaves the menu
      */
-    async updateMenu(showLoading = true, options = {}) {
+    updateMenu(showLoading = true, options = {}) {
+        return this.refresh(options.contentScan === true || options.force === true, showLoading, options);
+    }
+
+    async renderMenu(showLoading = true, options = {}) {
         this.setIconLoading(showLoading);
 
         try {

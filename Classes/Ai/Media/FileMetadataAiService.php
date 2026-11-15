@@ -290,10 +290,15 @@ final class FileMetadataAiService
      *
      * @param iterable<\Priebera\A11yQualityGate\Rule\RuleViolation> $violations
      */
-    public static function reportsReference(iterable $violations, int $referenceUid, string $table, int $uid, string $field): bool
+    public static function reportsReference(iterable $violations, int $referenceUid, string $table, int $uid, string $field, ?array $ruleIds = null): bool
     {
         $fieldPath = sprintf('%s:%d > %s', $table, $uid, $field);
         foreach ($violations as $violation) {
+            // AF-03: when the caller names the rule(s) of its finding, another rule on the same image (the length or
+            // wording check of a text that now exists) does not count as "the missing text is still missing".
+            if ($ruleIds !== null && !in_array((string)$violation->ruleId, $ruleIds, true)) {
+                continue;
+            }
             $path = (string)$violation->contextPath;
             if ($path === $fieldPath . ' > ref:' . $referenceUid || $path === $fieldPath) {
                 return true;

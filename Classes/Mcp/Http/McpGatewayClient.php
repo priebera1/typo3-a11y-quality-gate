@@ -18,7 +18,7 @@ use TYPO3\CMS\Core\Http\RequestFactory;
  * pairing is authenticated with this installation's connector secret; the agent's OAuth token never reaches TYPO3.
  * Failures are ApiRequestFailedException with HTTP status and API error code, never shown as exception text.
  */
-final class McpGatewayClient
+final class McpGatewayClient implements McpContinuationClient
 {
     /** Above the Gateway's poll window (at most 8.5 s) plus network time. */
     private const POLL_TIMEOUT = 20.0;
@@ -43,6 +43,17 @@ final class McpGatewayClient
     public function startPairing(array $payload): array
     {
         return $this->request('POST', '/mcp/pairing/start', $payload, null);
+    }
+
+    /**
+     * The AQG licence API's attestation key set (V3/V4): public, read from the licence API path (served by the licence
+     * API itself, not the MCP Gateway process), signed by the licence API's current key.
+     *
+     * @return array<string, mixed> {keys: [{kid, x}], keySet: JWS}
+     */
+    public function attestationKeys(): array
+    {
+        return $this->request('GET', '/licence/mcp/attestation-keys', null, null);
     }
 
     /**
@@ -91,6 +102,17 @@ final class McpGatewayClient
     public function status(): array
     {
         return $this->connectorRequest('GET', '/mcp/connector/status');
+    }
+
+    /**
+     * MCP-UI-01: the Gateway's status for one given credential (the stored one the admin asked to replace), so the
+     * answer is about exactly that credential even if the stored connection changes meanwhile.
+     *
+     * @return array<string, mixed>
+     */
+    public function statusWithSecret(string $connectorSecret): array
+    {
+        return $this->request('GET', '/mcp/connector/status', null, $connectorSecret, self::REQUEST_TIMEOUT, $this->connectorInstanceId);
     }
 
     /**
@@ -151,7 +173,7 @@ final class McpGatewayClient
      * The Gateway's authorization check immediately before execution: token, installation, licence, scope and deadline
      * are checked now, and the call starts at most once. Throws when the call must not run.
      *
-     * @return array{principal: array<string, mixed>, remainingMs: int, tool: string}
+     * @return array{principal: array<string, mixed>, remainingMs: int, tool: string, attestation: ?string}
      */
     public function beginCall(string $callId, string $claimId): array
     {
@@ -162,7 +184,31 @@ final class McpGatewayClient
             'remainingMs' => max(0, (int)($response['remainingMs'] ?? 0)),
             // The tool the Gateway authorized (empty from a Gateway before F-02).
             'tool' => is_string($response['tool'] ?? null) ? $response['tool'] : '',
+            // V3: the AQG licence API's call attestation (null from a Gateway before 102: nothing runs then).
+            'attestation' => is_string($response['attestation'] ?? null) ? $response['attestation'] : null,
         ];
+    }
+
+    /**
+     * Release-gate finding 2 (backend migration 103): asks the licence API, through the Gateway, to re-authorize the
+     * deferred work of a call right before it starts. `$attestation` is the call's attestation exactly as begin returned
+     * it, `$subject` the job (`item:<uid>`). Never retried: core continues a call once, and a retry authorizes nothing.
+     * Throws ApiRequestFailedException for every refusal, a transport failure or a timeout.
+     *
+     * @return array{continuation: string, expiresAt: string}
+     */
+    public function continueCall(string $callId, string $attestation, string $subject, float $timeout = 2.0): array
+    {
+        $response = $this->connectorRequest('POST', '/mcp/connector/calls/' . rawurlencode($callId) . '/continue', [
+            'attestation' => $attestation,
+            'purpose' => 'deferred_generation',
+            'subject' => $subject,
+        ], max(0.1, min(2.0, $timeout)));
+        if (($response['success'] ?? false) !== true || !is_string($response['continuation'] ?? null) || $response['continuation'] === '') {
+            throw new ApiRequestFailedException('AQG MCP Gateway returned no continuation.', 200, null, 'continuation_invalid');
+        }
+
+        return ['continuation' => $response['continuation'], 'expiresAt' => (string)($response['expiresAt'] ?? '')];
     }
 
     /**

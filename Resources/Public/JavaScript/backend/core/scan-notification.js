@@ -199,7 +199,14 @@ export function frontendScanNotification(summary, { scope = 'site' } = {}, trans
     // From AQG 1.9.9 the server compares the stored findings with the previous compatible scan (`comparison`); the
     // crawler's own counts are the fallback for responses without it.
     const comparison = summary?.comparison && typeof summary.comparison === 'object' ? summary.comparison : null;
+    // D-1 (AQG 3.0): the crawler's own counts compare a site scan with the previous run of the site whatever pages each
+    // checked (a 4-page baseline made a 19-page scan "297 new"), so a site scan whose results are not stored (no totals,
+    // no server comparison) names no change at all. The server's comparison counts only pages both scans loaded and
+    // says when they differed.
+    const crawlerCountsOnly = comparison === null && scope === 'site';
     const compared = comparison === null || comparison.available === true;
+    const partial = comparison?.available === true && comparison.partial === true;
+    const differentPages = comparison?.available === false && comparison.reason === 'different_pages';
     const issuesNew = count(comparison?.available ? comparison.new : summary?.issuesNew);
     const issuesResolved = count(comparison?.available ? comparison.resolved : summary?.issuesResolved);
     const loaded = count(summary?.pagesLoaded ?? summary?.pagesScanned);
@@ -252,8 +259,16 @@ export function frontendScanNotification(summary, { scope = 'site' } = {}, trans
         };
     }
 
+    const delta = partial
+        ? translate('notification.scanResult.frontend.deltaPartial', '(%d new, %d resolved on the %d pages also checked in the previous scan).', issuesNew, issuesResolved, count(comparison.comparedPages))
+        : translate('notification.scanResult.frontend.delta', '(%d new); %d resolved.', issuesNew, issuesResolved);
+    const noDelta = differentPages
+        ? translate('notification.scanResult.frontend.differentPages', '(the previous scan checked other pages; no direct comparison).')
+        : translate('notification.scanResult.frontend.noBaseline', '(no earlier comparable scan).');
     const result = !hasTotals
-        ? translate('notification.scanResult.changeOnly', 'Since the previous scan: %d new, %d resolved. The report lists every open issue.', issuesNew, issuesResolved)
+        ? (crawlerCountsOnly
+            ? translate('notification.scanResult.frontend.noComparison', 'Frontend scan completed. The report lists every open issue.')
+            : translate('notification.scanResult.changeOnly', 'Since the previous scan: %d new, %d resolved. The report lists every open issue.', issuesNew, issuesResolved))
         : (occurrences === 0
             ? (compared
                 ? translate('notification.scanResult.frontend.noneFound', 'No issues found on the checked pages; %d resolved.', issuesResolved)
@@ -261,9 +276,7 @@ export function frontendScanNotification(summary, { scope = 'site' } = {}, trans
             : [
                 plural(translate, 'notification.scanResult.frontend.occurrences', '%d occurrence', '%d occurrences', occurrences),
                 plural(translate, 'notification.scanResult.frontend.issueTypes', 'of %d issue type', 'of %d issue types', issueTypes),
-                compared
-                    ? translate('notification.scanResult.frontend.delta', '(%d new); %d resolved.', issuesNew, issuesResolved)
-                    : translate('notification.scanResult.frontend.noBaseline', '(no earlier comparable scan).'),
+                compared ? delta : noDelta,
             ].join(' '));
 
     if (failed > 0 || notChecked > 0) {

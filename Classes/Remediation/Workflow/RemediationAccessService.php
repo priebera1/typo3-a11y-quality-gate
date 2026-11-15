@@ -11,6 +11,7 @@ use Priebera\A11yQualityGate\Service\AccessControlService;
 use Priebera\A11yQualityGate\Service\BackendRecordAccessService;
 use Priebera\A11yQualityGate\Service\BackendUserService;
 use Priebera\A11yQualityGate\Service\ScopeAccessService;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Who may see, prepare, approve and apply remediation items. Layered on AQG's existing model and never wider than it
@@ -22,13 +23,18 @@ use Priebera\A11yQualityGate\Service\ScopeAccessService;
  * (agent-originated approval is not authorized), and there is no two-step approval (creator ≠ approver) yet — the
  * creator, reviewer and applier are recorded separately so it can be added without a data change.
  */
-final class RemediationAccessService
+final class RemediationAccessService implements McpCallScopedState
 {
     public const ORIGIN_EDITOR_REQUEST = 'editor_request';
     public const ORIGIN_BULK = 'bulk';
     public const ORIGIN_AGENT = 'agent';
 
-    /** @var array<int,bool> */
+    /**
+     * canReadPage() verdicts of this request, keyed "userUid:workspace:pageUid": a verdict decides only for the user and
+     * workspace it was made for, even if a reset were missed (MCP connector, McpCallScopedState).
+     *
+     * @var array<string,bool>
+     */
     private array $readablePages = [];
 
     public function __construct(
@@ -64,6 +70,40 @@ final class RemediationAccessService
     public function currentWorkspace(): int
     {
         return (int)($this->backendUserService->getBackendUser()?->workspace ?? 0);
+    }
+
+    /**
+     * Whether another person has the record open in the TYPO3 form (sys_lockedrecords): that form's next save would
+     * write the old value back over a change AQG stores now. For an image use, its content element counts too.
+     */
+    public function isRecordOpenElsewhere(string $table, int $uid): bool
+    {
+        if ($table === '' || $uid <= 0) {
+            return false;
+        }
+        $records = [[$table, $uid]];
+        if ($table === 'sys_file_reference') {
+            $reference = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Database\ConnectionPool::class)
+                ->getConnectionForTable('sys_file_reference')
+                ->select(['uid_foreign', 'tablenames'], 'sys_file_reference', ['uid' => $uid])->fetchAssociative();
+            if (is_array($reference) && (string)$reference['tablenames'] !== '' && (int)$reference['uid_foreign'] > 0) {
+                $records[] = [(string)$reference['tablenames'], (int)$reference['uid_foreign']];
+            }
+        }
+        // TYPO3's own rule (BackendUtility::isRecordLocked()): a lock of another user younger than two hours. Read directly:
+        // isRecordLocked() needs a backend language service, which agents and CLI requests do not have.
+        $queryBuilder = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Database\ConnectionPool::class)->getQueryBuilderForTable('sys_lockedrecords');
+        $queryBuilder->getRestrictions()->removeAll();
+        $byRecord = array_map(static fn (array $record) => $queryBuilder->expr()->and(
+            $queryBuilder->expr()->eq('record_table', $queryBuilder->createNamedParameter($record[0])),
+            $queryBuilder->expr()->eq('record_uid', $queryBuilder->createNamedParameter($record[1], \TYPO3\CMS\Core\Database\Connection::PARAM_INT)),
+        ), $records);
+
+        return (int)$queryBuilder->count('uid')->from('sys_lockedrecords')->where(
+            $queryBuilder->expr()->neq('userid', $queryBuilder->createNamedParameter($this->userUid(), \TYPO3\CMS\Core\Database\Connection::PARAM_INT)),
+            $queryBuilder->expr()->gt('tstamp', $queryBuilder->createNamedParameter((int)($GLOBALS['EXEC_TIME'] ?? time()) - 7200, \TYPO3\CMS\Core\Database\Connection::PARAM_INT)),
+            $queryBuilder->expr()->or(...$byRecord),
+        )->executeQuery()->fetchOne() > 0;
     }
 
     /** PRO / Agency (not Trial, not Free) for this site: the queue is a paid feature. */
@@ -124,7 +164,12 @@ final class RemediationAccessService
 
     public function canReadPage(int $pageUid): bool
     {
-        return $this->readablePages[$pageUid] ??= $this->scopeAccessService->canReadPage($pageUid);
+        $userUid = $this->userUid();
+        if ($userUid <= 0) {
+            return $this->scopeAccessService->canReadPage($pageUid);
+        }
+
+        return $this->readablePages[$userUid . ':' . $this->currentWorkspace() . ':' . $pageUid] ??= $this->scopeAccessService->canReadPage($pageUid);
     }
 
     public function canEditPage(int $pageUid): bool
@@ -178,13 +223,16 @@ final class RemediationAccessService
         if (!$this->canSee($item)) {
             return 'permission_denied';
         }
-        if ((string)$item['origin'] === self::ORIGIN_AGENT) {
-            return 'agent_approval_disabled';
-        }
         if (!$this->hasLicence((string)$item['site_identifier'])) {
             return 'no_licence';
         }
-        $ownRequest = (int)$item['created_by'] === $this->userUid() && (string)$item['origin'] === self::ORIGIN_EDITOR_REQUEST;
+        // An item an agent prepared (MCP suggestions:prepare) belongs to the person whose token it used: that person
+        // approves it here in the backend like an own request. Agents themselves never reach this step — the connector
+        // offers no tool that approves or applies (changes:apply stays locked).
+        // An agent batch (several findings at once, which needed ai.bulk) is approved like a bulk item: with ai.bulk.
+        $ownRequest = (int)$item['created_by'] === $this->userUid()
+            && ((string)$item['origin'] === self::ORIGIN_EDITOR_REQUEST
+                || ((string)$item['origin'] === self::ORIGIN_AGENT && (string)($item['batch_id'] ?? '') === ''));
         if ($bulk ? !$this->mayUseBulk() : !($this->mayUseBulk() || $ownRequest)) {
             return 'permission_denied';
         }
@@ -254,5 +302,11 @@ final class RemediationAccessService
         }
 
         return '';
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->readablePages = [];
     }
 }

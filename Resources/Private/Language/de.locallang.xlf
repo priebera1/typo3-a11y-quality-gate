@@ -8847,6 +8847,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>A rule-based fix without an AI request.</source>
                 <target>Eine regelbasierte Korrektur ohne KI-Anfrage.</target>
             </trans-unit>
+            <trans-unit id="ai.editor.reason.emptyHeadingNoBasis">
+                <source>Nothing follows this empty heading, so there is no section for it to name. Remove the empty heading.</source>
+                <target>Nach dieser leeren Überschrift folgt kein Inhalt, den sie benennen könnte. Entfernen Sie die leere Überschrift.</target>
+            </trans-unit>
             <trans-unit id="rte.aiNeedsReviewHelp">
                 <source>The context does not allow a reliable suggestion. Please fix it yourself.</source>
                 <target>Der Kontext erlaubt keinen verlässlichen Vorschlag. Bitte beheben Sie es selbst.</target>
@@ -12235,6 +12239,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>AI did not produce a usable suggestion. Fix it manually with the guidance above.</source>
                 <target>Die KI hat keinen brauchbaren Vorschlag geliefert. Beheben Sie es mit der Anleitung oben.</target>
             </trans-unit>
+            <trans-unit id="toolbar.assistant.aiReason">
+                <source>Reason given by the AI</source>
+                <target>Begründung der KI</target>
+            </trans-unit>
             <trans-unit id="toolbar.assistant.prepareManual">
                 <source>AQG cannot prepare a safe AI change for this occurrence. Fix it in the editor with the guidance above.</source>
                 <target>AQG kann für dieses Vorkommen keine sichere KI-Änderung vorbereiten. Beheben Sie es im Editor mit der Anleitung oben.</target>
@@ -12994,6 +13002,58 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="notification.scanResult.frontend.noBaseline">
                 <source>(no earlier comparable scan).</source>
                 <target>(kein früherer vergleichbarer Scan).</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.label">
+                <source>Not directly comparable</source>
+                <target>Nicht direkt vergleichbar</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.scope">
+                <source>The scan scope changed (excluded paths, priority URLs or sitemap), so the scans checked different pages. A reliable direct comparison is not available. Open each scan to review its findings.</source>
+                <target>Der Scan-Umfang wurde geändert (ausgeschlossene Pfade, Prioritäts-URLs oder Sitemap), daher haben die Scans unterschiedliche Seiten geprüft. Ein verlässlicher direkter Vergleich ist nicht möglich. Öffnen Sie jeden Scan, um seine Befunde zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.pageBudget">
+                <source>The page limit changed and at least one scan stopped at its limit, so the scans checked different pages. A reliable direct comparison is not available. Open each scan to review its findings.</source>
+                <target>Das Seitenlimit wurde geändert und mindestens ein Scan hat sein Limit erreicht, daher haben die Scans unterschiedliche Seiten geprüft. Ein verlässlicher direkter Vergleich ist nicht möglich. Öffnen Sie jeden Scan, um seine Befunde zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.scopeNotRecorded">
+                <source>At least one of these scans ran before the AQG service recorded which pages a scan may check, and the two scans did not check the same pages. A reliable direct comparison is not available. Open each scan to review its findings.</source>
+                <target>Mindestens einer dieser Scans lief, bevor der AQG-Dienst festhielt, welche Seiten ein Scan prüfen darf, und die beiden Scans haben nicht dieselben Seiten geprüft. Ein verlässlicher direkter Vergleich ist nicht möglich. Öffnen Sie jeden Scan, um seine Befunde zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.pages">
+                <source>The scans checked different pages (%1$d only in the earlier scan, %2$d only in the later scan). A reliable direct comparison is not available. Open each scan to review its findings.</source>
+                <target>Die Scans haben unterschiedliche Seiten geprüft (%1$d nur im früheren Scan, %2$d nur im späteren Scan). Ein verlässlicher direkter Vergleich ist nicht möglich. Öffnen Sie jeden Scan, um seine Befunde zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.notComparable.generic">
+                <source>These scans are not directly comparable. Open each scan to review its findings.</source>
+                <target>Diese Scans sind nicht direkt vergleichbar. Öffnen Sie jeden Scan, um seine Befunde zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.openEarlierReport">
+                <source>Open earlier scan report</source>
+                <target>Bericht des früheren Scans öffnen</target>
+            </trans-unit>
+            <trans-unit id="remote.comparison.openLaterReport">
+                <source>Open later scan report</source>
+                <target>Bericht des späteren Scans öffnen</target>
+            </trans-unit>
+            <trans-unit id="remote.regression.notComparable.title">
+                <source>No regression signal: the previous scan covered a different scope.</source>
+                <target>Kein Regressionssignal: Der vorherige Scan hatte einen anderen Umfang.</target>
+            </trans-unit>
+            <trans-unit id="remote.regression.notComparable.summary">
+                <source>Run another scan with the same settings to get a comparison.</source>
+                <target>Führen Sie einen weiteren Scan mit denselben Einstellungen aus, um einen Vergleich zu erhalten.</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.deltaPartial">
+                <source>(%d new, %d resolved on the %d pages also checked in the previous scan).</source>
+                <target>(%d neu, %d behoben auf den %d Seiten, die auch im vorherigen Scan geprüft wurden).</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.differentPages">
+                <source>(the previous scan checked other pages; no direct comparison).</source>
+                <target>(der vorherige Scan hat andere Seiten geprüft; kein direkter Vergleich).</target>
+            </trans-unit>
+            <trans-unit id="notification.scanResult.frontend.noComparison">
+                <source>Frontend scan completed. The report lists every open issue.</source>
+                <target>Frontend-Scan abgeschlossen. Der Bericht listet alle offenen Probleme.</target>
             </trans-unit>
             <trans-unit id="settings.qualityGate.readOnly">
                 <source>Only TYPO3 administrators can change Quality Gate settings. This configuration is read-only.</source>
@@ -14888,8 +14948,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Seite %d</target>
             </trans-unit>
             <trans-unit id="remediation.intro">
-                <source>Review AI-prepared fixes before anything changes. Approved image texts are saved for you; text and link changes open in their editor, where you save them. AQG then checks whether the issue is gone.</source>
-                <target>Prüfen Sie KI-vorbereitete Korrekturen, bevor sich etwas ändert. Freigegebene Bildtexte werden für Sie gespeichert; Text- und Linkänderungen öffnen sich in ihrem Editor, wo Sie sie speichern. Danach prüft AQG, ob das Problem behoben ist.</target>
+                <source>Review AI-prepared fixes before anything changes. Approved image texts and reviewed changes in rich text and Plain HTML are saved for you with Apply and verify, which changes only that element. A change AQG cannot prove opens in its editor, where you save it. AQG then checks whether the issue is gone.</source>
+                <target>Prüfen Sie KI-vorbereitete Korrekturen, bevor sich etwas ändert. Freigegebene Bildtexte und geprüfte Änderungen in Rich Text und Plain HTML speichert AQG mit „Übernehmen und prüfen“ für Sie; dabei ändert sich nur dieses Element. Eine Änderung, die AQG nicht nachweisen kann, öffnet sich in ihrem Editor, wo Sie sie speichern. Danach prüft AQG, ob das Problem behoben ist.</target>
             </trans-unit>
             <trans-unit id="remediation.free.title">
                 <source>AI fixes are part of AQG PRO and Agency</source>
@@ -15920,8 +15980,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Schreibt nur den Alternativtext dieser Bildverwendung über den TYPO3 DataHandler. Im Datensatzverlauf umkehrbar.</target>
             </trans-unit>
             <trans-unit id="remediation.js.drawer.editorApply">
-                <source>AQG never rewrites rich text or HTML on the server. The record opens with this change staged; you check it there and save with TYPO3 Save.</source>
-                <target>AQG schreibt Rich Text oder HTML nie auf dem Server um. Der Datensatz öffnet sich mit dieser vorbereiteten Änderung; Sie prüfen sie dort und speichern mit TYPO3 Speichern.</target>
+                <source>The record opens with this change staged; you check it there and save with TYPO3 Save.</source>
+                <target>Der Datensatz öffnet sich mit dieser vorbereiteten Änderung; Sie prüfen sie dort und speichern mit TYPO3 Speichern.</target>
             </trans-unit>
             <trans-unit id="remediation.js.drawer.noEditAccess">
                 <source>No edit access — someone who can edit this record must apply it.</source>
@@ -15966,6 +16026,18 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="remediation.js.action.approveApply">
                 <source>Approve and apply</source>
                 <target>Freigeben und übernehmen</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.action.applyVerify">
+                <source>Apply and verify</source>
+                <target>Übernehmen und prüfen</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.action.applyInEditor">
+                <source>Apply in the editor instead</source>
+                <target>Stattdessen im Editor übernehmen</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.drawer.richTextServerWrite">
+                <source>Changes only this element of the field through TYPO3 DataHandler, with your permissions, then checks the saved record. In the live workspace the change is on the website at once; in a workspace it is published with the workspace. Reversible in the record history.</source>
+                <target>Ändert nur dieses Element des Feldes über den TYPO3 DataHandler, mit Ihren Rechten, und prüft danach den gespeicherten Datensatz. Im Live-Workspace ist die Änderung sofort auf der Website; in einem Workspace wird sie mit dem Workspace veröffentlicht. Im Datensatzverlauf umkehrbar.</target>
             </trans-unit>
             <trans-unit id="remediation.js.action.approveEditor">
                 <source>Approve and open in editor</source>
@@ -17083,6 +17155,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>The AI answered, but without a suggestion AQG can use. Nothing was changed; fix this occurrence in the record.</source>
                 <target>Die KI hat geantwortet, aber ohne Vorschlag, den AQG verwenden kann. Es wurde nichts geändert; beheben Sie dieses Vorkommen im Datensatz.</target>
             </trans-unit>
+            <trans-unit id="remediation.pd.result.aiReason">
+                <source>Reason given by the AI</source>
+                <target>Begründung der KI</target>
+            </trans-unit>
             <trans-unit id="remediation.pd.result.failedTitle">
                 <source>AI request failed</source>
                 <target>KI-Anfrage fehlgeschlagen</target>
@@ -17476,8 +17552,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Eine ganze Site scannen</target>
             </trans-unit>
             <trans-unit id="mcp.scope.suggestionsPrepare.text">
-                <source>Later: AI suggestions that a person reviews in the remediation queue.</source>
-                <target>Später: KI-Vorschläge, die eine Person in der Korrekturliste prüft.</target>
+                <source>Asks AI for fix suggestions to content issues, as this TYPO3 user and within the site's AI budget. Nothing changes: a person reviews, approves and saves every suggestion in AI Fixes.</source>
+                <target>Fordert als dieser TYPO3-Benutzer und im KI-Budget der Site KI-Korrekturvorschläge zu Inhaltsbefunden an. Es ändert sich nichts: Jede Änderung prüft, gibt frei und speichert eine Person in KI-Korrekturen.</target>
             </trans-unit>
             <trans-unit id="mcp.scope.suggestionsPrepare.title">
                 <source>Prepare fix suggestions</source>
@@ -17940,8 +18016,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Grund: %s. Das passiert auf einer Kopie einer anderen Installation, auf einem Host ohne denselben MCP-Connector-Schlüssel oder nach einer neuen Installationsidentität. Von hier wird nichts an das Gateway gesendet. Auf einer Kopie a11y:mcp:reset-local --confirm ausführen und sie separat verbinden; eine Kopie nie trennen, das würde die Verbindung des Originals beenden. Sonst auf jedem Host denselben AQG_MCP_CONNECTOR_KEY bereitstellen oder neu verbinden.</target>
             </trans-unit>
             <trans-unit id="settings.mcp.status.revoked">
-                <source>The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Connect it again.</source>
-                <target>Das Gateway akzeptiert diese Installation nicht mehr (getrennt oder anderswo neu gekoppelt). Verbinden Sie sie erneut.</target>
+                <source>The Gateway no longer accepts this installation (disconnected or paired again elsewhere). Remove the old connection to connect again.</source>
+                <target>Das Gateway akzeptiert diese Installation nicht mehr (getrennt oder anderswo neu gekoppelt). Entfernen Sie die alte Verbindung, um sie neu zu verbinden.</target>
             </trans-unit>
             <trans-unit id="settings.mcp.status.suspended">
                 <source>Agent access is suspended: the licence does not allow it now. Tokens are kept; they work again until their own end date once the licence is valid.</source>
@@ -18376,8 +18452,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Element selbst bearbeiten</target>
             </trans-unit>
             <trans-unit id="toolbar.repair.ui.safety">
-                <source>Nothing is applied or published. Every AI suggestion waits for your review in AI fixes; you decide what changes.</source>
-                <target>Es wird nichts übernommen oder veröffentlicht. Jeder KI-Vorschlag wartet in KI-Korrekturen auf Ihre Prüfung; Sie entscheiden, was sich ändert.</target>
+                <source>Nothing changes until you approve a suggestion and it is saved. You decide what changes.</source>
+                <target>Nichts ändert sich, bevor Sie einen Vorschlag freigeben und er gespeichert ist. Sie entscheiden, was sich ändert.</target>
             </trans-unit>
             <trans-unit id="toolbar.repair.ui.basis">
                 <source>Answered from your AQG findings, no AI used. AI is used only when you prepare suggestions.</source>
@@ -18848,8 +18924,8 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <target>Öffnen Sie das erste in der Seitendetailansicht, beheben Sie es und prüfen Sie dann die gespeicherte Seite erneut.</target>
             </trans-unit>
             <trans-unit id="toolbar.ask.placeholder">
-                <source>Ask about this page or website, e.g. What should I fix first? Where can I fix the missing alt text?</source>
-                <target>Fragen Sie zu dieser Seite oder Website, z. B. Was sollte ich zuerst beheben? Wo ergänze ich den fehlenden Alternativtext?</target>
+                <source>Ask a question, e.g. What should I fix first?</source>
+                <target>Stellen Sie eine Frage, z. B. Was sollte ich zuerst beheben?</target>
             </trans-unit>
             <trans-unit id="toolbar.ask.answers">
                 <source>Answers</source>
@@ -19169,7 +19245,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="assignment.filter.allSites">
                 <source>All sites</source>
-                <target>Alle Sites</target>
+                <target>Alle Websites</target>
             </trans-unit>
             <trans-unit id="assignment.empty.search">
                 <source>No tasks match “%s”</source>
@@ -19181,7 +19257,7 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="assignment.filter.search">
                 <source>Search</source>
-                <target>Suchen</target>
+                <target>Suche</target>
             </trans-unit>
             <trans-unit id="assignment.filter.searchPlaceholder">
                 <source>Issue type or page</source>
@@ -19225,10 +19301,10 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             </trans-unit>
             <trans-unit id="assignment.filter.site">
                 <source>Site</source>
-                <target>Site</target>
+                <target>Website</target>
             </trans-unit>
             <trans-unit id="assignment.filter.state">
-                <source>State</source>
+                <source>Status</source>
                 <target>Status</target>
             </trans-unit>
             <trans-unit id="assignment.filter.unassigned">
@@ -19850,6 +19926,682 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="mcp.consent.decisionHelp">
                 <source>Deny is safe at any time. Allow grants only the ticked capabilities and sites, for the chosen period.</source>
                 <target>Ablehnen ist jederzeit sicher. Erlauben gewährt nur die angekreuzten Berechtigungen und Sites für den gewählten Zeitraum.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.expand">
+                <source>Expand</source>
+                <target>Vergrößern</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.collapse">
+                <source>Back to toolbar</source>
+                <target>Zurück zur Leiste</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.listTitle">
+                <source>Problems</source>
+                <target>Probleme</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.stored">
+                <source>This is the status from earlier. Refresh it before you act on it.</source>
+                <target>Das ist der Stand von vorhin. Aktualisieren Sie ihn, bevor Sie handeln.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.refresh">
+                <source>Refresh status</source>
+                <target>Stand aktualisieren</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.cards">
+                <source>Problems</source>
+                <target>Probleme</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.states">
+                <source>Overview</source>
+                <target>Übersicht</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.ready">
+                <source>Ready to prepare: %d</source>
+                <target>Bereit zur Vorbereitung: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.queued">
+                <source>In AI Fixes: %d</source>
+                <target>In KI-Korrekturen: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.saved">
+                <source>Saved, not verified: %d</source>
+                <target>Gespeichert, nicht bestätigt: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.manual">
+                <source>Manual work: %d</source>
+                <target>Manuell: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.blocked">
+                <source>Not possible now: %d</source>
+                <target>Derzeit nicht möglich: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.stale">
+                <source>May be fixed already: %d</source>
+                <target>Eventuell schon behoben: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.number">
+                <source>Problem %d: </source>
+                <target>Problem %d: </target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.sourceRendered">
+                <source>Page output</source>
+                <target>Seitenausgabe</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.why">
+                <source>Why it matters</source>
+                <target>Warum das wichtig ist</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.prepareFix">
+                <source>Prepare fix</source>
+                <target>Korrektur vorbereiten</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.showField">
+                <source>Show in form</source>
+                <target>Im Formular zeigen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.openEditor">
+                <source>Open editor</source>
+                <target>Im Editor öffnen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.contextChanged">
+                <source>You moved to another page or record. Ask again there.</source>
+                <target>Sie sind auf einer anderen Seite oder in einem anderen Datensatz. Fragen Sie dort erneut.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.suggestion">
+                <source>Suggested change</source>
+                <target>Vorgeschlagene Änderung</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.before">
+                <source>Before</source>
+                <target>Vorher</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.after">
+                <source>After</source>
+                <target>Nachher</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.empty">
+                <source>(empty)</source>
+                <target>(leer)</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.approveSave">
+                <source>Approve and save</source>
+                <target>Freigeben und speichern</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.approveEditor">
+                <source>Approve for the editor</source>
+                <target>Für den Editor freigeben</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.editInFixes">
+                <source>Adjust in AI Fixes</source>
+                <target>In KI-Korrekturen anpassen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.savedCheck">
+                <source>Saved. Check the saved page to confirm the problem is gone.</source>
+                <target>Gespeichert. Prüfen Sie die gespeicherte Seite, um zu bestätigen, dass das Problem behoben ist.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.applyInEditor">
+                <source>Approved. Open the element: AQG puts the change into the field, and you save it with TYPO3’s Save button.</source>
+                <target>Freigegeben. Öffnen Sie das Element: AQG setzt die Änderung in das Feld ein, und Sie speichern sie mit „Speichern“ in TYPO3.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.openToApply">
+                <source>Open in editor to apply</source>
+                <target>Im Editor öffnen und übernehmen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.ask.intro">
+                <source>Ask what to fix here. Answers come from your AQG findings, and nothing changes until you approve it.</source>
+                <target>Fragen Sie, was hier zu beheben ist. Die Antworten stammen aus Ihren AQG-Ergebnissen, und nichts ändert sich, bevor Sie es freigeben.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.title">
+                <source>Progress</source>
+                <target>Fortschritt</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.suggested">
+                <source>Suggested</source>
+                <target>Vorgeschlagen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.reviewed">
+                <source>Approved</source>
+                <target>Freigegeben</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.saved">
+                <source>Saved</source>
+                <target>Gespeichert</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.editor">
+                <source>Saved in TYPO3</source>
+                <target>In TYPO3 gespeichert</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.step.verified">
+                <source>Verified</source>
+                <target>Bestätigt</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.verify.resolved">
+                <source>Verified fixed (%d):</source>
+                <target>Als behoben bestätigt (%d):</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.verify.open">
+                <source>Still open (%d):</source>
+                <target>Weiterhin offen (%d):</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.title">
+                <source>How to fix it</source>
+                <target>So beheben Sie es</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.problem">
+                <source>What is wrong</source>
+                <target>Was falsch ist</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.where">
+                <source>Where</source>
+                <target>Wo</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.change">
+                <source>Recommended change</source>
+                <target>Empfohlene Änderung</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.action">
+                <source>How to do it</source>
+                <target>So gehen Sie vor</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.missing">
+                <source>What AQG cannot tell</source>
+                <target>Was AQG nicht wissen kann</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.verify">
+                <source>How AQG confirms the fix</source>
+                <target>Wie AQG die Korrektur bestätigt</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.outline">
+                <source>Headings in this text, as saved</source>
+                <target>Überschriften in diesem Text (gespeicherter Stand)</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.guide.flagged">
+                <source>skips a level</source>
+                <target>überspringt eine Ebene</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.expandHint">
+                <source>Open Ask AQG in a large view</source>
+                <target>Ask AQG in einer großen Ansicht öffnen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.quick.list">
+                <source>What problems does this page have?</source>
+                <target>Welche Probleme hat diese Seite?</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.quick.fixAll">
+                <source>Fix all problems on this page</source>
+                <target>Alle Probleme auf dieser Seite beheben</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.quick.title">
+                <source>Start with</source>
+                <target>Beginnen Sie mit</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.composerHint">
+                <source>Enter sends, Shift+Enter adds a line. Refer to a problem by its number, e.g. “Fix problem 2”.</source>
+                <target>Enter sendet, Umschalt+Enter fügt eine Zeile ein. Nennen Sie ein Problem mit seiner Nummer, z. B. „Behebe Problem 2“.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.one">
+                <source>1 problem %s.</source>
+                <target>1 Problem %s.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.many">
+                <source>%1$d problems %2$s, most severe first.</source>
+                <target>%1$d Probleme %2$s, die schwersten zuerst.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.selectedOne">
+                <source>Here is the problem you chose.</source>
+                <target>Hier ist das Problem, das Sie gewählt haben.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.selected">
+                <source>Here are the %d problems you chose.</source>
+                <target>Hier sind die %d Probleme, die Sie gewählt haben.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.clarify.changed">
+                <source>The problem you named is no longer open here, or the list has changed since. Nothing was prepared. Choose a problem from the current list below.</source>
+                <target>Das genannte Problem ist hier nicht mehr offen, oder die Liste hat sich seitdem geändert. Es wurde nichts vorbereitet. Wählen Sie ein Problem aus der aktuellen Liste unten.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.clarify.unknown">
+                <source>I am not sure which problem you mean, so nothing was prepared. Choose one from the list below, or ask “Fix problem 2”.</source>
+                <target>Ich bin nicht sicher, welches Problem Sie meinen, daher wurde nichts vorbereitet. Wählen Sie eines aus der Liste unten oder schreiben Sie „Behebe Problem 2“.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.verify">
+                <source>After you save, choose “Recheck saved content”. AQG checks the page again and closes this issue when the problem is gone.</source>
+                <target>Wählen Sie nach dem Speichern „Gespeicherten Inhalt erneut prüfen“. AQG prüft die Seite erneut und schließt diesen Befund, wenn das Problem behoben ist.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.rendered.where">
+                <source>In the page as visitors see it (template, layout or plugin output).</source>
+                <target>In der Seite, wie Besucher sie sehen (Ausgabe von Template, Layout oder Plugin).</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.rendered.action">
+                <source>Send this issue to the person who maintains your templates or extensions. If it comes from content, find the element on the page and correct it there.</source>
+                <target>Geben Sie diesen Befund an die Person weiter, die Ihre Templates oder Extensions betreut. Stammt er aus Inhalten, suchen Sie das Element auf der Seite und korrigieren Sie es dort.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.rendered.missing">
+                <source>AQG found this in the rendered page. It does not know which content element, template or plugin produced it, so it cannot open an editor for it.</source>
+                <target>AQG hat dies in der ausgegebenen Seite gefunden. Es weiß nicht, welches Inhaltselement, Template oder Plugin es erzeugt hat, und kann daher keinen Editor dafür öffnen.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.action.noAccess">
+                <source>You may read this content but not change it. Ask an editor with access to this element to make the change.</source>
+                <target>Sie dürfen diesen Inhalt lesen, aber nicht ändern. Bitten Sie eine Redakteurin oder einen Redakteur mit Zugriff auf dieses Element um die Änderung.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.action.here">
+                <source>The element is open in the editor. Use “Show in form” to jump to the field, correct it and save.</source>
+                <target>Das Element ist im Editor geöffnet. Springen Sie mit „Im Formular zeigen“ zum Feld, korrigieren Sie es und speichern Sie.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.action.open">
+                <source>Open the element in the editor, correct the field named above and save.</source>
+                <target>Öffnen Sie das Element im Editor, korrigieren Sie das oben genannte Feld und speichern Sie.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.workspace">
+                <source>AQG checked the live version. Your workspace version may differ; check it before you publish.</source>
+                <target>AQG hat die Live-Version geprüft. Ihre Workspace-Version kann abweichen; prüfen Sie sie vor dem Veröffentlichen.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.missing">
+                <source>AQG checked this text field on its own. Headings in the element’s own header, in other elements and in the page template were not compared. If this text starts a new section of the page, choose the level that fits the page’s heading structure.</source>
+                <target>AQG hat dieses Textfeld für sich geprüft. Überschriften im Kopf des Elements, in anderen Elementen und im Seiten-Template wurden nicht verglichen. Beginnt dieser Text einen neuen Abschnitt der Seite, wählen Sie die Ebene, die zur Überschriftenstruktur der Seite passt.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.problemUnknown">
+                <source>A heading in this text skips a level.</source>
+                <target>Eine Überschrift in diesem Text überspringt eine Ebene.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.problemNamed">
+                <source>The heading “%1$s” is an H%2$d, but the heading before it in this text, “%3$s”, is an H%4$d. Level H%5$d is skipped, so screen reader users may think part of the content is missing.</source>
+                <target>Die Überschrift „%1$s“ ist eine H%2$d, die Überschrift davor in diesem Text, „%3$s“, aber eine H%4$d. Die Ebene H%5$d wird übersprungen; Nutzer von Screenreadern können denken, dass ein Teil des Inhalts fehlt.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.recommendNamed">
+                <source>Change “%1$s” from H%2$d to H%3$d, one level below the H%4$d before it.</source>
+                <target>Ändern Sie „%1$s“ von H%2$d zu H%3$d, eine Ebene unter der H%4$d davor.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.problem">
+                <source>A heading in this text jumps from H%1$d to H%2$d. Level H%3$d is skipped, so screen reader users may think part of the content is missing.</source>
+                <target>Eine Überschrift in diesem Text springt von H%1$d zu H%2$d. Die Ebene H%3$d wird übersprungen; Nutzer von Screenreadern können denken, dass ein Teil des Inhalts fehlt.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.recommend">
+                <source>Change that H%1$d to H%2$d, one level below the H%3$d before it.</source>
+                <target>Ändern Sie diese H%1$d zu H%2$d, eine Ebene unter der H%3$d davor.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.changed">
+                <source>The saved text no longer shows this jump. It may be fixed already; check the saved page to confirm.</source>
+                <target>Der gespeicherte Text zeigt diesen Sprung nicht mehr. Er ist eventuell schon behoben; prüfen Sie die gespeicherte Seite zur Bestätigung.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.guide.heading.action">
+                <source>Open the text in the editor. AQG marks the heading there; choose “Change to Heading %d” in AQG’s panel (no AI), or pick that level in the toolbar’s Heading menu. Then save.</source>
+                <target>Öffnen Sie den Text im Editor. AQG markiert die Überschrift dort; wählen Sie im AQG-Bereich „In Überschrift %d ändern“ (ohne KI) oder diese Ebene im Menü „Überschrift“ der Werkzeugleiste. Speichern Sie danach.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.where.page">
+                <source>on this page</source>
+                <target>auf dieser Seite</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.where.record">
+                <source>in this content element</source>
+                <target>in diesem Inhaltselement</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.list.where.file">
+                <source>for this file</source>
+                <target>zu dieser Datei</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.reviewBelow">
+                <source>Check the suggestion below, then approve it or adjust it in AI Fixes.</source>
+                <target>Prüfen Sie den Vorschlag unten und geben Sie ihn frei oder passen Sie ihn in KI-Korrekturen an.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.clarify.resolved">
+                <source>Problem %s is no longer open: AQG’s latest check of the saved content no longer finds it. Nothing was prepared. The problems still open are below.</source>
+                <target>Problem %s ist nicht mehr offen: Die letzte Prüfung des gespeicherten Inhalts durch AQG findet es nicht mehr. Es wurde nichts vorbereitet. Die weiterhin offenen Probleme stehen unten.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.oneWhere">
+                <source>I found 1 problem %s.</source>
+                <target>Ich habe 1 Problem %s gefunden.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.headline.manyWhere">
+                <source>I found %1$d problems %2$s.</source>
+                <target>Ich habe %1$d Probleme %2$s gefunden.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.notice.unsaved">
+                <source>This form has unsaved changes. The problems and suggestions here are based on the saved version: save first, then choose “Recheck saved content”.</source>
+                <target>Dieses Formular hat ungespeicherte Änderungen. Die Probleme und Vorschläge hier beruhen auf dem gespeicherten Stand: Speichern Sie zuerst und wählen Sie dann „Gespeicherten Inhalt erneut prüfen“.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.resize">
+                <source>Resize Ask AQG panel</source>
+                <target>Größe des Ask-AQG-Bereichs ändern</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.minimize">
+                <source>Minimize</source>
+                <target>Minimieren</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.close">
+                <source>Close panel</source>
+                <target>Bereich schließen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.controls">
+                <source>Ask AQG panel</source>
+                <target>Ask-AQG-Bereich</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.restore">
+                <source>Show Ask AQG</source>
+                <target>Ask AQG anzeigen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.show">
+                <source>Show panel</source>
+                <target>Bereich anzeigen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.back">
+                <source>Back to toolbar</source>
+                <target>Zurück zur Leiste</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.dock.openHere">
+                <source>Ask AQG is open in the panel on the right.</source>
+                <target>Ask AQG ist im Bereich rechts geöffnet.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.verify.checked">
+                <source>Checked the saved content just now.</source>
+                <target>Gespeicherten Inhalt soeben geprüft.</target>
+            </trans-unit>
+            <trans-unit id="assignment.filter.perPage">
+                <source>Per page</source>
+                <target>Pro Seite</target>
+            </trans-unit>
+            <trans-unit id="assignment.filter.pending">
+                <source>Changed filters are not applied yet.</source>
+                <target>Geänderte Filter sind noch nicht angewendet.</target>
+            </trans-unit>
+            <trans-unit id="assignment.filter.error">
+                <source>The list could not be updated. Reload the module and try again.</source>
+                <target>Die Liste konnte nicht aktualisiert werden. Laden Sie das Modul neu und versuchen Sie es erneut.</target>
+            </trans-unit>
+            <trans-unit id="assignment.chips.label">
+                <source>Active filters:</source>
+                <target>Aktive Filter:</target>
+            </trans-unit>
+            <trans-unit id="assignment.chips.remove">
+                <source>Remove filter %s</source>
+                <target>Filter %s entfernen</target>
+            </trans-unit>
+            <trans-unit id="assignment.chips.clearAll">
+                <source>Clear filters</source>
+                <target>Filter zurücksetzen</target>
+            </trans-unit>
+            <trans-unit id="assignment.empty.unassignedDone">
+                <source>Unassigned work is always open work</source>
+                <target>Nicht zugewiesene Arbeit ist immer offene Arbeit</target>
+            </trans-unit>
+            <trans-unit id="assignment.empty.unassignedDoneHint">
+                <source>“Done” lists tasks that were assigned to someone and are now fixed. Choose “Everyone” or a person to see finished work, or “To do” to see unassigned work.</source>
+                <target>„Erledigt“ zeigt Aufgaben, die jemandem zugewiesen waren und jetzt behoben sind. Wählen Sie „Alle“ oder eine Person für erledigte Arbeit oder „Zu erledigen“ für nicht zugewiesene Arbeit.</target>
+            </trans-unit>
+            <trans-unit id="assignment.backToList">
+                <source>Back to My issues</source>
+                <target>Zurück zu Meine Aufgaben</target>
+            </trans-unit>
+            <trans-unit id="remediation.meta.site">
+                <source>Site:</source>
+                <target>Website:</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.unavailable.title">
+                <source>This AI fix cannot be opened</source>
+                <target>Diese KI-Korrektur kann nicht geöffnet werden</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.unavailable.text">
+                <source>It no longer exists, or your account has no access to its page, record or workspace. The list below shows the AI fixes you can open.</source>
+                <target>Sie existiert nicht mehr, oder Ihr Konto hat keinen Zugriff auf ihre Seite, ihren Datensatz oder ihren Arbeitsbereich. Die Liste unten zeigt die KI-Korrekturen, die Sie öffnen können.</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.otherPage">
+                <source>This AI fix belongs to the page “%s”, not to the page selected in the link. It is opened anyway.</source>
+                <target>Diese KI-Korrektur gehört zur Seite „%s“, nicht zur Seite im Link. Sie wird trotzdem geöffnet.</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.title">
+                <source>This AI fix is kept, but the licence does not include AI fixes right now</source>
+                <target>Diese KI-Korrektur bleibt erhalten, aber die Lizenz enthält derzeit keine KI-Korrekturen</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.text">
+                <source>The suggestion for the page “%s” has not been deleted. It opens here again as soon as the site has an active PRO or Agency licence. Until then nothing is applied.</source>
+                <target>Der Vorschlag für die Seite „%s“ wurde nicht gelöscht. Er öffnet sich hier wieder, sobald die Website eine aktive PRO- oder Agency-Lizenz hat. Bis dahin wird nichts übernommen.</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.open">
+                <source>Check the licence in Settings</source>
+                <target>Lizenz in den Einstellungen prüfen</target>
+            </trans-unit>
+            <trans-unit id="remediation.deepLink.licence.editor">
+                <source>Ask an administrator to check the AQG licence of this site.</source>
+                <target>Bitten Sie eine Administratorin oder einen Administrator, die AQG-Lizenz dieser Website zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.drawer.previewUnavailable">
+                <source>Image preview unavailable</source>
+                <target>Bildvorschau nicht verfügbar</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.state.licence">
+                <source>Needs PRO or Agency</source>
+                <target>Erfordert PRO oder Agency</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.licenceKept">
+                <source>An AI fix exists for this issue, but the licence of this site does not include AI fixes right now. It is kept and opens again once the licence is active.</source>
+                <target>Für dieses Problem gibt es eine KI-Korrektur, aber die Lizenz dieser Website enthält derzeit keine KI-Korrekturen. Sie bleibt erhalten und öffnet sich wieder, sobald die Lizenz aktiv ist.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.review">
+                <source>A suggestion is waiting for your review in AI fixes.</source>
+                <target>Ein Vorschlag wartet in den KI-Korrekturen auf Ihre Prüfung.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.apply">
+                <source>The suggestion is approved. Open the editor to apply it, then save.</source>
+                <target>Der Vorschlag ist freigegeben. Öffnen Sie den Editor, um ihn zu übernehmen, und speichern Sie dann.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.reason.nosuggestion">
+                <source>AQG found no safe automatic change for this issue. Fix it in the record.</source>
+                <target>AQG hat für dieses Problem keine sichere automatische Änderung gefunden. Beheben Sie es im Datensatz.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.reviewOne">
+                <source>1 suggestion waits for your review in AI Fixes.</source>
+                <target>1 Vorschlag wartet in den KI-Korrekturen auf Ihre Prüfung.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.review">
+                <source>%d suggestions wait for your review in AI Fixes.</source>
+                <target>%d Vorschläge warten in den KI-Korrekturen auf Ihre Prüfung.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.applyOne">
+                <source>1 approved suggestion waits to be applied in the editor.</source>
+                <target>1 freigegebener Vorschlag wartet darauf, im Editor übernommen zu werden.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.apply">
+                <source>%d approved suggestions wait to be applied in the editor.</source>
+                <target>%d freigegebene Vorschläge warten darauf, im Editor übernommen zu werden.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.nosuggestionOne">
+                <source>1 has no safe automatic fix; fix it in the record.</source>
+                <target>1 Problem hat keine sichere automatische Korrektur; beheben Sie es im Datensatz.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.repair.sum.nosuggestion">
+                <source>%d have no safe automatic fix; fix them in the record.</source>
+                <target>%d Probleme haben keine sichere automatische Korrektur; beheben Sie sie im Datensatz.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.review">
+                <source>Needs review: %d</source>
+                <target>Zu prüfen: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.apply">
+                <source>Approved, apply in editor: %d</source>
+                <target>Freigegeben, im Editor übernehmen: %d</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.count.nosuggestion">
+                <source>No usable suggestion: %d</source>
+                <target>Kein verwendbarer Vorschlag: %d</target>
+            </trans-unit>
+            <trans-unit id="settings.mcp.revoked.reconnect">
+                <source>Remove old connection and connect again</source>
+                <target>Alte Verbindung entfernen und neu verbinden</target>
+            </trans-unit>
+            <trans-unit id="settings.mcp.revoked.reconnectHelp">
+                <source>AQG first asks the Gateway again. Only if it still refuses the old connection is that connection removed from this installation, then a new pairing code is shown. The host identity, site settings and the audit trail are kept; users confirm their agent again.</source>
+                <target>AQG fragt zuerst noch einmal beim Gateway nach. Nur wenn es die alte Verbindung weiterhin ablehnt, wird sie aus dieser Installation entfernt und ein neuer Kopplungscode angezeigt. Host-Identität, Website-Einstellungen und Protokoll bleiben erhalten; Benutzer bestätigen ihren Agenten erneut.</target>
+            </trans-unit>
+            <trans-unit id="settings.mcp.flash.rejectedForgotten">
+                <source>The Gateway refused the old connection; it was removed from this installation. Confirm the new pairing code in your AQG account.</source>
+                <target>Das Gateway hat die alte Verbindung abgelehnt; sie wurde aus dieser Installation entfernt. Bestätigen Sie den neuen Kopplungscode in Ihrem AQG-Konto.</target>
+            </trans-unit>
+            <trans-unit id="settings.mcp.flash.stillAccepted">
+                <source>The Gateway accepts this connection again, so nothing was removed. Check the connection status below.</source>
+                <target>Das Gateway akzeptiert diese Verbindung wieder, daher wurde nichts entfernt. Prüfen Sie den Verbindungsstatus unten.</target>
+            </trans-unit>
+            <trans-unit id="remediation.reason.quality_warning">
+                <source>The image now has alternative text, so this issue is fixed. AQG's quality check still has a remark about the text (for example, longer than 120 characters); you can shorten it in the record.</source>
+                <target>Das Bild hat jetzt einen Alternativtext, damit ist dieses Problem behoben. Die Qualitätsprüfung von AQG hat noch einen Hinweis zum Text (zum Beispiel länger als 120 Zeichen); Sie können ihn im Datensatz kürzen.</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.error.suggestion_outdated">
+                <source>This suggestion was made under older rules and is not approved as it is. Regenerate it, or edit the value yourself.</source>
+                <target>Dieser Vorschlag wurde nach älteren Regeln erstellt und wird so nicht freigegeben. Erzeugen Sie ihn neu oder bearbeiten Sie den Wert selbst.</target>
+            </trans-unit>
+            <trans-unit id="remediation.reason.suggestion_outdated">
+                <source>This suggestion was made under older rules (before AQG stopped inventing texts for empty headings). Regenerate it or fix the content in the record.</source>
+                <target>Dieser Vorschlag wurde nach älteren Regeln erstellt (bevor AQG aufgehört hat, Texte für leere Überschriften zu erfinden). Erzeugen Sie ihn neu oder beheben Sie den Inhalt im Datensatz.</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.licenceHint.inactive">
+                <source>The AQG licence is not active for this site: %s</source>
+                <target>Die AQG-Lizenz ist für diese Website nicht aktiv: %s</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.licenceHint.askAdmin">
+                <source>Ask an administrator to check it.</source>
+                <target>Bitten Sie eine Administratorin oder einen Administrator, sie zu prüfen.</target>
+            </trans-unit>
+            <trans-unit id="pageModuleIndicator.licenceHint.open">
+                <source>Check the licence</source>
+                <target>Lizenz prüfen</target>
+            </trans-unit>
+            <trans-unit id="assignment.range.one">
+                <source>1 task</source>
+                <target>1 Aufgabe</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.filter.remove">
+                <source>Remove filter %s</source>
+                <target>Filter %s entfernen</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.group">
+                <source>Suggested change</source>
+                <target>Vorgeschlagene Änderung</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.before">
+                <source>Before</source>
+                <target>Vorher</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.empty">
+                <source>(empty)</source>
+                <target>(leer)</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.after">
+                <source>After</source>
+                <target>Nachher</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.afterEditable">
+                <source>After (you can edit it)</source>
+                <target>Nachher (Sie können es bearbeiten)</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.apply">
+                <source>Apply and verify</source>
+                <target>Übernehmen und prüfen</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyImage">
+                <source>Approve and apply</source>
+                <target>Freigeben und anwenden</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyNote">
+                <source>Changes only this element of the field through TYPO3 DataHandler, with your permissions. Live, the change is visible on the website at once; in a workspace it is published with the workspace. Applying sends no AI request.</source>
+                <target>Ändert nur dieses Element des Felds über den TYPO3 DataHandler, mit Ihren Rechten. Live ist die Änderung sofort auf der Website sichtbar; in einem Workspace wird sie mit dem Workspace veröffentlicht. Das Anwenden sendet keine KI-Anfrage.</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyNoteImage">
+                <source>Saves this text through TYPO3 DataHandler, with your permissions. Applying sends no AI request.</source>
+                <target>Speichert diesen Text über den TYPO3 DataHandler, mit Ihren Rechten. Das Anwenden sendet keine KI-Anfrage.</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applying">
+                <source>Applying and checking…</source>
+                <target>Wird angewendet und geprüft…</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.failedTitle">
+                <source>Not applied</source>
+                <target>Nicht angewendet</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.nothingWritten">
+                <source>Nothing was written.</source>
+                <target>Es wurde nichts geschrieben.</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.verifiedTitle">
+                <source>Applied and verified</source>
+                <target>Angewendet und bestätigt</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.verifiedText">
+                <source>AQG saved the change and its check of the stored record no longer reports this issue.</source>
+                <target>AQG hat die Änderung gespeichert; die Prüfung des gespeicherten Datensatzes meldet dieses Problem nicht mehr.</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.savedTitle">
+                <source>Applied, not verified</source>
+                <target>Angewendet, nicht bestätigt</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.savedText">
+                <source>AQG saved the change. Its check does not confirm the fix yet:</source>
+                <target>AQG hat die Änderung gespeichert. Die Prüfung bestätigt die Korrektur noch nicht:</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.openEditor">
+                <source>Open in editor</source>
+                <target>Im Editor öffnen</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.editorTitle">
+                <source>Apply this change in the editor</source>
+                <target>Diese Änderung im Editor anwenden</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.editorText">
+                <source>AQG could not prove that it can change only this element, so nothing was written. The record opens with the change prepared; save it there.</source>
+                <target>AQG konnte nicht nachweisen, dass nur dieses Element geändert wird, daher wurde nichts geschrieben. Der Datensatz öffnet sich mit der vorbereiteten Änderung; speichern Sie ihn dort.</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.conflictTitle">
+                <source>Not applied: the content changed</source>
+                <target>Nicht angewendet: Der Inhalt hat sich geändert</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.conflictText">
+                <source>The element changed after the suggestion was made. Nothing was written; generate a new suggestion in AI fixes.</source>
+                <target>Das Element hat sich nach dem Vorschlag geändert. Es wurde nichts geschrieben; erstellen Sie in den KI-Korrekturen einen neuen Vorschlag.</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.error.apply_in_editor">
+                <source>AQG cannot apply this change itself. Apply it in the editor.</source>
+                <target>AQG kann diese Änderung nicht selbst anwenden. Wenden Sie sie im Editor an.</target>
+            </trans-unit>
+            <trans-unit id="remediation.js.error.record_open">
+                <source>The record is open in the editor of another person. Try again when it is closed, or apply the change in the editor.</source>
+                <target>Der Datensatz ist im Editor einer anderen Person geöffnet. Versuchen Sie es erneut, wenn er geschlossen ist, oder wenden Sie die Änderung im Editor an.</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.applyInEditor">
+                <source>Apply in the editor instead</source>
+                <target>Stattdessen im Editor übernehmen</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.target">
+                <source>Changes</source>
+                <target>Ändert</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.reason">
+                <source>Why</source>
+                <target>Warum</target>
+            </trans-unit>
+            <trans-unit id="remediation.pd.review.editorChosenText">
+                <source>Nothing was written. The record opens with the change prepared; apply it there and save.</source>
+                <target>Es wurde nichts geschrieben. Der Datensatz öffnet sich mit der vorbereiteten Änderung; wenden Sie sie dort an und speichern Sie.</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.applyVerify">
+                <source>Apply and verify</source>
+                <target>Übernehmen und prüfen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.applyInstead">
+                <source>Apply in the editor instead</source>
+                <target>Stattdessen im Editor übernehmen</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.changes">
+                <source>Changes</source>
+                <target>Ändert</target>
+            </trans-unit>
+            <trans-unit id="toolbar.plan.richTextNote">
+                <source>Changes only this element of the field through TYPO3 DataHandler, with your permissions, then checks the saved record. Live, the change is on the website at once; in a workspace it is published with the workspace. Reversible in the record history.</source>
+                <target>Ändert nur dieses Element des Felds über den TYPO3 DataHandler, mit Ihren Rechten, und prüft danach den gespeicherten Datensatz. Live ist die Änderung sofort auf der Website; in einem Workspace wird sie mit dem Workspace veröffentlicht. Im Datensatzverlauf rückgängig zu machen.</target>
+            </trans-unit>
+            <trans-unit id="remediation.reason.direct_not_provable">
+                <source>AQG could not prove that only this element changes, so it does not write the field itself: the record opens with the change prepared, and you save it with TYPO3 Save.</source>
+                <target>AQG konnte nicht nachweisen, dass sich nur dieses Element ändert, und schreibt das Feld daher nicht selbst: Der Datensatz öffnet sich mit der vorbereiteten Änderung, und Sie speichern ihn mit TYPO3 Speichern.</target>
+            </trans-unit>
+            <trans-unit id="remediation.reason.record_open">
+                <source>The record is open in the editor of another person, so AQG did not write it. Apply the change in the editor once that person has closed or saved the record.</source>
+                <target>Der Datensatz ist im Editor einer anderen Person geöffnet, daher hat AQG ihn nicht geschrieben. Übernehmen Sie die Änderung im Editor, sobald diese Person den Datensatz geschlossen oder gespeichert hat.</target>
             </trans-unit>
         </body>
     </file>

@@ -26,7 +26,7 @@ The context JSON contains:
 - subject: what the editor has open (kind, language, optionally page_title).
 - data_notes: facts about the data (stale or missing checks, workspace drafts, unsaved edits, restricted access, content findings only).
 - totals: issue_types (distinct rules) and occurrences of the open findings.
-- findings: open findings grouped by rule, each with ref, title, severity, occurrences, source, where, how_to_fix and why_it_matters from AQG's own rule guidance. Site findings also carry pages.
+- findings: open findings grouped by rule, each with ref, title, severity, occurrences, source, where, how_to_fix and why_it_matters from AQG's own rule guidance. where names each field as the record's form labels it, for content elements with the content type in brackets; use exactly those names and never call a field by another name. Site findings also carry pages.
 - previous_turns: up to three earlier questions and answers of this conversation, for follow-up questions only.
 
 Rules:

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Service;
 
+use Priebera\A11yQualityGate\Pro\ViewModel\LicenceGuidance;
 use Priebera\A11yQualityGate\FreePreview\FreePreviewActivationService;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
@@ -315,6 +316,21 @@ final class PageModuleIndicatorService
                 'text' => $this->translate('pageModuleIndicator.proHint.remoteScanAvailable', 'Frontend scan available — run a frontend scan'),
                 'linkLabel' => '',
                 'linkUrl' => '',
+            ];
+        } elseif ((bool)($proStatus->configured ?? false)) {
+            // PM-03: a licence key is saved but does not validate for this site (domain not in the licence, project
+            // removed, expired, an outage beyond grace…). That is a licence problem with its own next step, not a Free
+            // installation: never ask a licensed editor to "activate Free Remote Preview".
+            $guidance = LicenceGuidance::forReason((string)($proStatus->reason ?? ''));
+            $mayOpenSettings = $this->accessControlService?->canShowSettings($this->backendContextService->getBackendUser()) ?? false;
+            $remoteHint = [
+                'tag' => '',
+                'text' => sprintf(
+                    $this->translate('pageModuleIndicator.licenceHint.inactive', 'The AQG licence is not active for this site: %s'),
+                    $this->translate($guidance->titleKey, '')
+                ) . ($mayOpenSettings ? '' : ' ' . $this->translate('pageModuleIndicator.licenceHint.askAdmin', 'Ask an administrator to check it.')),
+                'linkLabel' => $mayOpenSettings ? $this->translate('pageModuleIndicator.licenceHint.open', 'Check the licence') : '',
+                'linkUrl' => $mayOpenSettings ? (string)$this->uriBuilder->buildUriFromRoute('web_a11y.settings', ['tab' => 'licence', 'site' => $siteIdentifier]) : '',
             ];
         } else {
             $remoteHint = $this->buildFreeRemoteHint($site, $siteIdentifier, $pageUid, $languageUid);

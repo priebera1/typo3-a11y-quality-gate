@@ -18,6 +18,7 @@ final class RemoteScanHistoryService
 {
     /** Regression answers are kept briefly; a new scan changes the key, so they are never staler than the scan. */
     private const REGRESSION_CACHE_TTL = 900;
+    private const HISTORY_CACHE_TTL = 60;
 
     public function __construct(
         private readonly ExtensionContextService $extensionContextService,
@@ -35,7 +36,8 @@ final class RemoteScanHistoryService
         int $limit = 10,
         string $sourceType = '',
         string $startUrl = '',
-        string $status = ''
+        string $status = '',
+        string $cacheVersion = ''
     ): array {
         if (trim($siteBase) === '' || trim($siteIdentifier) === '') {
             return $this->emptyHistory(BackendLabelUtility::translate('remote.history.error.noSite', 'Remote scan history is not available without a site context.'));
@@ -47,15 +49,27 @@ final class RemoteScanHistoryService
                 return $this->emptyHistory(BackendLabelUtility::translate('remote.history.error.noDomain', 'Remote scan history is not available without a valid domain context.'));
             }
 
-            $payload = $this->proCrawlerService->getHistory(
-                domain: $domain,
-                version: $this->extensionContextService->getExtensionVersion(),
-                siteId: $siteIdentifier,
-                limit: $limit,
-                sourceType: $sourceType,
-                startUrl: $startUrl,
-                status: $status,
-            );
+            // LOW-3 (large-installation fix): the Overview asks for three histories on every render, also for paging,
+            // search and rule filters of the same site. With $cacheVersion (the site's locally stored scans: it changes
+            // as soon as a scan is submitted or stored here) the service's answer is reused for a short time.
+            $cacheKey = trim($cacheVersion) !== ''
+                ? 'history_' . sha1(implode('|', [$domain, trim($siteIdentifier), (string)$limit, strtolower(trim($sourceType)), trim($startUrl), trim($status), trim($cacheVersion)]))
+                : '';
+            $payload = $cacheKey !== '' ? $this->cacheGet($cacheKey) : null;
+            if ($payload === null) {
+                $payload = $this->proCrawlerService->getHistory(
+                    domain: $domain,
+                    version: $this->extensionContextService->getExtensionVersion(),
+                    siteId: $siteIdentifier,
+                    limit: $limit,
+                    sourceType: $sourceType,
+                    startUrl: $startUrl,
+                    status: $status,
+                );
+                if ($cacheKey !== '' && is_array($payload)) {
+                    $this->cacheSet($cacheKey, $payload, self::HISTORY_CACHE_TTL);
+                }
+            }
         } catch (TokenRefreshException $exception) {
             $this->logHistoryError('AQG remote scan history request failed', $exception);
             return $this->emptyHistory($this->mapRemoteHistoryErrorMessage($exception->getMessage()));
@@ -415,6 +429,19 @@ final class RemoteScanHistoryService
         $summary = trim((string)($notification['summary'] ?? ''));
         $actionLabel = trim((string)($recommendedAction['label'] ?? $notification['actionLabel'] ?? $notification['action_label'] ?? ''));
         $actionType = trim((string)($recommendedAction['type'] ?? $notification['actionType'] ?? $notification['action_type'] ?? ''));
+        // D-1: the previous scan had another scope. That is neither a regression nor "no new regression": no verdict,
+        // and no link to a comparison that would show counts over pages only one of the scans checked.
+        $notComparable = strtolower($status) === 'not_comparable';
+        if ($notComparable) {
+            $regressionDetected = false;
+            $shouldNotify = false;
+            $alertLevel = 'none';
+            // Callers build the comparison link for an empty or "compare" action type only.
+            $actionType = 'none';
+            $actionLabel = '';
+            $title = BackendLabelUtility::translate('remote.regression.notComparable.title', 'No regression signal: the previous scan covered a different scope.');
+            $summary = BackendLabelUtility::translate('remote.regression.notComparable.summary', 'Run another scan with the same settings to get a comparison.');
+        }
 
         if ($title === '') {
             $title = $regressionDetected
@@ -995,6 +1022,26 @@ final class RemoteScanHistoryService
         if (isset($payload['data']) && is_array($payload['data'])) {
             $payload = $payload['data'];
         }
+        // D-1 (AQG 3.0, production 2026-11-13): the AQG service decides whether two runs are one measurement — only it
+        // knows what each could visit (sitemap, follow links, exclusions, priority URLs, page budget). Its counts are
+        // computed over both runs whatever the verdict, so a 4-page budgeted scan as baseline of a 19-page scan read as
+        // "297 new". An explicit "not directly comparable" is therefore never shown as numbers or as a regression.
+        $compatibility = is_array($payload['compatibility'] ?? null) ? $payload['compatibility'] : null;
+        $previousScan = $this->extractCompareScanMeta($payload, ['fromScan', 'from_scan', 'previousScan', 'previous_scan', 'from', 'previous'], 'previous');
+        $currentScan = $this->extractCompareScanMeta($payload, ['toScan', 'to_scan', 'currentScan', 'current_scan', 'to', 'current'], 'current');
+        if (is_array($compatibility) && ($compatibility['directlyComparable'] ?? null) === false) {
+            return $this->notComparable(
+                [
+                    'available' => true,
+                    'fromJobId' => $fromJobId,
+                    'toJobId' => $toJobId,
+                    'previousScan' => $previousScan,
+                    'currentScan' => $currentScan,
+                    'hasScanMeta' => ($previousScan['finishedAtFormatted'] ?? '') !== '' || ($currentScan['finishedAtFormatted'] ?? '') !== '',
+                ],
+                trim((string)($compatibility['reason'] ?? '')),
+            );
+        }
         $summary = is_array($payload['summary'] ?? null) ? $payload['summary'] : [];
         $byRule = $this->normalizeCompareRows($this->extractList($payload, ['byRule', 'by_rule', 'rules']));
         $byPage = $this->normalizeCompareRows($this->extractList($payload, ['byPage', 'by_page', 'pages']));
@@ -1009,11 +1056,14 @@ final class RemoteScanHistoryService
             'scoreDelta' => (int)($summary['scoreDelta'] ?? $summary['score_delta'] ?? 0),
         ];
         $status = $this->resolveCompareStatus($summaryData);
-        $previousScan = $this->extractCompareScanMeta($payload, ['fromScan', 'from_scan', 'previousScan', 'previous_scan', 'from', 'previous'], 'previous');
-        $currentScan = $this->extractCompareScanMeta($payload, ['toScan', 'to_scan', 'currentScan', 'current_scan', 'to', 'current'], 'current');
 
         return [
             'available' => true,
+            'comparable' => true,
+            // Whether the answer carries the AQG service's scope verdict (crawler 032+). Without it (an older service)
+            // the caller checks that both stored scans checked the same pages before it shows these numbers.
+            'scopeVerdict' => is_array($compatibility) && array_key_exists('sameScope', $compatibility),
+            'notComparableReason' => '',
             'fromJobId' => $fromJobId,
             'toJobId' => $toJobId,
             'contextLabel' => BackendLabelUtility::translate('remote.regression.contextAutomated', 'Compared with previous compatible automated scan.'),
@@ -1032,6 +1082,49 @@ final class RemoteScanHistoryService
             'topChanges' => $topChanges,
             'hasTopChanges' => $topChanges !== [],
         ];
+    }
+
+    /**
+     * A comparison of two scans that are not one measurement: the scans and their reports stay, every count, change list
+     * and status derived from the counts goes. Never "0 new" — the numbers are absent, and the message says why.
+     *
+     * @param array<string, mixed> $comparison
+     * @param array{onlyInEarlier?: int, onlyInLater?: int} $pageCounts
+     * @return array<string, mixed>
+     */
+    public function notComparable(array $comparison, string $reason, array $pageCounts = []): array
+    {
+        $message = match ($reason) {
+            'different_scope' => BackendLabelUtility::translate('remote.comparison.notComparable.scope', 'The scan scope changed (excluded paths, priority URLs or sitemap), so the scans checked different pages. A reliable direct comparison is not available. Open each scan to review its findings.'),
+            'different_page_budget' => BackendLabelUtility::translate('remote.comparison.notComparable.pageBudget', 'The page limit changed and at least one scan stopped at its limit, so the scans checked different pages. A reliable direct comparison is not available. Open each scan to review its findings.'),
+            'scope_not_recorded' => BackendLabelUtility::translate('remote.comparison.notComparable.scopeNotRecorded', 'At least one of these scans ran before the AQG service recorded which pages a scan may check, and the two scans did not check the same pages. A reliable direct comparison is not available. Open each scan to review its findings.'),
+            'different_pages' => sprintf(
+                BackendLabelUtility::translate('remote.comparison.notComparable.pages', 'The scans checked different pages (%1$d only in the earlier scan, %2$d only in the later scan). A reliable direct comparison is not available. Open each scan to review its findings.'),
+                max(0, (int)($pageCounts['onlyInEarlier'] ?? 0)),
+                max(0, (int)($pageCounts['onlyInLater'] ?? 0)),
+            ),
+            default => BackendLabelUtility::translate('remote.comparison.notComparable.generic', 'These scans are not directly comparable. Open each scan to review its findings.'),
+        };
+
+        return array_merge($comparison, [
+            'available' => true,
+            'comparable' => false,
+            'scopeVerdict' => true,
+            'notComparableReason' => $reason !== '' ? $reason : 'not_comparable',
+            'contextLabel' => '',
+            'status' => 'not_comparable',
+            'statusLabel' => BackendLabelUtility::translate('remote.comparison.notComparable.label', 'Not directly comparable'),
+            'statusTone' => 'neutral',
+            'statusMessage' => $message,
+            'summary' => [],
+            'byRule' => [],
+            'hasByRule' => false,
+            'byPage' => [],
+            'hasByPage' => false,
+            'topChanges' => [],
+            'hasTopChanges' => false,
+            'acceptanceEvidence' => [],
+        ]);
     }
 
     /**
@@ -1485,13 +1578,13 @@ final class RemoteScanHistoryService
     /**
      * @param array<string, mixed> $value
      */
-    private function cacheSet(string $key, array $value): void
+    private function cacheSet(string $key, array $value, int $lifetime = self::REGRESSION_CACHE_TTL): void
     {
         if ($this->cacheManager === null) {
             return;
         }
         try {
-            $this->cacheManager->getCache(ProConstants::CACHE_IDENTIFIER)->set($key, $value, [], self::REGRESSION_CACHE_TTL);
+            $this->cacheManager->getCache(ProConstants::CACHE_IDENTIFIER)->set($key, $value, [], $lifetime);
         } catch (\Throwable) {
         }
     }

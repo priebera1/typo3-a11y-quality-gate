@@ -14,6 +14,7 @@ use Priebera\A11yQualityGate\Ai\Dto\AiLinkTextSuggestionResult;
 use Priebera\A11yQualityGate\Ai\Dto\AiProviderConfiguration;
 use Priebera\A11yQualityGate\Ai\Exception\AiProviderException;
 use Priebera\A11yQualityGate\Ai\Provider\AiProviderCatalog;
+use Priebera\A11yQualityGate\Ai\Provider\AiRequestTimeBudget;
 use Priebera\A11yQualityGate\Ai\Service\AiIframeTitleSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiLinkTextSuggestionRequestBuilder;
 use Priebera\A11yQualityGate\Ai\Service\AiModelCompatibilityRegistry;
@@ -291,11 +292,18 @@ final class AnthropicMessagesProvider implements AiProviderInterface, AiStructur
             throw new AiProviderException('The AI provider request could not be encoded.', 1771002302, $exception);
         }
 
+        // G-07: inside a bounded run (MCP deferred work) the request must end before its worker is replaced; with too
+        // little time left it is not sent at all, so nothing is charged for a result that could not be stored.
+        $timeout = AiRequestTimeBudget::timeoutSeconds(self::TIMEOUT_SECONDS);
+        if ($timeout === null) {
+            throw new AiProviderException('The AI provider request was not started: too little time is left for it.', 1771002306);
+        }
+
         try {
             $response = $this->requestFactory->request(self::ENDPOINT, 'POST', [
                 'headers' => AnthropicApi::headers($apiKey, true),
                 'body' => $body,
-                'timeout' => self::TIMEOUT_SECONDS,
+                'timeout' => $timeout,
                 'http_errors' => false,
                 'allow_redirects' => false,
             ]);

@@ -656,6 +656,12 @@ final class ScopeAccessService
         if (!$backendUser instanceof BackendUserAuthentication || $pageUids === []) {
             return [];
         }
+        // Large-installation fix: in the live workspace the same answer without a rootline per page (BatchedPageShowAccess);
+        // administrators and workspaces keep the per-page check below.
+        $batched = BatchedPageShowAccess::readableMap($backendUser, GeneralUtility::makeInstance(ConnectionPool::class), $pageUids);
+        if ($batched !== null) {
+            return array_map(static fn (): bool => true, array_filter($batched));
+        }
         $permsClause = $backendUser->getPagePermsClause(Permission::PAGE_SHOW);
         $readable = [];
         foreach (array_chunk($pageUids, 500) as $chunk) {

@@ -108,7 +108,7 @@ describe('Ask AQG repair workflow', () => {
         const article = await ask('oprav mi tuto stranku', plan());
 
         expect(article.textContent).toContain('I found 3 problems in this content element.');
-        expect(article.textContent).toContain('2 AI suggestions can be prepared for your review.');
+        expect(article.textContent).toContain('Ready to prepare: 2');
         expect(article.textContent).toContain('You asked about the page');
         expect(article.textContent).toContain('older than 14 days');
         expect(article.textContent).toContain('Max cost <$0.04 for 2 requests');
@@ -123,7 +123,12 @@ describe('Ask AQG repair workflow', () => {
         expect(Array.from(article.querySelector('[data-aqt-repair-item="13"]').querySelectorAll('a')).map((a) => a.textContent)).toEqual(['Edit']);
         // Only the plan request was made; nothing was prepared or generated.
         expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(window.sessionStorage.getItem('aqg-toolbar-ask:' + scope)).toBeNull();
+        // The plan is part of the conversation (shown again after a reload as a record to refresh), never AI history.
+        const stored = JSON.parse(window.sessionStorage.getItem('aqg-toolbar-ask:' + scope));
+        expect(stored.turns).toHaveLength(1);
+        expect(stored.turns[0].source).toBe('aqg');
+        // The plan keeps the (here absent) signed list it was answered with, for its own refresh.
+        expect(stored.turns[0].repair.selection).toBeUndefined();
     });
 
     it('prepares once, generates each new item with its row version and links the exact AI Fixes item', async () => {
@@ -158,7 +163,9 @@ describe('Ask AQG repair workflow', () => {
         expect(second.querySelector('[data-aqt-repair-state]').textContent).toBe('No suggestion');
         expect(second.textContent).toContain('No safe value');
         // Only a proposal waiting for review is "Review suggestion"; another item is opened as it is.
-        expect(first.querySelector('[data-aqt-repair-review]').textContent).toBe('Review suggestion');
+        // The suggestion is reviewed in the card itself (Before/After); one link leads to AI Fixes to adjust it.
+        expect(first.querySelectorAll('[data-aqt-repair-review]')).toHaveLength(1);
+        expect(first.querySelector('[data-aqt-repair-review]').textContent).toBe('Adjust in AI Fixes');
         expect(second.querySelector('[data-aqt-repair-review]').textContent).toBe('Open in AI fixes');
         const status = article.querySelector('[data-aqt-repair-status]');
         // Partial success is never presented as overall success; the recorded cost and "nothing applied" are stated.
@@ -175,7 +182,9 @@ describe('Ask AQG repair workflow', () => {
         fetchMock.mockResolvedValueOnce(json(200, {success: true, status: 'prepared', items: [
             {id: 11, outcome: 'already_queued', reason: '', reasonLabel: '', itemUid: 501, rowVersion: 4, status: 'pending_review', statusLabel: 'Pending review', generate: false, reviewUrl: reviewUrl(501)},
         ]}));
-        article.querySelector('[data-aqt-repair-prepare="all"]').click();
+        // One ready finding: its own card's "Prepare fix" (no "Prepare all" for a single suggestion).
+        expect(article.querySelector('[data-aqt-repair-prepare="all"]')).toBeNull();
+        article.querySelector('[data-aqt-repair-prepare="11"]').click();
 
         await vi.waitFor(() => expect(article.querySelector('[data-aqt-repair-status]').textContent).toContain('Finished'));
         expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -225,7 +234,7 @@ describe('Ask AQG repair workflow', () => {
         await loaded();
         const article = await ask('oprav mi tuto stranku', plan());
         fetchMock.mockResolvedValueOnce(json(200, plan({target: 'page', targetLabel: 'Page: AQG 09', alternatives: [], notices: []})));
-        Array.from(article.querySelectorAll('.aqt-repair__switch button')).find((b) => b.textContent === 'Show fixes for the whole page').click();
+        article.querySelector('[data-aqt-repair-switch="page"]').click();
         await vi.waitFor(() => expect(document.querySelectorAll('[data-aqt-repair]')).toHaveLength(2));
         const body = bodyOf(fetchMock.mock.calls[2]);
         expect(body.intent).toBe('repair');
@@ -233,18 +242,23 @@ describe('Ask AQG repair workflow', () => {
         expect(body.question).toBe('oprav mi tuto stranku');
     });
 
-    it('starts the Content scan section check instead of scanning on its own', async () => {
-        const instance = await loaded();
+    it('checks the saved page itself, then reads every problem as verified or still open from the new check', async () => {
+        await loaded();
         const article = await ask('Fix this element', plan());
-        const spy = vi.spyOn(instance, 'contentScan').mockResolvedValue(undefined);
-        // Without the section (no scan permission or not rendered) nothing is requested.
+        fetchMock
+            .mockResolvedValueOnce({ok: true, status: 200, json: async () => ({success: true, issuesNew: 0, issuesResolved: 1, openIssues: {total: 2}})})
+            .mockResolvedValueOnce(json(200, plan({mode: 'list', items: plan().repair.items.slice(0, 2), counts: {found: 2, ready: 2}})));
+        urls.a11y_scan_page = '/typo3/ajax/a11y/scan/page?token=s';
         article.querySelector('[data-aqt-repair-check]').click();
-        expect(spy).not.toHaveBeenCalled();
-        expect(article.querySelector('[data-aqt-repair-status]').textContent).toBe('Cannot check');
-
-        document.querySelector('.aqt-pop').insertAdjacentHTML('beforeend', '<button type="button" data-aqt-disclosure="content" aria-expanded="false"></button><div data-aqt-content-scan="true"><button type="button" data-aqt-content-scan-button="true">Check</button></div>');
-        article.querySelector('[data-aqt-repair-check]').click();
-        expect(spy).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledTimes(2);
+        await vi.waitFor(() => expect(document.querySelector('[data-aqt-verify]')).not.toBeNull());
+        delete urls.a11y_scan_page;
+        expect(fetchMock.mock.calls[2][0]).toBe('/typo3/ajax/a11y/scan/page?token=s');
+        expect(String(fetchMock.mock.calls[2][1].body)).toBe('pageUid=40&languageUid=0');
+        // The refreshed list replaces the old plan; the finding the check closed is reported as verified.
+        expect(bodyOf(fetchMock.mock.calls[3]).intent).toBe('list');
+        expect(document.querySelectorAll('[data-aqt-repair]')).toHaveLength(1);
+        const verify = document.querySelector('[data-aqt-verify]');
+        expect(verify.textContent).toContain('Image is missing an alt text attribute');
+        expect(verify.querySelector('.aqt-verify__open').textContent).toContain('Button has no accessible name');
     });
 });

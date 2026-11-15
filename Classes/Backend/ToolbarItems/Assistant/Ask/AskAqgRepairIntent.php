@@ -110,6 +110,106 @@ final class AskAqgRepairIntent
         return $result;
     }
 
+    /** Nouns that name one problem of a numbered list ("problem 1", "Fehler 2", "problém 3", "finding #4"). */
+    private const REFERENCE_NOUNS = 'problem|problems|probleme|problemen|issue|issues|finding|findings|item|items|nummer|number|numbers|nr|no|punkt|punkte|fehler|befund|befunde|problemu|problemy|problemov|chyba|chybu|chyby|bod|body|cislo|cisla';
+
+    /** Ordinal words (normalised) and the position they name. */
+    private const ORDINALS = [
+        'first' => 1, 'second' => 2, 'third' => 3, 'fourth' => 4, 'fifth' => 5, 'sixth' => 6, 'seventh' => 7, 'eighth' => 8, 'ninth' => 9, 'tenth' => 10,
+        'erste' => 1, 'ersten' => 1, 'erstes' => 1, 'erster' => 1, 'zweite' => 2, 'zweiten' => 2, 'zweites' => 2, 'dritte' => 3, 'dritten' => 3, 'drittes' => 3,
+        'vierte' => 4, 'vierten' => 4, 'funfte' => 5, 'funften' => 5,
+        'prvy' => 1, 'prvu' => 1, 'druhy' => 2, 'druhu' => 2, 'treti' => 3, 'tretiu' => 3, 'stvrty' => 4, 'piaty' => 5, 'prvni' => 1, 'druhou' => 2,
+    ];
+
+    /**
+     * What a request points at in a numbered list the conversation showed before: "Fix problem 1", "fix 2 and 4",
+     * "Behebe Problem 3", "oprav problém 1 až 3", "the first one". Only numbers are returned, never guessed: the toolbar
+     * resolves them against the signed list it received (AskAqgSelection) and asks again when they do not fit.
+     *
+     * @return list<int> 1-based positions, ascending, without duplicates (at most 50)
+     */
+    public static function references(string $question): array
+    {
+        $text = self::normalise($question);
+        if ($text === '') {
+            return [];
+        }
+        $numbers = [];
+        $sequence = '(\d{1,2}(?:\s+(?:(?:and|und|a|or|oder|alebo|to|bis|az|do|plus|sowie)\s+)?\d{1,2})*)';
+        // "problem 1", "issues 1 2 and 4", "Problem Nr 3", "#2" (the "#" is dropped by normalise()).
+        if (preg_match_all('/\b(?:' . self::REFERENCE_NOUNS . ')(?:\s+(?:nr|no|number|nummer|cislo))?\s+' . $sequence . '\b/u', $text, $matches) > 0) {
+            foreach ($matches[1] as $group) {
+                $numbers = [...$numbers, ...self::expandSequence($group)];
+            }
+        }
+        // "fix 1", "fix 1 and 3", "behebe 2", "oprav 1 az 3": a repair verb directly followed by numbers.
+        $verbs = implode('|', array_map(static fn (string $verb): string => preg_quote($verb, '/') . '\w*', self::VERB_PREFIXES));
+        // Only when nothing but politeness follows the numbers: "fix 3 images" names a count, not problem 3.
+        if (preg_match_all('/\b(?:' . $verbs . ')\s+(?:(?:the|das|die|den|mi|mir)\s+)?' . $sequence . '(?:\s+(?:please|bitte|prosim|now|jetzt|teraz))*\s*$/u', $text, $matches) > 0) {
+            foreach ($matches[1] as $group) {
+                $numbers = [...$numbers, ...self::expandSequence($group)];
+            }
+        }
+        // "the first one", "the second problem", "das erste Problem", "prvý problém": an ordinal with a noun or "one".
+        foreach (self::ORDINALS as $word => $position) {
+            // Only with a word for "problem" or "one": "fix the first heading" is about a heading, not problem 1.
+            if (preg_match('/\b' . $word . '\s+(?:one|eins|' . self::REFERENCE_NOUNS . ')\b/u', $text) === 1) {
+                $numbers[] = $position;
+            }
+        }
+        $numbers = array_values(array_unique(array_filter($numbers, static fn (int $number): bool => $number >= 1 && $number <= 50)));
+        sort($numbers);
+
+        return $numbers;
+    }
+
+    /**
+     * Whether the words ask for the list of problems itself ("What problems does this page have?", "Welche Probleme hat
+     * diese Seite?", "Aké problémy má táto stránka?", "Show me the issues"). Answered from the findings, numbered, without AI.
+     */
+    public static function asksForList(string $question): bool
+    {
+        $text = ' ' . self::normalise($question) . ' ';
+        $nouns = '(?:problem|problems|issues|issue|findings|errors|probleme|problemen|fehler|befunde|mangel|problemy|problemov|chyby|nedostatky)';
+        // Priority and reason questions keep their own answers ("Which issues are most important?", "Which errors matter most?").
+        if (preg_match('/ (?:most|first|important|importance|matter|matters|priority|prioritise|prioritize|why|wichtig\w*|zuerst|warum|prior\w*|najdolezitejsie|najdolezitejsi|preco) /u', $text) === 1) {
+            return false;
+        }
+
+        return preg_match('/ (?:what|which|any|list|show|welche|welcher|zeige|zeig|liste|ake|ktore|ukaz|vypis|jake|ktere) (?:\w+ ){0,3}' . $nouns . ' /u', $text) === 1
+            || preg_match('/ ' . $nouns . ' (?:hat|haben|gibt es|has|have|are there|ma|maju|su na|jsou na)\b/u', $text) === 1
+            || preg_match('/ (?:what is wrong|was ist falsch|co je zle|co je spatne) /u', $text) === 1;
+    }
+
+    /** @return list<int> */
+    private static function expandSequence(string $group): array
+    {
+        $tokens = preg_split('/\s+/u', trim($group)) ?: [];
+        $numbers = [];
+        $range = false;
+        foreach ($tokens as $token) {
+            if (in_array($token, ['to', 'bis', 'az', 'do'], true)) {
+                $range = true;
+                continue;
+            }
+            if (!ctype_digit($token)) {
+                continue;
+            }
+            $value = (int)$token;
+            $last = $numbers === [] ? null : $numbers[count($numbers) - 1];
+            if ($range && $last !== null && $value > $last && $value - $last <= 50) {
+                for ($next = $last + 1; $next <= $value; $next++) {
+                    $numbers[] = $next;
+                }
+            } else {
+                $numbers[] = $value;
+            }
+            $range = false;
+        }
+
+        return $numbers;
+    }
+
     /** Lowercase, without diacritics and punctuation, single spaces. */
     public static function normalise(string $question): string
     {

@@ -146,14 +146,17 @@ final class McpCloneSafetyFunctionalTest extends AbstractFunctionalTestCase
 
         self::assertSame(0, (new CommandTester($this->get(McpConnectorCommand::class)))->execute(['--once' => true]));
 
+        // Since attested execution (V1–V5) the connector does not even get to the ledger: a connection without the
+        // licence API's trust (paired before 3.0.0, or a copy) runs nothing. The attested ledger rules (user, client,
+        // grant, token binding, local revocation) are covered by McpAttestationFunctionalTest.
         $result = $this->postedResult();
         self::assertIsArray($result);
         self::assertFalse($result['ok']);
-        self::assertSame('consent_unknown', $result['error']['code']);
+        self::assertSame('attestation_missing', $result['error']['code']);
         self::assertSame('cccccccc-0000-4000-8000-000000000001', $result['claimId']);
         $audit = $this->get(ConnectionPool::class)->getConnectionForTable(Tables::MCP_AUDIT)
             ->select(['action', 'result', 'reason'], Tables::MCP_AUDIT)->fetchAllAssociative();
-        self::assertSame([['action' => 'aqg_whoami', 'result' => 'refused', 'reason' => 'consent_unknown']], $audit);
+        self::assertSame([['action' => 'aqg_whoami', 'result' => 'refused', 'reason' => 'attestation_missing']], $audit);
     }
 
     #[Test]
@@ -178,7 +181,7 @@ final class McpCloneSafetyFunctionalTest extends AbstractFunctionalTestCase
         // Same consent, but the Gateway names another TYPO3 user: refused.
         $this->scriptOneCall(['beUserUid' => 2, 'consentRefHash' => McpConsentLedger::consentRefHash(self::REQUEST_REF)]);
         (new CommandTester($this->get(McpConnectorCommand::class)))->execute(['--once' => true]);
-        self::assertSame('consent_unknown', $this->postedResult()['error']['code'] ?? null);
+        self::assertSame('attestation_missing', $this->postedResult()['error']['code'] ?? null, 'unattested: never run (V5)');
 
         // The user who consented: the consent check passes (the executor then applies that user's own rights).
         $this->requests = [];
@@ -186,19 +189,19 @@ final class McpCloneSafetyFunctionalTest extends AbstractFunctionalTestCase
         (new CommandTester($this->get(McpConnectorCommand::class)))->execute(['--once' => true]);
         $result = $this->postedResult();
         self::assertIsArray($result);
-        self::assertNotSame('consent_unknown', $result['error']['code'] ?? null);
+        self::assertSame('attestation_missing', $result['error']['code'] ?? null, 'even the consenting user: never without attestation');
 
         // The same consent with a wider grant than this page decided (decided elsewhere with the request reference): refused.
         $this->requests = [];
         $this->scriptOneCall(['beUserUid' => 1, 'consentRefHash' => McpConsentLedger::consentRefHash(self::REQUEST_REF), 'scopes' => ['findings:read', 'history:read']]);
         (new CommandTester($this->get(McpConnectorCommand::class)))->execute(['--once' => true]);
-        self::assertSame('consent_unknown', $this->postedResult()['error']['code'] ?? null);
+        self::assertSame('attestation_missing', $this->postedResult()['error']['code'] ?? null, 'unattested: never run (V5)');
 
         // A missing consent reference (a token from before 097) never runs.
         $this->requests = [];
         $this->scriptOneCall(['beUserUid' => 1]);
         (new CommandTester($this->get(McpConnectorCommand::class)))->execute(['--once' => true]);
-        self::assertSame('consent_unknown', $this->postedResult()['error']['code'] ?? null);
+        self::assertSame('attestation_missing', $this->postedResult()['error']['code'] ?? null, 'unattested: never run (V5)');
     }
 
     #[Test]

@@ -82,9 +82,11 @@ processing acknowledgement and may set a monthly budget
     :guilabel:`Suggest alt text with AI` in the page details, and the
     :guilabel:`AI fixes` view for review and approval (:ref:`usage-ai-fixes`).
 
-Every suggestion is reviewed by a person. AQG applies nothing on its own, never
-writes rich text or HTML on the server, and confirms a fix only after it checked
-the saved record. AI does not repair every accessibility issue and does not
+Every suggestion is reviewed by a person. AQG applies nothing on its own: a
+reviewed change is stored only after a person chooses :guilabel:`Apply and
+verify` (exactly one element of the field, through DataHandler with that
+person's permissions) or saves it in the editor, never in a bulk run of rich
+text or HTML, and AQG confirms a fix only after it checked the saved record. AI does not repair every accessibility issue and does not
 make a page conformant.
 
 ..  _introduction-editions:

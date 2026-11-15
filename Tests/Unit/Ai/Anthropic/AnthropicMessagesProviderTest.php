@@ -284,6 +284,28 @@ final class AnthropicMessagesProviderTest extends TestCase
         self::assertSame(0, $usage->inputTokens);
     }
 
+    #[Test]
+    public function aBoundedRunCapsTheHttpTimeoutBelowTheWorkersEnd(): void
+    {
+        $captured = [];
+        $factory = $this->capturingFactory($captured, $this->message(['status' => 'suggestion', 'alt_text' => 'Brücke']));
+        // G-07: the deferred-work budget ends in 20 s; Anthropic's own timeout is 45 s.
+        \Priebera\A11yQualityGate\Ai\Provider\AiRequestTimeBudget::run(microtime(true) + 20.0, fn () => $this->provider($factory)->suggestAltText($this->altRequest(), $this->configuration()));
+
+        self::assertLessThanOrEqual(15, $captured['options']['timeout']);
+        self::assertGreaterThanOrEqual(13, $captured['options']['timeout']);
+    }
+
+    #[Test]
+    public function noRequestIsSentWhenTheBudgetIsSpent(): void
+    {
+        $factory = $this->createMock(RequestFactory::class);
+        $factory->expects(self::never())->method('request');
+        $this->expectException(\Priebera\A11yQualityGate\Ai\Exception\AiProviderException::class);
+        $this->expectExceptionCode(1771002306);
+        \Priebera\A11yQualityGate\Ai\Provider\AiRequestTimeBudget::run(microtime(true) + 9.0, fn () => $this->provider($factory)->suggestAltText($this->altRequest(), $this->configuration()));
+    }
+
     private function provider(RequestFactory $factory, ?AiUsageMeter $meter = null): AnthropicMessagesProvider
     {
         return new AnthropicMessagesProvider($factory, new AiModelCompatibilityRegistry(), new AiStructuredOutputContract(), $meter);

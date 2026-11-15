@@ -80,6 +80,9 @@ CREATE TABLE tx_a11y_issue (
     PRIMARY KEY (uid),
     UNIQUE KEY uniq_site_fingerprint (site_identifier(50), fingerprint),
     KEY idx_page_status_sev (site_identifier(50), page_uid, status, severity),
+    # Large-installation fix (MEDIUM-1): page-scoped updates that are not site-scoped (a content scan resolves open
+    # findings of the page stored under unconfigured site identifiers, once per scanned page) need page_uid first.
+    KEY idx_page_status (page_uid, status),
     KEY idx_source (source_table(50), source_uid, source_field(50), source_lang_uid),
     KEY idx_source_type (source_type),
     KEY idx_rule_sev_status (rule_id(50), severity, status),
@@ -836,9 +839,53 @@ CREATE TABLE tx_a11y_mcp_consent (
     consent_ref_hash varchar(64) DEFAULT '' NOT NULL,
     be_user_uid int(11) DEFAULT '0' NOT NULL,
     grant_hash varchar(64) DEFAULT '' NOT NULL,
+    client_id varchar(255) DEFAULT '' NOT NULL,
+    token_id varchar(36) DEFAULT '' NOT NULL,
+    signed tinyint(1) unsigned DEFAULT '0' NOT NULL,
+    revoked tinyint(1) unsigned DEFAULT '0' NOT NULL,
 
     PRIMARY KEY (uid),
     UNIQUE KEY consent_user (consent_ref_hash, be_user_uid),
+    KEY token_id (token_id),
+    KEY crdate (crdate)
+);
+
+#
+# Table structure for table 'tx_a11y_mcp_attestation'
+#
+# Agent access (MCP) call attestations already used (V4, McpAttestation): the attestation id (jti) of every call the
+# connector verified, so a replayed attestation never runs a second time. Kept an hour past the attestation's own expiry
+# (at most 60 s). No token, argument or result.
+#
+CREATE TABLE tx_a11y_mcp_attestation (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    jti_hash varchar(64) DEFAULT '' NOT NULL,
+    expires int(11) unsigned DEFAULT '0' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY jti_hash (jti_hash),
+    KEY expires (expires)
+);
+
+#
+# Table structure for table 'tx_a11y_mcp_token_revocation'
+#
+# Agent access (MCP) tokens revoked in this installation (V4, McpConsentLedger): written before the Gateway is asked to
+# revoke, so a revoked agent never runs here again even if the Gateway does not carry the revocation out. Kept 100 days
+# (longer than the longest token). Token id only.
+#
+CREATE TABLE tx_a11y_mcp_token_revocation (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+
+    token_id varchar(36) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY token_id (token_id),
     KEY crdate (crdate)
 );
 

@@ -34,8 +34,11 @@ final class McpConnectorWorkerPool
      * does not poll (its heartbeat), so this and deadline + CALL_GRACE stay below the Gateway's 45 s offline threshold.
      */
     private const STARTUP_TIMEOUT = 30.0;
-    /** A call runs at most until its deadline (about 8 s after the agent sent it) plus this; a worker still busy then is replaced. */
-    private const CALL_GRACE = 30.0;
+    /**
+     * A call runs at most until its deadline (about 8 s after the agent sent it) plus this; a worker still busy then is
+     * replaced. Deferred AI requests are bounded to end before it (McpDeferredWork, AiRequestTimeBudget, G-07).
+     */
+    public const CALL_GRACE = 30.0;
     /**
      * Workers that end without ever reporting ready (they exit at start, or hang past STARTUP_TIMEOUT), this many in a
      * row, disable the pool: the connector then runs calls itself instead of waiting for workers that never come.

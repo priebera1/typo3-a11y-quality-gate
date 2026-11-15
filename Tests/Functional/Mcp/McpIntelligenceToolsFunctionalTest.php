@@ -331,6 +331,33 @@ final class McpIntelligenceToolsFunctionalTest extends AbstractFunctionalTestCas
         self::assertContains('Whether the current content still has this problem: it changed after the last check, so the finding may be fixed already.', $context['cause']['notKnown']);
     }
 
+    /**
+     * Live MCP QA 2026-11-14: a site-wide list said "current" for a rendered finding that aqg_get_finding_context
+     * called "stale". The list resolved the covering scan only for a pageUid filter; each finding now gets the scan
+     * covering its own page and language, as the detail view does.
+     */
+    #[Test]
+    public function listAndDetailAgreeOnTheEvidenceOfARenderedFindingANewerScanDidNotRecheck(): void
+    {
+        // A newer subtree scan covered page 2 without the rendered check (CLI / changed-only run).
+        $this->insertScan(['site_identifier' => 'client-a', 'root_pid' => 1, 'started_at' => 6000, 'finished_at' => 6100, 'rendered_checked' => 0]);
+        $context = $this->execute('aqg_get_finding_context', ['siteIdentifier' => 'client-a', 'findingId' => $this->issues['rendered']], 2);
+        self::assertSame('stale', $context['finding']['evidence']['state']);
+
+        foreach ([
+            'site-wide' => ['siteIdentifier' => 'client-a', 'pageSize' => 50],
+            'page' => ['siteIdentifier' => 'client-a', 'pageUid' => 2],
+            'page, default language' => ['siteIdentifier' => 'client-a', 'pageUid' => 2, 'languageUid' => 0],
+            'rendered only' => ['siteIdentifier' => 'client-a', 'sourceType' => 'rendered'],
+        ] as $label => $arguments) {
+            $listed = $this->findingById($this->execute('aqg_list_content_findings', $arguments, 2), $this->issues['rendered']);
+            self::assertSame($context['finding']['evidence'], $listed['evidence'], $label . ': list and detail give the same evidence');
+        }
+        // Rich-text findings keep their own state (unchanged content: current) in the same site-wide list.
+        $siteWide = $this->execute('aqg_list_content_findings', ['siteIdentifier' => 'client-a', 'pageSize' => 50], 2);
+        self::assertSame('current', $this->findingById($siteWide, $this->issues['heading'])['evidence']['state']);
+    }
+
     // --- aqg_get_finding_context ---------------------------------------------------------------------------------
 
     #[Test]

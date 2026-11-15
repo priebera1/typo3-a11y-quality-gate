@@ -31,6 +31,11 @@ use TYPO3\CMS\Core\Registry;
  * (`unusableReason`) and no secret is handed out — no Gateway call is possible from a database copy, and nothing is
  * wiped or regenerated automatically. resetLocal() forgets the connection here without asking the Gateway (a copy must
  * never disconnect: it holds the original's credential and would end the original's connection).
+ *
+ * Attested execution (V1–V5, AQG 3.0.0): a pairing also stores this installation's Ed25519 key (secret half sealed like
+ * the connector secret), the AQG licence API attestation keys pinned at pairing (McpAttestationKeys) and, once the
+ * licence API's binding receipt verified, the installation's id at the Gateway (the attestations' audience). A connection
+ * without them (paired by an earlier build) runs no agent call: it must be paired again.
  */
 final class McpConnectionStore
 {
@@ -121,9 +126,12 @@ final class McpConnectionStore
     }
 
     /** Refused (false) while this installation is connected: its secret must not be overwritten by a new pairing. */
-    public function startPairing(string $pairingId, string $code, string $pollSecret, int $expiresAt, string $confirmUrl, string $by): bool
+    /**
+     * @param array{secretKey?: string, publicKey?: string, pinnedKeys?: list<array{kid: string, x: string}>, trustChain?: string} $attestation
+     */
+    public function startPairing(string $pairingId, string $code, string $pollSecret, int $expiresAt, string $confirmUrl, string $by, array $attestation = []): bool
     {
-        return $this->locked(function () use ($pairingId, $code, $pollSecret, $expiresAt, $confirmUrl, $by): bool {
+        return $this->locked(function () use ($pairingId, $code, $pollSecret, $expiresAt, $confirmUrl, $by, $attestation): bool {
             if ($this->get()['status'] === 'connected') {
                 return false;
             }
@@ -137,7 +145,141 @@ final class McpConnectionStore
                 'expiresAt' => $expiresAt,
                 'confirmUrl' => $confirmUrl,
                 'pairedBy' => $by,
-            ]);
+            ] + $this->attestationFields($attestation, $key));
+
+            return true;
+        });
+    }
+
+    /**
+     * @param array{secretKey?: string, publicKey?: string, pinnedKeys?: list<array{kid: string, x: string}>, trustChain?: string} $attestation
+     * @return array<string, mixed>
+     */
+    private function attestationFields(array $attestation, string $key): array
+    {
+        if (($attestation['secretKey'] ?? '') === '' || ($attestation['publicKey'] ?? '') === '') {
+            return [];
+        }
+
+        $chain = (string)($attestation['trustChain'] ?? '');
+
+        return [
+            'installationKey' => $this->seal(base64_encode($attestation['secretKey']), $key),
+            'installationPublicKey' => $attestation['publicKey'],
+            'attestationKeys' => self::validKeys($attestation['pinnedKeys'] ?? []),
+            // G-02: how the pinned keys were accepted (McpTrustRoots). Kept across rotations (replacePinnedKeys).
+            'attestationTrustChain' => in_array($chain, [McpTrustRoots::CHAIN_ROOT, McpTrustRoots::CHAIN_DEVELOPMENT], true) ? $chain : '',
+        ];
+    }
+
+    /**
+     * @param mixed $keys
+     * @return list<array{kid: string, x: string}>
+     */
+    private static function validKeys(mixed $keys): array
+    {
+        $valid = [];
+        foreach (is_array($keys) ? $keys : [] as $key) {
+            if (is_array($key) && is_string($key['x'] ?? null) && preg_match('/^[A-Za-z0-9_-]{43}$/', $key['x']) === 1
+                && is_string($key['kid'] ?? null) && hash_equals(McpAttestation::keyId($key['x']), $key['kid'])) {
+                $valid[] = ['kid' => $key['kid'], 'x' => $key['x']];
+            }
+        }
+
+        return array_slice($valid, 0, 8);
+    }
+
+    /**
+     * What V4 verifies against: the installation's id at the Gateway (audience) and the pinned licence API keys, plus
+     * this installation's public key. Empty strings / list while not connected with attestation.
+     * G-02: pins that do not chain to a trust root here and now (McpTrustRoots::effectiveChain) are not returned, so no
+     * attestation, receipt or continuation verifies against them; `trustChain` is then ''.
+     *
+     * @return array{installationId: string, pinnedKeys: list<array{kid: string, x: string}>, publicKey: string, trustChain: string}
+     */
+    public function attestationTrust(): array
+    {
+        $stored = $this->read();
+        $usable = in_array($stored['status'] ?? '', ['pairing', 'connected'], true) && $this->unusableReason($stored) === '';
+        $pins = $usable ? self::validKeys($stored['attestationKeys'] ?? []) : [];
+        $chain = McpTrustRoots::effectiveChain((string)($stored['attestationTrustChain'] ?? ''), $pins);
+
+        return [
+            'installationId' => $usable && ($stored['status'] ?? '') === 'connected' ? (string)($stored['installationId'] ?? '') : '',
+            'pinnedKeys' => $chain !== '' ? $pins : [],
+            'publicKey' => $usable ? (string)($stored['installationPublicKey'] ?? '') : '',
+            'trustChain' => $chain,
+        ];
+    }
+
+    /** Whether attestation keys are pinned that no longer chain to a trust root (connect again). */
+    public function hasUntrustedAttestationKeys(): bool
+    {
+        $stored = $this->read();
+
+        return in_array($stored['status'] ?? '', ['pairing', 'connected'], true)
+            && self::validKeys($stored['attestationKeys'] ?? []) !== []
+            && $this->attestationTrust()['trustChain'] === '';
+    }
+
+    /**
+     * G-02: records the chain a connection paired before it was stored has now (`root` when it pins a root key). Never
+     * downgrades or replaces a recorded chain.
+     */
+    public function recordTrustChain(string $chain): void
+    {
+        if ($chain !== McpTrustRoots::CHAIN_ROOT) {
+            return;
+        }
+        $this->locked(function () use ($chain): void {
+            $stored = $this->read();
+            if (($stored['status'] ?? '') !== 'connected' || (string)($stored['attestationTrustChain'] ?? '') !== '') {
+                return;
+            }
+            $stored['attestationTrustChain'] = $chain;
+            $this->write($stored);
+        });
+    }
+
+    /** The installation's secret signing key (raw), '' when this connection has none or it cannot be opened here. */
+    public function installationSigningKey(): string
+    {
+        $stored = $this->read();
+        $sealed = (string)($stored['installationKey'] ?? '');
+        if ($sealed === '' || ($stored['status'] ?? '') !== 'connected' || $this->unusableReason($stored) !== '') {
+            return '';
+        }
+        $secret = base64_decode($this->open($sealed), true);
+        if (!is_string($secret) || strlen($secret) !== SODIUM_CRYPTO_SIGN_SECRETKEYBYTES
+            || !hash_equals((string)($stored['installationPublicKey'] ?? ''), McpInstallationKey::publicKeyOf($secret))) {
+            return '';
+        }
+
+        return $secret;
+    }
+
+    /**
+     * Replaces the pinned licence API keys (rotation, McpAttestationKeys) while connected, only with a key set issued no
+     * earlier than the last one accepted; false otherwise.
+     */
+    public function replacePinnedKeys(array $keys, int $issuedAt = 0): bool
+    {
+        $keys = self::validKeys($keys);
+        if ($keys === []) {
+            return false;
+        }
+
+        return $this->locked(function () use ($keys, $issuedAt): bool {
+            $stored = $this->read();
+            if (($stored['status'] ?? '') !== 'connected' || ($stored['installationKey'] ?? '') === '') {
+                return false;
+            }
+            if ($issuedAt < (int)($stored['attestationKeysIssuedAt'] ?? 0)) {
+                return false;
+            }
+            $stored['attestationKeys'] = $keys;
+            $stored['attestationKeysIssuedAt'] = $issuedAt;
+            $this->write($stored);
 
             return true;
         });
@@ -147,9 +289,10 @@ final class McpConnectionStore
      * Stores the connector secret only while this exact pairing is still the one this installation waits for. The
      * installation stays pending activation at the Gateway until markActivatedIfCurrent().
      */
-    public function completePairingIfCurrent(string $pairingId, string $connectorSecret, string $slug, string $serverUrl): bool
+    public function completePairingIfCurrent(string $pairingId, string $connectorSecret, string $slug, string $serverUrl, string $installationId = ''): bool
     {
-        return $this->locked(function () use ($pairingId, $connectorSecret, $slug, $serverUrl): bool {
+        return $this->locked(function () use ($pairingId, $connectorSecret, $slug, $serverUrl, $installationId): bool {
+            $stored = $this->read();
             $current = $this->get();
             if ($pairingId === '' || $current['status'] !== 'pairing' || $current['pairingId'] !== $pairingId || $current['unusableReason'] !== '') {
                 return false;
@@ -168,7 +311,16 @@ final class McpConnectionStore
                 'pairingId' => $pairingId,
                 'credentialId' => bin2hex(random_bytes(16)),
                 'activationPending' => true,
-            ]);
+            ] + (($stored['installationKey'] ?? '') !== '' ? [
+                // V1: the key pair and pins of this pairing, and the Gateway installation the licence API receipted.
+                'installationKey' => $stored['installationKey'],
+                'installationPublicKey' => (string)($stored['installationPublicKey'] ?? ''),
+                'attestationKeys' => self::validKeys($stored['attestationKeys'] ?? []),
+                'attestationKeysIssuedAt' => (int)($stored['attestationKeysIssuedAt'] ?? 0),
+                // G-02: the chain the pins were accepted on at pairing start, never dropped (and so never re-derived).
+                'attestationTrustChain' => (string)($stored['attestationTrustChain'] ?? ''),
+                'installationId' => $installationId,
+            ] : []));
 
             return true;
         });

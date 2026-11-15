@@ -36,6 +36,10 @@ final class IssueApiControllerTest extends TestCase
     protected function setUp(): void
     {
         $this->issueRepo = $this->createMock(IssueRepository::class);
+        // G-01: the editor endpoint decides on the stored access context of the finding, never the fingerprint row.
+        $this->issueRepo->method('findAccessContextByUid')->willReturnCallback(
+            static fn (int $uid): array => ['uid' => $uid, 'deleted' => 0, 'page_uid' => 1, 'source_table' => 'tt_content', 'source_uid' => 99, 'source_lang_uid' => 0, 'source_field' => 'bodytext', 'site_identifier' => 'test', 'status' => 0],
+        );
 
         $stream = $this->createMock(StreamInterface::class);
 
@@ -72,6 +76,7 @@ final class IssueApiControllerTest extends TestCase
             $streamFactory,
             $this->backendUserService,
             sourceAccessService: self::readableSources(),
+            findingIgnoreAccess: $this->findingIgnoreAccess(),
         );
 
         $this->request = $this->createMock(ServerRequestInterface::class);
@@ -312,6 +317,7 @@ final class IssueApiControllerTest extends TestCase
             new StreamFactory(),
             $this->backendUserService,
             sourceAccessService: self::readableSources(),
+            findingIgnoreAccess: $this->findingIgnoreAccess(),
         );
     }
 
@@ -362,6 +368,16 @@ final class IssueApiControllerTest extends TestCase
     }
 
     /** Every source readable: the source policy itself is covered by functional tests. */
+    /** G-01 is covered functionally (IgnoreFindingAuthorizationTest); here the policy allows the stored finding. */
+    private function findingIgnoreAccess(): \Priebera\A11yQualityGate\Service\FindingIgnoreAccessService
+    {
+        $policy = $this->createMock(\Priebera\A11yQualityGate\Service\FindingIgnoreAccessService::class);
+        $policy->method('canChangeIgnoreState')->willReturn(true);
+        $policy->method('canIgnoreRecordFinding')->willReturn(true);
+
+        return $policy;
+    }
+
     private static function readableSources(): \Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface
     {
         return new class () implements \Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface {

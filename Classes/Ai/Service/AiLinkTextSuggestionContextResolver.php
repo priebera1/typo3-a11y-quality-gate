@@ -93,7 +93,8 @@ final class AiLinkTextSuggestionContextResolver
             href: $candidate['href'],
             surroundingText: $candidate['surroundingText'],
             targetLocale: $this->resolveTargetLocale($siteIdentifier, $languageUid),
-            pageTitle: $this->resolvePageTitle($pageUid),
+            // The page the link is on is not its destination (AQG 3.0.0, observed /r1 case): its title is not sent.
+            pageTitle: '',
         );
     }
 
@@ -149,7 +150,8 @@ final class AiLinkTextSuggestionContextResolver
             href: $candidate['href'],
             surroundingText: mb_substr(implode(' ', $contextBits), 0, 500),
             targetLocale: $this->resolveTargetLocale($siteIdentifier, $languageUid),
-            pageTitle: $this->resolvePageTitle($pageUid),
+            // The page the link is on is not its destination (AQG 3.0.0, observed /r1 case): its title is not sent.
+            pageTitle: '',
         );
     }
 
@@ -196,22 +198,6 @@ final class AiLinkTextSuggestionContextResolver
         $languageCode = strtolower(trim($languageCode));
         return preg_match('/^[a-z]{2,8}$/D', $languageCode) === 1 ? $languageCode : 'en';
     }
-
-    private function resolvePageTitle(int $pageUid): string
-    {
-        if ($pageUid <= 0) {
-            return '';
-        }
-
-        try {
-            $page = BackendUtility::getRecord('pages', $pageUid, 'title');
-        } catch (\Throwable) {
-            return '';
-        }
-
-        return is_array($page) ? trim((string)($page['title'] ?? '')) : '';
-    }
-
     private function sanitizeUrl(string $url): string
     {
         if ($url === '' || preg_match('/[\x00-\x1F\x7F<>]/u', $url) === 1) {

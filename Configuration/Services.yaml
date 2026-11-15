@@ -25,8 +25,21 @@ services:
       tags:
         - name: a11y_quality_gate.ai_task_executor
 
+    # Per-request memos of singletons: reset before and after every MCP agent call (McpUserContext, finding 1).
+    Priebera\A11yQualityGate\Mcp\McpCallScopedState:
+      tags:
+        - name: a11y_quality_gate.mcp_call_scoped
+
   Priebera\A11yQualityGate\:
     resource: '../Classes/*'
+
+  Priebera\A11yQualityGate\Mcp\McpUserContext:
+    arguments:
+      $callScopedState: !tagged_iterator a11y_quality_gate.mcp_call_scoped
+
+  # Deferred work asks the licence API for a continuation through the Gateway (finding 2).
+  Priebera\A11yQualityGate\Mcp\Http\McpContinuationClient:
+    alias: Priebera\A11yQualityGate\Mcp\Http\McpGatewayClient
 
   Priebera\A11yQualityGate\Scan\ScanOrchestrator:
     public: true

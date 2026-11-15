@@ -244,9 +244,11 @@ final class FrontendPageUrlService
      */
     private function resolveDefaultPageUidForSlug(Site $site, string $slug): int
     {
-        foreach ($this->findLivePagesBySlug($slug, 0) as $row) {
-            if ($this->isPageOfSite($site, (int)$row['uid'])) {
-                return (int)$row['uid'];
+        $candidates = array_map(static fn (array $row): int => (int)$row['uid'], $this->findLivePagesBySlug($slug, 0));
+        $ofSite = $this->pagesOfSite($site, $candidates);
+        foreach ($candidates as $pageUid) {
+            if ($ofSite[$pageUid] ?? false) {
+                return $pageUid;
             }
         }
 
@@ -255,15 +257,87 @@ final class FrontendPageUrlService
 
     private function resolveDefaultPageUidForTranslatedSlug(Site $site, string $slug, int $languageUid): int
     {
+        $candidates = [];
         foreach ($this->findLivePagesBySlug($slug, $languageUid) as $row) {
             $parent = (int)($row['l10n_parent'] ?? 0);
-            $pageUid = $parent > 0 ? $parent : (int)$row['uid'];
-            if ($this->isPageOfSite($site, $pageUid)) {
+            $candidates[] = $parent > 0 ? $parent : (int)$row['uid'];
+        }
+        // Large-installation fix (LOW-1): slugs repeat across the sites of a multi-site installation; the candidates'
+        // rootlines are followed together, one query per tree level, instead of one rootline per candidate.
+        $ofSite = $this->pagesOfSite($site, $candidates);
+        foreach ($candidates as $pageUid) {
+            if ($ofSite[$pageUid] ?? false) {
                 return $pageUid;
             }
         }
 
         return 0;
+    }
+
+    /**
+     * isPageOfSite() for many pages: whether the site's root page is on the page's rootline (the page itself included).
+     * The rootline follows pid through pages that are not deleted, as BackendUtility::BEgetRootLine() does; a missing
+     * or deleted page ends it.
+     *
+     * @param list<int> $pageUids
+     * @return array<int, bool>
+     */
+    private function pagesOfSite(Site $site, array $pageUids): array
+    {
+        $rootPageId = (int)$site->getRootPageId();
+        $pageUids = array_values(array_unique(array_filter($pageUids, static fn (int $uid): bool => $uid > 0)));
+        if ($pageUids === [] || $rootPageId <= 0) {
+            return [];
+        }
+        $parent = [];
+        $frontier = $pageUids;
+        for ($depth = 0; $depth < 100 && $frontier !== []; $depth++) {
+            $rows = [];
+            try {
+                foreach (array_chunk($frontier, 500) as $chunk) {
+                    $queryBuilder = $this->connectionPool->getQueryBuilderForTable('pages');
+                    $queryBuilder->getRestrictions()->removeAll();
+                    foreach ($queryBuilder->select('uid', 'pid')
+                        ->from('pages')
+                        ->where(
+                            $queryBuilder->expr()->in('uid', $queryBuilder->createNamedParameter($chunk, Connection::PARAM_INT_ARRAY)),
+                            $queryBuilder->expr()->eq('deleted', $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)),
+                        )
+                        ->executeQuery()
+                        ->fetchAllAssociative() as $row) {
+                        $rows[(int)$row['uid']] = (int)$row['pid'];
+                    }
+                }
+            } catch (\Throwable) {
+                return [];
+            }
+            $next = [];
+            foreach ($frontier as $uid) {
+                $parent[$uid] = $rows[$uid] ?? false;
+                $pid = $parent[$uid];
+                if ($pid !== false && $pid > 0 && $uid !== $rootPageId && !array_key_exists($pid, $parent)) {
+                    $next[$pid] = $pid;
+                }
+            }
+            $frontier = array_values($next);
+        }
+        $result = [];
+        foreach ($pageUids as $uid) {
+            $current = $uid;
+            $result[$uid] = false;
+            for ($steps = 0; $steps < 100 && $current > 0; $steps++) {
+                if (($parent[$current] ?? false) === false) {
+                    break;
+                }
+                if ($current === $rootPageId) {
+                    $result[$uid] = true;
+                    break;
+                }
+                $current = (int)$parent[$current];
+            }
+        }
+
+        return $result;
     }
 
     /** @return list<array<string, mixed>> */
@@ -288,23 +362,5 @@ final class FrontendPageUrlService
         } catch (\Throwable) {
             return [];
         }
-    }
-
-    private function isPageOfSite(Site $site, int $pageUid): bool
-    {
-        if ($pageUid <= 0) {
-            return false;
-        }
-        try {
-            $rootPageId = (int)$site->getRootPageId();
-            foreach (BackendUtility::BEgetRootLine($pageUid, '', true) as $page) {
-                if ((int)($page['uid'] ?? 0) === $rootPageId) {
-                    return true;
-                }
-            }
-        } catch (\Throwable) {
-        }
-
-        return false;
     }
 }

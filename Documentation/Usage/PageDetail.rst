@@ -143,10 +143,10 @@ With AI set up for the site (PRO or Agency, see :ref:`configuration-ai`):
     :guilabel:`Apply reviewed text` or :guilabel:`Discard suggestion`.
 
 :guilabel:`Fix with AI`
-    Prepares a change for a supported occurrence (for example an empty
-    heading, link text, an iframe title or an image's alternative text) as an
-    item in :ref:`usage-ai-fixes`. Nothing changes until someone reviews and
-    approves it there.
+    Prepares a change for a supported occurrence in rich text or Plain HTML
+    (link text, an iframe title, a button name, an empty heading or an image's
+    alternative text) as an item in :ref:`usage-ai-fixes` and shows it right
+    here for review. Nothing changes until someone applies it.
 
 :guilabel:`Explain with AI`
     Explains the issue in the context of this occurrence without preparing a
@@ -156,8 +156,17 @@ With AI set up for the site (PRO or Agency, see :ref:`configuration-ai`):
 
 Fix with AI shows exactly one result:
 
-*   :guilabel:`Suggestion ready for review` with :guilabel:`Review
-    suggestion`, which opens exactly that item in AI fixes.
+*   :guilabel:`Suggestion ready for review` with Before and After. The After
+    value can be edited. :guilabel:`Apply and verify` stores exactly this
+    change through TYPO3 DataHandler with your permissions and checks the
+    saved record; the result is :guilabel:`Applied and verified`,
+    :guilabel:`Applied, not verified` with the reason (for example in a
+    workspace, until it is published), :guilabel:`Apply this change in the
+    editor` when AQG cannot prove that it changes only this element (nothing is
+    written; the record opens with the change prepared) or :guilabel:`Not
+    applied` when the element changed in the meantime or TYPO3 refused the
+    save. Applying sends no AI request. :guilabel:`Review suggestion` opens the
+    same item in AI fixes.
 *   :guilabel:`Already in AI fixes` with the item's real status, for example
     when it was prepared in another tab.
 *   :guilabel:`No usable suggestion`, when the AI answered without a usable
@@ -181,7 +190,12 @@ fields TYPO3 shows read-only or hides with a display condition; the server
 checks the same rules again. The buttons show the maximum estimated cost of
 one request, for example ``(<$0.02)``, and :guilabel:`How the AI actions work`
 in the remediation panel explains the actions and amounts. Findings whose fix
-is a template or markup change get no AI action. Progress and results are
+is a template or markup change get no AI action. A link or heading whose text
+contains other elements (an icon, formatting) or a template placeholder gets
+no :guilabel:`Fix with AI`: replacing its text would drop that markup, so it is
+fixed by hand in the editor. Rendered findings (the page as visitors get it)
+can have an AI text suggestion to review and copy; AQG never writes it to a
+record, because the source is a template or extension output. Progress and results are
 announced to screen readers, and keyboard focus moves to the result.
 
 ..  _usage-page-detail-preview:

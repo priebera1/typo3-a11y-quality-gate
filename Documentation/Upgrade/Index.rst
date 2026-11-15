@@ -120,6 +120,17 @@ AI
     :guilabel:`Test connection` once (see the note in
     :ref:`upgrade-procedure`). Sites that used OpenAI keep it.
 
+AI fixes apply rich text and Plain HTML
+    New in 3.0.0: a reviewed suggestion for link text, an iframe title, a
+    button name, an empty heading or an image's ``alt`` in rich text or Plain
+    HTML can be applied with :guilabel:`Apply and verify` in Page Detail and
+    AI fixes. AQG stores exactly that element through DataHandler with the
+    person's own permissions (record, field, language and workspace rights
+    apply), keeps the rest of the field byte-identical and never writes in a
+    bulk run. There is no separate switch for it: whoever may edit that field
+    in TYPO3 and use AI fixes may apply the change; see
+    :ref:`usage-ai-fixes`.
+
 Image fixes for editors
     Without :confval:`options.a11y_quality_gate.allowImageRemediation`, editors
     who may edit the content element and the ``alternative`` and

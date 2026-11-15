@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Priebera\A11yQualityGate\Assignment;
 
+use Priebera\A11yQualityGate\Contract\LocalFindingSourceAccessInterface;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Enum\IssueStatus;
 use Priebera\A11yQualityGate\Domain\Repository\IssueRepository;
@@ -17,6 +18,7 @@ use Priebera\A11yQualityGate\Service\ScopeAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 
 /**
  * Team assignment of issue types on pages ("My issues").
@@ -55,6 +57,7 @@ class AssignmentService
         private readonly AccessControlService $accessControlService,
         private readonly BackendUserService $backendUserService,
         private readonly SiteResolutionService $siteResolutionService,
+        private readonly LocalFindingSourceAccessInterface $sourceAccess,
         private readonly ?RuleMetadataPresentationService $ruleMetadataPresentationService = null,
         private readonly ?RemediationAssignedOwnerService $assignedOwnerService = null,
     ) {
@@ -287,77 +290,102 @@ class AssignmentService
         $query = mb_strtolower(trim(mb_substr($query, 0, 100)));
 
         $person = $filter === self::FILTER_ME ? $me : (ctype_digit($filter) ? (int)$filter : null);
+        // Large-installation fix (HIGH-1): the sites this list can contain at all. Administrators: every site (null);
+        // other users: only sites with a page they may read (a web mount inside the site or above its root), so a
+        // single-site editor never pays for the other sites of the installation. Exact: a task of any other site is
+        // never readable for this user (isReadable()).
+        $sites = $siteIdentifier !== '' ? [$siteIdentifier] : $this->readableSiteIdentifiers();
         // Every assignment classifies a task as assigned (the unassigned count and filter); the person filter applies after.
-        $assignments = $this->repository->findAssigned();
+        $assignments = $this->repository->findAssigned(null, null, $sites);
         $assignedKeys = [];
         foreach ($assignments as $row) {
             $assignedKeys[$this->key((string)$row['site_identifier'], (int)$row['page_uid'], (int)$row['language_uid'], (string)$row['issue_key'])] = $row;
         }
 
         // Live findings of every page that can appear in this list.
-        $pageUids = $person === null || $assigner
-            ? null
-            : array_map(static fn (array $row): int => (int)$row['page_uid'], array_filter($assignments, static fn (array $row): bool => (int)$row['assignee'] === $person));
-        $groups = [];
-        $findingRows = $this->repository->aggregateFindings($siteIdentifier !== '' ? [$siteIdentifier] : [], $pageUids);
-        $this->preloadSiteMembership(array_map(static fn (array $row): int => (int)$row['page_uid'], $findingRows));
-        foreach ($findingRows as $row) {
-            if (!$this->isCurrentSite($row['site_identifier'], $row['page_uid'])) {
-                continue;
-            }
-            $issueKey = RenderedRichTextDuplicates::canonicalRuleId($row['rule_id']);
-            $key = $this->key($row['site_identifier'], $row['page_uid'], $row['source_lang_uid'], $issueKey);
-            $group = $groups[$key] ?? [
-                'siteIdentifier' => $row['site_identifier'], 'pageUid' => $row['page_uid'], 'languageUid' => $row['source_lang_uid'],
-                'issueKey' => $issueKey, 'open' => 0, 'severity' => 99, 'lastChange' => 0, 'lastResolved' => 0, 'ruleIds' => [], 'sourceTypes' => [],
-                'message' => '',
-            ];
-            if ($group['message'] === '' || $row['rule_id'] === $issueKey) {
-                $group['message'] = $row['message'];
-            }
-            $group['open'] += $row['open'];
-            $group['severity'] = min($group['severity'], $row['top_severity']);
-            $group['lastChange'] = max($group['lastChange'], $row['last_change']);
-            $group['lastResolved'] = max($group['lastResolved'], $row['last_resolved']);
-            $group['ruleIds'][] = $row['rule_id'];
-            $group['sourceTypes'][str_starts_with($row['rule_id'], 'rendered.') ? 'rendered' : 'content'] = true;
-            $groups[$key] = $group;
+        $pageUids = null;
+        if ($person !== null && !$assigner) {
+            $mine = array_filter($assignments, static fn (array $row): bool => (int)$row['assignee'] === $person);
+            $pageUids = array_map(static fn (array $row): int => (int)$row['page_uid'], $mine);
+            // Only the sites of the person's own assignments can hold matching tasks.
+            $mineSites = array_values(array_unique(array_map(static fn (array $row): string => (string)$row['site_identifier'], $mine)));
+            $sites = $sites === null ? $mineSites : array_values(array_intersect($sites, $mineSites));
         }
-        foreach ($this->sharedTemplateGroups($siteIdentifier) as $key => $group) {
-            $groups[$key] = $group;
-        }
-        $this->preloadReadability($groups);
 
         $matched = [];
         $workload = [];
         $unassignedOpen = 0;
-        foreach ($groups as $key => $group) {
-            $readable = !empty($group['shared'])
-                ? $this->canSeeSharedWork((string)$group['siteIdentifier'])
-                : $this->isReadable($group['pageUid'], $group['languageUid']);
-            if (!$readable) {
-                continue;
+        $keepMessage = $query !== '';
+        // Classifies a batch of task groups exactly as before (permission, assignment, state, filter) and keeps only
+        // the matching tasks, without their rule lists (the page window is loaded again in full below).
+        $classify = function (array $groups) use (&$matched, &$workload, &$unassignedOpen, $assignedKeys, $filter, $person, $state, $keepMessage): void {
+            $this->preloadReadability($groups);
+            foreach ($groups as $key => $group) {
+                $readable = !empty($group['shared'])
+                    ? $this->canSeeSharedWork((string)$group['siteIdentifier'])
+                    : $this->isReadable($group['pageUid'], $group['languageUid']);
+                if (!$readable) {
+                    continue;
+                }
+                $assignment = $assignedKeys[$key] ?? null;
+                $taskState = $group['open'] > 0 ? self::STATE_OPEN : self::STATE_DONE;
+                if ($assignment === null && $taskState === self::STATE_OPEN) {
+                    $unassignedOpen++;
+                }
+                if ($assignment !== null && $taskState === self::STATE_OPEN) {
+                    $uid = (int)$assignment['assignee'];
+                    $workload[$uid] ??= ['uid' => $uid, 'label' => '', 'open' => 0, 'flagged' => false];
+                    $workload[$uid]['open']++;
+                }
+                $matches = match (true) {
+                    $filter === self::FILTER_UNASSIGNED => $assignment === null && $taskState === self::STATE_OPEN,
+                    $filter === self::FILTER_ALL => $assignment !== null || $taskState === self::STATE_OPEN,
+                    default => $assignment !== null && (int)$assignment['assignee'] === $person,
+                };
+                if (!$matches || ($state !== 'any' && $state !== $taskState)) {
+                    continue;
+                }
+                $matched[$key] = !empty($group['shared'])
+                    ? ['group' => $group, 'state' => $taskState]
+                    : ['group' => [
+                        'siteIdentifier' => $group['siteIdentifier'], 'pageUid' => $group['pageUid'], 'languageUid' => $group['languageUid'],
+                        'issueKey' => $group['issueKey'], 'open' => $group['open'], 'severity' => $group['severity'],
+                        'message' => $keepMessage ? $group['message'] : '', 'lastChange' => 0, 'lastResolved' => 0,
+                        'ruleIds' => [], 'sourceTypes' => [],
+                    ], 'state' => $taskState];
             }
-            $assignment = $assignedKeys[$key] ?? null;
-            $taskState = $group['open'] > 0 ? self::STATE_OPEN : self::STATE_DONE;
-            if ($assignment === null && $taskState === self::STATE_OPEN) {
-                $unassignedOpen++;
-            }
-            if ($assignment !== null && $taskState === self::STATE_OPEN) {
-                $uid = (int)$assignment['assignee'];
-                $workload[$uid] ??= ['uid' => $uid, 'label' => '', 'open' => 0, 'flagged' => false];
-                $workload[$uid]['open']++;
-            }
-            $matches = match (true) {
-                $filter === self::FILTER_UNASSIGNED => $assignment === null && $taskState === self::STATE_OPEN,
-                $filter === self::FILTER_ALL => $assignment !== null || $taskState === self::STATE_OPEN,
-                default => $assignment !== null && (int)$assignment['assignee'] === $person,
+        };
+
+        // G-09: only findings of sources this user may read (record table and language, page translation rights), as in
+        // Page Detail and the exports; administrators are unrestricted. Streamed per page: at most a batch of pages is
+        // held in memory, never every finding of every site (HIGH-1).
+        if ($sites !== []) {
+            $buffer = [];
+            $bufferPages = [];
+            $flush = function () use (&$buffer, &$bufferPages, $classify): void {
+                if ($buffer === []) {
+                    return;
+                }
+                $this->preloadSiteMembership(array_keys($bufferPages));
+                $classify($this->foldFindingRows($buffer));
+                $buffer = [];
+                $bufferPages = [];
             };
-            if (!$matches || ($state !== 'any' && $state !== $taskState)) {
-                continue;
+            foreach ($this->repository->iterateAggregatedFindings(
+                $sites ?? [],
+                $pageUids,
+                sourceConstraint: fn (QueryBuilder $qb, string $site): string => $this->sourceAccess->constraint($qb, '', $site),
+                withMessage: $keepMessage,
+            ) as $row) {
+                if (!isset($bufferPages[$row['page_uid']]) && count($bufferPages) >= self::STREAM_PAGES) {
+                    $flush();
+                }
+                $bufferPages[$row['page_uid']] = true;
+                $buffer[] = $row;
             }
-            $matched[$key] = ['group' => $group, 'assignment' => $assignment, 'state' => $taskState];
+            $flush();
         }
+        $classify($this->sharedTemplateGroups($siteIdentifier, $sites));
 
         foreach ($workload as $uid => $entry) {
             $user = $this->repository->findBackendUser($uid);
@@ -390,10 +418,18 @@ class AssignmentService
         $pages = max(1, (int)ceil($total / $perPage));
         $page = max(1, min($pages, $page));
         $window = array_slice($matched, ($page - 1) * $perPage, $perPage, true);
+        // The page window in full (rule list, message, latest change and resolution), from the same query limited to
+        // its pages: identical to the group the classification saw.
+        $full = $this->windowGroups($window);
+        foreach ($window as $key => $entry) {
+            if (empty($entry['group']['shared']) && isset($full[$key])) {
+                $window[$key]['group'] = $full[$key];
+            }
+        }
         $this->preloadOwners($window);
         $tasks = [];
-        foreach ($window as $entry) {
-            $tasks[] = $this->task($entry['group'], $entry['assignment'], $entry['state'], $language, $entry['pageTitle']);
+        foreach ($window as $key => $entry) {
+            $tasks[] = $this->task($entry['group'], $assignedKeys[$key] ?? null, $entry['state'], $language, $entry['pageTitle']);
         }
 
         return [
@@ -409,6 +445,138 @@ class AssignmentService
             'rangeEnd' => min($total, $page * $perPage),
             'query' => $query,
         ];
+    }
+
+    /** Large-installation fix: My issues folds and classifies this many pages of findings at a time. */
+    private const STREAM_PAGES = 500;
+
+    /**
+     * Task groups of finding rows (one row per site, page, language and rule), keyed like the assignments; rows of a
+     * page that no longer belongs to the row's site are history (D-03), not work.
+     *
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, array<string, mixed>>
+     */
+    private function foldFindingRows(array $rows): array
+    {
+        $groups = [];
+        foreach ($rows as $row) {
+            if (!$this->isCurrentSite($row['site_identifier'], $row['page_uid'])) {
+                continue;
+            }
+            $issueKey = RenderedRichTextDuplicates::canonicalRuleId($row['rule_id']);
+            $key = $this->key($row['site_identifier'], $row['page_uid'], $row['source_lang_uid'], $issueKey);
+            $group = $groups[$key] ?? [
+                'siteIdentifier' => $row['site_identifier'], 'pageUid' => $row['page_uid'], 'languageUid' => $row['source_lang_uid'],
+                'issueKey' => $issueKey, 'open' => 0, 'severity' => 99, 'lastChange' => 0, 'lastResolved' => 0, 'ruleIds' => [], 'sourceTypes' => [],
+                'message' => '',
+            ];
+            if ($group['message'] === '' || $row['rule_id'] === $issueKey) {
+                $group['message'] = $row['message'];
+            }
+            $group['open'] += $row['open'];
+            $group['severity'] = min($group['severity'], $row['top_severity']);
+            $group['lastChange'] = max($group['lastChange'], $row['last_change']);
+            $group['lastResolved'] = max($group['lastResolved'], $row['last_resolved']);
+            $group['ruleIds'][] = $row['rule_id'];
+            $group['sourceTypes'][str_starts_with($row['rule_id'], 'rendered.') ? 'rendered' : 'content'] = true;
+            $groups[$key] = $group;
+        }
+
+        return $groups;
+    }
+
+    /**
+     * The full groups of the non-shared tasks of one page window, from the aggregate limited to their sites and pages.
+     *
+     * @param array<string, array<string, mixed>> $window
+     * @return array<string, array<string, mixed>>
+     */
+    private function windowGroups(array $window): array
+    {
+        $sites = [];
+        $pageUids = [];
+        foreach ($window as $entry) {
+            if (empty($entry['group']['shared'])) {
+                $sites[(string)$entry['group']['siteIdentifier']] = true;
+                $pageUids[(int)$entry['group']['pageUid']] = (int)$entry['group']['pageUid'];
+            }
+        }
+        if ($pageUids === []) {
+            return [];
+        }
+        // Same query and row order as the stream, so a folded group takes the same message.
+        $rows = iterator_to_array($this->repository->iterateAggregatedFindings(
+            array_keys($sites),
+            array_values($pageUids),
+            sourceConstraint: fn (QueryBuilder $qb, string $site): string => $this->sourceAccess->constraint($qb, '', $site),
+        ), false);
+        $this->preloadSiteMembership(array_values($pageUids));
+
+        return array_intersect_key($this->foldFindingRows($rows), $window);
+    }
+
+    /**
+     * Site identifiers that can hold a task this user may read: null = every site (administrators). A page is readable
+     * only below one of the user's web mounts, so its site either contains the mount or lies below it.
+     *
+     * @return list<string>|null
+     */
+    private function readableSiteIdentifiers(): ?array
+    {
+        $user = $this->backendUserService->getBackendUser();
+        if (!$user instanceof BackendUserAuthentication) {
+            return [];
+        }
+        // Administrators see every site. In a workspace, page moves are overlays this live-tree walk does not follow:
+        // workspace users keep the unscoped list (the readability checks still apply per task).
+        if ($user->isAdmin() || (int)($user->workspace ?? 0) !== 0) {
+            return null;
+        }
+        $mounts = array_fill_keys(array_values(array_filter(array_map('intval', $user->getWebmounts()), static fn (int $uid): bool => $uid > 0)), true);
+        if ($mounts === []) {
+            return [];
+        }
+        $sites = [];
+        // The site of each mount point (mount inside a site).
+        $this->preloadSiteMembership(array_keys($mounts));
+        foreach (array_keys($mounts) as $mount) {
+            $site = $this->pageSite[$mount] ?? ($this->siteResolutionService->resolveSiteByPageId($mount)?->getIdentifier() ?? '');
+            if ($site !== '') {
+                $sites[$site] = true;
+            }
+        }
+        // Sites whose root lies at or below a mount point (a mount above one or more site roots).
+        $roots = [];
+        foreach ($this->siteResolutionService->getAllSites() as $site) {
+            $roots[(int)$site->getRootPageId()] = $site->getIdentifier();
+        }
+        $parents = [];
+        $frontier = array_keys($roots);
+        for ($depth = 0; $depth < 100 && $frontier !== []; $depth++) {
+            $rows = $this->repository->findPageParents($frontier);
+            $next = [];
+            foreach ($frontier as $uid) {
+                $parents[$uid] = $rows[$uid] ?? 0;
+                $pid = $parents[$uid];
+                if ($pid > 0 && !isset($mounts[$pid]) && !array_key_exists($pid, $parents)) {
+                    $next[$pid] = $pid;
+                }
+            }
+            $frontier = array_values($next);
+        }
+        foreach ($roots as $rootUid => $identifier) {
+            $current = $rootUid;
+            for ($steps = 0; $steps < 100 && $current > 0; $steps++) {
+                if (isset($mounts[$current])) {
+                    $sites[$identifier] = true;
+                    break;
+                }
+                $current = (int)($parents[$current] ?? 0);
+            }
+        }
+
+        return array_map('strval', array_keys($sites));
     }
 
     /** @var array<string, string> */
@@ -484,10 +652,13 @@ class AssignmentService
      *
      * @return array<string, array<string, mixed>>
      */
-    private function sharedTemplateGroups(string $siteIdentifier): array
+    private function sharedTemplateGroups(string $siteIdentifier, ?array $sites = null): array
     {
         $groups = [];
-        $templateRows = $this->repository->findTemplateFindings($siteIdentifier !== '' ? [$siteIdentifier] : []);
+        if ($sites === []) {
+            return [];
+        }
+        $templateRows = $this->repository->findTemplateFindings($siteIdentifier !== '' ? [$siteIdentifier] : ($sites ?? []));
         $this->preloadSiteMembership(array_map(static fn (array $row): int => (int)$row['page_uid'], $templateRows));
         foreach ($templateRows as $row) {
             if (!$this->canSeeSharedWork($row['site_identifier']) || !$this->isCurrentSite($row['site_identifier'], $row['page_uid'])) {

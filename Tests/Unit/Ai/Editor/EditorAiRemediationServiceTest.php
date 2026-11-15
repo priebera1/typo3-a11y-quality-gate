@@ -35,6 +35,7 @@ use Priebera\A11yQualityGate\Contract\BackendUserServiceInterface;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiRateLimitRepositoryInterface;
 use Priebera\A11yQualityGate\Tests\Unit\Ai\Usage\AiUsageRepositoryDouble;
 use Priebera\A11yQualityGate\Rule\Rte\ButtonLabelMissingRule;
+use Priebera\A11yQualityGate\Rule\Rte\EmptyHeadingRule;
 use Priebera\A11yQualityGate\Rule\Rte\HeadingHierarchyRule;
 use Priebera\A11yQualityGate\Rule\Rte\IframeMissingTitleRule;
 use Priebera\A11yQualityGate\Rule\Rte\ImgAltMissingRule;
@@ -216,6 +217,39 @@ final class EditorAiRemediationServiceTest extends TestCase
     }
 
     #[Test]
+    public function anEmptyHeadingWithNothingAfterItGetsNoInventedTextAndNoProviderRequest(): void
+    {
+        // A stray empty heading (nothing follows it) has no basis for heading text: the fix is to remove it. AQG must
+        // not ask a model, which would otherwise invent a generic heading such as "Welcome to our corporate website".
+        $this->answer = ['status' => 'suggestion', 'value' => 'Welcome to our corporate website', 'reason' => 'r'];
+
+        $result = $this->service()->fix($this->input('<p>Intro text.</p><h2></h2>', 'rte.empty_heading', 'h2', 0));
+
+        self::assertSame('needs_review', $result['status']);
+        self::assertSame('', $result['value']);
+        self::assertSame('no_basis', $result['reasonCode']);
+        self::assertStringContainsString('Remove the empty heading', $result['reason']);
+        self::assertSame([], $this->requests);
+        self::assertSame([], $this->usageRows);
+    }
+
+    #[Test]
+    public function anEmptyHeadingFollowedByContentIsSummarisedWithoutThePageTitle(): void
+    {
+        $this->siteSettings->savePrivacy('main', true, true);
+        $this->answer = ['status' => 'suggestion', 'value' => 'Opening hours', 'reason' => 'It introduces the opening hours.'];
+
+        $result = $this->service()->fix($this->input('<h2></h2><p>We are open Monday to Friday, 8:00 to 17:00.</p>', 'rte.empty_heading', 'h2', 0));
+
+        self::assertSame('suggestion', $result['status']);
+        self::assertCount(1, $this->requests);
+        self::assertStringContainsString('following_text', $this->requests[0]->inputText);
+        // The page title is no basis for a section heading: it is not sent for this kind even where the site allows it.
+        self::assertStringNotContainsString('page_title', $this->requests[0]->inputText);
+        self::assertStringContainsString('Never use the page title', $this->requests[0]->instructions);
+    }
+
+    #[Test]
     public function headingLevelsHaveNoAiFixButCanBeExplained(): void
     {
         $html = '<h2>A</h2><h4>B</h4>';
@@ -391,7 +425,7 @@ final class EditorAiRemediationServiceTest extends TestCase
             $this->createMock(EditorAiImageResolver::class),
             $runner,
             $siteSettingsService,
-            new RuleRegistry([new ButtonLabelMissingRule(), new ImgAltMissingRule(), new IframeMissingTitleRule(), new HeadingHierarchyRule()]),
+            new RuleRegistry([new ButtonLabelMissingRule(), new ImgAltMissingRule(), new IframeMissingTitleRule(), new HeadingHierarchyRule(), new EmptyHeadingRule()]),
             $rules,
         );
     }

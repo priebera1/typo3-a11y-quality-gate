@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Priebera\A11yQualityGate\Service;
 
 use Priebera\A11yQualityGate\Domain\Repository\RulesetRepository;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
-final class RuleConfigurationService
+final class RuleConfigurationService implements McpCallScopedState
 {
     private array $disabledRuleIdsCache = [];
 
@@ -224,5 +225,11 @@ final class RuleConfigurationService
         }
 
         return is_array($configuration) ? $configuration : [];
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->disabledRuleIdsCache = [];
     }
 }

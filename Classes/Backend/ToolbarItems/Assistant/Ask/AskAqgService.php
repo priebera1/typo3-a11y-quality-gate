@@ -65,6 +65,8 @@ final class AskAqgService
     public const INTENTS = [self::INTENT_FIRST, self::INTENT_WHY, self::INTENT_WHERE, self::INTENT_SITE];
     /** An explicit request to fix content: answered by AskAqgRepairService (no AI request; actions only on a click). */
     public const INTENT_REPAIR = 'repair';
+    /** The numbered problems of the open page or element (AskAqgRepairService::plan() in list mode). */
+    public const INTENT_LIST = 'list';
     public const MAX_GROUPS = 12;
     public const MAX_DETERMINISTIC_ITEMS = 3;
     public const MAX_DETERMINISTIC_SITE_ITEMS = 5;
@@ -156,18 +158,24 @@ final class AskAqgService
      * @return array<string,mixed>
      * @throws EditorAiException with a stable code for every refusal
      */
-    public function ask(ToolbarAssistantContext $context, string $question, string $scope, string $intent = '', array $history = [], string $conversationId = '', string $repairTarget = ''): array
+    public function ask(ToolbarAssistantContext $context, string $question, string $scope, string $intent = '', array $history = [], string $conversationId = '', string $repairTarget = '', string $selection = '', array $pick = []): array
     {
         if (!$this->backendUserService->isLoggedIn()) {
             throw new EditorAiException('session_expired', 'Not logged in.', 401);
         }
         // A request to fix content is recognised deterministically (no AI request, no cost) and answered with the repair
-        // workflow's plan: what can be prepared through AI Fixes, what needs manual work and why. Information questions
-        // continue below unchanged.
+        // workflow's plan: what can be prepared through AI Fixes, what needs manual work and why. "What problems does
+        // this page have?" is answered with the same plan as a numbered list. Information questions continue below.
         if ($this->repairService !== null && !in_array($intent, self::INTENTS, true)) {
             $repair = AskAqgRepairIntent::detect($question);
-            if ($intent === self::INTENT_REPAIR || $repair['repair']) {
-                return $this->repairService->plan($context, $scope, $question, $repair, $repairTarget);
+            $asksForList = $intent === self::INTENT_LIST
+                || ($intent === '' && !$repair['repair'] && $scope !== self::SCOPE_SITE && AskAqgRepairIntent::asksForList($question));
+            if ($intent === self::INTENT_REPAIR || $repair['repair'] || $asksForList) {
+                // An explicit list request (quick question, "Refresh status", the check after a save) always lists, also
+                // when the question it repeats was "Fix problem 4": a refresh never resolves a number again.
+                $listOnly = $intent === self::INTENT_LIST || ($asksForList && !$repair['repair'] && $intent !== self::INTENT_REPAIR);
+
+                return $this->repairAnswer($context, $scope, $question, $repair, $repairTarget, $conversationId, $selection, $pick, $listOnly);
             }
         }
         $deterministic = self::intentOf($intent, $question);
@@ -208,6 +216,53 @@ final class AskAqgService
 
             return $answer;
         }
+    }
+
+    /**
+     * The repair workflow's answer with a numbered list the next request can refer to. A reference ("Fix problem 1",
+     * a card's "Prepare fix" sends the number as `pick`) is resolved only through the signed list of this conversation
+     * (AskAqgSelection): a missing, foreign or expired list, or a number that is not in it, shows the current list and
+     * asks the editor to choose — the number is never applied to whatever sorts first now.
+     *
+     * @param array{repair:bool,mentions:string,kinds:list<string>} $intent
+     * @param list<mixed> $pick
+     * @return array<string,mixed>
+     */
+    private function repairAnswer(ToolbarAssistantContext $context, string $scope, string $question, array $intent, string $repairTarget, string $conversationId, string $selectionToken, array $pick, bool $listOnly): array
+    {
+        $beUser = $this->backendUserService->getBackendUserUid();
+        $binding = $this->conversationBinding($context);
+        $siteIdentifier = self::siteOf($context);
+        $conversation = AskAqgConversation::resume($conversationId, $beUser, $siteIdentifier, null, $binding);
+        $numbers = array_values(array_filter(array_map(static fn (mixed $number): int => is_int($number) || (is_string($number) && ctype_digit($number)) ? (int)$number : 0, $pick), static fn (int $number): bool => $number > 0 && $number <= AskAqgSelection::MAX_ITEMS));
+        if ($numbers === [] && !$listOnly) {
+            $numbers = AskAqgRepairIntent::references($question);
+        }
+        $options = ['mode' => $listOnly ? 'list' : 'repair'];
+        $signedList = null;
+        if ($numbers !== []) {
+            $selection = $conversation->issued ? null : AskAqgSelection::verify($selectionToken, $beUser, $binding, $conversation->id);
+            $resolved = $selection?->resolve($numbers);
+            if ($selection === null || $resolved === null) {
+                $options = ['mode' => 'list', 'clarify' => 'unknown'];
+            } else {
+                $options = ['mode' => 'repair', 'only' => array_values($resolved), 'numbers' => array_flip($resolved)];
+                // The numbers keep meaning the same findings: the target and the list are the ones that answer showed.
+                $repairTarget = $selection->target;
+                $signedList = $selection;
+            }
+        }
+        $answer = $this->repairService->plan($context, $scope, $question, $intent, $repairTarget, $options);
+        $repair = is_array($answer['repair'] ?? null) ? $answer['repair'] : [];
+        $listIds = $signedList !== null && ($repair['clarify'] ?? '') === '' ? $signedList->findingUids : array_map('intval', (array)($repair['listIds'] ?? []));
+        $listTarget = $signedList !== null && ($repair['clarify'] ?? '') === '' ? $signedList->target : (string)($repair['target'] ?? 'page');
+        unset($repair['listIds']);
+        $repair['selection'] = $listIds === [] ? '' : AskAqgSelection::issue($listTarget, $listIds, $beUser, $binding, $conversation->id);
+        $answer['repair'] = $repair;
+        // Only the id: no AI question was asked, nothing was spent (the AI answers report their own usage).
+        $answer['conversation'] = ['id' => $conversation->id];
+
+        return $answer;
     }
 
     /**
@@ -760,7 +815,12 @@ final class AskAqgService
                 $location = $this->issueLocationService->describe((string)$issue['source_table'], (int)$issue['source_uid'], (string)$issue['source_field']);
                 $label = (string)($location['fieldLabel'] ?? '');
                 if ($label !== '') {
-                    $where[$label] = true;
+                    // The field as the record's form names it, with the content type ("HTML Code (Plain HTML)"), so
+                    // an answer never sends the editor to a generic "Text" field the element does not have.
+                    $type = ($location['isContentElement'] ?? false) === true
+                        ? (string)($this->issueLocationService->contentElementLabels((string)$issue['source_table'], (int)$issue['source_uid'])['contentTypeLabel'] ?? '')
+                        : '';
+                    $where[$type !== '' ? sprintf('%s (%s)', $label, $type) : $label] = true;
                 }
                 $place = trim(implode(' · ', array_filter([(string)($location['title'] ?? ''), $label])));
                 if ($place !== '') {

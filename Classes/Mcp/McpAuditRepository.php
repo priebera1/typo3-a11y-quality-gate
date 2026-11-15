@@ -29,7 +29,7 @@ final class McpAuditRepository
     public const PAGE_SIZE = 25;
     public const MAX_PAGE_SIZE = 100;
     /** Results the "Refused" filter shows. */
-    public const REFUSED_RESULTS = ['denied', 'refused', 'quota'];
+    public const REFUSED_RESULTS = ['denied', 'refused', 'quota', 'deferred_refused'];
 
     public function __construct(
         private readonly ConnectionPool $connectionPool,

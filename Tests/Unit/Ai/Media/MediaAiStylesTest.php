@@ -40,6 +40,21 @@ final class MediaAiStylesTest extends TestCase
     }
 
     #[Test]
+    public function anAppliedSuggestionDrawsNoBarOnTheWand(): void
+    {
+        $css = $this->css();
+
+        // rc2 owner QA: "Apply to field" left a 3px inset bar under the wand that read as a stuck focus/active state.
+        self::assertStringNotContainsString('aqg-media-wand--filled', $css);
+        preg_match_all('/([^{}]*\.t3js-aqg-media-wand[^{}]*)\{[^}]*box-shadow:([^;}]*)/', $css, $matches, PREG_SET_ORDER);
+        self::assertNotSame([], $matches);
+        foreach ($matches as [, $selector, $shadow]) {
+            self::assertStringContainsString(':focus-visible', $selector, 'The focus ring is the wand\'s only box-shadow.');
+            self::assertStringContainsString('var(--aqi-focus-ring)', $shadow);
+        }
+    }
+
+    #[Test]
     public function thereIsNoPrivatePaletteAndAiHasNoColourOfItsOwn(): void
     {
         $css = strtolower($this->css());

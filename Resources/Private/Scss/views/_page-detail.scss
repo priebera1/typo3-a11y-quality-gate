@@ -1543,7 +1543,7 @@ details[open] .a11y-details-summary__toggle {
   text-align: center;
   padding: 0 4px;
 }
-.a11y-page-detail .aqg-rem__head-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.a11y-page-detail .aqg-rem__head-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .a11y-page-detail .aqg-rem__title {
   margin: 0;
   font-size: 13px;
@@ -1564,7 +1564,8 @@ details[open] .a11y-details-summary__toggle {
   font-family: var(--aqi-font-mono);
   font-size: 11px;
   color: var(--aqi-fg-subtle);
-  word-break: break-all;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* the editable field — comfortable readable width, never full bleed */
@@ -1748,7 +1749,6 @@ details[open] .a11y-details-summary__toggle {
 .a11y-page-detail .aqg-rem__file-path {
   min-width: 0;
   overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .a11y-page-detail .aqg-local-guidance {

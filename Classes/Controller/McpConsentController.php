@@ -7,7 +7,9 @@ namespace Priebera\A11yQualityGate\Controller;
 use Priebera\A11yQualityGate\Mcp\Http\McpGatewayClient;
 use Priebera\A11yQualityGate\Mcp\McpAuditRepository;
 use Priebera\A11yQualityGate\Mcp\McpConsentLedger;
+use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
 use Priebera\A11yQualityGate\Mcp\McpConsentRefusal;
+use Priebera\A11yQualityGate\Mcp\McpInstallationKey;
 use Priebera\A11yQualityGate\Mcp\McpScopes;
 use Priebera\A11yQualityGate\Mcp\McpSettingsViewBuilder;
 use Priebera\A11yQualityGate\Mcp\McpSiteSettingsRepository;
@@ -66,6 +68,7 @@ final class McpConsentController extends AbstractBackendModuleController
         private readonly BackendJavaScriptModuleService $backendJavaScriptModuleService,
         private readonly PageRenderer $pageRenderer,
         private readonly ?McpConsentRefusal $consentRefusal = null,
+        private readonly ?McpConnectionStore $connectionStore = null,
     ) {
         parent::__construct($moduleTemplateFactory, $uriBuilder, $iconFactory, $backendContextService, $siteResolutionService, $requestParameterService);
     }
@@ -152,9 +155,25 @@ final class McpConsentController extends AbstractBackendModuleController
                     return $this->render($request, 'Mcp/Consent', ['state' => 'consent', 'requestRef' => $requestRef] + $consent);
                 }
 
+                // V2: the decision is signed with this installation's key; the AQG licence API makes a token usable only
+                // for a consent that verifies against the key bound at pairing, for the agent holding the PKCE verifier
+                // of this request. A connection without a key (paired by an earlier build) cannot consent: pair again.
+                $signingKey = $this->connectionStore?->installationSigningKey() ?? '';
+                $installationId = $this->connectionStore?->attestationTrust()['installationId'] ?? '';
+                $clientId = (string)($described['clientId'] ?? '');
+                $redirectUri = (string)($described['redirectUri'] ?? '');
+                $codeChallenge = (string)($described['codeChallenge'] ?? '');
+                if ($signingKey === '' || $installationId === '' || $clientId === '' || $redirectUri === ''
+                    || preg_match('/^[A-Za-z0-9_-]{43}$/', $codeChallenge) !== 1) {
+                    $this->auditRepository->record('consent', 'refused', 'backend', $context + ['reason' => 'attestation_unavailable']);
+                    return $this->render($request, 'Mcp/Consent', ['state' => 'gatewayError']);
+                }
+                $signedConsent = McpInstallationKey::signConsent($signingKey, $installationId, $requestRef, (int)$user->user['uid'],
+                    $clientId, $redirectUri, $codeChallenge, $scopes, $sites, $duration);
+
                 // Recorded before the Gateway mints the token (clone safety N2): the connector runs the token's calls only
-                // for a consent this installation's database holds for this user.
-                if (!$this->consentLedger->record($requestRef, (int)$user->user['uid'], $scopes, $sites)) {
+                // for a consent this installation's database holds for this user — and, attested, for this agent client.
+                if (!$this->consentLedger->record($requestRef, (int)$user->user['uid'], $scopes, $sites, $clientId)) {
                     // Another submission of this request decides it (or already did); this one changes nothing.
                     return $this->render($request, 'Mcp/Consent', ['state' => 'alreadyAnswered']);
                 }
@@ -169,7 +188,12 @@ final class McpConsentController extends AbstractBackendModuleController
                     'durationDays' => $duration,
                     // The connection this page showed as "already connected" (computed here, never taken from the form).
                     'replaceTokenId' => is_array($consent['existing']) && ($consent['existing']['id'] ?? '') !== '' ? $consent['existing']['id'] : null,
+                    'consent' => $signedConsent,
                 ]);
+                // V4: the connection this consent replaces ends here as well, whatever the Gateway does with it.
+                if (is_array($consent['existing']) && ($consent['existing']['id'] ?? '') !== '') {
+                    $this->consentLedger->revokeConnection((string)$consent['existing']['id'], $consent['existing'], (int)$user->user['uid']);
+                }
             } catch (ApiRequestFailedException $exception) {
                 // Not confirmed: no token may ever run on this record. A token minted anyway (an answer lost after the
                 // Gateway decided) is refused as consent_unknown and revoked; the user connects again.
@@ -214,8 +238,25 @@ final class McpConsentController extends AbstractBackendModuleController
         $tokenId = (string)((is_array($request->getParsedBody()) ? $request->getParsedBody() : [])['tokenId'] ?? '');
         if ($user instanceof BackendUserAuthentication && preg_match('/^[0-9a-f-]{36}$/i', $tokenId) === 1) {
             try {
+                // V4: revoked here first, unconditionally, for a connection that is this user's — listed by the Gateway
+                // for this user, or bound to one of their consents here — so it never runs here again even if the
+                // Gateway does not carry the revocation out (or fails). The token id and the consent are both revoked.
+                $uid = (int)$user->user['uid'];
+                $listed = null;
+                try {
+                    foreach ($this->gatewayClient->listTokens($uid) as $token) {
+                        if (strtolower((string)($token['id'] ?? '')) === strtolower($tokenId)) {
+                            $listed = $token;
+                        }
+                    }
+                } catch (ApiRequestFailedException) {
+                    // Gateway unreachable: a token bound here is still revoked locally below.
+                }
+                if ($listed !== null || $this->consentLedger->isTokenOfUser($tokenId, $uid)) {
+                    $this->consentLedger->revokeConnection($tokenId, $listed, $uid);
+                }
                 // reason "user": the Gateway only revokes a token of this be_users uid.
-                $this->gatewayClient->revokeToken($tokenId, 'user', $this->displayName($user), (int)$user->user['uid']);
+                $this->gatewayClient->revokeToken($tokenId, 'user', $this->displayName($user), $uid);
                 // The user revoked their own agent: not an administrator's change (final customer acceptance, MCP polish).
                 $this->auditRepository->record('token_revoked', 'user_change', 'backend', $this->auditContext($user, '') + ['target' => 'token ' . substr($tokenId, 0, 8)]);
                 $this->addFlashMessage($this->translate('settings.mcp.flash.revoked'));

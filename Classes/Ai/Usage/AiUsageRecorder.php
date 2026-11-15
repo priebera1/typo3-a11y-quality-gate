@@ -13,6 +13,7 @@ use Priebera\A11yQualityGate\Contract\BackendUserServiceInterface;
 use Priebera\A11yQualityGate\Domain\Repository\Contract\AiUsageRepositoryInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * The one choke point every provider request passes: it enforces the site's monthly budget before the request
@@ -42,7 +43,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *   rate limited, model unavailable or not permitted, quota/billing, malformed request), which cost nothing ("none");
  * - no price for the model → 0 and cost_known = 0 ("unknown").
  */
-final class AiUsageRecorder
+final class AiUsageRecorder implements McpCallScopedState
 {
     /** AiProviderException codes for answers a provider gives before it processes (and bills) a request. */
     public const PRE_PROCESSING_REJECTIONS = [
@@ -268,5 +269,11 @@ final class AiUsageRecorder
         $code = (int)$exception->getCode();
 
         return $code > 0 ? (string)$code : 'error';
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->lastRecord = null;
     }
 }

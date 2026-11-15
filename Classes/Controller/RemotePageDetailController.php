@@ -892,7 +892,18 @@ final class RemotePageDetailController extends AbstractBackendModuleController
         $toJobId = (string)$pair['to']['job_id'];
 
         $comparison = $this->remoteScanHistoryService->loadCompare($siteBase, $fromJobId, $toJobId);
-        if ($comparison['available'] ?? false) {
+        // D-1: without the AQG service's scope verdict (crawler before 032) its counts are shown only for scans that
+        // loaded the same pages.
+        if (($comparison['available'] ?? false) && ($comparison['comparable'] ?? false) && !($comparison['scopeVerdict'] ?? false)) {
+            $overlap = $this->remoteScanPairingService->pageOverlap($pair['from'], $pair['to']);
+            if (!$overlap->isSamePages()) {
+                $comparison = $this->remoteScanHistoryService->notComparable($comparison, 'different_pages', [
+                    'onlyInEarlier' => $overlap->onlyInEarlier,
+                    'onlyInLater' => $overlap->onlyInLater,
+                ]);
+            }
+        }
+        if (($comparison['available'] ?? false) && ($comparison['comparable'] ?? false)) {
             $comparison['acceptanceEvidence'] = $this->buildAcceptanceEvidenceLinks($siteIdentifier, $pair);
         }
 
@@ -933,6 +944,9 @@ final class RemotePageDetailController extends AbstractBackendModuleController
             }
             if ((string)($comparison[$targetKey]['jobId'] ?? '') === '') {
                 $comparison[$targetKey]['jobId'] = $jobId;
+            }
+            if (!($comparison['comparable'] ?? true) && (string)($historyByJob[$jobId]['viewReportUrl'] ?? '') !== '') {
+                $comparison[$targetKey]['reportUrl'] = (string)$historyByJob[$jobId]['viewReportUrl'];
             }
         }
 
@@ -2353,6 +2367,8 @@ final class RemotePageDetailController extends AbstractBackendModuleController
 
             $buttonBar->addButton($openFrontendButton, ButtonBar::BUTTON_POSITION_RIGHT, 1);
         }
+        // MI-05: the same module-level Settings action as Overview, Page Detail, My issues and AI fixes.
+        $this->addSettingsDocHeaderButton($moduleTemplate, $this->accessControlService->canShowSettings($this->backendContextService->getBackendUser()));
     }
 
     private function buildRemoteScreenshotProxyUrl(

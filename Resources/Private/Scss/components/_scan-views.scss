@@ -2632,13 +2632,19 @@
 }
 
 .aqg-module.aqg-sv .aqg-occ__context {
+    min-width: 0;
     color: var(--aqi-fg-muted);
     font-size: 12px;
+    overflow-wrap: anywhere;
 }
 
+/* The occurrence line quotes dynamic values (an image file name, a link target): an unbroken one wraps inside the card
+   instead of widening it (owner QA 3.0.0, 230-character file name). */
 .aqg-module.aqg-sv .aqg-occ__what {
+    min-width: 0;
     color: var(--aqi-fg);
     font-size: 12.5px;
+    overflow-wrap: anywhere;
 }
 
 .aqg-module.aqg-sv .aqg-occ__meta {

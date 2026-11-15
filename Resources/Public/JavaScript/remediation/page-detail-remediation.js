@@ -1,10 +1,12 @@
-import {postRemediation, el, format} from '@priebera/a11y-quality-gate/remediation/remediation-api.js';
+import {aiDeclineReason, postRemediation, el, format} from '@priebera/a11y-quality-gate/remediation/remediation-api.js';
 
 /**
  * The remediation entries of Page Detail: "Fix with AI" per occurrence (only where the card has no inline AI
  * suggestion of its own, Atlas 07·A), "Explain with AI", "Prepare AI suggestions" for the selection, owner changes and
- * the page plan drawer (07·D). Everything that is prepared lands in the queue for review — nothing here applies a
- * change. Each occurrence has its own result blocks for Explain and Fix: they say what was clicked, what AQG did,
+ * the page plan drawer (07·D). Everything that is prepared lands in the queue. A suggestion AQG can apply itself (a
+ * server-written target: rich text and plain HTML elements, image texts) is reviewed right here: Before / After, the
+ * value may be edited, and "Apply and verify" runs the queue's own view → edit → approve steps for exactly that item —
+ * no second AI request, the same checks and audit trail as in AI fixes. Nothing is applied without that click. Each occurrence has its own result blocks for Explain and Fix: they say what was clicked, what AQG did,
  * whether anything changed, what the request cost and what to do next, and take the focus when the request ends.
  * AI requests run one after another and wait for the rate limit instead of failing the rest.
  */
@@ -257,24 +259,40 @@ export class PageDetailRemediation {
         const changed = (text) => el('p', {class: 'aqg-ai-result__changed'}, el('strong', {text}));
         const usage = (failed = false) => el('p', {class: 'aqg-ai-result__usage', text: this.usageText(outcome.usage, failed)});
         switch (outcome.state) {
-            case 'ready':
+            case 'ready': {
+                const link = reviewLink(this.l('pd.result.reviewAction', 'Review suggestion'));
+                const review = this.inlineReview(findingUid, item, link);
                 return this.resultBlock(region, {tone: 'ok', title: this.l('pd.result.readyTitle', 'Suggestion ready for review'),
                     lines: [this.l('pd.result.readyText', 'AQG saved the suggestion in AI fixes. The content stays unchanged until someone reviews and approves it.'),
                         outcome.warning ? outcome.warning : null, usage()],
-                    actions: [reviewLink(this.l('pd.result.reviewAction', 'Review suggestion'), true)]});
+                    extra: review ? [review] : [],
+                    actions: review ? [] : [reviewLink(this.l('pd.result.reviewAction', 'Review suggestion'), true)]});
+            }
             case 'queued':
                 return this.resultBlock(region, {tone: 'info', title: this.l('pd.result.queuedTitle', 'Already in AI fixes'),
                     lines: [format(this.l('pd.result.queuedText', 'This occurrence already has an item in AI fixes. Status: %s'), item?.statusLabel ?? this.l('pd.preparing', 'Preparing AI suggestion…')), outcome.usage ? usage() : null],
                     actions: [reviewLink(this.l('pd.result.openItem', 'Open in AI fixes'), true)]});
-            case 'existing':
+            case 'existing': {
+                // The stored suggestion is reviewed again, never requested again (no second charge).
+                const label = item?.status === 'pending_review' ? this.l('pd.result.reviewAction', 'Review suggestion') : this.l('pd.result.openItem', 'Open in AI fixes');
+                const review = this.inlineReview(findingUid, item, reviewLink(label));
                 return this.resultBlock(region, {tone: item?.status === 'pending_review' ? 'ok' : 'info', title: this.l('pd.result.queuedTitle', 'Already in AI fixes'),
                     lines: [format(this.l('pd.result.queuedText', 'This occurrence already has an item in AI fixes. Status: %s'), item?.statusLabel ?? '—'),
                         item?.statusReasonLabel || null, this.l('pd.usage.notSent', 'No AI request was sent, so nothing was billed.')],
-                    actions: [reviewLink(item?.status === 'pending_review' ? this.l('pd.result.reviewAction', 'Review suggestion') : this.l('pd.result.openItem', 'Open in AI fixes'), true)]});
-            case 'none':
+                    extra: review ? [review] : [],
+                    actions: review ? [] : [reviewLink(label, true)]});
+            }
+            case 'none': {
+                // The model's own reason for declining, under a translated label only (text, never HTML).
+                const why = aiDeclineReason(item);
+                const whyLabel = this.l('pd.result.aiReason', '');
+                const reasonLine = why !== '' && whyLabel !== ''
+                    ? el('p', {class: 'aqg-remediation__why', 'data-aqg-ai-reason': 'true'}, el('strong', {text: `${whyLabel}: `}), why)
+                    : null;
                 return this.resultBlock(region, {tone: 'warn', title: this.l('pd.result.noneTitle', 'No usable suggestion'),
-                    lines: [outcome.message || null, changed(this.l('pd.result.noneText', 'The AI answered, but without a suggestion AQG can use. Nothing was changed; fix this occurrence in the record.')), usage()],
+                    lines: [outcome.message || null, reasonLine, changed(this.l('pd.result.noneText', 'The AI answered, but without a suggestion AQG can use. Nothing was changed; fix this occurrence in the record.')), usage()],
                     actions: [this.editRecordAction(findingUid), reviewLink(this.l('pd.result.openItem', 'Open in AI fixes'))]});
+            }
             case 'failed': {
                 const sent = outcome.usage?.sent !== false;
                 const retry = itemUid > 0 && outcome.retryable !== false
@@ -291,6 +309,138 @@ export class PageDetailRemediation {
                     lines: [outcome.message || null, changed(this.l('pd.result.unavailableText', 'No suggestion was created and nothing was changed.')), usage()],
                     actions: [this.editRecordAction(findingUid)]});
         }
+    }
+
+    /**
+     * Before / After of a suggestion AQG applies itself, with "Apply and verify". Only for an item the person may approve
+     * here (pending review, server-applied); the proposal is recorded as seen once it is on screen, as in the drawer.
+     */
+    inlineReview(findingUid, item, secondary = null) {
+        if (!item || item.status !== 'pending_review' || item.applyMode !== 'server' || !item.actions?.approve
+            || !this.urls.view || !this.urls.approve) {
+            return null;
+        }
+        const state = {item, viewed: null};
+        const inputId = `aqg-rem-review-${findingUid}`;
+        const before = String(item.originalValue ?? '');
+        const input = el('input', {type: 'text', class: 'form-control', id: inputId, value: String(item.finalValue ?? ''), maxlength: '1000',
+            'data-aqg-remediation-review-value': String(findingUid)});
+        if (!item.actions?.edit) {
+            input.readOnly = true;
+        }
+        const richText = item.kind === 'rich_text';
+        const apply = el('button', {type: 'button', class: 'btn btn-primary btn-sm', 'data-aqg-remediation-apply': String(findingUid),
+            text: richText ? this.l('pd.review.apply', 'Apply and verify') : this.l('pd.review.applyImage', 'Approve and apply'),
+            onclick: (event) => this.applyReviewed(findingUid, state, input, event.currentTarget)});
+        // As in the AI fixes drawer: rich text can always be applied in the editor instead (the person's choice).
+        const inEditor = item.editorAlternative
+            ? el('button', {type: 'button', class: 'btn btn-default btn-sm', 'data-aqg-remediation-apply-editor': String(findingUid),
+                text: this.l('pd.review.applyInEditor', 'Apply in the editor instead'),
+                onclick: (event) => this.applyReviewed(findingUid, state, input, event.currentTarget, {direct: false})})
+            : null;
+        // Where the change goes and why the AI suggests it: the same context the drawer shows.
+        const where = [item.fieldLabel, item.targetLabel].filter(Boolean).join(' · ');
+        state.viewed = postRemediation(this.urls.view, {item: Number(item.uid), proposalVersion: Number(item.proposalVersion), detailed: false})
+            .then((response) => {
+                if (response.ok && response.data.item) {
+                    state.item = response.data.item;
+                }
+                return response.ok;
+            });
+
+        return el('div', {class: 'aqg-remediation-review', 'data-aqg-remediation-review': String(findingUid)},
+            where ? el('p', {class: 'aqg-ai-result__text', 'data-aqg-remediation-review-target': 'true'}, el('strong', {text: `${this.l('pd.review.target', 'Changes')}: `}), where) : null,
+            item.explanation ? el('p', {class: 'aqg-ai-result__text', 'data-aqg-remediation-review-reason': 'true'}, el('strong', {text: `${this.l('pd.review.reason', 'Why')}: `}), String(item.explanation)) : null,
+            el('div', {class: 'aqg-remediation-review__diff', role: 'group', 'aria-label': this.l('pd.review.group', 'Suggested change')},
+                el('p', {class: 'aqg-remediation-review__before'},
+                    el('strong', {text: `${this.l('pd.review.before', 'Before')}: `}), before !== '' ? before : this.l('pd.review.empty', '(empty)')),
+                el('label', {class: 'aqg-remediation-review__label', for: inputId, text: item.actions?.edit ? this.l('pd.review.afterEditable', 'After (you can edit it)') : this.l('pd.review.after', 'After')}),
+                input,
+            ),
+            el('p', {class: 'aqg-ai-result__text', text: richText
+                ? this.l('pd.review.applyNote', 'Changes only this element of the field through TYPO3 DataHandler, with your permissions. Live, the change is visible on the website at once; in a workspace it is published with the workspace. Applying sends no AI request.')
+                : this.l('pd.review.applyNoteImage', 'Saves this text through TYPO3 DataHandler, with your permissions. Applying sends no AI request.')}),
+            el('div', {class: 'aqg-ai-result__actions'}, apply, inEditor, secondary),
+        );
+    }
+
+    /** "Apply and verify": the queue's edit (only for a changed value), view and approve steps for this item. */
+    async applyReviewed(findingUid, state, input, button, {direct = true} = {}) {
+        if (button.hasAttribute('aria-busy')) {
+            return;
+        }
+        this.setBusy(button, true);
+        this.announce(this.l('pd.review.applying', 'Applying and checking…'), this.statusSlot(findingUid));
+        const fail = (code, data) => {
+            this.setBusy(button, false);
+            this.finishApply(findingUid, {state: 'error', message: this.errorText(code, data)});
+        };
+        if (!(await state.viewed)) {
+            return fail('stale_view');
+        }
+        let item = state.item;
+        const value = input.value.trim();
+        if (value === '') {
+            return fail('invalid_value');
+        }
+        if (!input.readOnly && value !== String(item.finalValue ?? '')) {
+            const edited = await postRemediation(this.urls.edit, {item: Number(item.uid), rowVersion: Number(item.rowVersion), value, detailed: false});
+            if (!edited.ok) {
+                return fail(edited.code, edited.data);
+            }
+            item = edited.data.item;
+            // The edited value is a new proposal version: it is on screen, so it is recorded as seen too.
+            const seen = await postRemediation(this.urls.view, {item: Number(item.uid), proposalVersion: Number(item.proposalVersion), detailed: false});
+            if (!seen.ok) {
+                return fail(seen.code, seen.data);
+            }
+            item = seen.data.item ?? item;
+        }
+        const approved = await postRemediation(this.urls.approve, {item: Number(item.uid), rowVersion: Number(item.rowVersion), bulk: false, detailed: false, mode: direct ? 'apply' : ''});
+        this.setBusy(button, false);
+        if (!approved.ok) {
+            return fail(approved.code, approved.data);
+        }
+        this.finishApply(findingUid, {state: 'applied', item: approved.data.item, chosenEditor: !direct});
+    }
+
+    /** The outcome of "Apply and verify", in the occurrence's fix result region. */
+    finishApply(findingUid, {state, item = null, message = '', chosenEditor = false}) {
+        const region = this.page.querySelector(`[data-aqg-remediation-fixresult="${findingUid}"]`);
+        if (!region) {
+            return;
+        }
+        if (item) {
+            this.markQueued(findingUid, item);
+            // The occurrence's status chip follows the item (Verified, Not verified, Conflict …).
+            const chip = this.page.querySelector(`[data-aqg-remediation-item-state="${findingUid}"]`);
+            if (chip) {
+                chip.className = `aqg-remediation__status aqg-remediation__status--${String(item.status)}`;
+                chip.replaceChildren(el('span', {class: 'aqg-remediation__status-glyph', 'aria-hidden': 'true'}), `${this.l('pd.queued', 'In AI fixes:')} ${item.statusLabel ?? ''}`.trim());
+            }
+        }
+        const open = item ? el('a', {class: 'btn btn-default btn-sm', href: this.itemUrl(item.uid), 'data-aqg-remediation-item-link': String(item.uid), text: this.l('pd.result.openItem', 'Open in AI fixes')}) : null;
+        const reason = item?.statusReasonLabel || '';
+        let block;
+        if (state !== 'applied') {
+            block = {tone: 'err', title: this.l('pd.review.failedTitle', 'Not applied'), lines: [message, this.l('pd.review.nothingWritten', 'Nothing was written.')], actions: [this.editRecordAction(findingUid)]};
+        } else if (item.status === 'verified') {
+            block = {tone: 'ok', title: this.l('pd.review.verifiedTitle', 'Applied and verified'), lines: [this.l('pd.review.verifiedText', 'AQG saved the change and its check of the stored record no longer reports this issue.')], actions: [open]};
+        } else if (['saved', 'not_verified'].includes(item.status)) {
+            block = {tone: 'info', title: this.l('pd.review.savedTitle', 'Applied, not verified'), lines: [this.l('pd.review.savedText', 'AQG saved the change. Its check does not confirm the fix yet:'), reason || item.statusLabel], actions: [open]};
+        } else if (['approved', 'in_editor'].includes(item.status)) {
+            const edit = item.editUrl ? el('a', {class: 'btn btn-primary btn-sm', href: item.editUrl, text: this.l('pd.review.openEditor', 'Open in editor')}) : null;
+            block = {tone: 'info', title: this.l('pd.review.editorTitle', 'Apply this change in the editor'), lines: [chosenEditor
+                ? this.l('pd.review.editorChosenText', 'Nothing was written. The record opens with the change prepared; apply it there and save.')
+                : (item.statusReasonLabel || this.l('pd.review.editorText', 'AQG could not prove that it can change only this element, so nothing was written. The record opens with the change prepared; save it there.'))], actions: [edit, open]};
+        } else if (item.status === 'conflict') {
+            block = {tone: 'warn', title: this.l('pd.review.conflictTitle', 'Not applied: the content changed'), lines: [this.l('pd.review.conflictText', 'The element changed after the suggestion was made. Nothing was written; generate a new suggestion in AI fixes.')], actions: [open]};
+        } else {
+            block = {tone: 'err', title: this.l('pd.review.failedTitle', 'Not applied'), lines: [reason || item.statusLabel, this.l('pd.review.nothingWritten', 'Nothing was written.')], actions: [open, this.editRecordAction(findingUid)]};
+        }
+        this.resultBlock(region, block);
+        this.announce(block.title, this.statusSlot(findingUid));
+        this.focusResult(region);
     }
 
     /** The visible maximum of this occurrence's "Fix with AI" button, for the retry button. */

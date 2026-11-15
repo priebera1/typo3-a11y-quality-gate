@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Database\Tables;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Which stored frontend (crawler) results of a scan the current backend user may see — one policy for the module
@@ -40,7 +41,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
  * Administrators read every page and record natively: nothing is withheld. Rights are evaluated per request and never
  * cached across requests. The work is bounded; a scan beyond the bounds is refused instead of being checked partially.
  */
-final class RemoteResultAuthorizationService
+final class RemoteResultAuthorizationService implements McpCallScopedState
 {
     public const MAX_RESULT_PAGES = 10000;
     public const MAX_FINDINGS = 50000;
@@ -50,6 +51,8 @@ final class RemoteResultAuthorizationService
 
     /** @var array<int, bool> */
     private array $pageReadable = [];
+    /** @var array<int, bool> answers fetched in batches; they count towards MAX_DISTINCT_PAGES only once asked for */
+    private array $prefetchedPages = [];
     /** @var array<string, int> page:language → live translation uid (0 = none), per request */
     private array $currentTranslation = [];
 
@@ -75,6 +78,7 @@ final class RemoteResultAuthorizationService
     public function authorize(array $scan): RemoteResultAuthorization
     {
         $this->pageReadable = [];
+        $this->prefetchedPages = [];
         $this->currentTranslation = [];
         $scanUid = (int)($scan['uid'] ?? 0);
         $user = $this->backendUserService->getBackendUser();
@@ -95,6 +99,17 @@ final class RemoteResultAuthorizationService
             return new RemoteResultAuthorization(false, [], [], []);
         }
 
+        // LOW-2 (large-installation fix): the owners' show access in one batch instead of readPageAccess() per page.
+        $ownerPages = [];
+        foreach ($resultPages as $owner) {
+            if ($owner['state'] === RemoteResultProvenanceService::STATE_RESOLVED) {
+                $ownerPages[] = $owner['pageUid'];
+                if ($owner['translationUid'] > 0) {
+                    $ownerPages[] = $owner['translationUid'];
+                }
+            }
+        }
+        $this->preloadPageReadability($ownerPages);
         $allowedPages = [];
         foreach ($resultPages as $resultPageUid => $owner) {
             if ($this->ownerReadable($user, $owner)) {
@@ -400,7 +415,9 @@ final class RemoteResultAuthorizationService
             if ($versioned) {
                 $queryBuilder->andWhere($queryBuilder->expr()->eq('t3ver_wsid', 0));
             }
-            foreach ($queryBuilder->executeQuery()->fetchAllAssociative() as $row) {
+            $rows = $queryBuilder->executeQuery()->fetchAllAssociative();
+            $this->preloadPageReadability(array_map(static fn (array $row): int => $table === Tables::PAGES ? (int)$row['uid'] : (int)$row['pid'], $rows));
+            foreach ($rows as $row) {
                 $key = $parentField !== '' ? (int)$row[$parentField] : (int)$row['uid'];
                 if (isset($current[$key])) {
                     continue;
@@ -437,13 +454,40 @@ final class RemoteResultAuthorizationService
         );
     }
 
+    /**
+     * Fills the page cache for many pages at once (BatchedPageShowAccess: ScopeAccessService::canReadPage() semantics in
+     * the live workspace; elsewhere canReadPage() keeps the per-page check). The distinct-page limit applies as before.
+     *
+     * @param list<int> $pageUids
+     */
+    private function preloadPageReadability(array $pageUids): void
+    {
+        $user = $this->backendUserService->getBackendUser();
+        if (!$user instanceof BackendUserAuthentication) {
+            return;
+        }
+        $todo = [];
+        foreach ($pageUids as $pageUid) {
+            if ($pageUid > 0 && !isset($this->pageReadable[$pageUid]) && !isset($this->prefetchedPages[$pageUid])) {
+                $todo[$pageUid] = $pageUid;
+            }
+        }
+        if ($todo === [] || count($todo) > self::MAX_DISTINCT_PAGES) {
+            return;
+        }
+        $map = BatchedPageShowAccess::readableMap($user, $this->connectionPool, array_values($todo));
+        foreach ($map ?? [] as $pageUid => $readable) {
+            $this->prefetchedPages[$pageUid] = $readable;
+        }
+    }
+
     private function canReadPage(int $pageUid): bool
     {
         if (!isset($this->pageReadable[$pageUid])) {
             if (count($this->pageReadable) >= self::MAX_DISTINCT_PAGES) {
                 throw new RemoteResultsTooLargeException();
             }
-            $this->pageReadable[$pageUid] = $this->scopeAccessService->canReadPage($pageUid);
+            $this->pageReadable[$pageUid] = $this->prefetchedPages[$pageUid] ?? $this->scopeAccessService->canReadPage($pageUid);
         }
 
         return $this->pageReadable[$pageUid];
@@ -461,5 +505,13 @@ final class RemoteResultAuthorizationService
         }
 
         return isset($columns['owner_state']);
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->pageReadable = [];
+        $this->prefetchedPages = [];
+        $this->currentTranslation = [];
     }
 }

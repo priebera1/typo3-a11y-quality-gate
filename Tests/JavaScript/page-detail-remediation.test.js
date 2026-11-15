@@ -16,12 +16,12 @@ const labels = {
     'plan.copyTicket': 'Copy as ticket',
 };
 
-function mount({canBulk = true} = {}) {
+function mount({canBulk = true, urls = {}} = {}) {
     document.body.innerHTML = `
         <div class="a11y-page-detail" data-a11y-language-uid="0">
             <section data-aqg-remediation-page="true">
                 <script type="application/json" data-aqg-remediation-page-config="true">${JSON.stringify({
-                    pageUid: 3, canBulk, maxBatch: 50, queueUrl: '/queue?token=t', urls: {plan: '/plan', prepare: '/prepare', explain: '/explain', item: '/item', generate: '/generate'},
+                    pageUid: 3, canBulk, maxBatch: 50, queueUrl: '/queue?token=t', urls: {plan: '/plan', prepare: '/prepare', explain: '/explain', item: '/item', generate: '/generate', ...urls},
                     queue: {pending: 2, inEditor: 0, saved: 1, notVerified: 0}, labels,
                 })}</script>
                 <p data-aqg-remediation-summary-queue="true">static</p>
@@ -263,6 +263,113 @@ describe('Page Detail "Fix with AI" outcomes', () => {
         expect(region.textContent).not.toContain('Suggestion ready');
         expect(region.querySelector('a[data-aqg-remediation-item-link]').getAttribute('href')).toBe('/queue?token=t&item=70');
         expect(calls(fetchMock, '/generate')).toEqual([]);
+    });
+
+    const reviewUrls = {view: '/view', edit: '/edit', approve: '/approve'};
+    const pending = (overrides = {}) => item({status: 'pending_review', statusLabel: 'Waiting for review', rowVersion: 2, proposalVersion: 1, kind: 'rich_text',
+        applyMode: 'server', editorAlternative: true, fieldLabel: 'Plain HTML', targetLabel: 'Link 1 of 1', explanation: 'The link leads to www.priebera.sk.',
+        originalValue: 'Click here', finalValue: 'Visit the Priebera website', actions: {approve: true, edit: true}, ...overrides});
+
+    it('reviews a Plain HTML link text in place and applies it through the queue, without a second AI request', async () => {
+        // Observed: "Click here" got a suggestion but only "Copy text". Now: Before / After, editable, Apply and verify.
+        const fetchMock = routes({
+            '/prepare': {success: true, items: [{findingUid: 12, itemUid: 70, outcome: 'queued', reason: ''}]},
+            '/item': {success: true, item: item()},
+            '/generate': {success: true, item: pending(), aiUsage: {sent: true, outcome: 'success', basis: 'reported', costKnown: true, cost: '< $0.01'}},
+            '/view': (body) => ({success: true, item: pending({rowVersion: 3, proposalVersion: body.proposalVersion, finalValue: body.proposalVersion === 2 ? 'Priebera: web development' : 'Visit the Priebera website'})}),
+            '/edit': (body) => ({success: true, item: pending({rowVersion: 4, proposalVersion: 2, finalValue: body.value, isEdited: true})}),
+            '/approve': {success: true, item: pending({status: 'verified', statusLabel: 'Verified', isDone: true, actions: {}})},
+        });
+        const view = mount({urls: reviewUrls});
+        await view.prepareOne(document.querySelector('[data-aqg-remediation-prepare="12"]'));
+
+        const region = document.querySelector('[data-aqg-remediation-fixresult="12"]');
+        const review = region.querySelector('[data-aqg-remediation-review="12"]');
+        expect(review.textContent).toContain('Before: Click here');
+        const input = review.querySelector('input');
+        expect(input.value).toBe('Visit the Priebera website');
+        expect(review.querySelector('label').getAttribute('for')).toBe(input.id);
+        const apply = review.querySelector('[data-aqg-remediation-apply="12"]');
+        expect(apply.textContent).toBe('Apply and verify');
+        // The drawer's context: where the change goes, why, and the editor as the alternative.
+        expect(review.querySelector('[data-aqg-remediation-review-target]').textContent).toBe('Changes: Plain HTML · Link 1 of 1');
+        expect(review.querySelector('[data-aqg-remediation-review-reason]').textContent).toBe('Why: The link leads to www.priebera.sk.');
+        expect(review.querySelector('[data-aqg-remediation-apply-editor="12"]').textContent).toBe('Apply in the editor instead');
+        expect(region.textContent).not.toContain('Copy text');
+        // The proposal on screen is recorded as seen, as in the drawer.
+        expect(calls(fetchMock, '/view')).toEqual([{item: 70, proposalVersion: 1, detailed: false}]);
+
+        input.value = 'Priebera: web development';
+        apply.click();
+        await vi.waitFor(() => expect(region.querySelector('h4').textContent).toBe('Applied and verified'));
+        expect(calls(fetchMock, '/edit')).toEqual([{item: 70, rowVersion: 3, value: 'Priebera: web development', detailed: false}]);
+        expect(calls(fetchMock, '/view').map((body) => body.proposalVersion)).toEqual([1, 2]);
+        expect(calls(fetchMock, '/approve')).toEqual([{item: 70, rowVersion: 3, bulk: false, detailed: false, mode: 'apply'}]);
+        expect(calls(fetchMock, '/generate')).toHaveLength(1);
+        expect(document.querySelector('[data-aqg-remediation-item-state="12"]').textContent).toBe('In AI fixes: Verified');
+    });
+
+    it('says when the change has to be applied in the editor, and links to the prepared record', async () => {
+        routes({
+            '/prepare': {success: true, items: [{findingUid: 12, itemUid: 70, outcome: 'queued', reason: ''}]},
+            '/item': {success: true, item: item()},
+            '/generate': {success: true, item: pending()},
+            '/view': {success: true, item: pending({rowVersion: 3})},
+            '/approve': {success: true, item: pending({status: 'approved', statusLabel: 'Approved', applyMode: 'editor', editUrl: '/typo3/record/edit?aqgRemediation=70'})},
+        });
+        const view = mount({urls: reviewUrls});
+        await view.prepareOne(document.querySelector('[data-aqg-remediation-prepare="12"]'));
+        const region = document.querySelector('[data-aqg-remediation-fixresult="12"]');
+        region.querySelector('[data-aqg-remediation-apply="12"]').click();
+
+        await vi.waitFor(() => expect(region.querySelector('h4').textContent).toBe('Apply this change in the editor'));
+        expect(region.textContent).toContain('nothing was written');
+
+        // The person's own choice: approve for the editor, no server write requested.
+        const fetchMock = globalThis.fetch;
+        view.renderFixResult(12, {state: 'existing', itemUid: 70, item: pending()});
+        region.querySelector('[data-aqg-remediation-apply-editor="12"]').click();
+        await vi.waitFor(() => expect(region.textContent).toContain('apply it there and save'));
+        expect(calls(fetchMock, '/approve').map((body) => body.mode)).toEqual(['apply', '']);
+        expect(region.querySelector('a.btn-primary').getAttribute('href')).toBe('/typo3/record/edit?aqgRemediation=70');
+    });
+
+    it('reports a conflict and a refusal honestly, never as applied', async () => {
+        const fetchMock = routes({
+            '/prepare': {success: true, items: [{findingUid: 12, itemUid: 70, outcome: 'already_queued', reason: ''}]},
+            '/item': {success: true, item: pending()},
+            '/view': {success: true, item: pending({rowVersion: 3})},
+            '/approve': {success: true, item: pending({status: 'conflict', statusLabel: 'Conflict', actions: {}})},
+        });
+        const view = mount({urls: reviewUrls});
+        await view.prepareOne(document.querySelector('[data-aqg-remediation-prepare="12"]'));
+        const region = document.querySelector('[data-aqg-remediation-fixresult="12"]');
+        // An existing suggestion is reviewed again: no provider request.
+        expect(calls(fetchMock, '/generate')).toEqual([]);
+        region.querySelector('[data-aqg-remediation-apply="12"]').click();
+        await vi.waitFor(() => expect(region.querySelector('h4').textContent).toBe('Not applied: the content changed'));
+
+        fetchMock.mockImplementation(async (url) => (url === '/approve'
+            ? json({success: false, status: 'error', code: 'permission_denied'}, 403)
+            : json({success: true, item: pending({rowVersion: 3})})));
+        view.labels['error.permission_denied'] = 'You may not change this record.';
+        view.renderFixResult(12, {state: 'existing', itemUid: 70, item: pending()});
+        region.querySelector('[data-aqg-remediation-apply="12"]').click();
+        await vi.waitFor(() => expect(region.querySelector('h4').textContent).toBe('Not applied'));
+        expect(region.textContent).toContain('You may not change this record.');
+        expect(region.textContent).toContain('Nothing was written.');
+    });
+
+    it('offers no in-place apply where AQG does not write (editor-applied items, no approve right, no review URLs)', async () => {
+        for (const [current, urls] of [[pending({applyMode: 'editor'}), reviewUrls], [pending({actions: {approve: false}}), reviewUrls], [pending(), {}]]) {
+            routes({'/prepare': {success: true, items: [{findingUid: 12, itemUid: 70, outcome: 'already_queued', reason: ''}]}, '/item': {success: true, item: current}, '/view': {success: true, item: current}});
+            const view = mount({urls});
+            await view.prepareOne(document.querySelector('[data-aqg-remediation-prepare="12"]'));
+            const region = document.querySelector('[data-aqg-remediation-fixresult="12"]');
+            expect(region.querySelector('[data-aqg-remediation-apply]')).toBeNull();
+            expect(region.querySelector('a.btn-primary[data-aqg-remediation-item-link]')).not.toBeNull();
+            vi.restoreAllMocks();
+        }
     });
 
     it('reports a failed generation that reached the provider, and "Try again" regenerates the same item', async () => {

@@ -129,6 +129,36 @@ final class RemoteScanPersistenceIdempotencyFunctionalTest extends AbstractFunct
     }
 
     #[Test]
+    public function aDeadlockWhileStoringIsRetriedAndTheScanIsStoredExactlyOnce(): void
+    {
+        // MEDIUM-4 (large-installation stress test): two scans stored at the same moment deadlocked in InnoDB and the
+        // second one surfaced as "could not be saved". The store is now retried (bounded) inside the same claim.
+        $uid = $this->insertUnpersistedScan(self::JOB);
+        $service = $this->service();
+        $this->reenterOnce(static function (): void {
+            throw new \Doctrine\DBAL\Exception\DeadlockException(
+                new class ('Deadlock found when trying to get lock; try restarting transaction') extends \Exception implements \Doctrine\DBAL\Driver\Exception {
+                    public function getSQLState(): ?string
+                    {
+                        return '40001';
+                    }
+                },
+                null
+            );
+        });
+
+        self::assertSame($uid, $service->persistResults('test', self::JOB, RemoteScanSourceType::Sitemap, 'https://example.test/', null, $this->results(3, 2)));
+
+        self::assertSame(1, ReentrantPersistLogWriter::$fired, 'The deadlock must have happened inside the store.');
+        self::assertSame(3, $this->rows('tx_a11y_remote_scan_page'), 'The retry stores every page once.');
+        self::assertSame(6, $this->rows('tx_a11y_remote_issue'));
+        self::assertSame(6, $this->rows('tx_a11y_remote_issue_node'));
+        $row = $this->scanRow(self::JOB);
+        self::assertGreaterThan(0, (int)$row['persisted_at']);
+        self::assertSame('', (string)$row['persist_claim_token'], 'The claim is released after the retry stored the scan.');
+    }
+
+    #[Test]
     public function partialRowsOfAnInterruptedEarlierStoreAreReplacedExactly(): void
     {
         $uid = $this->insertUnpersistedScan(self::JOB);

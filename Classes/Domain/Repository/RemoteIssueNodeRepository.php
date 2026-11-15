@@ -9,6 +9,26 @@ use TYPO3\CMS\Core\Database\Connection;
 
 final class RemoteIssueNodeRepository extends AbstractRepository
 {
+    /**
+     * Every element of the findings of a scan, decided by the database at delete time (a retry after a deadlock must
+     * not rely on the finding uids of its own, older read).
+     */
+    public function deleteByRemoteScan(int $remoteScanUid): void
+    {
+        if ($remoteScanUid <= 0) {
+            return;
+        }
+        $queryBuilder = $this->getQueryBuilder(Tables::REMOTE_ISSUE_NODE);
+        $queryBuilder
+            ->delete(Tables::REMOTE_ISSUE_NODE)
+            ->where($queryBuilder->expr()->in(
+                'remote_issue',
+                'SELECT ' . $queryBuilder->quoteIdentifier('uid') . ' FROM ' . $queryBuilder->quoteIdentifier(Tables::REMOTE_ISSUE)
+                    . ' WHERE ' . $queryBuilder->quoteIdentifier('remote_scan') . ' = ' . (int)$remoteScanUid
+            ))
+            ->executeStatement();
+    }
+
     public function deleteByRemoteIssueUids(array $remoteIssueUids): void
     {
         $remoteIssueUids = array_values(array_filter(array_map('intval', $remoteIssueUids)));

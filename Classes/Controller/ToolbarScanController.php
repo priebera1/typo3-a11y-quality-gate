@@ -9,6 +9,7 @@ use Priebera\A11yQualityGate\Ai\Editor\EditorAiErrorResponse;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\A11yScanToolbarItem;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\Ask\AskAqgLimits;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\Ask\AskAqgRepairService;
+use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\Ask\AskAqgSelection;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\Ask\AskAqgService;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\ToolbarAssistantContext;
 use Priebera\A11yQualityGate\Backend\ToolbarItems\Assistant\ToolbarAssistantContextResolver;
@@ -27,7 +28,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 final class ToolbarScanController
 {
     /** The context identifiers "Ask AQG" accepts; the resolver validates and permission-checks each one again. */
-    private const ASK_CONTEXT_KEYS = ['id', 'language', 'editTable', 'editUid', 'fileUid', 'unsaved', 'changed'];
+    private const ASK_CONTEXT_KEYS = ['id', 'language', 'module', 'editTable', 'editUid', 'fileUid', 'unsaved', 'changed'];
 
     public function __construct(
         private readonly A11yScanToolbarItem $a11yScanToolbarItem,
@@ -110,6 +111,9 @@ final class ToolbarScanController
                 is_array($body['history'] ?? null) ? $body['history'] : [],
                 is_string($body['conversation'] ?? null) ? substr($body['conversation'], 0, 256) : '',
                 is_string($body['repairTarget'] ?? null) ? substr($body['repairTarget'], 0, 16) : '',
+                // The signed numbered list of an earlier answer and the numbers a card or the question picked from it.
+                is_string($body['selection'] ?? null) ? substr($body['selection'], 0, 1024) : '',
+                is_array($body['pick'] ?? null) ? array_slice(array_values($body['pick']), 0, AskAqgSelection::MAX_ITEMS) : [],
             ));
         } catch (\Throwable $exception) {
             $response = EditorAiErrorResponse::fromThrowable($exception, $this->editorAiAccessService?->isAdmin() ?? false);

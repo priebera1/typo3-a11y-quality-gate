@@ -135,7 +135,15 @@ describe('frontend scan notification', () => {
 
         expect(result.severity).toBe('warning');
         expect(result.message).toContain('Checked 1 of 3 pages.');
-        expect(result.message).toContain('Since the previous scan: 0 new, 0 resolved.');
+        // D-1: a site scan's crawler counts compare runs of any scope; without stored results no change is named.
+        expect(result.message).toContain('Frontend scan completed. The report lists every open issue.');
+        expect(result.message).not.toContain('Since the previous scan');
+    });
+
+    it('keeps the crawler change of a page scan whose results are not stored', () => {
+        const result = frontendScanNotification({pagesScanned: 1, pagesFailed: 0, pagesTotal: 1, issuesNew: 2, issuesResolved: 1}, {scope: 'page'}, t);
+
+        expect(result.message).toContain('Since the previous scan: 2 new, 1 resolved.');
     });
 
     // The crawler compared a page scan with the previous scan of any page of the site: an unchanged page said
@@ -256,5 +264,40 @@ describe('restricted frontend notification (Sol QA-06)', () => {
         const result = frontendScanNotification({resultsRestricted: true, scanLoadedPages: false, occurrencesTotal: 0, pagesExpected: 0, pagesLoaded: 0}, {scope: 'site'}, t);
         expect(result.title).toBe('Frontend scan checked no page');
         expect(result.message).toBe('No page could be loaded. The Overview lists the reasons.');
+    });
+});
+
+// D-1 (AQG 3.0 production acceptance): a 4-page budgeted scan as the baseline of a 19-page scan made the notification
+// read "(297 new)". The server's comparison now counts only pages both scans loaded and says when they differed; the
+// crawler's own whole-run counts are never shown for a site scan.
+describe('frontend scan notification of scans that checked different pages (D-1)', () => {
+    const base = {occurrencesTotal: 376, issueTypesTotal: 21, pagesExpected: 19, pagesLoaded: 19, issuesNew: 297, issuesResolved: 0};
+
+    it('names the change on the shared pages only', () => {
+        const result = frontendScanNotification({...base, comparison: {available: true, new: 1, resolved: 0, partial: true, comparedPages: 4, pagesOnlyInCurrent: 15, pagesOnlyInPrevious: 0}}, {scope: 'site'}, t);
+
+        expect(result.message).toContain('(1 new, 0 resolved on the 4 pages also checked in the previous scan).');
+        expect(result.message).not.toContain('297');
+    });
+
+    it('says that the previous scan checked other pages instead of naming a change', () => {
+        const result = frontendScanNotification({...base, comparison: {available: false, reason: 'different_pages'}}, {scope: 'site'}, t);
+
+        expect(result.message).toContain('(the previous scan checked other pages; no direct comparison).');
+        expect(result.message).not.toContain('297');
+        expect(result.message).not.toContain('0 new');
+    });
+
+    it('never shows the crawler counts of a site scan without the server comparison', () => {
+        const result = frontendScanNotification({issuesNew: 297, issuesResolved: 0, pagesExpected: 19, pagesLoaded: 19}, {scope: 'site'}, t);
+
+        expect(result.message).toContain('Frontend scan completed. The report lists every open issue.');
+        expect(result.message).not.toContain('297');
+    });
+
+    it('keeps a genuine change between scans of the same pages', () => {
+        const result = frontendScanNotification({...base, issuesNew: 0, comparison: {available: true, new: 12, resolved: 3}}, {scope: 'site'}, t);
+
+        expect(result.message).toContain('(12 new); 3 resolved.');
     });
 });

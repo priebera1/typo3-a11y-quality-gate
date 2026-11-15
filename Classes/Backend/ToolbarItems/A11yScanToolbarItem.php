@@ -113,6 +113,29 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         return $view->render('ToolbarItems/A11yScanToolbarDropDown');
     }
 
+    /** @var \WeakMap<object, array<string, mixed>>|null per-request results of buildSummary()'s expensive parts */
+    private ?\WeakMap $requestMemo = null;
+
+    /**
+     * The value of $compute, computed once per request (and backend user). Without a request object nothing is kept.
+     */
+    private function once(string $key, \Closure $compute): mixed
+    {
+        $request = isset($this->request) ? $this->request : ($GLOBALS['TYPO3_REQUEST'] ?? null);
+        if (!is_object($request)) {
+            return $compute();
+        }
+        $key = $this->backendContextService->getBackendUser()?->getUserId() . '|' . $key;
+        $this->requestMemo ??= new \WeakMap();
+        $entries = $this->requestMemo[$request] ?? [];
+        if (!array_key_exists($key, $entries)) {
+            $entries[$key] = $compute();
+            $this->requestMemo[$request] = $entries;
+        }
+
+        return $entries[$key];
+    }
+
     /**
      * Both cards describe the same site: the request's, else the one of the last Content scan (the toolbar request of
      * the Dashboard and other modules carries no page). Without a readable site the Frontend card is left out instead
@@ -123,7 +146,9 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
     private function buildSummary(bool $withFrontendChanges): array
     {
         $builder = $this->summaryBuilder();
-        $localStatus = $this->resolveLocalStatus();
+        // Large-installation fix (MEDIUM-3): getItem() and getDropDown() build the summary in the same request; the
+        // expensive parts (status, counts, authorized frontend occurrences) are computed once per request.
+        $localStatus = $this->once('localStatus', fn (): array => $this->resolveLocalStatus());
         $siteIdentifier = $this->resolveSiteIdentifierFromRequestOrStatus($localStatus);
         $canReadSite = $siteIdentifier !== '' && $this->scopeAccessService->canReadSiteIdentifier($siteIdentifier);
         // Every Content count is page-level data: pages the user may not show (TYPO3 page permissions) add nothing.
@@ -132,8 +157,8 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
 
         $contentCard = $builder->contentCard(
             $withFrontendChanges ? $this->withScannedPageTitle($localStatus) : $localStatus,
-            $canReadSite ? $this->countOpenTotals($siteIdentifier, $readablePagesClause) : null,
-            $canReadSite ? $this->contentEvidence($siteIdentifier) : null,
+            $canReadSite ? $this->once('totals|' . $siteIdentifier . '|' . $readablePagesClause, fn (): ?array => $this->countOpenTotals($siteIdentifier, $readablePagesClause)) : null,
+            $canReadSite ? $this->once('evidence|' . $siteIdentifier, fn (): string => $this->contentEvidence($siteIdentifier)) : null,
             $withFrontendChanges && $canReadSite ? $this->countOpenPage($siteIdentifier) : null,
         );
         $frontendCard = null;
@@ -141,9 +166,12 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
             // Sol R03/R05: a scan the user may not read is not shown (resolveRemoteStatus() checks every candidate); for
             // users other than administrators the counts are those of the findings they may read, and no new/resolved
             // comparison is claimed.
-            $remoteScan = $this->resolveRemoteStatus($siteIdentifier);
             $restricted = $this->remoteResultAuthorizationService === null || !$this->remoteResultAuthorizationService->isUnrestrictedUser();
-            $remoteScan = $restricted ? $this->withVisibleOccurrences($remoteScan) : $this->withStoredOccurrences($remoteScan);
+            $remoteScan = $this->once('remote|' . $siteIdentifier . '|' . ($restricted ? 'r' : 'u'), function () use ($siteIdentifier, $restricted): array {
+                $remoteScan = $this->resolveRemoteStatus($siteIdentifier);
+
+                return $restricted ? $this->withVisibleOccurrences($remoteScan) : $this->withStoredOccurrences($remoteScan);
+            });
             $frontendCard = $builder->frontendCard(
                 $remoteScan,
                 $withFrontendChanges && !$restricted ? $this->frontendChanges($remoteScan) : null
@@ -282,11 +310,21 @@ final class A11yScanToolbarItem implements ToolbarItemInterface, RequestAwareToo
         return $status;
     }
 
+    /**
+     * AQA-09: which site the summary describes — its title and the configured base as host + path. Several sites can
+     * share one host (e.g. https://example.org/test/ and https://example.org/), so the host alone named the wrong one.
+     * The label is the site's verified TYPO3 configuration; it is never rewritten.
+     */
     private function siteLabel(string $siteIdentifier): string
     {
-        $host = (string)parse_url($this->siteResolutionService->resolveSiteBaseByIdentifier($siteIdentifier), PHP_URL_HOST);
+        $site = $this->siteResolutionService->resolveSiteByIdentifier($siteIdentifier);
+        $title = $site instanceof \TYPO3\CMS\Core\Site\Entity\Site ? trim((string)($site->getConfiguration()['websiteTitle'] ?? '')) : '';
+        $base = $this->siteResolutionService->resolveSiteBaseByIdentifier($siteIdentifier);
+        $host = (string)parse_url($base, PHP_URL_HOST);
+        $address = $host !== '' ? rtrim($host . (string)parse_url($base, PHP_URL_PATH), '/') : '';
+        $name = $title !== '' ? $title : $siteIdentifier;
 
-        return $host !== '' ? $host : $siteIdentifier;
+        return $address !== '' && $address !== $name ? $name . ' · ' . $address : $name;
     }
 
     private function summaryBuilder(): ToolbarSummaryBuilder

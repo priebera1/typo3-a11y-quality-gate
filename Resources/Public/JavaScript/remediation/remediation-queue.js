@@ -1,6 +1,39 @@
-import {postRemediation, el, format, relativeAge} from '@priebera/a11y-quality-gate/remediation/remediation-api.js';
+import {aiDeclineReason, postRemediation, el, format, relativeAge} from '@priebera/a11y-quality-gate/remediation/remediation-api.js';
 import {classifySelection, isBulkEligible, summarize, retryable, outcomeOf} from '@priebera/a11y-quality-gate/remediation/remediation-bulk.js';
-import {conflictView, countText, filtersActive, formatDateTime, hasProposal, ladderView, logRow, outcomeChip, permissionLineVisible, rangeLabel, readQueueFilters, resultCountText, resultKind, siteScope} from '@priebera/a11y-quality-gate/remediation/remediation-filters.js';
+import {activeFilterChips, conflictView, countText, filtersActive, filtersChanged, resetFilterControl, formatDateTime, hasProposal, ladderView, logRow, outcomeChip, permissionLineVisible, rangeLabel, readQueueFilters, resultCountText, resultKind, siteScope} from '@priebera/a11y-quality-gate/remediation/remediation-filters.js';
+
+/**
+ * AQA-07: tell Ask AQG (toolbar / dock in the backend document, or another tab) that an item changed, so a plan that
+ * shows it refreshes from the server. Only the item id, its finding id and its new status travel; nothing else is
+ * trusted from it.
+ */
+/** AF-04: the stand-in for an image preview that could not be loaded (text, same box as the preview). */
+export function previewUnavailable(text) {
+    return el('span', {class: 'aqg-remediation__preview aqg-remediation__preview--missing', role: 'img', 'aria-label': text, text});
+}
+
+export function notifyRemediationChanged(item, win = window) {
+    const itemUid = Number(item?.uid ?? 0);
+    if (!(itemUid > 0)) {
+        return;
+    }
+    // The finding too: once an item is rejected, Ask AQG shows that finding as "can be prepared", without the item id.
+    const detail = {itemUid, findingUid: Math.max(0, Number(item?.findingUid ?? 0)), status: String(item?.status ?? '')};
+    try {
+        win.top?.document?.dispatchEvent(new win.top.CustomEvent('aqg:remediation-changed', {detail}));
+    } catch {
+        // A cross-origin top frame cannot be reached; the BroadcastChannel below still informs other tabs.
+    }
+    try {
+        if (typeof win.BroadcastChannel === 'function') {
+            const channel = new win.BroadcastChannel('aqg-remediation');
+            channel.postMessage(detail);
+            channel.close();
+        }
+    } catch {
+        // Not available: Ask AQG keeps its "Refresh status" action.
+    }
+}
 
 // Stroked 16px icons of the shared empty-state ring (static path data, never content).
 const EMPTY_ICONS = {
@@ -105,6 +138,7 @@ export class RemediationQueue {
             this.applyFilters(filters);
         });
         this.state.filters = readQueueFilters(filters, this.pageUid);
+        this.renderFilterChips();
         this.root.querySelector('[data-aqg-rq-pagechip-remove]')?.addEventListener('click', () => this.removePageFilter());
         this.root.querySelectorAll('[data-aqg-rq-tab]').forEach((tab) => tab.addEventListener('click', () => this.selectTab(tab.getAttribute('data-aqg-rq-tab'))));
         const logFilters = this.root.querySelector('[data-aqg-rq-log-filters]');
@@ -179,7 +213,41 @@ export class RemediationQueue {
             this.state.sites = siteScope(site.value, this.config.allSites ?? [], this.config.sites ?? []);
         }
         this.state.page = 1;
+        this.renderFilterChips();
         this.load();
+    }
+
+    /**
+     * Filter UX consistency with My issues: one chip per narrowing filter (removable), and one "Clear filters" at the
+     * end of the chip row whenever anything differs from the defaults. The page chip of a deep link stays as it is.
+     */
+    renderFilterChips() {
+        const row = this.root.querySelector('[data-aqg-rq-chips]');
+        const list = row?.querySelector('[data-aqg-rq-chiplist]');
+        if (!row || !list) {
+            return;
+        }
+        list.querySelectorAll('[data-aqg-rq-filterchip]').forEach((chip) => chip.remove());
+        row.querySelector('[data-aqg-rq-clear-filters]')?.remove();
+        for (const chip of activeFilterChips(this.filterForm)) {
+            const text = `${chip.label}: ${chip.value}`;
+            list.append(el('li', {class: 'aqg-remediation__chip', 'data-aqg-rq-filterchip': chip.name},
+                el('span', {}, `${chip.label}: `, el('strong', {text: chip.value})),
+                el('button', {
+                    type: 'button',
+                    class: 'btn btn-default btn-sm aqg-remediation__chip-remove',
+                    'aria-label': format(this.l('filter.remove', 'Remove filter %s'), text),
+                    onclick: () => {
+                        resetFilterControl(this.filterForm, chip.name);
+                        this.applyFilters(this.filterForm);
+                        this.filterForm?.querySelector(`[name="${chip.name}"]`)?.focus();
+                    },
+                }, el('span', {'aria-hidden': 'true', text: '×'}))));
+        }
+        if (filtersChanged(this.filterForm) || this.pageUid > 0) {
+            row.append(el('button', {type: 'button', class: 'btn btn-link btn-sm aqg-filterchips__clear', 'data-aqg-rq-clear-filters': 'true', text: this.l('clearFilters', 'Clear filters'), onclick: () => this.clearFilters()}));
+        }
+        row.hidden = list.children.length === 0 && !row.querySelector('[data-aqg-rq-clear-filters]');
     }
 
     /** The page filter of a deep link (Page Detail) is a visible chip; removing it widens the list to the site. */
@@ -749,6 +817,8 @@ export class RemediationQueue {
         const preview = item.previewUrl
             ? el('img', {class: 'aqg-remediation__preview', src: item.previewUrl, alt: this.l('drawer.preview', 'Preview of the image'), loading: 'lazy', width: '96', height: '96'})
             : null;
+        // AF-04: a preview that cannot load becomes a deliberate text placeholder, never a broken image.
+        preview?.addEventListener('error', () => preview.replaceWith(previewUnavailable(this.l('drawer.previewUnavailable', 'Image preview unavailable'))), {once: true});
         const section = el('section', {class: 'aqg-remediation__section aqg-remediation__suggestion'}, heading, preview ? el('div', {class: 'aqg-remediation__diffwrap'}, preview, diff) : diff);
         if (item.explanation) {
             section.append(el('p', {class: 'aqg-remediation__why'}, el('strong', {text: `${this.l('drawer.why', 'Why')}: `}), item.explanation));
@@ -841,7 +911,14 @@ export class RemediationQueue {
             return section;
         }
         if (kind === 'noSuggestion') {
-            section.append(panel('notice', item.statusLabel, item.statusReasonLabel || this.l('drawer.noSuggestion', 'There is no suggestion to review. Nothing was changed.')));
+            const notice = panel('notice', item.statusLabel, item.statusReasonLabel || this.l('drawer.noSuggestion', 'There is no suggestion to review. Nothing was changed.'));
+            // The reason for declining tells the editor what was missing (text only, never HTML). "Why" is neutral, so
+            // AQG's own reason (an empty heading with nothing after it: no provider was asked) is shown here too.
+            const why = aiDeclineReason(item, {fromAiOnly: false});
+            if (why !== '') {
+                notice.append(el('p', {class: 'aqg-remediation__why'}, el('strong', {text: `${this.l('drawer.why', 'Why')}: `}), why));
+            }
+            section.append(notice);
             return section;
         }
         if (kind === 'preparing') {
@@ -879,9 +956,10 @@ export class RemediationQueue {
             case 'conflict':
                 return this.l('outcome.conflict', 'The record changed after this suggestion was made. Applying would overwrite that change, so it is blocked.');
             case 'in_editor':
-                return this.l('outcome.inEditor', 'Opened in the editor, not saved. Save it there; closing without saving returns the item to Approved.');
+                return `${this.l('outcome.inEditor', 'Opened in the editor, not saved. Save it there; closing without saving returns the item to Approved.')} ${item.statusReasonLabel ?? ''}`.trim();
             case 'approved':
-                return this.l('outcome.approved', 'Approved for the editor. Open it to apply the change and save with TYPO3 Save.');
+                // Why the editor (AQG could not prove the change, or the record is open elsewhere), when AQG chose it.
+                return item.statusReasonLabel || this.l('outcome.approved', 'Approved for the editor. Open it to apply the change and save with TYPO3 Save.');
             case 'failed':
                 return `${this.l('outcome.failed', 'Failed. Nothing was written.')} ${item.statusReasonLabel}`.trim();
             case 'applying':
@@ -940,7 +1018,14 @@ export class RemediationQueue {
         }
 
         if (item.actions?.approve && item.applyMode === 'server') {
-            actions.append(primary(item.actions.retry ? this.l('action.retry', 'Try again') : this.l('action.approveApply', 'Approve and apply'), (event) => this.approve(item, event.currentTarget)));
+            const richText = item.kind === 'rich_text';
+            const label = item.actions.retry
+                ? this.l('action.retry', 'Try again')
+                : (richText ? this.l('action.applyVerify', 'Apply and verify') : this.l('action.approveApply', 'Approve and apply'));
+            actions.append(primary(label, (event) => this.approve(item, event.currentTarget, {direct: true})));
+        }
+        if (item.actions?.approve && item.editorAlternative && item.status === 'pending_review') {
+            actions.append(secondary(this.l('action.applyInEditor', 'Apply in the editor instead'), (event) => this.approve(item, event.currentTarget, {direct: false})));
         }
         if (item.actions?.approve && item.applyMode === 'editor' && item.status === 'pending_review') {
             actions.append(primary(this.l('action.approveEditor', 'Approve and open in editor'), (event) => this.approve(item, event.currentTarget)));
@@ -976,10 +1061,12 @@ export class RemediationQueue {
             links.append(link(this.l('drawer.openPageDetail', 'Page issues'), item.pageDetailUrl, 'btn btn-link btn-sm'));
         }
         endLinks();
-        if (item.applyMode === 'server' && item.actions?.approve) {
+        if (item.applyMode === 'server' && item.actions?.approve && item.kind === 'rich_text') {
+            actions.append(el('p', {class: 'aqg-remediation__note', text: this.l('drawer.richTextServerWrite', 'Changes only this element of the field through TYPO3 DataHandler, with your permissions, then checks the saved record. In the live workspace the change is on the website at once; in a workspace it is published with the workspace. Reversible in the record history.')}));
+        } else if (item.applyMode === 'server' && item.actions?.approve) {
             actions.append(el('p', {class: 'aqg-remediation__note', text: this.l('drawer.serverWrite', 'Writes only this image use\'s alternative text through TYPO3 DataHandler. Reversible in the record history.')}));
         } else if (item.applyMode === 'editor' && !item.isDone && kind === 'proposal') {
-            actions.append(el('p', {class: 'aqg-remediation__note', text: this.l('drawer.editorApply', 'AQG never rewrites rich text or HTML on the server. The record opens with this change staged; you check it there and save with TYPO3 Save.')}));
+            actions.append(el('p', {class: 'aqg-remediation__note', text: this.l('drawer.editorApply', 'The record opens with this change staged; you check it there and save with TYPO3 Save.')}));
         }
 
         return actions;
@@ -1038,7 +1125,7 @@ export class RemediationQueue {
         select.focus();
     }
 
-    async approve(item, button) {
+    async approve(item, button, options = {}) {
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
         const edited = await this.saveEditedValue(item);
@@ -1049,7 +1136,9 @@ export class RemediationQueue {
         }
         item = edited;
         this.announce(this.l('announce.applying', 'Applying.'));
-        const response = await postRemediation(this.urls.approve, {item: item.uid, rowVersion: item.rowVersion, bulk: false, detailed: true, returnUrl: this.config.returnUrl ?? ''});
+        // Rich text "Apply and verify": AQG stores the reviewed element change; otherwise it is approved for the editor.
+        const mode = options.direct !== false && item.applyMode === 'server' ? 'apply' : '';
+        const response = await postRemediation(this.urls.approve, {item: item.uid, rowVersion: item.rowVersion, bulk: false, detailed: true, mode, returnUrl: this.config.returnUrl ?? ''});
         if (!response.ok) {
             button.disabled = false;
             button.removeAttribute('aria-busy');
@@ -1057,10 +1146,13 @@ export class RemediationQueue {
             return;
         }
         const fresh = response.data.item;
+        notifyRemediationChanged(fresh);
         this.showDrawer(fresh, {keepFocus: true});
         this.drawerPanel.querySelector('#aqg-rq-drawer-title')?.focus();
         this.announceOutcome(fresh);
-        if (fresh.applyMode === 'editor' && fresh.status === 'approved' && fresh.editUrl) {
+        // Straight into the editor only when the person chose it. When "Apply and verify" ends in the editor (AQG could
+        // not prove the change), the drawer stays open and says why, with "Open in editor to apply".
+        if (fresh.applyMode === 'editor' && fresh.status === 'approved' && fresh.editUrl && mode !== 'apply') {
             window.location.href = fresh.editUrl;
             return;
         }
@@ -1091,6 +1183,7 @@ export class RemediationQueue {
             this.handleActionError(item, response);
             return;
         }
+        notifyRemediationChanged(response.data.item);
         if (response.data.retryAfter) {
             this.announce(format(this.l('error.rate_limited', 'Too many AI requests. Try again in %d seconds.'), response.data.retryAfter));
         }
@@ -1107,6 +1200,7 @@ export class RemediationQueue {
             this.handleActionError(item, response);
             return;
         }
+        notifyRemediationChanged(response.data.item);
         this.showDrawer(response.data.item, {keepFocus: true});
         this.announceOutcome(response.data.item);
         this.load({quiet: true});
@@ -1126,6 +1220,7 @@ export class RemediationQueue {
             this.handleActionError(item, response);
             return;
         }
+        notifyRemediationChanged(response.data.item);
         this.showDrawer(response.data.item, {keepFocus: false});
         this.announceOutcome(response.data.item);
         this.load({quiet: true});

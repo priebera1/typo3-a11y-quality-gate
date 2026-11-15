@@ -10,9 +10,10 @@ use Priebera\A11yQualityGate\Utility\BackendLabelUtility;
  * Agent access (MCP) capability catalogue (v1 plus content:read of Accessibility Intelligence), the same list the AQG MCP Gateway grants (aqg-api services/mcp/scopes.ts).
  *
  * The effective right of an agent call is: consented scopes (the token) ∩ the site's capabilities here (now) ∩ the
- * TYPO3 user's own permissions (at call time). Shown but not grantable in v1: scans:run-site (Agency, needs the
- * administrator approval flow), suggestions:prepare (remediation queue) and changes:apply (locked pending a security
- * audit). They have no tool, so an agent can never use them.
+ * TYPO3 user's own permissions (at call time). Shown but not grantable: scans:run-site (Agency, needs the
+ * administrator approval flow) and changes:apply (locked pending a security audit). They have no tool, so an agent can
+ * never use them. suggestions:prepare is grantable here, but the Gateway grants and lists it only once its own scope
+ * table carries it (aqg-api services/mcp/scopes.ts drops unknown scopes and tool names): until then it stays inert.
  */
 final class McpScopes
 {
@@ -25,19 +26,25 @@ final class McpScopes
      * consent ({@see requiresExplicitConsent()}) and never part of a request without scopes at the Gateway.
      */
     public const CONTENT_READ = 'content:read';
+    /**
+     * AI fix suggestions for content findings, prepared in AI Fixes as the token's TYPO3 user and reviewed, approved and
+     * saved only by a person in the backend (McpSuggestionTools). An action with a cost (the site's AI budget): never
+     * preselected at consent, and a site capability an administrator switches on. changes:apply stays locked.
+     */
+    public const SUGGESTIONS_PREPARE = 'suggestions:prepare';
 
     /** @var list<string> */
-    public const GRANTABLE = [self::FINDINGS_READ, self::HISTORY_READ, self::SCANS_RUN_PAGE, self::CONTENT_READ];
+    public const GRANTABLE = [self::FINDINGS_READ, self::HISTORY_READ, self::SCANS_RUN_PAGE, self::CONTENT_READ, self::SUGGESTIONS_PREPARE];
 
     /**
      * @var list<string> scopes the consent page shows unticked: the user must tick them deliberately. Since the public
      * hardening (AQG 3.0.0, Fable P1-5) only reading frontend findings and scan history is preselected: starting scans
      * has an external effect and a quota, and content:read can show unpublished content.
      */
-    public const EXPLICIT_CONSENT = [self::SCANS_RUN_PAGE, self::CONTENT_READ];
+    public const EXPLICIT_CONSENT = [self::SCANS_RUN_PAGE, self::CONTENT_READ, self::SUGGESTIONS_PREPARE];
 
     /** @var list<string> shown in the catalogue as "not in this version" / locked, never grantable */
-    public const NOT_AVAILABLE = ['scans:run-site', 'suggestions:prepare', 'changes:apply'];
+    public const NOT_AVAILABLE = ['scans:run-site', 'changes:apply'];
 
     public const RISK_READ = 'read';
     public const RISK_ACTION = 'act';
@@ -58,6 +65,9 @@ final class McpScopes
         'aqg_list_content_findings' => [self::CONTENT_READ],
         'aqg_get_finding_context' => [self::CONTENT_READ],
         'aqg_get_remediation_guidance' => [self::CONTENT_READ, self::FINDINGS_READ],
+        // AI Fixes for agents (suggestions:prepare): prepare and read status only; nothing approves or applies.
+        'aqg_prepare_suggestions' => [self::SUGGESTIONS_PREPARE],
+        'aqg_get_suggestion_status' => [self::SUGGESTIONS_PREPARE],
     ];
 
     /** @var array<string, array{0: string, 1: string}> English title and description per scope (labels: mcp.scope.<labelKey>.title|text) */
@@ -67,7 +77,7 @@ final class McpScopes
         self::CONTENT_READ => ['Read content accessibility issues', 'AQG\'s local checks of TYPO3 content elements and fields, with short snippets and the record they come from, only for records the user can read. This can include content that is not published yet (hidden or scheduled), never workspace drafts. Separate from frontend scan results.'],
         self::SCANS_RUN_PAGE => ['Scan a single page', 'Starts a frontend scan of one page within a daily quota. The user needs Scan now and edit access to the page.'],
         'scans:run-site' => ['Scan a whole site', 'Agency, later: needs an administrator\'s approval of each request.'],
-        'suggestions:prepare' => ['Prepare fix suggestions', 'Later: AI suggestions that a person reviews in the remediation queue.'],
+        self::SUGGESTIONS_PREPARE => ['Prepare fix suggestions', 'Asks AI for fix suggestions to content issues, as this TYPO3 user and within the site\'s AI budget. Nothing changes: a person reviews, approves and saves every suggestion in AI Fixes.'],
         'changes:apply' => ['Apply changes to content', 'Locked: requires an independent security audit and explicit human approval of each change.'],
     ];
 
@@ -89,7 +99,7 @@ final class McpScopes
     {
         return match ($scope) {
             self::FINDINGS_READ, self::HISTORY_READ, self::CONTENT_READ => self::RISK_READ,
-            self::SCANS_RUN_PAGE, 'scans:run-site', 'suggestions:prepare' => self::RISK_ACTION,
+            self::SCANS_RUN_PAGE, 'scans:run-site', self::SUGGESTIONS_PREPARE => self::RISK_ACTION,
             default => self::RISK_LOCKED,
         };
     }

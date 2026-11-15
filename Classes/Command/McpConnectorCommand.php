@@ -6,6 +6,8 @@ namespace Priebera\A11yQualityGate\Command;
 
 use Priebera\A11yQualityGate\Mcp\Http\McpGatewayClient;
 use Priebera\A11yQualityGate\Mcp\McpAuditRepository;
+use Priebera\A11yQualityGate\Mcp\McpAttestation;
+use Priebera\A11yQualityGate\Mcp\McpAttestationKeys;
 use Priebera\A11yQualityGate\Mcp\McpCallRunner;
 use Priebera\A11yQualityGate\Mcp\McpConnectionStore;
 use Priebera\A11yQualityGate\Mcp\McpConnectorClock;
@@ -72,9 +74,11 @@ final class McpConnectorCommand extends Command
         private readonly McpConnectorClock $clock,
         ?McpCallRunner $runner = null,
         ?McpConnectorWorkerPoolFactory $poolFactory = null,
+        private readonly ?McpAttestation $attestation = null,
+        private readonly ?McpAttestationKeys $attestationKeys = null,
     ) {
         parent::__construct();
-        $this->runner = $runner ?? new McpCallRunner($gatewayClient, $toolExecutor, $auditRepository, $consentLedger, $logManager);
+        $this->runner = $runner ?? new McpCallRunner($gatewayClient, $toolExecutor, $auditRepository, $consentLedger, $logManager, null, $attestation, $connectionStore);
         $this->poolFactory = $poolFactory ?? new McpConnectorWorkerPoolFactory();
     }
 
@@ -91,6 +95,12 @@ final class McpConnectorCommand extends Command
         $unusable = $this->connectionStore->get()['unusableReason'];
         if ($unusable !== '') {
             $output->writeln(sprintf('<error>The stored agent access connection cannot be used on this host (%s). If this is a copy of another installation, run a11y:mcp:reset-local here; otherwise connect again in Settings › Agent access (MCP). See the Agent access documentation.</error>', $unusable));
+            return Command::FAILURE;
+        }
+        if ($this->connectionStore->hasUntrustedAttestationKeys()) {
+            // G-02: pins accepted without a trust root (before AQG 3.0.0 final, or in a development setup that is now
+            // Production / points at AQG's own service). No call can be verified against them; refuse to serve.
+            $output->writeln('<error>The AQG attestation keys pinned for this connection do not chain to the AQG trust root, so no agent call can be verified. Disconnect and connect again in Settings › Agent access (MCP).</error>');
             return Command::FAILURE;
         }
         if (!$this->gatewayClient->isConnected()) {
@@ -166,6 +176,9 @@ final class McpConnectorCommand extends Command
                 $this->auditRepository->prune();
                 $this->scanRequests->prune();
                 $this->consentLedger->prune();
+                $this->attestation?->prune();
+                // V3/V4: the licence API's key set, accepted only when signed by a key pinned here (rotation).
+                $this->attestationKeys?->refresh();
                 $prunedAt = $this->clock->now();
             }
             if ($pool !== null && $pool->isDisabled()) {

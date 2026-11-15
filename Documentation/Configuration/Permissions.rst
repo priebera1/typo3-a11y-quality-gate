@@ -112,7 +112,10 @@ anything TYPO3 does not already allow. Administrators are not affected by them.
         -   ``0``: no AI in CKEditor, plain HTML and AI fixes.
     *   -   ``ai.images``
         -   ``1``
-        -   ``0``: no AI for images and image metadata.
+        -   ``0``: no AI for images and image metadata (the Page Detail
+            alt-text suggestion, Media AI, AI fixes for images). It is
+            independent of ``ai.editor``: a group that may use no AI at all
+            needs ``ai.editor = 0`` **and** ``ai.images = 0``.
     *   -   ``ai.writing``
         -   ``0``
         -   ``1``: writing help (clearer text, plain language, translation

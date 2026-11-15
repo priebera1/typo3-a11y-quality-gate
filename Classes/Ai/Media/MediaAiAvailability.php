@@ -6,17 +6,19 @@ namespace Priebera\A11yQualityGate\Ai\Media;
 
 use Priebera\A11yQualityGate\Ai\Editor\EditorAiAccessService;
 use Priebera\A11yQualityGate\Service\SiteResolutionService;
+use Priebera\A11yQualityGate\Mcp\McpCallScopedState;
 
 /**
  * Whether AI media controls appear at all for the current user, decided once per request. Blocked states remove the
  * controls instead of disabling them (UX Atlas, Filelist F): no licence, no permission or no configured site means no
  * AQG entry. Every request is checked again server-side, so this only decides what is rendered.
  */
-final class MediaAiAvailability
+final class MediaAiAvailability implements McpCallScopedState
 {
     /** @var array<string,array<string,mixed>> */
     private array $siteConfigurations = [];
-    private ?bool $filelistAvailable = null;
+    /** @var array<int,bool> per backend user uid: it depends on the user's image AI flag and readable sites */
+    private array $filelistAvailable = [];
 
     public function __construct(
         private readonly EditorAiAccessService $accessService,
@@ -27,12 +29,10 @@ final class MediaAiAvailability
     /** At least one site the user can read has image AI ready for them. */
     public function forFilelist(): bool
     {
-        if ($this->filelistAvailable === null) {
-            $this->filelistAvailable = $this->accessService->userAllows(EditorAiAccessService::FLAG_IMAGES)
-                && array_filter($this->siteResolver->candidates(), static fn (array $site): bool => $site['state'] === EditorAiAccessService::STATE_READY) !== [];
-        }
+        $userUid = (int)($GLOBALS['BE_USER']->user['uid'] ?? 0);
 
-        return $this->filelistAvailable;
+        return $this->filelistAvailable[$userUid] ??= $this->accessService->userAllows(EditorAiAccessService::FLAG_IMAGES)
+            && array_filter($this->siteResolver->candidates(), static fn (array $site): bool => $site['state'] === EditorAiAccessService::STATE_READY) !== [];
     }
 
     /**
@@ -43,14 +43,23 @@ final class MediaAiAvailability
     public function forPage(int $pageUid): array
     {
         $siteIdentifier = $pageUid > 0 ? $this->siteResolutionService->resolveSiteIdentifierForPageId($pageUid, '') : '';
-        if (!isset($this->siteConfigurations[$siteIdentifier])) {
+        // Per user: the state depends on the user's image AI flag.
+        $key = (int)($GLOBALS['BE_USER']->user['uid'] ?? 0) . ':' . $siteIdentifier;
+        if (!isset($this->siteConfigurations[$key])) {
             $configuration = $this->accessService->editorConfiguration($siteIdentifier);
             if (!$this->accessService->userAllows(EditorAiAccessService::FLAG_IMAGES) && $configuration['state'] === EditorAiAccessService::STATE_READY) {
                 $configuration['state'] = EditorAiAccessService::STATE_NO_PERMISSION;
             }
-            $this->siteConfigurations[$siteIdentifier] = $configuration + ['site' => $siteIdentifier];
+            $this->siteConfigurations[$key] = $configuration + ['site' => $siteIdentifier];
         }
 
-        return $this->siteConfigurations[$siteIdentifier];
+        return $this->siteConfigurations[$key];
+    }
+
+    /** MCP connector: nothing remembered for one call, user or request decides the next one (McpUserContext). */
+    public function resetCallState(): void
+    {
+        $this->siteConfigurations = [];
+        $this->filelistAvailable = [];
     }
 }

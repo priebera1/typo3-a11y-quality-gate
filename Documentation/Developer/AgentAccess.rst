@@ -402,6 +402,48 @@ Delivery, pairing and clones
     it holds the original's credential, and a disconnect ends the original's
     connection and every agent token.
 
+Attestation trust root
+======================
+
+Every agent call runs only with an attestation the AQG licence API signed for
+this installation, this call and these exact arguments. The licence API's
+public keys are pinned at pairing and rotate later only through a key set
+signed by a key already pinned.
+
+*   **Built-in root.** The AQG production attestation public key ships with the
+    extension (``McpTrustRoots::PRODUCTION_ROOTS``; a public key, not a
+    secret). A key set is pinned at pairing only when a trust root signed it.
+    Customers configure nothing.
+*   **Never trust on first use for AQG's service.** A key set that no root
+    signed is refused (``attestation_keys_untrusted``, no pairing starts) in
+    every context when the extension talks to ``https://api.priebera.sk``, and
+    in TYPO3's Production context for every service.
+*   **Own (staging) service.** Set ``AQG_MCP_ATTESTATION_KEYS`` to that
+    service's public keys (comma-separated raw base64url Ed25519 ``x``) in the
+    environment of the web server / PHP-FPM pool **and** of the connector's
+    supervisor (PHP-FPM's ``clear_env`` hides variables that are not passed
+    explicitly). Configured roots add to the built-in one; with a configured
+    root, an unrooted key set is refused in every context. Only a development
+    setup (``A11Y_QUALITY_GATE_PRO_API_BASE_URL`` set, context not
+    Production) without configured roots may pin its service's self-signed key
+    set; such a pairing is marked ``development`` and stops working as soon as
+    the context is Production or the service is AQG's.
+*   **Rotation.** The licence API announces its next key inside the key set its
+    current key signs (both are pinned), then switches. The pairing keeps the
+    trust chain it was verified on. Extension releases ship the then current
+    and announced keys; an older release can no longer start a **new**
+    pairing after a switch it did not know about (update it), existing
+    pairings keep rotating.
+*   **Connections paired before this rule** count as rooted when their pins
+    contain a root key (the production key). Otherwise the connector refuses
+    to serve (no call can be verified) and asks to connect again.
+*   **Pre-release builds** of agent access left a column ``jti`` with a
+    UNIQUE key in ``tx_a11y_mcp_attestation``; every agent call after the
+    first then fails ``attestation_replayed``. Remove it with the Install
+    Tool's :guilabel:`Analyze Database Structure` (remove unused fields) or
+    ``ALTER TABLE tx_a11y_mcp_attestation DROP INDEX jti, DROP COLUMN jti``.
+    Released versions never created it.
+
 Retention
 =========
 

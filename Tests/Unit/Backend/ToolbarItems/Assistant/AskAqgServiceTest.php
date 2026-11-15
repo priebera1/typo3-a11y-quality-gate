@@ -189,7 +189,8 @@ final class AskAqgServiceTest extends TestCase
             'title' => 'Title of ' . $issue['rule_id'], 'localizedTitle' => '', 'howToFix' => isset($issue['hint']) ? (string)$issue['hint'] : 'Rule guidance', 'howToFixIsFallback' => isset($issue['hint']), 'whyItMatters' => 'Why ' . $issue['rule_id'],
         ]);
         $locations = $this->createMock(IssueLocationService::class);
-        $locations->method('describe')->willReturnCallback(static fn (string $table, int $uid, string $field): array => ['title' => $table === 'tt_content' ? 'Opening hours element' : 'Outside content elements', 'fieldLabel' => $field === '' ? '' : 'Text']);
+        $locations->method('describe')->willReturnCallback(static fn (string $table, int $uid, string $field): array => ['title' => $table === 'tt_content' ? 'Opening hours element' : 'Outside content elements', 'fieldLabel' => $field === '' ? '' : 'HTML Code', 'isContentElement' => $table === 'tt_content']);
+        $locations->method('contentElementLabels')->willReturn(['contentType' => 'html', 'contentTypeLabel' => 'Plain HTML', 'column' => '']);
 
         $estimator = $this->createMock(AiActionCostEstimator::class);
         $estimator->method('maxCostMicro')->willReturnCallback(fn (): ?int => $this->bound);
@@ -245,7 +246,7 @@ final class AskAqgServiceTest extends TestCase
         self::assertStringNotContainsString('secret', json_encode([$first, $why, $where], JSON_THROW_ON_ERROR));
         self::assertSame(['F1', 'F2'], array_column($first['citations'], 'ref'));
         self::assertStringContainsString('Why rte.img_alt_missing', $why['answer']);
-        self::assertStringContainsString('Opening hours element · Text', $where['answer'], 'element and field for the editor');
+        self::assertStringContainsString('Opening hours element · HTML Code', $where['answer'], 'element and field for the editor');
         self::assertSame('/typo3/record/edit?edit[tt_content][10]=edit', $where['citations'][0]['editUrl']);
         self::assertSame('aqg', $typed['source'], 'a typed example question is answered deterministically too');
         self::assertSame([], $first['sent']);
@@ -298,6 +299,7 @@ final class AskAqgServiceTest extends TestCase
         self::assertSame('Which images need my attention?', $context['question']);
         self::assertSame(['F1', 'F2'], array_column($context['findings'], 'ref'));
         self::assertSame(4, $context['findings'][1]['occurrences']);
+        self::assertSame(['HTML Code (Plain HTML)', ''], array_column($context['findings'], 'where'), 'the field as the record type labels it, with the content type');
         foreach (['secret', 'Opening hours element', 'Contact & hours'] as $private) {
             self::assertStringNotContainsString($private, $request->inputText, 'no snippet, message, hint, element title or (switch off) page title');
         }

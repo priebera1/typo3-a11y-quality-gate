@@ -155,7 +155,7 @@ class ScanResultSummaryService
      * notification (the toolbar): the same numbers as frontendResult()['comparison'].
      *
      * @param array<string, mixed> $scan a tx_a11y_remote_scan row
-     * @return array{available: bool, new?: int, resolved?: int}
+     * @return array{available: bool, new?: int, resolved?: int, partial?: bool, comparedPages?: int, pagesOnlyInCurrent?: int, pagesOnlyInPrevious?: int, reason?: string}
      */
     public function frontendComparison(array $scan): array
     {
@@ -171,22 +171,65 @@ class ScanResultSummaryService
      * them from the stored findings keeps the notification right whichever crawler answered. Without a compatible
      * earlier scan nothing is claimed.
      *
+     * D-1 (AQG 3.0): the change is counted only on pages both scans loaded. A page only one scan checked has no
+     * comparable state — counting the whole scans made a 4-page baseline of a 19-page scan read "297 new". When the
+     * pages differ the result says so (`partial`, page counts); scans with the same pages are compared as before.
+     *
      * @param array<string, mixed> $scan
-     * @return array{available: bool, new?: int, resolved?: int}
+     * @return array{available: bool, new?: int, resolved?: int, partial?: bool, comparedPages?: int, pagesOnlyInCurrent?: int, pagesOnlyInPrevious?: int, reason?: string}
      */
     private function comparisonWithPreviousScan(array $scan): array
     {
         $current = $this->remoteIssueRepository->findFingerprintsForScan((int)($scan['uid'] ?? 0));
         $previousScan = $current !== null ? $this->remoteScanPairingService->findPreviousCompatible($scan) : null;
         $previous = is_array($previousScan) ? $this->remoteIssueRepository->findFingerprintsForScan((int)($previousScan['uid'] ?? 0)) : null;
-        if ($current === null || $previous === null) {
+        if ($current === null || $previous === null || !is_array($previousScan)) {
             return ['available' => false];
         }
 
+        $overlap = $this->remoteScanPairingService->pageOverlap($previousScan, $scan);
+        if ($overlap->isSamePages()) {
+            return [
+                'available' => true,
+                'new' => count(array_diff_key($current, $previous)),
+                'resolved' => count(array_diff_key($previous, $current)),
+            ];
+        }
+        if ($overlap->common === []) {
+            return ['available' => false, 'reason' => 'different_pages'];
+        }
+
+        $currentByPage = $this->remoteIssueRepository->findFingerprintsByPageForScan((int)($scan['uid'] ?? 0));
+        $previousByPage = $this->remoteIssueRepository->findFingerprintsByPageForScan((int)($previousScan['uid'] ?? 0));
+        if ($currentByPage === null || $previousByPage === null) {
+            return ['available' => false];
+        }
+        $currentCommon = $this->fingerprintsOnPages($currentByPage, $overlap->common);
+        $previousCommon = $this->fingerprintsOnPages($previousByPage, $overlap->common);
+
         return [
             'available' => true,
-            'new' => count(array_diff_key($current, $previous)),
-            'resolved' => count(array_diff_key($previous, $current)),
+            'new' => count(array_diff_key($currentCommon, $previousCommon)),
+            'resolved' => count(array_diff_key($previousCommon, $currentCommon)),
+            'partial' => true,
+            'comparedPages' => $overlap->comparedPages(),
+            'pagesOnlyInCurrent' => $overlap->onlyInLater,
+            'pagesOnlyInPrevious' => $overlap->onlyInEarlier,
         ];
+    }
+
+    /**
+     * @param array<string, array<string, true>> $byPage
+     * @param array<string, true> $pages
+     * @return array<string, true>
+     */
+    private function fingerprintsOnPages(array $byPage, array $pages): array
+    {
+        $fingerprints = [];
+        foreach (array_intersect_key($byPage, $pages) as $pageFingerprints) {
+            $fingerprints += $pageFingerprints;
+        }
+
+        return $fingerprints;
     }
 }
