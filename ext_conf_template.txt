@@ -3,3 +3,6 @@ licenceKey =
 
 # cat=Agent access (MCP)/10; type=string; label=Agent access audit retention (days):Delete agent access audit entries (tx_a11y_mcp_audit) older than this many days, 1–3650. Empty uses the approved default of 90 days. Scan history has its own retention.
 mcpAuditRetentionDays = 90
+
+# cat=Agent access (MCP)/20; type=boolean; label=Approved agent changes (preview, not released):Lets agents with remediations:apply-approved apply one AI Fixes change after the same TYPO3 user approved exactly that change in the backend. Off by default; while off the capability is neither offered, granted nor executed.
+mcpApprovedChanges = 0

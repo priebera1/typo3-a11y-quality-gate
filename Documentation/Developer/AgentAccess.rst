@@ -7,7 +7,9 @@ Agent access (MCP)
 AI agents such as Claude Code connect to AQG through the hosted **AQG MCP
 Gateway** (Model Context Protocol, Streamable HTTP). Every agent acts as one
 TYPO3 backend user and only gets that user's permissions; nothing an agent does
-changes content. For AQG PRO and Agency.
+changes content, except a change that same user approved in TYPO3 when approved
+changes are enabled (:ref:`developer-agent-access-approved-changes`, off by
+default). For AQG PRO and Agency.
 
 ..  important::
     **Availability in 3.0.0.** The extension ships the connector, the settings
@@ -485,5 +487,68 @@ safe to test; none of them is an approved product default.
     meters and per-agent caps, CSV export of the audit trail, the token detail
     drawer, the agent activity/approval screens (14 · D) and the in-tab
     sub-navigation.
-*   **Postponed capabilities** (open decision 10): site crawls, suggestion
-    preparation and applying changes. Not offered to agents in v1.
+*   **Postponed capabilities** (open decision 10): site crawls. Applying
+    changes is offered only as approved changes, off by default
+    (:ref:`developer-agent-access-approved-changes`).
+
+.. _developer-agent-access-approved-changes:
+
+Approved changes (preview, off by default)
+==========================================
+
+With ``remediations:apply-approved`` an agent may save **one existing AI Fixes
+suggestion** after the token's TYPO3 user approved exactly that change in the
+TYPO3 backend. It is off until all of these hold:
+
+*   ``mcpApprovedChanges = 1`` in the extension configuration (while it is off
+    the tools are not announced, the capability is neither offered nor granted,
+    and every call answers ``tool_not_available``);
+*   an administrator enabled the capability for the site in the Agent access
+    settings;
+*   the user ticked it on the consent page (it is never ticked in advance);
+*   the AQG MCP Gateway knows the capability (attested connections only).
+
+=================================  ==========================================================================
+Tool                               What it does
+=================================  ==========================================================================
+``aqg_request_change_approval``    ``itemId`` of an AI Fixes item: TYPO3 computes the exact write from the
+                                   stored record (BEFORE, AFTER, target) and answers ``awaiting_approval``
+                                   with ``approvalId`` and ``reviewUrl``. Changes nothing.
+``aqg_apply_approved_change``      ``approvalId``: writes the approved change once, or refuses
+                                   (``awaiting_approval``, ``approval_rejected``, ``approval_expired``,
+                                   ``approval_superseded``, ``stale_content``, ``permission_denied``,
+                                   ``failed``). Repeats answer the stored result (``call: replayed``).
+``aqg_get_change_status``          ``approvalId``: the state and result, for example after a timeout.
+=================================  ==========================================================================
+
+The approval page (route ``mcpChangeApproval``, behind the TYPO3 login) shows
+the record, field, language, workspace and problem, the changed element BEFORE
+and AFTER with the change marked, the complete field and the limits. Only the
+token's user decides, signed in as themself (not in switch-user mode) and in the
+live workspace. **Approve** is a POST with route token and TYPO3 sudo mode: TYPO3
+asks for the password again for every decision. Sudo mode is skipped in the
+Development application context, so production installations must run in
+Production context. **Reject** writes nothing and needs no password.
+
+The approval binds user, token, site, item, proposal and record versions, the
+target (table, uid, field, page, language, workspace) and SHA-256 hashes of the
+stored value, the value after the write and the suggestion. It is valid for 15
+minutes after the decision (a request waits 30 minutes for it), used at most
+once, and a newer request for the same item supersedes it. The write goes
+through TYPO3 DataHandler as the user, is compared again under a row lock, read
+back and checked by AQG: only ``verified`` means AQG no longer finds the
+problem; ``applied_not_verified`` is saved but not fixed. A change of the record
+or the suggestion in between makes the approval stale and nothing is written.
+
+An apply that is interrupted (the connector stops a worker that runs past its
+call deadline) is settled from the stored value after five minutes by
+``aqg_get_change_status``; AI Fixes gives such an item back as *interrupted,
+nothing written* when it is checked again, and a new request for the item closes
+the old approval as not written.
+
+Supported: one rich-text single-element fix (as AI Fixes' *Apply and verify*)
+or one image use's alternative text per approval, live workspace only. Not
+supported: text written by the agent, workspaces and publishing, records with a
+workspace draft, bulk changes. Approvals are stored in
+``tx_a11y_mcp_change_approval`` (hashes, ids and states, no content); the
+agent access audit trail records requests, decisions and applies.

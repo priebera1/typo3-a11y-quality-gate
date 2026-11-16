@@ -915,3 +915,59 @@ CREATE TABLE tx_a11y_assignment (
     UNIQUE KEY issue_on_page (site_identifier(50), page_uid, language_uid, issue_key(100)),
     KEY assignee (assignee)
 );
+
+#
+# Table structure for table 'tx_a11y_mcp_change_approval'
+#
+# Agent access (MCP), remediations:apply-approved (post-3.0.0, disabled unless mcpApprovedChanges = 1): one row per
+# change an agent asked a person to approve (McpChangeApprovalRepository). It binds the person (the token's TYPO3 user),
+# the agent token, site, AI Fixes item and proposal version, target record/field/language/workspace and the exact write
+# as SHA-256 of the stored field before, the field after and the validated value. Only the TYPO3 backend session of that
+# person approves it (McpChangeApprovalController, module route token); the connector applies it at most once
+# (status compare-and-set), as that person, through AI Fixes' direct apply (DataHandler). Hashes and codes only: no
+# content, no token.
+#
+CREATE TABLE tx_a11y_mcp_change_approval (
+    uid int(11) NOT NULL auto_increment,
+    pid int(11) DEFAULT '0' NOT NULL,
+    crdate int(11) unsigned DEFAULT '0' NOT NULL,
+    tstamp int(11) unsigned DEFAULT '0' NOT NULL,
+
+    approval_ref varchar(32) DEFAULT '' NOT NULL,
+    status varchar(16) DEFAULT 'pending' NOT NULL,
+    status_reason varchar(64) DEFAULT '' NOT NULL,
+    be_user_uid int(11) DEFAULT '0' NOT NULL,
+    token_id varchar(36) DEFAULT '' NOT NULL,
+    client_name varchar(255) DEFAULT '' NOT NULL,
+    site_identifier varchar(255) DEFAULT '' NOT NULL,
+    item_uid int(11) DEFAULT '0' NOT NULL,
+    finding_uid int(11) DEFAULT '0' NOT NULL,
+    proposal_version int(11) DEFAULT '0' NOT NULL,
+    item_row_version int(11) DEFAULT '0' NOT NULL,
+    target_kind varchar(32) DEFAULT '' NOT NULL,
+    target_table varchar(64) DEFAULT '' NOT NULL,
+    target_uid int(11) DEFAULT '0' NOT NULL,
+    target_field varchar(64) DEFAULT '' NOT NULL,
+    page_uid int(11) DEFAULT '0' NOT NULL,
+    language_uid int(11) DEFAULT '0' NOT NULL,
+    workspace_id int(11) DEFAULT '0' NOT NULL,
+    base_hash varchar(64) DEFAULT '' NOT NULL,
+    before_hash varchar(64) DEFAULT '' NOT NULL,
+    after_hash varchar(64) DEFAULT '' NOT NULL,
+    value_hash varchar(64) DEFAULT '' NOT NULL,
+    binding_hash varchar(64) DEFAULT '' NOT NULL,
+    expires_at int(11) unsigned DEFAULT '0' NOT NULL,
+    decided_by int(11) DEFAULT '0' NOT NULL,
+    decided_at int(11) unsigned DEFAULT '0' NOT NULL,
+    apply_started_at int(11) unsigned DEFAULT '0' NOT NULL,
+    applied_at int(11) unsigned DEFAULT '0' NOT NULL,
+    apply_attempts int(11) DEFAULT '0' NOT NULL,
+    result_status varchar(32) DEFAULT '' NOT NULL,
+    result_reason varchar(64) DEFAULT '' NOT NULL,
+
+    PRIMARY KEY (uid),
+    UNIQUE KEY approval_ref (approval_ref),
+    KEY item_status (item_uid, status),
+    KEY user_status (be_user_uid, status),
+    KEY crdate (crdate)
+);

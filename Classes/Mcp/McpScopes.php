@@ -32,16 +32,26 @@ final class McpScopes
      * preselected at consent, and a site capability an administrator switches on. changes:apply stays locked.
      */
     public const SUGGESTIONS_PREPARE = 'suggestions:prepare';
+    /**
+     * Post-3.0.0, off unless the extension configuration sets `mcpApprovedChanges` = 1 ({@see approvedChangesEnabled()}):
+     * an agent asks the token's TYPO3 user to approve one exact AI Fixes change, and applies only that change after the
+     * person approved it in the TYPO3 backend (McpApprovedChangeTools, McpChangeApprovalController). Never preselected;
+     * a site capability an administrator switches on; attested connections only (aqg-api ATTESTED_ONLY_SCOPES).
+     */
+    public const APPLY_APPROVED = 'remediations:apply-approved';
 
     /** @var list<string> */
-    public const GRANTABLE = [self::FINDINGS_READ, self::HISTORY_READ, self::SCANS_RUN_PAGE, self::CONTENT_READ, self::SUGGESTIONS_PREPARE];
+    public const GRANTABLE = [self::FINDINGS_READ, self::HISTORY_READ, self::SCANS_RUN_PAGE, self::CONTENT_READ, self::SUGGESTIONS_PREPARE, self::APPLY_APPROVED];
+
+    /** @var list<string> tools of remediations:apply-approved: announced, granted and run only while the feature is on */
+    public const APPROVED_CHANGE_TOOLS = ['aqg_request_change_approval', 'aqg_apply_approved_change', 'aqg_get_change_status'];
 
     /**
      * @var list<string> scopes the consent page shows unticked: the user must tick them deliberately. Since the public
      * hardening (AQG 3.0.0, Fable P1-5) only reading frontend findings and scan history is preselected: starting scans
      * has an external effect and a quota, and content:read can show unpublished content.
      */
-    public const EXPLICIT_CONSENT = [self::SCANS_RUN_PAGE, self::CONTENT_READ, self::SUGGESTIONS_PREPARE];
+    public const EXPLICIT_CONSENT = [self::SCANS_RUN_PAGE, self::CONTENT_READ, self::SUGGESTIONS_PREPARE, self::APPLY_APPROVED];
 
     /** @var list<string> shown in the catalogue as "not in this version" / locked, never grantable */
     public const NOT_AVAILABLE = ['scans:run-site', 'changes:apply'];
@@ -68,6 +78,10 @@ final class McpScopes
         // AI Fixes for agents (suggestions:prepare): prepare and read status only; nothing approves or applies.
         'aqg_prepare_suggestions' => [self::SUGGESTIONS_PREPARE],
         'aqg_get_suggestion_status' => [self::SUGGESTIONS_PREPARE],
+        // Approved changes (remediations:apply-approved, post-3.0.0): a person approves each exact change in TYPO3.
+        'aqg_request_change_approval' => [self::APPLY_APPROVED],
+        'aqg_apply_approved_change' => [self::APPLY_APPROVED],
+        'aqg_get_change_status' => [self::APPLY_APPROVED],
     ];
 
     /** @var array<string, array{0: string, 1: string}> English title and description per scope (labels: mcp.scope.<labelKey>.title|text) */
@@ -78,6 +92,7 @@ final class McpScopes
         self::SCANS_RUN_PAGE => ['Scan a single page', 'Starts a frontend scan of one page within a daily quota. The user needs Scan now and edit access to the page.'],
         'scans:run-site' => ['Scan a whole site', 'Agency, later: needs an administrator\'s approval of each request.'],
         self::SUGGESTIONS_PREPARE => ['Prepare fix suggestions', 'Asks AI for fix suggestions to content issues, as this TYPO3 user and within the site\'s AI budget. Nothing changes: a person reviews, approves and saves every suggestion in AI Fixes.'],
+        self::APPLY_APPROVED => ['Apply changes you approve', 'Lets the agent ask you to approve one exact AI Fixes change (before and after shown in TYPO3) and then save only that change, as this TYPO3 user and with this user\'s permissions. Nothing is saved without your approval of that change in TYPO3; never publishes workspace content.'],
         'changes:apply' => ['Apply changes to content', 'Locked: requires an independent security audit and explicit human approval of each change.'],
     ];
 
@@ -99,7 +114,7 @@ final class McpScopes
     {
         return match ($scope) {
             self::FINDINGS_READ, self::HISTORY_READ, self::CONTENT_READ => self::RISK_READ,
-            self::SCANS_RUN_PAGE, 'scans:run-site', self::SUGGESTIONS_PREPARE => self::RISK_ACTION,
+            self::SCANS_RUN_PAGE, 'scans:run-site', self::SUGGESTIONS_PREPARE, self::APPLY_APPROVED => self::RISK_ACTION,
             default => self::RISK_LOCKED,
         };
     }
@@ -111,15 +126,36 @@ final class McpScopes
     public static function normalize(array $values): array
     {
         return array_values(array_filter(
-            self::GRANTABLE,
+            self::grantable(),
             static fn (string $scope): bool => in_array($scope, $values, true)
         ));
+    }
+
+    /**
+     * @return list<string> the scopes this installation grants now: remediations:apply-approved only while the feature
+     * is on. While it is off a token or site setting that names it holds nothing (fail closed).
+     */
+    public static function grantable(): array
+    {
+        return self::approvedChangesEnabled()
+            ? self::GRANTABLE
+            : array_values(array_diff(self::GRANTABLE, [self::APPLY_APPROVED]));
+    }
+
+    /** `mcpApprovedChanges` in the extension configuration, exactly '1' (anything else, or unreadable: off). */
+    public static function approvedChangesEnabled(): bool
+    {
+        $value = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate']['mcpApprovedChanges'] ?? null;
+
+        return $value === 1 || $value === '1' || $value === true;
     }
 
     /** @return list<string> every tool this extension runs, announced to the Gateway on each poll */
     public static function toolNames(): array
     {
-        return array_keys(self::TOOL_SCOPES);
+        $tools = array_keys(self::TOOL_SCOPES);
+
+        return self::approvedChangesEnabled() ? $tools : array_values(array_diff($tools, self::APPROVED_CHANGE_TOOLS));
     }
 
     /** Whether the consent page shows this scope unticked, so that only a deliberate tick grants it. */
@@ -134,6 +170,9 @@ final class McpScopes
     public static function toolAllowed(string $tool, array $scopes): bool
     {
         if (!array_key_exists($tool, self::TOOL_SCOPES)) {
+            return false;
+        }
+        if (in_array($tool, self::APPROVED_CHANGE_TOOLS, true) && !self::approvedChangesEnabled()) {
             return false;
         }
         $required = self::TOOL_SCOPES[$tool];

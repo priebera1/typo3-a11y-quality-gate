@@ -312,6 +312,7 @@ final class McpConsentController extends AbstractBackendModuleController
                 'preselected' => $reason === '' && !McpScopes::requiresExplicitConsent($scope),
                 'explicit' => McpScopes::requiresExplicitConsent($scope),
                 'explicitScan' => $scope === McpScopes::SCANS_RUN_PAGE,
+                'explicitApply' => $scope === McpScopes::APPLY_APPROVED,
                 'reason' => $reason,
                 'fieldId' => 'aqg-mcp-consent-' . McpScopes::labelKey($scope),
             ];
@@ -344,6 +345,8 @@ final class McpConsentController extends AbstractBackendModuleController
             'userName' => $this->displayName($user),
             'scopes' => $scopes,
             'grantableScopes' => $grantable,
+            // remediations:apply-approved offered: "cannot change content" would be untrue, so the page says what holds.
+            'offersApplyApproved' => in_array(McpScopes::APPLY_APPROVED, $grantable, true),
             'sites' => $sites,
             'existing' => $existing,
             'decideUrl' => $this->buildRouteUrl('web_a11y.mcpConsentDecide'),

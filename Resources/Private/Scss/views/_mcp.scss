@@ -19,7 +19,8 @@
 
     // Links inside running text are underlined (never colour alone, WCAG 1.4.1).
     p a,
-    .aqg-field__help a {
+    .aqg-field__help a,
+    .aqg-mcp-change__facts a {
         text-decoration: underline;
         text-underline-offset: 2px;
     }
@@ -561,6 +562,109 @@
 
             .btn {
                 flex: 1 1 0;
+            }
+        }
+    }
+
+    // ── Approval of one agent change (remediations:apply-approved) ──────────────────────────────────────────────
+    // The changed part must be visible without scrolling sideways: values wrap anywhere, and the change itself is
+    // marked by <del>/<ins> with a background and a line (never colour alone, WCAG 1.4.1) plus a hidden word.
+    &.aqg-mcp-change-approval {
+        max-width: 860px;
+    }
+
+    .aqg-mcp-change__title {
+        font-size: 1.5rem;
+        line-height: 1.25;
+    }
+
+    .aqg-mcp-change__heading {
+        margin: 8px 0 0;
+        font-size: 1.15rem;
+    }
+
+    .aqg-mcp-change__subheading {
+        margin: 4px 0 0;
+        font-size: .95rem;
+        font-weight: 600;
+    }
+
+    .aqg-mcp-change__facts {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 6px 16px;
+        margin: 0;
+
+        dt {
+            font-weight: 600;
+        }
+
+        dd {
+            margin: 0;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    .aqg-mcp-change__newvalue strong {
+        overflow-wrap: anywhere;
+    }
+
+    .aqg-mcp-change__value {
+        margin: 0;
+        padding: 10px 12px;
+        max-height: 24em;
+        overflow: auto;
+        font-family: var(--aqi-font-mono);
+        font-size: 12.5px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        color: var(--aqi-fg);
+        background: var(--aqi-surface-2);
+        border: 1px solid var(--aqi-border);
+        border-radius: var(--aqi-radius);
+
+        del {
+            color: inherit;
+            background: var(--aqi-err-bg);
+            text-decoration: line-through;
+            text-decoration-thickness: 2px;
+            box-shadow: inset 0 -2px 0 var(--aqi-err);
+        }
+
+        ins {
+            color: inherit;
+            background: var(--aqi-ok-bg);
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 3px;
+            box-shadow: inset 0 0 0 1px var(--aqi-ok-border);
+        }
+    }
+
+    .aqg-mcp-change__value--inline {
+        display: inline;
+        padding: 1px 6px;
+    }
+
+    .aqg-mcp-change__full > summary {
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .aqg-mcp-change__full[open] {
+        display: grid;
+        gap: 8px;
+    }
+
+    @container (max-width: 520px) {
+        .aqg-mcp-change__facts {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 2px;
+
+            dd {
+                margin-bottom: 8px;
             }
         }
     }

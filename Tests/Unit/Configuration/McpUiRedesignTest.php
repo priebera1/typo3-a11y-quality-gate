@@ -72,6 +72,11 @@ final class McpUiRedesignTest extends TestCase
         self::assertStringContainsString("<f:if condition=\"{scope.preselected} && {scope.scope} != 'scans:run-page'\">", $t);
         self::assertStringContainsString('<f:if condition="{scope.explicitScan}">', $t);
         self::assertStringContainsString('mcp.consent.explicitScanScope', $t);
+        // remediations:apply-approved: its own hint, and no "cannot change content" while it is offered (end-to-end run).
+        self::assertStringContainsString('<f:else if="{scope.explicitApply}">', $t);
+        self::assertStringContainsString('mcp.consent.explicitApplyScope', $t);
+        self::assertStringContainsString('<f:if condition="{offersApplyApproved}">', $t);
+        self::assertStringContainsString('mcp.consent.cannot1Approved', $t);
         self::assertStringContainsString('mcp.consent.clientNote', $t, 'Q2 wording of the parallel hardening');
         self::assertStringContainsString('disabled="disabled"', $t, 'a capability that cannot be granted stays disabled');
         self::assertStringContainsString('<p class="aqg-mcp-consent__client">{clientName}</p>', $t, 'plain text, not a confirmed name');

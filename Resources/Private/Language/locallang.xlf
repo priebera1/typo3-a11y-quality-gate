@@ -13101,6 +13101,12 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="mcp.consent.explicitScope">
                 <source>Not selected in advance: tick it only if the agent may read content checks, including content that is not published yet. Frontend scan results are a separate capability.</source>
             </trans-unit>
+            <trans-unit id="mcp.consent.explicitApplyScope">
+                <source>Not selected in advance: tick it only if the agent may save changes that you approve one by one in TYPO3. Each change shows you its BEFORE and AFTER and needs your password.</source>
+            </trans-unit>
+            <trans-unit id="mcp.consent.cannot1Approved">
+                <source>Change or save content without your approval of that exact change in TYPO3, publish content, or apply suggestions on its own.</source>
+            </trans-unit>
             <trans-unit id="mcp.consent.returnsLocal">
                 <source>It returns to an app on this computer.</source>
             </trans-unit>
@@ -13163,6 +13169,201 @@ Automated checks found accessibility issues that require review and remediation.
             </trans-unit>
             <trans-unit id="mcp.scope.suggestionsPrepare.title">
                 <source>Prepare fix suggestions</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.afterTitle">
+                <source>AFTER: the value that will be saved</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.agent">
+                <source>Agent (not verified)</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.approve">
+                <source>Approve this change</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.approvedText">
+                <source>%1$s may now save exactly this change once, within %2$s minutes. Return to the agent.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.approvedTitle">
+                <source>Approved</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.beforeTitle">
+                <source>BEFORE: the stored value now</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.changedPart">
+                <source>What changes</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.decidedText">
+                <source>Its state is: %s. It cannot be approved again.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.decidedTitle">
+                <source>This request is closed</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.explanation">
+                <source>AI explanation (model output, check it):</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.field">
+                <source>Field</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.heading">
+                <source>Approve this one change?</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.kicker">
+                <source>An AI agent asks to change content</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.language">
+                <source>Language</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitHidden">
+                <source>This record is hidden, so visitors do not see it yet.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitLive">
+                <source>Live workspace: the saved change is on the website at once.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitOneField">
+                <source>Only this field of this record is written, as you, through TYPO3 (your permissions apply). Nothing else changes.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitStale">
+                <source>If the record or the suggestion changes before the agent applies it, nothing is saved.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitVerify">
+                <source>Saving is not the fix: AQG checks the saved content afterwards and reports Verified or Not verified.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitsTitle">
+                <source>Effects and limits</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.notAllowed">
+                <source>Only the TYPO3 user the agent acts for can decide, signed in as themself and allowed to connect agents.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.notAvailable">
+                <source>Approved agent changes are not enabled in this TYPO3 installation.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.notFound">
+                <source>This approval request does not exist or is not yours.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.page">
+                <source>Page</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.pageTitle">
+                <source>Approve an agent change</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.problem">
+                <source>Accessibility problem</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.record">
+                <source>Record</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.reject">
+                <source>Reject</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.rejectedText">
+                <source>Nothing will be changed. The suggestion stays in AI Fixes.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.rejectedTitle">
+                <source>Rejected</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.staleText">
+                <source>The record, the suggestion or your permissions changed after the agent asked. Nothing was approved or changed. Ask the agent for a new request, or review the suggestion in AI Fixes.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.staleTitle">
+                <source>This request is out of date</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.switchToLive">
+                <source>Agent changes apply to the live workspace only. Switch to the live workspace and open this link again.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.warning">
+                <source>Approve only if you asked this agent for this fix yourself. The agent's name is self-declared and not verified. Approving lets the agent save exactly the AFTER value below, once, as you, within the next %s minutes. It cannot change anything else.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.workspace">
+                <source>Workspace</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.allLanguages">
+                <source>All languages</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.workspaceLive">
+                <source>Live</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.viewPage">
+                <source>View the page (new tab)</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.requestExpires">
+                <source>Decide by</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.alt">
+                <source>New alternative text (alt):</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.ariaLabel">
+                <source>New accessible name (aria-label):</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.title">
+                <source>New title (title):</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.attribute">
+                <source>New value of the %s attribute:</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.text">
+                <source>New visible text:</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.other">
+                <source>New value:</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.imageInherited">
+                <source>This image has no alternative text of its own. Visitors now get the file's alternative text:</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.empty">
+                <source>(empty)</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.elementBeforeTitle">
+                <source>BEFORE: the element now</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.elementAfterTitle">
+                <source>AFTER: the element after the change</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.removedMark">
+                <source>Removed:</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.addedMark">
+                <source>Added:</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.diffLegend">
+                <source>Highlighted: the only part that changes. Everything else in the field stays as it is.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.fullField">
+                <source>Show the complete field, BEFORE and AFTER</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.passwordHint">
+                <source>Approving asks for your TYPO3 password again. Rejecting does not.</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.pending">
+                <source>waiting for your decision</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.approved">
+                <source>approved, not applied yet</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.applying">
+                <source>being applied</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.applied">
+                <source>applied</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.failed">
+                <source>failed, nothing was changed</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.rejected">
+                <source>rejected</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.expired">
+                <source>expired</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.stale">
+                <source>out of date</source>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.superseded">
+                <source>replaced by a newer request</source>
+            </trans-unit>
+            <trans-unit id="mcp.scope.remediationsApplyApproved.text">
+                <source>Lets the agent ask you to approve one exact AI Fixes change (before and after shown in TYPO3) and then save only that change, as this TYPO3 user and with this user's permissions. Nothing is saved without your approval of that change in TYPO3; never publishes workspace content.</source>
+            </trans-unit>
+            <trans-unit id="mcp.scope.remediationsApplyApproved.title">
+                <source>Apply changes you approve</source>
             </trans-unit>
             <trans-unit id="settings.mcp.agents.actions">
                 <source>Actions</source>

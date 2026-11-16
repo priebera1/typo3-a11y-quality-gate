@@ -35,6 +35,8 @@ final class Tables
     public const MCP_ATTESTATION = 'tx_a11y_mcp_attestation';
     /** Agent tokens revoked in this installation (V4: refused here even when the Gateway does not revoke them). */
     public const MCP_TOKEN_REVOCATION = 'tx_a11y_mcp_token_revocation';
+    /** Changes an agent asked a person to approve (remediations:apply-approved, post-3.0.0). */
+    public const MCP_CHANGE_APPROVAL = 'tx_a11y_mcp_change_approval';
     public const ASSIGNMENT = 'tx_a11y_assignment';
 
     public const PAGES = 'pages';

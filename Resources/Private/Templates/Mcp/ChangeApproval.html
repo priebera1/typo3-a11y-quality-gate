@@ -1,0 +1,123 @@
+<html
+        xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+        data-namespace-typo3-fluid="true"
+>
+<f:layout name="Module" />
+
+<f:comment>remediations:apply-approved (post-3.0.0): one exact agent change, computed from the stored record, approved or
+    rejected by the TYPO3 user the agent acts for. Every value is escaped output; nothing here is agent text except the
+    self-declared client name (marked unverified) and the AI explanation (marked as AI output).</f:comment>
+<f:section name="Content">
+    <f:asset.css identifier="a11y-quality-gate-backend" href="EXT:a11y_quality_gate/Resources/Public/Css/backend.css" />
+    <div class="a11y-settings aqg-module aqg-mcp-view aqg-mcp-change-approval">
+        <div class="aqg-mcp aqg-stack aqg-mcp-view__body">
+        <f:switch expression="{state}">
+            <f:case value="pending">
+                <section class="aqg-card aqg-mcp-change" aria-labelledby="aqg-mcp-change-title">
+                    <header class="aqg-card__head aqg-mcp-consent__head">
+                        <div class="aqg-mcp-consent__headtext">
+                            <p class="aqg-mcp-label"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.kicker" default="An AI agent asks to change content" /></p>
+                            <h1 class="aqg-card__title aqg-mcp-change__title" id="aqg-mcp-change-title" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.heading" default="Approve this one change?" /></h1>
+                        </div>
+                    </header>
+                    <div class="aqg-card__body aqg-stack">
+                        <div class="aqg-notice aqg-tone-warning" role="note">
+                            <span class="aqg-notice__body"><span class="aqg-notice__text"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.warning" arguments="{0: change.validityMinutes}" default="Approve only if you asked this agent for this fix yourself. The agent's name is self-declared and not verified. Approving lets the agent save exactly the AFTER value below, once, as you, within the next %s minutes. It cannot change anything else." /></span></span>
+                        </div>
+                        <dl class="aqg-mcp-change__facts">
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.agent" default="Agent (not verified)" /></dt><dd>{change.clientName}</dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.page" default="Page" /></dt><dd>{change.pageTitle} [{change.pageUid}] · {change.siteIdentifier}<f:if condition="{change.pageUrl}"> · <a href="{change.pageUrl}" target="_blank" rel="noopener noreferrer"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.viewPage" default="View the page (new tab)" /></a></f:if></dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.record" default="Record" /></dt><dd>{change.tableLabel}: {change.recordTitle} [{change.table}:{change.uid}]</dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.field" default="Field" /></dt><dd>{change.fieldLabel} ({change.field})</dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.language" default="Language" /></dt><dd>{change.languageTitle} [{change.languageUid}]</dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.workspace" default="Workspace" /></dt><dd>{change.workspace}</dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.problem" default="Accessibility problem" /></dt><dd>{change.ruleTitle} ({change.ruleId})</dd>
+                            <dt><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.requestExpires" default="Decide by" /></dt><dd><f:format.date format="Y-m-d H:i">{change.expiresAt}</f:format.date></dd>
+                        </dl>
+
+                        <h2 class="aqg-mcp-change__heading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.changedPart" default="What changes" /></h2>
+                        <p class="aqg-mcp-change__newvalue"><span>{change.valueLabel}</span> <strong data-aqg-change="value">{change.value}</strong></p>
+                        <f:if condition="{change.image}">
+                            <f:then>
+                                <h3 class="aqg-mcp-change__subheading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.beforeTitle" default="BEFORE: the stored value now" /></h3>
+                                <f:if condition="{change.imageBefore.inherited}">
+                                    <f:then>
+                                        <p data-aqg-change="before-inherited"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.imageInherited" default="This image has no alternative text of its own. Visitors now get the file's alternative text:" /> <f:if condition="{change.imageBefore.value}"><f:then><span class="aqg-mcp-change__value aqg-mcp-change__value--inline">{change.imageBefore.value}</span></f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.empty" default="(empty)" /></f:else></f:if></p>
+                                    </f:then>
+                                    <f:else>
+                                        <pre class="aqg-mcp-change__value" data-aqg-change="before"><f:if condition="{change.before}"><f:then>{change.before}</f:then><f:else><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.empty" default="(empty)" /></f:else></f:if></pre>
+                                    </f:else>
+                                </f:if>
+                                <h3 class="aqg-mcp-change__subheading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.afterTitle" default="AFTER: the value that will be saved" /></h3>
+                                <pre class="aqg-mcp-change__value" data-aqg-change="after">{change.after}</pre>
+                            </f:then>
+                            <f:else>
+                                <h3 class="aqg-mcp-change__subheading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.elementBeforeTitle" default="BEFORE: the element now" /></h3>
+                                <pre class="aqg-mcp-change__value" data-aqg-change="element-before"><f:if condition="{change.diff.leadCut}">…</f:if>{change.diff.lead}<f:if condition="{change.diff.removed}"><del><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.removedMark" default="Removed:" /> </span>{change.diff.removed}</del></f:if>{change.diff.trail}<f:if condition="{change.diff.trailCut}">…</f:if></pre>
+                                <h3 class="aqg-mcp-change__subheading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.elementAfterTitle" default="AFTER: the element after the change" /></h3>
+                                <pre class="aqg-mcp-change__value" data-aqg-change="element-after"><f:if condition="{change.diff.leadCut}">…</f:if>{change.diff.lead}<f:if condition="{change.diff.added}"><ins><span class="visually-hidden"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.addedMark" default="Added:" /> </span>{change.diff.added}</ins></f:if>{change.diff.trail}<f:if condition="{change.diff.trailCut}">…</f:if></pre>
+                                <p class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.diffLegend" default="Highlighted: the only part that changes. Everything else in the field stays as it is." /></p>
+                                <details class="aqg-mcp-change__full">
+                                    <summary><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.fullField" default="Show the complete field, BEFORE and AFTER" /></summary>
+                                    <h3 class="aqg-mcp-change__subheading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.beforeTitle" default="BEFORE: the stored value now" /></h3>
+                                    <pre class="aqg-mcp-change__value" data-aqg-change="before">{change.before}</pre>
+                                    <h3 class="aqg-mcp-change__subheading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.afterTitle" default="AFTER: the value that will be saved" /></h3>
+                                    <pre class="aqg-mcp-change__value" data-aqg-change="after">{change.after}</pre>
+                                </details>
+                            </f:else>
+                        </f:if>
+                        <f:if condition="{change.explanation}">
+                            <p class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.explanation" default="AI explanation (model output, check it):" /> {change.explanation}</p>
+                        </f:if>
+                        <h2 class="aqg-mcp-change__heading"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.limitsTitle" default="Effects and limits" /></h2>
+                        <ul>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.limitOneField" default="Only this field of this record is written, as you, through TYPO3 (your permissions apply). Nothing else changes." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.limitLive" default="Live workspace: the saved change is on the website at once." /><f:if condition="{change.recordHidden}"> <f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.limitHidden" default="This record is hidden, so visitors do not see it yet." /></f:if></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.limitStale" default="If the record or the suggestion changes before the agent applies it, nothing is saved." /></li>
+                            <li><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.limitVerify" default="Saving is not the fix: AQG checks the saved content afterwards and reports Verified or Not verified." /></li>
+                        </ul>
+                        <form method="post" action="{decideUrl}" class="aqg-stack">
+                            <input type="hidden" name="approval" value="{approvalRef}" />
+                            <input type="hidden" name="binding" value="{binding}" />
+                            <p class="aqg-mcp-muted"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.passwordHint" default="Approving asks for your TYPO3 password again. Rejecting does not." /></p>
+                            <div class="aqg-mcp-consent__actions">
+                                <button type="submit" name="decision" value="approve" class="btn btn-primary"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.approve" default="Approve this change" /></button>
+                                <button type="submit" name="decision" value="reject" formaction="{rejectUrl}" class="btn btn-default"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.reject" default="Reject" /></button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </f:case>
+            <f:case value="approved">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><h1 class="aqg-card__title" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.approvedTitle" default="Approved" /></h1>
+                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.approvedText" arguments="{0: approval.clientName, 1: approval.validityMinutes}" default="%1$s may now save exactly this change once, within %2$s minutes. Return to the agent." /></p></div></section>
+            </f:case>
+            <f:case value="rejected">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><h1 class="aqg-card__title" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.rejectedTitle" default="Rejected" /></h1>
+                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.rejectedText" default="Nothing will be changed. The suggestion stays in AI Fixes." /></p></div></section>
+            </f:case>
+            <f:case value="stale">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><h1 class="aqg-card__title" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.staleTitle" default="This request is out of date" /></h1>
+                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.staleText" default="The record, the suggestion or your permissions changed after the agent asked. Nothing was approved or changed. Ask the agent for a new request, or review the suggestion in AI Fixes." /></p></div></section>
+            </f:case>
+            <f:case value="decided">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><h1 class="aqg-card__title" tabindex="-1"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.decidedTitle" default="This request is closed" /></h1>
+                    <p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.decidedText" arguments="{0: approval.statusLabel}" default="Its state is: %s. It cannot be approved again." /></p></div></section>
+            </f:case>
+            <f:case value="switchToLive">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.switchToLive" default="Agent changes apply to the live workspace only. Switch to the live workspace and open this link again." /></p></div></section>
+            </f:case>
+            <f:case value="notAllowed">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.notAllowed" default="Only the TYPO3 user the agent acts for can decide, signed in as themself and allowed to connect agents." /></p></div></section>
+            </f:case>
+            <f:case value="notAvailable">
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.notAvailable" default="Approved agent changes are not enabled in this TYPO3 installation." /></p></div></section>
+            </f:case>
+            <f:defaultCase>
+                <section class="aqg-card" role="status"><div class="aqg-card__body"><p><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.changeApproval.notFound" default="This approval request does not exist or is not yours." /></p></div></section>
+            </f:defaultCase>
+        </f:switch>
+        </div>
+    </div>
+</f:section>
+</html>

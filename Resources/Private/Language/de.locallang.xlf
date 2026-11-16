@@ -17475,6 +17475,14 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>Not selected in advance: tick it only if the agent may read content checks, including content that is not published yet. Frontend scan results are a separate capability.</source>
                 <target>Nicht vorausgewählt: Nur ankreuzen, wenn der Agent Inhaltsprüfungen lesen darf, auch zu noch nicht veröffentlichten Inhalten. Ergebnisse der Frontend-Scans sind eine eigene Berechtigung.</target>
             </trans-unit>
+            <trans-unit id="mcp.consent.explicitApplyScope">
+                <source>Not selected in advance: tick it only if the agent may save changes that you approve one by one in TYPO3. Each change shows you its BEFORE and AFTER and needs your password.</source>
+                <target>Nicht vorausgewählt: Nur ankreuzen, wenn der Agent Änderungen speichern darf, die Sie einzeln in TYPO3 freigeben. Jede Änderung zeigt Ihnen VORHER und NACHHER und braucht Ihr Passwort.</target>
+            </trans-unit>
+            <trans-unit id="mcp.consent.cannot1Approved">
+                <source>Change or save content without your approval of that exact change in TYPO3, publish content, or apply suggestions on its own.</source>
+                <target>Inhalte ohne Ihre Freigabe genau dieser Änderung in TYPO3 ändern oder speichern, Inhalte veröffentlichen oder Vorschläge eigenmächtig übernehmen.</target>
+            </trans-unit>
             <trans-unit id="mcp.consent.returnsLocal">
                 <source>It returns to an app on this computer.</source>
                 <target>Er kehrt zu einer App auf diesem Computer zurück.</target>
@@ -17558,6 +17566,266 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
             <trans-unit id="mcp.scope.suggestionsPrepare.title">
                 <source>Prepare fix suggestions</source>
                 <target>Korrekturvorschläge vorbereiten</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.afterTitle">
+                <source>AFTER: the value that will be saved</source>
+                <target>NACHHER: der Wert, der gespeichert wird</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.agent">
+                <source>Agent (not verified)</source>
+                <target>Agent (nicht geprüft)</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.approve">
+                <source>Approve this change</source>
+                <target>Diese Änderung freigeben</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.approvedText">
+                <source>%1$s may now save exactly this change once, within %2$s minutes. Return to the agent.</source>
+                <target>%1$s darf genau diese Änderung jetzt einmal speichern, innerhalb von %2$s Minuten. Kehren Sie zum Agenten zurück.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.approvedTitle">
+                <source>Approved</source>
+                <target>Freigegeben</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.beforeTitle">
+                <source>BEFORE: the stored value now</source>
+                <target>VORHER: der jetzt gespeicherte Wert</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.changedPart">
+                <source>What changes</source>
+                <target>Was sich ändert</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.decidedText">
+                <source>Its state is: %s. It cannot be approved again.</source>
+                <target>Ihr Status ist: %s. Sie kann nicht erneut freigegeben werden.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.decidedTitle">
+                <source>This request is closed</source>
+                <target>Diese Anfrage ist abgeschlossen</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.explanation">
+                <source>AI explanation (model output, check it):</source>
+                <target>KI-Erklärung (Modellausgabe, bitte prüfen):</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.field">
+                <source>Field</source>
+                <target>Feld</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.heading">
+                <source>Approve this one change?</source>
+                <target>Diese eine Änderung freigeben?</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.kicker">
+                <source>An AI agent asks to change content</source>
+                <target>Ein KI-Agent möchte Inhalte ändern</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.language">
+                <source>Language</source>
+                <target>Sprache</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitHidden">
+                <source>This record is hidden, so visitors do not see it yet.</source>
+                <target>Dieser Datensatz ist verborgen, Besucher sehen ihn noch nicht.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitLive">
+                <source>Live workspace: the saved change is on the website at once.</source>
+                <target>Live-Arbeitsbereich: Die gespeicherte Änderung ist sofort auf der Website.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitOneField">
+                <source>Only this field of this record is written, as you, through TYPO3 (your permissions apply). Nothing else changes.</source>
+                <target>Nur dieses Feld dieses Datensatzes wird geschrieben, als Sie, über TYPO3 (Ihre Rechte gelten). Sonst ändert sich nichts.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitStale">
+                <source>If the record or the suggestion changes before the agent applies it, nothing is saved.</source>
+                <target>Ändert sich der Datensatz oder der Vorschlag, bevor der Agent ihn anwendet, wird nichts gespeichert.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitVerify">
+                <source>Saving is not the fix: AQG checks the saved content afterwards and reports Verified or Not verified.</source>
+                <target>Speichern ist nicht die Korrektur: AQG prüft den gespeicherten Inhalt danach und meldet Bestätigt oder Nicht bestätigt.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.limitsTitle">
+                <source>Effects and limits</source>
+                <target>Auswirkungen und Grenzen</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.notAllowed">
+                <source>Only the TYPO3 user the agent acts for can decide, signed in as themself and allowed to connect agents.</source>
+                <target>Nur der TYPO3-Benutzer, für den der Agent handelt, kann entscheiden: selbst angemeldet und berechtigt, Agenten zu verbinden.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.notAvailable">
+                <source>Approved agent changes are not enabled in this TYPO3 installation.</source>
+                <target>Freigegebene Agenten-Änderungen sind in dieser TYPO3-Installation nicht aktiviert.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.notFound">
+                <source>This approval request does not exist or is not yours.</source>
+                <target>Diese Freigabeanfrage existiert nicht oder gehört nicht Ihnen.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.page">
+                <source>Page</source>
+                <target>Seite</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.pageTitle">
+                <source>Approve an agent change</source>
+                <target>Agenten-Änderung freigeben</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.problem">
+                <source>Accessibility problem</source>
+                <target>Barrierefreiheitsproblem</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.record">
+                <source>Record</source>
+                <target>Datensatz</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.reject">
+                <source>Reject</source>
+                <target>Ablehnen</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.rejectedText">
+                <source>Nothing will be changed. The suggestion stays in AI Fixes.</source>
+                <target>Es wird nichts geändert. Der Vorschlag bleibt in KI-Korrekturen.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.rejectedTitle">
+                <source>Rejected</source>
+                <target>Abgelehnt</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.staleText">
+                <source>The record, the suggestion or your permissions changed after the agent asked. Nothing was approved or changed. Ask the agent for a new request, or review the suggestion in AI Fixes.</source>
+                <target>Der Datensatz, der Vorschlag oder Ihre Rechte haben sich geändert, nachdem der Agent gefragt hat. Nichts wurde freigegeben oder geändert. Bitten Sie den Agenten um eine neue Anfrage oder prüfen Sie den Vorschlag in KI-Korrekturen.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.staleTitle">
+                <source>This request is out of date</source>
+                <target>Diese Anfrage ist veraltet</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.switchToLive">
+                <source>Agent changes apply to the live workspace only. Switch to the live workspace and open this link again.</source>
+                <target>Agenten-Änderungen gelten nur im Live-Arbeitsbereich. Wechseln Sie in den Live-Arbeitsbereich und öffnen Sie diesen Link erneut.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.warning">
+                <source>Approve only if you asked this agent for this fix yourself. The agent's name is self-declared and not verified. Approving lets the agent save exactly the AFTER value below, once, as you, within the next %s minutes. It cannot change anything else.</source>
+                <target>Geben Sie nur frei, wenn Sie diesen Agenten selbst um diese Korrektur gebeten haben. Der Name des Agenten ist selbst angegeben und nicht geprüft. Mit der Freigabe darf der Agent genau den Wert NACHHER unten einmal als Sie speichern, innerhalb der nächsten %s Minuten. Etwas anderes kann er nicht ändern.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.workspace">
+                <source>Workspace</source>
+                <target>Arbeitsbereich</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.allLanguages">
+                <source>All languages</source>
+                <target>Alle Sprachen</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.workspaceLive">
+                <source>Live</source>
+                <target>Live</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.viewPage">
+                <source>View the page (new tab)</source>
+                <target>Seite ansehen (neuer Tab)</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.requestExpires">
+                <source>Decide by</source>
+                <target>Entscheiden bis</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.alt">
+                <source>New alternative text (alt):</source>
+                <target>Neuer Alternativtext (alt):</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.ariaLabel">
+                <source>New accessible name (aria-label):</source>
+                <target>Neuer zugänglicher Name (aria-label):</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.title">
+                <source>New title (title):</source>
+                <target>Neuer Titel (title):</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.attribute">
+                <source>New value of the %s attribute:</source>
+                <target>Neuer Wert des Attributs %s:</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.text">
+                <source>New visible text:</source>
+                <target>Neuer sichtbarer Text:</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.value.other">
+                <source>New value:</source>
+                <target>Neuer Wert:</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.imageInherited">
+                <source>This image has no alternative text of its own. Visitors now get the file's alternative text:</source>
+                <target>Dieses Bild hat keinen eigenen Alternativtext. Besucher erhalten jetzt den Alternativtext der Datei:</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.empty">
+                <source>(empty)</source>
+                <target>(leer)</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.elementBeforeTitle">
+                <source>BEFORE: the element now</source>
+                <target>VORHER: das Element jetzt</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.elementAfterTitle">
+                <source>AFTER: the element after the change</source>
+                <target>NACHHER: das Element nach der Änderung</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.removedMark">
+                <source>Removed:</source>
+                <target>Entfernt:</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.addedMark">
+                <source>Added:</source>
+                <target>Hinzugefügt:</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.diffLegend">
+                <source>Highlighted: the only part that changes. Everything else in the field stays as it is.</source>
+                <target>Hervorgehoben: der einzige Teil, der sich ändert. Alles andere im Feld bleibt, wie es ist.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.fullField">
+                <source>Show the complete field, BEFORE and AFTER</source>
+                <target>Ganzes Feld anzeigen, VORHER und NACHHER</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.passwordHint">
+                <source>Approving asks for your TYPO3 password again. Rejecting does not.</source>
+                <target>Für die Freigabe fragt TYPO3 erneut nach Ihrem Passwort, für die Ablehnung nicht.</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.pending">
+                <source>waiting for your decision</source>
+                <target>wartet auf Ihre Entscheidung</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.approved">
+                <source>approved, not applied yet</source>
+                <target>freigegeben, noch nicht angewendet</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.applying">
+                <source>being applied</source>
+                <target>wird angewendet</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.applied">
+                <source>applied</source>
+                <target>angewendet</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.failed">
+                <source>failed, nothing was changed</source>
+                <target>fehlgeschlagen, nichts wurde geändert</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.rejected">
+                <source>rejected</source>
+                <target>abgelehnt</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.expired">
+                <source>expired</source>
+                <target>abgelaufen</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.stale">
+                <source>out of date</source>
+                <target>veraltet</target>
+            </trans-unit>
+            <trans-unit id="mcp.changeApproval.status.superseded">
+                <source>replaced by a newer request</source>
+                <target>durch eine neuere Anfrage ersetzt</target>
+            </trans-unit>
+            <trans-unit id="mcp.scope.remediationsApplyApproved.text">
+                <source>Lets the agent ask you to approve one exact AI Fixes change (before and after shown in TYPO3) and then save only that change, as this TYPO3 user and with this user's permissions. Nothing is saved without your approval of that change in TYPO3; never publishes workspace content.</source>
+                <target>Der Agent darf Sie bitten, genau eine Änderung aus KI-Korrekturen freizugeben (Vorher und Nachher in TYPO3 angezeigt), und dann nur diese Änderung speichern, als dieser TYPO3-Benutzer und mit dessen Rechten. Ohne Ihre Freigabe dieser Änderung in TYPO3 wird nichts gespeichert; Inhalte aus Arbeitsbereichen werden nie veröffentlicht.</target>
+            </trans-unit>
+            <trans-unit id="mcp.scope.remediationsApplyApproved.title">
+                <source>Apply changes you approve</source>
+                <target>Von Ihnen freigegebene Änderungen anwenden</target>
             </trans-unit>
             <trans-unit id="settings.mcp.agents.actions">
                 <source>Actions</source>

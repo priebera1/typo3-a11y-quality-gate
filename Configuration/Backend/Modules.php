@@ -153,6 +153,28 @@ return [
                 'target' => \Priebera\A11yQualityGate\Controller\McpConsentController::class . '::decideAction',
                 'methods' => ['POST'],
             ],
+            // remediations:apply-approved (post-3.0.0): the token's TYPO3 user approves one exact agent change here.
+            'mcpChangeApproval' => [
+                'path' => '/mcp/change-approval',
+                'target' => \Priebera\A11yQualityGate\Controller\McpChangeApprovalController::class . '::showAction',
+            ],
+            'mcpChangeApprovalDecide' => [
+                'path' => '/mcp/change-approval/decide',
+                'target' => \Priebera\A11yQualityGate\Controller\McpChangeApprovalController::class . '::decideAction',
+                'methods' => ['POST'],
+                // Step-up: TYPO3 asks for the user's password again before a decision (sudo mode, not in Development
+                // context), so an agent that drives the user's signed-in browser cannot approve on its own.
+                'sudoMode' => [
+                    'group' => 'aqg-mcp-change-approval',
+                    'lifetime' => \TYPO3\CMS\Backend\Security\SudoMode\Access\AccessLifetime::veryShort,
+                ],
+            ],
+            // Rejecting writes nothing and gives the agent nothing: no password step-up (still POST and route token).
+            'mcpChangeApprovalReject' => [
+                'path' => '/mcp/change-approval/reject',
+                'target' => \Priebera\A11yQualityGate\Controller\McpChangeApprovalController::class . '::rejectAction',
+                'methods' => ['POST'],
+            ],
             'mcpMyAgents' => [
                 'path' => '/mcp/my-agents',
                 'target' => \Priebera\A11yQualityGate\Controller\McpConsentController::class . '::myAgentsAction',

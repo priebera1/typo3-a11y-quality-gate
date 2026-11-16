@@ -18,10 +18,12 @@ final class McpScopesTest extends TestCase
     #[Test]
     public function theV1ScopesAndContentReadAreGrantable(): void
     {
-        self::assertSame(['findings:read', 'history:read', 'scans:run-page', 'content:read', 'suggestions:prepare'], McpScopes::GRANTABLE);
+        self::assertSame(['findings:read', 'history:read', 'scans:run-page', 'content:read', 'suggestions:prepare', 'remediations:apply-approved'], McpScopes::GRANTABLE);
+        // remediations:apply-approved (post-3.0.0) is catalogued but off by default: not grantable, not normalized.
+        self::assertSame(['findings:read', 'history:read', 'scans:run-page', 'content:read', 'suggestions:prepare'], McpScopes::grantable());
         // Only reading is ticked in advance (public hardening, Fable P1-5): scans (an external effect with a quota) and
         // content:read (possibly unpublished content) need a deliberate tick.
-        self::assertSame(['scans:run-page', 'content:read', 'suggestions:prepare'], McpScopes::EXPLICIT_CONSENT);
+        self::assertSame(['scans:run-page', 'content:read', 'suggestions:prepare', 'remediations:apply-approved'], McpScopes::EXPLICIT_CONSENT);
         // Preparing AI suggestions costs the site's AI budget: never ticked in advance. Applying stays locked.
         self::assertTrue(McpScopes::requiresExplicitConsent('suggestions:prepare'));
         self::assertSame(['scans:run-site', 'changes:apply'], McpScopes::NOT_AVAILABLE);
@@ -63,11 +65,43 @@ final class McpScopesTest extends TestCase
         self::assertSame(
             ['aqg_whoami', 'aqg_list_sites', 'aqg_list_scans', 'aqg_get_scan_results', 'aqg_start_scan', 'aqg_get_scan_status',
                 'aqg_find_pages', 'aqg_list_content_findings', 'aqg_get_finding_context', 'aqg_get_remediation_guidance',
-                'aqg_prepare_suggestions', 'aqg_get_suggestion_status'],
+                'aqg_prepare_suggestions', 'aqg_get_suggestion_status',
+                'aqg_request_change_approval', 'aqg_apply_approved_change', 'aqg_get_change_status'],
             array_keys(McpScopes::TOOL_SCOPES)
         );
-        // The connector announces exactly the tools it runs (capability negotiation with the Gateway).
-        self::assertSame(array_keys(McpScopes::TOOL_SCOPES), McpScopes::toolNames());
+        // The connector announces exactly the tools it runs (capability negotiation with the Gateway); the approved
+        // change tools only while the feature is on.
+        self::assertSame(array_values(array_diff(array_keys(McpScopes::TOOL_SCOPES), McpScopes::APPROVED_CHANGE_TOOLS)), McpScopes::toolNames());
+    }
+
+    #[Test]
+    public function approvedChangesStayClosedUnlessTheInstallationEnablesThem(): void
+    {
+        $previous = $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate']['mcpApprovedChanges'] ?? null;
+        try {
+            foreach ([null, '0', 0, '', 'yes', 'true', '1 '] as $off) {
+                $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate']['mcpApprovedChanges'] = $off;
+                self::assertFalse(McpScopes::approvedChangesEnabled(), var_export($off, true));
+                self::assertSame([], McpScopes::normalize(['remediations:apply-approved']), 'a token naming it holds nothing while off');
+                foreach (McpScopes::APPROVED_CHANGE_TOOLS as $tool) {
+                    self::assertFalse(McpScopes::toolAllowed($tool, ['remediations:apply-approved']), $tool);
+                    self::assertNotContains($tool, McpScopes::toolNames());
+                }
+            }
+            $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate']['mcpApprovedChanges'] = '1';
+            self::assertTrue(McpScopes::approvedChangesEnabled());
+            self::assertSame(['remediations:apply-approved'], McpScopes::normalize(['remediations:apply-approved', 'changes:apply']));
+            self::assertContains('aqg_apply_approved_change', McpScopes::toolNames());
+            self::assertTrue(McpScopes::toolAllowed('aqg_apply_approved_change', ['remediations:apply-approved']));
+            // Its own scope only: preparing, reading content or any other scope never applies.
+            self::assertFalse(McpScopes::toolAllowed('aqg_apply_approved_change', ['findings:read', 'history:read', 'scans:run-page', 'content:read', 'suggestions:prepare']));
+            self::assertFalse(McpScopes::toolAllowed('aqg_request_change_approval', ['suggestions:prepare']));
+            self::assertTrue(McpScopes::requiresExplicitConsent('remediations:apply-approved'));
+            self::assertSame('act', McpScopes::riskOf('remediations:apply-approved'));
+            self::assertContains('changes:apply', McpScopes::NOT_AVAILABLE, 'unrestricted apply stays locked');
+        } finally {
+            $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['a11y_quality_gate']['mcpApprovedChanges'] = $previous;
+        }
     }
 
     #[Test]

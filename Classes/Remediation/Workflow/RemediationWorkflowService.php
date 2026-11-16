@@ -28,6 +28,7 @@ use Priebera\A11yQualityGate\Remediation\ImageRemediationValidationException;
 use Priebera\A11yQualityGate\Remediation\InvalidImageVersionTokenException;
 use Priebera\A11yQualityGate\Remediation\StaleImageFindingException;
 use Priebera\A11yQualityGate\Service\Contract\RuleMetadataPresentationServiceInterface;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 
@@ -773,10 +774,19 @@ final class RemediationWorkflowService
      * Approve and apply an image item through AQG's allow-listed write, or approve a rich-text item for the editor.
      * $bulk marks a bulk run: it needs the queue permission and a recorded view of this exact proposal version.
      *
+     * $binding (MCP remediations:apply-approved, post-3.0.0): the exact write a person approved, as directApplyPreview()
+     * computed it — `valueHash`, `beforeHash` (the stored field), `afterHash` (the field after the write). With it the
+     * change is applied directly or not at all (never staged for an editor, never in bulk), and only when the validated
+     * value, the stored field (under the write's row lock) and the planned field are byte for byte the approved ones.
+     *
+     * @param array{valueHash: string, beforeHash: string, afterHash: string}|null $binding
      * @return array<string,mixed> the updated item
      */
-    public function approve(int $itemUid, int $rowVersion, bool $bulk, string $batchId = '', bool $applyDirectly = false): array
+    public function approve(int $itemUid, int $rowVersion, bool $bulk, string $batchId = '', bool $applyDirectly = false, ?array $binding = null): array
     {
+        if ($binding !== null && ($bulk || !$applyDirectly)) {
+            throw new RemediationException('invalid_state', 'An approved agent change is applied directly, one at a time.', 409);
+        }
         $item = $this->visibleItem($itemUid);
         $refusal = $this->access->applyRefusal($item, $bulk);
         if ($refusal !== '') {
@@ -808,6 +818,9 @@ final class RemediationWorkflowService
             return $this->mustFind($itemUid);
         }
         $value = $this->validatedValue($item, RemediationItemData::finalValue($item));
+        if ($binding !== null && !hash_equals($binding['valueHash'], RemediationTarget::hashValue($value))) {
+            throw new RemediationException('approval_stale', 'The suggestion changed after it was approved.', 409);
+        }
 
         if ((string)$item['target_kind'] === RemediationTargetKind::IMAGE_REFERENCE_ALT) {
             if ((int)$item['workspace_id'] > 0) {
@@ -815,7 +828,7 @@ final class RemediationWorkflowService
                 // the live value proves nothing about the version. The change is applied in the record form there.
                 throw new RemediationException('workspace_apply_in_record', 'In a workspace, apply this text in the record.', 409);
             }
-            return $this->applyImage($item, $rowVersion, $status, $value, $batchId);
+            return $this->applyImage($item, $rowVersion, $status, $value, $batchId, $binding);
         }
         if ((string)$item['target_kind'] === RemediationTargetKind::RICH_TEXT) {
             if ($bulk) {
@@ -824,15 +837,18 @@ final class RemediationWorkflowService
             // Direct reviewed apply: AQG stores exactly this one element change as the reviewer and checks the saved
             // record. Where that cannot be proven safe, the change is approved for the editor as before.
             return $applyDirectly
-                ? $this->applyRichText($item, $rowVersion, $status, $value)
+                ? $this->applyRichText($item, $rowVersion, $status, $value, $binding)
                 : $this->approveForEditor($item, $rowVersion, $value);
         }
 
         throw new RemediationException('no_safe_action', 'This item has no apply path.', 422);
     }
 
-    /** @param array<string,mixed> $item */
-    private function applyImage(array $item, int $rowVersion, string $fromStatus, string $value, string $batchId): array
+    /**
+     * @param array<string,mixed> $item
+     * @param array{valueHash: string, beforeHash: string, afterHash: string}|null $binding
+     */
+    private function applyImage(array $item, int $rowVersion, string $fromStatus, string $value, string $batchId, ?array $binding = null): array
     {
         $itemUid = (int)$item['uid'];
         // DataHandler stamps the reference with the request's EXEC_TIME; the check of the stored reference compares
@@ -856,7 +872,7 @@ final class RemediationWorkflowService
 
         $connection = $this->connectionPool->getConnectionForTable(Tables::SYS_FILE_REFERENCE);
         try {
-            $outcome = $connection->transactional(function (Connection $connection) use ($item, $value): string {
+            $outcome = $connection->transactional(function (Connection $connection) use ($item, $value, $binding): string {
                 // Lock the reference, so a concurrent TYPO3 save or a second apply waits until this one rechecked
                 // the base and wrote (the same pattern as the Filelist metadata write).
                 $lock = str_contains(strtolower($connection->getDatabasePlatform()::class), 'sqlite') ? '' : ' FOR UPDATE';
@@ -881,6 +897,12 @@ final class RemediationWorkflowService
                     return 'conflict';
                 }
                 $currentHash = RemediationTargetResolver::imageBaseHash((string)$current['alternative'], (string)(int)$current['tx_a11y_is_decorative'], (string)(int)$current['uid_local']);
+                // An approved agent change: the locked reference must still hold exactly the approved BEFORE value and
+                // the write exactly the approved AFTER value; a retry finding the value stored already is answered below.
+                if ($binding !== null && $currentHash === (string)$item['base_hash']
+                    && (!hash_equals($binding['beforeHash'], RemediationTarget::hashValue((string)$current['alternative'])) || !hash_equals($binding['afterHash'], RemediationTarget::hashValue($value)))) {
+                    return 'conflict';
+                }
                 if ($currentHash !== (string)$item['base_hash']) {
                     // Somebody stored the very value already (a retry after an interrupted write): nothing to repeat.
                     $alreadyWritten = RemediationTargetResolver::imageBaseHash($value, '0', (string)(int)$current['uid_local']);
@@ -925,8 +947,9 @@ final class RemediationWorkflowService
      * Not verified). Nothing is written when the element cannot be proven; the change is then approved for the editor.
      *
      * @param array<string,mixed> $item
+     * @param array{valueHash: string, beforeHash: string, afterHash: string}|null $binding
      */
-    private function applyRichText(array $item, int $rowVersion, string $fromStatus, string $value): array
+    private function applyRichText(array $item, int $rowVersion, string $fromStatus, string $value, ?array $binding = null): array
     {
         $itemUid = (int)$item['uid'];
         $issue = $this->issues->findByUid((int)$item['finding_uid']) ?? [];
@@ -950,6 +973,16 @@ final class RemediationWorkflowService
         // editor instead (TYPO3 shows who has it open).
         if ($planned['reason'] === RichTextElementWriter::OK && $this->access->isRecordOpenElsewhere($target->table, $target->uid)) {
             $planned = ['html' => '', 'reason' => 'record_open'];
+        }
+        if ($binding !== null) {
+            // An approved agent change is never staged for an editor: it is written exactly as approved or not at all,
+            // and the item stays as it was (the person decides again in AI Fixes).
+            if ($planned['reason'] !== RichTextElementWriter::OK) {
+                throw new RemediationException($planned['reason'] === 'record_open' ? 'record_open' : 'direct_not_provable', 'This change cannot be applied directly now.', 409);
+            }
+            if (!hash_equals($binding['beforeHash'], RemediationTarget::hashValue($located['raw'])) || !hash_equals($binding['afterHash'], RemediationTarget::hashValue($planned['html']))) {
+                throw new RemediationException('approval_stale', 'The stored content changed after the approval.', 409);
+            }
         }
         if ($planned['reason'] !== RichTextElementWriter::OK || $fromStatus !== RemediationStatus::PENDING_REVIEW && $fromStatus !== RemediationStatus::FAILED) {
             if ($fromStatus !== RemediationStatus::PENDING_REVIEW) {
@@ -997,6 +1030,162 @@ final class RemediationWorkflowService
         }
 
         return $this->mustFind($itemUid);
+    }
+
+    /**
+     * MCP remediations:apply-approved (post-3.0.0): the exact write a direct apply of this item would make now, computed
+     * from the stored record as this user sees it (never from what an agent says), with the same checks as approve():
+     * visibility, apply rights, live workspace, pending suggestion, review rules, open finding, validated value, the
+     * re-resolved target and the element proven in the stored field. Writes nothing (no view, no transition).
+     *
+     * `state` is 'ok' or the reason the change cannot be applied directly. `before`/`after` are the complete stored
+     * field (rich text) or alternative text (image) before and after the write; their hashes and `valueHash` are what an
+     * approval binds and approve($binding) checks again under the write's row lock.
+     *
+     * @return array<string,mixed>
+     */
+    public function directApplyPreview(int $itemUid): array
+    {
+        $item = $this->visibleItem($itemUid);
+        $status = (string)$item['status'];
+        $preview = [
+            'state' => 'ok',
+            'itemUid' => $itemUid,
+            'status' => $status,
+            'siteIdentifier' => (string)$item['site_identifier'],
+            'findingUid' => (int)$item['finding_uid'],
+            'ruleId' => (string)$item['rule_id'],
+            'kind' => (string)$item['target_kind'],
+            'table' => (string)$item['target_table'],
+            'uid' => (int)$item['target_uid'],
+            'field' => (string)$item['target_field'],
+            'pageUid' => (int)$item['page_uid'],
+            'languageUid' => (int)$item['language_uid'],
+            'workspaceId' => (int)$item['workspace_id'],
+            'proposalVersion' => (int)$item['proposal_version'],
+            'rowVersion' => (int)$item['row_version'],
+            'baseHash' => (string)$item['base_hash'],
+            'elementBefore' => (string)$item['original_value'],
+            'value' => '',
+            'before' => '',
+            'after' => '',
+            'valueHash' => '',
+            'beforeHash' => '',
+            'afterHash' => '',
+            'explanation' => (string)($item['explanation'] ?? ''),
+            'recordHidden' => false,
+        ];
+        $refuse = static fn (string $state): array => ['state' => $state] + $preview;
+
+        $refusal = $this->access->applyRefusal($item, false);
+        if ($refusal !== '') {
+            return $refuse($refusal);
+        }
+        if ((int)$item['workspace_id'] !== 0 || $this->access->currentWorkspace() !== 0) {
+            return $refuse('workspace_unsupported');
+        }
+        $retry = $status === RemediationStatus::FAILED && in_array((string)$item['status_reason'], self::RETRYABLE_APPLY_FAILURES, true);
+        if ($status !== RemediationStatus::PENDING_REVIEW && !$retry) {
+            return $refuse(RemediationStatus::isDone($status) || in_array($status, RemediationStatus::SAVED_STATES, true) ? 'already_done' : 'invalid_state');
+        }
+        if ((int)$item['proposal_version'] <= 0 || RemediationItemData::finalValue($item) === '') {
+            return $refuse('no_suggestion');
+        }
+        if (self::isOutdatedSuggestion($item)) {
+            return $refuse('suggestion_outdated');
+        }
+        $issue = $this->issues->findByUid((int)$item['finding_uid']);
+        if (!is_array($issue) || (int)$issue['status'] !== IssueStatus::Open->value) {
+            return $refuse('finding_closed');
+        }
+        try {
+            $value = $this->validatedValue($item, RemediationItemData::finalValue($item));
+        } catch (RemediationException) {
+            return $refuse('invalid_value');
+        }
+        $preview['value'] = $value;
+        $preview['valueHash'] = RemediationTarget::hashValue($value);
+
+        if ((string)$item['target_kind'] === RemediationTargetKind::IMAGE_REFERENCE_ALT) {
+            $current = $this->connectionPool->getConnectionForTable(Tables::SYS_FILE_REFERENCE)->select(
+                ['alternative', 'tx_a11y_is_decorative', 'uid_local', 'sys_language_uid', 'hidden'],
+                Tables::SYS_FILE_REFERENCE,
+                ['uid' => (int)$item['target_uid'], 'deleted' => 0],
+            )->fetchAssociative();
+            if (!is_array($current)) {
+                return $refuse('target_missing');
+            }
+            try {
+                $context = $this->imageResolver->resolve((int)$item['finding_uid']);
+            } catch (\Throwable) {
+                return $refuse('target_changed');
+            }
+            $descriptor = RemediationItemData::descriptor($item);
+            if ((string)$issue['fingerprint'] !== (string)$item['finding_fingerprint'] || $context->fileReferenceUid !== (int)$item['target_uid']
+                || $context->fileUid !== (int)($descriptor['fileUid'] ?? 0) || (int)$current['uid_local'] !== $context->fileUid
+                || RemediationTargetResolver::imageBaseHash((string)$current['alternative'], (string)(int)$current['tx_a11y_is_decorative'], (string)(int)$current['uid_local']) !== (string)$item['base_hash']) {
+                return $refuse('target_changed');
+            }
+            if ($this->access->isRecordOpenElsewhere(Tables::SYS_FILE_REFERENCE, (int)$item['target_uid'])) {
+                return $refuse('record_open');
+            }
+            $preview['before'] = (string)$current['alternative'];
+            $preview['after'] = $value;
+            $preview['languageUid'] = (int)$current['sys_language_uid'];
+            $preview['recordHidden'] = (int)$current['hidden'] === 1;
+        } elseif ((string)$item['target_kind'] === RemediationTargetKind::RICH_TEXT) {
+            $target = $this->targetResolver->resolve($issue);
+            if (!$target->isAvailable() || $target->baseHash !== (string)$item['base_hash']
+                || $target->table !== (string)$item['target_table'] || $target->uid !== (int)$item['target_uid'] || $target->field !== (string)$item['target_field']
+                || (string)($issue['fingerprint'] ?? '') !== (string)$item['finding_fingerprint']) {
+                return $refuse('target_changed');
+            }
+            $located = $this->editorAi->locateStoredFinding($target->table, $target->uid, $target->field, (string)$issue['rule_id'], (string)($issue['context_path'] ?? ''), (string)($issue['context_snippet'] ?? ''));
+            if ($located === null || $this->editorAi->expectedSignature($located['html'], $located['target'], $value) === null) {
+                return $refuse('target_changed');
+            }
+            $planned = RichTextElementWriter::apply($located['raw'], $located['target'], $value);
+            if ($planned['reason'] !== RichTextElementWriter::OK) {
+                return $refuse('direct_not_provable');
+            }
+            if ($this->access->isRecordOpenElsewhere($target->table, $target->uid)) {
+                return $refuse('record_open');
+            }
+            $preview['before'] = $located['raw'];
+            $preview['after'] = $planned['html'];
+            $record = BackendUtility::getRecord($target->table, $target->uid);
+            $languageField = (string)($GLOBALS['TCA'][$target->table]['ctrl']['languageField'] ?? '');
+            $hiddenField = (string)($GLOBALS['TCA'][$target->table]['ctrl']['enablecolumns']['disabled'] ?? '');
+            if (is_array($record)) {
+                $preview['languageUid'] = $languageField !== '' ? (int)($record[$languageField] ?? 0) : 0;
+                $preview['recordHidden'] = $hiddenField !== '' && (int)($record[$hiddenField] ?? 0) === 1;
+            }
+        } else {
+            return $refuse('no_safe_action');
+        }
+        // A draft of the record in a workspace would overwrite this live change when it is published: not applied here.
+        if ($this->hasWorkspaceVersion($preview['kind'] === RemediationTargetKind::IMAGE_REFERENCE_ALT ? Tables::SYS_FILE_REFERENCE : (string)$preview['table'], (int)$preview['uid'])) {
+            return $refuse('workspace_version_exists');
+        }
+        $preview['beforeHash'] = RemediationTarget::hashValue($preview['before']);
+        $preview['afterHash'] = RemediationTarget::hashValue($preview['after']);
+        if ($preview['beforeHash'] === $preview['afterHash']) {
+            return $refuse('no_change');
+        }
+
+        return $preview;
+    }
+
+    private function hasWorkspaceVersion(string $table, int $uid): bool
+    {
+        if (!(bool)($GLOBALS['TCA'][$table]['ctrl']['versioningWS'] ?? false) || $uid <= 0) {
+            return false;
+        }
+
+        return (int)$this->connectionPool->getConnectionForTable($table)->fetchOne(
+            'SELECT COUNT(*) FROM ' . $table . ' WHERE t3ver_oid = ? AND t3ver_wsid > 0 AND deleted = 0',
+            [$uid],
+        ) > 0;
     }
 
     /**

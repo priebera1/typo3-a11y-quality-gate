@@ -213,7 +213,7 @@ final class McpSettingsViewBuilder
                     'risk' => McpScopes::riskOf($scope),
                     'checked' => in_array($scope, $settings['capabilities'], true),
                     'fieldId' => 'aqg-mcp-cap-' . preg_replace('/[^a-z0-9]+/i', '-', $site->getIdentifier() . '-' . $scope),
-                ], McpScopes::GRANTABLE),
+                ], McpScopes::grantable()),
                 'fieldId' => 'aqg-mcp-site-' . preg_replace('/[^a-z0-9]+/i', '-', $site->getIdentifier()),
             ];
         }
@@ -227,13 +227,13 @@ final class McpSettingsViewBuilder
     private function scopeCatalogue(): array
     {
         $catalogue = [];
-        foreach ([...McpScopes::GRANTABLE, ...McpScopes::NOT_AVAILABLE] as $scope) {
+        foreach ([...McpScopes::grantable(), ...McpScopes::NOT_AVAILABLE] as $scope) {
             $catalogue[] = [
                 'scope' => $scope,
                 'title' => McpScopes::title($scope),
                 'description' => McpScopes::description($scope),
                 'risk' => McpScopes::riskOf($scope),
-                'available' => in_array($scope, McpScopes::GRANTABLE, true),
+                'available' => in_array($scope, McpScopes::grantable(), true),
             ];
         }
 

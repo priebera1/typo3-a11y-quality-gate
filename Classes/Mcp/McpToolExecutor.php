@@ -8,6 +8,7 @@ use Priebera\A11yQualityGate\Controller\ProCrawlerAjaxController;
 use Priebera\A11yQualityGate\Database\Tables;
 use Priebera\A11yQualityGate\Domain\Repository\RemoteScanRepository;
 use Priebera\A11yQualityGate\Mcp\Intelligence\McpIntelligenceTools;
+use Priebera\A11yQualityGate\Mcp\Remediation\McpApprovedChangeTools;
 use Priebera\A11yQualityGate\Mcp\Remediation\McpSuggestionTools;
 use Priebera\A11yQualityGate\Pro\ViewModel\RemoteOccurrenceTotals;
 use Priebera\A11yQualityGate\Service\AccessControlService;
@@ -69,6 +70,7 @@ final class McpToolExecutor
         private readonly ProCrawlerAjaxController $crawlerController,
         private readonly McpIntelligenceTools $intelligence,
         private readonly ?McpSuggestionTools $suggestions = null,
+        private readonly ?McpApprovedChangeTools $approvedChanges = null,
     ) {
     }
 
@@ -80,6 +82,12 @@ final class McpToolExecutor
      */
     public function execute(string $tool, array $arguments, array $principal): array
     {
+        // remediations:apply-approved is off unless the extension configuration enables it (post-3.0.0 preview):
+        // tokens or site settings that name it then hold nothing (McpScopes::normalize()).
+        if (in_array($tool, McpScopes::APPROVED_CHANGE_TOOLS, true)
+            && !McpScopes::approvedChangesEnabled()) {
+            throw new McpCallRefused('tool_not_available', 'This tool is not available.');
+        }
         if (!McpScopes::toolAllowed($tool, $principal['scopes'])) {
             throw new McpCallRefused('scope_not_granted', 'This agent was not granted the capability for this tool.');
         }
@@ -130,9 +138,40 @@ final class McpToolExecutor
                     $arguments,
                     $this->contentReadable((string)($arguments['siteIdentifier'] ?? ''), $principal),
                 )),
+                // Approved changes (remediations:apply-approved): the TYPO3 user approves each exact change in the
+                // backend; the connector applies only that change, as this user (McpApprovedChangeTools).
+                'aqg_request_change_approval' => $this->freshRequest(fn (): array => $this->approvedChangeTools()->request(
+                    $user,
+                    $this->requireSite((string)($arguments['siteIdentifier'] ?? ''), [McpScopes::APPLY_APPROVED], $principal),
+                    $arguments,
+                    $principal,
+                    $this->contentReadable((string)($arguments['siteIdentifier'] ?? ''), $principal),
+                )),
+                'aqg_apply_approved_change' => $this->freshRequest(fn (): array => $this->approvedChangeTools()->apply(
+                    $user,
+                    $this->requireSite((string)($arguments['siteIdentifier'] ?? ''), [McpScopes::APPLY_APPROVED], $principal),
+                    $arguments,
+                    $principal,
+                ), 'POST'),
+                'aqg_get_change_status' => $this->freshRequest(fn (): array => $this->approvedChangeTools()->status(
+                    $user,
+                    $this->requireSite((string)($arguments['siteIdentifier'] ?? ''), [McpScopes::APPLY_APPROVED], $principal),
+                    $arguments,
+                    $principal,
+                    $this->contentReadable((string)($arguments['siteIdentifier'] ?? ''), $principal),
+                )),
                 default => throw new McpCallRefused('tool_not_available', 'This tool is not available.'),
             };
         });
+    }
+
+    private function approvedChangeTools(): McpApprovedChangeTools
+    {
+        if (!$this->approvedChanges instanceof McpApprovedChangeTools) {
+            throw new McpCallRefused('tool_not_available', 'This tool is not available.');
+        }
+
+        return $this->approvedChanges;
     }
 
     private function suggestionTools(): McpSuggestionTools
@@ -1126,10 +1165,10 @@ final class McpToolExecutor
      * @param callable(): array<string, mixed> $callback
      * @return array<string, mixed>
      */
-    private function freshRequest(callable $callback): array
+    private function freshRequest(callable $callback, string $method = 'GET'): array
     {
         $previous = $GLOBALS['TYPO3_REQUEST'] ?? null;
-        $this->backendRequest('GET');
+        $this->backendRequest($method);
         try {
             return $callback();
         } finally {

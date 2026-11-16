@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Agent access (MCP): approved changes (preview, off by default)
+
+- **New capability `remediations:apply-approved`** (*Apply changes you approve*): an agent may ask to save one existing AI Fixes suggestion, and saves it only after the same TYPO3 user approved exactly that change in the TYPO3 backend. Off until an administrator sets `mcpApprovedChanges = 1` in the extension configuration *and* enables the capability per site; a user grants it only by ticking it on the consent page (never ticked in advance). Needs the AQG MCP Gateway version that knows the capability.
+- **Approval in TYPO3 only:** the approval page shows the record, field, language, workspace and problem, the changed element BEFORE and AFTER with the change highlighted, the complete field, and the limits. Approving asks for the TYPO3 password again (sudo mode, Production context); rejecting does not. An agent can never approve, and nothing it claims counts as an approval.
+- **Exact and once:** the approval binds the user, agent token, site, item, proposal and record versions, target and the hashes of the value before and after. The change is written once through TYPO3 DataHandler with the user's permissions, checked again under a row lock, read back and verified by AQG; any change in between makes it stale and nothing is written. Repeated calls report the stored result. Only `verified` means AQG no longer finds the problem.
+- **Supported:** one rich-text single-element fix or one image alternative text per approval, live workspace only. Not supported: text written by the agent, workspaces and publishing, records with a workspace draft, bulk changes.
+- Agent tools: `aqg_request_change_approval`, `aqg_apply_approved_change`, `aqg_get_change_status`. New table `tx_a11y_mcp_change_approval` (hashes and ids only, no content); run the database analyzer after the update.
+
 ## [3.0.0] - 2026-11-15
 
 AQG 3.0 brings guidance and optional AI help directly into the TYPO3 backend. Ask AQG explains findings and what to fix first, AI prepares suggestions that a person reviews before anything is saved, and new workflows help teams share and track accessibility work. Scanning, findings, the Quality Gate, history and reporting work as before.
