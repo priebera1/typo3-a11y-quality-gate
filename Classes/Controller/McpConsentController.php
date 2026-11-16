@@ -221,6 +221,9 @@ final class McpConsentController extends AbstractBackendModuleController
         } elseif (!$this->gatewayClient->isConnected()) {
             $view['state'] = 'notAvailable';
         } else {
+            // MCP readiness 2026-11-16: the people who add an agent are mostly not administrators and cannot open the
+            // Settings tab, which was the only place showing the server URL. It is not a secret (it grants nothing).
+            $view['serverUrl'] = (string)($this->connectionStore?->get()['serverUrl'] ?? '');
             try {
                 $view['tokens'] = $this->settingsViewBuilder->describeTokens($this->gatewayClient->listTokens((int)$user->user['uid']));
             } catch (ApiRequestFailedException) {

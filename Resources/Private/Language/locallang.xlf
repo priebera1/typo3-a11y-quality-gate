@@ -13116,6 +13116,12 @@ Automated checks found accessibility issues that require review and remediation.
             <trans-unit id="mcp.myAgents.empty">
                 <source>No agents are connected as you. To connect one, add the server URL your administrator gives you in the agent and sign in with TYPO3.</source>
             </trans-unit>
+            <trans-unit id="mcp.myAgents.connectTitle">
+                <source>Connect an agent</source>
+            </trans-unit>
+            <trans-unit id="mcp.myAgents.connectText">
+                <source>Add this server URL to your AI agent as a remote MCP server (HTTP). The agent then opens TYPO3 in your browser, where you sign in and choose what it may do. The URL itself grants no access.</source>
+            </trans-unit>
             <trans-unit id="mcp.myAgents.sub">
                 <source>AI agents that act as you in AQG. Each one only gets your TYPO3 permissions. Revoking stops it immediately.</source>
             </trans-unit>

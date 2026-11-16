@@ -61,7 +61,9 @@ final class McpSettingsViewBuilder
         // Not activated yet: the Gateway answers every connector call but `activate` with 401 until the connector (or
         // the tab's next poll) activates it. That 401 is the expected state of a fresh pairing, not a revocation.
         $awaitingActivation = $connected && (bool)($connection['activationPending'] ?? false) && $withinGrace;
-        if ($eligible && $connected && !$unusable && !$awaitingActivation) {
+        // The local licence view never hides a paired installation (MCP readiness 2026-11-16): its Gateway state, token
+        // table and emergency disconnect stay reachable while the licence is lapsed or its check fails for a moment.
+        if ($connected && !$unusable && !$awaitingActivation) {
             try {
                 $status = $this->gatewayClient->status();
                 $gateway = is_array($status['installation'] ?? null) ? $status['installation'] : [];
@@ -76,14 +78,14 @@ final class McpSettingsViewBuilder
         $neverHeard = $gateway !== null && ($gateway['lastHeartbeatAt'] ?? null) === null;
 
         $state = match (true) {
-            !$eligible => 'locked',
+            !$eligible && !$connected && $connection['status'] !== 'pairing' => 'locked',
             // Stored, but not usable on this host (a copy, another host's key, a new identity): no Gateway call (N2).
             $unusable => 'unusable',
             $connection['status'] === 'pairing' => 'pairing',
             $awaitingActivation => 'starting',
             $connected && $gatewayError === 'revoked' => 'revoked',
             $connected && $gatewayError !== '' => 'unreachable',
-            $connected && !($gateway['licenceActive'] ?? true) => 'suspended',
+            $connected && (!$eligible || !($gateway['licenceActive'] ?? true)) => 'suspended',
             // Paired, but the connector has not sent its first heartbeat yet: waiting, not failing (bounded by the grace).
             $connected && !($gateway['connectorOnline'] ?? false) && $neverHeard && $withinGrace => 'starting',
             $connected && !($gateway['connectorOnline'] ?? false) => 'offline',

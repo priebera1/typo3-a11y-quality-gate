@@ -107,4 +107,18 @@ final class McpUiRedesignTest extends TestCase
             self::assertMatchesRegularExpression('#<trans-unit id="' . preg_quote($key, '#') . '">\s*<source>[^<]*</source>\s*<target>[^<]+</target>#u', $de, $key . ' (de)');
         }
     }
+
+    /**
+     * MCP readiness 2026-11-16: the user who adds an agent finds the server URL on "My connected agents" (before, only the
+     * administrators' Settings tab showed it). It is shown only when the installation is paired and never with a token.
+     */
+    #[Test]
+    public function myConnectedAgentsShowsTheServerUrlForAgentsWhenPaired(): void
+    {
+        $page = self::read('Resources/Private/Templates/Mcp/MyAgents.html');
+        self::assertMatchesRegularExpression('#<f:if condition="\{serverUrl\}">.*?<code class="aqg-mcp-copyline">\{serverUrl\}</code>#s', $page);
+        self::assertStringContainsString('mcp.myAgents.connectText', $page);
+        $controller = self::read('Classes/Controller/McpConsentController.php');
+        self::assertStringContainsString("\$view['serverUrl'] = (string)(\$this->connectionStore?->get()['serverUrl'] ?? '');", $controller);
+    }
 }

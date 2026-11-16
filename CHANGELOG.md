@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Improvements and fixes
+
+- Agent access (MCP): a paired installation whose licence check no longer reads PRO or Agency (licence lapsed or
+  changed, or a licence check that failed for a moment) now shows **Suspended** with its connections, revoke and
+  **Emergency disconnect**, instead of "Not in this plan", which hid them.
+- Agent access (MCP): **My connected agents** shows the server URL to add to an AI agent. Before, only administrators
+  saw it in the Settings tab.
+
 ## [3.0.0] - 2026-11-15
 
 AQG 3.0 brings guidance and optional AI help directly into the TYPO3 backend. Ask AQG explains findings and what to fix first, AI prepares suggestions that a person reviews before anything is saved, and new workflows help teams share and track accessibility work. Scanning, findings, the Quality Gate, history and reporting work as before.

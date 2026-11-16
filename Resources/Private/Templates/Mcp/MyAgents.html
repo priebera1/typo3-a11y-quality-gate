@@ -34,6 +34,19 @@
                 <f:for each="{tokens}" as="token">
                     <f:if condition="{token.revocable}"><f:then><f:variable name="activeCount" value="{activeCount + 1}" /></f:then><f:else><f:variable name="endedCount" value="{endedCount + 1}" /></f:else></f:if>
                 </f:for>
+                <f:if condition="{serverUrl}">
+                    <section class="aqg-card" aria-labelledby="aqg-mcp-agents-connect">
+                        <header class="aqg-card__head">
+                            <div>
+                                <h2 class="aqg-card__title" id="aqg-mcp-agents-connect"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.connectTitle" default="Connect an agent" /></h2>
+                                <p class="aqg-card__sub"><f:translate key="LLL:EXT:a11y_quality_gate/Resources/Private/Language/locallang.xlf:mcp.myAgents.connectText" default="Add this server URL to your AI agent as a remote MCP server (HTTP). The agent then opens TYPO3 in your browser, where you sign in and choose what it may do. The URL itself grants no access." /></p>
+                            </div>
+                        </header>
+                        <div class="aqg-card__body">
+                            <div class="aqg-mcp-copyfield"><code class="aqg-mcp-copyline">{serverUrl}</code></div>
+                        </div>
+                    </section>
+                </f:if>
                 <section class="aqg-card" aria-labelledby="aqg-mcp-agents-active">
                     <header class="aqg-card__head">
                         <div>

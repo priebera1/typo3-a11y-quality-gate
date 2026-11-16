@@ -82,9 +82,34 @@ final class McpPostConnectionFunctionalTest extends AbstractFunctionalTestCase
             : [$status, ['success' => false, 'error' => ['code' => 'connector_unauthorized']]];
     }
 
-    private function state(?int $now = null): string
+    private function state(?int $now = null, bool $eligible = true): string
     {
-        return $this->get(McpSettingsViewBuilder::class)->resolveState(true, null, $now)['state'];
+        return $this->get(McpSettingsViewBuilder::class)->resolveState($eligible, null, $now)['state'];
+    }
+
+    /**
+     * MCP readiness 2026-11-16: a paired installation whose local licence check no longer reads PRO/Agency (licence
+     * lapsed, downgraded, or a validation that failed for a moment) showed "Not in this plan" and hid the token table and
+     * the emergency disconnect. The kill switch must stay reachable while anything is paired: the state is "suspended",
+     * and the Gateway is still asked with the installation's own credential.
+     */
+    #[Test]
+    public function aPairedInstallationWithoutAnEligibleLicenceIsSuspendedNotLocked(): void
+    {
+        $this->connect();
+        $this->gatewayReports(['lastHeartbeatAt' => gmdate('Y-m-d\TH:i:s\Z'), 'connectorOnline' => true]);
+        self::assertSame('suspended', $this->state(eligible: false), 'the emergency disconnect stays visible');
+        self::assertContains('/mcp/connector/status', array_map(static fn (string $p): string => substr($p, strrpos($p, '/mcp/') ?: 0), $this->paths), 'the Gateway is still asked');
+
+        $this->gatewayReports([], 401);
+        self::assertSame('revoked', $this->state(eligible: false), 'a Gateway refusal still reads as such');
+    }
+
+    #[Test]
+    public function anUnpairedInstallationWithoutAnEligibleLicenceIsLockedAndAsksTheGatewayNothing(): void
+    {
+        self::assertSame('locked', $this->state(eligible: false));
+        self::assertSame([], $this->paths);
     }
 
     #[Test]

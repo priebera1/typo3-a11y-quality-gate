@@ -17495,6 +17495,14 @@ Die automatisierten Prüfungen haben Barrierefreiheitsprobleme gefunden, die gep
                 <source>No agents are connected as you. To connect one, add the server URL your administrator gives you in the agent and sign in with TYPO3.</source>
                 <target>Keine Agenten sind in Ihrem Namen verbunden. Fügen Sie dazu im Agenten die Server-URL hinzu, die Sie von Ihrer Administration erhalten, und melden Sie sich bei TYPO3 an.</target>
             </trans-unit>
+            <trans-unit id="mcp.myAgents.connectTitle">
+                <source>Connect an agent</source>
+                <target>Agent verbinden</target>
+            </trans-unit>
+            <trans-unit id="mcp.myAgents.connectText">
+                <source>Add this server URL to your AI agent as a remote MCP server (HTTP). The agent then opens TYPO3 in your browser, where you sign in and choose what it may do. The URL itself grants no access.</source>
+                <target>Fügen Sie diese Server-URL in Ihrem KI-Agenten als entfernten MCP-Server (HTTP) hinzu. Der Agent öffnet dann TYPO3 in Ihrem Browser; dort melden Sie sich an und wählen, was er darf. Die URL selbst gewährt keinen Zugriff.</target>
+            </trans-unit>
             <trans-unit id="mcp.myAgents.sub">
                 <source>AI agents that act as you in AQG. Each one only gets your TYPO3 permissions. Revoking stops it immediately.</source>
                 <target>KI-Agenten, die in AQG in Ihrem Namen handeln. Jeder erhält nur Ihre TYPO3-Berechtigungen. Ein Widerruf stoppt ihn sofort.</target>
